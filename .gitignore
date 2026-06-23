@@ -1,0 +1,6 @@
+# macOS system files
+.DS_Store
+
+# IDE and temporary files
+.gemini/
+*.log

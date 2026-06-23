@@ -11,6 +11,9 @@
   <meta name="apple-mobile-web-app-title" content="Đông Bắc">
   <title>Vận tải Đông Bắc - Hệ thống điều hành nội bộ</title>
   
+  <!-- html2canvas for exporting report cards to PNG -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
   <!-- Premium Typography & iOS Web App Integration -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1292,6 +1295,23 @@
       input, select, textarea, .ac-input { min-height: 48px; font-size: 16px; }
       button { min-height: 46px; }
     }
+    
+    @media (max-width: 768px) {
+      th:first-child {
+        position: sticky;
+        left: 0;
+        background: #f8fafc;
+        z-index: 2;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+      }
+      td:first-child {
+        position: sticky;
+        left: 0;
+        background: var(--paper);
+        z-index: 2;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+      }
+    }
   </style>
 </head>
 <body class="locked">
@@ -1353,14 +1373,6 @@
 
       <!-- View: Home / Dashboard -->
       <section id="homeView" class="view active">
-        <!-- Mobile Quick Entries -->
-        <section class="mobile-quick">
-          <div class="mobile-quick-head">Lối tắt nhập nhanh dữ liệu</div>
-          <div class="panel-body" style="padding: 12px;">
-            <div class="action-grid" id="mobileQuickActions"></div>
-          </div>
-        </section>
-        
         <!-- KPI Metrics Grid -->
         <div class="kpi-grid" id="metrics">
           <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
@@ -1369,38 +1381,60 @@
           <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
         </div>
         
-        <div class="grid-2">
-          <!-- Chart Panel -->
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2 class="panel-title">Biểu đồ lợi nhuận thực tế</h2>
-                <div class="panel-note" id="chartNote">Dữ liệu được cập nhật tự động từ BC_TongQuan</div>
-              </div>
-              <div class="filter-row">
-                <label>Tháng: <select id="homeMonthFilter"></select></label>
-              </div>
+        <!-- Profit Chart Panel -->
+        <section class="panel" style="margin-bottom: 24px;">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Biểu đồ lợi nhuận thực tế</h2>
+              <div class="panel-note" id="chartNote">Dữ liệu được cập nhật tự động từ BC_TongQuan</div>
             </div>
-            <div class="panel-body">
-              <div class="chart" id="profitChart">
-                <div class="shimmer shimmer-chart"></div>
-              </div>
+            <div class="filter-row">
+              <label>Tháng: <select id="homeMonthFilter"></select></label>
             </div>
-          </section>
-          
-          <!-- Quick Operations -->
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2 class="panel-title">Bảng điều khiển nghiệp vụ</h2>
-                <div class="panel-note">Chọn form để nhập nhanh dữ liệu</div>
-              </div>
+          </div>
+          <div class="panel-body">
+            <div class="chart" id="profitChart">
+              <div class="shimmer shimmer-chart"></div>
             </div>
-            <div class="panel-body">
-              <div class="action-grid" id="quickActions"></div>
+          </div>
+        </section>
+
+        <!-- Condensed Financial Summary Table Panel -->
+        <section class="panel table-card" id="homeSummaryTableCard" style="margin-bottom: 24px;">
+          <div class="table-card-head">
+            <div class="table-title">Tóm tắt kết quả kinh doanh theo tháng</div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="sub-tab" style="min-height: 28px !important; padding: 0 10px !important; font-size: 11px !important; border-radius: 6px !important;" onclick="exportCardAsImage(this, 'TongQuan')">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                Xuất ảnh
+              </button>
             </div>
-          </section>
-        </div>
+          </div>
+          <div class="table-wrap">
+            <table id="homeSummaryTable">
+              <thead>
+                <tr>
+                  <th>Tháng</th>
+                  <th>Tổng khối lượng</th>
+                  <th>Tổng doanh thu</th>
+                  <th>Thuế TNDN</th>
+                  <th>Thuế VAT</th>
+                  <th>Dầu Quang Minh</th>
+                  <th>Dầu đổ ngoài</th>
+                  <th>Phí đường bộ</th>
+                  <th>Lợi nhuận gộp</th>
+                  <th>Chi quỹ thực tế</th>
+                  <th>Lợi nhuận thực</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="11" style="text-align: center; color: var(--muted); padding: 24px;">Đang tải dữ liệu tóm tắt...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
       </section>
 
       <!-- View: Data Entry Form -->
@@ -1829,7 +1863,138 @@
       el('subtitle').textContent = meta[2];
     }
 
+    function exportCardAsImage(btn, type) {
+      const card = btn.closest('.table-card');
+      if (!card) return;
+      
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `
+        <svg class="btn-svg" style="width: 14px; height: 14px; animation: spin 0.8s linear infinite;" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+        Đang chụp...
+      `;
+      
+      const headActions = card.querySelectorAll('.table-card-head a, .table-card-head button');
+      headActions.forEach(el => el.style.visibility = 'hidden');
+      
+      const tableWrap = card.querySelector('.table-wrap');
+      const table = card.querySelector('table');
+      const originalWrapStyle = tableWrap ? tableWrap.getAttribute('style') : null;
+      const originalTableStyle = table ? table.getAttribute('style') : null;
+      
+      if (tableWrap) {
+        tableWrap.style.overflow = 'visible';
+        tableWrap.style.width = 'auto';
+      }
+      if (table) {
+        table.style.width = 'auto';
+        table.style.minWidth = '0';
+      }
+      
+      const stickyEls = card.querySelectorAll('th:first-child, td:first-child');
+      const originalStickyStyles = [];
+      stickyEls.forEach(el => {
+        originalStickyStyles.push({ el, position: el.style.position, left: el.style.left, boxShadow: el.style.boxShadow });
+        el.style.position = 'static';
+        el.style.boxShadow = 'none';
+      });
+
+      html2canvas(card, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      }).then((canvas) => {
+        headActions.forEach(el => el.style.visibility = 'visible');
+        if (tableWrap) {
+          if (originalWrapStyle !== null) {
+            tableWrap.setAttribute('style', originalWrapStyle);
+          } else {
+            tableWrap.removeAttribute('style');
+          }
+        }
+        if (table) {
+          if (originalTableStyle !== null) {
+            table.setAttribute('style', originalTableStyle);
+          } else {
+            table.removeAttribute('style');
+          }
+        }
+        stickyEls.forEach((el, index) => {
+          const orig = originalStickyStyles[index];
+          el.style.position = orig.position;
+          el.style.left = orig.left;
+          el.style.boxShadow = orig.boxShadow;
+        });
+        
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        
+        const link = document.createElement('a');
+        const filename = `BaoCao_${type}_${new Date().toISOString().slice(0, 10)}.png`;
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }).catch((err) => {
+        console.error('Chụp ảnh thất bại:', err);
+        alert('Lỗi xuất ảnh: ' + err.message);
+        
+        headActions.forEach(el => el.style.visibility = 'visible');
+        if (tableWrap) {
+          if (originalWrapStyle !== null) {
+            tableWrap.setAttribute('style', originalWrapStyle);
+          } else {
+            tableWrap.removeAttribute('style');
+          }
+        }
+        if (table) {
+          if (originalTableStyle !== null) {
+            table.setAttribute('style', originalTableStyle);
+          } else {
+            table.removeAttribute('style');
+          }
+        }
+        stickyEls.forEach((el, index) => {
+          const orig = originalStickyStyles[index];
+          el.style.position = orig.position;
+          el.style.left = orig.left;
+          el.style.boxShadow = orig.boxShadow;
+        });
+        
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      });
+    }
+
     // Dashboard rendering
+    function renderHomeSummaryTable(matrix) {
+      const table = el('homeSummaryTable');
+      if (!table) return;
+      
+      const tbody = table.querySelector('tbody');
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+      
+      const tableRows = matrix || [];
+      const body = tableRows.slice(2); // Skip empty padding row and header row
+      
+      if (!body.length) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--muted); padding: 24px;">Chưa có dữ liệu báo cáo tài chính.</td></tr>';
+        return;
+      }
+      
+      body.forEach((row) => {
+        const tr = document.createElement('tr');
+        for (let i = 0; i < 11; i++) {
+          const td = document.createElement('td');
+          td.textContent = row[i] || '';
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      });
+    }
+
     function renderDashboard() {
       const dashboard = getDashboardData();
       const parsed = parseOverview(dashboard.overview.months);
@@ -1838,7 +2003,9 @@
       renderMonthFilters(parsed.rows);
       renderMetrics(selected);
       renderProfitChart(parsed.rows);
-      renderQuickActions(dashboard.inputs || []);
+      
+      // Render the condensed summary table on the dashboard
+      renderHomeSummaryTable(dashboard.overview.months);
       
       el('chartNote').textContent = dashboard.loading 
         ? 'Đang tải dữ liệu từ Google Sheets...' 
@@ -2227,7 +2394,13 @@
       card.innerHTML = `
         <div class="table-card-head">
           <div class="table-title">${escapeHtml(title)}</div>
-          <a href="${href || '#'}" target="_blank">Mở sheet tính gốc</a>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="sub-tab" style="min-height: 28px !important; padding: 0 10px !important; font-size: 11px !important; border-radius: 6px !important;" onclick="exportCardAsImage(this, '${escapeHtml(type)}')">
+              <svg class="btn-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+              Xuất ảnh
+            </button>
+            <a href="${href || '#'}" target="_blank" style="font-size: 13px;">Mở sheet tính gốc</a>
+          </div>
         </div>
         <div class="table-wrap">
           <table>

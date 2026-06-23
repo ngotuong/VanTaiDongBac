@@ -362,7 +362,7 @@ var SheetService = (function () {
   function readOverviewReport_(ss) {
     var sheet = ss.getSheetByName('BC_TongQuan');
     if (!sheet) return { months: [], details: [] };
-    var months = sheet.getRange(1, 6, Math.min(sheet.getLastRow(), 24), 10).getDisplayValues()
+    var months = sheet.getRange(1, 7, Math.min(sheet.getLastRow(), 24), 11).getDisplayValues()
       .filter(function (row, index) {
         return index === 0 || row.some(function (cell) { return clean_(cell); });
       });

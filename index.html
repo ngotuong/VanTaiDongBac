@@ -12,7 +12,7 @@
   <title>Vận tải Đông Bắc - Hệ thống điều hành nội bộ</title>
   
   <!-- html2canvas-pro for exporting report cards to PNG with modern CSS oklch support -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas-pro.min.js"></script>
   
   <!-- Premium Typography & iOS Web App Integration -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -533,6 +533,64 @@
       text-align: right; 
       color: var(--deep); 
       font-weight: 700; 
+    }
+
+    /* Vertical Chart upgrades for 12 months */
+    .chart-v {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      height: 250px;
+      padding-top: 30px;
+      padding-bottom: 10px;
+      gap: 8px;
+      width: 100%;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    
+    .chart-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      min-width: 60px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+    
+    .bar-track-v {
+      width: 20px;
+      height: 130px;
+      background: #f1f5f9;
+      border-radius: 999px;
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+    
+    .bar-fill-v {
+      width: 100%;
+      min-height: 4px;
+      border-radius: 999px;
+      transition: height 1s ease-out;
+    }
+    
+    .chart-col .bar-value {
+      font-size: 10px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      text-align: center;
+    }
+    
+    .chart-col .bar-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-top: 8px;
+      white-space: nowrap;
     }
     
     /* Quick Actions */
@@ -1373,6 +1431,20 @@
 
       <!-- View: Home / Dashboard -->
       <section id="homeView" class="view active">
+        <!-- Dashboard Month Filter Bar (Top of page) -->
+        <div class="panel" style="padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border-radius: var(--radius); box-shadow: var(--shadow-sm);">
+          <div style="font-weight: 700; font-size: 15px; color: var(--deep); display: flex; align-items: center; gap: 8px;">
+            <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: var(--teal);"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+            Bộ lọc tháng điều hành
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <label style="font-size: 13px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 8px; margin: 0;">
+              Chọn kỳ báo cáo:
+              <select id="homeMonthFilter" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s; cursor: pointer;"></select>
+            </label>
+          </div>
+        </div>
+
         <!-- KPI Metrics Grid -->
         <div class="kpi-grid" id="metrics">
           <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
@@ -1387,9 +1459,6 @@
             <div>
               <h2 class="panel-title">Biểu đồ lợi nhuận thực tế</h2>
               <div class="panel-note" id="chartNote">Dữ liệu được cập nhật tự động từ BC_TongQuan</div>
-            </div>
-            <div class="filter-row">
-              <label>Tháng: <select id="homeMonthFilter"></select></label>
             </div>
           </div>
           <div class="panel-body">
@@ -1903,12 +1972,78 @@
         el.style.boxShadow = 'none';
       });
 
-      html2canvas(card, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false
-      }).then((canvas) => {
+      try {
+        html2canvas(card, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false
+        }).then((canvas) => {
+          headActions.forEach(el => el.style.visibility = 'visible');
+          card.style.width = originalCardStyleWidth;
+          if (tableWrap) {
+            if (originalWrapStyle !== null) {
+              tableWrap.setAttribute('style', originalWrapStyle);
+            } else {
+              tableWrap.removeAttribute('style');
+            }
+          }
+          if (table) {
+            if (originalTableStyle !== null) {
+              table.setAttribute('style', originalTableStyle);
+            } else {
+              table.removeAttribute('style');
+            }
+          }
+          stickyEls.forEach((el, index) => {
+            const orig = originalStickyStyles[index];
+            el.style.position = orig.position;
+            el.style.left = orig.left;
+            el.style.boxShadow = orig.boxShadow;
+          });
+          
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+          
+          const link = document.createElement('a');
+          const filename = `BaoCao_${type}_${new Date().toISOString().slice(0, 10)}.png`;
+          link.download = filename;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        }).catch((err) => {
+          console.error('Chụp ảnh thất bại:', err);
+          alert('Lỗi xuất ảnh: ' + err.message);
+          
+          headActions.forEach(el => el.style.visibility = 'visible');
+          card.style.width = originalCardStyleWidth;
+          if (tableWrap) {
+            if (originalWrapStyle !== null) {
+              tableWrap.setAttribute('style', originalWrapStyle);
+            } else {
+              tableWrap.removeAttribute('style');
+            }
+          }
+          if (table) {
+            if (originalTableStyle !== null) {
+              table.setAttribute('style', originalTableStyle);
+            } else {
+              table.removeAttribute('style');
+            }
+          }
+          stickyEls.forEach((el, index) => {
+            const orig = originalStickyStyles[index];
+            el.style.position = orig.position;
+            el.style.left = orig.left;
+            el.style.boxShadow = orig.boxShadow;
+          });
+          
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        });
+      } catch (err) {
+        console.error('Lỗi khởi tạo html2canvas:', err);
+        alert('Lỗi khởi tạo xuất ảnh: ' + err.message);
+        
         headActions.forEach(el => el.style.visibility = 'visible');
         card.style.width = originalCardStyleWidth;
         if (tableWrap) {
@@ -1934,42 +2069,7 @@
         
         btn.disabled = false;
         btn.innerHTML = originalText;
-        
-        const link = document.createElement('a');
-        const filename = `BaoCao_${type}_${new Date().toISOString().slice(0, 10)}.png`;
-        link.download = filename;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      }).catch((err) => {
-        console.error('Chụp ảnh thất bại:', err);
-        alert('Lỗi xuất ảnh: ' + err.message);
-        
-        headActions.forEach(el => el.style.visibility = 'visible');
-        card.style.width = originalCardStyleWidth;
-        if (tableWrap) {
-          if (originalWrapStyle !== null) {
-            tableWrap.setAttribute('style', originalWrapStyle);
-          } else {
-            tableWrap.removeAttribute('style');
-          }
-        }
-        if (table) {
-          if (originalTableStyle !== null) {
-            table.setAttribute('style', originalTableStyle);
-          } else {
-            table.removeAttribute('style');
-          }
-        }
-        stickyEls.forEach((el, index) => {
-          const orig = originalStickyStyles[index];
-          el.style.position = orig.position;
-          el.style.left = orig.left;
-          el.style.boxShadow = orig.boxShadow;
-        });
-        
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-      });
+      }
     }
 
     // Dashboard rendering
@@ -1995,6 +2095,17 @@
         for (let i = 0; i < 11; i++) {
           const td = document.createElement('td');
           td.textContent = row[i] || '';
+          
+          if (i === 0) {
+            td.style.fontWeight = '700';
+            td.style.color = 'var(--deep)';
+          } else if (i === 2 || i === 8 || i === 10) {
+            td.style.color = 'var(--green)';
+            td.style.fontWeight = '600';
+          } else if (i === 3 || i === 4 || i === 5 || i === 6 || i === 7 || i === 9) {
+            td.style.color = 'var(--red)';
+            td.style.fontWeight = '400';
+          }
           tr.appendChild(td);
         }
         tbody.appendChild(tr);
@@ -2127,7 +2238,7 @@
         return;
       }
       
-      const data = rows.filter((row) => row.month).slice(-6);
+      const data = rows.filter((row) => row.month).slice(-12);
       if (!data.length) {
         holder.innerHTML = '<div class="panel-note">Chưa có dữ liệu báo cáo lợi nhuận.</div>';
         return;
@@ -2136,22 +2247,24 @@
       const max = Math.max(...data.map((row) => Math.abs(row.final || 0)), 1);
       
       const chartContainer = document.createElement('div');
-      chartContainer.className = 'chart';
+      chartContainer.className = 'chart-v';
       
       data.forEach((row) => {
-        const line = document.createElement('div');
-        line.className = 'bar-row';
+        const col = document.createElement('div');
+        col.className = 'chart-col';
         const pct = Math.max(2, Math.round(Math.abs(row.final || 0) / max * 100));
         const color = row.final < 0 
-          ? 'linear-gradient(90deg, var(--red), #f87171)' 
-          : 'linear-gradient(90deg, var(--teal), var(--blue))';
+          ? 'linear-gradient(180deg, #f87171, var(--red))' 
+          : 'linear-gradient(180deg, var(--teal), var(--deep-2))';
           
-        line.innerHTML = `
-          <div>Tháng ${escapeHtml(row.month)}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${color}"></div></div>
-          <div class="bar-value">${escapeHtml(row.finalText || '-')}</div>
+        col.innerHTML = `
+          <div class="bar-value" style="${row.final < 0 ? 'color: var(--red);' : 'color: var(--teal);'}">${escapeHtml(row.finalText || '-')}</div>
+          <div class="bar-track-v">
+            <div class="bar-fill-v" style="height:${pct}%; background:${color}; width: 100%;"></div>
+          </div>
+          <div class="bar-label">${escapeHtml(row.month)}</div>
         `;
-        chartContainer.appendChild(line);
+        chartContainer.appendChild(col);
       });
       holder.appendChild(chartContainer);
     }
@@ -2423,7 +2536,37 @@
         <div class="table-wrap">
           <table>
             <thead><tr>${head.map((cell) => `<th>${escapeHtml(cell)}</th>`).join('')}</tr></thead>
-            <tbody>${body.map((row) => `<tr>${head.map((_, i) => `<td>${escapeHtml(row[i] || '')}</td>`).join('')}</tr>`).join('')}</tbody>
+            <tbody>${body.map((row) => {
+              let rowStyle = '';
+              if (type === 'details') {
+                const cat = String(row[0] || '').toLowerCase().trim();
+                const isTotal = cat.includes('tổng khối lượng') || 
+                                cat.includes('tổng doanh thu') || 
+                                cat.includes('lợi nhuận gộp') || 
+                                cat.includes('lợi nhuận thực') ||
+                                cat.includes('tổng cộng') ||
+                                cat.includes('doanh thu gộp');
+                                
+                if (isTotal) {
+                  rowStyle = 'style="font-weight: 800; font-size: 13px;';
+                  if (cat.includes('doanh thu') || cat.includes('lợi nhuận')) {
+                    rowStyle += ' color: var(--green);"';
+                  } else {
+                    rowStyle += ' color: var(--deep);"';
+                  }
+                } else {
+                  rowStyle = 'style="font-weight: 500; font-size: 12.5px;';
+                  if (cat.includes('doanh thu') || cat.includes('lợi nhuận') || cat.includes('thu')) {
+                    rowStyle += ' color: var(--green);"';
+                  } else if (cat.includes('chi phí') || cat.includes('chi quỹ') || cat.includes('thuế') || cat.includes('dầu') || cat.includes('phí đường bộ') || cat.includes('chi')) {
+                    rowStyle += ' color: var(--red);"';
+                  } else {
+                    rowStyle += ' color: var(--muted);"';
+                  }
+                }
+              }
+              return `<tr ${rowStyle}>${head.map((_, i) => `<td>${escapeHtml(row[i] || '')}</td>`).join('')}</tr>`;
+            }).join('')}</tbody>
           </table>
         </div>
       `;

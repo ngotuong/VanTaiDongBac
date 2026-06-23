@@ -174,6 +174,7 @@
       gap: 12px;
       align-items: center;
       margin-bottom: 28px;
+      padding: 0 12px;
     }
     
     .brand-mark {
@@ -859,6 +860,48 @@
       gap: 20px; 
     }
     
+    .sub-tabs-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 4px 2px;
+      scrollbar-width: none; /* Firefox */
+    }
+    .sub-tabs-bar::-webkit-scrollbar {
+      display: none; /* Safari & Chrome */
+    }
+    
+    .sub-tab {
+      min-height: 38px !important;
+      padding: 0 18px !important;
+      border-radius: 20px !important;
+      background: var(--paper) !important;
+      border: 1px solid var(--line) !important;
+      color: var(--muted) !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      transition: all 0.2s !important;
+      white-space: nowrap;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    
+    .sub-tab:hover {
+      border-color: var(--teal) !important;
+      color: var(--teal) !important;
+      background: var(--mint-soft) !important;
+    }
+    
+    .sub-tab.active {
+      background: var(--deep) !important;
+      border-color: var(--deep) !important;
+      color: #fff !important;
+    }
+    
     .table-card {
       border: 1px solid var(--line);
       border-radius: var(--radius-lg);
@@ -1410,6 +1453,15 @@
           </div>
         </section>
         
+        <!-- Sub-tabs to switch report subcategories -->
+        <div class="sub-tabs-bar" id="reportTabsBar">
+          <button type="button" class="sub-tab active" data-report-tab="all" onclick="setReportTab('all')">Tất cả báo cáo</button>
+          <button type="button" class="sub-tab" data-report-tab="finance" onclick="setReportTab('finance')">Tổng quan tài chính</button>
+          <button type="button" class="sub-tab" data-report-tab="details" onclick="setReportTab('details')">Cấu trúc hoạt động</button>
+          <button type="button" class="sub-tab" data-report-tab="payroll" onclick="setReportTab('payroll')">Lương nhân sự</button>
+          <button type="button" class="sub-tab" data-report-tab="vehicles" onclick="setReportTab('vehicles')">Hiệu quả sử dụng xe</button>
+        </div>
+        
         <div class="report-stack" id="reports">
           <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
           <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
@@ -1531,6 +1583,7 @@
     let recentSubmissions = [];
     let activeView = 'home';
     let activeForm = 'vanChuyen';
+    let activeReportTab = 'all';
     let selectedMonth = '';
     let rows = [];
     
@@ -1654,6 +1707,14 @@
 
     // App Initializer
     function init() {
+      // Auto-clear old local/session cache on version updates to prevent old URL conflicts
+      const APP_VERSION = 'v2.1_stable';
+      if (localStorage.getItem('eb_version') !== APP_VERSION) {
+        localStorage.removeItem('eb_backend_url');
+        localStorage.setItem('eb_version', APP_VERSION);
+        sessionStorage.clear();
+      }
+
       renderNav();
       setupConfigInput();
       
@@ -1722,7 +1783,7 @@
         s.type = 'button';
         s.className = 'nav-btn';
         s.dataset.view = key;
-        s.innerHTML = `<span class="nav-ico">${icoSvg}</span><span><span class="nav-main">${label}</span></span>`;
+        s.innerHTML = `<span class="nav-ico">${icoSvg}</span><span class="nav-main">${label}</span>`;
         s.onclick = () => setView(key);
         side.appendChild(s);
 
@@ -2116,25 +2177,49 @@
       }
       
       const links = getLinks();
-      holder.appendChild(renderTableCard('Báo cáo Tổng quan tài chính', filteredOverview, links.overview));
-      holder.appendChild(renderTableCard('Phân tích cấu trúc hoạt động', buildSelectedDetails(selected), links.overview));
+      holder.appendChild(renderTableCard('Báo cáo Tổng quan tài chính', filteredOverview, links.overview, 'finance'));
+      holder.appendChild(renderTableCard('Phân tích cấu trúc hoạt động', buildSelectedDetails(selected), links.overview, 'details'));
       
       holder.appendChild(renderTableCard(
         'Bảng tổng hợp lương nhân sự',
         reportsByType.payroll?.data || [['Đang tải báo cáo lương...'], ['Vui lòng đợi giây lát.']],
-        links.payroll
+        links.payroll,
+        'payroll'
       ));
       
       holder.appendChild(renderTableCard(
         'Báo cáo hiệu quả sử dụng xe',
         reportsByType.vehicles?.data || [['Đang tải báo cáo xe...'], ['Vui lòng đợi giây lát.']],
-        links.vehicles
+        links.vehicles,
+        'vehicles'
       ));
+      
+      filterReportCards();
     }
 
-    function renderTableCard(title, matrix, href) {
+    function filterReportCards() {
+      document.querySelectorAll('#reports .table-card').forEach((card) => {
+        const type = card.dataset.reportType;
+        if (activeReportTab === 'all' || activeReportTab === type) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    }
+
+    window.setReportTab = (tab) => {
+      activeReportTab = tab;
+      document.querySelectorAll('#reportTabsBar .sub-tab').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.reportTab === tab);
+      });
+      filterReportCards();
+    };
+
+    function renderTableCard(title, matrix, href, type) {
       const card = document.createElement('section');
       card.className = 'table-card';
+      card.dataset.reportType = type;
       const tableRows = matrix || [];
       const head = tableRows[0] || [];
       const body = tableRows.slice(1);

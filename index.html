@@ -11,8 +11,8 @@
   <meta name="apple-mobile-web-app-title" content="Đông Bắc">
   <title>Vận tải Đông Bắc - Hệ thống điều hành nội bộ</title>
   
-  <!-- html2canvas for exporting report cards to PNG -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- html2canvas-pro for exporting report cards to PNG with modern CSS oklch support -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas.min.js"></script>
   
   <!-- Premium Typography & iOS Web App Integration -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1879,16 +1879,20 @@
       
       const tableWrap = card.querySelector('.table-wrap');
       const table = card.querySelector('table');
+      const originalCardStyleWidth = card.style.width;
       const originalWrapStyle = tableWrap ? tableWrap.getAttribute('style') : null;
       const originalTableStyle = table ? table.getAttribute('style') : null;
       
-      if (tableWrap) {
-        tableWrap.style.overflow = 'visible';
-        tableWrap.style.width = 'auto';
-      }
-      if (table) {
-        table.style.width = 'auto';
-        table.style.minWidth = '0';
+      if (table && tableWrap) {
+        const scrollWidth = table.scrollWidth;
+        const clientWidth = tableWrap.clientWidth;
+        if (scrollWidth > clientWidth) {
+          card.style.width = (scrollWidth + 32) + 'px';
+          tableWrap.style.overflow = 'visible';
+          tableWrap.style.width = 'auto';
+          table.style.width = '100%';
+          table.style.minWidth = '0';
+        }
       }
       
       const stickyEls = card.querySelectorAll('th:first-child, td:first-child');
@@ -1906,6 +1910,7 @@
         logging: false
       }).then((canvas) => {
         headActions.forEach(el => el.style.visibility = 'visible');
+        card.style.width = originalCardStyleWidth;
         if (tableWrap) {
           if (originalWrapStyle !== null) {
             tableWrap.setAttribute('style', originalWrapStyle);
@@ -1940,6 +1945,7 @@
         alert('Lỗi xuất ảnh: ' + err.message);
         
         headActions.forEach(el => el.style.visibility = 'visible');
+        card.style.width = originalCardStyleWidth;
         if (tableWrap) {
           if (originalWrapStyle !== null) {
             tableWrap.setAttribute('style', originalWrapStyle);
@@ -2345,7 +2351,7 @@
       
       const links = getLinks();
       holder.appendChild(renderTableCard('Báo cáo Tổng quan tài chính', filteredOverview, links.overview, 'finance'));
-      holder.appendChild(renderTableCard('Phân tích cấu trúc hoạt động', buildSelectedDetails(selected), links.overview, 'details'));
+      holder.appendChild(renderTableCard('Phân tích cấu trúc hoạt động', dashboard.overview.details || [], links.overview, 'details'));
       
       holder.appendChild(renderTableCard(
         'Bảng tổng hợp lương nhân sự',
@@ -2387,13 +2393,25 @@
       const card = document.createElement('section');
       card.className = 'table-card';
       card.dataset.reportType = type;
-      const tableRows = matrix || [];
-      const head = tableRows[0] || [];
-      const body = tableRows.slice(1);
+      
+      let tableRows = matrix || [];
+      let head = tableRows[0] || [];
+      let body = tableRows.slice(1);
+      
+      let displayTitle = title;
+      if (selectedMonth) {
+        displayTitle = `${title} - Tháng ${selectedMonth}`;
+      }
+      
+      const isMonthCol = head[0] && /tháng/i.test(head[0].trim());
+      if (isMonthCol && (type === 'finance' || type === 'payroll' || type === 'vehicles')) {
+        head = head.slice(1);
+        body = body.map(row => row.slice(1));
+      }
       
       card.innerHTML = `
         <div class="table-card-head">
-          <div class="table-title">${escapeHtml(title)}</div>
+          <div class="table-title">${escapeHtml(displayTitle)}</div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <button type="button" class="sub-tab" style="min-height: 28px !important; padding: 0 10px !important; font-size: 11px !important; border-radius: 6px !important;" onclick="exportCardAsImage(this, '${escapeHtml(type)}')">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>

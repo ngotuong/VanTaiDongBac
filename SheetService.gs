@@ -38,7 +38,7 @@ var SheetService = (function () {
     var ss = getSpreadsheet_();
     var dashboard = {
       updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
-      overview: readOverviewReport_(ss),
+      overview: readOverviewReport_(ss, month),
       inputs: readInputStats_(ss),
       links: reportLinks_(),
       cached: false
@@ -115,7 +115,7 @@ var SheetService = (function () {
     var ss = getSpreadsheet_();
     var bundle = {
       updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
-      overview: readOverviewReport_(ss),
+      overview: readOverviewReport_(ss, month),
       payroll: filterDisplayTableByMonth_(readTable_(ss, 'BC_BangLuong', 2, 1, 200, 14), month),
       vehicles: filterDisplayTableByMonth_(readTable_(ss, 'BC_TongHopXe', 2, 1, 200, 12), month),
       inputs: readInputStats_(ss),
@@ -359,17 +359,40 @@ var SheetService = (function () {
     return params;
   }
 
-  function readOverviewReport_(ss) {
+  function readOverviewReport_(ss, month) {
     var sheet = ss.getSheetByName('BC_TongQuan');
     if (!sheet) return { months: [], details: [] };
+    
     var months = sheet.getRange(1, 7, Math.min(sheet.getLastRow(), 24), 11).getDisplayValues()
       .filter(function (row, index) {
         return index === 0 || row.some(function (cell) { return clean_(cell); });
       });
-    var details = sheet.getRange(4, 1, Math.min(Math.max(sheet.getLastRow() - 3, 1), 14), 3).getDisplayValues()
+      
+    var targetMonth = month;
+    if (!targetMonth || targetMonth === 'latest' || targetMonth === 'all') {
+      if (months.length > 2) {
+        targetMonth = months[months.length - 1][0];
+      }
+    }
+    
+    if (targetMonth && targetMonth !== 'Tháng' && targetMonth.trim() !== '') {
+      var lock = LockService.getScriptLock();
+      try {
+        lock.waitLock(10000);
+        sheet.getRange('B1').setValue(targetMonth);
+        SpreadsheetApp.flush();
+      } catch (e) {
+        console.error('Lỗi set month B1:', e);
+      } finally {
+        lock.releaseLock();
+      }
+    }
+    
+    var details = sheet.getRange(4, 1, Math.min(Math.max(sheet.getLastRow() - 3, 1), 14), 5).getDisplayValues()
       .filter(function (row) {
         return row.some(function (cell) { return clean_(cell); });
       });
+      
     return { months: months, details: details };
   }
 

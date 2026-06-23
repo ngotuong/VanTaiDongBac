@@ -1178,7 +1178,7 @@
       to { transform: rotate(360deg); }
     }
     
-    .hidden { display: none !important; }
+    .hidden, .hidden-row { display: none !important; }
     
     .drawer-backdrop {
       display: none;
@@ -1545,13 +1545,20 @@
       <!-- View: Detailed Reports -->
       <section id="reportsView" class="view">
         <section class="panel" style="margin-bottom: 20px;">
-          <div class="panel-head">
+          <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
             <div>
               <h2 class="panel-title">Tùy chọn hiển thị báo cáo</h2>
               <div class="panel-note">Chọn tháng để hiển thị bảng báo cáo chi tiết</div>
             </div>
-            <div class="filter-row">
-              <label>Tháng báo cáo: <select id="reportMonthFilter"></select></label>
+            <div class="filter-row" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                Lọc nhanh:
+                <input type="text" id="reportSearchInput" placeholder="Nhập xe, tài xế..." style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s; width: 160px;" oninput="filterReportRows()"/>
+              </label>
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                Tháng báo cáo:
+                <select id="reportMonthFilter" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s; cursor: pointer;"></select>
+              </label>
             </div>
           </div>
         </section>
@@ -1811,7 +1818,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v2.1_stable';
+      const APP_VERSION = 'v2.2_stable';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -2481,6 +2488,11 @@
       ));
       
       filterReportCards();
+      
+      // Re-apply search filters after rendering new report cards
+      if (typeof filterReportRows === 'function') {
+        filterReportRows();
+      }
     }
 
     function filterReportCards() {
@@ -2500,6 +2512,11 @@
         btn.classList.toggle('active', btn.dataset.reportTab === tab);
       });
       filterReportCards();
+      
+      // Re-trigger search filter in case there's text in the filter input
+      if (typeof filterReportRows === 'function') {
+        filterReportRows();
+      }
     };
 
     function renderTableCard(title, matrix, href, type) {
@@ -2522,6 +2539,35 @@
         body = body.map(row => row.slice(1));
       }
       
+      // Calculate and append total row dynamically for payroll and vehicles
+      if (type === 'payroll' || type === 'vehicles') {
+        const totalRow = [];
+        totalRow[0] = 'Tổng cộng';
+        for (let i = 1; i < head.length; i++) {
+          let sum = 0;
+          let hasNumbers = false;
+          body.forEach((row) => {
+            const valText = row[i] || '';
+            if (valText.trim() !== '' && valText.trim() !== '-') {
+              const parsed = parseCellValue(valText);
+              sum += parsed;
+              hasNumbers = true;
+            }
+          });
+          
+          if (hasNumbers) {
+            const sampleRow = body.find(r => r[i] && r[i].trim() !== '' && r[i].trim() !== '-');
+            const sampleText = sampleRow ? sampleRow[i] : '';
+            totalRow[i] = formatValueLike(sum, sampleText);
+          } else {
+            totalRow[i] = '';
+          }
+        }
+        if (body.length > 0) {
+          body.push(totalRow);
+        }
+      }
+      
       card.innerHTML = `
         <div class="table-card-head">
           <div class="table-title">${escapeHtml(displayTitle)}</div>
@@ -2530,7 +2576,9 @@
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
               Xuất ảnh
             </button>
-            <a href="${href || '#'}" target="_blank" style="font-size: 13px;">Mở sheet tính gốc</a>
+            <a href="${href || '#'}" target="_blank" class="sheets-icon-link" title="Mở sheet tính gốc" style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); color: var(--green); transition: all 0.2s;" onmouseover="this.style.borderColor='var(--green)'; this.style.backgroundColor='var(--green-soft)'" onmouseout="this.style.borderColor='var(--line)'; this.style.backgroundColor='var(--paper)'">
+              <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM6 7h5v2H6V7zm0 4h5v2H6v-2zm0 4h5v2H6v-2zm12 2h-5v-2h5v2zm0-4h-5v-2h5v2zm0-4h-5V7h5v2z"/></svg>
+            </a>
           </div>
         </div>
         <div class="table-wrap">
@@ -2538,39 +2586,234 @@
             <thead><tr>${head.map((cell) => `<th>${escapeHtml(cell)}</th>`).join('')}</tr></thead>
             <tbody>${body.map((row) => {
               let rowStyle = '';
-              if (type === 'details') {
-                const cat = String(row[0] || '').toLowerCase().trim();
-                const isTotal = cat.includes('tổng khối lượng') || 
-                                cat.includes('tổng doanh thu') || 
-                                cat.includes('lợi nhuận gộp') || 
-                                cat.includes('lợi nhuận thực') ||
-                                cat.includes('tổng cộng') ||
-                                cat.includes('doanh thu gộp');
-                                
-                if (isTotal) {
-                  rowStyle = 'style="font-weight: 800; font-size: 13px;';
-                  if (cat.includes('doanh thu') || cat.includes('lợi nhuận')) {
-                    rowStyle += ' color: var(--green);"';
-                  } else {
-                    rowStyle += ' color: var(--deep);"';
-                  }
-                } else {
-                  rowStyle = 'style="font-weight: 500; font-size: 12.5px;';
+              const firstCell = String(row[0] || '').toLowerCase().trim();
+              const isTotalRow = firstCell.includes('tổng') || firstCell.includes('cộng') || firstCell.includes('trung bình') || firstCell.includes('thực nhận') || firstCell.includes('lợi nhuận');
+              
+              if (isTotalRow) {
+                rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep); background-color: var(--mint-soft);"';
+              } else {
+                rowStyle = 'style="font-weight: 500; font-size: 12.5px;"';
+              }
+              
+              return `<tr ${rowStyle}>${head.map((colName, i) => {
+                let cellStyle = '';
+                const val = row[i] || '';
+                const colLower = String(colName || '').toLowerCase().trim();
+                
+                // Color formatting based on content / headers
+                if (type === 'details') {
+                  const cat = String(row[0] || '').toLowerCase().trim();
                   if (cat.includes('doanh thu') || cat.includes('lợi nhuận') || cat.includes('thu')) {
-                    rowStyle += ' color: var(--green);"';
+                    cellStyle = 'style="color: var(--green); font-weight: 600;"';
                   } else if (cat.includes('chi phí') || cat.includes('chi quỹ') || cat.includes('thuế') || cat.includes('dầu') || cat.includes('phí đường bộ') || cat.includes('chi')) {
-                    rowStyle += ' color: var(--red);"';
-                  } else {
-                    rowStyle += ' color: var(--muted);"';
+                    cellStyle = 'style="color: var(--red); font-weight: 600;"';
+                  }
+                } else if (type === 'finance') {
+                  if (colLower.includes('doanh thu') || colLower.includes('lợi nhuận') || colLower.includes('khối lượng') || colLower.includes('gộp')) {
+                    cellStyle = 'style="color: var(--green); font-weight: 600;"';
+                  } else if (colLower.includes('chi') || colLower.includes('thuế') || colLower.includes('dầu') || colLower.includes('phí')) {
+                    cellStyle = 'style="color: var(--red); font-weight: 600;"';
+                  }
+                } else if (type === 'payroll') {
+                  if (colLower.includes('thực nhận') || colLower.includes('tổng lương') || colLower.includes('thưởng')) {
+                    cellStyle = 'style="color: var(--green); font-weight: 600;"';
+                  } else if (colLower.includes('phạt') || colLower.includes('ứng lương')) {
+                    cellStyle = 'style="color: var(--red); font-weight: 600;"';
+                  }
+                } else if (type === 'vehicles') {
+                  if (colLower.includes('lợi nhuận') || colLower.includes('lãi gộp') || colLower.includes('doanh thu')) {
+                    const numVal = parseCellValue(val);
+                    if (numVal < 0) {
+                      cellStyle = 'style="color: var(--red); font-weight: 600;"';
+                    } else {
+                      cellStyle = 'style="color: var(--green); font-weight: 600;"';
+                    }
+                  } else if (colLower.includes('chi phí') || colLower.includes('dầu') || colLower.includes('sửa chữa')) {
+                    cellStyle = 'style="color: var(--red); font-weight: 600;"';
                   }
                 }
-              }
-              return `<tr ${rowStyle}>${head.map((_, i) => `<td>${escapeHtml(row[i] || '')}</td>`).join('')}</tr>`;
+                
+                return `<td ${cellStyle}>${escapeHtml(val)}</td>`;
+              }).join('')}</tr>`;
             }).join('')}</tbody>
           </table>
         </div>
       `;
       return card;
+    }
+
+    // Helper functions for filtering and calculating subtotals
+    function removeAccents(str) {
+      if (!str) return '';
+      return str.normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/Đ/g, 'D');
+    }
+
+    function parseCellValue(text) {
+      if (!text || text === '-' || text === '0') return 0;
+      let clean = text.replace(/[đ₫\s]/g, '');
+      if (clean.includes('.') && clean.includes(',')) {
+        if (clean.indexOf('.') < clean.indexOf(',')) {
+          clean = clean.replace(/\./g, '').replace(/,/g, '.');
+        } else {
+          clean = clean.replace(/,/g, '');
+        }
+      } else if (clean.includes(',')) {
+        const parts = clean.split(',');
+        if (parts.length === 2 && parts[1].length <= 2) {
+          clean = clean.replace(/,/g, '.');
+        } else {
+          clean = clean.replace(/,/g, '');
+        }
+      } else {
+        const dotsCount = (clean.match(/\./g) || []).length;
+        if (dotsCount > 1) {
+          clean = clean.replace(/\./g, '');
+        } else if (dotsCount === 1) {
+          const parts = clean.split('.');
+          if (parts[1].length === 3) {
+            clean = clean.replace(/\./g, '');
+          }
+        }
+      }
+      const val = parseFloat(clean);
+      return isNaN(val) ? null : val;
+    }
+
+    function formatValueLike(value, sampleText) {
+      if (value === 0) {
+        if (sampleText.includes('đ') || sampleText.includes('₫')) return '0 đ';
+        return '0';
+      }
+      const isCurrency = sampleText.includes('đ') || sampleText.includes('₫');
+      const currencySymbol = sampleText.includes('₫') ? '₫' : 'đ';
+      
+      let decimals = 0;
+      if (sampleText.includes(',')) {
+        const parts = sampleText.split(',');
+        const decimalPart = parts[1].replace(/[^0-9]/g, '');
+        decimals = decimalPart.length;
+      } else if (sampleText.includes('.')) {
+        const parts = sampleText.split('.');
+        const lastPart = parts[1].replace(/[^0-9]/g, '');
+        if (lastPart.length < 3) {
+          decimals = lastPart.length;
+        }
+      }
+      
+      let formatted = '';
+      if (isCurrency) {
+        formatted = Math.round(value).toLocaleString('vi-VN') + ' ' + currencySymbol;
+      } else {
+        formatted = value.toLocaleString('vi-VN', {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals
+        });
+      }
+      return formatted;
+    }
+
+    window.filterReportRows = () => {
+      const query = (el('reportSearchInput')?.value || '').toLowerCase().trim();
+      const normalizedQuery = removeAccents(query);
+      
+      const tables = document.querySelectorAll('#reports .table-card');
+      tables.forEach((card) => {
+        const type = card.dataset.reportType;
+        if (type !== 'payroll' && type !== 'vehicles') return;
+        
+        const rows = card.querySelectorAll('tbody tr');
+        rows.forEach((row) => {
+          const cells = Array.from(row.querySelectorAll('td'));
+          const firstCellText = (cells[0]?.textContent || '').toLowerCase().trim();
+          const isTotal = firstCellText.includes('tổng') || firstCellText.includes('cộng') || firstCellText.includes('trung bình') || firstCellText.includes('thực nhận');
+          
+          if (isTotal) {
+            row.classList.remove('hidden-row');
+            return;
+          }
+          
+          const text = cells.map(c => c.textContent).join(' ').toLowerCase();
+          const normalizedText = removeAccents(text);
+          
+          if (normalizedText.includes(normalizedQuery)) {
+            row.classList.remove('hidden-row');
+          } else {
+            row.classList.add('hidden-row');
+          }
+        });
+        
+        updateTableSubtotals(card, type);
+      });
+    };
+
+    function updateTableSubtotals(card, type) {
+      const tbody = card.querySelector('tbody');
+      if (!tbody) return;
+      
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      if (rows.length <= 1) return;
+      
+      let totalRow = null;
+      let totalRowIndex = -1;
+      
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const firstCellText = (rows[i].querySelector('td')?.textContent || '').toLowerCase().trim();
+        if (firstCellText.includes('tổng') || firstCellText.includes('cộng') || firstCellText.includes('trung bình') || firstCellText.includes('thực nhận')) {
+          totalRow = rows[i];
+          totalRowIndex = i;
+          break;
+        }
+      }
+      
+      if (!totalRow) return;
+      
+      const dataRows = rows.filter((r, idx) => idx !== totalRowIndex && !r.classList.contains('hidden-row'));
+      const allDataRows = rows.filter((r, idx) => idx !== totalRowIndex);
+      
+      const totalCells = totalRow.querySelectorAll('td');
+      const baseText = totalCells[0]?.dataset.baseText || totalCells[0]?.textContent || 'Tổng cộng';
+      if (!totalCells[0]?.dataset.baseText) {
+        totalCells[0].dataset.baseText = baseText;
+      }
+      
+      for (let colIdx = 1; colIdx < totalCells.length; colIdx++) {
+        const firstDataRow = allDataRows[0];
+        if (!firstDataRow) continue;
+        
+        const sampleText = firstDataRow.querySelectorAll('td')[colIdx]?.textContent || '';
+        if (sampleText.trim() === '' || sampleText.trim() === '-') continue;
+        
+        let sum = 0;
+        let hasNumbers = false;
+        
+        dataRows.forEach((row) => {
+          const cell = row.querySelectorAll('td')[colIdx];
+          if (cell) {
+            const val = parseCellValue(cell.textContent);
+            if (val !== null) {
+              sum += val;
+              hasNumbers = true;
+            }
+          }
+        });
+        
+        if (hasNumbers) {
+          totalCells[colIdx].textContent = formatValueLike(sum, sampleText);
+        } else {
+          totalCells[colIdx].textContent = '';
+        }
+      }
+      
+      const isFiltered = document.getElementById('reportSearchInput')?.value.trim() !== '';
+      const cleanBase = baseText.replace(/\s*\(Lọc\)/i, '');
+      if (isFiltered) {
+        totalCells[0].textContent = `${cleanBase} (Lọc)`;
+      } else {
+        totalCells[0].textContent = cleanBase;
+      }
     }
 
     function parseOverview(matrix) {
@@ -2620,19 +2863,32 @@
         select.value = selectedMonth || previous || (rows[rows.length - 1]?.month || '');
         select.onchange = () => {
           selectedMonth = select.value;
-          renderDashboard();
-          renderReports();
+          
+          // Sync other month filter dropdown
+          ['homeMonthFilter', 'reportMonthFilter'].forEach((otherId) => {
+            const otherSelect = el(otherId);
+            if (otherSelect) {
+              otherSelect.value = selectedMonth;
+            }
+          });
           
           if (activeView === 'reports') {
             loadReportBundle(false);
+          } else {
+            loadDashboard(false);
           }
         };
       });
     }
 
     function filterOverviewMatrix(matrix, month) {
-      const head = (matrix || [])[0] || [];
-      const rows = (matrix || []).slice(1).filter((row) => row[0] === month);
+      if (!matrix || !matrix.length) return [];
+      // Find the header row (the one starting with "Tháng")
+      let headIndex = matrix.findIndex(row => row && row[0] && String(row[0]).trim().toLowerCase() === 'tháng');
+      if (headIndex === -1) headIndex = 1; // Fallback to index 1
+      const head = matrix[headIndex] || [];
+      // Filter rows that match the month
+      const rows = matrix.slice(headIndex + 1).filter((row) => row[0] === month);
       return [head].concat(rows);
     }
 
@@ -2804,8 +3060,8 @@
           
           if (result.inserted) {
             recentSubmissions = submitted.filter(Boolean).concat(recentSubmissions).slice(0, 8);
-            sessionStorage.removeItem('eb_report_bundle_' + selectedMonth);
-            sessionStorage.removeItem('eb_dashboard_latest');
+            sessionStorage.removeItem('eb_report_bundle_v2_' + selectedMonth);
+            sessionStorage.removeItem('eb_dashboard_v2_' + selectedMonth);
             rows = [newBlankRow()];
           }
           
@@ -2878,7 +3134,7 @@
     // Dashboard loader (sessionStorage optimized)
     function loadDashboard(forceRefresh) {
       setRefreshBusy(true);
-      const cacheKey = 'eb_dashboard_latest';
+      const cacheKey = 'eb_dashboard_v2_' + selectedMonth;
       
       if (!forceRefresh) {
         const cachedDashboard = sessionStorage.getItem(cacheKey);
@@ -2913,7 +3169,7 @@
 
     // Bundled report loader (sessionStorage optimized)
     function loadReportBundle(forceRefresh) {
-      const cacheKey = 'eb_report_bundle_' + selectedMonth;
+      const cacheKey = 'eb_report_bundle_v2_' + selectedMonth;
       
       if (!forceRefresh) {
         const cachedBundle = sessionStorage.getItem(cacheKey);
@@ -2952,8 +3208,8 @@
         showStatus('ok', 'Đang làm mới dữ liệu báo cáo...');
       }
       
-      sessionStorage.removeItem('eb_report_bundle_' + selectedMonth);
-      sessionStorage.removeItem('eb_dashboard_latest');
+      sessionStorage.removeItem('eb_report_bundle_v2_' + selectedMonth);
+      sessionStorage.removeItem('eb_dashboard_v2_' + selectedMonth);
       
       if (activeView === 'reports') {
         loadReportBundle(true);

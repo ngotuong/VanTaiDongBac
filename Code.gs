@@ -22,6 +22,12 @@ function doGet(e) {
         .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
     }
     
+    if (action === 'debugSheet') {
+      var ss = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
+      var sheet = ss.getSheetByName('BC_TongQuan');
+      var vals = sheet ? sheet.getRange(4, 1, 14, 8).getDisplayValues() : [];
+      return ContentService.createTextOutput(JSON.stringify(vals)).setMimeType(ContentService.MimeType.JSON);
+    }
     if (action === 'getBootstrap') return jsonResponse_(SheetService.getBootstrap());
     if (action === 'getInitialData') return jsonResponse_(SheetService.getInitialData());
     if (action === 'getCatalogs') return jsonResponse_(SheetService.getCatalogs(e.parameter.formType));

@@ -1757,20 +1757,20 @@
 
       <!-- View: Manage Sheet Data (Transaction Logs CRUD) -->
       <section id="manageView" class="view">
+        <!-- Nút trượt ngang chọn Nhật ký -->
+        <div class="sub-tabs-bar" id="manageTabsBar" style="width: 100%; margin-bottom: 12px;">
+          <button type="button" class="sub-tab active" data-sheet="NL_Dau" onclick="setManageSheetTab('NL_Dau')">Dầu lẻ</button>
+          <button type="button" class="sub-tab" data-sheet="NL_VanChuyen" onclick="setManageSheetTab('NL_VanChuyen')">Vận chuyển</button>
+          <button type="button" class="sub-tab" data-sheet="NL_TaiXe" onclick="setManageSheetTab('NL_TaiXe')">Chi tiết tài xế</button>
+          <button type="button" class="sub-tab" data-sheet="NL_ChamCong" onclick="setManageSheetTab('NL_ChamCong')">Chấm công</button>
+          <button type="button" class="sub-tab" data-sheet="NL_Phat" onclick="setManageSheetTab('NL_Phat')">Phạt nội bộ</button>
+          <button type="button" class="sub-tab" data-sheet="NL_NghiVanHanh" onclick="setManageSheetTab('NL_NghiVanHanh')">Nghỉ vận hành</button>
+        </div>
+        <input type="hidden" id="manageSheetSelect" value="NL_Dau">
+
         <div class="filter-bar" style="margin-bottom: 16px;">
           <div class="filter-container" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1;">
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
-                Nhật ký:
-                <select id="manageSheetSelect" style="height: 38px; width: 220px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadManageSheetData()">
-                  <option value="NL_Dau">Dầu lẻ (NL_Dau)</option>
-                  <option value="NL_VanChuyen">Vận chuyển (NL_VanChuyen)</option>
-                  <option value="NL_TaiXe">Chi tiết tài xế (NL_TaiXe)</option>
-                  <option value="NL_ChamCong">Chấm công (NL_ChamCong)</option>
-                  <option value="NL_Phat">Phạt nội bộ (NL_Phat)</option>
-                  <option value="NL_NghiVanHanh">Nghỉ vận hành (NL_NghiVanHanh)</option>
-                </select>
-              </label>
               <div id="manageDateFilterGroup" style="display: flex; gap: 8px; align-items: center;">
                 <label style="margin: 0; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted);">
                   Từ:
@@ -1815,23 +1815,23 @@
 
       <!-- View: Catalog Management (System Category CRUD) -->
       <section id="catalogView" class="view">
+        <!-- Nút trượt ngang chọn Danh mục -->
+        <div class="sub-tabs-bar" id="catalogTabsBar" style="width: 100%; margin-bottom: 12px;">
+          <button type="button" class="sub-tab active" data-sheet="DM_NhanSu" onclick="setCatalogSheetTab('DM_NhanSu')">Nhân sự & Tài xế</button>
+          <button type="button" class="sub-tab" data-sheet="DM_Xe" onclick="setCatalogSheetTab('DM_Xe')">Danh sách xe</button>
+          <button type="button" class="sub-tab" data-sheet="DM_DuAn" onclick="setCatalogSheetTab('DM_DuAn')">Dự án & Cự ly</button>
+          <button type="button" class="sub-tab" data-sheet="DM_PhanCongLaiXe" onclick="setCatalogSheetTab('DM_PhanCongLaiXe')">Phân công lái xe</button>
+          <button type="button" class="sub-tab" data-sheet="DM_LuongChuyen" onclick="setCatalogSheetTab('DM_LuongChuyen')">Lương chuyến xe</button>
+          <button type="button" class="sub-tab" data-sheet="DM_ThamSo" onclick="setCatalogSheetTab('DM_ThamSo')">Tham số & Giá dầu</button>
+          <button type="button" class="sub-tab" data-sheet="DM_DonGiaVanChuyen" onclick="setCatalogSheetTab('DM_DonGiaVanChuyen')">Đơn giá vận chuyển</button>
+          <button type="button" class="sub-tab" data-sheet="DM_ThuongQuanLy" onclick="setCatalogSheetTab('DM_ThuongQuanLy')">Thưởng quản lý</button>
+          <button type="button" class="sub-tab" data-sheet="DM_PhatNoiBo" onclick="setCatalogSheetTab('DM_PhatNoiBo')">Quy định phạt</button>
+        </div>
+        <input type="hidden" id="catalogSheetSelect" value="DM_NhanSu">
+
         <div class="filter-bar" style="margin-bottom: 16px;">
           <div class="filter-container" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1;">
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
-                Danh mục:
-                <select id="catalogSheetSelect" style="height: 38px; width: 240px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadCatalogSheetData()">
-                  <option value="DM_NhanSu">Nhân sự & Tài xế (DM_NhanSu)</option>
-                  <option value="DM_Xe">Danh sách xe (DM_Xe)</option>
-                  <option value="DM_DuAn">Dự án & Cự ly (DM_DuAn)</option>
-                  <option value="DM_PhanCongLaiXe">Phân công lái xe (DM_PhanCongLaiXe)</option>
-                  <option value="DM_LuongChuyen">Lương chuyến xe (DM_LuongChuyen)</option>
-                  <option value="DM_ThamSo">Tham số & Giá dầu (DM_ThamSo)</option>
-                  <option value="DM_DonGiaVanChuyen">Đơn giá vận chuyển (DM_DonGiaVanChuyen)</option>
-                  <option value="DM_ThuongQuanLy">Thưởng quản lý (DM_ThuongQuanLy)</option>
-                  <option value="DM_PhatNoiBo">Quy định phạt nội bộ (DM_PhatNoiBo)</option>
-                </select>
-              </label>
               <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
                 Tìm kiếm:
                 <input type="text" id="catalogSearchInput" placeholder="Tìm kiếm trong danh mục..." style="height: 38px; width: 260px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="filterCatalogRows()">
@@ -2018,6 +2018,58 @@
     let currentEditCatalogRowIndex = null;
     
     const el = (id) => document.getElementById(id);
+
+    function setManageSheetTab(sheetName) {
+      el('manageSheetSelect').value = sheetName;
+      document.querySelectorAll('#manageTabsBar .sub-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.sheet === sheetName);
+      });
+      loadManageSheetData();
+    }
+
+    function setCatalogSheetTab(sheetName) {
+      el('catalogSheetSelect').value = sheetName;
+      document.querySelectorAll('#catalogTabsBar .sub-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.sheet === sheetName);
+      });
+      loadCatalogSheetData();
+    }
+
+    function formatTableDate(val, isMonthOnly) {
+      if (!val) return '';
+      let d = null;
+      if (typeof val === 'string') {
+        const m = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (m) {
+          d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        } else {
+          const parts = val.split(/[\/\-]/);
+          if (parts.length === 3) {
+            if (parts[0].length === 4) {
+              d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            } else if (parts[2].length === 4) {
+              d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            } else if (parts[2].length === 2) {
+              d = new Date(2000 + Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            }
+          }
+        }
+      } else if (val instanceof Date && !isNaN(val.getTime())) {
+        d = val;
+      }
+      
+      if (!d) return val;
+      
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yy = String(d.getFullYear()).slice(-2);
+      
+      if (isMonthOnly) {
+        return `${mm}/${yy}`;
+      } else {
+        return `${dd}/${mm}/${yy}`;
+      }
+    }
 
     // Dynamic autocomplete select builder
     function createAutocomplete(wrap, options, value, onChange) {
@@ -2266,9 +2318,15 @@
         row.values.forEach((val, idx) => {
           const td = document.createElement('td');
           
-          if (typeof val === 'number') {
-            const header = currentManageData.headers[idx].toLowerCase();
-            if (header.includes('giá') || header.includes('tiền') || header.includes('phạt') || header.includes('lương')) {
+          const header = currentManageData.headers[idx];
+          const headerLower = header.toLowerCase().trim();
+          
+          if (headerLower === 'tháng') {
+            td.textContent = formatTableDate(val, true);
+          } else if (headerLower.includes('ngày') || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val))) {
+            td.textContent = formatTableDate(val, false);
+          } else if (typeof val === 'number') {
+            if (headerLower.includes('giá') || headerLower.includes('tiền') || headerLower.includes('phạt') || headerLower.includes('lương')) {
               td.textContent = Math.round(val).toLocaleString('vi-VN') + ' ₫';
               td.style.fontWeight = '600';
             } else {
@@ -2660,9 +2718,15 @@
         row.values.forEach((val, idx) => {
           const td = document.createElement('td');
           
-          if (typeof val === 'number') {
-            const header = currentCatalogData.headers[idx].toLowerCase();
-            if (header.includes('giá') || header.includes('tiền') || header.includes('phạt') || header.includes('lương')) {
+          const header = currentCatalogData.headers[idx];
+          const headerLower = header.toLowerCase().trim();
+          
+          if (headerLower === 'tháng') {
+            td.textContent = formatTableDate(val, true);
+          } else if (headerLower.includes('ngày') || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val))) {
+            td.textContent = formatTableDate(val, false);
+          } else if (typeof val === 'number') {
+            if (headerLower.includes('giá') || headerLower.includes('tiền') || headerLower.includes('phạt') || headerLower.includes('lương')) {
               td.textContent = Math.round(val).toLocaleString('vi-VN') + ' ₫';
               td.style.fontWeight = '600';
             } else {
@@ -4234,7 +4298,7 @@
           { name: 'Nghỉ việc tạm thời', group: 'TRU_LUONG', salary: 'Không' }
         ],
         nghiVanHanhTypes: ['Mỏ báo nghỉ', 'Mưa', 'Lễ/Tết', 'Xe hỏng', 'Khác'],
-        fuelSources: ['Đổ ngoài', 'Cây dầu', 'Nội bộ', 'Khác']
+        fuelSources: ['Quang Minh', 'Đổ ngoài']
       };
     }
 

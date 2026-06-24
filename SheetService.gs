@@ -184,9 +184,23 @@ var SheetService = (function () {
       ensureRows_(sheet, appendRow + result.values.length - 1);
       
       if (formType === 'dau') {
+        var lastCol = sheet.getLastColumn();
+        var headers = sheet.getRange(cfg.headerRow, 1, 1, lastCol).getValues()[0].map(function (h) {
+          return String(h).trim();
+        });
+        var litColIdx = headers.indexOf('Số lít');
+        var priceColIdx = headers.indexOf('Giá dầu');
+        var totalColIdx = headers.indexOf('Thành tiền');
+        if (litColIdx === -1) litColIdx = 4;
+        if (priceColIdx === -1) priceColIdx = 5;
+        if (totalColIdx === -1) totalColIdx = 6;
+        
+        var litLetter = String.fromCharCode(65 + litColIdx);
+        var priceLetter = String.fromCharCode(65 + priceColIdx);
+
         for (var i = 0; i < result.values.length; i++) {
           var currRow = appendRow + i;
-          result.values[i][6] = '=E' + currRow + '*F' + currRow;
+          result.values[i][totalColIdx] = '=' + litLetter + currRow + '*' + priceLetter + currRow;
         }
       }
       
@@ -317,7 +331,7 @@ var SheetService = (function () {
         { name: 'Nghỉ việc tạm thời', group: 'TRU_LUONG', salary: 'Không' }
       ],
       nghiVanHanhTypes: ['Mỏ báo nghỉ', 'Mưa', 'Lễ/Tết', 'Xe hỏng', 'Khác'],
-      fuelSources: ['Đổ ngoài', 'Cây dầu', 'Nội bộ', 'Khác']
+      fuelSources: ['Quang Minh', 'Đổ ngoài']
     };
   }
 
@@ -968,8 +982,14 @@ var SheetService = (function () {
           valuesToSet.push(existingFormulas[colIdx]);
         } else if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
           valuesToSet.push('');
-        } else if (sheetName === 'NL_Dau' && colIdx === 6) {
-          valuesToSet.push('=E' + rowNum + '*F' + rowNum);
+        } else if (sheetName === 'NL_Dau' && header === 'Thành tiền') {
+          var litColIdx = headers.indexOf('Số lít');
+          var priceColIdx = headers.indexOf('Giá dầu');
+          if (litColIdx === -1) litColIdx = 4;
+          if (priceColIdx === -1) priceColIdx = 5;
+          var litLetter = String.fromCharCode(65 + litColIdx);
+          var priceLetter = String.fromCharCode(65 + priceColIdx);
+          valuesToSet.push('=' + litLetter + rowNum + '*' + priceLetter + rowNum);
         } else {
           if (val === undefined || val === null) {
             valuesToSet.push('');

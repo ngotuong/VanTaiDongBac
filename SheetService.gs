@@ -182,12 +182,32 @@ var SheetService = (function () {
 
       var appendRow = getAppendRow_(sheet, cfg.headerRow);
       ensureRows_(sheet, appendRow + result.values.length - 1);
+      
+      // Convert Month column to formula to avoid overwriting sheet formulas
+      result.values.forEach(function (rowVal, idx) {
+        var r = appendRow + idx;
+        if (formType === 'chamCong') {
+          rowVal[2] = '=DATE(YEAR(A' + r + '), MONTH(A' + r + '), 1)';
+        } else {
+          rowVal[1] = '=DATE(YEAR(A' + r + '), MONTH(A' + r + '), 1)';
+        }
+      });
+      
       var range = sheet.getRange(appendRow, 1, result.values.length, cfg.columns);
       range.setValues(result.values);
       applyFormats_(sheet, formType, appendRow, result.values.length);
 
       SpreadsheetApp.flush();
-      clearAfterSubmitCache_();
+      
+      var sampleMonth = null;
+      if (rows && rows.length > 0 && rows[0].date) {
+        var sampleDate = ValidationService.parseDate(rows[0].date);
+        if (sampleDate) {
+          sampleMonth = Utilities.formatDate(sampleDate, APP_CONFIG.timezone, 'yyyy-MM');
+        }
+      }
+      clearAfterSubmitCache_(sampleMonth);
+      
       return {
         ok: result.errors.length === 0,
         inserted: result.values.length,
@@ -636,7 +656,7 @@ var SheetService = (function () {
     }
   }
 
-  function clearAfterSubmitCache_() {
+  function clearAfterSubmitCache_(optMonthKey) {
     removeChunkedCache_('reports:' + CACHE_VERSION + ':all');
     removeChunkedCache_('dashboard:' + CACHE_VERSION + ':latest');
     removeChunkedCache_('report:' + CACHE_VERSION + ':overview:all');
@@ -644,19 +664,53 @@ var SheetService = (function () {
     removeChunkedCache_('report:' + CACHE_VERSION + ':vehicles:all');
     removeChunkedCache_('report_bundle:' + CACHE_VERSION + ':all');
     
+    if (optMonthKey) {
+      var mKey = normalizeMonthKey_(optMonthKey);
+      if (mKey) {
+        removeChunkedCache_('report_bundle:' + CACHE_VERSION + ':' + mKey);
+        removeChunkedCache_('dashboard:' + CACHE_VERSION + ':' + mKey);
+      }
+    }
+  }
+
+  function getCatalogSheet(sheetName) {
+    var ss = getSpreadsheet_();
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) throw new Error('Sheet ' + sheetName + ' không tồn tại.');
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    if (lastRow === 0 || lastCol === 0) return [];
+    return sheet.getRange(1, 1, lastRow, lastCol).getDisplayValues();
+  }
+
+  function saveCatalogSheet(sheetName, values) {
+    var ss = getSpreadsheet_();
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) throw new Error('Sheet ' + sheetName + ' không tồn tại.');
+    
+    if (!Array.isArray(values) || values.length === 0) {
+      throw new Error('Dữ liệu lưu không hợp lệ.');
+    }
+    
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
     try {
-      var ss = getSpreadsheet_();
-      var overview = readOverviewReport_(ss);
-      var parsed = parseOverview_(overview.months);
-      parsed.months.forEach(function (m) {
-        var mKey = normalizeMonthKey_(m);
-        if (mKey) {
-          removeChunkedCache_('report_bundle:' + CACHE_VERSION + ':' + mKey);
-          removeChunkedCache_('dashboard:' + CACHE_VERSION + ':' + mKey);
-        }
+      sheet.clearContents();
+      ensureRows_(sheet, values.length);
+      sheet.getRange(1, 1, values.length, values[0].length).setValues(values);
+      SpreadsheetApp.flush();
+      
+      // Clear catalogs cache
+      var cache = CacheService.getScriptCache();
+      removeChunkedCache_('catalogs:' + CACHE_VERSION + ':all');
+      var formTypes = Object.keys(APP_CONFIG.sheets);
+      formTypes.forEach(function (type) {
+        removeChunkedCache_('catalogs:' + CACHE_VERSION + ':' + type);
       });
-    } catch (e) {
-      // Fallback if sheet read fails during flush
+      
+      return { ok: true };
+    } finally {
+      lock.releaseLock();
     }
   }
 
@@ -734,6 +788,8 @@ var SheetService = (function () {
     getReport: getReport,
     getReportBundle: getReportBundle,
     submitRows: submitRows,
-    checkTripReconciliation: checkTripReconciliation
+    checkTripReconciliation: checkTripReconciliation,
+    getCatalogSheet: getCatalogSheet,
+    saveCatalogSheet: saveCatalogSheet
   };
 })();

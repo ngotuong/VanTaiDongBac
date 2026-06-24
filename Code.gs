@@ -35,6 +35,7 @@ function doGet(e) {
     if (action === 'getReports') return jsonResponse_(SheetService.getReports(e.parameter.forceRefresh === 'true'));
     if (action === 'getReport') return jsonResponse_(SheetService.getReport(e.parameter.type, e.parameter.month, e.parameter.forceRefresh === 'true'));
     if (action === 'getReportBundle') return jsonResponse_(SheetService.getReportBundle(e.parameter.month, e.parameter.forceRefresh === 'true'));
+    if (action === 'getCatalogSheet') return jsonResponse_(SheetService.getCatalogSheet(e.parameter.sheetName));
     
     throw new Error('Hành động GET không hợp lệ: ' + action);
   } catch (err) {
@@ -57,6 +58,10 @@ function doPost(e) {
     }
     if (action === 'checkTripReconciliation') {
       var result = SheetService.checkTripReconciliation(payload.rows);
+      return jsonResponse_(result);
+    }
+    if (action === 'saveCatalogSheet') {
+      var result = SheetService.saveCatalogSheet(payload.sheetName, payload.values);
       return jsonResponse_(result);
     }
     

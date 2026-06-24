@@ -182,6 +182,14 @@ var SheetService = (function () {
 
       var appendRow = getAppendRow_(sheet, cfg.headerRow);
       ensureRows_(sheet, appendRow + result.values.length - 1);
+      
+      if (formType === 'dau') {
+        for (var i = 0; i < result.values.length; i++) {
+          var currRow = appendRow + i;
+          result.values[i][6] = '=E' + currRow + '*F' + currRow;
+        }
+      }
+      
       var range = sheet.getRange(appendRow, 1, result.values.length, cfg.columns);
       range.setValues(result.values);
       applyFormats_(sheet, formType, appendRow, result.values.length);
@@ -753,7 +761,7 @@ var SheetService = (function () {
     if (!sheet) return { date: '', trips: [] };
     var lastRow = sheet.getLastRow();
     if (lastRow < 3) return { date: '', trips: [] };
-    var values = sheet.getRange(3, 1, lastRow - 2, 5).getValues();
+    var values = sheet.getRange(3, 1, lastRow - 2, 6).getValues();
     
     var maxTime = 0;
     var maxDate = null;
@@ -774,6 +782,7 @@ var SheetService = (function () {
     var dateLabel = Utilities.formatDate(maxDate, APP_CONFIG.timezone, 'dd/MM/yyyy');
     
     var tripsMap = {};
+    var ticketMap = {};
     values.forEach(function (row) {
       var d = row[0];
       if (Object.prototype.toString.call(d) === '[object Date]') {
@@ -781,15 +790,28 @@ var SheetService = (function () {
         if (dStr === maxDateStr) {
           var plate = clean_(row[2]);
           var count = parseNumberLoose_(row[4]);
+          var ticket = clean_(row[5]);
           if (plate && count > 0) {
             tripsMap[plate] = (tripsMap[plate] || 0) + count;
+            if (ticket) {
+              if (!ticketMap[plate]) {
+                ticketMap[plate] = [];
+              }
+              if (ticketMap[plate].indexOf(ticket) === -1) {
+                ticketMap[plate].push(ticket);
+              }
+            }
           }
         }
       }
     });
     
     var tripsList = Object.keys(tripsMap).map(function (plate) {
-      return { vehicle: plate, count: tripsMap[plate] };
+      return { 
+        vehicle: plate, 
+        count: tripsMap[plate],
+        ticket: ticketMap[plate] ? ticketMap[plate].join(', ') : '-'
+      };
     });
     
     tripsList.sort(function (a, b) {
@@ -813,7 +835,7 @@ var SheetService = (function () {
     return { months: months };
   }
 
-  function readSheetData(sheetName) {
+  function readSheetData(sheetName, startDateStr, endDateStr) {
     try {
       var ss = getSpreadsheet_();
       var sheet = ss.getSheetByName(sheetName);
@@ -839,7 +861,12 @@ var SheetService = (function () {
 
         if (lastRow > headerRow) {
           var rawValues = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, lastCol).getValues();
-          for (var i = 0; i < rawValues.length; i++) {
+          
+          var hasDateFilter = (startDateStr || endDateStr) && (sheetName.indexOf('NL_') === 0);
+          var startLimit = startDateStr ? new Date(startDateStr + 'T00:00:00') : null;
+          var endLimit = endDateStr ? new Date(endDateStr + 'T23:59:59') : null;
+
+          for (var i = rawValues.length - 1; i >= 0; i--) {
             var rowIndex = headerRow + 1 + i;
             var cells = rawValues[i].map(function (val) {
               if (Object.prototype.toString.call(val) === '[object Date]' && !isNaN(val.getTime())) {
@@ -852,26 +879,48 @@ var SheetService = (function () {
               return cell === null || cell === undefined || String(cell).trim() === '';
             });
             
-            if (!isEmpty) {
-              rows.push({
-                rowIndex: rowIndex,
-                values: cells
-              });
+            if (isEmpty) continue;
+
+            if (hasDateFilter) {
+              var rowDateVal = rawValues[i][0];
+              var d = null;
+              if (Object.prototype.toString.call(rowDateVal) === '[object Date]' && !isNaN(rowDateVal.getTime())) {
+                d = rowDateVal;
+              } else if (typeof rowDateVal === 'string' && rowDateVal.trim()) {
+                var m = rowDateVal.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (m) {
+                  d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+                }
+              }
+              
+              if (d) {
+                if (startLimit && d < startLimit) continue;
+                if (endLimit && d > endLimit) continue;
+              }
             }
+
+            rows.push({
+              rowIndex: rowIndex,
+              values: cells
+            });
           }
         }
       }
 
-      if (sheetName.indexOf('NL_') === 0) {
-        rows.sort(function (a, b) {
-          return b.rowIndex - a.rowIndex;
-        });
+      var isLimited = false;
+      if (sheetName.indexOf('NL_') === 0 && !startDateStr && !endDateStr) {
+        rows = rows.slice(0, 10);
+        isLimited = true;
+      }
+      if (sheetName.indexOf('DM_') === 0) {
+        rows.reverse();
       }
 
       return {
         ok: true,
         headers: headers,
-        rows: rows
+        rows: rows,
+        isLimited: isLimited
       };
     } catch (e) {
       return { ok: false, error: e.message };
@@ -905,13 +954,22 @@ var SheetService = (function () {
         ensureRows_(sheet, rowNum);
       }
 
+      var existingFormulas = null;
+      if (rowNum <= sheet.getLastRow()) {
+        existingFormulas = sheet.getRange(rowNum, 1, 1, headers.length).getFormulas()[0];
+      }
+
       var valuesToSet = [];
       for (var colIdx = 0; colIdx < headers.length; colIdx++) {
         var header = headers[colIdx];
         var val = rowData[header];
 
-        if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
+        if (existingFormulas && existingFormulas[colIdx]) {
+          valuesToSet.push(existingFormulas[colIdx]);
+        } else if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
           valuesToSet.push('');
+        } else if (sheetName === 'NL_Dau' && colIdx === 6) {
+          valuesToSet.push('=E' + rowNum + '*F' + rowNum);
         } else {
           if (val === undefined || val === null) {
             valuesToSet.push('');

@@ -1615,7 +1615,7 @@
           <div class="table-card-head">
             <div>
               <div class="table-title" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                Số chuyến của mỗi xe chạy ngày mới nhất
+                Dữ liệu chuyến gần đây
                 <span id="latestTripsDate" style="color: var(--teal); font-weight: 700; font-size: 14px;"></span>
               </div>
               <div class="panel-note" style="margin-top: 2px;">Dữ liệu tổng hợp từ NK vận chuyển cho ngày gần nhất</div>
@@ -1630,13 +1630,14 @@
             <table id="homeLatestTripsTable">
               <thead>
                 <tr>
-                  <th style="width: 50%;">Biển số xe</th>
-                  <th style="width: 50%;">Số chuyến chạy</th>
+                  <th style="width: 35%;">Biển số xe</th>
+                  <th style="width: 30%;">Số chuyến chạy</th>
+                  <th style="width: 35%;">Số phiếu</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td colspan="2" style="text-align: center; color: var(--muted); padding: 24px;">Đang tải dữ liệu số chuyến...</td>
+                  <td colspan="3" style="text-align: center; color: var(--muted); padding: 24px;">Đang tải dữ liệu số chuyến...</td>
                 </tr>
               </tbody>
             </table>
@@ -1754,34 +1755,35 @@
         </div>
       </section>
 
-      <!-- View: Manage Sheet Data & Categories (CRUD) -->
+      <!-- View: Manage Sheet Data (Transaction Logs CRUD) -->
       <section id="manageView" class="view">
         <div class="filter-bar" style="margin-bottom: 16px;">
           <div class="filter-container" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1;">
               <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
-                Bảng quản lý:
+                Nhật ký:
                 <select id="manageSheetSelect" style="height: 38px; width: 220px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadManageSheetData()">
-                  <optgroup label="Nhật ký nhập liệu">
-                    <option value="NL_Dau">Dầu lẻ (NL_Dau)</option>
-                    <option value="NL_VanChuyen">Vận chuyển (NL_VanChuyen)</option>
-                    <option value="NL_TaiXe">Chi tiết tài xế (NL_TaiXe)</option>
-                    <option value="NL_ChamCong">Chấm công (NL_ChamCong)</option>
-                    <option value="NL_Phat">Phạt nội bộ (NL_Phat)</option>
-                    <option value="NL_NghiVanHanh">Nghỉ vận hành (NL_NghiVanHanh)</option>
-                  </optgroup>
-                  <optgroup label="Danh mục hệ thống">
-                    <option value="DM_NhanSu">Nhân sự & Tài xế (DM_NhanSu)</option>
-                    <option value="DM_Xe">Danh sách xe (DM_Xe)</option>
-                    <option value="DM_DuAn">Dự án & Cự ly (DM_DuAn)</option>
-                    <option value="DM_PhatNoiBo">Quy định phạt nội bộ (DM_PhatNoiBo)</option>
-                    <option value="DM_PhanCongLaiXe">Phân công lái xe (DM_PhanCongLaiXe)</option>
-                  </optgroup>
+                  <option value="NL_Dau">Dầu lẻ (NL_Dau)</option>
+                  <option value="NL_VanChuyen">Vận chuyển (NL_VanChuyen)</option>
+                  <option value="NL_TaiXe">Chi tiết tài xế (NL_TaiXe)</option>
+                  <option value="NL_ChamCong">Chấm công (NL_ChamCong)</option>
+                  <option value="NL_Phat">Phạt nội bộ (NL_Phat)</option>
+                  <option value="NL_NghiVanHanh">Nghỉ vận hành (NL_NghiVanHanh)</option>
                 </select>
               </label>
+              <div id="manageDateFilterGroup" style="display: flex; gap: 8px; align-items: center;">
+                <label style="margin: 0; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                  Từ:
+                  <input type="date" id="manageStartDate" style="height: 38px; width: 125px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="loadManageSheetData()">
+                </label>
+                <label style="margin: 0; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                  Đến:
+                  <input type="date" id="manageEndDate" style="height: 38px; width: 125px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="loadManageSheetData()">
+                </label>
+              </div>
               <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
                 Tìm kiếm:
-                <input type="text" id="manageSearchInput" placeholder="Tìm theo biển số, tài xế, dự án, công ty..." style="height: 38px; width: 260px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="filterManageRows()">
+                <input type="text" id="manageSearchInput" placeholder="Tìm theo biển số, tài xế..." style="height: 38px; width: 220px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="filterManageRows()">
               </label>
             </div>
             <div>
@@ -1794,7 +1796,10 @@
         </div>
 
         <div class="table-card">
-          <div class="table-scroll" style="max-height: calc(100vh - 280px); overflow-y: auto;">
+          <div id="manageLimitNotice" style="background: var(--mint-soft); border-left: 4px solid var(--teal); padding: 10px 14px; font-size: 12.5px; font-weight: 600; color: var(--deep); margin: 12px 12px 0 12px; border-radius: 6px; display: none;">
+            💡 Đang hiển thị 10 giao dịch mới nhất. Hãy chọn khoảng thời gian ở bộ lọc để xem các giao dịch cũ hơn.
+          </div>
+          <div class="table-scroll" style="max-height: calc(100vh - 280px); overflow-y: auto; padding: 12px;">
             <table class="report-table" id="manageTable">
               <thead>
                 <tr id="manageTableHeader"></tr>
@@ -1803,6 +1808,54 @@
             </table>
           </div>
           <div id="manageTableEmpty" class="panel-body" style="text-align: center; color: var(--muted); padding: 48px 24px; display: none;">
+            Không có dữ liệu phù hợp với tìm kiếm của bạn.
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Catalog Management (System Category CRUD) -->
+      <section id="catalogView" class="view">
+        <div class="filter-bar" style="margin-bottom: 16px;">
+          <div class="filter-container" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1;">
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                Danh mục:
+                <select id="catalogSheetSelect" style="height: 38px; width: 240px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadCatalogSheetData()">
+                  <option value="DM_NhanSu">Nhân sự & Tài xế (DM_NhanSu)</option>
+                  <option value="DM_Xe">Danh sách xe (DM_Xe)</option>
+                  <option value="DM_DuAn">Dự án & Cự ly (DM_DuAn)</option>
+                  <option value="DM_PhanCongLaiXe">Phân công lái xe (DM_PhanCongLaiXe)</option>
+                  <option value="DM_LuongChuyen">Lương chuyến xe (DM_LuongChuyen)</option>
+                  <option value="DM_ThamSo">Tham số & Giá dầu (DM_ThamSo)</option>
+                  <option value="DM_DonGiaVanChuyen">Đơn giá vận chuyển (DM_DonGiaVanChuyen)</option>
+                  <option value="DM_ThuongQuanLy">Thưởng quản lý (DM_ThuongQuanLy)</option>
+                  <option value="DM_PhatNoiBo">Quy định phạt nội bộ (DM_PhatNoiBo)</option>
+                </select>
+              </label>
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                Tìm kiếm:
+                <input type="text" id="catalogSearchInput" placeholder="Tìm kiếm trong danh mục..." style="height: 38px; width: 260px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="filterCatalogRows()">
+              </label>
+            </div>
+            <div>
+              <button type="button" class="primary" style="height: 38px; display: inline-flex; align-items: center; gap: 6px; padding: 0 16px; border-radius: 8px; font-weight: 600;" onclick="openCatalogAddModal()">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Thêm dòng mới
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-scroll" style="max-height: calc(100vh - 280px); overflow-y: auto; padding: 12px;">
+            <table class="report-table" id="catalogTable">
+              <thead>
+                <tr id="catalogTableHeader"></tr>
+              </thead>
+              <tbody id="catalogTableBody"></tbody>
+            </table>
+          </div>
+          <div id="catalogTableEmpty" class="panel-body" style="text-align: center; color: var(--muted); padding: 48px 24px; display: none;">
             Không có dữ liệu phù hợp với tìm kiếm của bạn.
           </div>
         </div>
@@ -1882,7 +1935,8 @@
       ['home', 'Tổng quan', 'KPI & Biểu đồ', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`],
       ['entry', 'Nhập liệu', 'Biểu mẫu NL', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>`],
       ['reports', 'Báo cáo', 'Bảng chi tiết', `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`],
-      ['manage', 'Quản lý', 'Danh mục & NL', `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>`],
+      ['manage', 'Quản lý', 'Nhật ký nhập liệu', `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>`],
+      ['catalog', 'Danh mục', 'Danh mục hệ thống', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`],
       ['settings', 'Hướng dẫn', 'Cài đặt App', `<svg class="btn-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.52 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`]
     ];
     
@@ -1959,6 +2013,9 @@
     let currentManageData = null;
     let filteredManageRowsData = [];
     let currentEditRowIndex = null;
+    let currentCatalogData = null;
+    let filteredCatalogRowsData = [];
+    let currentEditCatalogRowIndex = null;
     
     const el = (id) => document.getElementById(id);
 
@@ -2095,11 +2152,20 @@
       thead.innerHTML = '';
       tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; padding: 48px; color: var(--muted);"><div style="display:inline-block; width: 30px; height: 30px; border: 3px solid var(--mint-soft); border-radius: 50%; border-top-color: var(--teal); animation: spin 1s linear infinite; margin-bottom: 12px;"></div><br>Đang tải dữ liệu từ Google Sheets...</td></tr>`;
       el('manageTableEmpty').style.display = 'none';
+      el('manageLimitNotice').style.display = 'none';
 
-      callApi('GET', 'readSheetData', { sheetName: sheetName })
+      const startDate = el('manageStartDate').value;
+      const endDate = el('manageEndDate').value;
+
+      callApi('GET', 'readSheetData', { sheetName: sheetName, startDate: startDate, endDate: endDate })
         .then((res) => {
           if (res.ok) {
             currentManageData = res;
+            if (res.isLimited) {
+              el('manageLimitNotice').style.display = 'block';
+            } else {
+              el('manageLimitNotice').style.display = 'none';
+            }
             renderManageTable();
           } else {
             tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; color: var(--red); padding: 48px;">Lỗi: ${res.error}</td></tr>`;
@@ -2259,18 +2325,27 @@
     }
 
     function openManageAddModal() {
-      currentEditRowIndex = null;
+      if (activeView === 'catalog') {
+        currentEditCatalogRowIndex = null;
+      } else {
+        currentEditRowIndex = null;
+      }
       el('manageModalTitle').textContent = 'Thêm dòng dữ liệu mới';
       buildManageModalFields({});
       el('manageModal').classList.add('active');
     }
 
     function openManageEditModal(row) {
-      currentEditRowIndex = row.rowIndex;
+      if (activeView === 'catalog') {
+        currentEditCatalogRowIndex = row.rowIndex;
+      } else {
+        currentEditRowIndex = row.rowIndex;
+      }
       el('manageModalTitle').textContent = `Chỉnh sửa dòng thứ ${row.rowIndex}`;
       
       const rowData = {};
-      currentManageData.headers.forEach((h, idx) => {
+      const currentData = activeView === 'catalog' ? currentCatalogData : currentManageData;
+      currentData.headers.forEach((h, idx) => {
         rowData[h] = row.values[idx];
       });
       
@@ -2317,12 +2392,18 @@
     function buildManageModalFields(rowData) {
       const container = el('manageModalFields');
       container.innerHTML = '';
-      const sheetName = el('manageSheetSelect').value;
+      const sheetName = activeView === 'catalog' ? el('catalogSheetSelect').value : el('manageSheetSelect').value;
+      const currentData = activeView === 'catalog' ? currentCatalogData : currentManageData;
 
-      if (!currentManageData) return;
+      if (!currentData) return;
 
-      currentManageData.headers.forEach((header) => {
+      currentData.headers.forEach((header) => {
         if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
+          return;
+        }
+        
+        // Skip Thành tiền G column since it is formula-calculated
+        if (sheetName === 'NL_Dau' && header === 'Thành tiền') {
           return;
         }
 
@@ -2354,7 +2435,7 @@
           acWrap.dataset.value = val;
           acWrap.dataset.header = header;
           acWrap.classList.add('manage-form-field');
-          acWrap.classList.add('ac-container'); // crucial flag
+          acWrap.classList.add('ac-container');
         } else {
           let input;
           if (headerClean.includes('ghi chú') || headerClean.includes('nội dung')) {
@@ -2382,7 +2463,7 @@
     }
 
     function saveManageRow() {
-      const sheetName = el('manageSheetSelect').value;
+      const sheetName = activeView === 'catalog' ? el('catalogSheetSelect').value : el('manageSheetSelect').value;
       const submitBtn = el('manageModalSubmitBtn');
       const originalText = submitBtn.textContent;
       
@@ -2403,9 +2484,11 @@
         rowData[header] = val;
       });
 
+      const rowIndex = activeView === 'catalog' ? currentEditCatalogRowIndex : currentEditRowIndex;
+
       const payload = {
         sheetName: sheetName,
-        rowIndex: currentEditRowIndex,
+        rowIndex: rowIndex,
         rowData: rowData
       };
 
@@ -2417,7 +2500,11 @@
               sessionStorage.clear();
               loadCatalogs(activeForm);
             }
-            loadManageSheetData();
+            if (activeView === 'catalog') {
+              loadCatalogSheetData();
+            } else {
+              loadManageSheetData();
+            }
           } else {
             alert('Lỗi: ' + res.error);
           }
@@ -2436,7 +2523,7 @@
         return;
       }
       
-      const sheetName = el('manageSheetSelect').value;
+      const sheetName = activeView === 'catalog' ? el('catalogSheetSelect').value : el('manageSheetSelect').value;
       
       callApi('POST', 'deleteSheetRow', {}, { sheetName: sheetName, rowIndex: rowIndex })
         .then((res) => {
@@ -2445,7 +2532,11 @@
               sessionStorage.clear();
               loadCatalogs(activeForm);
             }
-            loadManageSheetData();
+            if (activeView === 'catalog') {
+              loadCatalogSheetData();
+            } else {
+              loadManageSheetData();
+            }
           } else {
             alert('Lỗi: ' + res.error);
           }
@@ -2453,6 +2544,182 @@
         .catch((err) => {
           alert('Lỗi xóa dữ liệu: ' + err.message);
         });
+    }
+
+    // Catalog CRUD Operations
+    function loadCatalogSheetData() {
+      const sheetName = el('catalogSheetSelect').value;
+      const tbody = el('catalogTableBody');
+      const thead = el('catalogTableHeader');
+      
+      thead.innerHTML = '';
+      tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; padding: 48px; color: var(--muted);"><div style="display:inline-block; width: 30px; height: 30px; border: 3px solid var(--mint-soft); border-radius: 50%; border-top-color: var(--teal); animation: spin 1s linear infinite; margin-bottom: 12px;"></div><br>Đang tải danh mục từ Google Sheets...</td></tr>`;
+      el('catalogTableEmpty').style.display = 'none';
+
+      callApi('GET', 'readSheetData', { sheetName: sheetName })
+        .then((res) => {
+          if (res.ok) {
+            currentCatalogData = res;
+            renderCatalogTable();
+          } else {
+            tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; color: var(--red); padding: 48px;">Lỗi: ${res.error}</td></tr>`;
+          }
+        })
+        .catch((err) => {
+          tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; color: var(--red); padding: 48px;">Lỗi kết nối: ${err.message}</td></tr>`;
+        });
+    }
+
+    function renderCatalogTable() {
+      if (!currentCatalogData) return;
+      const headers = [...currentCatalogData.headers];
+      const rawRows = currentCatalogData.rows || [];
+      
+      let vehicleColIdx = -1;
+      for (let i = 0; i < headers.length; i++) {
+        const h = headers[i].toLowerCase().trim();
+        if (h === 'biển số xe' || h === 'xe' || h === 'bển số') {
+          vehicleColIdx = i;
+          break;
+        }
+      }
+
+      const showOwnerCol = (vehicleColIdx !== -1);
+      const thead = el('catalogTableHeader');
+      thead.innerHTML = '';
+      
+      headers.forEach((h, idx) => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        thead.appendChild(th);
+        
+        if (showOwnerCol && idx === vehicleColIdx) {
+          const thOwner = document.createElement('th');
+          thOwner.textContent = 'Công ty/Chủ xe';
+          thead.appendChild(thOwner);
+        }
+      });
+      
+      const thActions = document.createElement('th');
+      thActions.textContent = 'Thao tác';
+      thActions.style.textAlign = 'center';
+      thead.appendChild(thActions);
+
+      const vehiclesCatalog = getCurrentCatalogs()?.vehicles || [];
+      filteredCatalogRowsData = rawRows.map(row => {
+        let owner = '';
+        if (showOwnerCol) {
+          const plate = String(row.values[vehicleColIdx] || '').trim();
+          const vehObj = vehiclesCatalog.find(v => String(v.plate).trim().toLowerCase() === plate.toLowerCase());
+          if (vehObj) {
+            owner = vehObj.owner || '';
+          }
+        }
+        return {
+          ...row,
+          owner: owner
+        };
+      });
+
+      filterCatalogRows();
+    }
+
+    function filterCatalogRows() {
+      const query = el('catalogSearchInput').value.toLowerCase().trim();
+      const tbody = el('catalogTableBody');
+      tbody.innerHTML = '';
+      
+      let vehicleColIdx = -1;
+      if (currentCatalogData) {
+        for (let i = 0; i < currentCatalogData.headers.length; i++) {
+          const h = currentCatalogData.headers[i].toLowerCase().trim();
+          if (h === 'biển số xe' || h === 'xe' || h === 'bển số') {
+            vehicleColIdx = i;
+            break;
+          }
+        }
+      }
+      const showOwnerCol = (vehicleColIdx !== -1);
+
+      const matched = filteredCatalogRowsData.filter(row => {
+        if (!query) return true;
+        const inValues = row.values.some(v => String(v || '').toLowerCase().includes(query));
+        const inOwner = row.owner && row.owner.toLowerCase().includes(query);
+        return inValues || inOwner;
+      });
+
+      if (matched.length === 0) {
+        el('catalogTableEmpty').style.display = 'block';
+        return;
+      }
+      el('catalogTableEmpty').style.display = 'none';
+
+      matched.forEach(row => {
+        const tr = document.createElement('tr');
+        
+        row.values.forEach((val, idx) => {
+          const td = document.createElement('td');
+          
+          if (typeof val === 'number') {
+            const header = currentCatalogData.headers[idx].toLowerCase();
+            if (header.includes('giá') || header.includes('tiền') || header.includes('phạt') || header.includes('lương')) {
+              td.textContent = Math.round(val).toLocaleString('vi-VN') + ' ₫';
+              td.style.fontWeight = '600';
+            } else {
+              td.textContent = val.toLocaleString('vi-VN');
+            }
+          } else {
+            td.textContent = val || '';
+          }
+          tr.appendChild(td);
+
+          if (showOwnerCol && idx === vehicleColIdx) {
+            const tdOwner = document.createElement('td');
+            if (row.owner) {
+              const span = document.createElement('span');
+              span.className = `badge ${row.owner.toLowerCase().includes('quang quân') ? 'amber' : 'blue'}`;
+              span.textContent = row.owner;
+              tdOwner.appendChild(span);
+            } else {
+              tdOwner.textContent = '-';
+            }
+            tr.appendChild(tdOwner);
+          }
+        });
+
+        const tdActions = document.createElement('td');
+        tdActions.style.textAlign = 'center';
+        tdActions.style.whiteSpace = 'nowrap';
+        
+        const btnEdit = document.createElement('button');
+        btnEdit.type = 'button';
+        btnEdit.className = 'primary';
+        btnEdit.style.padding = '4px 10px';
+        btnEdit.style.fontSize = '12px';
+        btnEdit.style.height = '28px';
+        btnEdit.style.marginRight = '6px';
+        btnEdit.textContent = 'Sửa';
+        btnEdit.onclick = () => openManageEditModal(row);
+
+        const btnDelete = document.createElement('button');
+        btnDelete.type = 'button';
+        btnDelete.className = 'danger';
+        btnDelete.style.padding = '4px 10px';
+        btnDelete.style.fontSize = '12px';
+        btnDelete.style.height = '28px';
+        btnDelete.textContent = 'Xóa';
+        btnDelete.onclick = () => deleteManageRow(row.rowIndex);
+
+        tdActions.appendChild(btnEdit);
+        tdActions.appendChild(btnDelete);
+        tr.appendChild(tdActions);
+        
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openCatalogAddModal() {
+      openManageAddModal();
     }
 
     // App Initializer
@@ -2560,13 +2827,16 @@
       if (view === 'manage') {
         loadManageSheetData();
       }
+      if (view === 'catalog') {
+        loadCatalogSheetData();
+      }
     }
 
     function renderView() {
       document.querySelectorAll('[data-view]').forEach((button) => {
         button.classList.toggle('active', button.dataset.view === activeView);
       });
-      ['home', 'entry', 'reports', 'manage', 'settings'].forEach((view) => {
+      ['home', 'entry', 'reports', 'manage', 'catalog', 'settings'].forEach((view) => {
         el(`${view}View`).classList.toggle('active', view === activeView);
       });
       
@@ -2574,7 +2844,8 @@
         home: ['Tổng quan', 'Báo cáo & Nhập liệu nhanh', `Dữ liệu cập nhật: ${getDashboardData()?.updatedAt || 'Vui lòng chờ...'}`],
         entry: ['Nhập liệu', 'Bảng kê nhập liệu', 'Thông tin tháng tự sinh theo ngày nhập dữ liệu.'],
         reports: ['Báo cáo', 'Báo cáo chi tiết tổng hợp', 'Đồng bộ từ các sheet tính toán gốc.'],
-        manage: ['Quản lý', 'Quản lý danh mục & Nhật ký', 'Thao tác xem, tìm kiếm lọc, sửa hoặc xóa dữ liệu trực tiếp.'],
+        manage: ['Quản lý nhật ký', 'Quản lý các giao dịch nhật ký', 'Xem, tìm kiếm lọc theo ngày, sửa hoặc xóa dòng nhật ký.'],
+        catalog: ['Danh mục', 'Quản lý danh mục hệ thống', 'Xem, tìm kiếm, thêm mới, sửa hoặc xóa danh mục gốc.'],
         settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', 'Tối ưu hóa chạy webapp như ứng dụng thực tế.']
       }[activeView];
       
@@ -2812,13 +3083,13 @@
       const dashboard = getDashboardData();
       if (dashboard.loading) {
         if (dateSpan) dateSpan.textContent = '';
-        tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: var(--muted); padding: 24px;">Đang tải dữ liệu số chuyến...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--muted); padding: 24px;">Đang tải dữ liệu số chuyến...</td></tr>';
         return;
       }
       
       if (!latestTrips || !latestTrips.date || !latestTrips.trips || !latestTrips.trips.length) {
         if (dateSpan) dateSpan.textContent = '';
-        tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: var(--muted); padding: 24px;">Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--muted); padding: 24px;">Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>';
         return;
       }
       
@@ -2837,9 +3108,14 @@
         tdCount.textContent = Number(item.count || 0).toLocaleString('vi-VN');
         tdCount.style.fontWeight = '600';
         tdCount.style.color = 'var(--ink)';
+
+        const tdTicket = document.createElement('td');
+        tdTicket.textContent = item.ticket || '-';
+        tdTicket.style.color = 'var(--muted)';
         
         tr.appendChild(tdVehicle);
         tr.appendChild(tdCount);
+        tr.appendChild(tdTicket);
         tbody.appendChild(tr);
       });
     }
@@ -3187,7 +3463,18 @@
       
       const head = document.createElement('div');
       head.className = 'entry-row-head';
-      head.innerHTML = `<div class="entry-row-title"><span class="row-number">${index + 1}</span><span>Dòng chứng từ</span></div>`;
+      
+      let extraTitleHtml = '';
+      if (activeForm === 'dau') {
+        const liters = parseLocaleNumber(row.liters) || 0;
+        const price = parseLocaleNumber(row.price) || 0;
+        const total = liters * price;
+        if (total > 0) {
+          extraTitleHtml = ` &mdash; <span style="color: var(--teal); font-weight: 700;">Thành tiền: ${Math.round(total).toLocaleString('vi-VN')} ₫</span>`;
+        }
+      }
+      
+      head.innerHTML = `<div class="entry-row-title"><span class="row-number">${index + 1}</span><span>Dòng chứng từ<span class="entry-row-extra-title-${index}">${extraTitleHtml}</span></span></div>`;
       
       const remove = document.createElement('button');
       remove.type = 'button';
@@ -3898,6 +4185,15 @@
         const hoursPerTrip = getCurrentCatalogs().params.SO_GIO_1_CHUYEN_KPI || 4;
         row.reduceKpi = row.countKpi === 'Không' ? 0 : (hours ? hours / hoursPerTrip : '');
         renderEntry();
+      }
+      if (activeForm === 'dau' && (key === 'liters' || key === 'price')) {
+        const liters = parseLocaleNumber(row.liters) || 0;
+        const price = parseLocaleNumber(row.price) || 0;
+        const total = liters * price;
+        const span = document.querySelector(`.entry-row-extra-title-${index}`);
+        if (span) {
+          span.innerHTML = total > 0 ? ` &mdash; <span style="color: var(--teal); font-weight: 700;">Thành tiền: ${Math.round(total).toLocaleString('vi-VN')} ₫</span>` : '';
+        }
       }
     }
 

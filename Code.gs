@@ -35,7 +35,7 @@ function doGet(e) {
     if (action === 'getReports') return jsonResponse_(SheetService.getReports(e.parameter.forceRefresh === 'true'));
     if (action === 'getReport') return jsonResponse_(SheetService.getReport(e.parameter.type, e.parameter.month, e.parameter.forceRefresh === 'true'));
     if (action === 'getReportBundle') return jsonResponse_(SheetService.getReportBundle(e.parameter.month, e.parameter.forceRefresh === 'true'));
-    if (action === 'readSheetData') return jsonResponse_(SheetService.readSheetData(e.parameter.sheetName));
+    if (action === 'readSheetData') return jsonResponse_(SheetService.readSheetData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate));
     
     throw new Error('Hành động GET không hợp lệ: ' + action);
   } catch (err) {
@@ -116,8 +116,8 @@ function checkTripReconciliation(rows) {
   return SheetService.checkTripReconciliation(rows);
 }
 
-function readSheetData(sheetName) {
-  return SheetService.readSheetData(sheetName);
+function readSheetData(sheetName, startDate, endDate) {
+  return SheetService.readSheetData(sheetName, startDate, endDate);
 }
 
 function saveSheetRow(sheetName, rowIndex, rowData) {

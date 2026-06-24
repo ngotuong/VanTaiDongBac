@@ -52,9 +52,8 @@ var ValidationService = (function () {
     var source = requireText_(row.source, 'Nguon dau');
     var liters = requirePositiveNumber_(row.liters, 'So lit');
     var price = requirePositiveNumber_(row.price, 'Gia dau');
-    var amount = liters * price;
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
-    return [date, '', plate, source, liters, price, amount, clean_(row.note)];
+    return [date, '', plate, source, liters, price, '', clean_(row.note)];
   }
 
   function buildChamCong_(row, catalogs, line, warnings) {

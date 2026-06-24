@@ -62,24 +62,16 @@ var ValidationService = (function () {
     if (toDate.getTime() < fromDate.getTime()) throw new Error('Den ngay phai lon hon hoac bang Tu ngay.');
     var person = requireText_(row.person, 'Nhan su');
     var type = requireText_(row.workdayType, 'Loai ngay cong');
-    var salary = clean_(row.salary) || defaultSalary_(type, catalogs);
-    var group = clean_(row.group) || defaultChamCongGroup_(type, catalogs);
-    var days = daysInclusive_(fromDate, toDate);
     warnIfMissing_(catalogs.people, 'name', person, 'Dong ' + line + ': Nhan su chua co trong DM_NhanSu.', warnings);
-    return [fromDate, toDate, '', person, type, days, salary, group, clean_(row.note)];
+    return [fromDate, toDate, '', person, type, '', '', '', clean_(row.note)];
   }
 
   function buildPhat_(row, catalogs, line, warnings) {
     var date = requireDate_(row.date, 'Ngay');
     var person = requireText_(row.person, 'Nhan su');
     var code = requireText_(row.penaltyCode, 'Ma phat');
-    var penalty = findBy_(catalogs.penalties, 'code', code);
-    var content = penalty ? penalty.content : clean_(row.content);
-    var amount = penalty && penalty.amount ? penalty.amount : parseNumber(row.amount, true);
-    if (!content) throw new Error('Khong tim thay Noi dung phat cho ma ' + code + '.');
-    if (!amount) throw new Error('Khong tim thay So tien phat cho ma ' + code + '.');
     warnIfMissing_(catalogs.people, 'name', person, 'Dong ' + line + ': Nhan su chua co trong DM_NhanSu.', warnings);
-    return [date, '', person, code, content, amount, clean_(row.note)];
+    return [date, '', person, code, '', '', clean_(row.note)];
   }
 
   function buildNghiVanHanh_(row, catalogs, line, warnings) {
@@ -88,16 +80,9 @@ var ValidationService = (function () {
     var project = requireText_(row.project, 'Du an');
     var type = requireText_(row.stopType, 'Loai nghi');
     var hours = requirePositiveNumber_(row.hours, 'So gio nghi');
-    var countKpi = clean_(row.countKpi) || 'Có';
-    var reduce = parseNumber(row.reduceKpi, false);
-    if (!reduce && countKpi === 'Có') {
-      var hoursPerTrip = catalogs.params.SO_GIO_1_CHUYEN_KPI || 4;
-      reduce = hours / hoursPerTrip;
-    }
-    if (countKpi !== 'Có') reduce = 0;
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
     warnIfMissing_(catalogs.projects, 'name', project, 'Dong ' + line + ': Du an chua co trong DM_DuAn.', warnings);
-    return [date, '', plate, project, type, hours, countKpi, reduce, clean_(row.note)];
+    return [date, '', plate, project, type, hours, '', '', clean_(row.note)];
   }
 
   function isBlankRow_(row) {

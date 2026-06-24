@@ -1,5 +1,5 @@
 var SheetService = (function () {
-  var CACHE_VERSION = 'v4';
+  var CACHE_VERSION = 'v5';
   var CATALOG_TTL_SECONDS = 21600;
   var REPORT_TTL_SECONDS = 180;
 
@@ -981,6 +981,12 @@ var SheetService = (function () {
         if (existingFormulas && existingFormulas[colIdx]) {
           valuesToSet.push(existingFormulas[colIdx]);
         } else if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
+          valuesToSet.push('');
+        } else if (sheetName === 'NL_ChamCong' && (header.toLowerCase().indexOf('số ngày') !== -1 || header.toLowerCase().indexOf('lương cứng') !== -1 || header.toLowerCase().indexOf('nhóm') !== -1)) {
+          valuesToSet.push('');
+        } else if (sheetName === 'NL_Phat' && (header.toLowerCase().indexOf('nội dung') !== -1 || header.toLowerCase().indexOf('tiền phạt') !== -1)) {
+          valuesToSet.push('');
+        } else if (sheetName === 'NL_NghiVanHanh' && (header.toLowerCase().indexOf('tính kpi') !== -1 || header.toLowerCase().indexOf('giảm kpi') !== -1)) {
           valuesToSet.push('');
         } else if (sheetName === 'NL_Dau' && header === 'Thành tiền') {
           var litColIdx = headers.indexOf('Số lít');

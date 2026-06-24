@@ -1987,7 +1987,7 @@
       chamCong: [
         ['fromDate', 'Từ ngày', 'date'], ['toDate', 'Đến ngày (Gồm cả)', 'date'],
         ['person', 'Nhân sự nghỉ', 'select:people'], ['workdayType', 'Loại ngày nghỉ', 'select:chamCongTypes'],
-        ['salary', 'Được hưởng lương cứng?', 'select:yesNo'], ['note', 'Ghi chú thêm', 'textarea']
+        ['note', 'Ghi chú thêm', 'textarea']
       ],
       phat: [
         ['date', 'Ngày lập biên bản', 'date'], ['person', 'Nhân sự vi phạm', 'select:people'],
@@ -1996,8 +1996,7 @@
       nghiVanHanh: [
         ['date', 'Ngày báo nghỉ', 'date'], ['vehicle', 'Biển số xe nghỉ', 'select:vehicles'],
         ['project', 'Dự án ảnh hưởng', 'select:projects'], ['stopType', 'Lý do dừng máy', 'select:nghiVanHanhTypes'],
-        ['hours', 'Số giờ dừng máy', 'number'], ['countKpi', 'Tính giảm trừ KPI?', 'select:yesNo'],
-        ['reduceKpi', 'Số chuyến giảm KPI', 'number'], ['note', 'Ghi chú chi tiết', 'textarea']
+        ['hours', 'Số giờ dừng máy', 'number'], ['note', 'Ghi chú chi tiết', 'textarea']
       ]
     };
 
@@ -2456,12 +2455,24 @@
       if (!currentData) return;
 
       currentData.headers.forEach((header) => {
+        const hLower = header.toLowerCase();
         if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
           return;
         }
         
         // Skip Thành tiền G column since it is formula-calculated
         if (sheetName === 'NL_Dau' && header === 'Thành tiền') {
+          return;
+        }
+
+        // Ẩn các cột công thức tự động của NL_ChamCong, NL_Phat, NL_NghiVanHanh
+        if (sheetName === 'NL_ChamCong' && (hLower.indexOf('số ngày') !== -1 || hLower.indexOf('lương cứng') !== -1 || hLower.indexOf('nhóm') !== -1)) {
+          return;
+        }
+        if (sheetName === 'NL_Phat' && (hLower.indexOf('nội dung') !== -1 || hLower.indexOf('tiền phạt') !== -1)) {
+          return;
+        }
+        if (sheetName === 'NL_NghiVanHanh' && (hLower.indexOf('tính kpi') !== -1 || hLower.indexOf('giảm kpi') !== -1)) {
           return;
         }
 
@@ -4237,19 +4248,7 @@
           renderEntry();
         }
       }
-      if (activeForm === 'chamCong' && key === 'workdayType') {
-        const type = getCurrentCatalogs().chamCongTypes.find((x) => x.name === row.workdayType);
-        if (type) {
-          row.salary = type.salary;
-          renderEntry();
-        }
-      }
-      if (activeForm === 'nghiVanHanh' && (key === 'hours' || key === 'countKpi')) {
-        const hours = parseLocaleNumber(row.hours);
-        const hoursPerTrip = getCurrentCatalogs().params.SO_GIO_1_CHUYEN_KPI || 4;
-        row.reduceKpi = row.countKpi === 'Không' ? 0 : (hours ? hours / hoursPerTrip : '');
-        renderEntry();
-      }
+      // Các cột Số ngày, Lương cứng, Giảm KPI, v.v. đã được tính hoàn toàn bằng công thức mảng trên Google Sheet.
       if (activeForm === 'dau' && (key === 'liters' || key === 'price')) {
         const liters = parseLocaleNumber(row.liters) || 0;
         const price = parseLocaleNumber(row.price) || 0;

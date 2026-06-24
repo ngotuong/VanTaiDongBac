@@ -33,7 +33,7 @@ var ValidationService = (function () {
     var trips = requirePositiveNumber_(row.trips, 'So chuyen');
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
     warnIfMissing_(catalogs.projects, 'name', project, 'Dong ' + line + ': Du an chua co trong DM_DuAn.', warnings);
-    return [date, monthDate_(date), plate, project, trips, clean_(row.tickets), clean_(row.note)];
+    return [date, '', plate, project, trips, clean_(row.tickets), clean_(row.note)];
   }
 
   function buildTaiXe_(row, catalogs, line, warnings) {
@@ -43,7 +43,7 @@ var ValidationService = (function () {
     var trips = requirePositiveNumber_(row.trips, 'So chuyen');
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
     warnIfMissing_(catalogs.people, 'name', driver, 'Dong ' + line + ': Tai xe chua co trong DM_NhanSu.', warnings);
-    return [date, monthDate_(date), plate, driver, trips, clean_(row.note)];
+    return [date, '', plate, driver, trips, clean_(row.note)];
   }
 
   function buildDau_(row, catalogs, line, warnings) {
@@ -54,7 +54,7 @@ var ValidationService = (function () {
     var price = requirePositiveNumber_(row.price, 'Gia dau');
     var amount = liters * price;
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
-    return [date, monthDate_(date), plate, source, liters, price, amount, clean_(row.note)];
+    return [date, '', plate, source, liters, price, amount, clean_(row.note)];
   }
 
   function buildChamCong_(row, catalogs, line, warnings) {
@@ -67,7 +67,7 @@ var ValidationService = (function () {
     var group = clean_(row.group) || defaultChamCongGroup_(type, catalogs);
     var days = daysInclusive_(fromDate, toDate);
     warnIfMissing_(catalogs.people, 'name', person, 'Dong ' + line + ': Nhan su chua co trong DM_NhanSu.', warnings);
-    return [fromDate, toDate, monthDate_(fromDate), person, type, days, salary, group, clean_(row.note)];
+    return [fromDate, toDate, '', person, type, days, salary, group, clean_(row.note)];
   }
 
   function buildPhat_(row, catalogs, line, warnings) {
@@ -80,7 +80,7 @@ var ValidationService = (function () {
     if (!content) throw new Error('Khong tim thay Noi dung phat cho ma ' + code + '.');
     if (!amount) throw new Error('Khong tim thay So tien phat cho ma ' + code + '.');
     warnIfMissing_(catalogs.people, 'name', person, 'Dong ' + line + ': Nhan su chua co trong DM_NhanSu.', warnings);
-    return [date, monthDate_(date), person, code, content, amount, clean_(row.note)];
+    return [date, '', person, code, content, amount, clean_(row.note)];
   }
 
   function buildNghiVanHanh_(row, catalogs, line, warnings) {
@@ -98,7 +98,7 @@ var ValidationService = (function () {
     if (countKpi !== 'Có') reduce = 0;
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
     warnIfMissing_(catalogs.projects, 'name', project, 'Dong ' + line + ': Du an chua co trong DM_DuAn.', warnings);
-    return [date, monthDate_(date), plate, project, type, hours, countKpi, reduce, clean_(row.note)];
+    return [date, '', plate, project, type, hours, countKpi, reduce, clean_(row.note)];
   }
 
   function isBlankRow_(row) {

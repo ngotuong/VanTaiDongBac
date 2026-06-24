@@ -40,6 +40,7 @@ var SheetService = (function () {
       updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
       overview: readOverviewReport_(ss, month),
       inputs: readInputStats_(ss),
+      latestTrips: readLatestTrips_(ss),
       links: reportLinks_(),
       cached: false
     };
@@ -60,6 +61,7 @@ var SheetService = (function () {
       payroll: readTable_(ss, 'BC_BangLuong', 2, 1, 100, 14),
       vehicles: readTable_(ss, 'BC_TongHopXe', 2, 1, 100, 12),
       inputs: readInputStats_(ss),
+      latestTrips: readLatestTrips_(ss),
       links: reportLinks_(),
       cached: false
     };
@@ -119,6 +121,7 @@ var SheetService = (function () {
       payroll: filterDisplayTableByMonth_(readTable_(ss, 'BC_BangLuong', 2, 1, 200, 14), month),
       vehicles: filterDisplayTableByMonth_(readTable_(ss, 'BC_TongHopXe', 2, 1, 200, 12), month),
       inputs: readInputStats_(ss),
+      latestTrips: readLatestTrips_(ss),
       links: reportLinks_()
     };
     putChunkedCache_(cacheKey, bundle, REPORT_TTL_SECONDS);
@@ -132,6 +135,7 @@ var SheetService = (function () {
       payroll: [],
       vehicles: [],
       inputs: [],
+      latestTrips: { date: '', trips: [] },
       links: reportLinks_(),
       loading: true,
       reportsLoaded: false
@@ -654,6 +658,61 @@ var SheetService = (function () {
     } catch (e) {
       // Fallback if sheet read fails during flush
     }
+  }
+
+  function readLatestTrips_(ss) {
+    var sheet = ss.getSheetByName('NL_VanChuyen');
+    if (!sheet) return { date: '', trips: [] };
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 3) return { date: '', trips: [] };
+    var values = sheet.getRange(3, 1, lastRow - 2, 5).getValues();
+    
+    var maxTime = 0;
+    var maxDate = null;
+    values.forEach(function (row) {
+      var d = row[0];
+      if (Object.prototype.toString.call(d) === '[object Date]') {
+        var t = d.getTime();
+        if (t > maxTime) {
+          maxTime = t;
+          maxDate = d;
+        }
+      }
+    });
+    
+    if (!maxDate) return { date: '', trips: [] };
+    
+    var maxDateStr = Utilities.formatDate(maxDate, APP_CONFIG.timezone, 'yyyy-MM-dd');
+    var dateLabel = Utilities.formatDate(maxDate, APP_CONFIG.timezone, 'dd/MM/yyyy');
+    
+    var tripsMap = {};
+    values.forEach(function (row) {
+      var d = row[0];
+      if (Object.prototype.toString.call(d) === '[object Date]') {
+        var dStr = Utilities.formatDate(d, APP_CONFIG.timezone, 'yyyy-MM-dd');
+        if (dStr === maxDateStr) {
+          var plate = clean_(row[2]);
+          var count = parseNumberLoose_(row[4]);
+          if (plate && count > 0) {
+            tripsMap[plate] = (tripsMap[plate] || 0) + count;
+          }
+        }
+      }
+    });
+    
+    var tripsList = Object.keys(tripsMap).map(function (plate) {
+      return { vehicle: plate, count: tripsMap[plate] };
+    });
+    
+    tripsList.sort(function (a, b) {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.vehicle.localeCompare(b.vehicle);
+    });
+    
+    return {
+      date: dateLabel,
+      trips: tripsList
+    };
   }
 
   function parseOverview_(monthsMatrix) {

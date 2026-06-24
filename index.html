@@ -1795,6 +1795,32 @@
           </div>
         </div>
 
+        <!-- Khối lọc & thống kê riêng cho Dầu lẻ -->
+        <div id="manageDauFilterBlock" style="display: none; padding: 12px; margin-bottom: 12px; background: var(--mint-soft); border-radius: 12px; border: 1px solid var(--line); flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box;">
+          <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
+            <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--deep);">
+              Nguồn dầu:
+              <select id="manageDauSourceFilter" style="height: 34px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; outline: none; background: var(--paper); cursor: pointer;" onchange="filterManageRows()">
+                <option value="all">Tất cả nguồn</option>
+                <option value="Quang Minh">Quang Minh</option>
+                <option value="Đổ ngoài">Đổ ngoài</option>
+              </select>
+            </label>
+            <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--deep);">
+              Nhà xe:
+              <select id="manageDauOwnerFilter" style="height: 34px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; outline: none; background: var(--paper); cursor: pointer;" onchange="filterManageRows()">
+                <option value="all">Tất cả nhà xe</option>
+                <option value="Quang Quân">Quang Quân</option>
+                <option value="Minh Vương">Minh Vương</option>
+              </select>
+            </label>
+          </div>
+          <div style="display: flex; gap: 16px; font-size: 13.5px; font-weight: 700; color: var(--deep); flex-wrap: wrap;">
+            <span>Tổng số lít: <span id="manageDauTotalLiters" style="color: var(--teal); font-size: 14.5px;">0</span> lít</span>
+            <span>Tổng thành tiền: <span id="manageDauTotalAmount" style="color: var(--red); font-size: 14.5px;">0 ₫</span></span>
+          </div>
+        </div>
+
         <div class="table-card">
           <div id="manageLimitNotice" style="background: var(--mint-soft); border-left: 4px solid var(--teal); padding: 10px 14px; font-size: 12.5px; font-weight: 600; color: var(--deep); margin: 12px 12px 0 12px; border-radius: 6px; display: none;">
             💡 Đang hiển thị 10 giao dịch mới nhất. Hãy chọn khoảng thời gian ở bộ lọc để xem các giao dịch cũ hơn.
@@ -1822,7 +1848,8 @@
           <button type="button" class="sub-tab" data-sheet="DM_DuAn" onclick="setCatalogSheetTab('DM_DuAn')">Dự án & Cự ly</button>
           <button type="button" class="sub-tab" data-sheet="DM_PhanCongLaiXe" onclick="setCatalogSheetTab('DM_PhanCongLaiXe')">Phân công lái xe</button>
           <button type="button" class="sub-tab" data-sheet="DM_LuongChuyen" onclick="setCatalogSheetTab('DM_LuongChuyen')">Lương chuyến xe</button>
-          <button type="button" class="sub-tab" data-sheet="DM_ThamSo" onclick="setCatalogSheetTab('DM_ThamSo')">Tham số & Giá dầu</button>
+          <button type="button" class="sub-tab" data-sheet="DM_ThamSo_TS" onclick="setCatalogSheetTab('DM_ThamSo_TS')">Tham số hệ thống</button>
+          <button type="button" class="sub-tab" data-sheet="DM_ThamSo_GD" onclick="setCatalogSheetTab('DM_ThamSo_GD')">Lịch sử giá dầu</button>
           <button type="button" class="sub-tab" data-sheet="DM_DonGiaVanChuyen" onclick="setCatalogSheetTab('DM_DonGiaVanChuyen')">Đơn giá vận chuyển</button>
           <button type="button" class="sub-tab" data-sheet="DM_ThuongQuanLy" onclick="setCatalogSheetTab('DM_ThuongQuanLy')">Thưởng quản lý</button>
           <button type="button" class="sub-tab" data-sheet="DM_PhatNoiBo" onclick="setCatalogSheetTab('DM_PhatNoiBo')">Quy định phạt</button>
@@ -2200,6 +2227,12 @@
       const tbody = el('manageTableBody');
       const thead = el('manageTableHeader');
       
+      if (sheetName === 'NL_Dau') {
+        el('manageDauFilterBlock').style.display = 'flex';
+      } else {
+        el('manageDauFilterBlock').style.display = 'none';
+      }
+      
       thead.innerHTML = '';
       tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; padding: 48px; color: var(--muted);"><div style="display:inline-block; width: 30px; height: 30px; border: 3px solid var(--mint-soft); border-radius: 50%; border-top-color: var(--teal); animation: spin 1s linear infinite; margin-bottom: 12px;"></div><br>Đang tải dữ liệu từ Google Sheets...</td></tr>`;
       el('manageTableEmpty').style.display = 'none';
@@ -2287,23 +2320,76 @@
       tbody.innerHTML = '';
       
       let vehicleColIdx = -1;
+      let sourceColIdx = -1;
+      let litColIdx = -1;
+      let amountColIdx = -1;
+      let noteColIdx = -1;
+
       if (currentManageData) {
-        for (let i = 0; i < currentManageData.headers.length; i++) {
-          const h = currentManageData.headers[i].toLowerCase().trim();
-          if (h === 'biển số xe' || h === 'xe' || h === 'bển số') {
-            vehicleColIdx = i;
-            break;
-          }
-        }
+        currentManageData.headers.forEach((h, idx) => {
+          const hLower = h.toLowerCase().trim();
+          if (hLower === 'biển số xe' || hLower === 'xe' || hLower === 'bển số') vehicleColIdx = idx;
+          if (hLower === 'nguồn' || hLower === 'nguồn cung cấp') sourceColIdx = idx;
+          if (hLower === 'số lít' || hLower === 'lít') litColIdx = idx;
+          if (hLower === 'thành tiền' || hLower === 'tổng tiền' || hLower === 'tiền') amountColIdx = idx;
+          if (hLower === 'ghi chú' || hLower === 'ghi chú thêm') noteColIdx = idx;
+        });
       }
       const showOwnerCol = (vehicleColIdx !== -1);
+      const isDauSheet = el('manageSheetSelect').value === 'NL_Dau';
 
       const matched = filteredManageRowsData.filter(row => {
-        if (!query) return true;
-        const inValues = row.values.some(v => String(v || '').toLowerCase().includes(query));
-        const inOwner = row.owner && row.owner.toLowerCase().includes(query);
-        return inValues || inOwner;
+        // 1. Search Query filter
+        let matchQuery = true;
+        if (query) {
+          const inValues = row.values.some(v => String(v || '').toLowerCase().includes(query));
+          const inOwner = row.owner && row.owner.toLowerCase().includes(query);
+          matchQuery = inValues || inOwner;
+        }
+        if (!matchQuery) return false;
+
+        // 2. Custom NL_Dau filters
+        if (currentManageData && isDauSheet) {
+          const sourceFilter = el('manageDauSourceFilter').value;
+          if (sourceFilter !== 'all' && sourceColIdx !== -1) {
+            const rowSource = String(row.values[sourceColIdx] || '').trim();
+            if (rowSource.toLowerCase() !== sourceFilter.toLowerCase()) {
+              return false;
+            }
+          }
+
+          const ownerFilter = el('manageDauOwnerFilter').value;
+          if (ownerFilter !== 'all') {
+            const autoOwner = String(row.owner || '').toLowerCase();
+            const noteText = noteColIdx !== -1 ? String(row.values[noteColIdx] || '').toLowerCase() : '';
+            const matchAuto = autoOwner.includes(ownerFilter.toLowerCase());
+            const matchNote = noteText.includes(ownerFilter.toLowerCase());
+            if (!matchAuto && !matchNote) {
+              return false;
+            }
+          }
+        }
+
+        return true;
       });
+
+      // 3. Update quick stats if NL_Dau
+      if (currentManageData && isDauSheet) {
+        let totalLiters = 0;
+        let totalAmount = 0;
+        matched.forEach(row => {
+          if (litColIdx !== -1) {
+            const liters = parseFloat(String(row.values[litColIdx] || '').replace(/[^\d\.\-]/g, '')) || 0;
+            totalLiters += liters;
+          }
+          if (amountColIdx !== -1) {
+            const amount = parseFloat(String(row.values[amountColIdx] || '').replace(/[^\d\.\-]/g, '')) || 0;
+            totalAmount += amount;
+          }
+        });
+        el('manageDauTotalLiters').textContent = Math.round(totalLiters).toLocaleString('vi-VN');
+        el('manageDauTotalAmount').textContent = Math.round(totalAmount).toLocaleString('vi-VN') + ' ₫';
+      }
 
       if (matched.length === 0) {
         el('manageTableEmpty').style.display = 'block';
@@ -2555,8 +2641,13 @@
 
       const rowIndex = activeView === 'catalog' ? currentEditCatalogRowIndex : currentEditRowIndex;
 
+      let targetSheetName = sheetName;
+      if (sheetName === 'DM_ThamSo_TS' || sheetName === 'DM_ThamSo_GD') {
+        targetSheetName = 'DM_ThamSo';
+      }
+
       const payload = {
-        sheetName: sheetName,
+        sheetName: targetSheetName,
         rowIndex: rowIndex,
         rowData: rowData
       };
@@ -2594,7 +2685,17 @@
       
       const sheetName = activeView === 'catalog' ? el('catalogSheetSelect').value : el('manageSheetSelect').value;
       
-      callApi('POST', 'deleteSheetRow', {}, { sheetName: sheetName, rowIndex: rowIndex })
+      let targetSheetName = sheetName;
+      let columnsToClear = null;
+      if (sheetName === 'DM_ThamSo_TS') {
+        targetSheetName = 'DM_ThamSo';
+        columnsToClear = ["Mã tham số", "Giá trị", "Giải thích", "Ngày áp dụng tham số"];
+      } else if (sheetName === 'DM_ThamSo_GD') {
+        targetSheetName = 'DM_ThamSo';
+        columnsToClear = ["Giá dầu", "Ngày áp dụng giá dầu"];
+      }
+
+      callApi('POST', 'deleteSheetRow', {}, { sheetName: targetSheetName, rowIndex: rowIndex, columnsToClear: columnsToClear })
         .then((res) => {
           if (res.ok) {
             if (sheetName.indexOf('DM_') === 0) {
@@ -2617,7 +2718,9 @@
 
     // Catalog CRUD Operations
     function loadCatalogSheetData() {
-      const sheetName = el('catalogSheetSelect').value;
+      const displaySheetName = el('catalogSheetSelect').value;
+      const sheetName = (displaySheetName === 'DM_ThamSo_TS' || displaySheetName === 'DM_ThamSo_GD') ? 'DM_ThamSo' : displaySheetName;
+      
       const tbody = el('catalogTableBody');
       const thead = el('catalogTableHeader');
       
@@ -2628,6 +2731,24 @@
       callApi('GET', 'readSheetData', { sheetName: sheetName })
         .then((res) => {
           if (res.ok) {
+            if (displaySheetName === 'DM_ThamSo_TS') {
+              res.headers = ["Mã tham số", "Giá trị", "Giải thích", "Ngày áp dụng tham số"];
+              res.rows = res.rows.map(r => {
+                return {
+                  rowIndex: r.rowIndex,
+                  values: [r.values[0], r.values[1], r.values[2], r.values[3]]
+                };
+              }).filter(r => String(r.values[0] || '').trim() !== '');
+            } else if (displaySheetName === 'DM_ThamSo_GD') {
+              res.headers = ["Giá dầu", "Ngày áp dụng giá dầu"];
+              res.rows = res.rows.map(r => {
+                return {
+                  rowIndex: r.rowIndex,
+                  values: [r.values[4], r.values[5]]
+                };
+              }).filter(r => String(r.values[0] || '').trim() !== '');
+            }
+            
             currentCatalogData = res;
             renderCatalogTable();
           } else {
@@ -3532,6 +3653,62 @@
       holder.appendChild(wrap);
     }
 
+    function getEntryRowExtraTitle(row) {
+      if (!row) return '';
+      const c = getCurrentCatalogs();
+
+      if (activeForm === 'dau') {
+        const liters = parseLocaleNumber(row.liters) || 0;
+        const price = parseLocaleNumber(row.price) || 0;
+        const total = liters * price;
+        if (total > 0) {
+          return ` &mdash; <span style="color: var(--teal); font-weight: 700;">Thành tiền: ${Math.round(total).toLocaleString('vi-VN')} ₫</span>`;
+        }
+      }
+
+      if (activeForm === 'chamCong') {
+        let parts = [];
+        if (row.fromDate && row.toDate) {
+          const d1 = new Date(row.fromDate);
+          const d2 = new Date(row.toDate);
+          if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d2 >= d1) {
+            const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+            parts.push(`Số ngày nghỉ: <span style="color: var(--teal); font-weight: 700;">${diffDays} ngày</span>`);
+          }
+        }
+        if (row.workdayType && c && c.chamCongTypes) {
+          const typeObj = c.chamCongTypes.find(t => t.name === row.workdayType);
+          if (typeObj) {
+            parts.push(`Lương cứng: <span style="color: var(--blue); font-weight: 700;">${typeObj.salary}</span>`);
+            if (typeObj.group) {
+              parts.push(`Nhóm: <span style="color: var(--deep); font-weight: 600;">${typeObj.group}</span>`);
+            }
+          }
+        }
+        if (parts.length > 0) {
+          return ' &mdash; ' + parts.join(' | ');
+        }
+      }
+
+      if (activeForm === 'phat' && row.penaltyCode && c && c.penalties) {
+        const penObj = c.penalties.find(p => p.code === row.penaltyCode);
+        if (penObj) {
+          return ` &mdash; <span style="color: var(--deep); font-weight: 600;">${penObj.content}</span> | <span style="color: var(--red); font-weight: 700;">Số tiền phạt: ${Math.round(penObj.amount).toLocaleString('vi-VN')} ₫</span>`;
+        }
+      }
+
+      if (activeForm === 'nghiVanHanh' && row.hours) {
+        const hours = parseLocaleNumber(row.hours) || 0;
+        if (hours > 0) {
+          const hoursPerTrip = (c && c.params && c.params.SO_GIO_1_CHUYEN_KPI) || 4;
+          const estReduce = hours / hoursPerTrip;
+          return ` &mdash; <span style="color: var(--amber); font-weight: 700;">Giảm KPI dự kiến: ${estReduce.toFixed(1)} chuyến</span>`;
+        }
+      }
+
+      return '';
+    }
+
     function renderRow(row, index) {
       const card = document.createElement('article');
       card.className = 'entry-row';
@@ -3539,15 +3716,7 @@
       const head = document.createElement('div');
       head.className = 'entry-row-head';
       
-      let extraTitleHtml = '';
-      if (activeForm === 'dau') {
-        const liters = parseLocaleNumber(row.liters) || 0;
-        const price = parseLocaleNumber(row.price) || 0;
-        const total = liters * price;
-        if (total > 0) {
-          extraTitleHtml = ` &mdash; <span style="color: var(--teal); font-weight: 700;">Thành tiền: ${Math.round(total).toLocaleString('vi-VN')} ₫</span>`;
-        }
-      }
+      const extraTitleHtml = getEntryRowExtraTitle(row);
       
       head.innerHTML = `<div class="entry-row-title"><span class="row-number">${index + 1}</span><span>Dòng chứng từ<span class="entry-row-extra-title-${index}">${extraTitleHtml}</span></span></div>`;
       
@@ -4248,15 +4417,10 @@
           renderEntry();
         }
       }
-      // Các cột Số ngày, Lương cứng, Giảm KPI, v.v. đã được tính hoàn toàn bằng công thức mảng trên Google Sheet.
-      if (activeForm === 'dau' && (key === 'liters' || key === 'price')) {
-        const liters = parseLocaleNumber(row.liters) || 0;
-        const price = parseLocaleNumber(row.price) || 0;
-        const total = liters * price;
-        const span = document.querySelector(`.entry-row-extra-title-${index}`);
-        if (span) {
-          span.innerHTML = total > 0 ? ` &mdash; <span style="color: var(--teal); font-weight: 700;">Thành tiền: ${Math.round(total).toLocaleString('vi-VN')} ₫</span>` : '';
-        }
+      
+      const span = document.querySelector(`.entry-row-extra-title-${index}`);
+      if (span) {
+        span.innerHTML = getEntryRowExtraTitle(row);
       }
     }
 

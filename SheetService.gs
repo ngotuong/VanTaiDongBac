@@ -869,8 +869,15 @@ var SheetService = (function () {
       var rows = [];
 
       if (lastCol > 0) {
-        headers = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0].map(function (h) {
+        var rawHeaders = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0].map(function (h) {
           return String(h).trim();
+        });
+        headers = rawHeaders.map(function(h, idx) {
+          if (sheetName === 'DM_ThamSo') {
+            if (idx === 3) return 'Ngày áp dụng tham số';
+            if (idx === 5) return 'Ngày áp dụng giá dầu';
+          }
+          return h;
         });
 
         if (lastRow > headerRow) {
@@ -958,8 +965,15 @@ var SheetService = (function () {
       }
 
       var lastCol = sheet.getLastColumn();
-      var headers = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0].map(function (h) {
+      var rawHeaders = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0].map(function (h) {
         return String(h).trim();
+      });
+      var headers = rawHeaders.map(function(h, idx) {
+        if (sheetName === 'DM_ThamSo') {
+          if (idx === 3) return 'Ngày áp dụng tham số';
+          if (idx === 5) return 'Ngày áp dụng giá dầu';
+        }
+        return h;
       });
 
       var rowNum = parseInt(rowIndex, 10);
@@ -1047,7 +1061,7 @@ var SheetService = (function () {
     }
   }
 
-  function deleteSheetRow(sheetName, rowIndex) {
+  function deleteSheetRow(sheetName, rowIndex, columnsToClear) {
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
@@ -1071,7 +1085,28 @@ var SheetService = (function () {
         throw new Error('Không thể xóa dòng tiêu đề.');
       }
 
-      sheet.deleteRow(rowNum);
+      if (columnsToClear && columnsToClear.length > 0) {
+        var lastCol = sheet.getLastColumn();
+        var rawHeaders = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0].map(function (h) {
+          return String(h).trim();
+        });
+        var headers = rawHeaders.map(function(h, idx) {
+          if (sheetName === 'DM_ThamSo') {
+            if (idx === 3) return 'Ngày áp dụng tham số';
+            if (idx === 5) return 'Ngày áp dụng giá dầu';
+          }
+          return h;
+        });
+
+        columnsToClear.forEach(function(colHeader) {
+          var colIdx = headers.indexOf(colHeader);
+          if (colIdx !== -1) {
+            sheet.getRange(rowNum, colIdx + 1).setValue('');
+          }
+        });
+      } else {
+        sheet.deleteRow(rowNum);
+      }
 
       SpreadsheetApp.flush();
       clearAfterSubmitCache_();

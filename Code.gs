@@ -65,7 +65,7 @@ function doPost(e) {
       return jsonResponse_(result);
     }
     if (action === 'deleteSheetRow') {
-      var result = SheetService.deleteSheetRow(payload.sheetName, payload.rowIndex);
+      var result = SheetService.deleteSheetRow(payload.sheetName, payload.rowIndex, payload.columnsToClear);
       return jsonResponse_(result);
     }
     
@@ -124,6 +124,6 @@ function saveSheetRow(sheetName, rowIndex, rowData) {
   return SheetService.saveSheetRow(sheetName, rowIndex, rowData);
 }
 
-function deleteSheetRow(sheetName, rowIndex) {
-  return SheetService.deleteSheetRow(sheetName, rowIndex);
+function deleteSheetRow(sheetName, rowIndex, columnsToClear) {
+  return SheetService.deleteSheetRow(sheetName, rowIndex, columnsToClear);
 }

@@ -1,7 +1,7 @@
 var SheetService = (function () {
-  var CACHE_VERSION = 'v5';
+  var CACHE_VERSION = 'v6';
   var CATALOG_TTL_SECONDS = 21600;
-  var REPORT_TTL_SECONDS = 180;
+  var REPORT_TTL_SECONDS = 600;
 
   function getBootstrap() {
     return {
@@ -38,7 +38,7 @@ var SheetService = (function () {
     var ss = getSpreadsheet_();
     var dashboard = {
       updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
-      overview: readOverviewReport_(ss, month),
+      overview: readOverviewDashboard_(ss),
       inputs: readInputStats_(ss),
       latestTrips: readLatestTrips_(ss),
       links: reportLinks_(),
@@ -516,6 +516,18 @@ var SheetService = (function () {
     return { months: months, details: details };
   }
 
+  function readOverviewDashboard_(ss) {
+    var sheet = ss.getSheetByName('BC_TongQuan');
+    if (!sheet) return { months: [], details: [] };
+    var rowCount = Math.min(sheet.getLastRow(), 24);
+    if (rowCount < 1) return { months: [], details: [] };
+    var months = sheet.getRange(1, 7, rowCount, 11).getDisplayValues()
+      .filter(function (row, index) {
+        return index === 0 || row.some(function (cell) { return clean_(cell); });
+      });
+    return { months: months, details: [] };
+  }
+
   function readInputStats_(ss) {
     var configs = [
       { type: 'vanChuyen', label: 'Vận chuyển', sheet: 'NL_VanChuyen', headerRow: 2 },
@@ -643,6 +655,18 @@ var SheetService = (function () {
     return clean_(value);
   }
 
+  function parseSheetDate_(value) {
+    if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+      return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+    }
+    var text = clean_(value);
+    var iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    var vn = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (vn) return new Date(Number(vn[3]), Number(vn[2]) - 1, Number(vn[1]));
+    return null;
+  }
+
   function parseNumberLoose_(value) {
     return ValidationService.parseNumber(value, false);
   }
@@ -753,29 +777,16 @@ var SheetService = (function () {
     removeChunkedCache_('report:' + CACHE_VERSION + ':payroll:all');
     removeChunkedCache_('report:' + CACHE_VERSION + ':vehicles:all');
     removeChunkedCache_('report_bundle:' + CACHE_VERSION + ':all');
-    
-    try {
-      var ss = getSpreadsheet_();
-      var overview = readOverviewReport_(ss);
-      var parsed = parseOverview_(overview.months);
-      parsed.months.forEach(function (m) {
-        var mKey = normalizeMonthKey_(m);
-        if (mKey) {
-          removeChunkedCache_('report_bundle:' + CACHE_VERSION + ':' + mKey);
-          removeChunkedCache_('dashboard:' + CACHE_VERSION + ':' + mKey);
-        }
-      });
-    } catch (e) {
-      // Fallback if sheet read fails during flush
-    }
   }
 
   function readLatestTrips_(ss) {
     var sheet = ss.getSheetByName('NL_VanChuyen');
     if (!sheet) return { date: '', trips: [] };
-    var lastRow = sheet.getLastRow();
-    if (lastRow < 3) return { date: '', trips: [] };
-    var values = sheet.getRange(3, 1, lastRow - 2, 6).getValues();
+    var lastDataRow = getLastNonEmptyRowInColumn_(sheet, 1, 3, true);
+    if (lastDataRow < 3) return { date: '', trips: [] };
+    var sampleRows = Math.min(lastDataRow - 2, 2000);
+    var startRow = lastDataRow - sampleRows + 1;
+    var values = sheet.getRange(startRow, 1, sampleRows, 6).getValues();
     
     var maxTime = 0;
     var maxDate = null;
@@ -849,7 +860,7 @@ var SheetService = (function () {
     return { months: months };
   }
 
-  function readSheetData(sheetName, startDateStr, endDateStr) {
+  function readSheetData(sheetName, startDateStr, endDateStr, limit) {
     try {
       var ss = getSpreadsheet_();
       var sheet = ss.getSheetByName(sheetName);
@@ -867,6 +878,7 @@ var SheetService = (function () {
       var lastCol = sheet.getLastColumn();
       var headers = [];
       var rows = [];
+      var rowLimit = Math.max(1, Math.min(parseInt(limit, 10) || 10, 500));
 
       if (lastCol > 0) {
         var rawHeaders = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0].map(function (h) {
@@ -881,15 +893,70 @@ var SheetService = (function () {
         });
 
         if (lastRow > headerRow) {
-          var rawValues = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, lastCol).getValues();
-          
-          var hasDateFilter = (startDateStr || endDateStr) && (sheetName.indexOf('NL_') === 0);
+          var isJournalSheet = sheetName.indexOf('NL_') === 0;
+          var hasDateFilter = (startDateStr || endDateStr) && isJournalSheet;
+          var readStartRow = headerRow + 1;
+          var readRowCount = lastRow - headerRow;
+          var rowEntries = [];
           var startLimit = startDateStr ? new Date(startDateStr + 'T00:00:00') : null;
           var endLimit = endDateStr ? new Date(endDateStr + 'T23:59:59') : null;
 
-          for (var i = rawValues.length - 1; i >= 0; i--) {
-            var rowIndex = headerRow + 1 + i;
-            var cells = rawValues[i].map(function (val) {
+          if (hasDateFilter) {
+            var dateValues = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, 1).getValues();
+            var matchedRows = [];
+            for (var dIdx = 0; dIdx < dateValues.length; dIdx++) {
+              var parsedDate = parseSheetDate_(dateValues[dIdx][0]);
+              if (parsedDate && (!startLimit || parsedDate >= startLimit) && (!endLimit || parsedDate <= endLimit)) {
+                matchedRows.push(headerRow + 1 + dIdx);
+              }
+            }
+
+            if (matchedRows.length) {
+              var groupStart = matchedRows[0];
+              var groupEnd = matchedRows[0];
+              var groups = [];
+              for (var gIdx = 1; gIdx < matchedRows.length; gIdx++) {
+                if (matchedRows[gIdx] === groupEnd + 1) {
+                  groupEnd = matchedRows[gIdx];
+                } else {
+                  groups.push({ start: groupStart, end: groupEnd });
+                  groupStart = matchedRows[gIdx];
+                  groupEnd = matchedRows[gIdx];
+                }
+              }
+              groups.push({ start: groupStart, end: groupEnd });
+
+              groups.forEach(function (group) {
+                var groupValues = sheet.getRange(group.start, 1, group.end - group.start + 1, lastCol).getValues();
+                groupValues.forEach(function (rowValues, offset) {
+                  rowEntries.push({ rowIndex: group.start + offset, values: rowValues });
+                });
+              });
+              rowEntries.sort(function (a, b) { return b.rowIndex - a.rowIndex; });
+            }
+          } else {
+            if (isJournalSheet) {
+              var lastDataRow = getLastNonEmptyRowInColumn_(sheet, 1, headerRow + 1, true);
+              if (lastDataRow >= headerRow + 1) {
+                readRowCount = Math.min(rowLimit, lastDataRow - headerRow);
+                readStartRow = lastDataRow - readRowCount + 1;
+              } else {
+                readRowCount = 0;
+              }
+            }
+
+            var rawValues = readRowCount > 0
+              ? sheet.getRange(readStartRow, 1, readRowCount, lastCol).getValues()
+              : [];
+            for (var rawIdx = rawValues.length - 1; rawIdx >= 0; rawIdx--) {
+              rowEntries.push({ rowIndex: readStartRow + rawIdx, values: rawValues[rawIdx] });
+            }
+          }
+
+          rowEntries.forEach(function (entry) {
+            var rowIndex = entry.rowIndex;
+            var rawRow = entry.values;
+            var cells = rawRow.map(function (val) {
               if (Object.prototype.toString.call(val) === '[object Date]' && !isNaN(val.getTime())) {
                 return Utilities.formatDate(val, APP_CONFIG.timezone, 'yyyy-MM-dd');
               }
@@ -900,37 +967,18 @@ var SheetService = (function () {
               return cell === null || cell === undefined || String(cell).trim() === '';
             });
             
-            if (isEmpty) continue;
-
-            if (hasDateFilter) {
-              var rowDateVal = rawValues[i][0];
-              var d = null;
-              if (Object.prototype.toString.call(rowDateVal) === '[object Date]' && !isNaN(rowDateVal.getTime())) {
-                d = rowDateVal;
-              } else if (typeof rowDateVal === 'string' && rowDateVal.trim()) {
-                var m = rowDateVal.match(/^(\d{4})-(\d{2})-(\d{2})/);
-                if (m) {
-                  d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-                }
-              }
-              
-              if (d) {
-                if (startLimit && d < startLimit) continue;
-                if (endLimit && d > endLimit) continue;
-              }
-            }
+            if (isEmpty) return;
 
             rows.push({
               rowIndex: rowIndex,
               values: cells
             });
-          }
+          });
         }
       }
 
       var isLimited = false;
       if (sheetName.indexOf('NL_') === 0 && !startDateStr && !endDateStr) {
-        rows = rows.slice(0, 10);
         isLimited = true;
       }
       if (sheetName.indexOf('DM_') === 0) {

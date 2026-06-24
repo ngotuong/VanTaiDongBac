@@ -983,8 +983,10 @@ var SheetService = (function () {
       }
 
       var existingFormulas = null;
+      var existingValues = null;
       if (rowNum <= sheet.getLastRow()) {
         existingFormulas = sheet.getRange(rowNum, 1, 1, headers.length).getFormulas()[0];
+        existingValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
       }
 
       var valuesToSet = [];
@@ -994,6 +996,8 @@ var SheetService = (function () {
 
         if (existingFormulas && existingFormulas[colIdx]) {
           valuesToSet.push(existingFormulas[colIdx]);
+        } else if (val === undefined && existingValues) {
+          valuesToSet.push(existingValues[colIdx]);
         } else if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
           valuesToSet.push('');
         } else if (sheetName === 'NL_ChamCong' && (header.toLowerCase().indexOf('số ngày') !== -1 || header.toLowerCase().indexOf('lương cứng') !== -1 || header.toLowerCase().indexOf('nhóm') !== -1)) {

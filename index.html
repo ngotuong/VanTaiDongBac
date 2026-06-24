@@ -1783,7 +1783,7 @@
               </div>
               <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
                 Tìm kiếm:
-                <input type="text" id="manageSearchInput" placeholder="Tìm theo biển số, tài xế..." style="height: 38px; width: 220px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="filterManageRows()">
+                <input type="text" id="manageSearchInput" placeholder="Tìm theo biển số, tài xế..." style="height: 38px; width: 220px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="debounceManageSearch()">
               </label>
             </div>
             <div>
@@ -1812,6 +1812,7 @@
                 <option value="all">Tất cả nhà xe</option>
                 <option value="Quang Quân">Quang Quân</option>
                 <option value="Minh Vương">Minh Vương</option>
+                <option value="Quỹ">Quỹ (Chi quỹ)</option>
               </select>
             </label>
           </div>
@@ -1843,7 +1844,7 @@
       <section id="catalogView" class="view">
         <!-- Nút trượt ngang chọn Danh mục -->
         <div class="sub-tabs-bar" id="catalogTabsBar" style="width: 100%; margin-bottom: 12px;">
-          <button type="button" class="sub-tab active" data-sheet="DM_NhanSu" onclick="setCatalogSheetTab('DM_NhanSu')">Nhân sự & Tài xế</button>
+          <button type="button" class="sub-tab active" data-sheet="DM_NhanSu" onclick="setCatalogSheetTab('DM_NhanSu')">Nhân sự</button>
           <button type="button" class="sub-tab" data-sheet="DM_Xe" onclick="setCatalogSheetTab('DM_Xe')">Danh sách xe</button>
           <button type="button" class="sub-tab" data-sheet="DM_DuAn" onclick="setCatalogSheetTab('DM_DuAn')">Dự án & Cự ly</button>
           <button type="button" class="sub-tab" data-sheet="DM_PhanCongLaiXe" onclick="setCatalogSheetTab('DM_PhanCongLaiXe')">Phân công lái xe</button>
@@ -1861,7 +1862,7 @@
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1;">
               <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
                 Tìm kiếm:
-                <input type="text" id="catalogSearchInput" placeholder="Tìm kiếm trong danh mục..." style="height: 38px; width: 260px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="filterCatalogRows()">
+                <input type="text" id="catalogSearchInput" placeholder="Tìm kiếm trong danh mục..." style="height: 38px; width: 260px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="debounceCatalogSearch()">
               </label>
             </div>
             <div>
@@ -2314,6 +2315,18 @@
       filterManageRows();
     }
 
+    let manageSearchTimeout = null;
+    function debounceManageSearch() {
+      clearTimeout(manageSearchTimeout);
+      manageSearchTimeout = setTimeout(filterManageRows, 150);
+    }
+    
+    let catalogSearchTimeout = null;
+    function debounceCatalogSearch() {
+      clearTimeout(catalogSearchTimeout);
+      catalogSearchTimeout = setTimeout(filterCatalogRows, 150);
+    }
+
     function filterManageRows() {
       const query = el('manageSearchInput').value.toLowerCase().trim();
       const tbody = el('manageTableBody');
@@ -2689,10 +2702,10 @@
       let columnsToClear = null;
       if (sheetName === 'DM_ThamSo_TS') {
         targetSheetName = 'DM_ThamSo';
-        columnsToClear = ["Mã tham số", "Giá trị", "Giải thích", "Ngày áp dụng tham số"];
+        columnsToClear = ["Mã tham số", "Tên tham số", "Giá trị", "Ngày áp dụng tham số"];
       } else if (sheetName === 'DM_ThamSo_GD') {
         targetSheetName = 'DM_ThamSo';
-        columnsToClear = ["Giá dầu", "Ngày áp dụng giá dầu"];
+        columnsToClear = ["Giá dầu áp dụng", "Ngày áp dụng giá dầu", "Ghi chú"];
       }
 
       callApi('POST', 'deleteSheetRow', {}, { sheetName: targetSheetName, rowIndex: rowIndex, columnsToClear: columnsToClear })
@@ -2731,8 +2744,21 @@
       callApi('GET', 'readSheetData', { sheetName: sheetName })
         .then((res) => {
           if (res.ok) {
-            if (displaySheetName === 'DM_ThamSo_TS') {
-              res.headers = ["Mã tham số", "Giá trị", "Giải thích", "Ngày áp dụng tham số"];
+            if (displaySheetName === 'DM_NhanSu') {
+              const colIdx = res.headers.indexOf('DS_TaiXe_DangLam');
+              if (colIdx !== -1) {
+                res.headers.splice(colIdx, 1);
+                res.rows = res.rows.map(r => {
+                  const newVals = [...r.values];
+                  newVals.splice(colIdx, 1);
+                  return {
+                    rowIndex: r.rowIndex,
+                    values: newVals
+                  };
+                });
+              }
+            } else if (displaySheetName === 'DM_ThamSo_TS') {
+              res.headers = ["Mã tham số", "Tên tham số", "Giá trị", "Ngày áp dụng tham số"];
               res.rows = res.rows.map(r => {
                 return {
                   rowIndex: r.rowIndex,
@@ -2740,11 +2766,11 @@
                 };
               }).filter(r => String(r.values[0] || '').trim() !== '');
             } else if (displaySheetName === 'DM_ThamSo_GD') {
-              res.headers = ["Giá dầu", "Ngày áp dụng giá dầu"];
+              res.headers = ["Giá dầu áp dụng", "Ngày áp dụng giá dầu", "Ghi chú"];
               res.rows = res.rows.map(r => {
                 return {
                   rowIndex: r.rowIndex,
-                  values: [r.values[4], r.values[5]]
+                  values: [r.values[6], r.values[5], r.values[7]]
                 };
               }).filter(r => String(r.values[0] || '').trim() !== '');
             }
@@ -3021,10 +3047,14 @@
         loadReportBundle(false);
       }
       if (view === 'manage') {
-        loadManageSheetData();
+        loadAllCatalogsIfNeeded(() => {
+          loadManageSheetData();
+        });
       }
       if (view === 'catalog') {
-        loadCatalogSheetData();
+        loadAllCatalogsIfNeeded(() => {
+          loadCatalogSheetData();
+        });
       }
     }
 
@@ -4466,7 +4496,34 @@
     }
 
     function getCurrentCatalogs() {
-      return { ...getEmptyCatalogs(), ...(catalogsByForm[activeForm] || {}) };
+      return { 
+        ...getEmptyCatalogs(), 
+        ...(catalogsByForm['all'] || {}),
+        ...(catalogsByForm[activeForm] || {}) 
+      };
+    }
+
+    function loadAllCatalogsIfNeeded(callback) {
+      if (catalogsByForm['all']) {
+        if (callback) callback();
+        return;
+      }
+      const cached = sessionStorage.getItem('eb_catalogs_all');
+      if (cached) {
+        catalogsByForm['all'] = JSON.parse(cached);
+        if (callback) callback();
+        return;
+      }
+      callApi('GET', 'getCatalogs', { formType: '' })
+        .then(res => {
+          catalogsByForm['all'] = res;
+          sessionStorage.setItem('eb_catalogs_all', JSON.stringify(res));
+          if (callback) callback();
+        })
+        .catch(err => {
+          console.error("Lỗi tải toàn bộ danh mục:", err);
+          if (callback) callback();
+        });
     }
 
     function getDashboardData() {

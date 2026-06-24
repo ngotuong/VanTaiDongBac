@@ -1071,6 +1071,136 @@
       line-height: 1.6; 
       font-size: 13.5px; 
     }
+
+    /* CRUD Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      padding: 16px;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-container {
+      background: var(--paper);
+      border-radius: 16px;
+      box-shadow: var(--shadow-xl), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      transform: scale(0.95);
+      transition: transform 0.2s ease;
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+    .modal-overlay.active .modal-container {
+      transform: scale(1);
+    }
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--deep);
+    }
+    .modal-close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--muted);
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      transition: background 0.15s;
+    }
+    .modal-close-btn:hover {
+      background: var(--mint-soft);
+      color: var(--teal);
+    }
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      background: var(--mint-soft);
+    }
+    .modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .modal-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .modal-grid label.full-width {
+      grid-column: 1 / -1;
+    }
+    .modal-grid input, .modal-grid select, .modal-grid textarea {
+      height: 40px;
+      padding: 0 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .modal-grid textarea {
+      height: 80px;
+      padding: 10px 12px;
+      resize: vertical;
+    }
+    .modal-grid input:focus, .modal-grid select:focus, .modal-grid textarea:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--mint-soft);
+    }
+    
+    @media (max-width: 600px) {
+      .modal-grid {
+        grid-template-columns: 1fr;
+      }
+    }
     
     /* Bottom Navigation for Mobile */
     .bottom-nav {
@@ -1624,6 +1754,60 @@
         </div>
       </section>
 
+      <!-- View: Manage Sheet Data & Categories (CRUD) -->
+      <section id="manageView" class="view">
+        <div class="filter-bar" style="margin-bottom: 16px;">
+          <div class="filter-container" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1;">
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                Bảng quản lý:
+                <select id="manageSheetSelect" style="height: 38px; width: 220px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadManageSheetData()">
+                  <optgroup label="Nhật ký nhập liệu">
+                    <option value="NL_Dau">Dầu lẻ (NL_Dau)</option>
+                    <option value="NL_VanChuyen">Vận chuyển (NL_VanChuyen)</option>
+                    <option value="NL_TaiXe">Chi tiết tài xế (NL_TaiXe)</option>
+                    <option value="NL_ChamCong">Chấm công (NL_ChamCong)</option>
+                    <option value="NL_Phat">Phạt nội bộ (NL_Phat)</option>
+                    <option value="NL_NghiVanHanh">Nghỉ vận hành (NL_NghiVanHanh)</option>
+                  </optgroup>
+                  <optgroup label="Danh mục hệ thống">
+                    <option value="DM_NhanSu">Nhân sự & Tài xế (DM_NhanSu)</option>
+                    <option value="DM_Xe">Danh sách xe (DM_Xe)</option>
+                    <option value="DM_DuAn">Dự án & Cự ly (DM_DuAn)</option>
+                    <option value="DM_PhatNoiBo">Quy định phạt nội bộ (DM_PhatNoiBo)</option>
+                    <option value="DM_PhanCongLaiXe">Phân công lái xe (DM_PhanCongLaiXe)</option>
+                  </optgroup>
+                </select>
+              </label>
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                Tìm kiếm:
+                <input type="text" id="manageSearchInput" placeholder="Tìm theo biển số, tài xế, dự án, công ty..." style="height: 38px; width: 260px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="filterManageRows()">
+              </label>
+            </div>
+            <div>
+              <button type="button" class="primary" style="height: 38px; display: inline-flex; align-items: center; gap: 6px; padding: 0 16px; border-radius: 8px; font-weight: 600;" onclick="openManageAddModal()">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Thêm dòng mới
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-scroll" style="max-height: calc(100vh - 280px); overflow-y: auto;">
+            <table class="report-table" id="manageTable">
+              <thead>
+                <tr id="manageTableHeader"></tr>
+              </thead>
+              <tbody id="manageTableBody"></tbody>
+            </table>
+          </div>
+          <div id="manageTableEmpty" class="panel-body" style="text-align: center; color: var(--muted); padding: 48px 24px; display: none;">
+            Không có dữ liệu phù hợp với tìm kiếm của bạn.
+          </div>
+        </div>
+      </section>
+
       <!-- View: Mobile Settings / Manual -->
       <section id="settingsView" class="view">
         <div class="settings-grid">
@@ -1668,6 +1852,27 @@
     </main>
   </div>
 
+  <!-- Modal Popup for Add/Edit Sheet Data (CRUD) -->
+  <div class="modal-overlay" id="manageModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="manageModalTitle">Thêm dòng dữ liệu mới</h3>
+        <button type="button" class="modal-close-btn" onclick="closeManageModal()">&times;</button>
+      </div>
+      <form id="manageModalForm" onsubmit="event.preventDefault(); saveManageRow();">
+        <div class="modal-body">
+          <div class="modal-grid" id="manageModalFields">
+            <!-- Dynamically generated fields -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="outline" onclick="closeManageModal()">Hủy bỏ</button>
+          <button type="submit" class="primary" id="manageModalSubmitBtn">Lưu lại</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="drawer-backdrop" id="drawerBackdrop"></div>
   <nav class="bottom-nav" id="bottomNav"></nav>
 
@@ -1677,6 +1882,7 @@
       ['home', 'Tổng quan', 'KPI & Biểu đồ', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`],
       ['entry', 'Nhập liệu', 'Biểu mẫu NL', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>`],
       ['reports', 'Báo cáo', 'Bảng chi tiết', `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`],
+      ['manage', 'Quản lý', 'Danh mục & NL', `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>`],
       ['settings', 'Hướng dẫn', 'Cài đặt App', `<svg class="btn-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.52 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`]
     ];
     
@@ -1750,6 +1956,9 @@
     let activeReportTab = 'all';
     let selectedMonth = '';
     let rows = [];
+    let currentManageData = null;
+    let filteredManageRowsData = [];
+    let currentEditRowIndex = null;
     
     const el = (id) => document.getElementById(id);
 
@@ -1877,6 +2086,375 @@
         });
     }
 
+    // CRUD Manager Operations
+    function loadManageSheetData() {
+      const sheetName = el('manageSheetSelect').value;
+      const tbody = el('manageTableBody');
+      const thead = el('manageTableHeader');
+      
+      thead.innerHTML = '';
+      tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; padding: 48px; color: var(--muted);"><div style="display:inline-block; width: 30px; height: 30px; border: 3px solid var(--mint-soft); border-radius: 50%; border-top-color: var(--teal); animation: spin 1s linear infinite; margin-bottom: 12px;"></div><br>Đang tải dữ liệu từ Google Sheets...</td></tr>`;
+      el('manageTableEmpty').style.display = 'none';
+
+      callApi('GET', 'readSheetData', { sheetName: sheetName })
+        .then((res) => {
+          if (res.ok) {
+            currentManageData = res;
+            renderManageTable();
+          } else {
+            tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; color: var(--red); padding: 48px;">Lỗi: ${res.error}</td></tr>`;
+          }
+        })
+        .catch((err) => {
+          tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; color: var(--red); padding: 48px;">Lỗi kết nối: ${err.message}</td></tr>`;
+        });
+    }
+
+    function renderManageTable() {
+      if (!currentManageData) return;
+      const headers = [...currentManageData.headers];
+      const rawRows = currentManageData.rows || [];
+      
+      let vehicleColIdx = -1;
+      for (let i = 0; i < headers.length; i++) {
+        const h = headers[i].toLowerCase().trim();
+        if (h === 'biển số xe' || h === 'xe' || h === 'bển số') {
+          vehicleColIdx = i;
+          break;
+        }
+      }
+
+      const showOwnerCol = (vehicleColIdx !== -1);
+      const thead = el('manageTableHeader');
+      thead.innerHTML = '';
+      
+      headers.forEach((h, idx) => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        thead.appendChild(th);
+        
+        if (showOwnerCol && idx === vehicleColIdx) {
+          const thOwner = document.createElement('th');
+          thOwner.textContent = 'Công ty/Chủ xe';
+          thead.appendChild(thOwner);
+        }
+      });
+      
+      const thActions = document.createElement('th');
+      thActions.textContent = 'Thao tác';
+      thActions.style.textAlign = 'center';
+      thead.appendChild(thActions);
+
+      const vehiclesCatalog = getCurrentCatalogs()?.vehicles || [];
+      filteredManageRowsData = rawRows.map(row => {
+        let owner = '';
+        if (showOwnerCol) {
+          const plate = String(row.values[vehicleColIdx] || '').trim();
+          const vehObj = vehiclesCatalog.find(v => String(v.plate).trim().toLowerCase() === plate.toLowerCase());
+          if (vehObj) {
+            owner = vehObj.owner || '';
+          }
+        }
+        return {
+          ...row,
+          owner: owner
+        };
+      });
+
+      filterManageRows();
+    }
+
+    function filterManageRows() {
+      const query = el('manageSearchInput').value.toLowerCase().trim();
+      const tbody = el('manageTableBody');
+      tbody.innerHTML = '';
+      
+      let vehicleColIdx = -1;
+      if (currentManageData) {
+        for (let i = 0; i < currentManageData.headers.length; i++) {
+          const h = currentManageData.headers[i].toLowerCase().trim();
+          if (h === 'biển số xe' || h === 'xe' || h === 'bển số') {
+            vehicleColIdx = i;
+            break;
+          }
+        }
+      }
+      const showOwnerCol = (vehicleColIdx !== -1);
+
+      const matched = filteredManageRowsData.filter(row => {
+        if (!query) return true;
+        const inValues = row.values.some(v => String(v || '').toLowerCase().includes(query));
+        const inOwner = row.owner && row.owner.toLowerCase().includes(query);
+        return inValues || inOwner;
+      });
+
+      if (matched.length === 0) {
+        el('manageTableEmpty').style.display = 'block';
+        return;
+      }
+      el('manageTableEmpty').style.display = 'none';
+
+      matched.forEach(row => {
+        const tr = document.createElement('tr');
+        
+        row.values.forEach((val, idx) => {
+          const td = document.createElement('td');
+          
+          if (typeof val === 'number') {
+            const header = currentManageData.headers[idx].toLowerCase();
+            if (header.includes('giá') || header.includes('tiền') || header.includes('phạt') || header.includes('lương')) {
+              td.textContent = Math.round(val).toLocaleString('vi-VN') + ' ₫';
+              td.style.fontWeight = '600';
+            } else {
+              td.textContent = val.toLocaleString('vi-VN');
+            }
+          } else {
+            td.textContent = val || '';
+          }
+          tr.appendChild(td);
+
+          if (showOwnerCol && idx === vehicleColIdx) {
+            const tdOwner = document.createElement('td');
+            if (row.owner) {
+              const span = document.createElement('span');
+              span.className = `badge ${row.owner.toLowerCase().includes('quang quân') ? 'amber' : 'blue'}`;
+              span.textContent = row.owner;
+              tdOwner.appendChild(span);
+            } else {
+              tdOwner.textContent = '-';
+            }
+            tr.appendChild(tdOwner);
+          }
+        });
+
+        const tdActions = document.createElement('td');
+        tdActions.style.textAlign = 'center';
+        tdActions.style.whiteSpace = 'nowrap';
+        
+        const btnEdit = document.createElement('button');
+        btnEdit.type = 'button';
+        btnEdit.className = 'primary';
+        btnEdit.style.padding = '4px 10px';
+        btnEdit.style.fontSize = '12px';
+        btnEdit.style.height = '28px';
+        btnEdit.style.marginRight = '6px';
+        btnEdit.textContent = 'Sửa';
+        btnEdit.onclick = () => openManageEditModal(row);
+
+        const btnDelete = document.createElement('button');
+        btnDelete.type = 'button';
+        btnDelete.className = 'danger';
+        btnDelete.style.padding = '4px 10px';
+        btnDelete.style.fontSize = '12px';
+        btnDelete.style.height = '28px';
+        btnDelete.textContent = 'Xóa';
+        btnDelete.onclick = () => deleteManageRow(row.rowIndex);
+
+        tdActions.appendChild(btnEdit);
+        tdActions.appendChild(btnDelete);
+        tr.appendChild(tdActions);
+        
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openManageAddModal() {
+      currentEditRowIndex = null;
+      el('manageModalTitle').textContent = 'Thêm dòng dữ liệu mới';
+      buildManageModalFields({});
+      el('manageModal').classList.add('active');
+    }
+
+    function openManageEditModal(row) {
+      currentEditRowIndex = row.rowIndex;
+      el('manageModalTitle').textContent = `Chỉnh sửa dòng thứ ${row.rowIndex}`;
+      
+      const rowData = {};
+      currentManageData.headers.forEach((h, idx) => {
+        rowData[h] = row.values[idx];
+      });
+      
+      buildManageModalFields(rowData);
+      el('manageModal').classList.add('active');
+    }
+
+    function closeManageModal() {
+      el('manageModal').classList.remove('active');
+    }
+
+    function getManageFieldOptions(header, sheetName) {
+      const headerClean = header.trim().toLowerCase();
+      if (headerClean === 'biển số xe' || headerClean === 'xe' || headerClean === 'bển số') {
+        return getOptions('vehicles');
+      }
+      if (headerClean === 'tài xế' || headerClean === 'người lái') {
+        return getOptions('drivers');
+      }
+      if (headerClean === 'dự án' || headerClean === 'tên dự án') {
+        return getOptions('projects');
+      }
+      if (headerClean === 'nhân sự' || headerClean === 'nhân viên' || headerClean === 'họ và tên' || headerClean === 'tên nhân sự') {
+        return getOptions('people');
+      }
+      if (headerClean === 'nguồn dầu' || headerClean === 'nguồn') {
+        return getOptions('fuelSources');
+      }
+      if (headerClean === 'mã phạt') {
+        return getOptions('penalties');
+      }
+      if (headerClean === 'loại ngày công') {
+        return getOptions('chamCongTypes');
+      }
+      if (headerClean === 'loại nghỉ') {
+        return getOptions('nghiVanHanhTypes');
+      }
+      if (headerClean === 'kpi' || headerClean === 'tính kpi' || headerClean === 'hưởng lương' || headerClean === 'bù kpi' || headerClean === 'có tính kpi?') {
+        return getOptions('yesNo');
+      }
+      return null;
+    }
+
+    function buildManageModalFields(rowData) {
+      const container = el('manageModalFields');
+      container.innerHTML = '';
+      const sheetName = el('manageSheetSelect').value;
+
+      if (!currentManageData) return;
+
+      currentManageData.headers.forEach((header) => {
+        if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
+          return;
+        }
+
+        const label = document.createElement('label');
+        const headerClean = header.trim().toLowerCase();
+        
+        if (headerClean.includes('ghi chú') || headerClean.includes('nội dung')) {
+          label.className = 'full-width';
+        }
+
+        const span = document.createElement('span');
+        span.textContent = header;
+        label.appendChild(span);
+
+        const options = getManageFieldOptions(header, sheetName);
+
+        if (options) {
+          const acWrap = document.createElement('div');
+          acWrap.style.width = '100%';
+          acWrap.style.position = 'relative';
+          
+          label.appendChild(acWrap);
+          container.appendChild(label);
+          
+          const val = rowData[header] || '';
+          createAutocomplete(acWrap, options, val, (newVal) => {
+            acWrap.dataset.value = newVal;
+          });
+          acWrap.dataset.value = val;
+          acWrap.dataset.header = header;
+          acWrap.classList.add('manage-form-field');
+          acWrap.classList.add('ac-container'); // crucial flag
+        } else {
+          let input;
+          if (headerClean.includes('ghi chú') || headerClean.includes('nội dung')) {
+            input = document.createElement('textarea');
+          } else {
+            input = document.createElement('input');
+            if (headerClean.includes('ngày') || headerClean.includes('từ ngày') || headerClean.includes('đến ngày')) {
+              input.type = 'date';
+            } else if (headerClean.includes('số lít') || headerClean.includes('số chuyến') || headerClean.includes('đơn giá') || headerClean.includes('tiền') || headerClean.includes('số ngày') || headerClean.includes('số giờ') || headerClean.includes('cự ly') || headerClean.includes('công')) {
+              input.type = 'text';
+              input.inputMode = 'decimal';
+            } else {
+              input.type = 'text';
+            }
+          }
+          
+          input.value = rowData[header] === undefined || rowData[header] === null ? '' : rowData[header];
+          input.dataset.header = header;
+          input.classList.add('manage-form-field');
+          
+          label.appendChild(input);
+          container.appendChild(label);
+        }
+      });
+    }
+
+    function saveManageRow() {
+      const sheetName = el('manageSheetSelect').value;
+      const submitBtn = el('manageModalSubmitBtn');
+      const originalText = submitBtn.textContent;
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Đang lưu...';
+
+      const rowData = {};
+      const fields = el('manageModalFields').querySelectorAll('.manage-form-field');
+      
+      fields.forEach((f) => {
+        const header = f.dataset.header;
+        let val = '';
+        if (f.classList.contains('ac-container')) {
+          val = f.dataset.value || '';
+        } else {
+          val = f.value || '';
+        }
+        rowData[header] = val;
+      });
+
+      const payload = {
+        sheetName: sheetName,
+        rowIndex: currentEditRowIndex,
+        rowData: rowData
+      };
+
+      callApi('POST', 'saveSheetRow', {}, payload)
+        .then((res) => {
+          if (res.ok) {
+            closeManageModal();
+            if (sheetName.indexOf('DM_') === 0) {
+              sessionStorage.clear();
+              loadCatalogs(activeForm);
+            }
+            loadManageSheetData();
+          } else {
+            alert('Lỗi: ' + res.error);
+          }
+        })
+        .catch((err) => {
+          alert('Lỗi lưu dữ liệu: ' + err.message);
+        })
+        .finally(() => {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        });
+    }
+
+    function deleteManageRow(rowIndex) {
+      if (!confirm(`Bạn có chắc chắn muốn xóa dòng thứ ${rowIndex} không? Hành động này không thể hoàn tác.`)) {
+        return;
+      }
+      
+      const sheetName = el('manageSheetSelect').value;
+      
+      callApi('POST', 'deleteSheetRow', {}, { sheetName: sheetName, rowIndex: rowIndex })
+        .then((res) => {
+          if (res.ok) {
+            if (sheetName.indexOf('DM_') === 0) {
+              sessionStorage.clear();
+              loadCatalogs(activeForm);
+            }
+            loadManageSheetData();
+          } else {
+            alert('Lỗi: ' + res.error);
+          }
+        })
+        .catch((err) => {
+          alert('Lỗi xóa dữ liệu: ' + err.message);
+        });
+    }
+
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
@@ -1979,13 +2557,16 @@
       if (view === 'reports') {
         loadReportBundle(false);
       }
+      if (view === 'manage') {
+        loadManageSheetData();
+      }
     }
 
     function renderView() {
       document.querySelectorAll('[data-view]').forEach((button) => {
         button.classList.toggle('active', button.dataset.view === activeView);
       });
-      ['home', 'entry', 'reports', 'settings'].forEach((view) => {
+      ['home', 'entry', 'reports', 'manage', 'settings'].forEach((view) => {
         el(`${view}View`).classList.toggle('active', view === activeView);
       });
       
@@ -1993,6 +2574,7 @@
         home: ['Tổng quan', 'Báo cáo & Nhập liệu nhanh', `Dữ liệu cập nhật: ${getDashboardData()?.updatedAt || 'Vui lòng chờ...'}`],
         entry: ['Nhập liệu', 'Bảng kê nhập liệu', 'Thông tin tháng tự sinh theo ngày nhập dữ liệu.'],
         reports: ['Báo cáo', 'Báo cáo chi tiết tổng hợp', 'Đồng bộ từ các sheet tính toán gốc.'],
+        manage: ['Quản lý', 'Quản lý danh mục & Nhật ký', 'Thao tác xem, tìm kiếm lọc, sửa hoặc xóa dữ liệu trực tiếp.'],
         settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', 'Tối ưu hóa chạy webapp như ứng dụng thực tế.']
       }[activeView];
       
@@ -3126,13 +3708,72 @@
 
     function ensureSelectedMonth(rows) {
       if (!rows.length) return;
-      if (!selectedMonth || !rows.some((row) => row.month === selectedMonth)) {
+      if (!selectedMonth || (selectedMonth !== 'Tất cả' && !rows.some((row) => row.month === selectedMonth))) {
         selectedMonth = rows[rows.length - 1].month;
       }
     }
 
     function getSelectedOverviewRow(rows) {
       if (!rows.length) return {};
+      if (selectedMonth === 'Tất cả') {
+        let volume = 0;
+        let revenue = 0;
+        let taxTndn = 0;
+        let taxVat = 0;
+        let fuelQM = 0;
+        let fuelOut = 0;
+        let toll = 0;
+        let gross = 0;
+        let fund = 0;
+        let totalCost = 0;
+        let final = 0;
+        
+        rows.forEach(r => {
+          volume += r.volume || 0;
+          revenue += r.revenue || 0;
+          taxTndn += parseMoney(r.taxTndnText);
+          taxVat += parseMoney(r.taxVatText);
+          if (r.source) {
+            fuelQM += parseMoney(r.source[5]);
+            fuelOut += parseMoney(r.source[6]);
+            toll += parseMoney(r.source[7]);
+            fund += parseMoney(r.source[9]);
+          }
+          gross += r.gross || 0;
+          totalCost += r.totalCost || 0;
+          final += r.final || 0;
+        });
+
+        return {
+          month: 'Tất cả',
+          volume: volume,
+          volumeText: volume.toLocaleString('vi-VN') + ' tấn',
+          revenue: revenue,
+          revenueText: Math.round(revenue).toLocaleString('vi-VN') + ' ₫',
+          taxTndnText: Math.round(taxTndn).toLocaleString('vi-VN') + ' ₫',
+          taxVatText: Math.round(taxVat).toLocaleString('vi-VN') + ' ₫',
+          fuelText: Math.round(fuelQM).toLocaleString('vi-VN') + ' ₫ / ' + Math.round(fuelOut).toLocaleString('vi-VN') + ' ₫',
+          tollText: Math.round(toll).toLocaleString('vi-VN') + ' ₫',
+          grossText: Math.round(gross).toLocaleString('vi-VN') + ' ₫',
+          fundText: Math.round(fund).toLocaleString('vi-VN') + ' ₫',
+          totalCostText: Math.round(totalCost).toLocaleString('vi-VN') + ' ₫',
+          finalText: Math.round(final).toLocaleString('vi-VN') + ' ₫',
+          final: final,
+          source: [
+            'Tất cả',
+            volume.toLocaleString('vi-VN'),
+            Math.round(revenue).toLocaleString('vi-VN') + ' ₫',
+            Math.round(taxTndn).toLocaleString('vi-VN') + ' ₫',
+            Math.round(taxVat).toLocaleString('vi-VN') + ' ₫',
+            Math.round(fuelQM).toLocaleString('vi-VN') + ' ₫',
+            Math.round(fuelOut).toLocaleString('vi-VN') + ' ₫',
+            Math.round(toll).toLocaleString('vi-VN') + ' ₫',
+            '',
+            Math.round(fund).toLocaleString('vi-VN') + ' ₫',
+            Math.round(final).toLocaleString('vi-VN') + ' ₫'
+          ]
+        };
+      }
       return rows.find((row) => row.month === selectedMonth) || rows[rows.length - 1] || {};
     }
 
@@ -3143,6 +3784,7 @@
         if (!select) return;
         const previous = select.value;
         select.innerHTML = '';
+        select.appendChild(new Option("Tất cả", "Tất cả"));
         rows.forEach((row) => select.appendChild(new Option(row.month, row.month)));
         select.value = selectedMonth || previous || (rows[rows.length - 1]?.month || '');
         select.onchange = () => {

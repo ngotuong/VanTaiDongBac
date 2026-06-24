@@ -372,6 +372,100 @@ var SheetService = (function () {
         return index === 0 || row.some(function (cell) { return clean_(cell); });
       });
       
+    var activeMonths = [];
+    if (months.length > 1) {
+      for (var i = 1; i < months.length; i++) {
+        var mName = clean_(months[i][0]);
+        if (mName && mName !== 'Tháng') {
+          activeMonths.push(mName);
+        }
+      }
+    }
+    
+    var detailsRange = sheet.getRange(4, 1, Math.min(Math.max(sheet.getLastRow() - 3, 1), 14), 5);
+    
+    if (month === 'Tất cả') {
+      var originalMonth = '';
+      if (activeMonths.length > 0) {
+        originalMonth = clean_(sheet.getRange('B1').getValue());
+      }
+      
+      var aggregatedDetails = [];
+      var lock = LockService.getScriptLock();
+      try {
+        lock.waitLock(15000);
+        
+        for (var mIdx = 0; mIdx < activeMonths.length; mIdx++) {
+          var mVal = activeMonths[mIdx];
+          sheet.getRange('B1').setValue(mVal);
+          SpreadsheetApp.flush();
+          
+          var detailsValues = detailsRange.getValues();
+          if (mIdx === 0) {
+            for (var r = 0; r < detailsValues.length; r++) {
+              aggregatedDetails.push({
+                category: clean_(detailsValues[r][0]),
+                colB: parseNumberLoose_(detailsValues[r][1]) || 0,
+                colC: parseNumberLoose_(detailsValues[r][2]) || 0,
+                colD: parseNumberLoose_(detailsValues[r][3]) || 0,
+                colE: clean_(detailsValues[r][4])
+              });
+            }
+          } else {
+            for (var r = 0; r < detailsValues.length; r++) {
+              var cat = clean_(detailsValues[r][0]);
+              if (r < aggregatedDetails.length && aggregatedDetails[r].category === cat) {
+                aggregatedDetails[r].colB += parseNumberLoose_(detailsValues[r][1]) || 0;
+                aggregatedDetails[r].colC += parseNumberLoose_(detailsValues[r][2]) || 0;
+                aggregatedDetails[r].colD += parseNumberLoose_(detailsValues[r][3]) || 0;
+              }
+            }
+          }
+        }
+        
+        if (originalMonth) {
+          sheet.getRange('B1').setValue(originalMonth);
+          SpreadsheetApp.flush();
+        }
+      } catch (e) {
+        console.error('Lỗi tính toán Báo cáo chi tiết Tất cả:', e);
+      } finally {
+        lock.releaseLock();
+      }
+      
+      var originalDisplay = detailsRange.getDisplayValues();
+      var detailsDisplay = [];
+      if (originalDisplay.length > 0) {
+        detailsDisplay.push(originalDisplay[0]); // Header row
+      }
+      
+      for (var r = 1; r < aggregatedDetails.length; r++) {
+        var item = aggregatedDetails[r];
+        if (!item.category) continue;
+        
+        var formatCell = function(val, origStr) {
+          var str = clean_(origStr);
+          if (str.indexOf('₫') !== -1 || str.indexOf('đ') !== -1) {
+            return Math.round(val).toLocaleString('vi-VN') + ' ₫';
+          }
+          if (typeof val === 'number') {
+            return val.toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+          }
+          return val;
+        };
+        
+        detailsDisplay.push([
+          item.category,
+          formatCell(item.colB, originalDisplay[r] ? originalDisplay[r][1] : ''),
+          formatCell(item.colC, originalDisplay[r] ? originalDisplay[r][2] : ''),
+          formatCell(item.colD, originalDisplay[r] ? originalDisplay[r][3] : ''),
+          item.colE
+        ]);
+      }
+      
+      return { months: months, details: detailsDisplay };
+    }
+    
     var targetMonth = month;
     if (!targetMonth || targetMonth === 'latest' || targetMonth === 'all') {
       if (months.length > 2) {
@@ -493,31 +587,24 @@ var SheetService = (function () {
   }
 
   function applyFormats_(sheet, formType, startRow, rowCount) {
-    var monthFormat = 'MM/yyyy';
     if (formType === 'vanChuyen') {
       sheet.getRange(startRow, 1, rowCount, 1).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(startRow, 2, rowCount, 1).setNumberFormat(monthFormat);
       sheet.getRange(startRow, 5, rowCount, 1).setNumberFormat('0');
     } else if (formType === 'taiXe') {
       sheet.getRange(startRow, 1, rowCount, 1).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(startRow, 2, rowCount, 1).setNumberFormat(monthFormat);
       sheet.getRange(startRow, 5, rowCount, 1).setNumberFormat('0');
     } else if (formType === 'dau') {
       sheet.getRange(startRow, 1, rowCount, 1).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(startRow, 2, rowCount, 1).setNumberFormat(monthFormat);
       sheet.getRange(startRow, 5, rowCount, 1).setNumberFormat('#,##0.##');
       sheet.getRange(startRow, 6, rowCount, 2).setNumberFormat('#,##0 ₫');
     } else if (formType === 'chamCong') {
       sheet.getRange(startRow, 1, rowCount, 2).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(startRow, 3, rowCount, 1).setNumberFormat(monthFormat);
       sheet.getRange(startRow, 6, rowCount, 1).setNumberFormat('0.##');
     } else if (formType === 'phat') {
       sheet.getRange(startRow, 1, rowCount, 1).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(startRow, 2, rowCount, 1).setNumberFormat(monthFormat);
       sheet.getRange(startRow, 6, rowCount, 1).setNumberFormat('#,##0 ₫');
     } else if (formType === 'nghiVanHanh') {
       sheet.getRange(startRow, 1, rowCount, 1).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(startRow, 2, rowCount, 1).setNumberFormat(monthFormat);
       sheet.getRange(startRow, 6, rowCount, 2).setNumberFormat('0.##');
       sheet.getRange(startRow, 8, rowCount, 1).setNumberFormat('0.##');
     }
@@ -549,6 +636,7 @@ var SheetService = (function () {
   }
 
   function filterDisplayTableByMonth_(matrix, month) {
+    if (month === 'Tất cả') return matrix || [];
     var key = normalizeDisplayMonth_(month);
     if (!key || !matrix || matrix.length < 2) return matrix || [];
     var header = matrix[0];
@@ -725,6 +813,200 @@ var SheetService = (function () {
     return { months: months };
   }
 
+  function readSheetData(sheetName) {
+    try {
+      var ss = getSpreadsheet_();
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) throw new Error('Không tìm thấy sheet: ' + sheetName);
+
+      var headerRow = 1;
+      for (var key in APP_CONFIG.sheets) {
+        if (APP_CONFIG.sheets[key].name === sheetName) {
+          headerRow = APP_CONFIG.sheets[key].headerRow;
+          break;
+        }
+      }
+
+      var lastRow = sheet.getLastRow();
+      var lastCol = sheet.getLastColumn();
+      var headers = [];
+      var rows = [];
+
+      if (lastCol > 0) {
+        headers = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0].map(function (h) {
+          return String(h).trim();
+        });
+
+        if (lastRow > headerRow) {
+          var rawValues = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, lastCol).getValues();
+          for (var i = 0; i < rawValues.length; i++) {
+            var rowIndex = headerRow + 1 + i;
+            var cells = rawValues[i].map(function (val) {
+              if (Object.prototype.toString.call(val) === '[object Date]' && !isNaN(val.getTime())) {
+                return Utilities.formatDate(val, APP_CONFIG.timezone, 'yyyy-MM-dd');
+              }
+              return val;
+            });
+            
+            var isEmpty = cells.every(function (cell) {
+              return cell === null || cell === undefined || String(cell).trim() === '';
+            });
+            
+            if (!isEmpty) {
+              rows.push({
+                rowIndex: rowIndex,
+                values: cells
+              });
+            }
+          }
+        }
+      }
+
+      if (sheetName.indexOf('NL_') === 0) {
+        rows.sort(function (a, b) {
+          return b.rowIndex - a.rowIndex;
+        });
+      }
+
+      return {
+        ok: true,
+        headers: headers,
+        rows: rows
+      };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  function saveSheetRow(sheetName, rowIndex, rowData) {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      var ss = getSpreadsheet_();
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) throw new Error('Không tìm thấy sheet: ' + sheetName);
+
+      var headerRow = 1;
+      for (var key in APP_CONFIG.sheets) {
+        if (APP_CONFIG.sheets[key].name === sheetName) {
+          headerRow = APP_CONFIG.sheets[key].headerRow;
+          break;
+        }
+      }
+
+      var lastCol = sheet.getLastColumn();
+      var headers = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0].map(function (h) {
+        return String(h).trim();
+      });
+
+      var rowNum = parseInt(rowIndex, 10);
+      if (isNaN(rowNum) || rowNum <= 0) {
+        rowNum = getAppendRow_(sheet, headerRow);
+        ensureRows_(sheet, rowNum);
+      }
+
+      var valuesToSet = [];
+      for (var colIdx = 0; colIdx < headers.length; colIdx++) {
+        var header = headers[colIdx];
+        var val = rowData[header];
+
+        if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
+          valuesToSet.push('');
+        } else {
+          if (val === undefined || val === null) {
+            valuesToSet.push('');
+          } else {
+            var cleanVal = String(val).trim();
+            var dateMatch = cleanVal.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (dateMatch) {
+              valuesToSet.push(new Date(Number(dateMatch[1]), Number(dateMatch[2]) - 1, Number(dateMatch[3])));
+            } else if (cleanVal === '') {
+              valuesToSet.push('');
+            } else if (/^-?\d+(\.\d+)?$/.test(cleanVal) && !(cleanVal.length > 1 && cleanVal.indexOf('0') === 0 && cleanVal.indexOf('0.') !== 0)) {
+              valuesToSet.push(Number(cleanVal));
+            } else {
+              valuesToSet.push(cleanVal);
+            }
+          }
+        }
+      }
+
+      var range = sheet.getRange(rowNum, 1, 1, valuesToSet.length);
+      range.setValues([valuesToSet]);
+
+      var formType = null;
+      for (var key in APP_CONFIG.sheets) {
+        if (APP_CONFIG.sheets[key].name === sheetName) {
+          formType = key;
+          break;
+        }
+      }
+      if (formType) {
+        applyFormats_(sheet, formType, rowNum, 1);
+      }
+
+      SpreadsheetApp.flush();
+      clearAfterSubmitCache_();
+
+      if (sheetName.indexOf('DM_') === 0) {
+        removeChunkedCache_('catalogs:' + CACHE_VERSION + ':all');
+        for (var key in APP_CONFIG.sheets) {
+          removeChunkedCache_('catalogs:' + CACHE_VERSION + ':' + key);
+        }
+      }
+
+      return { ok: true, rowIndex: rowNum };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
+  function deleteSheetRow(sheetName, rowIndex) {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      var ss = getSpreadsheet_();
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) throw new Error('Không tìm thấy sheet: ' + sheetName);
+
+      var rowNum = parseInt(rowIndex, 10);
+      if (isNaN(rowNum) || rowNum <= 0) {
+        throw new Error('Số dòng không hợp lệ: ' + rowIndex);
+      }
+
+      var headerRow = 1;
+      for (var key in APP_CONFIG.sheets) {
+        if (APP_CONFIG.sheets[key].name === sheetName) {
+          headerRow = APP_CONFIG.sheets[key].headerRow;
+          break;
+        }
+      }
+      if (rowNum <= headerRow) {
+        throw new Error('Không thể xóa dòng tiêu đề.');
+      }
+
+      sheet.deleteRow(rowNum);
+
+      SpreadsheetApp.flush();
+      clearAfterSubmitCache_();
+
+      if (sheetName.indexOf('DM_') === 0) {
+        removeChunkedCache_('catalogs:' + CACHE_VERSION + ':all');
+        for (var key in APP_CONFIG.sheets) {
+          removeChunkedCache_('catalogs:' + CACHE_VERSION + ':' + key);
+        }
+      }
+
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
   return {
     getBootstrap: getBootstrap,
     getInitialData: getInitialData,
@@ -734,6 +1016,9 @@ var SheetService = (function () {
     getReport: getReport,
     getReportBundle: getReportBundle,
     submitRows: submitRows,
-    checkTripReconciliation: checkTripReconciliation
+    checkTripReconciliation: checkTripReconciliation,
+    readSheetData: readSheetData,
+    saveSheetRow: saveSheetRow,
+    deleteSheetRow: deleteSheetRow
   };
 })();

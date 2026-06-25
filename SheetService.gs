@@ -1,5 +1,5 @@
 var SheetService = (function () {
-  var CACHE_VERSION = 'v9';
+  var CACHE_VERSION = 'v10';
   var CATALOG_TTL_SECONDS = 21600;
   var REPORT_TTL_SECONDS = 600;
   var REPORT_CACHE_SHEET_NAME = 'SYS_ReportCache';
@@ -59,11 +59,12 @@ var SheetService = (function () {
       if (cached) return cached;
     }
     var ss = getSpreadsheet_();
+    var reportTables = readReportTables_(ss, forceRefresh);
     var reports = {
       updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
       overview: readOverviewReport_(ss),
-      payroll: readTable_(ss, 'BC_BangLuong', 2, 1, 100, 14),
-      vehicles: readTable_(ss, 'BC_TongHopXe', 2, 1, 100, 12),
+      payroll: reportTables.payroll,
+      vehicles: reportTables.vehicles,
       inputs: readInputStats_(ss),
       latestTrips: readLatestTrips_(ss),
       links: reportLinks_(),
@@ -92,17 +93,19 @@ var SheetService = (function () {
         links: reportLinks_()
       };
     } else if (reportType === 'payroll') {
+      var payrollTables = readReportTables_(ss, forceRefresh);
       report = {
         type: reportType,
         updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
-        data: filterDisplayTableByMonth_(readTable_(ss, 'BC_BangLuong', 2, 1, 200, 14), month),
+        data: filterDisplayTableByMonth_(payrollTables.payroll, month),
         links: reportLinks_()
       };
     } else if (reportType === 'vehicles') {
+      var vehicleTables = readReportTables_(ss, forceRefresh);
       report = {
         type: reportType,
         updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
-        data: filterDisplayTableByMonth_(readTable_(ss, 'BC_TongHopXe', 2, 1, 200, 12), month),
+        data: filterDisplayTableByMonth_(vehicleTables.vehicles, month),
         links: reportLinks_()
       };
     } else {
@@ -121,11 +124,12 @@ var SheetService = (function () {
       if (cached) return cached;
     }
     var ss = getSpreadsheet_();
+    var reportTables = readReportTables_(ss, forceRefresh);
     var bundle = {
       updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
       overview: readOverviewReport_(ss, month),
-      payroll: filterDisplayTableByMonth_(readTable_(ss, 'BC_BangLuong', 2, 1, 200, 14), month),
-      vehicles: filterDisplayTableByMonth_(readTable_(ss, 'BC_TongHopXe', 2, 1, 200, 12), month),
+      payroll: filterDisplayTableByMonth_(reportTables.payroll, month),
+      vehicles: filterDisplayTableByMonth_(reportTables.vehicles, month),
       links: reportLinks_()
     };
     putChunkedCache_(cacheKey, bundle, REPORT_TTL_SECONDS);
@@ -674,6 +678,20 @@ var SheetService = (function () {
       });
   }
 
+  function readReportTables_(ss, forceRefresh) {
+    var cacheKey = 'report_tables:' + CACHE_VERSION + ':all';
+    if (!forceRefresh) {
+      var cached = getChunkedCache_(cacheKey);
+      if (cached) return cached;
+    }
+    var tables = {
+      payroll: readTable_(ss, 'BC_BangLuong', 2, 1, 200, 14),
+      vehicles: readTable_(ss, 'BC_TongHopXe', 2, 1, 200, 12)
+    };
+    putChunkedCache_(cacheKey, tables, REPORT_TTL_SECONDS);
+    return tables;
+  }
+
   function sumTripsByPairs_(sheet, headerRow, pairs, dateColumn, plateColumn, tripsColumn) {
     var result = {};
     if (!sheet) return result;
@@ -907,6 +925,7 @@ var SheetService = (function () {
     removeChunkedCache_('report:' + CACHE_VERSION + ':payroll:all');
     removeChunkedCache_('report:' + CACHE_VERSION + ':vehicles:all');
     removeChunkedCache_('report_bundle:' + CACHE_VERSION + ':all');
+    removeChunkedCache_('report_tables:' + CACHE_VERSION + ':all');
   }
 
   function readLatestTrips_(ss) {

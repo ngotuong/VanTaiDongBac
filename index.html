@@ -2043,6 +2043,8 @@
     let filteredCatalogRowsData = [];
     let currentEditCatalogRowIndex = null;
     let reportBundleRequestSeq = 0;
+    let reportBundlePrefetching = false;
+    let reportCacheEpoch = 0;
     
     const el = (id) => document.getElementById(id);
 
@@ -2232,6 +2234,8 @@
     }
 
     function invalidateReportSessionCache() {
+      reportCacheEpoch += 1;
+      reportBundlePrefetching = false;
       removeSessionKeysByPrefix('eb_report_bundle_');
       sessionStorage.removeItem('eb_dashboard_v3');
     }
@@ -2983,7 +2987,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.1_dashboard_layout';
+      const APP_VERSION = 'v3.2_report_prefetch';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -4734,9 +4738,45 @@
         });
     }
 
+    function getReportBundleCacheKey(month) {
+      return 'eb_report_bundle_v3_' + (month || '');
+    }
+
+    function scheduleReportBundlePrefetch() {
+      if (reportBundlePrefetching || activeView !== 'reports') return;
+      const overviewRows = parseOverview(getDashboardData().overview.months).rows || [];
+      const months = [...new Set(overviewRows.map((row) => row.month).filter(Boolean))]
+        .filter((month) => month !== selectedMonth && !sessionStorage.getItem(getReportBundleCacheKey(month)))
+        .slice(-6);
+      if (!months.length) return;
+
+      reportBundlePrefetching = true;
+      const epoch = reportCacheEpoch;
+      const loadNext = () => {
+        if (epoch !== reportCacheEpoch || activeView !== 'reports') {
+          reportBundlePrefetching = false;
+          return;
+        }
+        const month = months.pop();
+        if (!month) {
+          reportBundlePrefetching = false;
+          return;
+        }
+        callApi('GET', 'getReportBundle', { month })
+          .then((bundle) => {
+            if (epoch === reportCacheEpoch) {
+              sessionStorage.setItem(getReportBundleCacheKey(month), JSON.stringify(bundle));
+            }
+          })
+          .catch(() => {})
+          .finally(() => setTimeout(loadNext, 250));
+      };
+      setTimeout(loadNext, 450);
+    }
+
     // Bundled report loader (sessionStorage optimized)
     function loadReportBundle(forceRefresh) {
-      const cacheKey = 'eb_report_bundle_v2_' + selectedMonth;
+      const cacheKey = getReportBundleCacheKey(selectedMonth);
       const requestSeq = ++reportBundleRequestSeq;
       
       if (!forceRefresh) {
@@ -4750,6 +4790,7 @@
           appData.reports = { ...appData.reports, ...appData.dashboard, loading: false };
           
           renderReports();
+          scheduleReportBundlePrefetch();
           return;
         }
       }
@@ -4765,6 +4806,7 @@
           sessionStorage.setItem(cacheKey, JSON.stringify(bundle));
           
           renderReports();
+          scheduleReportBundlePrefetch();
         })
         .catch((err) => {
           if (requestSeq === reportBundleRequestSeq) showStatus('err', err.message || String(err));

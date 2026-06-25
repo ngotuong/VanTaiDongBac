@@ -1803,9 +1803,9 @@
               </select>
             </label>
             <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--deep);">
-              Nhà xe:
+              Nguồn chi:
               <select id="manageDauOwnerFilter" style="height: 34px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; outline: none; background: var(--paper); cursor: pointer;" onchange="filterManageRows()">
-                <option value="all">Tất cả nhà xe</option>
+                <option value="all">Tất cả nguồn chi</option>
                 <option value="Quang Quân">Quang Quân</option>
                 <option value="Minh Vương">Minh Vương</option>
                 <option value="Quỹ">Quỹ (Chi quỹ)</option>
@@ -2039,6 +2039,7 @@
     let currentCatalogData = null;
     let filteredCatalogRowsData = [];
     let currentEditCatalogRowIndex = null;
+    let reportBundleRequestSeq = 0;
     
     const el = (id) => document.getElementById(id);
 
@@ -2193,6 +2194,9 @@
       Object.keys(params).forEach(k => {
         url.searchParams.set(k, params[k]);
       });
+      if (params.forceRefresh === true || params.forceRefresh === 'true') {
+        url.searchParams.set('_ts', Date.now());
+      }
       
       const options = {
         method: method,
@@ -2216,6 +2220,23 @@
           }
           return data;
         });
+    }
+
+    function removeSessionKeysByPrefix(prefix) {
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.indexOf(prefix) === 0) sessionStorage.removeItem(key);
+      });
+    }
+
+    function invalidateReportSessionCache() {
+      removeSessionKeysByPrefix('eb_report_bundle_');
+      sessionStorage.removeItem('eb_dashboard_v3');
+    }
+
+    function invalidateServerCaches() {
+      return callApi('GET', 'invalidateCaches', { _ts: Date.now() }).catch((err) => {
+        console.warn('Không thể xoá cache server trước khi làm mới:', err);
+      });
     }
 
     // CRUD Manager Operations
@@ -2338,6 +2359,10 @@
       return map;
     }
 
+    function normalizeFilterValue(value) {
+      return removeAccents(String(value || '').trim().toLowerCase());
+    }
+
     function filterManageRows() {
       const query = el('manageSearchInput').value.toLowerCase().trim();
       const tbody = el('manageTableBody');
@@ -2353,7 +2378,7 @@
         currentManageData.headers.forEach((h, idx) => {
           const hLower = h.toLowerCase().trim();
           if (hLower === 'biển số xe' || hLower === 'xe' || hLower === 'bển số') vehicleColIdx = idx;
-          if (hLower === 'nguồn' || hLower === 'nguồn cung cấp') sourceColIdx = idx;
+          if (hLower === 'nguồn' || hLower === 'nguồn cung cấp' || hLower === 'nguồn dầu' || hLower.includes('nguồn')) sourceColIdx = idx;
           if (hLower === 'số lít' || hLower === 'lít') litColIdx = idx;
           if (hLower === 'thành tiền' || hLower === 'tổng tiền' || hLower === 'tiền') amountColIdx = idx;
           if (hLower === 'ghi chú' || hLower === 'ghi chú thêm') noteColIdx = idx;
@@ -2374,18 +2399,19 @@
         if (currentManageData && isDauSheet) {
           const sourceFilter = el('manageDauSourceFilter').value;
           if (sourceFilter !== 'all' && sourceColIdx !== -1) {
-            const rowSource = String(row.values[sourceColIdx] || '').trim();
-            if (rowSource.toLowerCase() !== sourceFilter.toLowerCase()) {
+            const rowSource = normalizeFilterValue(row.values[sourceColIdx]);
+            if (rowSource !== normalizeFilterValue(sourceFilter)) {
               return false;
             }
           }
 
           const ownerFilter = el('manageDauOwnerFilter').value;
           if (ownerFilter !== 'all') {
-            const autoOwner = String(row.owner || '').toLowerCase();
-            const noteText = noteColIdx !== -1 ? String(row.values[noteColIdx] || '').toLowerCase() : '';
-            const matchAuto = autoOwner.includes(ownerFilter.toLowerCase());
-            const matchNote = noteText.includes(ownerFilter.toLowerCase());
+            const ownerKey = normalizeFilterValue(ownerFilter);
+            const autoOwner = normalizeFilterValue(row.owner);
+            const noteText = noteColIdx !== -1 ? normalizeFilterValue(row.values[noteColIdx]) : '';
+            const matchAuto = autoOwner.includes(ownerKey);
+            const matchNote = noteText.includes(ownerKey);
             if (!matchAuto && !matchNote) {
               return false;
             }
@@ -2401,12 +2427,10 @@
         let totalAmount = 0;
         matched.forEach(row => {
           if (litColIdx !== -1) {
-            const liters = parseFloat(String(row.values[litColIdx] || '').replace(/[^\d\.\-]/g, '')) || 0;
-            totalLiters += liters;
+            totalLiters += parseLocaleNumber(row.values[litColIdx]) || 0;
           }
           if (amountColIdx !== -1) {
-            const amount = parseFloat(String(row.values[amountColIdx] || '').replace(/[^\d\.\-]/g, '')) || 0;
-            totalAmount += amount;
+            totalAmount += parseLocaleNumber(row.values[amountColIdx]) || 0;
           }
         });
         el('manageDauTotalLiters').textContent = Math.round(totalLiters).toLocaleString('vi-VN');
@@ -2956,7 +2980,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v2.7_perf';
+      const APP_VERSION = 'v2.9_refresh_filters';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -4541,8 +4565,7 @@
           
           if (result.inserted) {
             recentSubmissions = submitted.filter(Boolean).concat(recentSubmissions).slice(0, 8);
-            sessionStorage.removeItem('eb_report_bundle_v2_' + selectedMonth);
-            sessionStorage.removeItem('eb_dashboard_v3');
+            invalidateReportSessionCache();
             rows = [newBlankRow()];
           }
           
@@ -4552,7 +4575,9 @@
             checkTripReconciliation(submittedRows);
           }
           
-          refreshReports(false);
+          if (result.inserted && activeView === 'reports') {
+            refreshReports(false);
+          }
           setBusy(false);
         })
         .catch((err) => {
@@ -4651,6 +4676,7 @@
     // Bundled report loader (sessionStorage optimized)
     function loadReportBundle(forceRefresh) {
       const cacheKey = 'eb_report_bundle_v2_' + selectedMonth;
+      const requestSeq = ++reportBundleRequestSeq;
       
       if (!forceRefresh) {
         const cachedBundle = sessionStorage.getItem(cacheKey);
@@ -4659,10 +4685,9 @@
           
           reportsByType.payroll = { data: bundle.payroll };
           reportsByType.vehicles = { data: bundle.vehicles };
-          appData.dashboard = { overview: bundle.overview, inputs: bundle.inputs, latestTrips: bundle.latestTrips, updatedAt: bundle.updatedAt };
+          appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt };
           appData.reports = { ...appData.reports, ...appData.dashboard, loading: false };
           
-          renderDashboard();
           renderReports();
           return;
         }
@@ -4670,17 +4695,19 @@
       
       callApi('GET', 'getReportBundle', { month: selectedMonth, forceRefresh: forceRefresh })
         .then((bundle) => {
+          if (requestSeq !== reportBundleRequestSeq) return;
           reportsByType.payroll = { data: bundle.payroll };
           reportsByType.vehicles = { data: bundle.vehicles };
-          appData.dashboard = { overview: bundle.overview, inputs: bundle.inputs, latestTrips: bundle.latestTrips, updatedAt: bundle.updatedAt };
+          appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt };
           appData.reports = { ...appData.reports, ...appData.dashboard, loading: false };
           
           sessionStorage.setItem(cacheKey, JSON.stringify(bundle));
           
-          renderDashboard();
           renderReports();
         })
-        .catch((err) => showStatus('err', err.message || String(err)));
+        .catch((err) => {
+          if (requestSeq === reportBundleRequestSeq) showStatus('err', err.message || String(err));
+        });
     }
 
     // Refresh reports
@@ -4689,14 +4716,15 @@
         showStatus('ok', 'Đang làm mới dữ liệu báo cáo...');
       }
       
-      sessionStorage.removeItem('eb_report_bundle_v2_' + selectedMonth);
-      sessionStorage.removeItem('eb_dashboard_v3');
-      
-      if (activeView === 'reports') {
-        loadReportBundle(true);
-      } else {
-        loadDashboard(true);
-      }
+      invalidateReportSessionCache();
+      setRefreshBusy(true);
+      invalidateServerCaches().then(() => {
+        if (activeView === 'reports') {
+          loadReportBundle(true);
+        } else {
+          loadDashboard(true);
+        }
+      });
     }
 
     function setBusy(isBusy) {

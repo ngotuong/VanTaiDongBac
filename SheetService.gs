@@ -1,7 +1,9 @@
 var SheetService = (function () {
-  var CACHE_VERSION = 'v6';
+  var CACHE_VERSION = 'v7';
   var CATALOG_TTL_SECONDS = 21600;
   var REPORT_TTL_SECONDS = 600;
+  var REPORT_CACHE_SHEET_NAME = 'SYS_ReportCache';
+  var REPORT_DATA_VERSION_PROP = 'REPORT_DATA_VERSION_V1';
 
   function getBootstrap() {
     return {
@@ -31,6 +33,7 @@ var SheetService = (function () {
   function getDashboard(month, forceRefresh) {
     var monthKey = normalizeMonthKey_(month) || 'latest';
     var key = 'dashboard:' + CACHE_VERSION + ':' + monthKey;
+    if (forceRefresh) invalidateRuntimeCaches_();
     if (!forceRefresh) {
       var cached = getChunkedCache_(key);
       if (cached) return cached;
@@ -50,6 +53,7 @@ var SheetService = (function () {
 
   function getReports(forceRefresh) {
     var cacheKey = 'reports:' + CACHE_VERSION + ':all';
+    if (forceRefresh) invalidateRuntimeCaches_();
     if (!forceRefresh) {
       var cached = getChunkedCache_(cacheKey);
       if (cached) return cached;
@@ -73,6 +77,7 @@ var SheetService = (function () {
     var reportType = type || 'overview';
     var monthKey = normalizeMonthKey_(month) || 'all';
     var cacheKey = 'report:' + CACHE_VERSION + ':' + reportType + ':' + monthKey;
+    if (forceRefresh) invalidateRuntimeCaches_();
     if (!forceRefresh) {
       var cached = getChunkedCache_(cacheKey);
       if (cached) return cached;
@@ -110,6 +115,7 @@ var SheetService = (function () {
   function getReportBundle(month, forceRefresh) {
     var monthKey = normalizeMonthKey_(month) || 'all';
     var cacheKey = 'report_bundle:' + CACHE_VERSION + ':' + monthKey;
+    if (forceRefresh) invalidateRuntimeCaches_();
     if (!forceRefresh) {
       var cached = getChunkedCache_(cacheKey);
       if (cached) return cached;
@@ -120,8 +126,6 @@ var SheetService = (function () {
       overview: readOverviewReport_(ss, month),
       payroll: filterDisplayTableByMonth_(readTable_(ss, 'BC_BangLuong', 2, 1, 200, 14), month),
       vehicles: filterDisplayTableByMonth_(readTable_(ss, 'BC_TongHopXe', 2, 1, 200, 12), month),
-      inputs: readInputStats_(ss),
-      latestTrips: readLatestTrips_(ss),
       links: reportLinks_()
     };
     putChunkedCache_(cacheKey, bundle, REPORT_TTL_SECONDS);
@@ -388,144 +392,247 @@ var SheetService = (function () {
   function readOverviewReport_(ss, month) {
     var sheet = ss.getSheetByName('BC_TongQuan');
     if (!sheet) return { months: [], details: [] };
-    
-    var months = sheet.getRange(1, 7, Math.min(sheet.getLastRow(), 24), 11).getDisplayValues()
-      .filter(function (row, index) {
-        return index === 0 || row.some(function (cell) { return clean_(cell); });
-      });
-      
-    var activeMonths = [];
-    if (months.length > 1) {
-      for (var i = 1; i < months.length; i++) {
-        var mName = clean_(months[i][0]);
-        if (mName && mName !== 'Tháng') {
-          activeMonths.push(mName);
-        }
-      }
-    }
-    
-    var detailsRange = sheet.getRange(4, 1, Math.min(Math.max(sheet.getLastRow() - 3, 1), 14), 5);
-    
-    if (month === 'Tất cả') {
-      var originalMonth = '';
-      if (activeMonths.length > 0) {
-        originalMonth = clean_(sheet.getRange('B1').getValue());
-      }
-      
-      var aggregatedDetails = [];
-      var lock = LockService.getScriptLock();
-      try {
-        lock.waitLock(15000);
-        
-        for (var mIdx = 0; mIdx < activeMonths.length; mIdx++) {
-          var mVal = activeMonths[mIdx];
-          sheet.getRange('B1').setValue(mVal);
-          SpreadsheetApp.flush();
-          
-          var detailsValues = detailsRange.getValues();
-          if (mIdx === 0) {
-            for (var r = 0; r < detailsValues.length; r++) {
-              aggregatedDetails.push({
-                category: clean_(detailsValues[r][0]),
-                colB: parseNumberLoose_(detailsValues[r][1]) || 0,
-                colC: parseNumberLoose_(detailsValues[r][2]) || 0,
-                colD: parseNumberLoose_(detailsValues[r][3]) || 0,
-                colE: clean_(detailsValues[r][4])
-              });
-            }
-          } else {
-            for (var r = 0; r < detailsValues.length; r++) {
-              var cat = clean_(detailsValues[r][0]);
-              if (r < aggregatedDetails.length && aggregatedDetails[r].category === cat) {
-                aggregatedDetails[r].colB += parseNumberLoose_(detailsValues[r][1]) || 0;
-                aggregatedDetails[r].colC += parseNumberLoose_(detailsValues[r][2]) || 0;
-                aggregatedDetails[r].colD += parseNumberLoose_(detailsValues[r][3]) || 0;
-              }
-            }
-          }
-        }
-        
-        if (originalMonth) {
-          sheet.getRange('B1').setValue(originalMonth);
-          SpreadsheetApp.flush();
-        }
-      } catch (e) {
-        console.error('Lỗi tính toán Báo cáo chi tiết Tất cả:', e);
-      } finally {
-        lock.releaseLock();
-      }
-      
-      var originalDisplay = detailsRange.getDisplayValues();
-      var detailsDisplay = [];
-      if (originalDisplay.length > 0) {
-        detailsDisplay.push(originalDisplay[0]); // Header row
-      }
-      
-      for (var r = 1; r < aggregatedDetails.length; r++) {
-        var item = aggregatedDetails[r];
-        if (!item.category) continue;
-        
-        var formatCell = function(val, origStr) {
-          var str = clean_(origStr);
-          if (str.indexOf('₫') !== -1 || str.indexOf('đ') !== -1) {
-            return Math.round(val).toLocaleString('vi-VN') + ' ₫';
-          }
-          if (typeof val === 'number') {
-            return val.toLocaleString('vi-VN', { maximumFractionDigits: 2 });
-          }
-          return val;
-        };
-        
-        detailsDisplay.push([
-          item.category,
-          formatCell(item.colB, originalDisplay[r] ? originalDisplay[r][1] : ''),
-          formatCell(item.colC, originalDisplay[r] ? originalDisplay[r][2] : ''),
-          formatCell(item.colD, originalDisplay[r] ? originalDisplay[r][3] : ''),
-          item.colE
-        ]);
-      }
-      
-      return { months: months, details: detailsDisplay };
-    }
-    
-    var targetMonth = month;
-    if (!targetMonth || targetMonth === 'latest' || targetMonth === 'all') {
-      if (months.length > 2) {
-        targetMonth = months[months.length - 1][0];
-      }
-    }
-    
-    if (targetMonth && targetMonth !== 'Tháng' && targetMonth.trim() !== '') {
-      var lock = LockService.getScriptLock();
-      try {
-        lock.waitLock(10000);
-        sheet.getRange('B1').setValue(targetMonth);
-        SpreadsheetApp.flush();
-      } catch (e) {
-        console.error('Lỗi set month B1:', e);
-      } finally {
-        lock.releaseLock();
-      }
-    }
-    
-    var details = sheet.getRange(4, 1, Math.min(Math.max(sheet.getLastRow() - 3, 1), 14), 5).getDisplayValues()
-      .filter(function (row) {
-        return row.some(function (cell) { return clean_(cell); });
-      });
-      
+
+    var months = readOverviewMonths_(sheet);
+    var details = readOverviewDetailsWithCache_(ss, sheet, months, month);
     return { months: months, details: details };
   }
 
   function readOverviewDashboard_(ss) {
     var sheet = ss.getSheetByName('BC_TongQuan');
     if (!sheet) return { months: [], details: [] };
+    return { months: readOverviewMonths_(sheet), details: [] };
+  }
+
+  function readOverviewMonths_(sheet) {
     var rowCount = Math.min(sheet.getLastRow(), 24);
-    if (rowCount < 1) return { months: [], details: [] };
-    var months = sheet.getRange(1, 7, rowCount, 11).getDisplayValues()
+    if (rowCount < 1) return [];
+    return sheet.getRange(1, 7, rowCount, 11).getDisplayValues()
       .filter(function (row, index) {
         return index === 0 || row.some(function (cell) { return clean_(cell); });
       });
-    return { months: months, details: [] };
+  }
+
+  function getActiveReportMonths_(months) {
+    var activeMonths = [];
+    if (months && months.length > 1) {
+      for (var i = 1; i < months.length; i++) {
+        var mName = clean_(months[i][0]);
+        if (mName && mName !== 'Tháng') activeMonths.push(mName);
+      }
+    }
+    return activeMonths;
+  }
+
+  function resolveReportMonth_(months, month) {
+    var targetMonth = clean_(month);
+    if (!targetMonth || targetMonth === 'latest' || targetMonth === 'all') {
+      var activeMonths = getActiveReportMonths_(months);
+      targetMonth = activeMonths.length ? activeMonths[activeMonths.length - 1] : '';
+    }
+    return targetMonth;
+  }
+
+  function readOverviewDetailsWithCache_(ss, sheet, months, month) {
+    var activeMonths = getActiveReportMonths_(months);
+    if (month === 'Tất cả') {
+      if (!activeMonths.length) return readCurrentOverviewDetails_(sheet);
+      return readAggregatedOverviewDetails_(ss, sheet, activeMonths);
+    }
+
+    var targetMonth = resolveReportMonth_(months, month);
+    if (!targetMonth || targetMonth === 'Tháng') return readCurrentOverviewDetails_(sheet);
+
+    var dataVersion = getReportDataVersion_();
+    var cached = readReportDetailsCacheMap_(ss, dataVersion);
+    var monthKey = normalizeDisplayMonth_(targetMonth) || normalizeMonthKey_(targetMonth);
+    if (cached[monthKey]) return cached[monthKey];
+
+    var computed = computeAndCacheOverviewDetails_(ss, sheet, [targetMonth], dataVersion);
+    return computed[monthKey] || readCurrentOverviewDetails_(sheet);
+  }
+
+  function readAggregatedOverviewDetails_(ss, sheet, activeMonths) {
+    var dataVersion = getReportDataVersion_();
+    var cached = readReportDetailsCacheMap_(ss, dataVersion);
+    var missing = activeMonths.filter(function (month) {
+      var key = normalizeDisplayMonth_(month) || normalizeMonthKey_(month);
+      return !cached[key];
+    });
+    if (missing.length) {
+      var computed = computeAndCacheOverviewDetails_(ss, sheet, missing, dataVersion);
+      Object.keys(computed).forEach(function (key) {
+        cached[key] = computed[key];
+      });
+    }
+
+    var matrices = activeMonths.map(function (month) {
+      var key = normalizeDisplayMonth_(month) || normalizeMonthKey_(month);
+      return cached[key];
+    }).filter(function (matrix) {
+      return matrix && matrix.length;
+    });
+    if (!matrices.length) return readCurrentOverviewDetails_(sheet);
+    return aggregateOverviewDetailMatrices_(matrices);
+  }
+
+  function readCurrentOverviewDetails_(sheet) {
+    var rowCount = Math.min(Math.max(sheet.getLastRow() - 3, 1), 14);
+    return sheet.getRange(4, 1, rowCount, 5).getDisplayValues()
+      .filter(function (row) {
+        return row.some(function (cell) { return clean_(cell); });
+      });
+  }
+
+  function aggregateOverviewDetailMatrices_(matrices) {
+    var base = matrices[0] || [];
+    var result = [];
+    if (base.length) result.push(base[0]);
+
+    var totals = [];
+    matrices.forEach(function (matrix) {
+      for (var r = 1; r < matrix.length; r++) {
+        var row = matrix[r];
+        var category = clean_(row[0]);
+        if (!category) continue;
+        if (!totals[r]) {
+          totals[r] = {
+            category: category,
+            colB: 0,
+            colC: 0,
+            colD: 0,
+            colE: clean_(row[4]),
+            template: row
+          };
+        }
+        if (totals[r].category === category) {
+          totals[r].colB += parseNumberLoose_(row[1]) || 0;
+          totals[r].colC += parseNumberLoose_(row[2]) || 0;
+          totals[r].colD += parseNumberLoose_(row[3]) || 0;
+        }
+      }
+    });
+
+    for (var i = 1; i < totals.length; i++) {
+      var item = totals[i];
+      if (!item) continue;
+      result.push([
+        item.category,
+        formatAggregateDetailCell_(item.colB, item.template[1]),
+        formatAggregateDetailCell_(item.colC, item.template[2]),
+        formatAggregateDetailCell_(item.colD, item.template[3]),
+        item.colE
+      ]);
+    }
+    return result;
+  }
+
+  function formatAggregateDetailCell_(value, template) {
+    var text = clean_(template);
+    if (text.indexOf('₫') !== -1 || text.indexOf('đ') !== -1) {
+      return Math.round(value).toLocaleString('vi-VN') + ' ₫';
+    }
+    return Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+  }
+
+  function computeAndCacheOverviewDetails_(ss, sheet, months, dataVersion) {
+    var detailsByMonth = {};
+    var originalMonth = clean_(sheet.getRange('B1').getValue());
+    var lock = LockService.getScriptLock();
+    var locked = false;
+    try {
+      lock.waitLock(15000);
+      locked = true;
+      months.forEach(function (month) {
+        var monthLabel = clean_(month);
+        if (!monthLabel) return;
+        sheet.getRange('B1').setValue(monthLabel);
+        SpreadsheetApp.flush();
+        var monthKey = normalizeDisplayMonth_(monthLabel) || normalizeMonthKey_(monthLabel);
+        detailsByMonth[monthKey] = readCurrentOverviewDetails_(sheet);
+      });
+      if (clean_(sheet.getRange('B1').getValue()) !== originalMonth) {
+        sheet.getRange('B1').setValue(originalMonth);
+        SpreadsheetApp.flush();
+      }
+    } catch (e) {
+      console.error('Lỗi tính toán/cache báo cáo chi tiết:', e);
+    } finally {
+      if (locked) lock.releaseLock();
+    }
+
+    writeReportDetailsCache_(ss, dataVersion, detailsByMonth);
+    return detailsByMonth;
+  }
+
+  function getReportDataVersion_() {
+    var baseVersion = PropertiesService.getScriptProperties().getProperty(REPORT_DATA_VERSION_PROP) || '0';
+    var hourBucket = Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'yyyyMMddHH');
+    return baseVersion + ':' + hourBucket;
+  }
+
+  function bumpReportDataVersion_() {
+    PropertiesService.getScriptProperties().setProperty(REPORT_DATA_VERSION_PROP, String(new Date().getTime()));
+  }
+
+  function getReportCacheSheet_(ss, createIfMissing) {
+    var sheet = ss.getSheetByName(REPORT_CACHE_SHEET_NAME);
+    if (!sheet && createIfMissing) {
+      sheet = ss.insertSheet(REPORT_CACHE_SHEET_NAME);
+      sheet.hideSheet();
+      sheet.getRange(1, 1, 1, 10).setValues([[
+        'cacheVersion', 'dataVersion', 'monthKey', 'monthLabel', 'rowOrder',
+        'colA', 'colB', 'colC', 'colD', 'colE'
+      ]]);
+    }
+    return sheet;
+  }
+
+  function readReportDetailsCacheMap_(ss, dataVersion) {
+    var sheet = getReportCacheSheet_(ss, false);
+    var map = {};
+    if (!sheet || sheet.getLastRow() < 2) return map;
+
+    var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 10).getValues();
+    rows.forEach(function (row) {
+      if (clean_(row[0]) !== CACHE_VERSION || clean_(row[1]) !== dataVersion) return;
+      var monthKey = clean_(row[2]);
+      var rowOrder = Number(row[4]);
+      if (!monthKey || !rowOrder) return;
+      if (!map[monthKey]) map[monthKey] = [];
+      map[monthKey][rowOrder - 1] = [row[5], row[6], row[7], row[8], row[9]];
+    });
+
+    Object.keys(map).forEach(function (key) {
+      map[key] = map[key].filter(function (row) { return row && row.length; });
+    });
+    return map;
+  }
+
+  function writeReportDetailsCache_(ss, dataVersion, detailsByMonth) {
+    var rows = [];
+    Object.keys(detailsByMonth).forEach(function (monthKey) {
+      var matrix = detailsByMonth[monthKey] || [];
+      matrix.forEach(function (row, index) {
+        rows.push([
+          CACHE_VERSION,
+          dataVersion,
+          monthKey,
+          monthKey,
+          index + 1,
+          row[0] || '',
+          row[1] || '',
+          row[2] || '',
+          row[3] || '',
+          row[4] || ''
+        ]);
+      });
+    });
+    if (!rows.length) return;
+
+    var sheet = getReportCacheSheet_(ss, true);
+    var appendRow = sheet.getLastRow() + 1;
+    sheet.getRange(appendRow, 1, rows.length, 10).setValues(rows);
   }
 
   function readInputStats_(ss) {
@@ -771,6 +878,20 @@ var SheetService = (function () {
   }
 
   function clearAfterSubmitCache_() {
+    invalidateRuntimeCaches_();
+  }
+
+  function invalidateCaches() {
+    invalidateRuntimeCaches_();
+    return {
+      ok: true,
+      cacheVersion: CACHE_VERSION,
+      invalidatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm:ss')
+    };
+  }
+
+  function invalidateRuntimeCaches_() {
+    bumpReportDataVersion_();
     removeChunkedCache_('reports:' + CACHE_VERSION + ':all');
     removeChunkedCache_('dashboard:' + CACHE_VERSION + ':latest');
     removeChunkedCache_('report:' + CACHE_VERSION + ':overview:all');
@@ -1186,6 +1307,7 @@ var SheetService = (function () {
     getReports: getReports,
     getReport: getReport,
     getReportBundle: getReportBundle,
+    invalidateCaches: invalidateCaches,
     submitRows: submitRows,
     checkTripReconciliation: checkTripReconciliation,
     readSheetData: readSheetData,

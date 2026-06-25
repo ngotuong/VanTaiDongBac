@@ -35,6 +35,7 @@ function doGet(e) {
     if (action === 'getReports') return jsonResponse_(SheetService.getReports(e.parameter.forceRefresh === 'true'));
     if (action === 'getReport') return jsonResponse_(SheetService.getReport(e.parameter.type, e.parameter.month, e.parameter.forceRefresh === 'true'));
     if (action === 'getReportBundle') return jsonResponse_(SheetService.getReportBundle(e.parameter.month, e.parameter.forceRefresh === 'true'));
+    if (action === 'invalidateCaches') return jsonResponse_(SheetService.invalidateCaches());
     if (action === 'readSheetData') return jsonResponse_(SheetService.readSheetData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate, e.parameter.limit));
     
     throw new Error('Hành động GET không hợp lệ: ' + action);
@@ -106,6 +107,10 @@ function getReport(type, month, forceRefresh) {
 
 function getReportBundle(month, forceRefresh) {
   return SheetService.getReportBundle(month, forceRefresh);
+}
+
+function invalidateCaches() {
+  return SheetService.invalidateCaches();
 }
 
 function submitRows(formType, rows) {

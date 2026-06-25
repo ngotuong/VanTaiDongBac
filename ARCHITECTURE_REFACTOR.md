@@ -16,9 +16,10 @@ Web app là Apps Script độc lập trong My Projects, dùng chung code cho nhi
 - `PublicApi.gs` chứa các hàm wrapper để gọi thủ công/tương thích Apps Script.
 - `SheetService.gs` vẫn giữ logic nghiệp vụ nhưng cache đã scoped theo spreadsheet ID để tránh lẫn dữ liệu giữa các năm.
 - Link báo cáo lấy `gid` động từ sheet đang active, không hard-code `gid` của file 2026.
-- `index.html` chỉ còn HTML shell.
+- `index.html` là bản self-contained để Vercel/static hosting chạy trực tiếp.
 - `styles.html` chỉ include các module CSS theo thứ tự cascade.
 - `client.html` chỉ include các module JavaScript frontend theo thứ tự.
+- Các file `styles_*.html` và `client_*.html` là source module để tiếp tục refactor; khi deploy static/Vercel cần đảm bảo `index.html` đã được inline từ các module này.
 
 ## Backend module map
 

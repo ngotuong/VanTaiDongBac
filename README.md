@@ -9,7 +9,7 @@ Apps Script web app độc lập dùng chung cho các Google Sheet theo năm.
 - `PublicApi.gs`: wrapper functions để gọi thủ công trong Apps Script editor.
 - `SheetService.gs`: nghiệp vụ đọc/ghi Google Sheet, báo cáo, cache.
 - `ValidationService.gs`: validate và chuẩn hóa dữ liệu nhập liệu.
-- `index.html`: HTML shell.
+- `index.html`: bản self-contained để Vercel/static hosting chạy trực tiếp.
 - `styles.html`: include các CSS module.
 - `client.html`: include các frontend JS module.
 - `ARCHITECTURE_REFACTOR.md`: lộ trình refactor và module map chi tiết.
@@ -30,3 +30,5 @@ API cũng có thể nhận `year`, `spreadsheetId`, hoặc `ssId` để override
 clasp push -f
 clasp deploy --deploymentId AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA --description "<description>"
 ```
+
+Lưu ý: vì Vercel đang phục vụ repo như static site, `index.html` không được để lại Apps Script template tag `<?!= include(...) ?>`.

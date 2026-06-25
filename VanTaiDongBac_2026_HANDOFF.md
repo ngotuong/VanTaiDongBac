@@ -129,10 +129,10 @@ Trang báo cáo hỗ trợ tùy chọn lọc **"Tất cả"** các tháng.
 Giao diện là Web App SPA thiết kế tối ưu hóa cho thiết bị di động (Mobile-First / Safari di động).
 
 Từ bản refactor nền:
-* `index.html` chỉ giữ HTML shell.
+* `index.html` là bản self-contained để Vercel/static hosting chạy trực tiếp, không được để lại template tag `<?!= include(...) ?>`.
 * `styles.html` include các CSS module: `styles_base`, `styles_layout`, `styles_dashboard`, `styles_entry`, `styles_reports`, `styles_settings_modal`, `styles_responsive`.
 * `client.html` include các module JavaScript frontend nhỏ hơn: `client_config`, `client_api`, `client_manage`, `client_catalog`, `client_app`, `client_dashboard`, `client_entry`, `client_reports`, `client_data`, `client_ui`.
-* `Code.gs` render bằng `HtmlService.createTemplateFromFile('index')` và helper `include(filename)`.
+* `Code.gs` render bằng `HtmlService.createTemplateFromFile('index')` và helper `include(filename)`, nhưng Vercel không xử lý helper này.
 
 ### 5.1. Hệ Thống Điều Hướng & Quản Lý View
 

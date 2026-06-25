@@ -1905,8 +1905,8 @@
         <section class="panel" style="margin-bottom: 20px;">
           <div class="panel-head" style="align-items: flex-start; gap: 16px;">
             <div>
-              <h2 class="panel-title">Quản lý thu chi</h2>
-              <div class="panel-note">Module Thu chi đang được quy hoạch để tách riêng với nghiệp vụ Vận tải.</div>
+              <h2 class="panel-title">Quản lý quỹ</h2>
+              <div class="panel-note">Theo dõi thu chi, số dư quỹ và các khoản vay.</div>
             </div>
           </div>
         </section>
@@ -1915,16 +1915,67 @@
           <button type="button" class="sub-tab active" data-cashflow-tab="overview" onclick="setCashflowTab('overview')">Tổng quan</button>
           <button type="button" class="sub-tab" data-cashflow-tab="transactions" onclick="setCashflowTab('transactions')">Danh sách thu chi</button>
           <button type="button" class="sub-tab" data-cashflow-tab="entry" onclick="setCashflowTab('entry')">Thêm khoản thu/chi</button>
-          <button type="button" class="sub-tab" data-cashflow-tab="monthly" onclick="setCashflowTab('monthly')">Báo cáo tháng</button>
+          <button type="button" class="sub-tab" data-cashflow-tab="loans" onclick="setCashflowTab('loans')">Khoản vay</button>
+          <button type="button" class="sub-tab" data-cashflow-tab="loanEntry" onclick="setCashflowTab('loanEntry')">Nhập vay</button>
         </div>
 
-        <div class="table-card" data-cashflow-panel="overview">
-          <div class="panel-body" style="text-align: center; color: var(--muted); padding: 56px 24px;">
-            <div style="font-weight: 800; font-size: 18px; color: var(--deep); margin-bottom: 8px;">Quản lý thu chi</div>
-            <div style="max-width: 520px; margin: 0 auto; line-height: 1.6;">
-              Đây là màn hình khởi tạo cho module Thu chi. Chưa có thao tác đọc hoặc ghi dữ liệu Thu chi ở bước này.
+        <div data-cashflow-panel="overview">
+          <section class="panel" style="margin-bottom: 16px;">
+            <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h2 class="panel-title">Tổng quan quỹ</h2>
+                <div class="panel-note">Tổng hợp theo logic báo cáo Thu chi hiện có.</div>
+              </div>
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                Tháng:
+                <select id="fundOverviewMonthFilter" style="height: 38px; width: 150px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundOverview(false)">
+                  <option value="">Tháng gần nhất</option>
+                </select>
+              </label>
             </div>
+          </section>
+          <div class="kpi-grid" id="fundOverviewMetrics" style="margin-bottom: 20px;">
+            <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+            <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+            <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+            <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+            <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+            <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
           </div>
+          <div class="grid-2" style="align-items: start; margin-bottom: 20px;">
+            <section class="table-card">
+              <div class="table-card-head"><div class="table-title">Hạng mục thu trong kỳ</div></div>
+              <div class="table-wrap">
+                <table class="report-table">
+                  <thead><tr><th>Hạng mục</th><th>Số dòng</th><th style="text-align:right;">Số tiền</th><th></th></tr></thead>
+                  <tbody id="fundIncomeCategoryBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="table-card">
+              <div class="table-card-head"><div class="table-title">Hạng mục chi trong kỳ</div></div>
+              <div class="table-wrap">
+                <table class="report-table">
+                  <thead><tr><th>Hạng mục</th><th>Số dòng</th><th style="text-align:right;">Số tiền</th><th></th></tr></thead>
+                  <tbody id="fundExpenseCategoryBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+          <section class="table-card">
+            <div class="table-card-head">
+              <div>
+                <div class="table-title" id="fundCategoryDetailTitle">Chi tiết hạng mục</div>
+                <div class="panel-note">Bấm Chi tiết ở từng hạng mục để xem các dòng liên quan.</div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="report-table">
+                <thead><tr><th>Ngày</th><th>Số phiếu</th><th>Loại</th><th>Hạng mục</th><th style="text-align:right;">Số tiền</th><th>Đối tác</th><th>Nội dung</th></tr></thead>
+                <tbody id="fundCategoryDetailBody"><tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Chưa chọn hạng mục.</td></tr></tbody>
+              </table>
+            </div>
+          </section>
         </div>
 
         <div data-cashflow-panel="transactions" style="display: none;">
@@ -2048,8 +2099,58 @@
           </div>
         </div>
 
-        <div class="table-card" data-cashflow-panel="monthly" style="display: none;">
-          <div class="panel-body" style="text-align: center; color: var(--muted); padding: 56px 24px;">Báo cáo tháng Thu chi sẽ được triển khai ở bước sau.</div>
+        <div data-cashflow-panel="loans" style="display: none;">
+          <div class="kpi-grid" id="fundLoanMetrics" style="margin-bottom: 20px;">
+            <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+            <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+            <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+            <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+          </div>
+          <section class="table-card" style="margin-bottom: 20px;">
+            <div class="table-card-head"><div class="table-title">Tổng quan các khoản vay</div></div>
+            <div class="table-wrap">
+              <table class="report-table">
+                <thead><tr><th>Mã vay</th><th>Đối tác</th><th style="text-align:right;">Đã vay</th><th style="text-align:right;">Đã trả gốc</th><th style="text-align:right;">Đã trả lãi</th><th style="text-align:right;">Dư nợ</th><th>Ngày gần nhất</th></tr></thead>
+                <tbody id="fundLoanSummaryBody"><tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="table-card">
+            <div class="table-card-head"><div class="table-title">Lịch sử vay/trả</div></div>
+            <div class="table-wrap">
+              <table class="report-table">
+                <thead><tr><th>Ngày</th><th>Mã</th><th>Loại</th><th>Đối tác</th><th style="text-align:right;">Số tiền</th><th>Nội dung</th></tr></thead>
+                <tbody id="fundLoanHistoryBody"><tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <div class="table-card" data-cashflow-panel="loanEntry" style="display: none;">
+          <div class="panel-body">
+            <div style="margin-bottom: 18px;">
+              <div class="table-title">Nhập khoản vay</div>
+              <div class="panel-note">Dữ liệu sẽ được ghi vào sheet NHAP_VAY của file Thu chi.</div>
+            </div>
+            <div id="fundLoanEntryStatus" class="status" style="display:none;"></div>
+            <div class="fields">
+              <label>Ngày vay<input type="date" id="loanDateInput" required></label>
+              <label>Hình thức<select id="loanMethodInput"><option value="">Chọn hình thức</option></select></label>
+              <label>Đối tác<input type="text" id="loanPartnerInput" list="fundPartnerList" placeholder="Người/đơn vị cho vay" required></label>
+              <label>Số tiền<input type="number" id="loanAmountInput" min="1" step="1000" required></label>
+              <label>Kỳ hạn vay (tháng)<input type="number" id="loanTermInput" min="0" step="1"></label>
+              <label>Lãi suất/năm<input type="number" id="loanRateInput" min="0" step="0.01" placeholder="VD: 12"></label>
+              <label>Kỳ hạn trả lãi (tháng)<input type="number" id="loanInterestPeriodInput" min="0" step="1"></label>
+              <label>Ngày trả lãi lần đầu<input type="date" id="loanFirstInterestDateInput"></label>
+              <label style="grid-column: 1 / -1;">Nội dung<textarea id="loanContentInput" rows="3" placeholder="Nội dung khoản vay"></textarea></label>
+            </div>
+            <div class="submit-bar">
+              <button type="button" class="primary grow" id="loanSaveBtn" onclick="submitFundLoan()">
+                <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                Lưu khoản vay
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -2129,7 +2230,7 @@
       ['reports', 'Báo cáo', 'Bảng chi tiết', `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`],
       ['manage', 'Quản lý', 'Nhật ký nhập liệu', `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>`],
       ['catalog', 'Danh mục', 'Danh mục hệ thống', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`],
-      ['cashflow', 'Thu chi', 'Quản lý dòng tiền', `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"></path></svg>`],
+      ['cashflow', 'Quỹ', 'Quản lý dòng tiền', `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"></path></svg>`],
       ['settings', 'Hướng dẫn', 'Cài đặt App', `<svg class="btn-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.52 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`]
     ];
     
@@ -2211,6 +2312,8 @@
     let activeCashflowTab = 'overview';
     let fundTransactionsData = null;
     let fundFormOptions = null;
+    let fundOverviewData = null;
+    let fundLoanData = null;
     let reportBundleRequestSeq = 0;
     let reportBundlePrefetching = false;
     let reportCacheEpoch = 0;
@@ -2431,6 +2534,94 @@
       if (tab === 'entry') {
         loadFundFormOptions();
       }
+      if (tab === 'overview') {
+        loadFundOverview(false);
+      }
+      if (tab === 'loans') {
+        loadFundLoanOverview(false);
+      }
+      if (tab === 'loanEntry') {
+        loadFundFormOptions().then(renderLoanMethodOptions);
+      }
+    }
+
+    function loadFundOverview(forceRefresh) {
+      const monthFilter = el('fundOverviewMonthFilter');
+      const month = monthFilter ? monthFilter.value : '';
+      return callApi('GET', 'getFundOverview', {
+        year: '2026',
+        month: month,
+        forceRefresh: forceRefresh ? 'true' : ''
+      }).then((data) => {
+        fundOverviewData = data;
+        renderFundOverview(data);
+      }).catch((err) => {
+        el('fundOverviewMetrics').innerHTML = `<article class="kpi-card"><div class="kpi-label">Lỗi tải quỹ</div><div class="kpi-value" style="font-size:18px;">${escapeHtml(err.message)}</div></article>`;
+      });
+    }
+
+    function renderFundOverview(data) {
+      renderFundOverviewMonthFilter(data.months || [], data.selectedMonth || '');
+      const metrics = el('fundOverviewMetrics');
+      metrics.innerHTML = (data.metrics || []).map((item) => `
+        <article class="kpi-card">
+          <div class="kpi-label">${escapeHtml(item.label)}</div>
+          <div class="kpi-value">${formatFundAmount(item.value, '')}</div>
+        </article>
+      `).join('');
+      renderFundCategoryRows('fundIncomeCategoryBody', data.incomeCategories || [], 'Thu');
+      renderFundCategoryRows('fundExpenseCategoryBody', data.expenseCategories || [], 'Chi');
+    }
+
+    function renderFundOverviewMonthFilter(months, selectedMonth) {
+      const select = el('fundOverviewMonthFilter');
+      if (!select) return;
+      const current = selectedMonth || select.value || '';
+      select.innerHTML = '<option value="">Tháng gần nhất</option>';
+      months.forEach((month) => {
+        const option = document.createElement('option');
+        option.value = month.key;
+        option.textContent = month.label;
+        select.appendChild(option);
+      });
+      select.value = current;
+    }
+
+    function renderFundCategoryRows(targetId, rows, type) {
+      const body = el(targetId);
+      if (!body) return;
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Không có dữ liệu.</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map((row, index) => `
+        <tr>
+          <td>${escapeHtml(row.category)}</td>
+          <td>${row.count || 0}</td>
+          <td style="text-align:right; font-weight:800;">${formatFundAmount(row.amount, '')}</td>
+          <td style="text-align:right;"><button type="button" class="sub-tab" style="min-height:28px;" onclick="showFundCategoryDetail('${type}', ${index})">Chi tiết</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function showFundCategoryDetail(type, index) {
+      const rows = type === 'Thu' ? (fundOverviewData?.incomeCategories || []) : (fundOverviewData?.expenseCategories || []);
+      const item = rows[index];
+      const title = el('fundCategoryDetailTitle');
+      const body = el('fundCategoryDetailBody');
+      if (!item || !body) return;
+      if (title) title.textContent = `Chi tiết ${type.toLowerCase()} - ${item.category}`;
+      body.innerHTML = (item.details || []).map((row) => `
+        <tr>
+          <td>${escapeHtml(row.dateText || row.date || '')}</td>
+          <td>${escapeHtml(row.voucher || '')}</td>
+          <td>${escapeHtml(row.type || '')}</td>
+          <td>${escapeHtml(row.category || '')}</td>
+          <td style="text-align:right; font-weight:800;">${formatFundAmount(row.amount, row.amountText)}</td>
+          <td>${escapeHtml(row.partner || '')}</td>
+          <td>${escapeHtml(row.content || '')}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
     }
 
     function loadFundFormOptions() {
@@ -2549,6 +2740,125 @@
       });
       const debt = el('fundDebtInput');
       if (debt) debt.checked = false;
+    }
+
+    function renderLoanMethodOptions() {
+      const options = fundFormOptions || {};
+      const select = el('loanMethodInput');
+      if (!select || select.dataset.loaded) return;
+      (options.methods || []).forEach((method) => {
+        const option = document.createElement('option');
+        option.value = method;
+        option.textContent = method;
+        select.appendChild(option);
+      });
+      select.dataset.loaded = 'true';
+    }
+
+    function loadFundLoanOverview(forceRefresh) {
+      return callApi('GET', 'getFundLoanOverview', { year: '2026', forceRefresh: forceRefresh ? 'true' : '' })
+        .then((data) => {
+          fundLoanData = data;
+          renderFundLoanOverview(data);
+        })
+        .catch((err) => {
+          el('fundLoanMetrics').innerHTML = `<article class="kpi-card"><div class="kpi-label">Lỗi tải khoản vay</div><div class="kpi-value" style="font-size:18px;">${escapeHtml(err.message)}</div></article>`;
+        });
+    }
+
+    function renderFundLoanOverview(data) {
+      const metrics = el('fundLoanMetrics');
+      metrics.innerHTML = (data.metrics || []).map((item) => `
+        <article class="kpi-card">
+          <div class="kpi-label">${escapeHtml(item.label)}</div>
+          <div class="kpi-value">${formatFundAmount(item.value, '')}</div>
+        </article>
+      `).join('');
+
+      const summary = el('fundLoanSummaryBody');
+      const loans = data.loans || [];
+      summary.innerHTML = loans.length ? loans.map((item) => `
+        <tr>
+          <td>${escapeHtml(item.code || '')}</td>
+          <td>${escapeHtml(item.partner || '')}</td>
+          <td style="text-align:right; font-weight:800;">${formatFundAmount(item.borrowed, '')}</td>
+          <td style="text-align:right;">${formatFundAmount(item.principalPaid, '')}</td>
+          <td style="text-align:right;">${formatFundAmount(item.interestPaid, '')}</td>
+          <td style="text-align:right; font-weight:800;">${formatFundAmount(item.outstanding, '')}</td>
+          <td>${escapeHtml(item.latestDate || '')}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Chưa có khoản vay.</td></tr>';
+
+      const history = el('fundLoanHistoryBody');
+      const rows = data.recentRows || [];
+      history.innerHTML = rows.length ? rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.dateText || row.date || '')}</td>
+          <td>${escapeHtml(row.code || '')}</td>
+          <td>${escapeHtml(row.type || '')}</td>
+          <td>${escapeHtml(row.partner || '')}</td>
+          <td style="text-align:right; font-weight:800;">${formatFundAmount(row.amount, row.amountText)}</td>
+          <td>${escapeHtml(row.content || '')}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
+    }
+
+    function submitFundLoan() {
+      const btn = el('loanSaveBtn');
+      const loan = {
+        date: el('loanDateInput')?.value || '',
+        method: el('loanMethodInput')?.value || '',
+        partner: el('loanPartnerInput')?.value || '',
+        amount: el('loanAmountInput')?.value || '',
+        termMonths: el('loanTermInput')?.value || '',
+        annualRate: el('loanRateInput')?.value || '',
+        interestPeriodMonths: el('loanInterestPeriodInput')?.value || '',
+        firstInterestDate: el('loanFirstInterestDateInput')?.value || '',
+        content: el('loanContentInput')?.value || ''
+      };
+      const error = validateFundLoan(loan);
+      if (error) {
+        showFundLoanStatus('error', error);
+        return;
+      }
+      if (btn) btn.disabled = true;
+      showFundLoanStatus('success', 'Đang lưu khoản vay...');
+      callApi('POST', 'addFundLoan', {}, { year: '2026', loan })
+        .then(() => {
+          clearFundLoanForm();
+          showFundLoanStatus('success', 'Đã lưu khoản vay vào file Thu chi.');
+          setCashflowTab('loans');
+          loadFundLoanOverview(true);
+        })
+        .catch((err) => {
+          showFundLoanStatus('error', 'Không thể lưu khoản vay: ' + err.message);
+        })
+        .finally(() => {
+          if (btn) btn.disabled = false;
+        });
+    }
+
+    function validateFundLoan(loan) {
+      if (!loan.date) return 'Vui lòng nhập ngày vay.';
+      if (!loan.method.trim()) return 'Vui lòng chọn hình thức vay.';
+      if (!loan.partner.trim()) return 'Vui lòng nhập đối tác.';
+      if (!(parseLocaleNumber(loan.amount) > 0)) return 'Số tiền vay phải lớn hơn 0.';
+      return '';
+    }
+
+    function showFundLoanStatus(type, message) {
+      const status = el('fundLoanEntryStatus');
+      if (!status) return;
+      status.className = 'status ' + (type === 'error' ? 'error' : 'success');
+      status.textContent = message;
+      status.style.display = 'block';
+    }
+
+    function clearFundLoanForm() {
+      ['loanPartnerInput', 'loanAmountInput', 'loanTermInput', 'loanRateInput', 'loanInterestPeriodInput', 'loanFirstInterestDateInput', 'loanContentInput'].forEach((id) => {
+        const field = el(id);
+        if (field) field.value = '';
+      });
     }
 
     function loadFundTransactions(forceRefresh) {
@@ -3497,8 +3807,10 @@
           loadCatalogSheetData();
         });
       }
-      if (view === 'cashflow' && activeCashflowTab === 'transactions') {
-        loadFundTransactions(false);
+      if (view === 'cashflow') {
+        if (activeCashflowTab === 'overview') loadFundOverview(false);
+        if (activeCashflowTab === 'transactions') loadFundTransactions(false);
+        if (activeCashflowTab === 'loans') loadFundLoanOverview(false);
       }
     }
 
@@ -3516,7 +3828,7 @@
         reports: ['Báo cáo', 'Báo cáo chi tiết tổng hợp', 'Đồng bộ từ các sheet tính toán gốc.'],
         manage: ['Quản lý nhật ký', 'Quản lý các giao dịch nhật ký', 'Xem, tìm kiếm lọc theo ngày, sửa hoặc xóa dòng nhật ký.'],
         catalog: ['Danh mục', 'Quản lý danh mục hệ thống', 'Xem, tìm kiếm, thêm mới, sửa hoặc xóa danh mục gốc.'],
-        cashflow: ['Thu chi', 'Quản lý thu chi', 'Khung chức năng Thu chi đang được chuẩn bị.'],
+        cashflow: ['Quỹ', 'Quản lý quỹ', 'Theo dõi thu chi, số dư và khoản vay.'],
         settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', 'Tối ưu hóa chạy webapp như ứng dụng thực tế.']
       }[activeView];
       

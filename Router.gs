@@ -28,6 +28,12 @@ function doGet(e) {
         limit: e.parameter.limit
       }));
     }
+    if (action === 'getFundOverview') {
+      return jsonResponse_(FundService.getFundOverview(e.parameter.year, {
+        month: e.parameter.month
+      }));
+    }
+    if (action === 'getFundLoanOverview') return jsonResponse_(FundService.getFundLoanOverview(e.parameter.year));
     if (action === 'getFundFormOptions') return jsonResponse_(FundService.getFundFormOptions(e.parameter.year));
 
     throw new Error('Hành động GET không hợp lệ: ' + action);
@@ -68,6 +74,10 @@ function doPost(e) {
     if (action === 'addFundTransaction') {
       var fundResult = FundService.addFundTransaction(payload.year, payload.transaction);
       return jsonResponse_(fundResult);
+    }
+    if (action === 'addFundLoan') {
+      var loanResult = FundService.addFundLoan(payload.year, payload.loan);
+      return jsonResponse_(loanResult);
     }
 
     throw new Error('Hành động POST không hợp lệ: ' + action);

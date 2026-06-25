@@ -111,8 +111,10 @@
           loadCatalogSheetData();
         });
       }
-      if (view === 'cashflow' && activeCashflowTab === 'transactions') {
-        loadFundTransactions(false);
+      if (view === 'cashflow') {
+        if (activeCashflowTab === 'overview') loadFundOverview(false);
+        if (activeCashflowTab === 'transactions') loadFundTransactions(false);
+        if (activeCashflowTab === 'loans') loadFundLoanOverview(false);
       }
     }
 
@@ -130,7 +132,7 @@
         reports: ['Báo cáo', 'Báo cáo chi tiết tổng hợp', 'Đồng bộ từ các sheet tính toán gốc.'],
         manage: ['Quản lý nhật ký', 'Quản lý các giao dịch nhật ký', 'Xem, tìm kiếm lọc theo ngày, sửa hoặc xóa dòng nhật ký.'],
         catalog: ['Danh mục', 'Quản lý danh mục hệ thống', 'Xem, tìm kiếm, thêm mới, sửa hoặc xóa danh mục gốc.'],
-        cashflow: ['Thu chi', 'Quản lý thu chi', 'Khung chức năng Thu chi đang được chuẩn bị.'],
+        cashflow: ['Quỹ', 'Quản lý quỹ', 'Theo dõi thu chi, số dư và khoản vay.'],
         settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', 'Tối ưu hóa chạy webapp như ứng dụng thực tế.']
       }[activeView];
       

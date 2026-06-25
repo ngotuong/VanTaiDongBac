@@ -4,6 +4,7 @@ var FundService = (function () {
   var FUND_SPREADSHEET_ID_PREFIX = 'FUND_SPREADSHEET_ID_';
   var CASHFLOW_SPREADSHEET_ID_PREFIX = 'CASHFLOW_SPREADSHEET_ID_';
   var TRANSACTION_SHEET_NAME = 'NHAP_THUCHI';
+  var LOAN_SHEET_NAME = 'NHAP_VAY';
   var TRANSACTION_HEADERS = [
     'Số phiếu',
     'Ngày',
@@ -16,6 +17,176 @@ var FundService = (function () {
     'Nội dung',
     'Công nợ'
   ];
+
+  function getFundOverview(year, filter) {
+    var ss = getFundSpreadsheet_(year);
+    var transactions = readFundTransactions_(ss);
+    var loans = readLoanRows_(ss);
+    var settings = readFundSettings_(ss);
+    var months = buildMonths_(transactions.concat(loans));
+    var monthKey = normalizeMonthKey_((filter || {}).month) || (months[0] && months[0].key) || '';
+    var period = monthKey ? monthPeriod_(monthKey) : null;
+    var openingBase = settings.cashOpening + settings.bankOpening;
+    var today = today_();
+
+    var beforeIncome = 0;
+    var beforeExpense = 0;
+    var beforeLoanIn = 0;
+    var beforeLoanOut = 0;
+    var income = 0;
+    var expense = 0;
+    var currentIncome = 0;
+    var currentExpense = 0;
+    var currentLoanIn = 0;
+    var currentLoanOut = 0;
+    var incomeMap = {};
+    var expenseMap = {};
+
+    transactions.forEach(function (item) {
+      var date = item.dateObj;
+      if (!date || item.debt === 'Có') return;
+      var isIncome = item.type === 'Thu' && item.category !== settings.withdrawName;
+      var isExpense = item.type === 'Chi' && item.category !== settings.depositName;
+      if (!isIncome && !isExpense) return;
+      if (period && date < period.start) {
+        if (isIncome) beforeIncome += item.amount;
+        if (isExpense) beforeExpense += item.amount;
+      }
+      if (!period || (date >= period.start && date <= period.end)) {
+        if (isIncome) {
+          income += item.amount;
+          addCategory_(incomeMap, item.category, item.amount, item);
+        }
+        if (isExpense) {
+          expense += item.amount;
+          addCategory_(expenseMap, item.category, item.amount, item);
+        }
+      }
+      if (date <= today) {
+        if (isIncome) currentIncome += item.amount;
+        if (isExpense) currentExpense += item.amount;
+      }
+    });
+
+    loans.forEach(function (item) {
+      if (!item.dateObj) return;
+      if (settings.loanStartDate && item.dateObj < settings.loanStartDate) return;
+      var isLoanIn = item.type === 'Vay';
+      var isLoanOut = item.type === 'Trả nợ' || item.type === 'Trả lãi';
+      if (period && item.dateObj < period.start) {
+        if (isLoanIn) beforeLoanIn += item.amount;
+        if (isLoanOut) beforeLoanOut += item.amount;
+      }
+      if (!period || (item.dateObj >= period.start && item.dateObj <= period.end)) {
+        if (isLoanIn) income += item.amount;
+        if (isLoanOut) expense += item.amount;
+      }
+      if (item.dateObj <= today) {
+        if (isLoanIn) currentLoanIn += item.amount;
+        if (isLoanOut) currentLoanOut += item.amount;
+      }
+    });
+
+    var openingBalance = openingBase + beforeIncome - beforeExpense + beforeLoanIn - beforeLoanOut;
+    var net = income - expense;
+    var closingBalance = openingBalance + net;
+    var currentBalance = openingBase + currentIncome - currentExpense + currentLoanIn - currentLoanOut;
+
+    return {
+      ok: true,
+      months: months,
+      selectedMonth: monthKey,
+      metrics: [
+        { key: 'openingBalance', label: 'Số dư đầu kỳ', value: openingBalance },
+        { key: 'periodIncome', label: 'Thu trong kỳ', value: income },
+        { key: 'periodExpense', label: 'Chi trong kỳ', value: expense },
+        { key: 'periodNet', label: 'Tổng thu chi', value: net },
+        { key: 'closingBalance', label: 'Số dư cuối kỳ', value: closingBalance },
+        { key: 'currentBalance', label: 'Số dư hiện tại', value: currentBalance }
+      ],
+      incomeCategories: mapToRows_(incomeMap),
+      expenseCategories: mapToRows_(expenseMap)
+    };
+  }
+
+  function getFundLoanOverview(year) {
+    var ss = getFundSpreadsheet_(year);
+    var rows = readLoanRows_(ss);
+    var totalBorrowed = 0;
+    var totalPrincipalPaid = 0;
+    var totalInterestPaid = 0;
+    var loanMap = {};
+
+    rows.forEach(function (row) {
+      if (row.type === 'Vay') totalBorrowed += row.amount;
+      if (row.type === 'Trả nợ') totalPrincipalPaid += row.amount;
+      if (row.type === 'Trả lãi') totalInterestPaid += row.amount;
+      var key = row.code || row.partner || ('row-' + row.rowIndex);
+      if (!loanMap[key]) {
+        loanMap[key] = {
+          code: row.code,
+          partner: row.partner,
+          borrowed: 0,
+          principalPaid: 0,
+          interestPaid: 0,
+          latestDate: row.date,
+          content: row.content,
+          termMonths: row.termMonths,
+          annualRate: row.annualRate,
+          interestPeriodMonths: row.interestPeriodMonths,
+          firstInterestDate: row.firstInterestDate
+        };
+      }
+      if (row.type === 'Vay') loanMap[key].borrowed += row.amount;
+      if (row.type === 'Trả nợ') loanMap[key].principalPaid += row.amount;
+      if (row.type === 'Trả lãi') loanMap[key].interestPaid += row.amount;
+      if (row.date > loanMap[key].latestDate) loanMap[key].latestDate = row.date;
+    });
+
+    var loans = Object.keys(loanMap).map(function (key) {
+      var item = loanMap[key];
+      item.outstanding = item.borrowed - item.principalPaid;
+      return item;
+    }).sort(function (a, b) {
+      return (b.outstanding || 0) - (a.outstanding || 0);
+    });
+
+    return {
+      ok: true,
+      metrics: [
+        { key: 'borrowed', label: 'Tổng khoản vay', value: totalBorrowed },
+        { key: 'principalPaid', label: 'Đã trả nợ gốc', value: totalPrincipalPaid },
+        { key: 'interestPaid', label: 'Đã trả lãi', value: totalInterestPaid },
+        { key: 'outstanding', label: 'Dư nợ hiện tại', value: totalBorrowed - totalPrincipalPaid }
+      ],
+      loans: loans,
+      recentRows: rows.slice().sort(function (a, b) {
+        return a.date < b.date ? 1 : -1;
+      }).slice(0, 100)
+    };
+  }
+
+  function addFundLoan(year, payload) {
+    var ss = getFundSpreadsheet_(year);
+    var sheet = ss.getSheetByName(LOAN_SHEET_NAME);
+    if (!sheet) throw new Error('Không tìm thấy sheet khoản vay: ' + LOAN_SHEET_NAME);
+    var row = buildLoanRow_(payload || {});
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      var appendRow = getAppendRow_(sheet);
+      if (sheet.getMaxRows() < appendRow) {
+        sheet.insertRowsAfter(sheet.getMaxRows(), appendRow - sheet.getMaxRows());
+      }
+      sheet.getRange(appendRow, 1, 1, row.length).setValues([row]);
+      sheet.getRange(appendRow, 2).setNumberFormat('dd/MM/yyyy');
+      sheet.getRange(appendRow, 6).setNumberFormat('#,##0');
+      sheet.getRange(appendRow, 14).setFormula(buildLoanFilterFormula_(appendRow));
+      return { ok: true, rowIndex: appendRow, code: row[0], sheetName: LOAN_SHEET_NAME };
+    } finally {
+      lock.releaseLock();
+    }
+  }
 
   function getFundFormOptions(year) {
     var ss = getFundSpreadsheet_(year);
@@ -153,6 +324,139 @@ var FundService = (function () {
     }
   }
 
+  function readFundTransactions_(ss) {
+    var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
+    if (!sheet) return [];
+    var lastRow = sheet.getLastRow();
+    var lastCol = Math.max(sheet.getLastColumn(), TRANSACTION_HEADERS.length);
+    if (lastRow < 2) return [];
+    var displayValues = sheet.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
+    var rawDateValues = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
+    var rows = [];
+    displayValues.forEach(function (row, index) {
+      if (!row.slice(0, TRANSACTION_HEADERS.length).some(function (cell) { return clean_(cell); })) return;
+      var dateObj = parseDate_(rawDateValues[index][0], row[1]);
+      var incomeCategory = clean_(row[2]);
+      var expenseCategory = clean_(row[3]);
+      rows.push({
+        rowIndex: index + 2,
+        voucher: clean_(row[0]),
+        dateObj: dateObj,
+        date: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'yyyy-MM-dd') : clean_(row[1]),
+        dateText: clean_(row[1]),
+        month: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'yyyy-MM') : '',
+        monthLabel: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'MM/yyyy') : '',
+        type: incomeCategory ? 'Thu' : (expenseCategory ? 'Chi' : ''),
+        category: incomeCategory || expenseCategory,
+        incomeCategory: incomeCategory,
+        expenseCategory: expenseCategory,
+        method: clean_(row[4]),
+        amount: parseNumber_(row[5]),
+        amountText: clean_(row[5]),
+        actor: clean_(row[6]),
+        partner: clean_(row[7]),
+        content: clean_(row[8]),
+        debt: clean_(row[9])
+      });
+    });
+    return rows;
+  }
+
+  function readLoanRows_(ss) {
+    var sheet = ss.getSheetByName(LOAN_SHEET_NAME);
+    if (!sheet || sheet.getLastRow() < 2) return [];
+    var lastRow = sheet.getLastRow();
+    var values = sheet.getRange(2, 1, lastRow - 1, Math.max(sheet.getLastColumn(), 14)).getDisplayValues();
+    var rawDates = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
+    var rows = [];
+    values.forEach(function (row, index) {
+      if (!row.slice(0, 11).some(function (cell) { return clean_(cell); })) return;
+      var dateObj = parseDate_(rawDates[index][0], row[1]);
+      rows.push({
+        rowIndex: index + 2,
+        code: clean_(row[0]),
+        dateObj: dateObj,
+        date: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'yyyy-MM-dd') : clean_(row[1]),
+        dateText: clean_(row[1]),
+        month: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'yyyy-MM') : '',
+        monthLabel: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'MM/yyyy') : '',
+        type: clean_(row[2]),
+        method: clean_(row[3]),
+        partner: clean_(row[4]),
+        amount: parseNumber_(row[5]),
+        amountText: clean_(row[5]),
+        termMonths: parseNumber_(row[6]),
+        annualRate: parseNumber_(row[7]),
+        interestPeriodMonths: parseNumber_(row[8]),
+        firstInterestDate: clean_(row[9]),
+        content: clean_(row[10])
+      });
+    });
+    return rows;
+  }
+
+  function readFundSettings_(ss) {
+    return {
+      cashOpening: parseNumber_(readNamedRangeDisplay_(ss, 'TMDK')),
+      bankOpening: parseNumber_(readNamedRangeDisplay_(ss, 'TKDK')),
+      loanStartDate: readNamedRangeDate_(ss, 'NGAYTINHVAY'),
+      depositName: readNamedRangeDisplay_(ss, 'NOPTIEN') || 'Nộp vào TK',
+      withdrawName: readNamedRangeDisplay_(ss, 'RUTTIEN') || 'Rút tiền'
+    };
+  }
+
+  function readNamedRangeDate_(ss, name) {
+    var range = ss.getRangeByName(name);
+    if (!range) return null;
+    return parseDate_(range.getValue(), range.getDisplayValue());
+  }
+
+  function readNamedRangeDisplay_(ss, name) {
+    var range = ss.getRangeByName(name);
+    return range ? clean_(range.getDisplayValue()) : '';
+  }
+
+  function today_() {
+    var now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
+
+  function buildMonths_(rows) {
+    var map = {};
+    rows.forEach(function (row) {
+      if (row.month) map[row.month] = row.monthLabel;
+    });
+    return Object.keys(map).sort().reverse().map(function (key) {
+      return { key: key, label: map[key] };
+    });
+  }
+
+  function monthPeriod_(monthKey) {
+    var parts = monthKey.split('-');
+    var year = Number(parts[0]);
+    var month = Number(parts[1]) - 1;
+    return {
+      start: new Date(year, month, 1),
+      end: new Date(year, month + 1, 0, 23, 59, 59)
+    };
+  }
+
+  function addCategory_(map, category, amount, item) {
+    var key = category || 'Khác';
+    if (!map[key]) map[key] = { category: key, amount: 0, count: 0, details: [] };
+    map[key].amount += amount;
+    map[key].count += 1;
+    map[key].details.push(item);
+  }
+
+  function mapToRows_(map) {
+    return Object.keys(map).map(function (key) {
+      return map[key];
+    }).sort(function (a, b) {
+      return b.amount - a.amount;
+    });
+  }
+
   function getFundSpreadsheet_(year) {
     var spreadsheetId = resolveFundSpreadsheetId_(year);
     return SpreadsheetApp.openById(spreadsheetId);
@@ -191,6 +495,35 @@ var FundService = (function () {
     ];
   }
 
+  function buildLoanRow_(payload) {
+    var date = parseDate_(payload.date, payload.date);
+    var method = clean_(payload.method);
+    var partner = clean_(payload.partner);
+    var amount = parseNumber_(payload.amount);
+    var termMonths = parseNumber_(payload.termMonths);
+    var annualRate = parseNumber_(payload.annualRate);
+    var interestPeriodMonths = parseNumber_(payload.interestPeriodMonths);
+    var firstInterestDate = parseDate_(payload.firstInterestDate, payload.firstInterestDate);
+    var content = clean_(payload.content);
+    if (!date) throw new Error('Vui lòng nhập ngày vay hợp lệ.');
+    if (!method) throw new Error('Vui lòng nhập hình thức vay.');
+    if (!partner) throw new Error('Vui lòng nhập đối tác cho khoản vay.');
+    if (!(amount > 0)) throw new Error('Số tiền vay phải lớn hơn 0.');
+    return [
+      buildVoucher_(),
+      date,
+      'Vay',
+      method,
+      partner,
+      amount,
+      termMonths || '',
+      annualRate || '',
+      interestPeriodMonths || '',
+      firstInterestDate || '',
+      content
+    ];
+  }
+
   function getAppendRow_(sheet) {
     var lastRow = sheet.getLastRow();
     if (lastRow < 2) return 2;
@@ -213,6 +546,10 @@ var FundService = (function () {
 
   function buildFilterFormula_(rowNumber) {
     return '=IF(BC_THUCHI!$C$15="";"";A' + rowNumber + ')&IF(BC_THUCHI!$J$15="";"";G' + rowNumber + ')&IF(BC_THUCHI!$K$15="";"";H' + rowNumber + ')';
+  }
+
+  function buildLoanFilterFormula_(rowNumber) {
+    return '=IF(BC_VAY!$P$9="";"";A' + rowNumber + ')&IF(BC_VAY!$R$9="";"";C' + rowNumber + ')&IF(BC_VAY!$S$9="";"";E' + rowNumber + ')';
   }
 
   function readNamedRangeValues_(ss, name) {
@@ -306,7 +643,10 @@ var FundService = (function () {
 
   return {
     addFundTransaction: addFundTransaction,
+    addFundLoan: addFundLoan,
     getFundFormOptions: getFundFormOptions,
+    getFundLoanOverview: getFundLoanOverview,
+    getFundOverview: getFundOverview,
     getFundTransactions: getFundTransactions,
     getFundSpreadsheet_: getFundSpreadsheet_
   };
@@ -322,6 +662,18 @@ function getFundFormOptions(year) {
 
 function addFundTransaction(year, payload) {
   return FundService.addFundTransaction(year, payload);
+}
+
+function getFundOverview(year, filter) {
+  return FundService.getFundOverview(year, filter);
+}
+
+function getFundLoanOverview(year) {
+  return FundService.getFundLoanOverview(year);
+}
+
+function addFundLoan(year, payload) {
+  return FundService.addFundLoan(year, payload);
 }
 
 function getFundSpreadsheet_(year) {

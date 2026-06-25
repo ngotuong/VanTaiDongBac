@@ -61,3 +61,15 @@ function getFundFormOptions(year) {
 function addFundTransaction(year, transaction) {
   return FundService.addFundTransaction(year, transaction);
 }
+
+function getFundOverview(year, filter) {
+  return FundService.getFundOverview(year, filter);
+}
+
+function getFundLoanOverview(year) {
+  return FundService.getFundLoanOverview(year);
+}
+
+function addFundLoan(year, loan) {
+  return FundService.addFundLoan(year, loan);
+}

@@ -1,5 +1,5 @@
 var SheetService = (function () {
-  var CACHE_VERSION = 'v7';
+  var CACHE_VERSION = 'v8';
   var CATALOG_TTL_SECONDS = 21600;
   var REPORT_TTL_SECONDS = 600;
   var REPORT_CACHE_SHEET_NAME = 'SYS_ReportCache';
@@ -42,7 +42,7 @@ var SheetService = (function () {
     var dashboard = {
       updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
       overview: readOverviewDashboard_(ss),
-      inputs: readInputStats_(ss),
+      inputs: [],
       latestTrips: readLatestTrips_(ss),
       links: reportLinks_(),
       cached: false
@@ -210,9 +210,8 @@ var SheetService = (function () {
       
       var range = sheet.getRange(appendRow, 1, result.values.length, cfg.columns);
       range.setValues(result.values);
-      applyFormats_(sheet, formType, appendRow, result.values.length);
+      var formatWarnings = applyFormatsSafely_(sheet, formType, appendRow, result.values.length);
 
-      SpreadsheetApp.flush();
       clearAfterSubmitCache_();
       return {
         ok: result.errors.length === 0,
@@ -220,7 +219,7 @@ var SheetService = (function () {
         startRow: appendRow,
         sheetName: cfg.name,
         errors: result.errors,
-        warnings: result.warnings
+        warnings: result.warnings.concat(formatWarnings)
       };
     } finally {
       lock.releaseLock();
@@ -727,28 +726,38 @@ var SheetService = (function () {
     }
   }
 
-  function applyFormats_(sheet, formType, startRow, rowCount) {
+  function applyFormatsSafely_(sheet, formType, startRow, rowCount) {
+    var warnings = [];
+    var apply = function (column, width, format) {
+      try {
+        sheet.getRange(startRow, column, rowCount, width).setNumberFormat(format);
+      } catch (e) {
+        warnings.push('Dữ liệu đã ghi thành công, nhưng Google Sheets không cho đổi định dạng cột ' + column + ': ' + e.message);
+      }
+    };
+
     if (formType === 'vanChuyen') {
-      sheet.getRange(startRow, 1, rowCount, 1).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(startRow, 5, rowCount, 1).setNumberFormat('0');
+      apply(1, 1, 'dd/MM/yyyy');
+      apply(5, 1, '0');
     } else if (formType === 'taiXe') {
-      sheet.getRange(startRow, 1, rowCount, 1).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(startRow, 5, rowCount, 1).setNumberFormat('0');
+      apply(1, 1, 'dd/MM/yyyy');
+      apply(5, 1, '0');
     } else if (formType === 'dau') {
-      sheet.getRange(startRow, 1, rowCount, 1).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(startRow, 5, rowCount, 1).setNumberFormat('#,##0.##');
-      sheet.getRange(startRow, 6, rowCount, 2).setNumberFormat('#,##0 ₫');
+      apply(1, 1, 'dd/MM/yyyy');
+      apply(5, 1, '#,##0.##');
+      apply(6, 2, '#,##0 ₫');
     } else if (formType === 'chamCong') {
-      sheet.getRange(startRow, 1, rowCount, 2).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(startRow, 6, rowCount, 1).setNumberFormat('0.##');
+      apply(1, 2, 'dd/MM/yyyy');
+      apply(6, 1, '0.##');
     } else if (formType === 'phat') {
-      sheet.getRange(startRow, 1, rowCount, 1).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(startRow, 6, rowCount, 1).setNumberFormat('#,##0 ₫');
+      apply(1, 1, 'dd/MM/yyyy');
+      apply(6, 1, '#,##0 ₫');
     } else if (formType === 'nghiVanHanh') {
-      sheet.getRange(startRow, 1, rowCount, 1).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(startRow, 6, rowCount, 2).setNumberFormat('0.##');
-      sheet.getRange(startRow, 8, rowCount, 1).setNumberFormat('0.##');
+      apply(1, 1, 'dd/MM/yyyy');
+      apply(6, 2, '0.##');
+      apply(8, 1, '0.##');
     }
+    return warnings;
   }
 
   function clean_(value) {
@@ -878,7 +887,7 @@ var SheetService = (function () {
   }
 
   function clearAfterSubmitCache_() {
-    invalidateRuntimeCaches_();
+    bumpReportDataVersion_();
   }
 
   function invalidateCaches() {
@@ -905,7 +914,7 @@ var SheetService = (function () {
     if (!sheet) return { date: '', trips: [] };
     var lastDataRow = getLastNonEmptyRowInColumn_(sheet, 1, 3, true);
     if (lastDataRow < 3) return { date: '', trips: [] };
-    var sampleRows = Math.min(lastDataRow - 2, 2000);
+    var sampleRows = Math.min(lastDataRow - 2, 500);
     var startRow = lastDataRow - sampleRows + 1;
     var values = sheet.getRange(startRow, 1, sampleRows, 6).getValues();
     
@@ -1213,10 +1222,9 @@ var SheetService = (function () {
         }
       }
       if (formType) {
-        applyFormats_(sheet, formType, rowNum, 1);
+        applyFormatsSafely_(sheet, formType, rowNum, 1);
       }
 
-      SpreadsheetApp.flush();
       clearAfterSubmitCache_();
 
       if (sheetName.indexOf('DM_') === 0) {

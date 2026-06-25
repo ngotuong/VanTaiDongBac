@@ -49,3 +49,7 @@ function saveSheetRow(sheetName, rowIndex, rowData) {
 function deleteSheetRow(sheetName, rowIndex, columnsToClear) {
   return SheetService.deleteSheetRow(sheetName, rowIndex, columnsToClear);
 }
+
+function getFundTransactions(year, filter) {
+  return FundService.getFundTransactions(year, filter);
+}

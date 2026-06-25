@@ -22,6 +22,12 @@ function doGet(e) {
     if (action === 'getReportBundle') return jsonResponse_(SheetService.getReportBundle(e.parameter.month, e.parameter.forceRefresh === 'true'));
     if (action === 'invalidateCaches') return jsonResponse_(SheetService.invalidateCaches());
     if (action === 'readSheetData') return jsonResponse_(SheetService.readSheetData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate, e.parameter.limit));
+    if (action === 'getFundTransactions') {
+      return jsonResponse_(FundService.getFundTransactions(e.parameter.year, {
+        month: e.parameter.month,
+        limit: e.parameter.limit
+      }));
+    }
 
     throw new Error('Hành động GET không hợp lệ: ' + action);
   } catch (err) {

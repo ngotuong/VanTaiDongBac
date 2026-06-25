@@ -1912,19 +1912,80 @@
         </section>
 
         <div class="sub-tabs-bar" style="width: 100%; margin-bottom: 12px;">
-          <button type="button" class="sub-tab active">Tổng quan</button>
-          <button type="button" class="sub-tab">Danh sách thu chi</button>
-          <button type="button" class="sub-tab">Thêm khoản thu/chi</button>
-          <button type="button" class="sub-tab">Báo cáo tháng</button>
+          <button type="button" class="sub-tab active" data-cashflow-tab="overview" onclick="setCashflowTab('overview')">Tổng quan</button>
+          <button type="button" class="sub-tab" data-cashflow-tab="transactions" onclick="setCashflowTab('transactions')">Danh sách thu chi</button>
+          <button type="button" class="sub-tab" data-cashflow-tab="entry" onclick="setCashflowTab('entry')">Thêm khoản thu/chi</button>
+          <button type="button" class="sub-tab" data-cashflow-tab="monthly" onclick="setCashflowTab('monthly')">Báo cáo tháng</button>
         </div>
 
-        <div class="table-card">
+        <div class="table-card" data-cashflow-panel="overview">
           <div class="panel-body" style="text-align: center; color: var(--muted); padding: 56px 24px;">
             <div style="font-weight: 800; font-size: 18px; color: var(--deep); margin-bottom: 8px;">Quản lý thu chi</div>
             <div style="max-width: 520px; margin: 0 auto; line-height: 1.6;">
               Đây là màn hình khởi tạo cho module Thu chi. Chưa có thao tác đọc hoặc ghi dữ liệu Thu chi ở bước này.
             </div>
           </div>
+        </div>
+
+        <div data-cashflow-panel="transactions" style="display: none;">
+          <section class="panel" style="margin-bottom: 16px;">
+            <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h2 class="panel-title">Danh sách thu chi</h2>
+                <div class="panel-note">Dữ liệu đọc từ sheet NHAP_THUCHI của file Thu chi.</div>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                  Tháng:
+                  <select id="fundMonthFilter" style="height: 38px; width: 150px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundTransactions(false)">
+                    <option value="">Tất cả tháng</option>
+                  </select>
+                </label>
+                <button type="button" class="ghost" style="height: 38px; min-height: 38px;" onclick="loadFundTransactions(true)">
+                  <svg class="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+                  Tải lại
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <div id="fundTransactionsNotice" style="background: var(--mint-soft); border-left: 4px solid var(--teal); padding: 10px 14px; font-size: 12.5px; font-weight: 600; color: var(--deep); margin: 0 0 12px 0; border-radius: 6px; display: none;"></div>
+
+          <div class="table-card">
+            <div class="table-scroll" style="max-height: calc(100vh - 300px); overflow-y: auto; padding: 12px;">
+              <table class="report-table" id="fundTransactionsTable">
+                <thead>
+                  <tr>
+                    <th>Ngày</th>
+                    <th>Số phiếu</th>
+                    <th>Loại</th>
+                    <th>Mục</th>
+                    <th>Hình thức</th>
+                    <th style="text-align: right;">Số tiền</th>
+                    <th>Người Thu/Chi</th>
+                    <th>Đối tác</th>
+                    <th>Nội dung</th>
+                  </tr>
+                </thead>
+                <tbody id="fundTransactionsTableBody">
+                  <tr>
+                    <td colspan="9" style="text-align: center; color: var(--muted); padding: 24px;">Chọn tab Danh sách thu chi để tải dữ liệu.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="fundTransactionsEmpty" class="panel-body" style="text-align: center; color: var(--muted); padding: 48px 24px; display: none;">
+              Không có dữ liệu thu chi phù hợp.
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card" data-cashflow-panel="entry" style="display: none;">
+          <div class="panel-body" style="text-align: center; color: var(--muted); padding: 56px 24px;">Chức năng thêm khoản thu/chi sẽ được triển khai ở bước sau.</div>
+        </div>
+
+        <div class="table-card" data-cashflow-panel="monthly" style="display: none;">
+          <div class="panel-body" style="text-align: center; color: var(--muted); padding: 56px 24px;">Báo cáo tháng Thu chi sẽ được triển khai ở bước sau.</div>
         </div>
       </section>
 
@@ -2083,6 +2144,8 @@
     let currentCatalogData = null;
     let filteredCatalogRowsData = [];
     let currentEditCatalogRowIndex = null;
+    let activeCashflowTab = 'overview';
+    let fundTransactionsData = null;
     let reportBundleRequestSeq = 0;
     let reportBundlePrefetching = false;
     let reportCacheEpoch = 0;
@@ -2286,6 +2349,113 @@
       return callApi('GET', 'invalidateCaches', { _ts: Date.now() }).catch((err) => {
         console.warn('Không thể xoá cache server trước khi làm mới:', err);
       });
+    }
+</script>
+<script>
+    function setCashflowTab(tab) {
+      activeCashflowTab = tab;
+      document.querySelectorAll('[data-cashflow-tab]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.cashflowTab === tab);
+      });
+      document.querySelectorAll('[data-cashflow-panel]').forEach((panel) => {
+        panel.style.display = panel.dataset.cashflowPanel === tab ? '' : 'none';
+      });
+      if (tab === 'transactions') {
+        loadFundTransactions(false);
+      }
+    }
+
+    function loadFundTransactions(forceRefresh) {
+      const tableBody = el('fundTransactionsTableBody');
+      const empty = el('fundTransactionsEmpty');
+      const notice = el('fundTransactionsNotice');
+      const monthFilter = el('fundMonthFilter');
+      if (!tableBody || !empty || !notice || !monthFilter) return;
+
+      tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải dữ liệu thu chi...</td></tr>';
+      empty.style.display = 'none';
+      notice.textContent = '';
+      notice.style.display = 'none';
+
+      const selectedMonth = monthFilter.value || '';
+      callApi('GET', 'getFundTransactions', {
+        year: '2026',
+        month: selectedMonth,
+        limit: 500,
+        forceRefresh: forceRefresh ? 'true' : ''
+      })
+        .then((data) => {
+          fundTransactionsData = data;
+          renderFundMonthFilter(data.months || [], data.selectedMonth || selectedMonth);
+          renderFundTransactions(data);
+        })
+        .catch((err) => {
+          tableBody.innerHTML = '';
+          empty.style.display = 'block';
+          empty.textContent = 'Không thể tải dữ liệu thu chi: ' + err.message;
+        });
+    }
+
+    function renderFundMonthFilter(months, selectedMonth) {
+      const select = el('fundMonthFilter');
+      if (!select) return;
+      const current = selectedMonth || select.value || '';
+      select.innerHTML = '<option value="">Tất cả tháng</option>';
+      months.forEach((month) => {
+        const option = document.createElement('option');
+        option.value = month.key;
+        option.textContent = month.label;
+        select.appendChild(option);
+      });
+      select.value = current;
+    }
+
+    function renderFundTransactions(data) {
+      const tableBody = el('fundTransactionsTableBody');
+      const empty = el('fundTransactionsEmpty');
+      const notice = el('fundTransactionsNotice');
+      if (!tableBody || !empty || !notice) return;
+
+      const rows = data.transactions || [];
+      tableBody.innerHTML = '';
+      if (!rows.length) {
+        empty.style.display = 'block';
+        empty.textContent = 'Không có dữ liệu thu chi phù hợp.';
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      rows.forEach((item) => {
+        const tr = document.createElement('tr');
+        const typeColor = item.type === 'Thu' ? 'var(--green)' : (item.type === 'Chi' ? 'var(--red)' : 'var(--muted)');
+        tr.innerHTML = `
+          <td>${escapeHtml(item.dateText || formatTableDate(item.date, false))}</td>
+          <td>${escapeHtml(item.voucher || '')}</td>
+          <td><span style="font-weight: 800; color: ${typeColor};">${escapeHtml(item.type || '-')}</span></td>
+          <td>${escapeHtml(item.category || '')}</td>
+          <td>${escapeHtml(item.method || '')}</td>
+          <td style="text-align: right; font-weight: 800;">${formatFundAmount(item.amount, item.amountText)}</td>
+          <td>${escapeHtml(item.actor || '')}</td>
+          <td>${escapeHtml(item.partner || '')}</td>
+          <td>${escapeHtml(item.content || '')}</td>
+        `;
+        fragment.appendChild(tr);
+      });
+      tableBody.appendChild(fragment);
+
+      if (data.limited) {
+        notice.textContent = `Đang hiển thị ${rows.length}/${data.totalRows} dòng mới nhất. Chọn tháng để thu hẹp dữ liệu.`;
+        notice.style.display = 'block';
+      } else {
+        notice.textContent = `Đang hiển thị ${rows.length} dòng.`;
+        notice.style.display = 'block';
+      }
+    }
+
+    function formatFundAmount(amount, fallbackText) {
+      const number = Number(amount || 0);
+      if (number) return Math.round(number).toLocaleString('vi-VN') + ' ₫';
+      return escapeHtml(fallbackText || '');
     }
 </script>
 <script>
@@ -3140,6 +3310,9 @@
         loadAllCatalogsIfNeeded(() => {
           loadCatalogSheetData();
         });
+      }
+      if (view === 'cashflow' && activeCashflowTab === 'transactions') {
+        loadFundTransactions(false);
       }
     }
 

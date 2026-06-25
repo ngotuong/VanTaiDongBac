@@ -111,6 +111,9 @@
           loadCatalogSheetData();
         });
       }
+      if (view === 'cashflow' && activeCashflowTab === 'transactions') {
+        loadFundTransactions(false);
+      }
     }
 
     function renderView() {

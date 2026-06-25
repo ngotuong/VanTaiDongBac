@@ -1,0 +1,107 @@
+<script>
+    function setCashflowTab(tab) {
+      activeCashflowTab = tab;
+      document.querySelectorAll('[data-cashflow-tab]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.cashflowTab === tab);
+      });
+      document.querySelectorAll('[data-cashflow-panel]').forEach((panel) => {
+        panel.style.display = panel.dataset.cashflowPanel === tab ? '' : 'none';
+      });
+      if (tab === 'transactions') {
+        loadFundTransactions(false);
+      }
+    }
+
+    function loadFundTransactions(forceRefresh) {
+      const tableBody = el('fundTransactionsTableBody');
+      const empty = el('fundTransactionsEmpty');
+      const notice = el('fundTransactionsNotice');
+      const monthFilter = el('fundMonthFilter');
+      if (!tableBody || !empty || !notice || !monthFilter) return;
+
+      tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải dữ liệu thu chi...</td></tr>';
+      empty.style.display = 'none';
+      notice.textContent = '';
+      notice.style.display = 'none';
+
+      const selectedMonth = monthFilter.value || '';
+      callApi('GET', 'getFundTransactions', {
+        year: '2026',
+        month: selectedMonth,
+        limit: 500,
+        forceRefresh: forceRefresh ? 'true' : ''
+      })
+        .then((data) => {
+          fundTransactionsData = data;
+          renderFundMonthFilter(data.months || [], data.selectedMonth || selectedMonth);
+          renderFundTransactions(data);
+        })
+        .catch((err) => {
+          tableBody.innerHTML = '';
+          empty.style.display = 'block';
+          empty.textContent = 'Không thể tải dữ liệu thu chi: ' + err.message;
+        });
+    }
+
+    function renderFundMonthFilter(months, selectedMonth) {
+      const select = el('fundMonthFilter');
+      if (!select) return;
+      const current = selectedMonth || select.value || '';
+      select.innerHTML = '<option value="">Tất cả tháng</option>';
+      months.forEach((month) => {
+        const option = document.createElement('option');
+        option.value = month.key;
+        option.textContent = month.label;
+        select.appendChild(option);
+      });
+      select.value = current;
+    }
+
+    function renderFundTransactions(data) {
+      const tableBody = el('fundTransactionsTableBody');
+      const empty = el('fundTransactionsEmpty');
+      const notice = el('fundTransactionsNotice');
+      if (!tableBody || !empty || !notice) return;
+
+      const rows = data.transactions || [];
+      tableBody.innerHTML = '';
+      if (!rows.length) {
+        empty.style.display = 'block';
+        empty.textContent = 'Không có dữ liệu thu chi phù hợp.';
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      rows.forEach((item) => {
+        const tr = document.createElement('tr');
+        const typeColor = item.type === 'Thu' ? 'var(--green)' : (item.type === 'Chi' ? 'var(--red)' : 'var(--muted)');
+        tr.innerHTML = `
+          <td>${escapeHtml(item.dateText || formatTableDate(item.date, false))}</td>
+          <td>${escapeHtml(item.voucher || '')}</td>
+          <td><span style="font-weight: 800; color: ${typeColor};">${escapeHtml(item.type || '-')}</span></td>
+          <td>${escapeHtml(item.category || '')}</td>
+          <td>${escapeHtml(item.method || '')}</td>
+          <td style="text-align: right; font-weight: 800;">${formatFundAmount(item.amount, item.amountText)}</td>
+          <td>${escapeHtml(item.actor || '')}</td>
+          <td>${escapeHtml(item.partner || '')}</td>
+          <td>${escapeHtml(item.content || '')}</td>
+        `;
+        fragment.appendChild(tr);
+      });
+      tableBody.appendChild(fragment);
+
+      if (data.limited) {
+        notice.textContent = `Đang hiển thị ${rows.length}/${data.totalRows} dòng mới nhất. Chọn tháng để thu hẹp dữ liệu.`;
+        notice.style.display = 'block';
+      } else {
+        notice.textContent = `Đang hiển thị ${rows.length} dòng.`;
+        notice.style.display = 'block';
+      }
+    }
+
+    function formatFundAmount(amount, fallbackText) {
+      const number = Number(amount || 0);
+      if (number) return Math.round(number).toLocaleString('vi-VN') + ' ₫';
+      return escapeHtml(fallbackText || '');
+    }
+</script>

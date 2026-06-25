@@ -1,0 +1,94 @@
+<script>
+    function setBusy(isBusy) {
+      ['submitBtn', 'addBtn', 'cloneBtn'].forEach((id) => el(id).disabled = isBusy);
+      el('submitBtn').innerHTML = isBusy 
+        ? '<div class="spinner" style="width:16px;height:16px;margin:0;"></div> Đang ghi...' 
+        : `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg> Gửi dữ liệu lên Sheets`;
+    }
+
+    function setRefreshBusy(isBusy) {
+      el('refreshBtn').disabled = isBusy;
+    }
+
+    function showStatus(type, message) {
+      const box = el('status');
+      box.className = `status show ${type}`;
+      box.textContent = message;
+    }
+
+    function clearStatus() {
+      const box = el('status');
+      box.className = 'status';
+      box.textContent = '';
+    }
+
+    function openDrawer() {
+      document.body.classList.add('drawer-open');
+    }
+
+    function closeDrawer() {
+      document.body.classList.remove('drawer-open');
+    }
+
+    // Configuration input controls binder
+    function setupConfigInput() {
+      const urlInput = el('backendUrlInput');
+      const saveBtn = el('saveUrlBtn');
+      const statusText = el('urlStatusText');
+      
+      urlInput.value = getBackendUrl();
+      
+      saveBtn.onclick = () => {
+        const urlVal = urlInput.value.trim();
+        if (!urlVal) {
+          localStorage.removeItem('eb_backend_url');
+          statusText.style.color = 'var(--red)';
+          statusText.textContent = 'Đã xóa cấu hình kết nối.';
+          sessionStorage.clear();
+          return;
+        }
+        
+        if (!urlVal.startsWith('https://script.google.com/')) {
+          statusText.style.color = 'var(--red)';
+          statusText.textContent = 'Đường dẫn không hợp lệ, phải bắt đầu bằng https://script.google.com/...';
+          return;
+        }
+        
+        localStorage.setItem('eb_backend_url', urlVal);
+        sessionStorage.clear();
+        statusText.style.color = 'var(--green)';
+        statusText.textContent = 'Đã lưu cấu hình đường dẫn và làm mới bộ nhớ đệm!';
+        
+        setTimeout(() => {
+          location.reload();
+        }, 1000);
+      };
+    }
+
+    window.showSettingsFromLoader = () => {
+      document.body.classList.remove('locked');
+      el('loader').classList.add('hidden');
+      setView('settings');
+    };
+
+    function escapeHtml(value) {
+      return String(value === undefined || value === null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Trigger binding
+    el('refreshBtn').onclick = () => refreshReports(true);
+    el('menuBtn').onclick = openDrawer;
+    el('drawerClose').onclick = closeDrawer;
+    el('drawerBackdrop').onclick = closeDrawer;
+    el('addBtn').onclick = addRow;
+    el('cloneBtn').onclick = cloneRow;
+    el('submitBtn').onclick = submitAll;
+    
+    // Run initial boot
+    init();
+</script>

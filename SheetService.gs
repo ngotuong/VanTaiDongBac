@@ -44,7 +44,7 @@ var SheetService = (function () {
       overview: readOverviewDashboard_(ss),
       inputs: [],
       latestTrips: readLatestTrips_(ss),
-      links: reportLinks_(),
+      links: reportLinks_(ss),
       cached: false
     };
     putChunkedCache_(key, dashboard, REPORT_TTL_SECONDS);
@@ -67,7 +67,7 @@ var SheetService = (function () {
       vehicles: reportTables.vehicles,
       inputs: readInputStats_(ss),
       latestTrips: readLatestTrips_(ss),
-      links: reportLinks_(),
+      links: reportLinks_(ss),
       cached: false
     };
     putChunkedCache_(cacheKey, reports, REPORT_TTL_SECONDS);
@@ -90,7 +90,7 @@ var SheetService = (function () {
         type: reportType,
         updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
         data: readOverviewReport_(ss),
-        links: reportLinks_()
+        links: reportLinks_(ss)
       };
     } else if (reportType === 'payroll') {
       var payrollTables = readReportTables_(ss, forceRefresh);
@@ -98,7 +98,7 @@ var SheetService = (function () {
         type: reportType,
         updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
         data: filterDisplayTableByMonth_(payrollTables.payroll, month),
-        links: reportLinks_()
+        links: reportLinks_(ss)
       };
     } else if (reportType === 'vehicles') {
       var vehicleTables = readReportTables_(ss, forceRefresh);
@@ -106,7 +106,7 @@ var SheetService = (function () {
         type: reportType,
         updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
         data: filterDisplayTableByMonth_(vehicleTables.vehicles, month),
-        links: reportLinks_()
+        links: reportLinks_(ss)
       };
     } else {
       throw new Error('Loai bao cao khong hop le: ' + reportType);
@@ -130,7 +130,7 @@ var SheetService = (function () {
       overview: readOverviewReport_(ss, month),
       payroll: filterDisplayTableByMonth_(reportTables.payroll, month),
       vehicles: filterDisplayTableByMonth_(reportTables.vehicles, month),
-      links: reportLinks_()
+      links: reportLinks_(ss)
     };
     putChunkedCache_(cacheKey, bundle, REPORT_TTL_SECONDS);
     return bundle;
@@ -150,13 +150,20 @@ var SheetService = (function () {
     };
   }
 
-  function reportLinks_() {
+  function reportLinks_(ss) {
+    var base = 'https://docs.google.com/spreadsheets/d/' + APP_CONFIG.spreadsheetId + '/edit';
     return {
-      spreadsheet: 'https://docs.google.com/spreadsheets/d/' + APP_CONFIG.spreadsheetId + '/edit',
-      overview: 'https://docs.google.com/spreadsheets/d/' + APP_CONFIG.spreadsheetId + '/edit#gid=20260626',
-      payroll: 'https://docs.google.com/spreadsheets/d/' + APP_CONFIG.spreadsheetId + '/edit#gid=1296722813',
-      vehicles: 'https://docs.google.com/spreadsheets/d/' + APP_CONFIG.spreadsheetId + '/edit#gid=20260623'
+      spreadsheet: base,
+      overview: sheetLink_(base, ss, 'BC_TongQuan'),
+      payroll: sheetLink_(base, ss, 'BC_BangLuong'),
+      vehicles: sheetLink_(base, ss, 'BC_TongHopXe')
     };
+  }
+
+  function sheetLink_(base, ss, sheetName) {
+    if (!ss) return base;
+    var sheet = ss.getSheetByName(sheetName);
+    return sheet ? base + '#gid=' + sheet.getSheetId() : base;
   }
 
   function submitRows(formType, rows) {

@@ -1,0 +1,526 @@
+<script>
+    // CRUD Manager Operations
+    function loadManageSheetData() {
+      const sheetName = el('manageSheetSelect').value;
+      const tbody = el('manageTableBody');
+      const thead = el('manageTableHeader');
+      
+      if (sheetName === 'NL_Dau') {
+        el('manageDauFilterBlock').style.display = 'flex';
+      } else {
+        el('manageDauFilterBlock').style.display = 'none';
+      }
+      
+      thead.innerHTML = '';
+      tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; padding: 48px; color: var(--muted);"><div style="display:inline-block; width: 30px; height: 30px; border: 3px solid var(--mint-soft); border-radius: 50%; border-top-color: var(--teal); animation: spin 1s linear infinite; margin-bottom: 12px;"></div><br>Đang tải dữ liệu từ Google Sheets...</td></tr>`;
+      el('manageTableEmpty').style.display = 'none';
+      el('manageLimitNotice').style.display = 'none';
+
+      const startDate = el('manageStartDate').value;
+      const endDate = el('manageEndDate').value;
+
+      callApi('GET', 'readSheetData', { sheetName: sheetName, startDate: startDate, endDate: endDate })
+        .then((res) => {
+          if (res.ok) {
+            currentManageData = res;
+            if (res.isLimited) {
+              el('manageLimitNotice').style.display = 'block';
+            } else {
+              el('manageLimitNotice').style.display = 'none';
+            }
+            renderManageTable();
+          } else {
+            tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; color: var(--red); padding: 48px;">Lỗi: ${res.error}</td></tr>`;
+          }
+        })
+        .catch((err) => {
+          tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; color: var(--red); padding: 48px;">Lỗi kết nối: ${err.message}</td></tr>`;
+        });
+    }
+
+    function renderManageTable() {
+      if (!currentManageData) return;
+      const headers = [...currentManageData.headers];
+      const rawRows = currentManageData.rows || [];
+      
+      let vehicleColIdx = -1;
+      for (let i = 0; i < headers.length; i++) {
+        const h = headers[i].toLowerCase().trim();
+        if (h === 'biển số xe' || h === 'xe' || h === 'bển số') {
+          vehicleColIdx = i;
+          break;
+        }
+      }
+
+      const showOwnerCol = (vehicleColIdx !== -1);
+      const thead = el('manageTableHeader');
+      thead.innerHTML = '';
+      
+      headers.forEach((h, idx) => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        thead.appendChild(th);
+        
+        if (showOwnerCol && idx === vehicleColIdx) {
+          const thOwner = document.createElement('th');
+          thOwner.textContent = 'Công ty/Chủ xe';
+          thead.appendChild(thOwner);
+        }
+      });
+      
+      const thActions = document.createElement('th');
+      thActions.textContent = 'Thao tác';
+      thActions.style.textAlign = 'center';
+      thead.appendChild(thActions);
+
+      const vehiclesByPlate = buildVehicleOwnerMap();
+      filteredManageRowsData = rawRows.map(row => {
+        let owner = '';
+        if (showOwnerCol) {
+          const plate = String(row.values[vehicleColIdx] || '').trim();
+          owner = vehiclesByPlate[plate.toLowerCase()] || '';
+        }
+        return {
+          ...row,
+          owner: owner,
+          searchText: removeAccents(row.values.concat(owner).join(' ').toLowerCase())
+        };
+      });
+
+      filterManageRows();
+    }
+
+    let manageSearchTimeout = null;
+    function debounceManageSearch() {
+      clearTimeout(manageSearchTimeout);
+      manageSearchTimeout = setTimeout(filterManageRows, 150);
+    }
+    
+    let catalogSearchTimeout = null;
+    function debounceCatalogSearch() {
+      clearTimeout(catalogSearchTimeout);
+      catalogSearchTimeout = setTimeout(filterCatalogRows, 150);
+    }
+
+    let reportSearchTimeout = null;
+    function debounceReportSearch() {
+      clearTimeout(reportSearchTimeout);
+      reportSearchTimeout = setTimeout(() => {
+        if (typeof filterReportRows === 'function') filterReportRows();
+      }, 150);
+    }
+
+    function buildVehicleOwnerMap() {
+      const map = {};
+      (getCurrentCatalogs()?.vehicles || []).forEach(v => {
+        const plate = String(v.plate || '').trim().toLowerCase();
+        if (plate) map[plate] = v.owner || '';
+      });
+      return map;
+    }
+
+    function normalizeFilterValue(value) {
+      return removeAccents(String(value || '').trim().toLowerCase());
+    }
+
+    function filterManageRows() {
+      const query = el('manageSearchInput').value.toLowerCase().trim();
+      const tbody = el('manageTableBody');
+      tbody.innerHTML = '';
+      
+      let vehicleColIdx = -1;
+      let sourceColIdx = -1;
+      let litColIdx = -1;
+      let amountColIdx = -1;
+      let noteColIdx = -1;
+
+      if (currentManageData) {
+        currentManageData.headers.forEach((h, idx) => {
+          const hLower = h.toLowerCase().trim();
+          if (hLower === 'biển số xe' || hLower === 'xe' || hLower === 'bển số') vehicleColIdx = idx;
+          if (hLower === 'nguồn' || hLower === 'nguồn cung cấp' || hLower === 'nguồn dầu' || hLower.includes('nguồn')) sourceColIdx = idx;
+          if (hLower === 'số lít' || hLower === 'lít') litColIdx = idx;
+          if (hLower === 'thành tiền' || hLower === 'tổng tiền' || hLower === 'tiền') amountColIdx = idx;
+          if (hLower === 'ghi chú' || hLower === 'ghi chú thêm') noteColIdx = idx;
+        });
+      }
+      const showOwnerCol = (vehicleColIdx !== -1);
+      const isDauSheet = el('manageSheetSelect').value === 'NL_Dau';
+
+      const matched = filteredManageRowsData.filter(row => {
+        // 1. Search Query filter
+        let matchQuery = true;
+        if (query) {
+          matchQuery = row.searchText.includes(removeAccents(query));
+        }
+        if (!matchQuery) return false;
+
+        // 2. Custom NL_Dau filters
+        if (currentManageData && isDauSheet) {
+          const sourceFilter = el('manageDauSourceFilter').value;
+          if (sourceFilter !== 'all' && sourceColIdx !== -1) {
+            const rowSource = normalizeFilterValue(row.values[sourceColIdx]);
+            if (rowSource !== normalizeFilterValue(sourceFilter)) {
+              return false;
+            }
+          }
+
+          const ownerFilter = el('manageDauOwnerFilter').value;
+          if (ownerFilter !== 'all') {
+            const ownerKey = normalizeFilterValue(ownerFilter);
+            const autoOwner = normalizeFilterValue(row.owner);
+            const noteText = noteColIdx !== -1 ? normalizeFilterValue(row.values[noteColIdx]) : '';
+            const matchAuto = autoOwner.includes(ownerKey);
+            const matchNote = noteText.includes(ownerKey);
+            if (!matchAuto && !matchNote) {
+              return false;
+            }
+          }
+        }
+
+        return true;
+      });
+
+      // 3. Update quick stats if NL_Dau
+      if (currentManageData && isDauSheet) {
+        let totalLiters = 0;
+        let totalAmount = 0;
+        matched.forEach(row => {
+          if (litColIdx !== -1) {
+            totalLiters += parseLocaleNumber(row.values[litColIdx]) || 0;
+          }
+          if (amountColIdx !== -1) {
+            totalAmount += parseLocaleNumber(row.values[amountColIdx]) || 0;
+          }
+        });
+        el('manageDauTotalLiters').textContent = Math.round(totalLiters).toLocaleString('vi-VN');
+        el('manageDauTotalAmount').textContent = Math.round(totalAmount).toLocaleString('vi-VN') + ' ₫';
+      }
+
+      if (matched.length === 0) {
+        el('manageTableEmpty').style.display = 'block';
+        return;
+      }
+      el('manageTableEmpty').style.display = 'none';
+
+      const fragment = document.createDocumentFragment();
+      matched.forEach(row => {
+        const tr = document.createElement('tr');
+        
+        row.values.forEach((val, idx) => {
+          const td = document.createElement('td');
+          
+          const header = currentManageData.headers[idx];
+          const headerLower = header.toLowerCase().trim();
+          
+          if (headerLower === 'tháng') {
+            td.textContent = formatTableDate(val, true);
+          } else if (headerLower.includes('ngày') || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val))) {
+            td.textContent = formatTableDate(val, false);
+          } else if (typeof val === 'number') {
+            if (headerLower.includes('giá') || headerLower.includes('tiền') || headerLower.includes('phạt') || headerLower.includes('lương')) {
+              td.textContent = Math.round(val).toLocaleString('vi-VN') + ' ₫';
+              td.style.fontWeight = '600';
+            } else {
+              td.textContent = val.toLocaleString('vi-VN');
+            }
+          } else {
+            td.textContent = val || '';
+          }
+          tr.appendChild(td);
+
+          if (showOwnerCol && idx === vehicleColIdx) {
+            const tdOwner = document.createElement('td');
+            if (row.owner) {
+              const span = document.createElement('span');
+              span.className = `badge ${row.owner.toLowerCase().includes('quang quân') ? 'amber' : 'blue'}`;
+              span.textContent = row.owner;
+              tdOwner.appendChild(span);
+            } else {
+              tdOwner.textContent = '-';
+            }
+            tr.appendChild(tdOwner);
+          }
+        });
+
+        const tdActions = document.createElement('td');
+        tdActions.style.textAlign = 'center';
+        tdActions.style.whiteSpace = 'nowrap';
+        
+        const btnEdit = document.createElement('button');
+        btnEdit.type = 'button';
+        btnEdit.className = 'primary';
+        btnEdit.style.padding = '4px 10px';
+        btnEdit.style.fontSize = '12px';
+        btnEdit.style.height = '28px';
+        btnEdit.style.marginRight = '6px';
+        btnEdit.textContent = 'Sửa';
+        btnEdit.onclick = () => openManageEditModal(row);
+
+        const btnDelete = document.createElement('button');
+        btnDelete.type = 'button';
+        btnDelete.className = 'danger';
+        btnDelete.style.padding = '4px 10px';
+        btnDelete.style.fontSize = '12px';
+        btnDelete.style.height = '28px';
+        btnDelete.textContent = 'Xóa';
+        btnDelete.onclick = () => deleteManageRow(row.rowIndex);
+
+        tdActions.appendChild(btnEdit);
+        tdActions.appendChild(btnDelete);
+        tr.appendChild(tdActions);
+        
+        fragment.appendChild(tr);
+      });
+      tbody.appendChild(fragment);
+    }
+
+    function openManageAddModal() {
+      if (activeView === 'catalog') {
+        currentEditCatalogRowIndex = null;
+      } else {
+        currentEditRowIndex = null;
+      }
+      el('manageModalTitle').textContent = 'Thêm dòng dữ liệu mới';
+      buildManageModalFields({});
+      el('manageModal').classList.add('active');
+    }
+
+    function openManageEditModal(row) {
+      if (activeView === 'catalog') {
+        currentEditCatalogRowIndex = row.rowIndex;
+      } else {
+        currentEditRowIndex = row.rowIndex;
+      }
+      el('manageModalTitle').textContent = `Chỉnh sửa dòng thứ ${row.rowIndex}`;
+      
+      const rowData = {};
+      const currentData = activeView === 'catalog' ? currentCatalogData : currentManageData;
+      currentData.headers.forEach((h, idx) => {
+        rowData[h] = row.values[idx];
+      });
+      
+      buildManageModalFields(rowData);
+      el('manageModal').classList.add('active');
+    }
+
+    function closeManageModal() {
+      el('manageModal').classList.remove('active');
+    }
+
+    function getManageFieldOptions(header, sheetName) {
+      const headerClean = header.trim().toLowerCase();
+      if (headerClean === 'biển số xe' || headerClean === 'xe' || headerClean === 'bển số') {
+        return getOptions('vehicles');
+      }
+      if (headerClean === 'tài xế' || headerClean === 'người lái') {
+        return getOptions('drivers');
+      }
+      if (headerClean === 'dự án' || headerClean === 'tên dự án') {
+        return getOptions('projects');
+      }
+      if (headerClean === 'nhân sự' || headerClean === 'nhân viên' || headerClean === 'họ và tên' || headerClean === 'tên nhân sự') {
+        return getOptions('people');
+      }
+      if (headerClean === 'nguồn dầu' || headerClean === 'nguồn') {
+        return getOptions('fuelSources');
+      }
+      if (headerClean === 'mã phạt') {
+        return getOptions('penalties');
+      }
+      if (headerClean === 'loại ngày công') {
+        return getOptions('chamCongTypes');
+      }
+      if (headerClean === 'loại nghỉ') {
+        return getOptions('nghiVanHanhTypes');
+      }
+      if (headerClean === 'kpi' || headerClean === 'tính kpi' || headerClean === 'hưởng lương' || headerClean === 'bù kpi' || headerClean === 'có tính kpi?') {
+        return getOptions('yesNo');
+      }
+      return null;
+    }
+
+    function buildManageModalFields(rowData) {
+      const container = el('manageModalFields');
+      container.innerHTML = '';
+      const sheetName = activeView === 'catalog' ? el('catalogSheetSelect').value : el('manageSheetSelect').value;
+      const currentData = activeView === 'catalog' ? currentCatalogData : currentManageData;
+
+      if (!currentData) return;
+
+      currentData.headers.forEach((header) => {
+        const hLower = header.toLowerCase();
+        if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
+          return;
+        }
+        
+        // Skip Thành tiền G column since it is formula-calculated
+        if (sheetName === 'NL_Dau' && header === 'Thành tiền') {
+          return;
+        }
+
+        // Ẩn các cột công thức tự động của NL_ChamCong, NL_Phat, NL_NghiVanHanh
+        if (sheetName === 'NL_ChamCong' && (hLower.indexOf('số ngày') !== -1 || hLower.indexOf('lương cứng') !== -1 || hLower.indexOf('nhóm') !== -1)) {
+          return;
+        }
+        if (sheetName === 'NL_Phat' && (hLower.indexOf('nội dung') !== -1 || hLower.indexOf('tiền phạt') !== -1)) {
+          return;
+        }
+        if (sheetName === 'NL_NghiVanHanh' && (hLower.indexOf('tính kpi') !== -1 || hLower.indexOf('giảm kpi') !== -1)) {
+          return;
+        }
+
+        const label = document.createElement('label');
+        const headerClean = header.trim().toLowerCase();
+        
+        if (headerClean.includes('ghi chú') || headerClean.includes('nội dung')) {
+          label.className = 'full-width';
+        }
+
+        const span = document.createElement('span');
+        span.textContent = header;
+        label.appendChild(span);
+
+        const options = getManageFieldOptions(header, sheetName);
+
+        if (options) {
+          const acWrap = document.createElement('div');
+          acWrap.style.width = '100%';
+          acWrap.style.position = 'relative';
+          
+          label.appendChild(acWrap);
+          container.appendChild(label);
+          
+          const val = rowData[header] || '';
+          createAutocomplete(acWrap, options, val, (newVal) => {
+            acWrap.dataset.value = newVal;
+          });
+          acWrap.dataset.value = val;
+          acWrap.dataset.header = header;
+          acWrap.classList.add('manage-form-field');
+          acWrap.classList.add('ac-container');
+        } else {
+          let input;
+          if (headerClean.includes('ghi chú') || headerClean.includes('nội dung')) {
+            input = document.createElement('textarea');
+          } else {
+            input = document.createElement('input');
+            if (headerClean.includes('ngày') || headerClean.includes('từ ngày') || headerClean.includes('đến ngày')) {
+              input.type = 'date';
+            } else if (headerClean.includes('số lít') || headerClean.includes('số chuyến') || headerClean.includes('đơn giá') || headerClean.includes('tiền') || headerClean.includes('số ngày') || headerClean.includes('số giờ') || headerClean.includes('cự ly') || headerClean.includes('công')) {
+              input.type = 'text';
+              input.inputMode = 'decimal';
+            } else {
+              input.type = 'text';
+            }
+          }
+          
+          input.value = rowData[header] === undefined || rowData[header] === null ? '' : rowData[header];
+          input.dataset.header = header;
+          input.classList.add('manage-form-field');
+          
+          label.appendChild(input);
+          container.appendChild(label);
+        }
+      });
+    }
+
+    function saveManageRow() {
+      const sheetName = activeView === 'catalog' ? el('catalogSheetSelect').value : el('manageSheetSelect').value;
+      const submitBtn = el('manageModalSubmitBtn');
+      const originalText = submitBtn.textContent;
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Đang lưu...';
+
+      const rowData = {};
+      const fields = el('manageModalFields').querySelectorAll('.manage-form-field');
+      
+      fields.forEach((f) => {
+        const header = f.dataset.header;
+        let val = '';
+        if (f.classList.contains('ac-container')) {
+          val = f.dataset.value || '';
+        } else {
+          val = f.value || '';
+        }
+        rowData[header] = val;
+      });
+
+      const rowIndex = activeView === 'catalog' ? currentEditCatalogRowIndex : currentEditRowIndex;
+
+      let targetSheetName = sheetName;
+      if (sheetName === 'DM_ThamSo_TS' || sheetName === 'DM_ThamSo_GD') {
+        targetSheetName = 'DM_ThamSo';
+      }
+
+      const payload = {
+        sheetName: targetSheetName,
+        rowIndex: rowIndex,
+        rowData: rowData
+      };
+
+      callApi('POST', 'saveSheetRow', {}, payload)
+        .then((res) => {
+          if (res.ok) {
+            closeManageModal();
+            if (sheetName.indexOf('DM_') === 0) {
+              sessionStorage.clear();
+              loadCatalogs(activeForm);
+            }
+            if (activeView === 'catalog') {
+              loadCatalogSheetData();
+            } else {
+              loadManageSheetData();
+            }
+          } else {
+            alert('Lỗi: ' + res.error);
+          }
+        })
+        .catch((err) => {
+          alert('Lỗi lưu dữ liệu: ' + err.message);
+        })
+        .finally(() => {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        });
+    }
+
+    function deleteManageRow(rowIndex) {
+      if (!confirm(`Bạn có chắc chắn muốn xóa dòng thứ ${rowIndex} không? Hành động này không thể hoàn tác.`)) {
+        return;
+      }
+      
+      const sheetName = activeView === 'catalog' ? el('catalogSheetSelect').value : el('manageSheetSelect').value;
+      
+      let targetSheetName = sheetName;
+      let columnsToClear = null;
+      if (sheetName === 'DM_ThamSo_TS') {
+        targetSheetName = 'DM_ThamSo';
+        columnsToClear = ["Mã tham số", "Tên tham số", "Giá trị", "Ngày áp dụng tham số"];
+      } else if (sheetName === 'DM_ThamSo_GD') {
+        targetSheetName = 'DM_ThamSo';
+        columnsToClear = ["Giá dầu áp dụng", "Ngày áp dụng giá dầu", "Ghi chú"];
+      }
+
+      callApi('POST', 'deleteSheetRow', {}, { sheetName: targetSheetName, rowIndex: rowIndex, columnsToClear: columnsToClear })
+        .then((res) => {
+          if (res.ok) {
+            if (sheetName.indexOf('DM_') === 0) {
+              sessionStorage.clear();
+              loadCatalogs(activeForm);
+            }
+            if (activeView === 'catalog') {
+              loadCatalogSheetData();
+            } else {
+              loadManageSheetData();
+            }
+          } else {
+            alert('Lỗi: ' + res.error);
+          }
+        })
+        .catch((err) => {
+          alert('Lỗi xóa dữ liệu: ' + err.message);
+        });
+    }
+</script>

@@ -1,0 +1,214 @@
+<script>
+    // Catalog CRUD Operations
+    function loadCatalogSheetData() {
+      const displaySheetName = el('catalogSheetSelect').value;
+      const sheetName = (displaySheetName === 'DM_ThamSo_TS' || displaySheetName === 'DM_ThamSo_GD') ? 'DM_ThamSo' : displaySheetName;
+      
+      const tbody = el('catalogTableBody');
+      const thead = el('catalogTableHeader');
+      
+      thead.innerHTML = '';
+      tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; padding: 48px; color: var(--muted);"><div style="display:inline-block; width: 30px; height: 30px; border: 3px solid var(--mint-soft); border-radius: 50%; border-top-color: var(--teal); animation: spin 1s linear infinite; margin-bottom: 12px;"></div><br>Đang tải danh mục từ Google Sheets...</td></tr>`;
+      el('catalogTableEmpty').style.display = 'none';
+
+      callApi('GET', 'readSheetData', { sheetName: sheetName })
+        .then((res) => {
+          if (res.ok) {
+            if (displaySheetName === 'DM_NhanSu') {
+              const colIdx = res.headers.indexOf('DS_TaiXe_DangLam');
+              if (colIdx !== -1) {
+                res.headers.splice(colIdx, 1);
+                res.rows = res.rows.map(r => {
+                  const newVals = [...r.values];
+                  newVals.splice(colIdx, 1);
+                  return {
+                    rowIndex: r.rowIndex,
+                    values: newVals
+                  };
+                });
+              }
+            } else if (displaySheetName === 'DM_ThamSo_TS') {
+              res.headers = ["Mã tham số", "Tên tham số", "Giá trị", "Ngày áp dụng tham số"];
+              res.rows = res.rows.map(r => {
+                return {
+                  rowIndex: r.rowIndex,
+                  values: [r.values[0], r.values[1], r.values[2], r.values[3]]
+                };
+              }).filter(r => String(r.values[0] || '').trim() !== '');
+            } else if (displaySheetName === 'DM_ThamSo_GD') {
+              res.headers = ["Giá dầu áp dụng", "Ngày áp dụng giá dầu", "Ghi chú"];
+              res.rows = res.rows.map(r => {
+                return {
+                  rowIndex: r.rowIndex,
+                  values: [r.values[6], r.values[5], r.values[7]]
+                };
+              }).filter(r => String(r.values[0] || '').trim() !== '');
+            }
+            
+            currentCatalogData = res;
+            renderCatalogTable();
+          } else {
+            tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; color: var(--red); padding: 48px;">Lỗi: ${res.error}</td></tr>`;
+          }
+        })
+        .catch((err) => {
+          tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; color: var(--red); padding: 48px;">Lỗi kết nối: ${err.message}</td></tr>`;
+        });
+    }
+
+    function renderCatalogTable() {
+      if (!currentCatalogData) return;
+      const headers = [...currentCatalogData.headers];
+      const rawRows = currentCatalogData.rows || [];
+      
+      let vehicleColIdx = -1;
+      for (let i = 0; i < headers.length; i++) {
+        const h = headers[i].toLowerCase().trim();
+        if (h === 'biển số xe' || h === 'xe' || h === 'bển số') {
+          vehicleColIdx = i;
+          break;
+        }
+      }
+
+      const showOwnerCol = (vehicleColIdx !== -1);
+      const thead = el('catalogTableHeader');
+      thead.innerHTML = '';
+      
+      headers.forEach((h, idx) => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        thead.appendChild(th);
+        
+        if (showOwnerCol && idx === vehicleColIdx) {
+          const thOwner = document.createElement('th');
+          thOwner.textContent = 'Công ty/Chủ xe';
+          thead.appendChild(thOwner);
+        }
+      });
+      
+      const thActions = document.createElement('th');
+      thActions.textContent = 'Thao tác';
+      thActions.style.textAlign = 'center';
+      thead.appendChild(thActions);
+
+      const vehiclesByPlate = buildVehicleOwnerMap();
+      filteredCatalogRowsData = rawRows.map(row => {
+        let owner = '';
+        if (showOwnerCol) {
+          const plate = String(row.values[vehicleColIdx] || '').trim();
+          owner = vehiclesByPlate[plate.toLowerCase()] || '';
+        }
+        return {
+          ...row,
+          owner: owner,
+          searchText: removeAccents(row.values.concat(owner).join(' ').toLowerCase())
+        };
+      });
+
+      filterCatalogRows();
+    }
+
+    function filterCatalogRows() {
+      const query = el('catalogSearchInput').value.toLowerCase().trim();
+      const tbody = el('catalogTableBody');
+      tbody.innerHTML = '';
+      
+      let vehicleColIdx = -1;
+      if (currentCatalogData) {
+        for (let i = 0; i < currentCatalogData.headers.length; i++) {
+          const h = currentCatalogData.headers[i].toLowerCase().trim();
+          if (h === 'biển số xe' || h === 'xe' || h === 'bển số') {
+            vehicleColIdx = i;
+            break;
+          }
+        }
+      }
+      const showOwnerCol = (vehicleColIdx !== -1);
+
+      const matched = filteredCatalogRowsData.filter(row => {
+        if (!query) return true;
+        return row.searchText.includes(removeAccents(query));
+      });
+
+      if (matched.length === 0) {
+        el('catalogTableEmpty').style.display = 'block';
+        return;
+      }
+      el('catalogTableEmpty').style.display = 'none';
+
+      const fragment = document.createDocumentFragment();
+      matched.forEach(row => {
+        const tr = document.createElement('tr');
+        
+        row.values.forEach((val, idx) => {
+          const td = document.createElement('td');
+          
+          const header = currentCatalogData.headers[idx];
+          const headerLower = header.toLowerCase().trim();
+          
+          if (headerLower === 'tháng') {
+            td.textContent = formatTableDate(val, true);
+          } else if (headerLower.includes('ngày') || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val))) {
+            td.textContent = formatTableDate(val, false);
+          } else if (typeof val === 'number') {
+            if (headerLower.includes('giá') || headerLower.includes('tiền') || headerLower.includes('phạt') || headerLower.includes('lương')) {
+              td.textContent = Math.round(val).toLocaleString('vi-VN') + ' ₫';
+              td.style.fontWeight = '600';
+            } else {
+              td.textContent = val.toLocaleString('vi-VN');
+            }
+          } else {
+            td.textContent = val || '';
+          }
+          tr.appendChild(td);
+
+          if (showOwnerCol && idx === vehicleColIdx) {
+            const tdOwner = document.createElement('td');
+            if (row.owner) {
+              const span = document.createElement('span');
+              span.className = `badge ${row.owner.toLowerCase().includes('quang quân') ? 'amber' : 'blue'}`;
+              span.textContent = row.owner;
+              tdOwner.appendChild(span);
+            } else {
+              tdOwner.textContent = '-';
+            }
+            tr.appendChild(tdOwner);
+          }
+        });
+
+        const tdActions = document.createElement('td');
+        tdActions.style.textAlign = 'center';
+        tdActions.style.whiteSpace = 'nowrap';
+        
+        const btnEdit = document.createElement('button');
+        btnEdit.type = 'button';
+        btnEdit.className = 'primary';
+        btnEdit.style.padding = '4px 10px';
+        btnEdit.style.fontSize = '12px';
+        btnEdit.style.height = '28px';
+        btnEdit.style.marginRight = '6px';
+        btnEdit.textContent = 'Sửa';
+        btnEdit.onclick = () => openManageEditModal(row);
+
+        const btnDelete = document.createElement('button');
+        btnDelete.type = 'button';
+        btnDelete.className = 'danger';
+        btnDelete.style.padding = '4px 10px';
+        btnDelete.style.fontSize = '12px';
+        btnDelete.style.height = '28px';
+        btnDelete.textContent = 'Xóa';
+        btnDelete.onclick = () => deleteManageRow(row.rowIndex);
+
+        tdActions.appendChild(btnEdit);
+        tdActions.appendChild(btnDelete);
+        tr.appendChild(tdActions);
+        
+        fragment.appendChild(tr);
+      });
+      tbody.appendChild(fragment);
+    }
+
+    function openCatalogAddModal() {
+      openManageAddModal();
+    }
+</script>

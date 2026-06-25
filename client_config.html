@@ -1,0 +1,225 @@
+<script>
+    // System Navigation Configuration
+    const NAV = [
+      ['home', 'Tổng quan', 'KPI & Biểu đồ', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`],
+      ['entry', 'Nhập liệu', 'Biểu mẫu NL', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>`],
+      ['reports', 'Báo cáo', 'Bảng chi tiết', `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`],
+      ['manage', 'Quản lý', 'Nhật ký nhập liệu', `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>`],
+      ['catalog', 'Danh mục', 'Danh mục hệ thống', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`],
+      ['settings', 'Hướng dẫn', 'Cài đặt App', `<svg class="btn-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.52 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`]
+    ];
+    
+    const FORM_LABELS = {
+      vanChuyen: 'Vận chuyển',
+      taiXe: 'Tài xế',
+      dau: 'Dầu lẻ',
+      chamCong: 'Chấm công',
+      phat: 'Phạt nội bộ',
+      nghiVanHanh: 'Nghỉ vận hành'
+    };
+    
+    const FORM_ICONS = {
+      vanChuyen: 'VC',
+      taiXe: 'TX',
+      dau: 'DA',
+      chamCong: 'CC',
+      phat: 'PH',
+      nghiVanHanh: 'NV'
+    };
+    
+    const FORM_NOTES = {
+      vanChuyen: 'Số chuyến theo xe & dự án',
+      taiXe: 'Số chuyến theo tài xế chạy',
+      dau: 'Nhiên liệu và giá dầu áp dụng',
+      chamCong: 'Nghỉ phép, trừ công, nghỉ việc',
+      phat: 'Khấu trừ vi phạm nội bộ',
+      nghiVanHanh: 'Báo nghỉ mỏ & giảm KPI'
+    };
+    
+    // Field structure for each entry form
+    const FIELD_SETS = {
+      vanChuyen: [
+        ['date', 'Ngày chạy', 'date'], ['vehicle', 'Biển số xe', 'select:vehicles'],
+        ['project', 'Dự án chạy', 'select:projects'], ['trips', 'Số chuyến chạy', 'number'],
+        ['tickets', 'Số phiếu/Chứng từ', 'text'], ['note', 'Ghi chú thêm', 'textarea']
+      ],
+      taiXe: [
+        ['date', 'Ngày chạy', 'date'], ['vehicle', 'Biển số xe', 'select:vehicles'],
+        ['driver', 'Tài xế cầm lái', 'select:drivers'], ['trips', 'Số chuyến chạy', 'number'],
+        ['note', 'Ghi chú thêm', 'textarea']
+      ],
+      dau: [
+        ['date', 'Ngày tiếp dầu', 'date'], ['vehicle', 'Biển số xe nhận', 'select:vehicles'],
+        ['source', 'Nguồn cung cấp', 'select:fuelSources'], ['liters', 'Số lít dầu', 'number'],
+        ['price', 'Giá dầu / lít', 'number'], ['note', 'Ghi chú thêm', 'textarea']
+      ],
+      chamCong: [
+        ['fromDate', 'Từ ngày', 'date'], ['toDate', 'Đến ngày (Gồm cả)', 'date'],
+        ['person', 'Nhân sự nghỉ', 'select:people'], ['workdayType', 'Loại ngày nghỉ', 'select:chamCongTypes'],
+        ['note', 'Ghi chú thêm', 'textarea']
+      ],
+      phat: [
+        ['date', 'Ngày lập biên bản', 'date'], ['person', 'Nhân sự vi phạm', 'select:people'],
+        ['penaltyCode', 'Mã vi phạm nội bộ', 'select:penalties'], ['note', 'Ghi chú nội dung', 'textarea']
+      ],
+      nghiVanHanh: [
+        ['date', 'Ngày báo nghỉ', 'date'], ['vehicle', 'Biển số xe nghỉ', 'select:vehicles'],
+        ['project', 'Dự án ảnh hưởng', 'select:projects'], ['stopType', 'Lý do dừng máy', 'select:nghiVanHanhTypes'],
+        ['hours', 'Số giờ dừng máy', 'number'], ['note', 'Ghi chú chi tiết', 'textarea']
+      ]
+    };
+
+    let appData = null;
+    let catalogsByForm = {};
+    let reportsByType = {};
+    let recentSubmissions = [];
+    let activeView = 'home';
+    let activeForm = 'vanChuyen';
+    let activeReportTab = 'all';
+    let selectedMonth = '';
+    let rows = [];
+    let currentManageData = null;
+    let filteredManageRowsData = [];
+    let currentEditRowIndex = null;
+    let currentCatalogData = null;
+    let filteredCatalogRowsData = [];
+    let currentEditCatalogRowIndex = null;
+    let reportBundleRequestSeq = 0;
+    let reportBundlePrefetching = false;
+    let reportCacheEpoch = 0;
+    
+    const el = (id) => document.getElementById(id);
+
+    function setManageSheetTab(sheetName) {
+      el('manageSheetSelect').value = sheetName;
+      document.querySelectorAll('#manageTabsBar .sub-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.sheet === sheetName);
+      });
+      loadManageSheetData();
+    }
+
+    function setCatalogSheetTab(sheetName) {
+      el('catalogSheetSelect').value = sheetName;
+      document.querySelectorAll('#catalogTabsBar .sub-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.sheet === sheetName);
+      });
+      loadCatalogSheetData();
+    }
+
+    function formatTableDate(val, isMonthOnly) {
+      if (!val) return '';
+      let d = null;
+      if (typeof val === 'string') {
+        const m = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (m) {
+          d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        } else {
+          const parts = val.split(/[\/\-]/);
+          if (parts.length === 3) {
+            if (parts[0].length === 4) {
+              d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            } else if (parts[2].length === 4) {
+              d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            } else if (parts[2].length === 2) {
+              d = new Date(2000 + Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            }
+          }
+        }
+      } else if (val instanceof Date && !isNaN(val.getTime())) {
+        d = val;
+      }
+      
+      if (!d) return val;
+      
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yy = String(d.getFullYear()).slice(-2);
+      
+      if (isMonthOnly) {
+        return `${mm}/${yy}`;
+      } else {
+        return `${dd}/${mm}/${yy}`;
+      }
+    }
+
+    // Dynamic autocomplete select builder
+    function createAutocomplete(wrap, options, value, onChange) {
+      wrap.innerHTML = '';
+      wrap.className = 'ac-container';
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'ac-input';
+      input.placeholder = 'Nhập tìm kiếm nhanh...';
+      
+      const initialOpt = options.find(o => o.value === value);
+      input.value = initialOpt ? initialOpt.label : '';
+      
+      const dropdown = document.createElement('div');
+      dropdown.className = 'ac-dropdown hidden';
+      
+      const renderOptions = (filterText = '') => {
+        dropdown.innerHTML = '';
+        const normFilter = filterText.toLowerCase().trim();
+        const filtered = options.filter(o => 
+          o.label.toLowerCase().includes(normFilter) || 
+          o.value.toLowerCase().includes(normFilter)
+        );
+        
+        if (filtered.length === 0) {
+          const item = document.createElement('div');
+          item.className = 'ac-item empty';
+          item.textContent = 'Không tìm thấy mục khớp';
+          dropdown.appendChild(item);
+          return;
+        }
+        
+        filtered.slice(0, 30).forEach(opt => {
+          const item = document.createElement('div');
+          item.className = `ac-item ${opt.value === value ? 'selected' : ''}`;
+          item.textContent = opt.label;
+          
+          item.onmousedown = (e) => {
+            e.preventDefault();
+            value = opt.value;
+            input.value = opt.label;
+            dropdown.classList.add('hidden');
+            onChange(opt.value);
+          };
+          dropdown.appendChild(item);
+        });
+      };
+      
+      input.onfocus = () => {
+        input.value = '';
+        renderOptions('');
+        dropdown.classList.remove('hidden');
+        
+        document.querySelectorAll('.ac-dropdown').forEach(d => {
+          if (d !== dropdown) d.classList.add('hidden');
+        });
+      };
+      
+      input.oninput = () => {
+        renderOptions(input.value);
+      };
+      
+      input.onblur = () => {
+        setTimeout(() => {
+          dropdown.classList.add('hidden');
+          const matchedOpt = options.find(o => o.label.toLowerCase().trim() === input.value.toLowerCase().trim());
+          if (matchedOpt) {
+            value = matchedOpt.value;
+            input.value = matchedOpt.label;
+            onChange(value);
+          } else {
+            const currentOpt = options.find(o => o.value === value);
+            input.value = currentOpt ? currentOpt.label : '';
+          }
+        }, 200);
+      };
+      
+      wrap.appendChild(input);
+      wrap.appendChild(dropdown);
+    }
+</script>

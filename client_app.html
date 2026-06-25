@@ -1,0 +1,240 @@
+<script>
+    // App Initializer
+    function init() {
+      // Auto-clear old local/session cache on version updates to prevent old URL conflicts
+      const APP_VERSION = 'v3.2_report_prefetch';
+      if (localStorage.getItem('eb_version') !== APP_VERSION) {
+        localStorage.removeItem('eb_backend_url');
+        localStorage.setItem('eb_version', APP_VERSION);
+        sessionStorage.clear();
+      }
+
+      renderNav();
+      setupConfigInput();
+      
+      const backendUrl = getBackendUrl();
+      if (!backendUrl) {
+        el('loader').querySelector('.loader-title').textContent = 'Chưa thiết lập kết nối';
+        el('loader').querySelector('.loader-text').innerHTML = 
+          'Vui lòng cấu hình link Apps Script trong Cài đặt.<br><a href="#" onclick="showSettingsFromLoader()" style="color:var(--teal);font-weight:bold;text-decoration:underline;display:inline-block;margin-top:10px;">Cấu hình ngay</a>';
+        el('loader').querySelector('.spinner').classList.add('hidden');
+        document.body.classList.remove('locked');
+        return;
+      }
+      
+      const cachedBootstrap = sessionStorage.getItem('eb_bootstrap');
+      if (cachedBootstrap) {
+        appData = JSON.parse(cachedBootstrap);
+        activeForm = appData.formTypes[0] || 'vanChuyen';
+        rows = [newBlankRow()];
+        document.body.classList.remove('locked');
+        el('loader').classList.add('hidden');
+        renderAll();
+        loadCatalogs(activeForm);
+        loadDashboard(false);
+      } else {
+        callApi('GET', 'getBootstrap')
+          .then((data) => {
+            appData = data;
+            sessionStorage.setItem('eb_bootstrap', JSON.stringify(data));
+            activeForm = data.formTypes[0] || 'vanChuyen';
+            rows = [newBlankRow()];
+            document.body.classList.remove('locked');
+            el('loader').classList.add('hidden');
+            renderAll();
+            loadCatalogs(activeForm);
+            loadDashboard(false);
+          })
+          .catch((err) => {
+            el('loader').querySelector('.loader-title').textContent = 'Lỗi kết nối API';
+            el('loader').querySelector('.loader-text').innerHTML = 
+              `Không thể đồng bộ với Google Sheets.<br>Chi tiết: ${err.message}<br><a href="#" onclick="showSettingsFromLoader()" style="color:var(--teal);font-weight:bold;text-decoration:underline;display:inline-block;margin-top:10px;">Kiểm tra cài đặt URL</a>`;
+            el('loader').querySelector('.spinner').classList.add('hidden');
+            document.body.classList.remove('locked');
+          });
+      }
+    }
+
+    function renderAll() {
+      renderView();
+      renderFormTabs();
+      renderEntry();
+      renderDashboard();
+      renderReports();
+      const links = getLinks();
+      el('openSheetTop').href = links.spreadsheet || '#';
+      el('sheetLink').href = links.spreadsheet || '#';
+    }
+
+    function renderNav() {
+      const side = el('sideNav');
+      const bottom = el('bottomNav');
+      side.innerHTML = '';
+      bottom.innerHTML = '';
+      
+      NAV.forEach(([key, label, sub, icoSvg]) => {
+        const s = document.createElement('button');
+        s.type = 'button';
+        s.className = 'nav-btn';
+        s.dataset.view = key;
+        s.innerHTML = `<span class="nav-ico">${icoSvg}</span><span class="nav-main">${label}</span>`;
+        s.onclick = () => setView(key);
+        side.appendChild(s);
+
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.view = key;
+        b.innerHTML = `${icoSvg}<span>${label}</span>`;
+        b.onclick = () => setView(key);
+        bottom.appendChild(b);
+      });
+    }
+
+    function setView(view) {
+      activeView = view;
+      closeDrawer();
+      clearStatus();
+      renderView();
+      if (view === 'entry') {
+        loadCatalogs(activeForm);
+      }
+      if (view === 'reports') {
+        loadReportBundle(false);
+      }
+      if (view === 'manage') {
+        loadAllCatalogsIfNeeded(() => {
+          loadManageSheetData();
+        });
+      }
+      if (view === 'catalog') {
+        loadAllCatalogsIfNeeded(() => {
+          loadCatalogSheetData();
+        });
+      }
+    }
+
+    function renderView() {
+      document.querySelectorAll('[data-view]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.view === activeView);
+      });
+      ['home', 'entry', 'reports', 'manage', 'catalog', 'settings'].forEach((view) => {
+        el(`${view}View`).classList.toggle('active', view === activeView);
+      });
+      
+      const meta = {
+        home: ['Tổng quan', 'Báo cáo & Nhập liệu nhanh', `Dữ liệu cập nhật: ${getDashboardData()?.updatedAt || 'Vui lòng chờ...'}`],
+        entry: ['Nhập liệu', 'Bảng kê nhập liệu', 'Thông tin tháng tự sinh theo ngày nhập dữ liệu.'],
+        reports: ['Báo cáo', 'Báo cáo chi tiết tổng hợp', 'Đồng bộ từ các sheet tính toán gốc.'],
+        manage: ['Quản lý nhật ký', 'Quản lý các giao dịch nhật ký', 'Xem, tìm kiếm lọc theo ngày, sửa hoặc xóa dòng nhật ký.'],
+        catalog: ['Danh mục', 'Quản lý danh mục hệ thống', 'Xem, tìm kiếm, thêm mới, sửa hoặc xóa danh mục gốc.'],
+        settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', 'Tối ưu hóa chạy webapp như ứng dụng thực tế.']
+      }[activeView];
+      
+      el('eyebrow').textContent = meta[0];
+      el('pageTitle').textContent = meta[1];
+      el('subtitle').textContent = meta[2];
+    }
+
+    let html2CanvasLoader = null;
+    function loadHtml2Canvas() {
+      if (window.html2canvas) return Promise.resolve(window.html2canvas);
+      if (html2CanvasLoader) return html2CanvasLoader;
+      html2CanvasLoader = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas-pro.min.js';
+        script.async = true;
+        script.onload = () => resolve(window.html2canvas);
+        script.onerror = () => reject(new Error('Không thể tải thư viện xuất ảnh.'));
+        document.head.appendChild(script);
+      });
+      return html2CanvasLoader;
+    }
+
+    function restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions) {
+      headActions.forEach(el => el.style.visibility = 'visible');
+      card.style.width = originalCardStyleWidth;
+      if (tableWrap) {
+        if (originalWrapStyle !== null) {
+          tableWrap.setAttribute('style', originalWrapStyle);
+        } else {
+          tableWrap.removeAttribute('style');
+        }
+      }
+      if (table) {
+        if (originalTableStyle !== null) {
+          table.setAttribute('style', originalTableStyle);
+        } else {
+          table.removeAttribute('style');
+        }
+      }
+      stickyEls.forEach((el, index) => {
+        const orig = originalStickyStyles[index];
+        el.style.position = orig.position;
+        el.style.left = orig.left;
+        el.style.boxShadow = orig.boxShadow;
+      });
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+
+    function exportCardAsImage(btn, type) {
+      const card = btn.closest('.table-card');
+      if (!card) return;
+      
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `
+        <svg class="btn-svg" style="width: 16px; height: 16px; animation: spin 0.8s linear infinite;" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+      `;
+      
+      const headActions = card.querySelectorAll('.table-card-head a, .table-card-head button');
+      headActions.forEach(el => el.style.visibility = 'hidden');
+      
+      const tableWrap = card.querySelector('.table-wrap');
+      const table = card.querySelector('table');
+      const originalCardStyleWidth = card.style.width;
+      const originalWrapStyle = tableWrap ? tableWrap.getAttribute('style') : null;
+      const originalTableStyle = table ? table.getAttribute('style') : null;
+      
+      if (table && tableWrap) {
+        const scrollWidth = table.scrollWidth;
+        const clientWidth = tableWrap.clientWidth;
+        if (scrollWidth > clientWidth) {
+          card.style.width = (scrollWidth + 32) + 'px';
+          tableWrap.style.overflow = 'visible';
+          tableWrap.style.width = 'auto';
+          table.style.width = '100%';
+          table.style.minWidth = '0';
+        }
+      }
+      
+      const stickyEls = card.querySelectorAll('th:first-child, td:first-child');
+      const originalStickyStyles = [];
+      stickyEls.forEach(el => {
+        originalStickyStyles.push({ el, position: el.style.position, left: el.style.left, boxShadow: el.style.boxShadow });
+        el.style.position = 'static';
+        el.style.boxShadow = 'none';
+      });
+
+      loadHtml2Canvas()
+        .then(() => window.html2canvas(card, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false
+        }))
+        .then((canvas) => {
+          restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions);
+          const link = document.createElement('a');
+          const filename = `BaoCao_${type}_${new Date().toISOString().slice(0, 10)}.png`;
+          link.download = filename;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        })
+        .catch((err) => {
+          console.error('Chụp ảnh thất bại:', err);
+          alert('Lỗi xuất ảnh: ' + err.message);
+          restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions);
+        });
+    }
+</script>

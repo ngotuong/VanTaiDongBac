@@ -1,0 +1,635 @@
+<script>
+    // Reports Rendering
+    function renderReports() {
+      const dashboard = getDashboardData();
+      const parsed = parseOverview(dashboard.overview.months);
+      ensureSelectedMonth(parsed.rows);
+      renderMonthFilters(parsed.rows);
+      
+      const filteredOverview = filterOverviewMatrix(dashboard.overview.months, selectedMonth);
+      const selected = getSelectedOverviewRow(parsed.rows);
+      const holder = el('reports');
+      holder.innerHTML = '';
+      
+      if (dashboard.loading) {
+        holder.innerHTML = `
+          <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
+          <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
+        `;
+        return;
+      }
+      
+      const links = getLinks();
+      holder.appendChild(renderTableCard('Báo cáo tổng quan', filteredOverview, links.overview, 'finance'));
+      holder.appendChild(renderTableCard('Báo cáo chi tiết', dashboard.overview.details || [], links.overview, 'details'));
+      
+      holder.appendChild(renderTableCard(
+        'Bảng tổng hợp lương nhân sự',
+        reportsByType.payroll?.data || [['Đang tải báo cáo lương...'], ['Vui lòng đợi giây lát.']],
+        links.payroll,
+        'payroll'
+      ));
+      
+      holder.appendChild(renderTableCard(
+        'Tổng hợp xe',
+        reportsByType.vehicles?.data || [['Đang tải báo cáo xe...'], ['Vui lòng đợi giây lát.']],
+        links.vehicles,
+        'vehicles'
+      ));
+      
+      filterReportCards();
+      
+      // Re-apply search filters after rendering new report cards
+      if (typeof filterReportRows === 'function') {
+        filterReportRows();
+      }
+    }
+
+    function filterReportCards() {
+      document.querySelectorAll('#reports .table-card').forEach((card) => {
+        const type = card.dataset.reportType;
+        if (activeReportTab === 'all' || activeReportTab === type) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    }
+
+    window.setReportTab = (tab) => {
+      activeReportTab = tab;
+      document.querySelectorAll('#reportTabsBar .sub-tab').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.reportTab === tab);
+      });
+      filterReportCards();
+      
+      // Re-trigger search filter in case there's text in the filter input
+      if (typeof filterReportRows === 'function') {
+        filterReportRows();
+      }
+    };
+
+    function renderTableCard(title, matrix, href, type) {
+      const card = document.createElement('section');
+      card.className = 'table-card';
+      card.dataset.reportType = type;
+      
+      const getStickyStyles = (idx) => {
+        if (type === 'finance' || type === 'details') {
+          if (idx === 0) return { isSticky: true, left: '0px' };
+        } else if (type === 'payroll') {
+          if (idx === 0) return { isSticky: true, left: '0px' };
+          if (idx === 1) return { isSticky: true, left: '80px' };
+        } else if (type === 'vehicles') {
+          if (idx === 0) return { isSticky: true, left: '0px' };
+          if (idx === 1) return { isSticky: true, left: '90px' };
+          if (idx === 2) return { isSticky: true, left: '170px' };
+        }
+        return { isSticky: false };
+      };
+      
+      let tableRows = matrix || [];
+      let head = tableRows[0] || [];
+      let body = tableRows.slice(1);
+      
+      let displayTitle = title;
+      if (selectedMonth) {
+        displayTitle = `${title} - Tháng ${selectedMonth}`;
+      }
+      
+      const isMonthCol = head[0] && /tháng/i.test(head[0].trim());
+      if (isMonthCol && (type === 'finance' || type === 'payroll' || type === 'vehicles')) {
+        head = head.slice(1);
+        body = body.map(row => row.slice(1));
+      }
+      
+      // Calculate and append total row dynamically for payroll and vehicles
+      if (type === 'payroll' || type === 'vehicles') {
+        const totalRow = [];
+        totalRow[0] = 'Tổng cộng';
+        for (let i = 1; i < head.length; i++) {
+          let sum = 0;
+          let hasNumbers = false;
+          body.forEach((row) => {
+            const valText = row[i] || '';
+            if (valText.trim() !== '' && valText.trim() !== '-') {
+              const parsed = parseCellValue(valText);
+              sum += parsed;
+              hasNumbers = true;
+            }
+          });
+          
+          if (hasNumbers) {
+            const sampleRow = body.find(r => r[i] && r[i].trim() !== '' && r[i].trim() !== '-');
+            const sampleText = sampleRow ? sampleRow[i] : '';
+            totalRow[i] = formatValueLike(sum, sampleText);
+          } else {
+            totalRow[i] = '';
+          }
+        }
+        if (body.length > 0) {
+          body.push(totalRow);
+        }
+      }
+      
+      card.innerHTML = `
+        <div class="table-card-head">
+          <div class="table-title">${escapeHtml(displayTitle)}</div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="sub-tab" title="Xuất ảnh" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;" onclick="exportCardAsImage(this, '${escapeHtml(type)}')">
+              <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            </button>
+            <a href="${href || '#'}" target="_blank" class="sheets-icon-link" title="Mở sheet tính gốc" style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); color: var(--green); transition: all 0.2s;" onmouseover="this.style.borderColor='var(--green)'; this.style.backgroundColor='var(--green-soft)'" onmouseout="this.style.borderColor='var(--line)'; this.style.backgroundColor='var(--paper)'">
+              <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM6 7h5v2H6V7zm0 4h5v2H6v-2zm0 4h5v2H6v-2zm12 2h-5v-2h5v2zm0-4h-5v-2h5v2zm0-4h-5V7h5v2z"/></svg>
+            </a>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>${head.map((cell, idx) => {
+              const sticky = getStickyStyles(idx);
+              const className = sticky.isSticky ? 'class="sticky-col"' : '';
+              const styleAttr = sticky.isSticky ? `style="left: ${sticky.left};"` : '';
+              return `<th ${className} ${styleAttr}>${escapeHtml(cell)}</th>`;
+            }).join('')}</tr></thead>
+            <tbody>${body.map((row) => {
+              let rowStyle = '';
+              const firstCell = String(row[0] || '').toLowerCase().trim();
+              const isTotalRow = firstCell.includes('tổng') || firstCell.includes('cộng') || firstCell.includes('trung bình') || firstCell.includes('thực nhận') || firstCell.includes('lợi nhuận');
+              
+              if (isTotalRow) {
+                rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep); background-color: var(--mint-soft);"';
+              } else {
+                rowStyle = 'style="font-weight: 500; font-size: 12.5px;"';
+              }
+              
+              const rowClass = isTotalRow ? 'class="total-row"' : '';
+              const searchText = removeAccents(row.join(' ').toLowerCase());
+              
+              return `<tr ${rowClass} ${rowStyle} data-search-text="${escapeHtml(searchText)}">${head.map((colName, i) => {
+                let styleRules = [];
+                const val = row[i] || '';
+                const colLower = String(colName || '').toLowerCase().trim();
+                
+                // Color formatting based on content / headers
+                if (type === 'details') {
+                  if (i === 0) {
+                    styleRules.push('color: var(--ink)', 'font-weight: 700');
+                  } else {
+                    const cat = String(row[0] || '').toLowerCase().trim();
+                    if (cat.includes('khối lượng')) {
+                      styleRules.push('color: var(--ink)', 'font-weight: 500');
+                    } else if (cat.includes('thuế') || cat.includes('phí đường bộ') || cat.includes('phí đi đường')) {
+                      styleRules.push('color: var(--red)', 'font-weight: 600');
+                    } else if (cat.includes('doanh thu') || cat.includes('lợi nhuận') || cat.includes('thu')) {
+                      styleRules.push('color: var(--green)', 'font-weight: 600');
+                    } else if (cat.includes('chi phí') || cat.includes('chi quỹ') || cat.includes('dầu') || cat.includes('chi')) {
+                      styleRules.push('color: var(--red)', 'font-weight: 600');
+                    }
+                  }
+                } else if (type === 'finance') {
+                  if (colLower.includes('khối lượng')) {
+                    styleRules.push('color: var(--ink)', 'font-weight: 500');
+                  } else if (colLower.includes('doanh thu') || colLower.includes('lợi nhuận') || colLower.includes('gộp')) {
+                    styleRules.push('color: var(--green)', 'font-weight: 600');
+                  } else if (colLower.includes('chi') || colLower.includes('thuế') || colLower.includes('dầu') || colLower.includes('phí')) {
+                    styleRules.push('color: var(--red)', 'font-weight: 600');
+                  }
+                } else if (type === 'payroll') {
+                  if (colLower.includes('thực nhận') || colLower.includes('tổng lương') || colLower.includes('thưởng')) {
+                    styleRules.push('color: var(--green)', 'font-weight: 600');
+                  } else if (colLower.includes('phạt') || colLower.includes('ứng lương')) {
+                    styleRules.push('color: var(--red)', 'font-weight: 600');
+                  }
+                } else if (type === 'vehicles') {
+                  if (colLower.includes('lợi nhuận') || colLower.includes('lãi gộp') || colLower.includes('doanh thu')) {
+                    const numVal = parseCellValue(val);
+                    if (numVal < 0) {
+                      styleRules.push('color: var(--red)', 'font-weight: 600');
+                    } else {
+                      styleRules.push('color: var(--green)', 'font-weight: 600');
+                    }
+                  } else if (colLower.includes('chi phí') || colLower.includes('dầu') || colLower.includes('sửa chữa')) {
+                    styleRules.push('color: var(--red)', 'font-weight: 600');
+                  }
+                }
+                
+                const sticky = getStickyStyles(i);
+                if (sticky.isSticky) {
+                  styleRules.push(`left: ${sticky.left}`);
+                }
+                
+                const className = sticky.isSticky ? 'class="sticky-col"' : '';
+                const styleAttr = styleRules.length ? `style="${styleRules.join('; ')};"` : '';
+                
+                return `<td ${className} ${styleAttr}>${escapeHtml(val)}</td>`;
+              }).join('')}</tr>`;
+            }).join('')}</tbody>
+          </table>
+        </div>
+      `;
+      return card;
+    }
+
+    // Helper functions for filtering and calculating subtotals
+    function removeAccents(str) {
+      if (!str) return '';
+      return str.normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/Đ/g, 'D');
+    }
+
+    function parseCellValue(text) {
+      if (!text || text === '-' || text === '0') return 0;
+      let clean = text.replace(/[đ₫\s]/g, '');
+      if (clean.includes('.') && clean.includes(',')) {
+        if (clean.indexOf('.') < clean.indexOf(',')) {
+          clean = clean.replace(/\./g, '').replace(/,/g, '.');
+        } else {
+          clean = clean.replace(/,/g, '');
+        }
+      } else if (clean.includes(',')) {
+        const parts = clean.split(',');
+        if (parts.length === 2 && parts[1].length <= 2) {
+          clean = clean.replace(/,/g, '.');
+        } else {
+          clean = clean.replace(/,/g, '');
+        }
+      } else {
+        const dotsCount = (clean.match(/\./g) || []).length;
+        if (dotsCount > 1) {
+          clean = clean.replace(/\./g, '');
+        } else if (dotsCount === 1) {
+          const parts = clean.split('.');
+          if (parts[1].length === 3) {
+            clean = clean.replace(/\./g, '');
+          }
+        }
+      }
+      const val = parseFloat(clean);
+      return isNaN(val) ? null : val;
+    }
+
+    function formatValueLike(value, sampleText) {
+      if (value === 0) {
+        if (sampleText.includes('đ') || sampleText.includes('₫')) return '0 đ';
+        return '0';
+      }
+      const isCurrency = sampleText.includes('đ') || sampleText.includes('₫');
+      const currencySymbol = sampleText.includes('₫') ? '₫' : 'đ';
+      
+      let decimals = 0;
+      if (sampleText.includes(',')) {
+        const parts = sampleText.split(',');
+        const decimalPart = parts[1].replace(/[^0-9]/g, '');
+        decimals = decimalPart.length;
+      } else if (sampleText.includes('.')) {
+        const parts = sampleText.split('.');
+        const lastPart = parts[1].replace(/[^0-9]/g, '');
+        if (lastPart.length < 3) {
+          decimals = lastPart.length;
+        }
+      }
+      
+      let formatted = '';
+      if (isCurrency) {
+        formatted = Math.round(value).toLocaleString('vi-VN') + ' ' + currencySymbol;
+      } else {
+        formatted = value.toLocaleString('vi-VN', {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals
+        });
+      }
+      return formatted;
+    }
+
+    window.filterReportRows = () => {
+      const query = (el('reportSearchInput')?.value || '').toLowerCase().trim();
+      const parts = query.split(/[,;|]+/).map(p => removeAccents(p.trim())).filter(p => p !== '');
+      
+      const tables = document.querySelectorAll('#reports .table-card');
+      tables.forEach((card) => {
+        const type = card.dataset.reportType;
+        if (type !== 'payroll' && type !== 'vehicles') return;
+        
+        const rows = card.querySelectorAll('tbody tr');
+        rows.forEach((row) => {
+          if (row.classList.contains('total-row')) {
+            row.classList.remove('hidden-row');
+            return;
+          }
+          
+          const text = row.dataset.searchText || '';
+          let match = false;
+          if (parts.length === 0) {
+            match = true;
+          } else {
+            match = parts.some(part => text.includes(part));
+          }
+          
+          if (match) {
+            row.classList.remove('hidden-row');
+          } else {
+            row.classList.add('hidden-row');
+          }
+        });
+        
+        updateTableSubtotals(card, type);
+      });
+    };
+
+    function updateTableSubtotals(card, type) {
+      const tbody = card.querySelector('tbody');
+      if (!tbody) return;
+      
+      const rows = Array.from(tbody.rows);
+      if (rows.length <= 1) return;
+      
+      let totalRow = null;
+      let totalRowIndex = -1;
+      
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const firstCellText = (rows[i].cells[0]?.textContent || '').toLowerCase().trim();
+        if (rows[i].classList.contains('total-row') || firstCellText.includes('tổng') || firstCellText.includes('cộng') || firstCellText.includes('trung bình') || firstCellText.includes('thực nhận')) {
+          totalRow = rows[i];
+          totalRowIndex = i;
+          break;
+        }
+      }
+      
+      if (!totalRow) return;
+      
+      const dataRows = [];
+      const allDataRows = [];
+      for (let i = 0; i < rows.length; i++) {
+        if (i !== totalRowIndex) {
+          allDataRows.push(rows[i]);
+          if (!rows[i].classList.contains('hidden-row')) {
+            dataRows.push(rows[i]);
+          }
+        }
+      }
+      
+      const totalCells = totalRow.cells;
+      const firstCell = totalCells[0];
+      const baseText = firstCell?.dataset.baseText || firstCell?.textContent || 'Tổng cộng';
+      if (firstCell && !firstCell.dataset.baseText) {
+        firstCell.dataset.baseText = baseText;
+      }
+      
+      for (let colIdx = 1; colIdx < totalCells.length; colIdx++) {
+        const firstDataRow = allDataRows[0];
+        if (!firstDataRow) continue;
+        
+        const sampleText = firstDataRow.cells[colIdx]?.textContent || '';
+        if (sampleText.trim() === '' || sampleText.trim() === '-') continue;
+        
+        let sum = 0;
+        let hasNumbers = false;
+        
+        dataRows.forEach((row) => {
+          const cell = row.cells[colIdx];
+          if (cell) {
+            const val = parseCellValue(cell.textContent);
+            if (val !== null) {
+              sum += val;
+              hasNumbers = true;
+            }
+          }
+        });
+        
+        if (hasNumbers) {
+          totalCells[colIdx].textContent = formatValueLike(sum, sampleText);
+        } else {
+          totalCells[colIdx].textContent = '';
+        }
+      }
+      
+      const isFiltered = document.getElementById('reportSearchInput')?.value.trim() !== '';
+      const cleanBase = baseText.replace(/\s*\(Lọc\)/i, '');
+      if (firstCell) {
+        if (isFiltered) {
+          firstCell.textContent = `${cleanBase} (Lọc)`;
+        } else {
+          firstCell.textContent = cleanBase;
+        }
+      }
+    }
+
+    function parseOverview(matrix) {
+      const rows = (matrix || []).slice(1)
+        .filter((row) => row[0] && row[0].trim() !== '' && row[0] !== 'Tháng')
+        .map((row) => {
+          const rev = parseMoney(row[2]);
+          const taxTndn = parseMoney(row[3]);
+          const taxVat = parseMoney(row[4]);
+          const fuelQM = parseMoney(row[5]);
+          const fuelOut = parseMoney(row[6]);
+          const toll = parseMoney(row[7]);
+          const gross = rev - taxTndn - taxVat - fuelQM - toll;
+          const grossText = formatCurrencyText(gross);
+          
+          const fund = parseMoney(row[9]);
+          const operatingCost = taxTndn + taxVat + fuelQM + toll;
+          const cashCost = fuelOut + fund;
+          const totalCost = taxTndn + taxVat + fuelQM + fuelOut + toll + fund;
+          const totalCostText = formatCurrencyText(totalCost);
+          
+          return {
+            month: row[0],
+            source: row,
+            volumeText: row[1],
+            volume: parseMoney(row[1]),
+            revenueText: row[2],
+            revenue: rev,
+            taxTndnText: row[3],
+            taxTndn: taxTndn,
+            taxVatText: row[4],
+            taxVat: taxVat,
+            fuelText: row[5] + (row[6] ? ' / ' + row[6] : ''),
+            fuelQM: fuelQM,
+            fuelOut: fuelOut,
+            tollText: row[7],
+            toll: toll,
+            grossText: grossText,
+            gross: gross,
+            operatingCost: operatingCost,
+            operatingCostText: formatCurrencyText(operatingCost),
+            cashCost: cashCost,
+            cashCostText: formatCurrencyText(cashCost),
+            totalCost: totalCost,
+            totalCostText: totalCostText,
+            fundText: row[9],
+            fund: fund,
+            finalText: row[10],
+            final: parseMoney(row[10])
+          };
+        });
+      return { rows, latest: rows[rows.length - 1] || {} };
+    }
+
+    function ensureSelectedMonth(rows) {
+      if (!rows.length) return;
+      if (!selectedMonth || (selectedMonth !== 'Tất cả' && !rows.some((row) => row.month === selectedMonth))) {
+        selectedMonth = rows[rows.length - 1].month;
+      }
+    }
+
+    function getSelectedOverviewRow(rows) {
+      if (!rows.length) return {};
+      if (selectedMonth === 'Tất cả') {
+        let volume = 0;
+        let revenue = 0;
+        let taxTndn = 0;
+        let taxVat = 0;
+        let fuelQM = 0;
+        let fuelOut = 0;
+        let toll = 0;
+        let gross = 0;
+        let fund = 0;
+        let operatingCost = 0;
+        let cashCost = 0;
+        let totalCost = 0;
+        let final = 0;
+        
+        rows.forEach(r => {
+          volume += r.volume || 0;
+          revenue += r.revenue || 0;
+          taxTndn += parseMoney(r.taxTndnText);
+          taxVat += parseMoney(r.taxVatText);
+          if (r.source) {
+            fuelQM += parseMoney(r.source[5]);
+            fuelOut += parseMoney(r.source[6]);
+            toll += parseMoney(r.source[7]);
+            fund += parseMoney(r.source[9]);
+          }
+          gross += r.gross || 0;
+          operatingCost += r.operatingCost || 0;
+          cashCost += r.cashCost || 0;
+          totalCost += r.totalCost || 0;
+          final += r.final || 0;
+        });
+
+        return {
+          month: 'Tất cả',
+          volume: volume,
+          volumeText: volume.toLocaleString('vi-VN') + ' tấn',
+          revenue: revenue,
+          revenueText: formatCurrencyText(revenue),
+          taxTndnText: formatCurrencyText(taxTndn),
+          taxTndn: taxTndn,
+          taxVatText: formatCurrencyText(taxVat),
+          taxVat: taxVat,
+          fuelText: formatCurrencyText(fuelQM) + ' / ' + formatCurrencyText(fuelOut),
+          fuelQM: fuelQM,
+          fuelOut: fuelOut,
+          tollText: formatCurrencyText(toll),
+          toll: toll,
+          grossText: formatCurrencyText(gross),
+          operatingCost: operatingCost,
+          operatingCostText: formatCurrencyText(operatingCost),
+          cashCost: cashCost,
+          cashCostText: formatCurrencyText(cashCost),
+          fundText: formatCurrencyText(fund),
+          totalCostText: formatCurrencyText(totalCost),
+          finalText: formatCurrencyText(final),
+          final: final,
+          source: [
+            'Tất cả',
+            volume.toLocaleString('vi-VN'),
+            Math.round(revenue).toLocaleString('vi-VN') + ' ₫',
+            Math.round(taxTndn).toLocaleString('vi-VN') + ' ₫',
+            Math.round(taxVat).toLocaleString('vi-VN') + ' ₫',
+            Math.round(fuelQM).toLocaleString('vi-VN') + ' ₫',
+            Math.round(fuelOut).toLocaleString('vi-VN') + ' ₫',
+            Math.round(toll).toLocaleString('vi-VN') + ' ₫',
+            '',
+            Math.round(fund).toLocaleString('vi-VN') + ' ₫',
+            Math.round(final).toLocaleString('vi-VN') + ' ₫'
+          ]
+        };
+      }
+      return rows.find((row) => row.month === selectedMonth) || rows[rows.length - 1] || {};
+    }
+
+    // Render month filter inputs
+    function renderMonthFilters(rows) {
+      ['homeMonthFilter', 'reportMonthFilter'].forEach((id) => {
+        const select = el(id);
+        if (!select) return;
+        const previous = select.value;
+        select.innerHTML = '';
+        select.appendChild(new Option("Tất cả", "Tất cả"));
+        rows.forEach((row) => select.appendChild(new Option(row.month, row.month)));
+        select.value = selectedMonth || previous || (rows[rows.length - 1]?.month || '');
+        select.onchange = () => {
+          selectedMonth = select.value;
+          
+          // Sync other month filter dropdown
+          ['homeMonthFilter', 'reportMonthFilter'].forEach((otherId) => {
+            const otherSelect = el(otherId);
+            if (otherSelect) {
+              otherSelect.value = selectedMonth;
+            }
+          });
+          
+          if (activeView === 'reports') {
+            loadReportBundle(false);
+          } else {
+            renderDashboard();
+            renderReports();
+            renderView();
+          }
+        };
+      });
+    }
+
+    function filterOverviewMatrix(matrix, month) {
+      if (!matrix || !matrix.length) return [];
+      // Find the header row (the one starting with "Tháng")
+      let headIndex = matrix.findIndex(row => row && row[0] && String(row[0]).trim().toLowerCase() === 'tháng');
+      if (headIndex === -1) headIndex = 1; // Fallback to index 1
+      const head = matrix[headIndex] || [];
+      // Filter rows that match the month
+      const rows = matrix.slice(headIndex + 1).filter((row) => row[0] === month);
+      return [head].concat(rows);
+    }
+
+    function buildSelectedDetails(row) {
+      return [
+        ['Nghiệp vụ chi tiết', 'Số tiền / Chỉ số'],
+        ['Tháng vận hành', row.month || ''],
+        ['Tổng khối lượng vận tải', row.volumeText || ''],
+        ['Doanh thu chạy xe', row.revenueText || ''],
+        ['Thuế thu nhập doanh nghiệp', row.taxTndnText || ''],
+        ['Thuế giá trị gia tăng (VAT)', row.taxVatText || ''],
+        ['Tổng chi phí dầu', row.fuelText || ''],
+        ['Chi phí phí cầu đường', row.tollText || ''],
+        ['Doanh thu gộp (Sau VAT & cầu đường/dầu)', row.grossText || ''],
+        ['Chi quỹ thực tế (Ngân quỹ)', row.fundText || ''],
+        ['Lợi nhuận thực nhận (Tổng cuối)', row.finalText || '']
+      ];
+    }
+
+    function parseMoney(value) {
+      const text = String(value || '').replace(/[^\d,\-.]/g, '');
+      if (!text) return 0;
+      const normalized = text.replace(/\./g, '').replace(',', '.');
+      const number = Number(normalized);
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function formatCurrencyParts(value) {
+      const rounded = Math.round(Number(value || 0));
+      return {
+        value: rounded.toLocaleString('vi-VN'),
+        unit: 'đ'
+      };
+    }
+
+    function formatCurrencyText(value) {
+      const money = formatCurrencyParts(value);
+      return `${money.value} ${money.unit}`;
+    }
+</script>

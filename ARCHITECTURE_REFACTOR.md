@@ -13,9 +13,23 @@ Web app là Apps Script độc lập trong My Projects, dùng chung code cho nhi
 - `AppConfig.gs` quản lý spreadsheet ID active.
 - `Code.gs` không còn hard-code cấu hình sheet 2026 trong router.
 - `SheetService.gs` vẫn giữ logic nghiệp vụ nhưng cache đã scoped theo spreadsheet ID để tránh lẫn dữ liệu giữa các năm.
+- Link báo cáo lấy `gid` động từ sheet đang active, không hard-code `gid` của file 2026.
 - `index.html` chỉ còn HTML shell.
 - `styles.html` chứa CSS.
-- `client.html` chứa JavaScript frontend.
+- `client.html` chỉ include các module JavaScript frontend theo thứ tự.
+
+## Frontend module map
+
+- `client_config.html`: cấu hình điều hướng, form schema, state global, helper autocomplete/date.
+- `client_api.html`: backend URL, REST API, cache invalidation.
+- `client_manage.html`: màn Quản lý nhật ký nhập liệu.
+- `client_catalog.html`: màn Danh mục.
+- `client_app.html`: boot app, navigation, export ảnh.
+- `client_dashboard.html`: dashboard, KPI, biểu đồ, chuyến gần đây.
+- `client_entry.html`: form nhập liệu và dòng nhập liệu.
+- `client_reports.html`: báo cáo chi tiết, filter, subtotal, parse overview.
+- `client_data.html`: data helpers, catalog/dashboard/report loaders, submit.
+- `client_ui.html`: busy/status/drawer/settings và binding sự kiện cuối cùng.
 
 ## Cấu hình spreadsheet theo năm
 

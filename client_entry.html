@@ -1,0 +1,190 @@
+<script>
+    function renderFormTabs() {
+      const holder = el('formTabs');
+      holder.innerHTML = '';
+      
+      Object.keys(FORM_LABELS).forEach((type) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `form-tab ${type === activeForm ? 'active' : ''}`;
+        button.innerHTML = `
+          <span class="form-tab-icon">${FORM_ICONS[type]}</span>
+          <span>
+            <span class="form-tab-title">${FORM_LABELS[type]}</span>
+            <span class="form-tab-note">${FORM_NOTES[type]}</span>
+          </span>
+        `;
+        button.onclick = () => {
+          activeForm = type;
+          rows = [newBlankRow()];
+          clearStatus();
+          renderFormTabs();
+          renderEntry();
+          loadCatalogs(type);
+        };
+        holder.appendChild(button);
+      });
+    }
+
+    function renderEntry() {
+      el('formTitle').textContent = `Nhập bảng kê: ${FORM_LABELS[activeForm]}`;
+      const catalogsReady = Boolean(catalogsByForm[activeForm]);
+      el('formSummary').textContent = `${FORM_NOTES[activeForm]}. Đang lập ${rows.length} dòng kê.`;
+      
+      const holder = el('rows');
+      holder.innerHTML = '';
+      
+      if (!catalogsReady) {
+        const note = document.createElement('div');
+        note.className = 'loading-note';
+        note.textContent = 'Đang đồng bộ danh mục từ Google Sheets. Bạn có thể bắt đầu điền thông tin, ô tìm kiếm sẽ sẵn sàng ngay sau khi tải xong.';
+        holder.appendChild(note);
+      }
+      
+      rows.forEach((row, index) => {
+        holder.appendChild(renderRow(row, index));
+      });
+      
+      renderRecentSubmissions(holder);
+    }
+
+    function renderRecentSubmissions(holder) {
+      if (!recentSubmissions.length) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'recent-list';
+      wrap.innerHTML = '<div class="panel-note" style="font-weight: 700;">Nhật ký giao dịch vừa thực hiện</div>';
+      
+      recentSubmissions.slice(0, 5).forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'recent-item';
+        row.textContent = item;
+        wrap.appendChild(row);
+      });
+      holder.appendChild(wrap);
+    }
+
+    function getEntryRowExtraTitle(row) {
+      if (!row) return '';
+      const c = getCurrentCatalogs();
+
+      if (activeForm === 'dau') {
+        const liters = parseLocaleNumber(row.liters) || 0;
+        const price = parseLocaleNumber(row.price) || 0;
+        const total = liters * price;
+        if (total > 0) {
+          return ` &mdash; <span style="color: var(--teal); font-weight: 700;">Thành tiền: ${Math.round(total).toLocaleString('vi-VN')} ₫</span>`;
+        }
+      }
+
+      if (activeForm === 'chamCong') {
+        let parts = [];
+        if (row.fromDate && row.toDate) {
+          const d1 = new Date(row.fromDate);
+          const d2 = new Date(row.toDate);
+          if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d2 >= d1) {
+            const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+            parts.push(`Số ngày nghỉ: <span style="color: var(--teal); font-weight: 700;">${diffDays} ngày</span>`);
+          }
+        }
+        if (row.workdayType && c && c.chamCongTypes) {
+          const typeObj = c.chamCongTypes.find(t => t.name === row.workdayType);
+          if (typeObj) {
+            parts.push(`Lương cứng: <span style="color: var(--blue); font-weight: 700;">${typeObj.salary}</span>`);
+            if (typeObj.group) {
+              parts.push(`Nhóm: <span style="color: var(--deep); font-weight: 600;">${typeObj.group}</span>`);
+            }
+          }
+        }
+        if (parts.length > 0) {
+          return ' &mdash; ' + parts.join(' | ');
+        }
+      }
+
+      if (activeForm === 'phat' && row.penaltyCode && c && c.penalties) {
+        const penObj = c.penalties.find(p => p.code === row.penaltyCode);
+        if (penObj) {
+          return ` &mdash; <span style="color: var(--deep); font-weight: 600;">${penObj.content}</span> | <span style="color: var(--red); font-weight: 700;">Số tiền phạt: ${Math.round(penObj.amount).toLocaleString('vi-VN')} ₫</span>`;
+        }
+      }
+
+      if (activeForm === 'nghiVanHanh' && row.hours) {
+        const hours = parseLocaleNumber(row.hours) || 0;
+        if (hours > 0) {
+          const hoursPerTrip = (c && c.params && c.params.SO_GIO_1_CHUYEN_KPI) || 4;
+          const estReduce = hours / hoursPerTrip;
+          return ` &mdash; <span style="color: var(--amber); font-weight: 700;">Giảm KPI dự kiến: ${estReduce.toFixed(1)} chuyến</span>`;
+        }
+      }
+
+      return '';
+    }
+
+    function renderRow(row, index) {
+      const card = document.createElement('article');
+      card.className = 'entry-row';
+      
+      const head = document.createElement('div');
+      head.className = 'entry-row-head';
+      
+      const extraTitleHtml = getEntryRowExtraTitle(row);
+      
+      head.innerHTML = `<div class="entry-row-title"><span class="row-number">${index + 1}</span><span>Dòng chứng từ<span class="entry-row-extra-title-${index}">${extraTitleHtml}</span></span></div>`;
+      
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'danger';
+      remove.textContent = 'Xóa';
+      remove.disabled = rows.length === 1;
+      remove.onclick = () => { 
+        rows.splice(index, 1); 
+        renderEntry(); 
+      };
+      
+      head.appendChild(remove);
+      card.appendChild(head);
+      
+      const grid = document.createElement('div');
+      grid.className = 'fields';
+      
+      FIELD_SETS[activeForm].forEach(([key, label, kind]) => {
+        grid.appendChild(renderField(row, index, key, label, kind));
+      });
+      
+      card.appendChild(grid);
+      return card;
+    }
+
+    function renderField(row, index, key, label, kind) {
+      const wrap = document.createElement('label');
+      if (kind === 'textarea') wrap.className = 'full';
+      wrap.appendChild(document.createTextNode(label));
+      
+      if (kind.startsWith('select:')) {
+        const acWrap = document.createElement('div');
+        const sourceName = kind.split(':')[1];
+        
+        if (catalogsByForm[activeForm]) {
+          createAutocomplete(acWrap, getOptions(sourceName), row[key], (newValue) => {
+            rows[index][key] = newValue;
+            handleFieldChange(index, key);
+          });
+        } else {
+          acWrap.innerHTML = '<input type="text" class="ac-input" placeholder="Đang tải danh mục..." disabled>';
+        }
+        wrap.appendChild(acWrap);
+      } else {
+        const input = document.createElement(kind === 'textarea' ? 'textarea' : 'input');
+        input.type = kind === 'number' ? 'text' : kind;
+        if (kind === 'number') input.inputMode = 'decimal';
+        input.value = row[key] || '';
+        
+        input.oninput = () => {
+          rows[index][key] = input.value;
+          handleFieldChange(index, key);
+        };
+        wrap.appendChild(input);
+      }
+      
+      return wrap;
+    }
+</script>

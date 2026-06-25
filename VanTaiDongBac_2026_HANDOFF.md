@@ -82,6 +82,7 @@ Từ bản refactor nền:
 * `AppConfig.gs` quản lý spreadsheet ID active. Có thể dùng Script Properties `ACTIVE_SPREADSHEET_ID`, `DEFAULT_SPREADSHEET_ID`, hoặc `SPREADSHEET_ID_2026`, `SPREADSHEET_ID_2027`, ...
 * API có thể nhận `year`, `spreadsheetId`, hoặc `ssId` để trỏ sang file năm khác khi cần.
 * Cache backend trong `SheetService.gs` đã scoped theo spreadsheet ID để tránh lẫn dữ liệu giữa các file năm.
+* Link báo cáo trong response lấy `gid` động từ sheet đang active, không còn hard-code `gid` của riêng file 2026.
 
 ### 4.1. Cơ Chế Định Tuyến API
 
@@ -127,7 +128,7 @@ Giao diện là Web App SPA thiết kế tối ưu hóa cho thiết bị di đ�
 Từ bản refactor nền:
 * `index.html` chỉ giữ HTML shell.
 * `styles.html` chứa CSS.
-* `client.html` chứa JavaScript frontend.
+* `client.html` include các module JavaScript frontend nhỏ hơn: `client_config`, `client_api`, `client_manage`, `client_catalog`, `client_app`, `client_dashboard`, `client_entry`, `client_reports`, `client_data`, `client_ui`.
 * `Code.gs` render bằng `HtmlService.createTemplateFromFile('index')` và helper `include(filename)`.
 
 ### 5.1. Hệ Thống Điều Hướng & Quản Lý View

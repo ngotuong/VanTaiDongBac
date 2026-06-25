@@ -1,0 +1,66 @@
+<script>
+    // API REST Request Layer
+    const DEFAULT_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
+    
+    const getBackendUrl = () => {
+      return localStorage.getItem('eb_backend_url') || DEFAULT_BACKEND_URL;
+    };
+
+    function callApi(method, action, params = {}, bodyData = null) {
+      const backendUrl = getBackendUrl();
+      if (!backendUrl) {
+        return Promise.reject(new Error('Chưa cấu hình đường dẫn Web App trong Cài đặt!'));
+      }
+      
+      let url = new URL(backendUrl);
+      url.searchParams.set('action', action);
+      Object.keys(params).forEach(k => {
+        url.searchParams.set(k, params[k]);
+      });
+      if (params.forceRefresh === true || params.forceRefresh === 'true') {
+        url.searchParams.set('_ts', Date.now());
+      }
+      
+      const options = {
+        method: method,
+        headers: {
+          'Content-Type': 'text/plain;charset=UTF-8' // bypass preflight CORS
+        }
+      };
+      
+      if (bodyData) {
+        options.body = JSON.stringify({ action: action, ...bodyData });
+      }
+      
+      return fetch(url.toString(), options)
+        .then(res => {
+          if (!res.ok) throw new Error('Kết nối API thất bại, status: ' + res.status);
+          return res.json();
+        })
+        .then(data => {
+          if (data && data.ok === false) {
+            throw new Error(data.error || 'Lỗi API hệ thống.');
+          }
+          return data;
+        });
+    }
+
+    function removeSessionKeysByPrefix(prefix) {
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.indexOf(prefix) === 0) sessionStorage.removeItem(key);
+      });
+    }
+
+    function invalidateReportSessionCache() {
+      reportCacheEpoch += 1;
+      reportBundlePrefetching = false;
+      removeSessionKeysByPrefix('eb_report_bundle_');
+      sessionStorage.removeItem('eb_dashboard_v3');
+    }
+
+    function invalidateServerCaches() {
+      return callApi('GET', 'invalidateCaches', { _ts: Date.now() }).catch((err) => {
+        console.warn('Không thể xoá cache server trước khi làm mới:', err);
+      });
+    }
+</script>

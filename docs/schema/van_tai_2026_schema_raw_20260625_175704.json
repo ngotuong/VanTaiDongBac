@@ -1,0 +1,6801 @@
+{
+  "spreadsheetName": "VanTaiDongBac_2026",
+  "spreadsheetId": "1VSNLzSNKJFXaY_dcyM7WkPz9Braia0AjPM7jHHXXyeA",
+  "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1VSNLzSNKJFXaY_dcyM7WkPz9Braia0AjPM7jHHXXyeA/edit",
+  "timezone": "Asia/Saigon",
+  "locale": "vi_VN",
+  "exportedAt": "2026-06-25T10:55:43.367Z",
+  "sheets": [
+    {
+      "name": "NL_VanChuyen",
+      "sheetId": 0,
+      "index": 1,
+      "hidden": false,
+      "frozenRows": 2,
+      "frozenColumns": 3,
+      "lastRow": 50443,
+      "lastColumn": 7,
+      "maxRows": 50443,
+      "maxColumns": 7,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": ""
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": ""
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": ""
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": ""
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "16"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": ""
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": ""
+        }
+      ],
+      "sampleRows": [
+        [
+          "",
+          "",
+          "",
+          "",
+          "16",
+          "",
+          ""
+        ],
+        [
+          "Ngày",
+          "Tháng",
+          "Biển số xe",
+          "Dự án",
+          "Số chuyến",
+          "Số phiếu",
+          "Ghi chú"
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H05664",
+          "Tràng Duệ",
+          "5",
+          "235-65-158-462-355",
+          ""
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H06214",
+          "Tràng Duệ",
+          "3",
+          "285-161-66",
+          ""
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H05602",
+          "Tràng Duệ",
+          "4",
+          "173-459-264-378",
+          ""
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H06278",
+          "Tràng Duệ",
+          "4",
+          "64-514-165-263",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H05664",
+          "Tràng Duệ",
+          "5",
+          "348-172-251-78-465",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H06214",
+          "Tràng Duệ",
+          "3",
+          "274-79-164",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H05602",
+          "Tràng Duệ",
+          "6",
+          "221-60-382-302-250-466",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H06278",
+          "Tràng Duệ",
+          "4",
+          "506-226-149-64",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "E1",
+          "row": 1,
+          "column": "E",
+          "formula": "=SUBTOTAL(109;E3:E)"
+        },
+        {
+          "cell": "B3",
+          "row": 3,
+          "column": "B",
+          "formula": "=ARRAYFORMULA(IF(A3:A=\"\";\"\";DATE(YEAR(A3:A);MONTH(A3:A);1)))"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "NL_TaiXe",
+      "sheetId": 1096816049,
+      "index": 2,
+      "hidden": false,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 998,
+      "lastColumn": 6,
+      "maxRows": 998,
+      "maxColumns": 26,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Ngày"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Tháng"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Biển số xe"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Tài xế"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Số chuyến"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Ghi chú"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Ngày",
+          "Tháng",
+          "Biển số xe",
+          "Tài xế",
+          "Số chuyến",
+          "Ghi chú"
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H05602",
+          "A Mười",
+          "2",
+          ""
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H05602",
+          "A Tuấn",
+          "2",
+          ""
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H05664",
+          "A Bằng",
+          "3",
+          ""
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H05664",
+          "A Hạnh",
+          "2",
+          ""
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H06278",
+          "Chu Đức Mười",
+          "4",
+          ""
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H06214",
+          "Đặng Văn Việt",
+          "3",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H05602",
+          "A Mười",
+          "3",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H05602",
+          "A Tuấn",
+          "3",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H05664",
+          "A Bằng",
+          "3",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "B2",
+          "row": 2,
+          "column": "B",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\"; \"\"; DATE(YEAR(A2:A); MONTH(A2:A); 1)))"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "NL_Dau",
+      "sheetId": 1937273732,
+      "index": 3,
+      "hidden": false,
+      "frozenRows": 2,
+      "frozenColumns": 3,
+      "lastRow": 50485,
+      "lastColumn": 8,
+      "maxRows": 50485,
+      "maxColumns": 27,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": ""
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": ""
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": ""
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": ""
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "18.920"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": ""
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "487.081.244 đ"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": ""
+        }
+      ],
+      "sampleRows": [
+        [
+          "",
+          "",
+          "",
+          "",
+          "18.920",
+          "",
+          "487.081.244 đ",
+          ""
+        ],
+        [
+          "Ngày",
+          "Tháng",
+          "Biển số xe",
+          "Nguồn dầu",
+          "Số lít",
+          "Giá dầu",
+          "Thành tiền",
+          "Ghi chú"
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H05664",
+          "Đổ ngoài",
+          "200",
+          "28.760 đ",
+          "5.752.000 đ",
+          "Minh Vương"
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H06214",
+          "Đổ ngoài",
+          "200",
+          "28.760 đ",
+          "5.752.000 đ",
+          "Minh Vương"
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H05602",
+          "Đổ ngoài",
+          "200",
+          "28.760 đ",
+          "5.752.000 đ",
+          " Quang Quân"
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H06278",
+          "Đổ ngoài",
+          "200",
+          "28.760 đ",
+          "5.752.000 đ",
+          " Quang Quân"
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H05664",
+          "Đổ ngoài",
+          "35",
+          "28.760 đ",
+          "1.000.000 đ",
+          "Quỹ"
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H05664",
+          "Quang Minh",
+          "625",
+          "28.760 đ",
+          "17.975.000 đ",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H06214",
+          "Quang Minh",
+          "580",
+          "28.760 đ",
+          "16.680.800 đ",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H05602",
+          "Quang Minh",
+          "620",
+          "28.760 đ",
+          "17.831.200 đ",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "E1",
+          "row": 1,
+          "column": "E",
+          "formula": "=SUBTOTAL(109;E3:E)"
+        },
+        {
+          "cell": "G1",
+          "row": 1,
+          "column": "G",
+          "formula": "=SUBTOTAL(109;G3:G)"
+        },
+        {
+          "cell": "B3",
+          "row": 3,
+          "column": "B",
+          "formula": "=ARRAYFORMULA(IF(A3:A=\"\"; \"\"; DATE(YEAR(A3:A); MONTH(A3:A); 1)))"
+        },
+        {
+          "cell": "E3",
+          "row": 3,
+          "column": "E",
+          "formula": "=200"
+        },
+        {
+          "cell": "G3",
+          "row": 3,
+          "column": "G",
+          "formula": "=ARRAYFORMULA(IF(E3:E=\"\";\"\";IF(F3:F=\"\";\"\";E3:E*F3:F)))"
+        },
+        {
+          "cell": "E10",
+          "row": 10,
+          "column": "E",
+          "formula": "=120+340+160"
+        },
+        {
+          "cell": "E22",
+          "row": 22,
+          "column": "E",
+          "formula": "=350+110"
+        },
+        {
+          "cell": "E37",
+          "row": 37,
+          "column": "E",
+          "formula": "=380+210"
+        },
+        {
+          "cell": "E38",
+          "row": 38,
+          "column": "E",
+          "formula": "=382,68265+162,352"
+        },
+        {
+          "cell": "E39",
+          "row": 39,
+          "column": "E",
+          "formula": "=382,68265+197,14"
+        },
+        {
+          "cell": "E40",
+          "row": 40,
+          "column": "E",
+          "formula": "=382,68265+239,662"
+        },
+        {
+          "cell": "E41",
+          "row": 41,
+          "column": "E",
+          "formula": "=350+80"
+        },
+        {
+          "cell": "E42",
+          "row": 42,
+          "column": "E",
+          "formula": "=197+380"
+        },
+        {
+          "cell": "E43",
+          "row": 43,
+          "column": "E",
+          "formula": "=380+215"
+        },
+        {
+          "cell": "E44",
+          "row": 44,
+          "column": "E",
+          "formula": "=380+207"
+        },
+        {
+          "cell": "E46",
+          "row": 46,
+          "column": "E",
+          "formula": "=77,31+122,69"
+        },
+        {
+          "cell": "E47",
+          "row": 47,
+          "column": "E",
+          "formula": "=77,31+122,69"
+        },
+        {
+          "cell": "E48",
+          "row": 48,
+          "column": "E",
+          "formula": "=77,31+122,69"
+        },
+        {
+          "cell": "E49",
+          "row": 49,
+          "column": "E",
+          "formula": "=77,31+122,69"
+        },
+        {
+          "cell": "E50",
+          "row": 50,
+          "column": "E",
+          "formula": "=77,31+122,69"
+        },
+        {
+          "cell": "E51",
+          "row": 51,
+          "column": "E",
+          "formula": "=77,31+122,69"
+        },
+        {
+          "cell": "E55",
+          "row": 55,
+          "column": "E",
+          "formula": "=245+400"
+        },
+        {
+          "cell": "E59",
+          "row": 59,
+          "column": "E",
+          "formula": "=350+158"
+        },
+        {
+          "cell": "E60",
+          "row": 60,
+          "column": "E",
+          "formula": "=170+350"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "NL_ChamCong",
+      "sheetId": 1297543956,
+      "index": 4,
+      "hidden": false,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 1000,
+      "lastColumn": 11,
+      "maxRows": 1000,
+      "maxColumns": 12,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Từ ngày"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Đến ngày"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Tháng"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Nhân sự"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Loại ngày công"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Số ngày"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Tính lương cứng"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Nhóm xử lý"
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": "Ghi chú"
+        },
+        {
+          "column": "J",
+          "columnIndex": 10,
+          "header": "Loại ngày công hợp lệ"
+        },
+        {
+          "column": "K",
+          "columnIndex": 11,
+          "header": "Lưu ý"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Từ ngày",
+          "Đến ngày",
+          "Tháng",
+          "Nhân sự",
+          "Loại ngày công",
+          "Số ngày",
+          "Tính lương cứng",
+          "Nhóm xử lý",
+          "Ghi chú",
+          "Loại ngày công hợp lệ",
+          "Lưu ý"
+        ],
+        [
+          "30/05/2026",
+          "31/05/2026",
+          "05/2026",
+          "Đặng Văn Việt",
+          "Nghỉ phép",
+          "2",
+          "Có",
+          "NGHI_PHEP",
+          "",
+          "Nghỉ phép",
+          "Nếu nghỉ qua 2 tháng, hãy tách thành 2 dòng theo từng tháng"
+        ],
+        [
+          "04/06/2026",
+          "06/06/2026",
+          "06/2026",
+          "Đặng Văn Việt",
+          "Nghỉ việc tạm thời",
+          "3",
+          "Không",
+          "TRU_LUONG",
+          "",
+          "Nghỉ không phép",
+          ""
+        ],
+        [
+          "04/06/2026",
+          "07/06/2026",
+          "06/2026",
+          "Chu Đức Mười",
+          "Nghỉ phép",
+          "4",
+          "Có",
+          "NGHI_PHEP",
+          "",
+          "Nghỉ không lương",
+          ""
+        ],
+        [
+          "04/06/2026",
+          "09/06/2026",
+          "06/2026",
+          "Huy",
+          "Nghỉ phép",
+          "6",
+          "Có",
+          "NGHI_PHEP",
+          "",
+          "Nghỉ việc tạm thời",
+          ""
+        ],
+        [
+          "15/06/2026",
+          "15/06/2026",
+          "06/2026",
+          "Vũ Xuân Hân",
+          "Nghỉ không phép",
+          "1",
+          "Không",
+          "TRU_LUONG",
+          "",
+          "Xe sửa",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "Chờ việc",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "Không có chuyến do công ty",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "Điều động việc khác",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "C2",
+          "row": 2,
+          "column": "C",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";DATE(YEAR(A2:A);MONTH(A2:A);1)))"
+        },
+        {
+          "cell": "F2",
+          "row": 2,
+          "column": "F",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";B2:B-A2:A+1))"
+        },
+        {
+          "cell": "G2",
+          "row": 2,
+          "column": "G",
+          "formula": "=ARRAYFORMULA(IF(E2:E=\"\";\"\";IF(REGEXMATCH(E2:E;\"Xe sửa|Chờ việc|Không có chuyến do công ty|Điều động việc khác|Nghỉ phép\");\"Có\";\"Không\")))"
+        },
+        {
+          "cell": "H2",
+          "row": 2,
+          "column": "H",
+          "formula": "=ARRAYFORMULA(IF(E2:E=\"\";\"\";IFS(E2:E=\"Nghỉ phép\";\"NGHI_PHEP\";REGEXMATCH(E2:E;\"Nghỉ không phép|Nghỉ không lương|Nghỉ việc tạm thời\");\"TRU_LUONG\";REGEXMATCH(E2:E;\"Xe sửa|Chờ việc|Không có chuyến do công ty|Điều động việc khác\");\"KHONG_TRU\";TRUE;\"KHAC\")))"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "NL_Phat",
+      "sheetId": 2091758025,
+      "index": 5,
+      "hidden": false,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 1000,
+      "lastColumn": 7,
+      "maxRows": 1000,
+      "maxColumns": 7,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Ngày"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Tháng"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Nhân sự"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Mã phạt"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Nội dung phạt"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Số tiền phạt"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Ghi chú"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Ngày",
+          "Tháng",
+          "Nhân sự",
+          "Mã phạt",
+          "Nội dung phạt",
+          "Số tiền phạt",
+          "Ghi chú"
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "B2",
+          "row": 2,
+          "column": "B",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";DATE(YEAR(A2:A);MONTH(A2:A);1)))"
+        },
+        {
+          "cell": "E2",
+          "row": 2,
+          "column": "E",
+          "formula": "=MAP(A2:A;D2:D;LAMBDA(ngay;ma;IF(ma=\"\";\"\";IFERROR(INDEX(FILTER(DM_PhatNoiBo!B:B;DM_PhatNoiBo!A:A=ma;DM_PhatNoiBo!F:F<=ngay;(DM_PhatNoiBo!G:G=\"\")+(DM_PhatNoiBo!G:G>=ngay));1);\"\"))))"
+        },
+        {
+          "cell": "F2",
+          "row": 2,
+          "column": "F",
+          "formula": "=MAP(A2:A;D2:D;LAMBDA(ngay;ma;IF(ma=\"\";\"\";IFERROR(INDEX(FILTER(DM_PhatNoiBo!C:C;DM_PhatNoiBo!A:A=ma;DM_PhatNoiBo!F:F<=ngay;(DM_PhatNoiBo!G:G=\"\")+(DM_PhatNoiBo!G:G>=ngay));1);0))))"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "NL_NghiVanHanh",
+      "sheetId": 20260610,
+      "index": 6,
+      "hidden": false,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 1004,
+      "lastColumn": 9,
+      "maxRows": 1004,
+      "maxColumns": 10,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Ngày"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Tháng"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Biển số xe"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Dự án"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Loại nghỉ "
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Số giờ nghỉ"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Tính KPI?"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Giảm KPI"
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": "Ghi chú"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Ngày",
+          "Tháng",
+          "Biển số xe",
+          "Dự án",
+          "Loại nghỉ ",
+          "Số giờ nghỉ",
+          "Tính KPI?",
+          "Giảm KPI",
+          "Ghi chú"
+        ],
+        [
+          "10/06/2026",
+          "06/2026",
+          "20H05602",
+          "Tràng Duệ",
+          "Mỏ báo nghỉ",
+          "12",
+          "Có",
+          "3",
+          ""
+        ],
+        [
+          "10/06/2026",
+          "06/2026",
+          "20H05664",
+          "Tràng Duệ",
+          "Mỏ báo nghỉ",
+          "12",
+          "Có",
+          "3",
+          ""
+        ],
+        [
+          "10/06/2026",
+          "06/2026",
+          "20H06278",
+          "Tràng Duệ",
+          "Mỏ báo nghỉ",
+          "12",
+          "Có",
+          "3",
+          ""
+        ],
+        [
+          "10/06/2026",
+          "06/2026",
+          "20H06214",
+          "Tràng Duệ",
+          "Mỏ báo nghỉ",
+          "12",
+          "Có",
+          "3",
+          ""
+        ],
+        [
+          "11/06/2026",
+          "06/2026",
+          "20H05602",
+          "Tràng Duệ",
+          "Mỏ báo nghỉ",
+          "12",
+          "Có",
+          "3",
+          ""
+        ],
+        [
+          "11/06/2026",
+          "06/2026",
+          "20H05664",
+          "Tràng Duệ",
+          "Mỏ báo nghỉ",
+          "12",
+          "Có",
+          "3",
+          ""
+        ],
+        [
+          "11/06/2026",
+          "06/2026",
+          "20H06278",
+          "Tràng Duệ",
+          "Mỏ báo nghỉ",
+          "12",
+          "Có",
+          "3",
+          ""
+        ],
+        [
+          "11/06/2026",
+          "06/2026",
+          "20H06214",
+          "Tràng Duệ",
+          "Mỏ báo nghỉ",
+          "12",
+          "Có",
+          "3",
+          ""
+        ],
+        [
+          "12/06/2026",
+          "06/2026",
+          "20H05602",
+          "Tràng Duệ",
+          "Mỏ báo nghỉ",
+          "12",
+          "Có",
+          "3",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "B2",
+          "row": 2,
+          "column": "B",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";DATE(YEAR(A2:A);MONTH(A2:A);1)))"
+        },
+        {
+          "cell": "G2",
+          "row": 2,
+          "column": "G",
+          "formula": "=ARRAYFORMULA(IF(E2:E=\"\";\"\";IF(REGEXMATCH(E2:E;\"Mưa|Lễ|Tết|Mỏ báo|Thời tiết|Mỏ dừng|Mỏ nghỉ\");\"Có\";\"Không\")))"
+        },
+        {
+          "cell": "H2",
+          "row": 2,
+          "column": "H",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";IF(G2:G=\"Có\";IFERROR(F2:F/XLOOKUP(\"SO_GIO_1_CHUYEN_KPI\";DM_ThamSo!A:A;DM_ThamSo!C:C);0);0)))"
+        }
+      ],
+      "dataValidations": [
+        {
+          "cell": "C2",
+          "row": 2,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D2",
+          "row": 2,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C3",
+          "row": 3,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D3",
+          "row": 3,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C4",
+          "row": 4,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D4",
+          "row": 4,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C5",
+          "row": 5,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D5",
+          "row": 5,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C6",
+          "row": 6,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D6",
+          "row": 6,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C7",
+          "row": 7,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D7",
+          "row": 7,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C8",
+          "row": 8,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D8",
+          "row": 8,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C9",
+          "row": 9,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D9",
+          "row": 9,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C10",
+          "row": 10,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D10",
+          "row": 10,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C11",
+          "row": 11,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D11",
+          "row": 11,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C12",
+          "row": 12,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D12",
+          "row": 12,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C13",
+          "row": 13,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D13",
+          "row": 13,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C14",
+          "row": 14,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D14",
+          "row": 14,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C15",
+          "row": 15,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D15",
+          "row": 15,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C16",
+          "row": 16,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D16",
+          "row": 16,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C17",
+          "row": 17,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D17",
+          "row": 17,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C18",
+          "row": 18,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D18",
+          "row": 18,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C19",
+          "row": 19,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D19",
+          "row": 19,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C20",
+          "row": 20,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D20",
+          "row": 20,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C21",
+          "row": 21,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D21",
+          "row": 21,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C22",
+          "row": 22,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D22",
+          "row": 22,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C23",
+          "row": 23,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D23",
+          "row": 23,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C24",
+          "row": 24,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D24",
+          "row": 24,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C25",
+          "row": 25,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D25",
+          "row": 25,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C26",
+          "row": 26,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D26",
+          "row": 26,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C27",
+          "row": 27,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D27",
+          "row": 27,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C28",
+          "row": 28,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D28",
+          "row": 28,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C29",
+          "row": 29,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D29",
+          "row": 29,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "C30",
+          "row": 30,
+          "column": "C",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        },
+        {
+          "cell": "D30",
+          "row": 30,
+          "column": "D",
+          "criteriaType": "VALUE_IN_RANGE",
+          "criteriaValues": [
+            "Range",
+            "true"
+          ],
+          "allowInvalid": false,
+          "helpText": ""
+        }
+      ],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "XL_DoiSoatChuyen",
+      "sheetId": 1125715924,
+      "index": 7,
+      "hidden": false,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 50500,
+      "lastColumn": 8,
+      "maxRows": 50500,
+      "maxColumns": 12,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Ngày"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Tháng"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Biển số"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Dự án"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Báo cáo"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Thực tế"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Chênh lệch"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Trạng thái"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Ngày",
+          "Tháng",
+          "Biển số",
+          "Dự án",
+          "Báo cáo",
+          "Thực tế",
+          "Chênh lệch",
+          "Trạng thái"
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H05664",
+          "Tràng Duệ",
+          "5",
+          "5",
+          "0",
+          "Khớp"
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H06214",
+          "Tràng Duệ",
+          "3",
+          "3",
+          "0",
+          "Khớp"
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H05602",
+          "Tràng Duệ",
+          "4",
+          "4",
+          "0",
+          "Khớp"
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H06278",
+          "Tràng Duệ",
+          "4",
+          "4",
+          "0",
+          "Khớp"
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H05664",
+          "Tràng Duệ",
+          "5",
+          "5",
+          "0",
+          "Khớp"
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H06214",
+          "Tràng Duệ",
+          "3",
+          "3",
+          "0",
+          "Khớp"
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H05602",
+          "Tràng Duệ",
+          "6",
+          "6",
+          "0",
+          "Khớp"
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H06278",
+          "Tràng Duệ",
+          "4",
+          "4",
+          "0",
+          "Khớp"
+        ],
+        [
+          "27/05/2026",
+          "05/2026",
+          "20H05664",
+          "Tràng Duệ",
+          "6",
+          "6",
+          "0",
+          "Khớp"
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "A2",
+          "row": 2,
+          "column": "A",
+          "formula": "=ARRAYFORMULA(IF(NL_VanChuyen!A3:A=\"\";\"\";NL_VanChuyen!A3:A))"
+        },
+        {
+          "cell": "B2",
+          "row": 2,
+          "column": "B",
+          "formula": "=ARRAYFORMULA(IF(NL_VanChuyen!A3:A=\"\";\"\";NL_VanChuyen!B3:B))"
+        },
+        {
+          "cell": "C2",
+          "row": 2,
+          "column": "C",
+          "formula": "=ARRAYFORMULA(IF(NL_VanChuyen!A3:A=\"\";\"\";NL_VanChuyen!C3:C))"
+        },
+        {
+          "cell": "D2",
+          "row": 2,
+          "column": "D",
+          "formula": "=ARRAYFORMULA(IF(NL_VanChuyen!A3:A=\"\";\"\";NL_VanChuyen!D3:D))"
+        },
+        {
+          "cell": "E2",
+          "row": 2,
+          "column": "E",
+          "formula": "=ARRAYFORMULA(IF(NL_VanChuyen!A3:A=\"\";\"\";NL_VanChuyen!E3:E))"
+        },
+        {
+          "cell": "F2",
+          "row": 2,
+          "column": "F",
+          "formula": "=MAP(A2:A;C2:C;LAMBDA(ngay;xe;IF(ngay=\"\";\"\";SUMIFS(NL_TaiXe!E:E;NL_TaiXe!A:A;ngay;NL_TaiXe!C:C;xe))))"
+        },
+        {
+          "cell": "G2",
+          "row": 2,
+          "column": "G",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";E2:E-F2:F))"
+        },
+        {
+          "cell": "H2",
+          "row": 2,
+          "column": "H",
+          "formula": "=MAP(G2:G;LAMBDA(le;IF(le=\"\";\"\";IFS(le=0;\"Khớp\";le>0;\"Thiếu chuyến tài xế\";le<0;\"Tài xế khai dư\"))))"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": [
+        {
+          "type": "SHEET",
+          "description": "",
+          "rangeA1": "",
+          "warningOnly": false
+        }
+      ]
+    },
+    {
+      "name": "XL_VanChuyen",
+      "sheetId": 1619846287,
+      "index": 8,
+      "hidden": false,
+      "frozenRows": 1,
+      "frozenColumns": 3,
+      "lastRow": 50500,
+      "lastColumn": 14,
+      "maxRows": 50500,
+      "maxColumns": 19,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Ngày"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Tháng"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Biển số"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Dự án"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Số chuyến"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Tổng khối lượng"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Số km"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Giá dầu áp dụng"
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": "Đơn giá gốc (VNĐ/m3)"
+        },
+        {
+          "column": "J",
+          "columnIndex": 10,
+          "header": "Điều chỉnh dầu (VNĐ/m3)"
+        },
+        {
+          "column": "K",
+          "columnIndex": 11,
+          "header": "Đơn giá áp dụng (VNĐ/m3)"
+        },
+        {
+          "column": "L",
+          "columnIndex": 12,
+          "header": "Doanh thu ước tính"
+        },
+        {
+          "column": "M",
+          "columnIndex": 13,
+          "header": "Công ty sở hữu"
+        },
+        {
+          "column": "N",
+          "columnIndex": 14,
+          "header": "Ghi chú"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Ngày",
+          "Tháng",
+          "Biển số",
+          "Dự án",
+          "Số chuyến",
+          "Tổng khối lượng",
+          "Số km",
+          "Giá dầu áp dụng",
+          "Đơn giá gốc (VNĐ/m3)",
+          "Điều chỉnh dầu (VNĐ/m3)",
+          "Đơn giá áp dụng (VNĐ/m3)",
+          "Doanh thu ước tính",
+          "Công ty sở hữu",
+          "Ghi chú"
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H05664",
+          "Tràng Duệ",
+          "5",
+          "124,1",
+          "42",
+          "28.760 đ",
+          "124.000 đ",
+          "3.186 đ",
+          "127.186 đ",
+          "15.783.783 đ",
+          "Minh Vương",
+          ""
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H06214",
+          "Tràng Duệ",
+          "3",
+          "74,46",
+          "42",
+          "28.760 đ",
+          "120.000 đ",
+          "3.186 đ",
+          "123.186 đ",
+          "9.172.430 đ",
+          "Minh Vương",
+          ""
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H05602",
+          "Tràng Duệ",
+          "4",
+          "99,28",
+          "42",
+          "28.760 đ",
+          "120.000 đ",
+          "3.186 đ",
+          "123.186 đ",
+          "12.229.906 đ",
+          "Quang Quân",
+          ""
+        ],
+        [
+          "25/05/2026",
+          "05/2026",
+          "20H06278",
+          "Tràng Duệ",
+          "4",
+          "99,28",
+          "42",
+          "28.760 đ",
+          "120.000 đ",
+          "3.186 đ",
+          "123.186 đ",
+          "12.229.906 đ",
+          "Quang Quân",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H05664",
+          "Tràng Duệ",
+          "5",
+          "124,1",
+          "42",
+          "28.760 đ",
+          "124.000 đ",
+          "3.186 đ",
+          "127.186 đ",
+          "15.783.783 đ",
+          "Minh Vương",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H06214",
+          "Tràng Duệ",
+          "3",
+          "74,46",
+          "42",
+          "28.760 đ",
+          "120.000 đ",
+          "3.186 đ",
+          "123.186 đ",
+          "9.172.430 đ",
+          "Minh Vương",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H05602",
+          "Tràng Duệ",
+          "6",
+          "148,92",
+          "42",
+          "28.760 đ",
+          "124.000 đ",
+          "3.186 đ",
+          "127.186 đ",
+          "18.940.539 đ",
+          "Quang Quân",
+          ""
+        ],
+        [
+          "26/05/2026",
+          "05/2026",
+          "20H06278",
+          "Tràng Duệ",
+          "4",
+          "99,28",
+          "42",
+          "28.760 đ",
+          "120.000 đ",
+          "3.186 đ",
+          "123.186 đ",
+          "12.229.906 đ",
+          "Quang Quân",
+          ""
+        ],
+        [
+          "27/05/2026",
+          "05/2026",
+          "20H05664",
+          "Tràng Duệ",
+          "6",
+          "148,92",
+          "42",
+          "28.760 đ",
+          "124.000 đ",
+          "3.186 đ",
+          "127.186 đ",
+          "18.940.539 đ",
+          "Minh Vương",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "A2",
+          "row": 2,
+          "column": "A",
+          "formula": "=ARRAYFORMULA(IF(NL_VanChuyen!A3:A=\"\";\"\";NL_VanChuyen!A3:A))"
+        },
+        {
+          "cell": "B2",
+          "row": 2,
+          "column": "B",
+          "formula": "=ARRAYFORMULA(IF(NL_VanChuyen!A3:A=\"\";\"\";NL_VanChuyen!B3:B))"
+        },
+        {
+          "cell": "C2",
+          "row": 2,
+          "column": "C",
+          "formula": "=ARRAYFORMULA(IF(NL_VanChuyen!A3:A=\"\";\"\";NL_VanChuyen!C3:C))"
+        },
+        {
+          "cell": "D2",
+          "row": 2,
+          "column": "D",
+          "formula": "=ARRAYFORMULA(IF(NL_VanChuyen!A3:A=\"\";\"\";NL_VanChuyen!D3:D))"
+        },
+        {
+          "cell": "E2",
+          "row": 2,
+          "column": "E",
+          "formula": "=ARRAYFORMULA(IF(NL_VanChuyen!A3:A=\"\";\"\";NL_VanChuyen!E3:E))"
+        },
+        {
+          "cell": "F2",
+          "row": 2,
+          "column": "F",
+          "formula": "=MAP(C2:C;E2:E;LAMBDA(xe;ch;IF(xe=\"\";\"\";IFERROR(XLOOKUP(xe;DM_Xe!A:A;DM_Xe!B:B;0)*ch;\"\"))))"
+        },
+        {
+          "cell": "G2",
+          "row": 2,
+          "column": "G",
+          "formula": "=MAP(A2:A;D2:D;LAMBDA(ngay;duan;IF(ngay=\"\";\"\";IFERROR(LOOKUP(2;1/(DM_DuAn!A2:A=duan)/(DM_DuAn!C2:C<=ngay)/((DM_DuAn!D2:D=\"\")+(DM_DuAn!D2:D>=ngay));DM_DuAn!B2:B);\"\"))))"
+        },
+        {
+          "cell": "H2",
+          "row": 2,
+          "column": "H",
+          "formula": "=MAP(A2:A;LAMBDA(ngay;IF(ngay=\"\";\"\";IFERROR(XLOOKUP(ngay;DM_ThamSo!F:F;DM_ThamSo!G:G;\"\";-1);\"\"))))"
+        },
+        {
+          "cell": "I2",
+          "row": 2,
+          "column": "I",
+          "formula": "=MAP(D2:D;E2:E;LAMBDA(duan;chuyen;IF(duan=\"\";\"\";IFERROR(INDEX(FILTER(DM_DonGiaVanChuyen!D:D;DM_DonGiaVanChuyen!A:A=duan;DM_DonGiaVanChuyen!B:B<=chuyen;DM_DonGiaVanChuyen!C:C>=chuyen);1);\"\"))))"
+        },
+        {
+          "cell": "J2",
+          "row": 2,
+          "column": "J",
+          "formula": "=MAP(H2:H;LAMBDA(gia;IF(gia=\"\";\"\";(gia-XLOOKUP(\"GIA_DAU_GOC\";DM_ThamSo!A:A;DM_ThamSo!C:C))/XLOOKUP(\"BUOC_GIA_DAU\";DM_ThamSo!A:A;DM_ThamSo!C:C)*XLOOKUP(\"BUOC_DON_GIA\";DM_ThamSo!A:A;DM_ThamSo!C:C))))"
+        },
+        {
+          "cell": "K2",
+          "row": 2,
+          "column": "K",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";ROUND(I2:I+J2:J;0)))"
+        },
+        {
+          "cell": "L2",
+          "row": 2,
+          "column": "L",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";F2:F*K2:K))"
+        },
+        {
+          "cell": "M2",
+          "row": 2,
+          "column": "M",
+          "formula": "=MAP(C2:C;LAMBDA(xe;IF(xe=\"\";\"\";IFERROR(XLOOKUP(xe;DM_Xe!A:A;DM_Xe!F:F;\"\");\"\"))))"
+        },
+        {
+          "cell": "N2",
+          "row": 2,
+          "column": "N",
+          "formula": "=ARRAYFORMULA(IF(NL_VanChuyen!A3:A=\"\";\"\";NL_VanChuyen!G3:G))"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": [
+        {
+          "type": "SHEET",
+          "description": "",
+          "rangeA1": "",
+          "warningOnly": false
+        }
+      ]
+    },
+    {
+      "name": "XL_LuongTheoXe",
+      "sheetId": 864765816,
+      "index": 9,
+      "hidden": false,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 5000,
+      "lastColumn": 15,
+      "maxRows": 5000,
+      "maxColumns": 20,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Tháng"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Tài xế"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Biển số xe"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Cá nhân"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Tổng của xe"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Số lái"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Loại tính"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Đơn giá"
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": "Lương chuyến"
+        },
+        {
+          "column": "J",
+          "columnIndex": 10,
+          "header": "Nghỉ tính chỉ tiêu"
+        },
+        {
+          "column": "K",
+          "columnIndex": 11,
+          "header": "Chỉ tiêu sau nghỉ"
+        },
+        {
+          "column": "L",
+          "columnIndex": 12,
+          "header": "Chuyến vượt 168"
+        },
+        {
+          "column": "M",
+          "columnIndex": 13,
+          "header": "Thưởng vượt 168"
+        },
+        {
+          "column": "N",
+          "columnIndex": 14,
+          "header": "Điều chỉnh ngoại lệ"
+        },
+        {
+          "column": "O",
+          "columnIndex": 15,
+          "header": "Lương chuyến cuối"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Tháng",
+          "Tài xế",
+          "Biển số xe",
+          "Cá nhân",
+          "Tổng của xe",
+          "Số lái",
+          "Loại tính",
+          "Đơn giá",
+          "Lương chuyến",
+          "Nghỉ tính chỉ tiêu",
+          "Chỉ tiêu sau nghỉ",
+          "Chuyến vượt 168",
+          "Thưởng vượt 168",
+          "Điều chỉnh ngoại lệ",
+          "Lương chuyến cuối"
+        ],
+        [
+          "05/2026",
+          "A Bằng",
+          "20H05664",
+          "14",
+          "39",
+          "3",
+          "NHIEU_LAI",
+          "270.000 đ",
+          "3.780.000 đ",
+          "0,00",
+          "168,00",
+          "0,0",
+          "0,0",
+          "0 đ",
+          "3.780.000 ₫"
+        ],
+        [
+          "05/2026",
+          "A Bằng",
+          "20H06214",
+          "6",
+          "29",
+          "3",
+          "NHIEU_LAI",
+          "270.000 đ",
+          "1.620.000 đ",
+          "0,00",
+          "168,00",
+          "0,0",
+          "0,0",
+          "0 đ",
+          "1.620.000 ₫"
+        ],
+        [
+          "05/2026",
+          "A Hạnh",
+          "20H05664",
+          "19,5",
+          "39",
+          "3",
+          "NHIEU_LAI",
+          "270.000 đ",
+          "5.265.000 đ",
+          "0,00",
+          "168,00",
+          "0,0",
+          "0,0",
+          "0 đ",
+          "5.265.000 ₫"
+        ],
+        [
+          "05/2026",
+          "A Mười",
+          "20H05602",
+          "19",
+          "39",
+          "2",
+          "NHIEU_LAI",
+          "270.000 đ",
+          "5.130.000 đ",
+          "0,00",
+          "168,00",
+          "0,0",
+          "0,0",
+          "0 đ",
+          "5.130.000 ₫"
+        ],
+        [
+          "05/2026",
+          "A Tuấn",
+          "20H05602",
+          "20",
+          "39",
+          "2",
+          "NHIEU_LAI",
+          "270.000 đ",
+          "5.400.000 đ",
+          "0,00",
+          "168,00",
+          "0,0",
+          "0,0",
+          "0 đ",
+          "5.400.000 ₫"
+        ],
+        [
+          "05/2026",
+          "Chu Đức Mười",
+          "20H06278",
+          "26",
+          "29",
+          "2",
+          "NHIEU_LAI",
+          "270.000 đ",
+          "7.020.000 đ",
+          "0,00",
+          "168,00",
+          "0,0",
+          "0,0",
+          "0 đ",
+          "7.020.000 ₫"
+        ],
+        [
+          "05/2026",
+          "Hoàng Minh Hà",
+          "20H05664",
+          "5,5",
+          "39",
+          "3",
+          "NHIEU_LAI",
+          "270.000 đ",
+          "1.485.000 đ",
+          "0,00",
+          "168,00",
+          "0,0",
+          "0,0",
+          "0 đ",
+          "1.485.000 ₫"
+        ],
+        [
+          "05/2026",
+          "Nguyễn Hữu Phớt",
+          "20H06214",
+          "6",
+          "29",
+          "3",
+          "NHIEU_LAI",
+          "270.000 đ",
+          "1.620.000 đ",
+          "0,00",
+          "168,00",
+          "0,0",
+          "0,0",
+          "0 đ",
+          "1.620.000 ₫"
+        ],
+        [
+          "05/2026",
+          "Đặng Văn Việt",
+          "20H06214",
+          "17",
+          "29",
+          "3",
+          "NHIEU_LAI",
+          "270.000 đ",
+          "4.590.000 đ",
+          "0,00",
+          "168,00",
+          "0,0",
+          "0,0",
+          "0 đ",
+          "4.590.000 ₫"
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "A2",
+          "row": 2,
+          "column": "A",
+          "formula": "=QUERY(NL_TaiXe!B2:E;\"select B, D, C, sum(E) where B is not null group by B, D, C label sum(E) ''\";0)"
+        },
+        {
+          "cell": "E2",
+          "row": 2,
+          "column": "E",
+          "formula": "=MAP(A2:A;C2:C;LAMBDA(thang;xe;IF(thang=\"\";\"\";SUMIFS(NL_TaiXe!E:E;NL_TaiXe!B:B;thang;NL_TaiXe!C:C;xe))))"
+        },
+        {
+          "cell": "F2",
+          "row": 2,
+          "column": "F",
+          "formula": "=MAP(A2:A;C2:C;LAMBDA(thang;xe;IF(thang=\"\";\"\";COUNTUNIQUEIFS(NL_TaiXe!D:D;NL_TaiXe!B:B;thang;NL_TaiXe!C:C;xe))))"
+        },
+        {
+          "cell": "G2",
+          "row": 2,
+          "column": "G",
+          "formula": "=MAP(F2:F;LAMBDA(solai;IF(solai=\"\";\"\";IF(solai=1;\"1_LAI\";\"NHIEU_LAI\"))))"
+        },
+        {
+          "cell": "H2",
+          "row": 2,
+          "column": "H",
+          "formula": "=MAP(A2:A;G2:G;E2:E;J2:J;LAMBDA(t;loai;tong;nghi;IF(t=\"\";\"\";LET(chxet;tong+nghi;IFERROR(INDEX(FILTER(DM_LuongChuyen!E:E;DM_LuongChuyen!A:A=loai;DM_LuongChuyen!C:C<=chxet;DM_LuongChuyen!D:D>=chxet;DM_LuongChuyen!F:F<=t;(DM_LuongChuyen!G:G=\"\")+(DM_LuongChuyen!G:G>=t));1);0)))))"
+        },
+        {
+          "cell": "I2",
+          "row": 2,
+          "column": "I",
+          "formula": "=MAP(A2:A;D2:D;H2:H;LAMBDA(t;ch;dg;IF(t=\"\";\"\";ch*dg)))"
+        },
+        {
+          "cell": "J2",
+          "row": 2,
+          "column": "J",
+          "formula": "=MAP(A2:A;C2:C;LAMBDA(t;xe;IF(t=\"\";\"\";SUMIFS(NL_NghiVanHanh!H:H;NL_NghiVanHanh!B:B;t;NL_NghiVanHanh!C:C;xe;NL_NghiVanHanh!G:G;\"Có\"))))"
+        },
+        {
+          "cell": "K2",
+          "row": 2,
+          "column": "K",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";XLOOKUP(\"MOC_KPI_CHUYEN\";DM_ThamSo!A:A;DM_ThamSo!C:C)-J2:J))"
+        },
+        {
+          "cell": "L2",
+          "row": 2,
+          "column": "L",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";IF(E2:E>K2:K;E2:E-K2:K;0)))"
+        },
+        {
+          "cell": "M2",
+          "row": 2,
+          "column": "M",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";L2:L*XLOOKUP(\"THUONG_VUOT_168\";DM_ThamSo!A:A;DM_ThamSo!C:C)))"
+        },
+        {
+          "cell": "N2",
+          "row": 2,
+          "column": "N",
+          "formula": "=MAP(A2:A;B2:B;C2:C;LAMBDA(t;tx;xe;IF(t=\"\";\"\";IFERROR(SUMIFS(XL_NgoaiLe!I:I;XL_NgoaiLe!B:B;t;XL_NgoaiLe!C:C;xe;XL_NgoaiLe!D:D;tx);0))))"
+        },
+        {
+          "cell": "O2",
+          "row": 2,
+          "column": "O",
+          "formula": "=MAP(A2:A;I2:I;N2:N;LAMBDA(t;luong;dc;IF(t=\"\";\"\";luong+dc)))"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": [
+        {
+          "type": "SHEET",
+          "description": "",
+          "rangeA1": "",
+          "warningOnly": false
+        }
+      ]
+    },
+    {
+      "name": "XL_LuongNhanSu",
+      "sheetId": 1137210395,
+      "index": 10,
+      "hidden": false,
+      "frozenRows": 1,
+      "frozenColumns": 2,
+      "lastRow": 5000,
+      "lastColumn": 21,
+      "maxRows": 5000,
+      "maxColumns": 21,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Tháng"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Nhân sự"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Chức vụ"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Số chuyến"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Lương chuyến"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Lương cứng"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Ngày vào làm"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Ngày nghỉ việc"
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": "Nghỉ chuẩn/tháng"
+        },
+        {
+          "column": "J",
+          "columnIndex": 10,
+          "header": "Ngày biên chế"
+        },
+        {
+          "column": "K",
+          "columnIndex": 11,
+          "header": "Nghỉ phép"
+        },
+        {
+          "column": "L",
+          "columnIndex": 12,
+          "header": "Nghỉ vượt phép"
+        },
+        {
+          "column": "M",
+          "columnIndex": 13,
+          "header": "Nghỉ trừ lương"
+        },
+        {
+          "column": "N",
+          "columnIndex": 14,
+          "header": "Ngày trừ lương"
+        },
+        {
+          "column": "O",
+          "columnIndex": 15,
+          "header": "Lương cứng/ngày"
+        },
+        {
+          "column": "P",
+          "columnIndex": 16,
+          "header": "Lương cứng thực tính"
+        },
+        {
+          "column": "Q",
+          "columnIndex": 17,
+          "header": "Thưởng"
+        },
+        {
+          "column": "R",
+          "columnIndex": 18,
+          "header": "Ứng lương"
+        },
+        {
+          "column": "S",
+          "columnIndex": 19,
+          "header": "Phạt"
+        },
+        {
+          "column": "T",
+          "columnIndex": 20,
+          "header": "Tổng lương"
+        },
+        {
+          "column": "U",
+          "columnIndex": 21,
+          "header": "Thực nhận"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Tháng",
+          "Nhân sự",
+          "Chức vụ",
+          "Số chuyến",
+          "Lương chuyến",
+          "Lương cứng",
+          "Ngày vào làm",
+          "Ngày nghỉ việc",
+          "Nghỉ chuẩn/tháng",
+          "Ngày biên chế",
+          "Nghỉ phép",
+          "Nghỉ vượt phép",
+          "Nghỉ trừ lương",
+          "Ngày trừ lương",
+          "Lương cứng/ngày",
+          "Lương cứng thực tính",
+          "Thưởng",
+          "Ứng lương",
+          "Phạt",
+          "Tổng lương",
+          "Thực nhận"
+        ],
+        [
+          "05/2026",
+          "Quang",
+          "Quản lý",
+          "0,",
+          "0 đ",
+          "0 đ",
+          "01/05/2026",
+          "31/05/2026",
+          "8",
+          "31",
+          "0",
+          "0",
+          "0",
+          "0",
+          "0 đ",
+          "0 đ",
+          "20.000.000 đ",
+          "0 đ",
+          "0",
+          "20.000.000 đ",
+          "20.000.000 đ"
+        ],
+        [
+          "05/2026",
+          "A Bằng",
+          "Tài xế",
+          "20,",
+          "5.400.000 đ",
+          "10.000.000 đ",
+          "11/05/2026",
+          "03/06/2026",
+          "2",
+          "21",
+          "0",
+          "0",
+          "0",
+          "0",
+          "322.581 đ",
+          "6.774.000 đ",
+          "0 đ",
+          "2.500.000 đ",
+          "5.100.000",
+          "12.174.000 đ",
+          "4.574.000 đ"
+        ],
+        [
+          "05/2026",
+          "A Hạnh",
+          "Tài xế",
+          "19,5",
+          "5.265.000 đ",
+          "10.000.000 đ",
+          "01/05/2026",
+          "03/06/2026",
+          "2",
+          "31",
+          "0",
+          "0",
+          "0",
+          "0",
+          "322.581 đ",
+          "10.000.000 đ",
+          "0 đ",
+          "2.500.000 đ",
+          "0",
+          "15.265.000 đ",
+          "12.765.000 đ"
+        ],
+        [
+          "05/2026",
+          "A Mười",
+          "Tài xế",
+          "19,",
+          "5.130.000 đ",
+          "10.000.000 đ",
+          "01/05/2026",
+          "03/06/2026",
+          "2",
+          "31",
+          "0",
+          "0",
+          "0",
+          "0",
+          "322.581 đ",
+          "10.000.000 đ",
+          "0 đ",
+          "2.500.000 đ",
+          "0",
+          "15.130.000 đ",
+          "12.630.000 đ"
+        ],
+        [
+          "05/2026",
+          "A Tuấn",
+          "Tài xế",
+          "20,",
+          "5.400.000 đ",
+          "10.000.000 đ",
+          "20/05/2026",
+          "04/06/2026",
+          "2",
+          "12",
+          "0",
+          "0",
+          "0",
+          "0",
+          "322.581 đ",
+          "3.871.000 đ",
+          "0 đ",
+          "2.500.000 đ",
+          "0",
+          "9.271.000 đ",
+          "6.771.000 đ"
+        ],
+        [
+          "05/2026",
+          "Chu Đức Mười",
+          "Tài xế",
+          "26,",
+          "7.020.000 đ",
+          "10.000.000 đ",
+          "01/05/2026",
+          "",
+          "2",
+          "31",
+          "0",
+          "0",
+          "0",
+          "0",
+          "322.581 đ",
+          "10.000.000 đ",
+          "0 đ",
+          "2.500.000 đ",
+          "0",
+          "17.020.000 đ",
+          "14.520.000 đ"
+        ],
+        [
+          "05/2026",
+          "Đặng Văn Việt",
+          "Tài xế",
+          "20,",
+          "5.400.000 đ",
+          "10.000.000 đ",
+          "01/05/2026",
+          "15/06/2026",
+          "2",
+          "31",
+          "2",
+          "0",
+          "0",
+          "0",
+          "322.581 đ",
+          "10.000.000 đ",
+          "0 đ",
+          "4.500.000 đ",
+          "0",
+          "15.400.000 đ",
+          "10.900.000 đ"
+        ],
+        [
+          "05/2026",
+          "Hoàng Minh Hà",
+          "Tài xế",
+          "5,5",
+          "1.485.000 đ",
+          "10.000.000 đ",
+          "30/05/2026",
+          "",
+          "2",
+          "2",
+          "0",
+          "0",
+          "0",
+          "0",
+          "322.581 đ",
+          "645.000 đ",
+          "0 đ",
+          "2.500.000 đ",
+          "0",
+          "2.130.000 đ",
+          "-370.000 đ"
+        ],
+        [
+          "05/2026",
+          "Nguyễn Hữu Phớt",
+          "Tài xế",
+          "6,",
+          "1.620.000 đ",
+          "10.000.000 đ",
+          "28/05/2026",
+          "",
+          "2",
+          "4",
+          "0",
+          "0",
+          "0",
+          "0",
+          "322.581 đ",
+          "1.290.000 đ",
+          "0 đ",
+          "2.500.000 đ",
+          "0",
+          "2.910.000 đ",
+          "410.000 đ"
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "A2",
+          "row": 2,
+          "column": "A",
+          "formula": "=LET(ns;SORT(UNIQUE(TOCOL({DM_NhanSu!A2:A1000;DM_NhanSu!C2:C1000};1)));q;ROWS(ns);thangnv;ARRAYFORMULA(IF(DM_NhanSu!F2:F1000=\"\";;DATE(YEAR(DM_NhanSu!F2:F1000);MONTH(DM_NhanSu!F2:F1000);1)));thangtuyen;ARRAYFORMULA(IF(DM_NhanSu!D2:D1000=\"\";;DATE(YEAR(DM_NhanSu!D2:D1000);MONTH(DM_NhanSu!D2:D1000);1)));th;SORT(UNIQUE(TOCOL({XL_LuongTheoXe!A2:A5000;thangnv;thangtuyen};1)));raw;MAKEARRAY(ROWS(th)*q;5;LAMBDA(r;c;LET(t;INDEX(th;ROUNDUP(r/q;0));n;INDEX(ns;MOD(r-1;q)+1);cv;XLOOKUP(n;DM_NhanSu!A:A;DM_NhanSu!B:B;\"Người tuyển\");vao;XLOOKUP(n;DM_NhanSu!A:A;DM_NhanSu!F:F;\"\");nghi;XLOOKUP(n;DM_NhanSu!A:A;DM_NhanSu!G:G;\"\");activeNV;(vao<>\"\")*(vao<=EOMONTH(t;0))*((nghi=\"\")+(nghi>=t));activeTuyen;COUNTIFS(DM_NhanSu!C:C;n;DM_NhanSu!D:D;\"<=\"&EOMONTH(t;0);DM_NhanSu!E:E;\"\")+COUNTIFS(DM_NhanSu!C:C;n;DM_NhanSu!D:D;\"<=\"&EOMONTH(t;0);DM_NhanSu!E:E;\">=\"&t);active;(activeNV+activeTuyen)>0;SWITCH(c;1;IF(active;t;\"\");2;IF(active;n;\"\");3;IF(active;cv;\"\");4;IF(activeNV;SUMIFS(XL_LuongTheoXe!D:D;XL_LuongTheoXe!A:A;t;XL_LuongTheoXe!B:B;n);0);5;IF(activeNV;SUMIFS(XL_LuongTheoXe!O:O;XL_LuongTheoXe!A:A;t;XL_LuongTheoXe!B:B;n);0)))));SORT(FILTER(raw;INDEX(raw;;1)<>\"\");1;TRUE;3;TRUE;2;TRUE))"
+        },
+        {
+          "cell": "F2",
+          "row": 2,
+          "column": "F",
+          "formula": "=MAP(B2:B;C2:C;LAMBDA(ns;cv;IF(ns=\"\";\"\";IF((cv=\"Quản lý\")+(cv=\"Nhân sự\");0;IFERROR(XLOOKUP(ns;DM_NhanSu!A:A;DM_NhanSu!H:H;0);0)))))"
+        },
+        {
+          "cell": "G2",
+          "row": 2,
+          "column": "G",
+          "formula": "=MAP(B2:B;LAMBDA(ns;IF(ns=\"\";\"\";IFERROR(XLOOKUP(ns;DM_NhanSu!A:A;DM_NhanSu!F:F;\"\");\"\"))))"
+        },
+        {
+          "cell": "H2",
+          "row": 2,
+          "column": "H",
+          "formula": "=MAP(B2:B;LAMBDA(ns;IF(ns=\"\";\"\";IFERROR(XLOOKUP(ns;DM_NhanSu!A:A;DM_NhanSu!G:G;\"\");\"\"))))"
+        },
+        {
+          "cell": "I2",
+          "row": 2,
+          "column": "I",
+          "formula": "=MAP(B2:B;LAMBDA(ns;IF(ns=\"\";\"\";IFERROR(IF(XLOOKUP(ns;DM_NhanSu!A:A;DM_NhanSu!I:I;\"\")=\"\";XLOOKUP(\"NGHI_CHUAN_THANG\";DM_ThamSo!A:A;DM_ThamSo!C:C);XLOOKUP(ns;DM_NhanSu!A:A;DM_NhanSu!I:I;\"\"));XLOOKUP(\"NGHI_CHUAN_THANG\";DM_ThamSo!A:A;DM_ThamSo!C:C)))))"
+        },
+        {
+          "cell": "J2",
+          "row": 2,
+          "column": "J",
+          "formula": "=MAP(A2:A;G2:G;H2:H;LAMBDA(thang;ngayvao;ngaynghi;IF(thang=\"\";\"\";LET(dau;thang;cuoi;EOMONTH(thang;0);bd;MAX(dau;IF(ngayvao=\"\";dau;ngayvao));kt;MIN(cuoi;IF(ngaynghi=\"\";cuoi;ngaynghi));MAX(0;kt-bd+1)))) )"
+        },
+        {
+          "cell": "K2",
+          "row": 2,
+          "column": "K",
+          "formula": "=MAP(A2:A;B2:B;LAMBDA(t;n;IF(t=\"\";\"\";SUMIFS(NL_ChamCong!F:F;NL_ChamCong!C:C;t;NL_ChamCong!D:D;n;NL_ChamCong!E:E;\"Nghỉ phép\"))))"
+        },
+        {
+          "cell": "L2",
+          "row": 2,
+          "column": "L",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";IF(K2:K-I2:I<0;0;K2:K-I2:I)))"
+        },
+        {
+          "cell": "M2",
+          "row": 2,
+          "column": "M",
+          "formula": "=MAP(A2:A;B2:B;LAMBDA(t;n;IF(t=\"\";\"\";SUMIFS(NL_ChamCong!F:F;NL_ChamCong!C:C;t;NL_ChamCong!D:D;n;NL_ChamCong!G:G;\"Không\"))))"
+        },
+        {
+          "cell": "N2",
+          "row": 2,
+          "column": "N",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";L2:L+M2:M))"
+        },
+        {
+          "cell": "O2",
+          "row": 2,
+          "column": "O",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";IFERROR(F2:F/DAY(EOMONTH(A2:A;0));0)))"
+        },
+        {
+          "cell": "P2",
+          "row": 2,
+          "column": "P",
+          "formula": "=MAP(A2:A;F2:F;J2:J;O2:O;N2:N;LAMBDA(t;lc;nbc;lcng;ntl;IF(t=\"\";\"\";ROUND(IF((lc/DAY(EOMONTH(t;0))*nbc)-(lcng*ntl)<0;0;(lc/DAY(EOMONTH(t;0))*nbc)-(lcng*ntl));-3))))"
+        },
+        {
+          "cell": "Q2",
+          "row": 2,
+          "column": "Q",
+          "formula": "=MAP(A2:A;B2:B;C2:C;LAMBDA(t;n;cv;IF(t=\"\";\"\";LET(khoan;SUMIFS(DM_NhanSu!M:M;DM_NhanSu!A:A;n;DM_NhanSu!L:L;\"Lương khoán\";DM_NhanSu!N:N;\"<=\"&t;DM_NhanSu!O:O;\">=\"&t);thuongql;IF(khoan>0;0;IF(cv=\"Quản lý\";SUM(MAP(FILTER(XL_ThuongQuanLy!A2:A;XL_ThuongQuanLy!A2:A=t);FILTER(XL_ThuongQuanLy!H2:H;XL_ThuongQuanLy!A2:A=t);LAMBDA(th;thuong;LET(nv;XLOOKUP(n;DM_NhanSu!A:A;DM_NhanSu!F:F;\"\");nn;XLOOKUP(n;DM_NhanSu!A:A;DM_NhanSu!G:G;\"\");dau;th;cuoi;EOMONTH(th;0);bd;MAX(dau;IF(nv=\"\";dau;nv));kt;MIN(cuoi;IF(nn=\"\";cuoi;nn));nghi;SUMIFS(NL_ChamCong!F:F;NL_ChamCong!C:C;th;NL_ChamCong!D:D;n);ngay;MAX(0;kt-bd+1-nghi);tongngay;XLOOKUP(th;XL_ThuongQuanLy!A:A;XL_ThuongQuanLy!I:I;0);IF(tongngay=0;0;thuong*ngay/tongngay)))));0));thuongtuyen;SUM(MAP(DM_NhanSu!C2:C;DM_NhanSu!D2:D;DM_NhanSu!E2:E;DM_NhanSu!F2:F;DM_NhanSu!G2:G;LAMBDA(nguoi;bdt;ktt;vao;nghi;IF(nguoi<>n;0;LET(dau;t;cuoi;EOMONTH(t;0);bd;MAX(dau;IF(bdt=\"\";dau;bdt);IF(vao=\"\";dau;vao));kt;MIN(cuoi;IF(ktt=\"\";cuoi;ktt);IF(nghi=\"\";cuoi;nghi));MAX(0;kt-bd+1)/DAY(cuoi)*IFERROR(INDEX(FILTER(DM_ThuongQuanLy!D:D;DM_ThuongQuanLy!A:A=\"TUYEN_DU_2_LAI\";DM_ThuongQuanLy!G:G<=t;(DM_ThuongQuanLy!H:H=\"\")+(DM_ThuongQuanLy!H:H>=t));1)/2;0))))));SUMIFS(IMP_ThuChi!D:D;IMP_ThuChi!G:G;t;IMP_ThuChi!H:H;n;IMP_ThuChi!I:I;\"Thưởng\")+thuongql+khoan+thuongtuyen))))"
+        },
+        {
+          "cell": "R2",
+          "row": 2,
+          "column": "R",
+          "formula": "=MAP(A2:A;B2:B;LAMBDA(t;n;IF(t=\"\";\"\";SUMIFS(IMP_ThuChi!D:D;IMP_ThuChi!G:G;t;IMP_ThuChi!H:H;n;IMP_ThuChi!I:I;\"Ứng lương\"))))"
+        },
+        {
+          "cell": "S2",
+          "row": 2,
+          "column": "S",
+          "formula": "=MAP(A2:A;B2:B;LAMBDA(t;n;IF(t=\"\";\"\";SUMIFS(IMP_ThuChi!D:D;IMP_ThuChi!G:G;t;IMP_ThuChi!H:H;n;IMP_ThuChi!I:I;\"Phạt\")+SUMIFS(NL_Phat!F:F;NL_Phat!B:B;t;NL_Phat!C:C;n))))"
+        },
+        {
+          "cell": "T2",
+          "row": 2,
+          "column": "T",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";IFERROR(E2:E;0)+IFERROR(P2:P;0)+IFERROR(Q2:Q;0)))"
+        },
+        {
+          "cell": "U2",
+          "row": 2,
+          "column": "U",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";T2:T-R2:R-S2:S))"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": [
+        {
+          "type": "SHEET",
+          "description": "",
+          "rangeA1": "",
+          "warningOnly": false
+        }
+      ]
+    },
+    {
+      "name": "XL_NgoaiLe",
+      "sheetId": 20260622,
+      "index": 11,
+      "hidden": false,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 5000,
+      "lastColumn": 25,
+      "maxRows": 5000,
+      "maxColumns": 25,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Ngày"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Tháng"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Biển số"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Tài xế"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Số chuyến"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Trường hợp"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Đơn giá cơ bản"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Đơn giá áp dụng"
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": "Điều chỉnh ngoại lệ"
+        },
+        {
+          "column": "J",
+          "columnIndex": 10,
+          "header": "Cần kiểm tra"
+        },
+        {
+          "column": "K",
+          "columnIndex": 11,
+          "header": "_Ngày"
+        },
+        {
+          "column": "L",
+          "columnIndex": 12,
+          "header": "_Tháng"
+        },
+        {
+          "column": "M",
+          "columnIndex": 13,
+          "header": "_Biển số"
+        },
+        {
+          "column": "N",
+          "columnIndex": 14,
+          "header": "_Tài xế"
+        },
+        {
+          "column": "O",
+          "columnIndex": 15,
+          "header": "_Số chuyến"
+        },
+        {
+          "column": "P",
+          "columnIndex": 16,
+          "header": "_Vai trò"
+        },
+        {
+          "column": "Q",
+          "columnIndex": 17,
+          "header": "_Hưởng mốc"
+        },
+        {
+          "column": "R",
+          "columnIndex": 18,
+          "header": "_Thiếu lái"
+        },
+        {
+          "column": "S",
+          "columnIndex": 19,
+          "header": "_Đạt thiếu lái"
+        },
+        {
+          "column": "T",
+          "columnIndex": 20,
+          "header": "_Đơn giá cơ bản"
+        },
+        {
+          "column": "U",
+          "columnIndex": 21,
+          "header": "_Đơn giá áp dụng"
+        },
+        {
+          "column": "V",
+          "columnIndex": 22,
+          "header": "_Lương ngày"
+        },
+        {
+          "column": "W",
+          "columnIndex": 23,
+          "header": "_Chênh lệch"
+        },
+        {
+          "column": "X",
+          "columnIndex": 24,
+          "header": "_Trường hợp"
+        },
+        {
+          "column": "Y",
+          "columnIndex": 25,
+          "header": "_Cần kiểm tra"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Ngày",
+          "Tháng",
+          "Biển số",
+          "Tài xế",
+          "Số chuyến",
+          "Trường hợp",
+          "Đơn giá cơ bản",
+          "Đơn giá áp dụng",
+          "Điều chỉnh ngoại lệ",
+          "Cần kiểm tra",
+          "_Ngày",
+          "_Tháng",
+          "_Biển số",
+          "_Tài xế",
+          "_Số chuyến",
+          "_Vai trò",
+          "_Hưởng mốc",
+          "_Thiếu lái",
+          "_Đạt thiếu lái",
+          "_Đơn giá cơ bản",
+          "_Đơn giá áp dụng",
+          "_Lương ngày",
+          "_Chênh lệch",
+          "_Trường hợp",
+          "_Cần kiểm tra"
+        ],
+        [
+          "06/06/2026",
+          "06/2026",
+          "20H05602",
+          "Vũ Xuân Hân",
+          "4,",
+          "Thiếu lái chưa đạt",
+          "270.000 ₫",
+          "270.000 ₫",
+          "0 ₫",
+          "",
+          "25/05/2026",
+          "05/2026",
+          "20H05602",
+          "A Mười",
+          "2",
+          "",
+          "Không",
+          "Không",
+          "Không",
+          "270.000 ₫",
+          "270.000 ₫",
+          "540.000 ₫",
+          "0 ₫",
+          "",
+          ""
+        ],
+        [
+          "07/06/2026",
+          "06/2026",
+          "20H05602",
+          "Vũ Xuân Hân",
+          "6,",
+          "Thiếu lái đạt; Điều chỉnh đơn giá",
+          "270.000 ₫",
+          "300.000 ₫",
+          "180.000 ₫",
+          "",
+          "25/05/2026",
+          "05/2026",
+          "20H05602",
+          "A Tuấn",
+          "2",
+          "",
+          "Không",
+          "Không",
+          "Không",
+          "270.000 ₫",
+          "270.000 ₫",
+          "540.000 ₫",
+          "0 ₫",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "46.167 ₫",
+          "46.143 ₫",
+          "20H05664",
+          "A Bằng",
+          "3 ₫",
+          "",
+          "Không",
+          "Không",
+          "Không",
+          "270.000 ₫",
+          "270.000 ₫",
+          "810.000 ₫",
+          "0 ₫",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "46.167 ₫",
+          "46.143 ₫",
+          "20H05664",
+          "A Hạnh",
+          "2 ₫",
+          "",
+          "Không",
+          "Không",
+          "Không",
+          "270.000 ₫",
+          "270.000 ₫",
+          "540.000 ₫",
+          "0 ₫",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "46.167 ₫",
+          "46.143 ₫",
+          "20H06214",
+          "Đặng Văn Việt",
+          "3 ₫",
+          "",
+          "Không",
+          "Không",
+          "Không",
+          "270.000 ₫",
+          "270.000 ₫",
+          "810.000 ₫",
+          "0 ₫",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "46.167 ₫",
+          "46.143 ₫",
+          "20H06278",
+          "Chu Đức Mười",
+          "4 ₫",
+          "Lái chính",
+          "Có",
+          "Không",
+          "Không",
+          "270.000 ₫",
+          "270.000 ₫",
+          "1.080.000 ₫",
+          "0 ₫",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "46.168 ₫",
+          "46.143 ₫",
+          "20H05602",
+          "A Mười",
+          "3 ₫",
+          "",
+          "Không",
+          "Không",
+          "Không",
+          "270.000 ₫",
+          "270.000 ₫",
+          "810.000 ₫",
+          "0 ₫",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "46.168 ₫",
+          "46.143 ₫",
+          "20H05602",
+          "A Tuấn",
+          "3 ₫",
+          "",
+          "Không",
+          "Không",
+          "Không",
+          "270.000 ₫",
+          "270.000 ₫",
+          "810.000 ₫",
+          "0 ₫",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "46.168 ₫",
+          "46.143 ₫",
+          "20H05664",
+          "A Bằng",
+          "3 ₫",
+          "",
+          "Không",
+          "Không",
+          "Không",
+          "270.000 ₫",
+          "270.000 ₫",
+          "810.000 ₫",
+          "0 ₫",
+          "",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "A2",
+          "row": 2,
+          "column": "A",
+          "formula": "=IFERROR(FILTER({K2:K\\L2:L\\M2:M\\N2:N\\O2:O\\X2:X\\T2:T\\U2:U\\W2:W\\Y2:Y};(K2:K<>\"\")*(M2:M<>\"\")*(N2:N<>\"\")*((R2:R=\"Có\")+(P2:P=\"Hỗ trợ\")+(W2:W<>0)));\"\")"
+        },
+        {
+          "cell": "K2",
+          "row": 2,
+          "column": "K",
+          "formula": "=SORT(QUERY(NL_TaiXe!A2:E;\"select A, B, C, D, sum(E) where A is not null group by A, B, C, D label sum(E) ''\";0);1;TRUE;3;TRUE;4;TRUE)"
+        },
+        {
+          "cell": "P2",
+          "row": 2,
+          "column": "P",
+          "formula": "=MAP(K2:K;M2:M;N2:N;LAMBDA(ng;xe;tx;IF(ng=\"\";\"\";IFNA(INDEX(FILTER(DM_PhanCongLaiXe!C$2:C;DM_PhanCongLaiXe!A$2:A=xe;DM_PhanCongLaiXe!B$2:B=tx;DM_PhanCongLaiXe!D$2:D<=ng;(DM_PhanCongLaiXe!E$2:E=\"\")+(DM_PhanCongLaiXe!E$2:E>=ng));1);\"\"))))"
+        },
+        {
+          "cell": "Q2",
+          "row": 2,
+          "column": "Q",
+          "formula": "=MAP(K2:K;M2:M;N2:N;P2:P;LAMBDA(ng;xe;tx;vt;IF(ng=\"\";\"\";LET(v;IFNA(INDEX(FILTER(DM_PhanCongLaiXe!F$2:F;DM_PhanCongLaiXe!A$2:A=xe;DM_PhanCongLaiXe!B$2:B=tx;DM_PhanCongLaiXe!D$2:D<=ng;(DM_PhanCongLaiXe!E$2:E=\"\")+(DM_PhanCongLaiXe!E$2:E>=ng));1);\"\");IF(v<>\"\";v;IF(vt=\"Lái chính\";\"Có\";\"Không\"))))))"
+        },
+        {
+          "cell": "R2",
+          "row": 2,
+          "column": "R",
+          "formula": "=MAP(K2:K;M2:M;N2:N;LAMBDA(ng;xe;tx;IF(ng=\"\";\"\";IF(IFERROR(SUM(FILTER(N(DM_PhanCongLaiXe!G$2:G=\"Có\");DM_PhanCongLaiXe!A$2:A=xe;DM_PhanCongLaiXe!B$2:B=tx;DM_PhanCongLaiXe!D$2:D<=ng;(DM_PhanCongLaiXe!E$2:E=\"\")+(DM_PhanCongLaiXe!E$2:E>=ng)));0)>0;\"Có\";\"Không\"))))"
+        },
+        {
+          "cell": "S2",
+          "row": 2,
+          "column": "S",
+          "formula": "=MAP(O2:O;R2:R;LAMBDA(ch;thieu;IF(ch=\"\";\"\";IF(thieu<>\"Có\";\"Không\";IF(ch>=XLOOKUP(\"THIEU_LAI_CHUYEN_TOI_THIEU\";DM_ThamSo!A:A;DM_ThamSo!C:C;5);\"Có\";\"Không\")))))"
+        },
+        {
+          "cell": "T2",
+          "row": 2,
+          "column": "T",
+          "formula": "=MAP(L2:L;M2:M;N2:N;LAMBDA(t;xe;tx;IF(t=\"\";\"\";IFNA(INDEX(FILTER(XL_LuongTheoXe!H$2:H;XL_LuongTheoXe!A$2:A=t;XL_LuongTheoXe!B$2:B=tx;XL_LuongTheoXe!C$2:C=xe);1);0))))"
+        },
+        {
+          "cell": "U2",
+          "row": 2,
+          "column": "U",
+          "formula": "=MAP(S2:S;T2:T;LAMBDA(dat;dg;IF(dat=\"\";\"\";IF(dat=\"Có\";XLOOKUP(\"DG_CHUA_DU_2_LAI\";DM_ThamSo!A:A;DM_ThamSo!C:C;300000);dg))))"
+        },
+        {
+          "cell": "V2",
+          "row": 2,
+          "column": "V",
+          "formula": "=ARRAYFORMULA(IF(K2:K=\"\";\"\";O2:O*U2:U))"
+        },
+        {
+          "cell": "W2",
+          "row": 2,
+          "column": "W",
+          "formula": "=ARRAYFORMULA(IF(K2:K=\"\";\"\";O2:O*(U2:U-T2:T)))"
+        },
+        {
+          "cell": "X2",
+          "row": 2,
+          "column": "X",
+          "formula": "=ARRAYFORMULA(IF(K2:K=\"\";\"\";REGEXREPLACE(IF(P2:P=\"Hỗ trợ\";\"Lái hỗ trợ\";\"\")&IF(R2:R=\"Có\";\"; \"&IF(S2:S=\"Có\";\"Thiếu lái đạt\";\"Thiếu lái chưa đạt\");\"\")&IF(W2:W<>0;\"; Điều chỉnh đơn giá\";\"\");\"^; \";\"\")))"
+        },
+        {
+          "cell": "Y2",
+          "row": 2,
+          "column": "Y",
+          "formula": "=MAP(P2:P;Q2:Q;LAMBDA(vt;moc;IF(vt=\"\";\"\";IF((vt<>\"Lái chính\")*(moc=\"Có\");\"Kiểm tra quyền hưởng mốc\";\"\"))))"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": [
+        {
+          "type": "SHEET",
+          "description": "",
+          "rangeA1": "",
+          "warningOnly": false
+        }
+      ]
+    },
+    {
+      "name": "XL_ThuongQuanLy",
+      "sheetId": 1494120172,
+      "index": 12,
+      "hidden": false,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 5000,
+      "lastColumn": 9,
+      "maxRows": 5000,
+      "maxColumns": 9,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Tháng"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Biển số xe"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Tổng chuyến"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Thưởng tuyển lái"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Thưởng mốc 0-112"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Thưởng mốc 140"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Thưởng mốc 168"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Tổng thưởng mốc QL"
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": "Tổng ngày QL"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Tháng",
+          "Biển số xe",
+          "Tổng chuyến",
+          "Thưởng tuyển lái",
+          "Thưởng mốc 0-112",
+          "Thưởng mốc 140",
+          "Thưởng mốc 168",
+          "Tổng thưởng mốc QL",
+          "Tổng ngày QL"
+        ],
+        [
+          "05/2026",
+          "20H05602",
+          "39",
+          "0 ₫",
+          "1.000.000 ₫",
+          "0 ₫",
+          "0 ₫",
+          "1.000.000 đ",
+          "31"
+        ],
+        [
+          "05/2026",
+          "20H05664",
+          "39",
+          "0 ₫",
+          "1.000.000 ₫",
+          "0 ₫",
+          "0 ₫",
+          "1.000.000 đ",
+          "31"
+        ],
+        [
+          "05/2026",
+          "20H06214",
+          "29",
+          "0 ₫",
+          "1.000.000 ₫",
+          "0 ₫",
+          "0 ₫",
+          "1.000.000 đ",
+          "31"
+        ],
+        [
+          "05/2026",
+          "20H06278",
+          "29",
+          "0 ₫",
+          "1.000.000 ₫",
+          "0 ₫",
+          "0 ₫",
+          "1.000.000 đ",
+          "31"
+        ],
+        [
+          "06/2026",
+          "20H05602",
+          "98",
+          "866.667 ₫",
+          "1.000.000 ₫",
+          "0 ₫",
+          "0 ₫",
+          "1.000.000 đ",
+          "24"
+        ],
+        [
+          "06/2026",
+          "20H05664",
+          "110",
+          "1.000.000 ₫",
+          "1.000.000 ₫",
+          "0 ₫",
+          "0 ₫",
+          "1.000.000 đ",
+          "24"
+        ],
+        [
+          "06/2026",
+          "20H06214",
+          "100",
+          "0 ₫",
+          "1.000.000 ₫",
+          "0 ₫",
+          "0 ₫",
+          "1.000.000 đ",
+          "24"
+        ],
+        [
+          "06/2026",
+          "20H06278",
+          "99",
+          "0 ₫",
+          "1.000.000 ₫",
+          "0 ₫",
+          "0 ₫",
+          "1.000.000 đ",
+          "24"
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "A2",
+          "row": 2,
+          "column": "A",
+          "formula": "=QUERY(XL_LuongTheoXe!A2:F;\"select A,C,max(E) where A is not null group by A,C label max(E) ''\";0)"
+        },
+        {
+          "cell": "D2",
+          "row": 2,
+          "column": "D",
+          "formula": "=MAP(A2:A;B2:B;LAMBDA(t;xe;IF(t=\"\";\"\";LET(dg;IFERROR(INDEX(FILTER(DM_ThuongQuanLy!D:D;DM_ThuongQuanLy!A:A=\"TUYEN_DU_2_LAI\";DM_ThuongQuanLy!G:G<=t;(DM_ThuongQuanLy!H:H=\"\")+(DM_ThuongQuanLy!H:H>=t));1)/2;0);SUM(MAP(FILTER(DM_NhanSu!A2:A;DM_NhanSu!B2:B=\"Tài xế\";DM_NhanSu!A2:A<>\"\");FILTER(DM_NhanSu!C2:C;DM_NhanSu!B2:B=\"Tài xế\";DM_NhanSu!A2:A<>\"\");FILTER(DM_NhanSu!D2:D;DM_NhanSu!B2:B=\"Tài xế\";DM_NhanSu!A2:A<>\"\");FILTER(DM_NhanSu!E2:E;DM_NhanSu!B2:B=\"Tài xế\";DM_NhanSu!A2:A<>\"\");FILTER(DM_NhanSu!F2:F;DM_NhanSu!B2:B=\"Tài xế\";DM_NhanSu!A2:A<>\"\");FILTER(DM_NhanSu!G2:G;DM_NhanSu!B2:B=\"Tài xế\";DM_NhanSu!A2:A<>\"\");LAMBDA(tx;nguoi;bdt;ktt;vao;nghi;IF(nguoi=\"\";0;IF(COUNTIFS(NL_TaiXe!B:B;t;NL_TaiXe!C:C;xe;NL_TaiXe!D:D;tx)=0;0;LET(dau;t;cuoi;EOMONTH(t;0);bd;MAX(dau;IF(bdt=\"\";dau;bdt);IF(vao=\"\";dau;vao));kt;MIN(cuoi;IF(ktt=\"\";cuoi;ktt);IF(nghi=\"\";cuoi;nghi));MAX(0;kt-bd+1)/DAY(cuoi)*dg))))))))))"
+        },
+        {
+          "cell": "E2",
+          "row": 2,
+          "column": "E",
+          "formula": "=MAP(A2:A;C2:C;LAMBDA(t;ch;IF(t=\"\";\"\";IF(ch>0;IFERROR(INDEX(FILTER(DM_ThuongQuanLy!D:D;DM_ThuongQuanLy!A:A=\"CHUYEN_112\";DM_ThuongQuanLy!G:G<=t;(DM_ThuongQuanLy!H:H=\"\")+(DM_ThuongQuanLy!H:H>=t));1);0);0))))"
+        },
+        {
+          "cell": "F2",
+          "row": 2,
+          "column": "F",
+          "formula": "=MAP(A2:A;C2:C;B2:B;LAMBDA(t;ch;xe;IF(t=\"\";\"\";LET(nghi;SUMIFS(NL_NghiVanHanh!H:H;NL_NghiVanHanh!B:B;t;NL_NghiVanHanh!C:C;xe;NL_NghiVanHanh!G:G;\"Có\");moc;140-nghi;IF(ch>=moc;IFERROR(INDEX(FILTER(DM_ThuongQuanLy!D:D;DM_ThuongQuanLy!A:A=\"CHUYEN_140\";DM_ThuongQuanLy!G:G<=t;(DM_ThuongQuanLy!H:H=\"\")+(DM_ThuongQuanLy!H:H>=t));1);0);0)))))"
+        },
+        {
+          "cell": "G2",
+          "row": 2,
+          "column": "G",
+          "formula": "=MAP(A2:A;C2:C;B2:B;LAMBDA(t;ch;xe;IF(t=\"\";\"\";LET(nghi;SUMIFS(NL_NghiVanHanh!H:H;NL_NghiVanHanh!B:B;t;NL_NghiVanHanh!C:C;xe;NL_NghiVanHanh!G:G;\"Có\");moc;168-nghi;IF(ch>=moc;IFERROR(INDEX(FILTER(DM_ThuongQuanLy!D:D;DM_ThuongQuanLy!A:A=\"CHUYEN_168\";DM_ThuongQuanLy!G:G<=t;(DM_ThuongQuanLy!H:H=\"\")+(DM_ThuongQuanLy!H:H>=t));1);0);0)))))"
+        },
+        {
+          "cell": "H2",
+          "row": 2,
+          "column": "H",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";E2:E+F2:F+G2:G))"
+        },
+        {
+          "cell": "I2",
+          "row": 2,
+          "column": "I",
+          "formula": "=MAP(A2:A;LAMBDA(t;IF(t=\"\";\"\";SUM(MAP(FILTER(DM_NhanSu!A2:A;DM_NhanSu!B2:B=\"Quản lý\";DM_NhanSu!A2:A<>\"\");LAMBDA(ns;LET(nv;XLOOKUP(ns;DM_NhanSu!A:A;DM_NhanSu!F:F;\"\");nn;XLOOKUP(ns;DM_NhanSu!A:A;DM_NhanSu!G:G;\"\");dau;t;cuoi;EOMONTH(t;0);bd;MAX(dau;IF(nv=\"\";dau;nv));kt;MIN(cuoi;IF(nn=\"\";cuoi;nn));nghi;SUMIFS(NL_ChamCong!F:F;NL_ChamCong!C:C;t;NL_ChamCong!D:D;ns);MAX(0;kt-bd+1-nghi))))))))"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": [
+        {
+          "type": "SHEET",
+          "description": "",
+          "rangeA1": "",
+          "warningOnly": false
+        }
+      ]
+    },
+    {
+      "name": "BC_TongQuan",
+      "sheetId": 20260626,
+      "index": 13,
+      "hidden": false,
+      "frozenRows": 0,
+      "frozenColumns": 0,
+      "lastRow": 200,
+      "lastColumn": 17,
+      "maxRows": 200,
+      "maxColumns": 17,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Tháng"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Fri May 01 2026 00:00:00 GMT+0700 (Giờ Đông Dương)"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": ""
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": ""
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": ""
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": ""
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": ""
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": ""
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": ""
+        },
+        {
+          "column": "J",
+          "columnIndex": 10,
+          "header": ""
+        },
+        {
+          "column": "K",
+          "columnIndex": 11,
+          "header": ""
+        },
+        {
+          "column": "L",
+          "columnIndex": 12,
+          "header": ""
+        },
+        {
+          "column": "M",
+          "columnIndex": 13,
+          "header": ""
+        },
+        {
+          "column": "N",
+          "columnIndex": 14,
+          "header": ""
+        },
+        {
+          "column": "O",
+          "columnIndex": 15,
+          "header": ""
+        },
+        {
+          "column": "P",
+          "columnIndex": 16,
+          "header": ""
+        },
+        {
+          "column": "Q",
+          "columnIndex": 17,
+          "header": ""
+        }
+      ],
+      "sampleRows": [
+        [
+          "Tháng",
+          "Fri May 01 2026 00:00:00 GMT+0700 (Giờ Đông Dương)",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "",
+          "0 đ",
+          "Hòa vốn",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Danh mục",
+          "Tổng",
+          "Quang Quân",
+          "Minh Vương",
+          "Giải thích",
+          "",
+          "Tháng",
+          "Tổng khối lượng",
+          "Tổng doanh thu",
+          "Thuế TNDN",
+          "Thuế VAT",
+          "Dầu Quang Minh",
+          "Dầu đổ ngoài",
+          "Phí đường bộ",
+          "Lợi nhuận gộp",
+          "Chi quỹ thực tế",
+          "Lợi nhuận thực"
+        ],
+        [
+          "Tổng khối lượng",
+          "0,00",
+          "0,00",
+          "0,00",
+          "",
+          "",
+          "05/2026",
+          "3.375,52",
+          "421.785.222,48",
+          "39.054.187 ₫",
+          "31.243.350 ₫",
+          "190.852.480 ₫",
+          "23.008.000 ₫",
+          "8.000.000 ₫",
+          "129.627.205 ₫",
+          "102.133.000 ₫",
+          "27.494.205 ₫"
+        ],
+        [
+          "Tổng doanh thu",
+          "0 ₫",
+          "0 ₫",
+          "0 ₫",
+          "",
+          "",
+          "06/2026",
+          "10.498,86",
+          "1.234.746.129,42",
+          "114.328.345 ₫",
+          "91.462.676 ₫",
+          "357.409.830 ₫",
+          "117.871.414 ₫",
+          "0 ₫",
+          "553.673.863 ₫",
+          "256.638.000 ₫",
+          "297.035.864 ₫"
+        ],
+        [
+          "Doanh thu chưa VAT",
+          "0 ₫",
+          "0 ₫",
+          "0 ₫",
+          "Doanh thu / 1,08",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Thuế TNDN",
+          "0 ₫",
+          "0 ₫",
+          "0 ₫",
+          "10% doanh thu chưa VAT",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Thuế VAT",
+          "0 ₫",
+          "0 ₫",
+          "0 ₫",
+          "8% VAT trong doanh thu",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Chi phí dầu",
+          "0 ₫",
+          "0 ₫",
+          "0 ₫",
+          "Nguồn Quang Minh",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "B3",
+          "row": 3,
+          "column": "B",
+          "formula": "=B15"
+        },
+        {
+          "cell": "C3",
+          "row": 3,
+          "column": "C",
+          "formula": "=IF(B3>0;\"Lợi nhuận dương\";IF(B3<0;\"Lợi nhuận âm\";\"Hòa vốn\"))"
+        },
+        {
+          "cell": "B5",
+          "row": 5,
+          "column": "B",
+          "formula": "=SUMIFS(XL_VanChuyen!F:F;XL_VanChuyen!B:B;$B$1)"
+        },
+        {
+          "cell": "C5",
+          "row": 5,
+          "column": "C",
+          "formula": "=SUMIFS(XL_VanChuyen!F:F;XL_VanChuyen!B:B;$B$1;XL_VanChuyen!M:M;\"Quang Quân\")"
+        },
+        {
+          "cell": "D5",
+          "row": 5,
+          "column": "D",
+          "formula": "=SUMIFS(XL_VanChuyen!F:F;XL_VanChuyen!B:B;$B$1;XL_VanChuyen!M:M;\"Minh Vương\")"
+        },
+        {
+          "cell": "G5",
+          "row": 5,
+          "column": "G",
+          "formula": "=SORT(UNIQUE(FILTER(XL_VanChuyen!B2:B;XL_VanChuyen!B2:B<>\"\")))"
+        },
+        {
+          "cell": "H5",
+          "row": 5,
+          "column": "H",
+          "formula": "=MAP(G5:G;LAMBDA(t;IF(t=\"\";\"\";SUMIFS(XL_VanChuyen!F:F;XL_VanChuyen!B:B;t))))"
+        },
+        {
+          "cell": "I5",
+          "row": 5,
+          "column": "I",
+          "formula": "=MAP(G5:G;LAMBDA(t;IF(t=\"\";\"\";SUMIFS(XL_VanChuyen!L:L;XL_VanChuyen!B:B;t))))"
+        },
+        {
+          "cell": "J5",
+          "row": 5,
+          "column": "J",
+          "formula": "=MAP(I5:I;LAMBDA(dt;IF(dt=\"\";\"\";dt/(1+XLOOKUP(\"THUE_VAT_RATE\";DM_ThamSo!A:A;DM_ThamSo!C:C;0,08))*XLOOKUP(\"THUE_TNDN_RATE\";DM_ThamSo!A:A;DM_ThamSo!C:C;0,1))))"
+        },
+        {
+          "cell": "K5",
+          "row": 5,
+          "column": "K",
+          "formula": "=MAP(I5:I;LAMBDA(dt;IF(dt=\"\";\"\";dt-dt/(1+XLOOKUP(\"THUE_VAT_RATE\";DM_ThamSo!A:A;DM_ThamSo!C:C;0,08)))))"
+        },
+        {
+          "cell": "L5",
+          "row": 5,
+          "column": "L",
+          "formula": "=MAP(G5:G;LAMBDA(t;IF(t=\"\";\"\";IFERROR(SUM(FILTER(NL_Dau!G:G;NL_Dau!B:B=t;REGEXMATCH(LOWER(NL_Dau!D:D);\"quang minh|công ty|cong ty\")));0))))"
+        },
+        {
+          "cell": "M5",
+          "row": 5,
+          "column": "M",
+          "formula": "=MAP(G5:G;LAMBDA(t;IF(t=\"\";\"\";IFERROR(SUM(FILTER(NL_Dau!G:G;NL_Dau!B:B=t;REGEXMATCH(LOWER(NL_Dau!D:D);\"đổ ngoài|do ngoai\");REGEXMATCH(LOWER(NL_Dau!H:H);\"quang quân|quang quan|minh vương|minh vuong\")));0))))"
+        },
+        {
+          "cell": "N5",
+          "row": 5,
+          "column": "N",
+          "formula": "=MAP(G5:G;LAMBDA(t;IF(t=\"\";\"\";IFERROR(SUM(FILTER(IMP_ThuChi!D:D;IMP_ThuChi!G:G=t;IMP_ThuChi!I:I=\"Phí đường bộ\";REGEXMATCH(LOWER(IMP_ThuChi!F:F);\"(^|[^0-9])t\"&MONTH(t)&\"([^0-9]|$)\")));0))))"
+        },
+        {
+          "cell": "O5",
+          "row": 5,
+          "column": "O",
+          "formula": "=ARRAYFORMULA(IF(G5:G=\"\";\"\";I5:I-J5:J-K5:K-L5:L-M5:M-N5:N))"
+        },
+        {
+          "cell": "P5",
+          "row": 5,
+          "column": "P",
+          "formula": "=MAP(G5:G;LAMBDA(t;IF(t=\"\";\"\";IFERROR(SUM(FILTER(IMP_ThuChi!D:D;IMP_ThuChi!B:B>=t;IMP_ThuChi!B:B<=EOMONTH(t;0);LOWER(TRIM(IMP_ThuChi!J:J))<>\"có\";NOT(REGEXMATCH(LOWER(IMP_ThuChi!C:C&\" \"&IMP_ThuChi!F:F&\" \"&IMP_ThuChi!I:I);\"góp quỹ|gop quy|xăng dầu|xang dau|dầu|dau|thuế doanh nghiệp|thue doanh nghiep|thuế tndn|thue tndn|thuế vat|thue vat|vat\"))));0)+IFERROR(SUM(FILTER(NL_Dau!G:G;NL_Dau!B:B=t;REGEXMATCH(LOWER(NL_Dau!D:D);\"đổ ngoài|do ngoai\");REGEXMATCH(LOWER(NL_Dau!H:H);\"quỹ|quy\")));0))))"
+        },
+        {
+          "cell": "Q5",
+          "row": 5,
+          "column": "Q",
+          "formula": "=ARRAYFORMULA(IF(G5:G=\"\";\"\";O5:O-P5:P))"
+        },
+        {
+          "cell": "B6",
+          "row": 6,
+          "column": "B",
+          "formula": "=SUMIFS(XL_VanChuyen!L:L;XL_VanChuyen!B:B;$B$1)"
+        },
+        {
+          "cell": "C6",
+          "row": 6,
+          "column": "C",
+          "formula": "=SUMIFS(XL_VanChuyen!L:L;XL_VanChuyen!B:B;$B$1;XL_VanChuyen!M:M;\"Quang Quân\")"
+        },
+        {
+          "cell": "D6",
+          "row": 6,
+          "column": "D",
+          "formula": "=SUMIFS(XL_VanChuyen!L:L;XL_VanChuyen!B:B;$B$1;XL_VanChuyen!M:M;\"Minh Vương\")"
+        },
+        {
+          "cell": "B7",
+          "row": 7,
+          "column": "B",
+          "formula": "=B6/(1+XLOOKUP(\"THUE_VAT_RATE\";DM_ThamSo!A:A;DM_ThamSo!C:C;0,08))"
+        },
+        {
+          "cell": "C7",
+          "row": 7,
+          "column": "C",
+          "formula": "=C6/(1+XLOOKUP(\"THUE_VAT_RATE\";DM_ThamSo!A:A;DM_ThamSo!C:C;0,08))"
+        },
+        {
+          "cell": "D7",
+          "row": 7,
+          "column": "D",
+          "formula": "=D6/(1+XLOOKUP(\"THUE_VAT_RATE\";DM_ThamSo!A:A;DM_ThamSo!C:C;0,08))"
+        },
+        {
+          "cell": "B8",
+          "row": 8,
+          "column": "B",
+          "formula": "=B7*XLOOKUP(\"THUE_TNDN_RATE\";DM_ThamSo!A:A;DM_ThamSo!C:C;0,1)"
+        },
+        {
+          "cell": "C8",
+          "row": 8,
+          "column": "C",
+          "formula": "=C7*XLOOKUP(\"THUE_TNDN_RATE\";DM_ThamSo!A:A;DM_ThamSo!C:C;0,1)"
+        },
+        {
+          "cell": "D8",
+          "row": 8,
+          "column": "D",
+          "formula": "=D7*XLOOKUP(\"THUE_TNDN_RATE\";DM_ThamSo!A:A;DM_ThamSo!C:C;0,1)"
+        },
+        {
+          "cell": "B9",
+          "row": 9,
+          "column": "B",
+          "formula": "=B6-B7"
+        },
+        {
+          "cell": "C9",
+          "row": 9,
+          "column": "C",
+          "formula": "=C6-C7"
+        },
+        {
+          "cell": "D9",
+          "row": 9,
+          "column": "D",
+          "formula": "=D6-D7"
+        },
+        {
+          "cell": "B10",
+          "row": 10,
+          "column": "B",
+          "formula": "=IFERROR(SUM(FILTER(NL_Dau!G:G;NL_Dau!B:B=$B$1;REGEXMATCH(LOWER(NL_Dau!D:D);\"quang minh|công ty|cong ty\")));0)"
+        },
+        {
+          "cell": "C10",
+          "row": 10,
+          "column": "C",
+          "formula": "=IFERROR(SUM(FILTER(NL_Dau!G:G;NL_Dau!B:B=$B$1;REGEXMATCH(LOWER(NL_Dau!D:D);\"quang minh|công ty|cong ty\");MAP(NL_Dau!C:C;LAMBDA(x;IF(x=\"\";\"\";XLOOKUP(x;DM_Xe!A:A;DM_Xe!F:F;\"\"))))=\"Quang Quân\"));0)"
+        },
+        {
+          "cell": "D10",
+          "row": 10,
+          "column": "D",
+          "formula": "=IFERROR(SUM(FILTER(NL_Dau!G:G;NL_Dau!B:B=$B$1;REGEXMATCH(LOWER(NL_Dau!D:D);\"quang minh|công ty|cong ty\");MAP(NL_Dau!C:C;LAMBDA(x;IF(x=\"\";\"\";XLOOKUP(x;DM_Xe!A:A;DM_Xe!F:F;\"\"))))=\"Minh Vương\"));0)"
+        },
+        {
+          "cell": "B11",
+          "row": 11,
+          "column": "B",
+          "formula": "=IFERROR(SUM(FILTER(IMP_ThuChi!D:D;IMP_ThuChi!G:G=$B$1;IMP_ThuChi!I:I=\"Phí đường bộ\";REGEXMATCH(LOWER(IMP_ThuChi!F:F);\"(^|[^0-9])t\"&MONTH($B$1)&\"([^0-9]|$)\")));0)"
+        },
+        {
+          "cell": "B12",
+          "row": 12,
+          "column": "B",
+          "formula": "=B6-SUM(B8:B11)"
+        },
+        {
+          "cell": "C12",
+          "row": 12,
+          "column": "C",
+          "formula": "=C6-SUM(C8:C11)"
+        },
+        {
+          "cell": "D12",
+          "row": 12,
+          "column": "D",
+          "formula": "=D6-SUM(D8:D11)"
+        },
+        {
+          "cell": "B13",
+          "row": 13,
+          "column": "B",
+          "formula": "=IFERROR(SUM(FILTER(NL_Dau!G:G;NL_Dau!B:B=$B$1;REGEXMATCH(LOWER(NL_Dau!D:D);\"đổ ngoài|do ngoai\");REGEXMATCH(LOWER(NL_Dau!H:H);\"quang quân|quang quan|minh vương|minh vuong\")));0)"
+        },
+        {
+          "cell": "C13",
+          "row": 13,
+          "column": "C",
+          "formula": "=IFERROR(SUM(FILTER(NL_Dau!G:G;NL_Dau!B:B=$B$1;REGEXMATCH(LOWER(NL_Dau!D:D);\"đổ ngoài|do ngoai\");REGEXMATCH(LOWER(NL_Dau!H:H);\"quang quân|quang quan\")));0)"
+        },
+        {
+          "cell": "D13",
+          "row": 13,
+          "column": "D",
+          "formula": "=IFERROR(SUM(FILTER(NL_Dau!G:G;NL_Dau!B:B=$B$1;REGEXMATCH(LOWER(NL_Dau!D:D);\"đổ ngoài|do ngoai\");REGEXMATCH(LOWER(NL_Dau!H:H);\"minh vương|minh vuong\")));0)"
+        },
+        {
+          "cell": "B14",
+          "row": 14,
+          "column": "B",
+          "formula": "=IFERROR(SUM(FILTER(IMP_ThuChi!D:D;IMP_ThuChi!B:B>=$B$1;IMP_ThuChi!B:B<=EOMONTH($B$1;0);LOWER(TRIM(IMP_ThuChi!J:J))<>\"có\";NOT(REGEXMATCH(LOWER(IMP_ThuChi!C:C&\" \"&IMP_ThuChi!F:F&\" \"&IMP_ThuChi!I:I);\"góp quỹ|gop quy|xăng dầu|xang dau|dầu|dau|thuế doanh nghiệp|thue doanh nghiep|thuế tndn|thue tndn|thuế vat|thue vat|vat\"))));0)+IFERROR(SUM(FILTER(NL_Dau!G:G;NL_Dau!B:B=$B$1;REGEXMATCH(LOWER(NL_Dau!D:D);\"đổ ngoài|do ngoai\");REGEXMATCH(LOWER(NL_Dau!H:H);\"quỹ|quy\")));0)"
+        },
+        {
+          "cell": "B15",
+          "row": 15,
+          "column": "B",
+          "formula": "=B12-SUM(B13;B14)"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [
+        {
+          "index": 1,
+          "ranges": [
+            "C3"
+          ],
+          "booleanCondition": {
+            "criteriaType": "CUSTOM_FORMULA",
+            "criteriaValues": [
+              "=$B$3>0"
+            ]
+          },
+          "gradientCondition": null
+        },
+        {
+          "index": 2,
+          "ranges": [
+            "C3"
+          ],
+          "booleanCondition": {
+            "criteriaType": "CUSTOM_FORMULA",
+            "criteriaValues": [
+              "=$B$3<0"
+            ]
+          },
+          "gradientCondition": null
+        }
+      ],
+      "protections": [
+        {
+          "type": "SHEET",
+          "description": "",
+          "rangeA1": "",
+          "warningOnly": false
+        }
+      ]
+    },
+    {
+      "name": "BC_BangLuong",
+      "sheetId": 1296722813,
+      "index": 14,
+      "hidden": false,
+      "frozenRows": 2,
+      "frozenColumns": 2,
+      "lastRow": 30,
+      "lastColumn": 14,
+      "maxRows": 1001,
+      "maxColumns": 14,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": ""
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": ""
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": ""
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "378,5"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "102.375.000 đ"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "85.999.000 đ"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": ""
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": ""
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": ""
+        },
+        {
+          "column": "J",
+          "columnIndex": 10,
+          "header": "195.507.333 đ"
+        },
+        {
+          "column": "K",
+          "columnIndex": 11,
+          "header": "36.000.000 đ"
+        },
+        {
+          "column": "L",
+          "columnIndex": 12,
+          "header": ""
+        },
+        {
+          "column": "M",
+          "columnIndex": 13,
+          "header": "159.507.333 đ"
+        },
+        {
+          "column": "N",
+          "columnIndex": 14,
+          "header": ""
+        }
+      ],
+      "sampleRows": [
+        [
+          "",
+          "",
+          "",
+          "378,5",
+          "102.375.000 đ",
+          "85.999.000 đ",
+          "",
+          "",
+          "",
+          "195.507.333 đ",
+          "36.000.000 đ",
+          "",
+          "159.507.333 đ",
+          ""
+        ],
+        [
+          "Tháng",
+          "Nhân sự",
+          "Chức vụ",
+          "Số chuyến",
+          "Lương chuyến",
+          "Lương cứng thực",
+          "Nghỉ phép",
+          "Ngày bị trừ ",
+          "Thưởng",
+          "Tổng lương",
+          "Ứng lương",
+          "Phạt",
+          "Thực nhận",
+          "Ghi chú"
+        ],
+        [
+          "05/2026",
+          "Quang",
+          "Quản lý",
+          "0,0",
+          "0 đ",
+          "0 đ",
+          "0",
+          "0",
+          "20.000.000",
+          "20.000.000 đ",
+          "0 đ",
+          "0 ₫",
+          "20.000.000 ₫",
+          ""
+        ],
+        [
+          "05/2026",
+          "A Bằng",
+          "Tài xế",
+          "20,0",
+          "5.400.000 đ",
+          "6.774.000 đ",
+          "0",
+          "0",
+          "0",
+          "12.174.000 đ",
+          "2.500.000 đ",
+          "5.100.000 ₫",
+          "4.574.000 ₫",
+          ""
+        ],
+        [
+          "05/2026",
+          "A Hạnh",
+          "Tài xế",
+          "19,5",
+          "5.265.000 đ",
+          "10.000.000 đ",
+          "0",
+          "0",
+          "0",
+          "15.265.000 đ",
+          "2.500.000 đ",
+          "0 ₫",
+          "12.765.000 ₫",
+          ""
+        ],
+        [
+          "05/2026",
+          "A Mười",
+          "Tài xế",
+          "19,0",
+          "5.130.000 đ",
+          "10.000.000 đ",
+          "0",
+          "0",
+          "0",
+          "15.130.000 đ",
+          "2.500.000 đ",
+          "0 ₫",
+          "12.630.000 ₫",
+          ""
+        ],
+        [
+          "05/2026",
+          "A Tuấn",
+          "Tài xế",
+          "20,0",
+          "5.400.000 đ",
+          "3.871.000 đ",
+          "0",
+          "0",
+          "0",
+          "9.271.000 đ",
+          "2.500.000 đ",
+          "0 ₫",
+          "6.771.000 ₫",
+          ""
+        ],
+        [
+          "05/2026",
+          "Chu Đức Mười",
+          "Tài xế",
+          "26,0",
+          "7.020.000 đ",
+          "10.000.000 đ",
+          "0",
+          "0",
+          "0",
+          "17.020.000 đ",
+          "2.500.000 đ",
+          "0 ₫",
+          "14.520.000 ₫",
+          ""
+        ],
+        [
+          "05/2026",
+          "Đặng Văn Việt",
+          "Tài xế",
+          "20,0",
+          "5.400.000 đ",
+          "10.000.000 đ",
+          "2",
+          "0",
+          "0",
+          "15.400.000 đ",
+          "4.500.000 đ",
+          "0 ₫",
+          "10.900.000 ₫",
+          ""
+        ],
+        [
+          "05/2026",
+          "Hoàng Minh Hà",
+          "Tài xế",
+          "5,5",
+          "1.485.000 đ",
+          "645.000 đ",
+          "0",
+          "0",
+          "0",
+          "2.130.000 đ",
+          "2.500.000 đ",
+          "0 ₫",
+          "-370.000 ₫",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "D1",
+          "row": 1,
+          "column": "D",
+          "formula": "=SUBTOTAL(109;D3:D)"
+        },
+        {
+          "cell": "E1",
+          "row": 1,
+          "column": "E",
+          "formula": "=SUBTOTAL(109;E3:E)"
+        },
+        {
+          "cell": "F1",
+          "row": 1,
+          "column": "F",
+          "formula": "=SUBTOTAL(109;F3:F)"
+        },
+        {
+          "cell": "J1",
+          "row": 1,
+          "column": "J",
+          "formula": "=SUBTOTAL(109;J3:J)"
+        },
+        {
+          "cell": "K1",
+          "row": 1,
+          "column": "K",
+          "formula": "=SUBTOTAL(109;K3:K)"
+        },
+        {
+          "cell": "M1",
+          "row": 1,
+          "column": "M",
+          "formula": "=SUBTOTAL(109;M3:M)"
+        },
+        {
+          "cell": "A3",
+          "row": 3,
+          "column": "A",
+          "formula": "=IFERROR(SORT(FILTER({XL_LuongNhanSu!A2:E\\IFERROR(XL_LuongNhanSu!P2:P;0)\\IFERROR(XL_LuongNhanSu!K2:K;0)\\IFERROR(XL_LuongNhanSu!N2:N;0)\\IFERROR(XL_LuongNhanSu!Q2:Q;0)\\IFERROR(XL_LuongNhanSu!T2:T;0)\\IFERROR(XL_LuongNhanSu!R2:R;0)\\IFERROR(XL_LuongNhanSu!S2:S;0)\\IFERROR(XL_LuongNhanSu!U2:U;0)};XL_LuongNhanSu!A2:A<>\"\";IFERROR(XL_LuongNhanSu!D2:D+ABS(XL_LuongNhanSu!T2:T)+ABS(XL_LuongNhanSu!R2:R)+ABS(XL_LuongNhanSu!S2:S);0)<>0);1;TRUE;3;TRUE;2;TRUE);\"\")"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": [
+        {
+          "type": "SHEET",
+          "description": "",
+          "rangeA1": "",
+          "warningOnly": false
+        }
+      ]
+    },
+    {
+      "name": "BC_TongHopXe",
+      "sheetId": 20260623,
+      "index": 15,
+      "hidden": false,
+      "frozenRows": 2,
+      "frozenColumns": 0,
+      "lastRow": 1001,
+      "lastColumn": 12,
+      "maxRows": 1001,
+      "maxColumns": 12,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": ""
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": ""
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": ""
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "136"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "3.375,52"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "421.785.222 đ"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "7.593"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "214.860.480 đ"
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": "16.970.000 đ"
+        },
+        {
+          "column": "J",
+          "columnIndex": 10,
+          "header": "231.830.480 đ"
+        },
+        {
+          "column": "K",
+          "columnIndex": 11,
+          "header": "189.954.742 đ"
+        },
+        {
+          "column": "L",
+          "columnIndex": 12,
+          "header": ""
+        }
+      ],
+      "sampleRows": [
+        [
+          "",
+          "",
+          "",
+          "136",
+          "3.375,52",
+          "421.785.222 đ",
+          "7.593",
+          "214.860.480 đ",
+          "16.970.000 đ",
+          "231.830.480 đ",
+          "189.954.742 đ",
+          ""
+        ],
+        [
+          "Tháng",
+          "Công ty",
+          "Biển số",
+          "Số chuyến",
+          "Tổng khối",
+          "Doanh thu ước tính",
+          "Dầu lít",
+          "Tiền dầu",
+          "Chi phí sửa chữa",
+          "Tổng chi phí",
+          "Lãi gộp trước lương",
+          "Ghi chú"
+        ],
+        [
+          "05/2026",
+          "Minh Vương",
+          "20H05664",
+          "39",
+          "967,98",
+          "121.769.203 ₫",
+          "2.041",
+          "58.050.980 ₫",
+          "4.090.000 ₫",
+          "62.140.980 ₫",
+          "59.628.223 ₫",
+          ""
+        ],
+        [
+          "05/2026",
+          "Minh Vương",
+          "20H06214",
+          "29",
+          "719,78",
+          "88.672.031 ₫",
+          "1.840",
+          "51.741.800 ₫",
+          "4.810.000 ₫",
+          "56.551.800 ₫",
+          "32.120.231 ₫",
+          ""
+        ],
+        [
+          "05/2026",
+          "Quang Quân",
+          "20H05602",
+          "39",
+          "967,98",
+          "122.633.287 ₫",
+          "1.990",
+          "56.577.500 ₫",
+          "4.860.000 ₫",
+          "61.437.500 ₫",
+          "61.195.787 ₫",
+          ""
+        ],
+        [
+          "05/2026",
+          "Quang Quân",
+          "20H06278",
+          "29",
+          "719,78",
+          "88.710.701 ₫",
+          "1.722",
+          "48.490.200 ₫",
+          "3.210.000 ₫",
+          "51.700.200 ₫",
+          "37.010.501 ₫",
+          ""
+        ],
+        [
+          "06/2026",
+          "Minh Vương",
+          "20H05664",
+          "114",
+          "2.829,48",
+          "335.395.663 ₫",
+          "5.530",
+          "142.469.356 ₫",
+          "2.030.000 ₫",
+          "144.499.356 ₫",
+          "190.896.307 ₫",
+          ""
+        ],
+        [
+          "06/2026",
+          "Minh Vương",
+          "20H06214",
+          "104",
+          "2.581,28",
+          "302.656.172 ₫",
+          "4.075",
+          "104.829.312 ₫",
+          "3.650.000 ₫",
+          "108.479.312 ₫",
+          "194.176.860 ₫",
+          ""
+        ],
+        [
+          "06/2026",
+          "Quang Quân",
+          "20H05602",
+          "102",
+          "2.531,64",
+          "297.089.691 ₫",
+          "5.151",
+          "132.716.596 ₫",
+          "4.430.000 ₫",
+          "137.146.596 ₫",
+          "159.943.095 ₫",
+          ""
+        ],
+        [
+          "06/2026",
+          "Quang Quân",
+          "20H06278",
+          "103",
+          "2.556,46",
+          "299.604.603 ₫",
+          "4.165",
+          "107.065.980 ₫",
+          "4.450.000 ₫",
+          "111.515.980 ₫",
+          "188.088.623 ₫",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "D1",
+          "row": 1,
+          "column": "D",
+          "formula": "=SUBTOTAL(109;D3:D)"
+        },
+        {
+          "cell": "E1",
+          "row": 1,
+          "column": "E",
+          "formula": "=SUBTOTAL(109;E3:E)"
+        },
+        {
+          "cell": "F1",
+          "row": 1,
+          "column": "F",
+          "formula": "=SUBTOTAL(109;F3:F)"
+        },
+        {
+          "cell": "G1",
+          "row": 1,
+          "column": "G",
+          "formula": "=SUBTOTAL(109;G3:G)"
+        },
+        {
+          "cell": "H1",
+          "row": 1,
+          "column": "H",
+          "formula": "=SUBTOTAL(109;H3:H)"
+        },
+        {
+          "cell": "I1",
+          "row": 1,
+          "column": "I",
+          "formula": "=SUBTOTAL(109;I3:I)"
+        },
+        {
+          "cell": "J1",
+          "row": 1,
+          "column": "J",
+          "formula": "=SUBTOTAL(109;J3:J)"
+        },
+        {
+          "cell": "K1",
+          "row": 1,
+          "column": "K",
+          "formula": "=SUBTOTAL(109;K3:K)"
+        },
+        {
+          "cell": "A3",
+          "row": 3,
+          "column": "A",
+          "formula": "=QUERY({XL_VanChuyen!B2:B\\XL_VanChuyen!M2:M\\XL_VanChuyen!C2:C\\XL_VanChuyen!E2:E\\XL_VanChuyen!F2:F\\XL_VanChuyen!L2:L};\"select Col1, Col2, Col3, sum(Col4), sum(Col5), sum(Col6) where Col1 is not null group by Col1, Col2, Col3 label sum(Col4) '', sum(Col5) '', sum(Col6) ''\";0)"
+        },
+        {
+          "cell": "G3",
+          "row": 3,
+          "column": "G",
+          "formula": "=MAP(A3:A;C3:C;LAMBDA(t;xe;IF(t=\"\";\"\";SUMIFS(NL_Dau!E:E;NL_Dau!B:B;t;NL_Dau!C:C;xe))))"
+        },
+        {
+          "cell": "H3",
+          "row": 3,
+          "column": "H",
+          "formula": "=MAP(A3:A;C3:C;LAMBDA(t;xe;IF(t=\"\";\"\";SUMIFS(NL_Dau!G:G;NL_Dau!B:B;t;NL_Dau!C:C;xe))))"
+        },
+        {
+          "cell": "I3",
+          "row": 3,
+          "column": "I",
+          "formula": "=MAP(A3:A;C3:C;LAMBDA(t;xe;IF(t=\"\";\"\";IFERROR(SUM(FILTER(IMP_ThuChi!D:D;IMP_ThuChi!G:G=t;IMP_ThuChi!I:I=\"Chi phí xe\";REGEXMATCH(IMP_ThuChi!E:E&\" \"&IMP_ThuChi!F:F;xe)));0))))"
+        },
+        {
+          "cell": "J3",
+          "row": 3,
+          "column": "J",
+          "formula": "=ARRAYFORMULA(IF(A3:A=\"\";\"\";H3:H+I3:I))"
+        },
+        {
+          "cell": "K3",
+          "row": 3,
+          "column": "K",
+          "formula": "=ARRAYFORMULA(IF(A3:A=\"\";\"\";F3:F-J3:J))"
+        },
+        {
+          "cell": "L3",
+          "row": 3,
+          "column": "L",
+          "formula": "=ARRAYFORMULA(IF(A3:A=\"\";\"\";IF(I3:I=0;\"Chi phí xe chỉ có nếu sổ thu chi có biển số xe trong NCC/Nội dung\";\"\")))"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": [
+        {
+          "type": "SHEET",
+          "description": "",
+          "rangeA1": "",
+          "warningOnly": false
+        }
+      ]
+    },
+    {
+      "name": "DM_DuAn",
+      "sheetId": 233041380,
+      "index": 16,
+      "hidden": true,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 2,
+      "lastColumn": 5,
+      "maxRows": 1000,
+      "maxColumns": 26,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Tên dự án"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Số km"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Hiệu lực từ"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Hiệu lực đến"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Ghi chú"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Tên dự án",
+          "Số km",
+          "Hiệu lực từ",
+          "Hiệu lực đến",
+          "Ghi chú"
+        ],
+        [
+          "Tràng Duệ",
+          "42",
+          "01/05/2026",
+          "",
+          "Quãng đường áp dụng đơn giá vận chuyển Tràng Duệ hiện tại"
+        ]
+      ],
+      "formulas": [],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "DM_Xe",
+      "sheetId": 1777385133,
+      "index": 17,
+      "hidden": true,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 5,
+      "lastColumn": 6,
+      "maxRows": 998,
+      "maxColumns": 27,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Biển số xe"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Khối lượng"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Loại xe"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Trạng thái"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Ghi chú"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Công ty sở hữu"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Biển số xe",
+          "Khối lượng",
+          "Loại xe",
+          "Trạng thái",
+          "Ghi chú",
+          "Công ty sở hữu"
+        ],
+        [
+          "20H05602",
+          "24,82",
+          "Đầu kéo",
+          "Đang chạy",
+          "",
+          "Quang Quân"
+        ],
+        [
+          "20H05664",
+          "24,82",
+          "Đầu kéo",
+          "Đang chạy",
+          "",
+          "Minh Vương"
+        ],
+        [
+          "20H06278",
+          "24,82",
+          "Đầu kéo",
+          "Đang chạy",
+          "",
+          "Quang Quân"
+        ],
+        [
+          "20H06214",
+          "24,82",
+          "Đầu kéo",
+          "Đang chạy",
+          "",
+          "Minh Vương"
+        ]
+      ],
+      "formulas": [],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "DM_NhanSu",
+      "sheetId": 841171694,
+      "index": 18,
+      "hidden": false,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 1001,
+      "lastColumn": 16,
+      "maxRows": 1001,
+      "maxColumns": 27,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Nhân sự"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Chức vụ"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Người tuyển"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Bắt đầu thưởng"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Kết thúc thưởng "
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Ngày vào"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Ngày nghỉ việc"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Lương cứng"
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": "Ngày nghỉ"
+        },
+        {
+          "column": "J",
+          "columnIndex": 10,
+          "header": "Trạng Thái"
+        },
+        {
+          "column": "K",
+          "columnIndex": 11,
+          "header": "DS_TaiXe_DangLam"
+        },
+        {
+          "column": "L",
+          "columnIndex": 12,
+          "header": "Loại lương"
+        },
+        {
+          "column": "M",
+          "columnIndex": 13,
+          "header": "Lương khoán"
+        },
+        {
+          "column": "N",
+          "columnIndex": 14,
+          "header": "Tháng bắt đầu khoán"
+        },
+        {
+          "column": "O",
+          "columnIndex": 15,
+          "header": "Tháng kết thúc khoán"
+        },
+        {
+          "column": "P",
+          "columnIndex": 16,
+          "header": "Ghi chú "
+        }
+      ],
+      "sampleRows": [
+        [
+          "Nhân sự",
+          "Chức vụ",
+          "Người tuyển",
+          "Bắt đầu thưởng",
+          "Kết thúc thưởng ",
+          "Ngày vào",
+          "Ngày nghỉ việc",
+          "Lương cứng",
+          "Ngày nghỉ",
+          "Trạng Thái",
+          "DS_TaiXe_DangLam",
+          "Loại lương",
+          "Lương khoán",
+          "Tháng bắt đầu khoán",
+          "Tháng kết thúc khoán",
+          "Ghi chú "
+        ],
+        [
+          "A Mười",
+          "Tài xế",
+          "",
+          "",
+          "",
+          "01/05/2026",
+          "03/06/2026",
+          "10.000.000 đ",
+          "2",
+          "Nghỉ việc",
+          "Chu Đức Mười",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "A Tuấn",
+          "Tài xế",
+          "",
+          "",
+          "",
+          "20/05/2026",
+          "04/06/2026",
+          "10.000.000 đ",
+          "2",
+          "Nghỉ việc",
+          "Hoàng Minh Hà",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Chu Đức Mười",
+          "Tài xế",
+          "",
+          "",
+          "",
+          "01/05/2026",
+          "",
+          "10.000.000 đ",
+          "2",
+          "Đang làm",
+          "Nguyễn Hữu Phớt",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Đặng Văn Việt",
+          "Tài xế",
+          "",
+          "",
+          "",
+          "01/05/2026",
+          "15/06/2026",
+          "10.000.000 đ",
+          "2",
+          "Nghỉ việc",
+          "Lê Văn Lợi",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Hoàng Minh Hà",
+          "Tài xế",
+          "Giang",
+          "01/06/2026",
+          "",
+          "30/05/2026",
+          "",
+          "10.000.000 đ",
+          "2",
+          "Đang làm",
+          "Đinh Xuân Đức",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "A Hạnh",
+          "Tài xế",
+          "",
+          "",
+          "",
+          "01/05/2026",
+          "03/06/2026",
+          "10.000.000 đ",
+          "2",
+          "Nghỉ việc",
+          "Nguyễn Văn Hùng",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Nguyễn Hữu Phớt",
+          "Tài xế",
+          "",
+          "",
+          "",
+          "28/05/2026",
+          "",
+          "10.000.000 đ",
+          "2",
+          "Đang làm",
+          "Vũ Tuấn Thạch",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "A Bằng",
+          "Tài xế",
+          "",
+          "",
+          "",
+          "11/05/2026",
+          "03/06/2026",
+          "10.000.000 đ",
+          "2",
+          "Nghỉ việc",
+          "Đỗ Tường Huân",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Lê Văn Lợi",
+          "Tài xế",
+          "",
+          "",
+          "",
+          "01/06/2026",
+          "",
+          "10.000.000 đ",
+          "2",
+          "Đang làm",
+          "Đinh Văn Phương",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "J2",
+          "row": 2,
+          "column": "J",
+          "formula": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";IF((G2:G<>\"\")*(G2:G<=TODAY());\"Nghỉ việc\";\"Đang làm\")))"
+        },
+        {
+          "cell": "K2",
+          "row": 2,
+          "column": "K",
+          "formula": "=FILTER(A2:A;A2:A<>\"\";B2:B=\"Tài xế\";G2:G=\"\")"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "DM_PhanCongLaiXe",
+      "sheetId": 20260621,
+      "index": 19,
+      "hidden": false,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 12,
+      "lastColumn": 8,
+      "maxRows": 1000,
+      "maxColumns": 10,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Biển số"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Tài xế"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Vai trò"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Từ ngày"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Đến ngày"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Được hưởng mốc?"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Thiếu lái?"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Ghi chú"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Biển số",
+          "Tài xế",
+          "Vai trò",
+          "Từ ngày",
+          "Đến ngày",
+          "Được hưởng mốc?",
+          "Thiếu lái?",
+          "Ghi chú"
+        ],
+        [
+          "20H05664",
+          "Hoàng Minh Hà",
+          "Lái chính",
+          "01/06/2026",
+          "",
+          "Có",
+          "Không",
+          ""
+        ],
+        [
+          "20H05664",
+          "Lê Văn Lợi",
+          "Lái chính",
+          "01/06/2026",
+          "",
+          "Có",
+          "Không",
+          ""
+        ],
+        [
+          "20H06214",
+          "Nguyễn Hữu Phớt",
+          "Lái chính",
+          "01/06/2026",
+          "",
+          "Có",
+          "Không",
+          ""
+        ],
+        [
+          "20H06214",
+          "Nguyễn Văn Hùng",
+          "Lái chính",
+          "08/06/2026",
+          "",
+          "Có",
+          "Không",
+          ""
+        ],
+        [
+          "20H05602",
+          "Vũ Xuân Hân",
+          "Lái chính",
+          "06/06/2026",
+          "07/06/2026",
+          "Có",
+          "Có",
+          "6 chuyến ngày 7/6/2026"
+        ],
+        [
+          "20H05602",
+          "Vũ Xuân Hân",
+          "Lái chính",
+          "08/06/2026",
+          "20/06/2026",
+          "Có",
+          "Không",
+          ""
+        ],
+        [
+          "20H05602",
+          "Đinh Xuân Đức",
+          "Lái chính",
+          "08/06/2026",
+          "",
+          "Có",
+          "Không",
+          ""
+        ],
+        [
+          "20H06278",
+          "Đặng Văn Việt",
+          "Lái chính",
+          "01/05/2026",
+          "15/06/2026",
+          "Có",
+          "Không",
+          ""
+        ],
+        [
+          "20H06278",
+          "Chu Đức Mười",
+          "Lái chính",
+          "01/05/2026",
+          "",
+          "Có",
+          "Không",
+          ""
+        ]
+      ],
+      "formulas": [],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "DM_LuongChuyen",
+      "sheetId": 1853217475,
+      "index": 20,
+      "hidden": true,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 8,
+      "lastColumn": 7,
+      "maxRows": 1000,
+      "maxColumns": 26,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Mã loại tính"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Diễn giải"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Từ chuyến"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Đến chuyến"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Đơn giá/chuyến"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Hiệu lực từ"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Hiệu lực đến"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Mã loại tính",
+          "Diễn giải",
+          "Từ chuyến",
+          "Đến chuyến",
+          "Đơn giá/chuyến",
+          "Hiệu lực từ",
+          "Hiệu lực đến"
+        ],
+        [
+          "1_LAI",
+          "Một lái",
+          "0",
+          "104",
+          "250.000 đ",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "1_LAI",
+          "Một lái",
+          "105",
+          "139",
+          "270.000 đ",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "1_LAI",
+          "Một lái",
+          "140",
+          "999",
+          "320.000 đ",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "NHIEU_LAI",
+          "Nhiều lái",
+          "0",
+          "139",
+          "270.000 đ",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "NHIEU_LAI",
+          "Nhiều lái",
+          "140",
+          "167",
+          "300.000 đ",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "NHIEU_LAI",
+          "Nhiều lái",
+          "168",
+          "999",
+          "350.000 đ",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "CHUA_DU_2_LAI",
+          "Chưa đủ 2 lái, bình quân 5 chuyến/ngày",
+          "0",
+          "999",
+          "300.000 đ",
+          "01/05/2026",
+          ""
+        ]
+      ],
+      "formulas": [],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "DM_ThamSo",
+      "sheetId": 777350390,
+      "index": 21,
+      "hidden": true,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 14,
+      "lastColumn": 8,
+      "maxRows": 1000,
+      "maxColumns": 23,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Mã tham số"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Tên tham số"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Giá trị"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Ghi chú"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": ""
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Ngày áp dụng"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Giá dầu áp dụng"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Ghi chú"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Mã tham số",
+          "Tên tham số",
+          "Giá trị",
+          "Ghi chú",
+          "",
+          "Ngày áp dụng",
+          "Giá dầu áp dụng",
+          "Ghi chú"
+        ],
+        [
+          "GIA_DAU_GOC",
+          "Giá dầu gốc",
+          "27.650",
+          "Giá dầu gốc theo đơn giá Tràng Duệ mới: Diezen 0.05S-II Vùng I ngày 01/06/2026",
+          "",
+          "25/05/2026",
+          "28.760 đ",
+          "Giá áp dụng đầu kỳ từ dữ liệu hiện có"
+        ],
+        [
+          "BUOC_GIA_DAU",
+          "Biến động giá dầu",
+          "1.000",
+          "Mỗi biến động 1.000đ/lít",
+          "",
+          "29/05/2026",
+          "27.650 đ",
+          "Giá áp dụng từ dữ liệu hiện có"
+        ],
+        [
+          "BUOC_DON_GIA",
+          "Biến động đơn giá",
+          "2.870",
+          "Điều chỉnh đơn giá vận chuyển 2.870đ/m3 khi giá dầu tăng/giảm 1.000đ/lít",
+          "",
+          "05/06/2026",
+          "26.860 đ",
+          "15h ngày 4/6 thay đổi giá"
+        ],
+        [
+          "QD_CHUYEN_NGHI_MAC_DINH",
+          "Quy đổi chuyến/ngày nghỉ vận hành",
+          "6",
+          "Dùng cho mưa/lễ-tết/mỏ báo dừng; xe hỏng không áp dụng",
+          "",
+          "12/06/2026",
+          "25.870 đ",
+          "15h ngày 11/6 thay đổi giá"
+        ],
+        [
+          "DG_CHUA_DU_2_LAI",
+          "Đơn giá khi chưa đủ 2 lái",
+          "300.000",
+          "Cần xác nhận cách nhận diện tự động/trường hợp áp dụng",
+          "",
+          "19/06/2026",
+          "23.530 đ",
+          "15h ngày 19/6 thay đổi giá"
+        ],
+        [
+          "THUONG_VUOT_168",
+          "Thưởng vượt chuyến từ 169 trở lên",
+          "700.000",
+          "Số chuyến vượt 168 * 700.000",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "MOC_KPI_CHUYEN",
+          "Mốc chuyến KPI chuẩn/tháng",
+          "168",
+          "Mốc KPI chuyến chuẩn/tháng, dùng để xét bậc đơn giá và thưởng vượt mốc",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "NGHI_CHUAN_THANG",
+          "Số ngày nghỉ chuẩn/tháng",
+          "2",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "SO_GIO_1_CHUYEN_KPI",
+          "Số giờ quy đổi 1 chuyến giảm KPI",
+          "4",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "formulas": [],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "DM_DonGiaVanChuyen",
+      "sheetId": 1582416336,
+      "index": 22,
+      "hidden": true,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 4,
+      "lastColumn": 5,
+      "maxRows": 1000,
+      "maxColumns": 10,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Dự án"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Từ chuyến"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Đến chuyến"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Đơn giá gốc (VNĐ/m3)"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Ghi chú"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Dự án",
+          "Từ chuyến",
+          "Đến chuyến",
+          "Đơn giá gốc (VNĐ/m3)",
+          "Ghi chú"
+        ],
+        [
+          "Tràng Duệ",
+          "0",
+          "4",
+          "120.000 ₫",
+          "Xe chạy 0-4 chuyến/ngày; đơn giá áp dụng cho quãng đường 42km"
+        ],
+        [
+          "Tràng Duệ",
+          "5",
+          "6",
+          "124.000 ₫",
+          "Xe chạy 5-6 chuyến/ngày; đơn giá áp dụng cho quãng đường 42km"
+        ],
+        [
+          "Tràng Duệ",
+          "7",
+          "999",
+          "129.000 ₫",
+          "Xe chạy từ 7 chuyến/ngày trở lên; đơn giá áp dụng cho quãng đường 42km"
+        ]
+      ],
+      "formulas": [],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "DM_ThuongQuanLy",
+      "sheetId": 597371844,
+      "index": 23,
+      "hidden": true,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 6,
+      "lastColumn": 8,
+      "maxRows": 1000,
+      "maxColumns": 8,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Mã thưởng"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Nội dung thưởng"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Điều kiện"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Số tiền/xe"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Trạng thái"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Ghi chú"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Hiệu lực từ"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Hiệu lực đến"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Mã thưởng",
+          "Nội dung thưởng",
+          "Điều kiện",
+          "Số tiền/xe",
+          "Trạng thái",
+          "Ghi chú",
+          "Hiệu lực từ",
+          "Hiệu lực đến"
+        ],
+        [
+          "TUYEN_DU_2_LAI",
+          "Tuyển đủ 2 lái/xe",
+          "Theo xe đủ 2 lái",
+          "2.000.000 ₫",
+          "Đang áp dụng",
+          "",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "CHUYEN_112",
+          "Thưởng mốc chuyến 0-112",
+          "0-112",
+          "1.000.000 ₫",
+          "Đang áp dụng",
+          "",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "CHUYEN_140",
+          "Thưởng xe đạt 140 chuyến",
+          "140",
+          "1.000.000 ₫",
+          "Đang áp dụng",
+          "",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "CHUYEN_168",
+          "Thưởng xe đạt 168 chuyến",
+          "168",
+          "1.000.000 ₫",
+          "Đang áp dụng",
+          "",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "TONG_TOI_DA",
+          "Tổng thưởng tối đa/xe",
+          "Ghi chú",
+          "5.000.000 ₫",
+          "Tham chiếu",
+          "",
+          "01/05/2026",
+          ""
+        ]
+      ],
+      "formulas": [],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "DM_PhatNoiBo",
+      "sheetId": 410839731,
+      "index": 24,
+      "hidden": true,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 9,
+      "lastColumn": 7,
+      "maxRows": 1000,
+      "maxColumns": 8,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Mã phạt"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Nội dung phạt"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Số tiền"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Trạng thái"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Ghi chú"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Hiệu lực từ"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Hiệu lực đến"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Mã phạt",
+          "Nội dung phạt",
+          "Số tiền",
+          "Trạng thái",
+          "Ghi chú",
+          "Hiệu lực từ",
+          "Hiệu lực đến"
+        ],
+        [
+          "CABIN_BAN",
+          "Không vệ sinh cabin, để xe bẩn",
+          "250.000 ₫",
+          "Đang áp dụng",
+          "",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "RUOU_CHATCAM",
+          "Uống rượu, sử dụng chất cấm",
+          "2.000.000 ₫",
+          "Đang áp dụng",
+          "",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "KHONG_CHAP_HANH",
+          "Không chấp hành sự phân công của Quản lý",
+          "500.000 ₫",
+          "Đang áp dụng",
+          "",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "QL_BAO_CAO_20H_7H",
+          "Không báo cáo xe/lái dự kiến 20h hôm trước và chốt 7h hôm sau",
+          "500.000 ₫",
+          "Đang áp dụng",
+          "Phạt quản lý",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "QL_BAO_CAO_CHUYEN_9H",
+          "Không báo cáo số chuyến từng xe/lập danh sách xe chạy 9h-10h",
+          "500.000 ₫",
+          "Đang áp dụng",
+          "Phạt quản lý",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "QL_GIAM_SAT_HANH_TRINH",
+          "Không giám sát/báo cáo kịp thời phát sinh hành trình",
+          "500.000 ₫",
+          "Đang áp dụng",
+          "Phạt quản lý",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "QL_XE_BAN",
+          "Không kiểm tra xe/cabin bẩn",
+          "500.000 ₫",
+          "Đang áp dụng",
+          "Phạt quản lý",
+          "01/05/2026",
+          ""
+        ],
+        [
+          "QL_LEN_MO_6H",
+          "Không tính toán/xử lý để xe lên mỏ lúc 6h",
+          "500.000 ₫",
+          "Đang áp dụng",
+          "Phạt quản lý",
+          "01/05/2026",
+          ""
+        ]
+      ],
+      "formulas": [],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "IMP_ThuChi",
+      "sheetId": 1924990050,
+      "index": 25,
+      "hidden": true,
+      "frozenRows": 1,
+      "frozenColumns": 0,
+      "lastRow": 999,
+      "lastColumn": 10,
+      "maxRows": 999,
+      "maxColumns": 26,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "Số phiếu"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "Ngày"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "Mục"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "Số tiền"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "Nhà cung cấp"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "Nội dung"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "Tháng tính"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "Đối tượng"
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": "Loại tính"
+        },
+        {
+          "column": "J",
+          "columnIndex": 10,
+          "header": "Công nợ"
+        }
+      ],
+      "sampleRows": [
+        [
+          "Số phiếu",
+          "Ngày",
+          "Mục",
+          "Số tiền",
+          "Nhà cung cấp",
+          "Nội dung",
+          "Tháng tính",
+          "Đối tượng",
+          "Loại tính",
+          "Công nợ"
+        ],
+        [
+          "260602160605",
+          "01/05/2026",
+          "Góp quỹ",
+          "100.000.000",
+          "Cổ đông",
+          "Công ty Quang Quân",
+          "05/2026",
+          "Công ty Quang Quân",
+          "Góp quỹ",
+          ""
+        ],
+        [
+          "260602160630",
+          "01/05/2026",
+          "Góp quỹ",
+          "100.000.000",
+          "Cổ đông",
+          "Công ty Minh Vương",
+          "05/2026",
+          "Công ty Minh Vương",
+          "Góp quỹ",
+          ""
+        ],
+        [
+          "260602160811",
+          "01/05/2026",
+          "Thuê nhà",
+          "6.000.000",
+          "Nhà ở",
+          "Cọc tiền thuê đất",
+          "05/2026",
+          "Cọc tiền thuê đất",
+          "Khác",
+          ""
+        ],
+        [
+          "260602161211",
+          "07/05/2026",
+          "Trang thiết bị",
+          "7.000.000",
+          "20H05602",
+          "Bạt",
+          "05/2026",
+          "Bạt",
+          "Khác",
+          ""
+        ],
+        [
+          "260602161223",
+          "07/05/2026",
+          "Trang thiết bị",
+          "7.000.000",
+          "20H05664",
+          "Bạt",
+          "05/2026",
+          "Bạt",
+          "Khác",
+          ""
+        ],
+        [
+          "260602161225",
+          "07/05/2026",
+          "Trang thiết bị",
+          "7.000.000",
+          "20H06278",
+          "Bạt",
+          "05/2026",
+          "Bạt",
+          "Khác",
+          ""
+        ],
+        [
+          "260602161227",
+          "07/05/2026",
+          "Trang thiết bị",
+          "7.000.000",
+          "20H06214",
+          "Bạt",
+          "05/2026",
+          "Bạt",
+          "Khác",
+          ""
+        ],
+        [
+          "260602171739",
+          "09/05/2026",
+          "Trang thiết bị",
+          "3.360.000",
+          "20H05664",
+          "Dán biển số, Ép biển, Dây hơi, Đèn lùi, Dán kính, Vô lăng,...",
+          "05/2026",
+          "Dán biển số, Ép biển, Dây hơi, Đèn lùi, Dán kính, Vô lăng,...",
+          "Khác",
+          ""
+        ],
+        [
+          "260602171750",
+          "09/05/2026",
+          "Trang thiết bị",
+          "3.360.000",
+          "20H06214",
+          "Dán biển số, Ép biển, Dây hơi, Đèn lùi, Dán kính, Vô lăng,...",
+          "05/2026",
+          "Dán biển số, Ép biển, Dây hơi, Đèn lùi, Dán kính, Vô lăng,...",
+          "Khác",
+          ""
+        ]
+      ],
+      "formulas": [
+        {
+          "cell": "A2",
+          "row": 2,
+          "column": "A",
+          "formula": "=QUERY({QUERY(IMPORTRANGE(\"https://docs.google.com/spreadsheets/d/1PWwGC6HCdskiV2fEZjDFiAt6kA_nsx64twrVTgrRerw\";\"NHAP_THUCHI!A:I\");\"select Col1,Col2,Col3,Col6,Col8,Col9 where Col3 matches 'Góp quỹ|Góp Quỹ|Thu góp quỹ|Thu Góp Quỹ' or Col9 contains 'góp quỹ' or Col9 contains 'Góp quỹ'\";0);QUERY(IMPORTRANGE(\"https://docs.google.com/spreadsheets/d/1PWwGC6HCdskiV2fEZjDFiAt6kA_nsx64twrVTgrRerw\";\"NHAP_THUCHI!A:I\");\"select Col1,Col2,Col4,Col6,Col8,Col9 where Col4 is not null\";0)};\"select * where Col1 is not null order by Col2\";0)"
+        },
+        {
+          "cell": "G2",
+          "row": 2,
+          "column": "G",
+          "formula": "=MAP(A2:A;B2:B;C2:C;E2:E;F2:F;LAMBDA(sp;ngay;muc;ncc;nd;IF(ngay=\"\";\"\";LET(txt;UPPER(muc&\" \"&ncc&\" \"&nd);m;IFERROR(VALUE(REGEXEXTRACT(txt;\"(?:^|[^A-Z0-9])T(0?[1-9]|1[0-2])(?:$|[^0-9])\"));\"\");IF(m=\"\";DATE(YEAR(ngay);MONTH(ngay);1);DATE(YEAR(ngay)-IF(m>MONTH(ngay);1;0);m;1))))))"
+        },
+        {
+          "cell": "H2",
+          "row": 2,
+          "column": "H",
+          "formula": "=MAP(F2:F;LAMBDA(nd;IF(nd=\"\";\"\";TRIM(REGEXREPLACE(nd;\"(?i)\\s*T(0?[1-9]|1[0-2])\\s*$\";\"\")))))"
+        },
+        {
+          "cell": "I2",
+          "row": 2,
+          "column": "I",
+          "formula": "=ARRAYFORMULA(IF(C2:C=\"\";\"\";IFS(C2:C=\"Ứng lương\";\"Ứng lương\";C2:C=\"Vi phạm GT\";\"Phạt\";C2:C=\"Thưởng tuyển lái\";\"Thưởng\";C2:C=\"Thưởng khác\";\"Thưởng\";REGEXMATCH(LOWER(C2:C&\" \"&E2:E&\" \"&F2:F);\"thuế|thue\");\"Thuế\";REGEXMATCH(LOWER(C2:C&\" \"&E2:E&\" \"&F2:F);\"trả lương|tra luong\");\"Trả lương\";REGEXMATCH(LOWER(C2:C&\" \"&E2:E&\" \"&F2:F);\"phí đường bộ|phi duong bo\");\"Phí đường bộ\";REGEXMATCH(LOWER(C2:C&\" \"&E2:E&\" \"&F2:F);\"góp quỹ|gop quy\");\"Góp quỹ\";REGEXMATCH(LOWER(C2:C&\" \"&E2:E&\" \"&F2:F);\"dầu|dau|xăng|xang|diesel|diezen\");\"Xăng dầu xe\";REGEXMATCH(LOWER(C2:C&\" \"&E2:E&\" \"&F2:F);\"sửa|sua|bảo dưỡng|bao duong|vật tư|phụ tùng|phu tung|đăng kiểm|dang kiem|bảo hiểm|bao hiem|cầu đường|cau duong\");\"Chi phí xe\";TRUE;\"Khác\")))"
+        },
+        {
+          "cell": "J2",
+          "row": 2,
+          "column": "J",
+          "formula": "=MAP(A2:A;F2:F;LAMBDA(sp;nd;\n IF(sp=\"\";\"\";\n  IF(REGEXMATCH(LOWER(nd);\"tất toán|tat toan\");\n   \"\";\n   IFNA(XLOOKUP(sp;\n    IMPORTRANGE(\"https://docs.google.com/spreadsheets/d/1PWwGC6HCdskiV2fEZjDFiAt6kA_nsx64twrVTgrRerw\";\"NHAP_THUCHI!A:A\");\n    IMPORTRANGE(\"https://docs.google.com/spreadsheets/d/1PWwGC6HCdskiV2fEZjDFiAt6kA_nsx64twrVTgrRerw\";\"NHAP_THUCHI!J:J\");\n    \"\"\n   );\"\")\n  )\n )\n))"
+        }
+      ],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    },
+    {
+      "name": "SYS_ReportCache",
+      "sheetId": 1474417029,
+      "index": 26,
+      "hidden": true,
+      "frozenRows": 0,
+      "frozenColumns": 0,
+      "lastRow": 241,
+      "lastColumn": 10,
+      "maxRows": 1000,
+      "maxColumns": 26,
+      "headers": [
+        {
+          "column": "A",
+          "columnIndex": 1,
+          "header": "cacheVersion"
+        },
+        {
+          "column": "B",
+          "columnIndex": 2,
+          "header": "dataVersion"
+        },
+        {
+          "column": "C",
+          "columnIndex": 3,
+          "header": "monthKey"
+        },
+        {
+          "column": "D",
+          "columnIndex": 4,
+          "header": "monthLabel"
+        },
+        {
+          "column": "E",
+          "columnIndex": 5,
+          "header": "rowOrder"
+        },
+        {
+          "column": "F",
+          "columnIndex": 6,
+          "header": "colA"
+        },
+        {
+          "column": "G",
+          "columnIndex": 7,
+          "header": "colB"
+        },
+        {
+          "column": "H",
+          "columnIndex": 8,
+          "header": "colC"
+        },
+        {
+          "column": "I",
+          "columnIndex": 9,
+          "header": "colD"
+        },
+        {
+          "column": "J",
+          "columnIndex": 10,
+          "header": "colE"
+        }
+      ],
+      "sampleRows": [
+        [
+          "cacheVersion",
+          "dataVersion",
+          "monthKey",
+          "monthLabel",
+          "rowOrder",
+          "colA",
+          "colB",
+          "colC",
+          "colD",
+          "colE"
+        ],
+        [
+          "v7",
+          "33767708:20:00",
+          "2026-06",
+          "2026-06",
+          "1",
+          "Danh mục",
+          "Tổng",
+          "Quang Quân",
+          "Minh Vương",
+          "Giải thích"
+        ],
+        [
+          "v7",
+          "33767708:20:00",
+          "2026-06",
+          "2026-06",
+          "2",
+          "Tổng khối lượng",
+          "10.101,74",
+          "4.889,54",
+          "5.212,20",
+          ""
+        ],
+        [
+          "v7",
+          "33767708:20:00",
+          "2026-06",
+          "2026-06",
+          "3",
+          "Tổng doanh thu",
+          "1.191.787.276₫",
+          "575.214.868₫",
+          "616.572.409₫",
+          ""
+        ],
+        [
+          "v7",
+          "33767708:20:00",
+          "2026-06",
+          "2026-06",
+          "4",
+          "Doanh thu chưa VAT",
+          "1.103.506.737₫",
+          "532.606.359₫",
+          "570.900.378₫",
+          "Doanh thu / 1,08"
+        ],
+        [
+          "v7",
+          "33767708:20:00",
+          "2026-06",
+          "2026-06",
+          "5",
+          "Thuế TNDN",
+          "110.350.674₫",
+          "53.260.636₫",
+          "57.090.038₫",
+          "10% doanh thu chưa VAT"
+        ],
+        [
+          "v7",
+          "33767708:20:00",
+          "2026-06",
+          "2026-06",
+          "6",
+          "Thuế VAT",
+          "88.280.539₫",
+          "42.608.509₫",
+          "45.672.030₫",
+          "8% VAT trong doanh thu"
+        ],
+        [
+          "v7",
+          "33767708:20:00",
+          "2026-06",
+          "2026-06",
+          "7",
+          "Chi phí dầu",
+          "335.274.580₫",
+          "170.417.230₫",
+          "164.857.350₫",
+          "Nguồn Quang Minh"
+        ],
+        [
+          "v7",
+          "33767708:20:00",
+          "2026-06",
+          "2026-06",
+          "8",
+          "Phí đi đường",
+          "0₫",
+          "",
+          "",
+          "Phí đi đường trong tháng "
+        ],
+        [
+          "v7",
+          "33767708:20:00",
+          "2026-06",
+          "2026-06",
+          "9",
+          "Lợi nhuận gộp",
+          "657.881.484₫",
+          "308.928.493₫",
+          "348.952.991₫",
+          "Doanh thu - thuế - dầu - phí đường bộ"
+        ]
+      ],
+      "formulas": [],
+      "dataValidations": [],
+      "conditionalFormatRules": [],
+      "protections": []
+    }
+  ],
+  "namedRanges": []
+}

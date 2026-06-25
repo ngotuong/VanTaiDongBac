@@ -1,5 +1,5 @@
 var SheetService = (function () {
-  var CACHE_VERSION = 'v8';
+  var CACHE_VERSION = 'v9';
   var CATALOG_TTL_SECONDS = 21600;
   var REPORT_TTL_SECONDS = 600;
   var REPORT_CACHE_SHEET_NAME = 'SYS_ReportCache';
@@ -938,22 +938,26 @@ var SheetService = (function () {
     
     var tripsMap = {};
     var ticketMap = {};
+    var projectMap = {};
     values.forEach(function (row) {
       var d = row[0];
       if (Object.prototype.toString.call(d) === '[object Date]') {
         var dStr = Utilities.formatDate(d, APP_CONFIG.timezone, 'yyyy-MM-dd');
         if (dStr === maxDateStr) {
           var plate = clean_(row[2]);
+          var project = clean_(row[3]);
           var count = parseNumberLoose_(row[4]);
           var ticket = clean_(row[5]);
           if (plate && count > 0) {
-            tripsMap[plate] = (tripsMap[plate] || 0) + count;
+            var key = project + '|' + plate;
+            tripsMap[key] = (tripsMap[key] || 0) + count;
+            projectMap[key] = project;
             if (ticket) {
-              if (!ticketMap[plate]) {
-                ticketMap[plate] = [];
+              if (!ticketMap[key]) {
+                ticketMap[key] = [];
               }
-              if (ticketMap[plate].indexOf(ticket) === -1) {
-                ticketMap[plate].push(ticket);
+              if (ticketMap[key].indexOf(ticket) === -1) {
+                ticketMap[key].push(ticket);
               }
             }
           }
@@ -961,15 +965,18 @@ var SheetService = (function () {
       }
     });
     
-    var tripsList = Object.keys(tripsMap).map(function (plate) {
+    var tripsList = Object.keys(tripsMap).map(function (key) {
+      var parts = key.split('|');
       return { 
-        vehicle: plate, 
-        count: tripsMap[plate],
-        ticket: ticketMap[plate] ? ticketMap[plate].join(', ') : '-'
+        project: projectMap[key] || parts[0] || '-',
+        vehicle: parts[1] || '', 
+        count: tripsMap[key],
+        ticket: ticketMap[key] ? ticketMap[key].join(', ') : '-'
       };
     });
     
     tripsList.sort(function (a, b) {
+      if (a.project !== b.project) return a.project.localeCompare(b.project);
       if (b.count !== a.count) return b.count - a.count;
       return a.vehicle.localeCompare(b.vehicle);
     });

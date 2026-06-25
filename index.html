@@ -342,7 +342,7 @@
     /* KPI Dashboard Cards */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 16px;
       margin-bottom: 24px;
     }
@@ -424,6 +424,7 @@
       gap: 6px;
       font-size: 12px;
       font-weight: 600;
+      min-width: 0;
     }
     .kpi-status.ok { color: #16a34a; }
     .kpi-status.warn { color: #d97706; }
@@ -1589,6 +1590,7 @@
           <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
           <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
           <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
         </div>
         
         <!-- Profit Chart Panel -->
@@ -1626,14 +1628,15 @@
             <table id="homeLatestTripsTable">
               <thead>
                 <tr>
-                  <th style="width: 35%;">Biển số xe</th>
-                  <th style="width: 30%;">Số chuyến chạy</th>
-                  <th style="width: 35%;">Số phiếu</th>
+                  <th style="width: 28%;">Dự án</th>
+                  <th style="width: 26%;">Biển số xe</th>
+                  <th style="width: 20%;">Số chuyến chạy</th>
+                  <th style="width: 26%;">Số phiếu</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td colspan="3" style="text-align: center; color: var(--muted); padding: 24px;">Đang tải dữ liệu số chuyến...</td>
+                  <td colspan="4" style="text-align: center; color: var(--muted); padding: 24px;">Đang tải dữ liệu số chuyến...</td>
                 </tr>
               </tbody>
             </table>
@@ -2980,7 +2983,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.0_submit_dashboard_perf';
+      const APP_VERSION = 'v3.1_dashboard_layout';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -3245,7 +3248,7 @@
             const fuelQM = parseMoney(row[5]);
             const toll = parseMoney(row[7]);
             const calculatedGross = rev - taxTndn - taxVat - fuelQM - toll;
-            td.textContent = Math.round(calculatedGross).toLocaleString('vi-VN') + ' đ';
+            td.textContent = formatCurrencyText(calculatedGross);
           } else {
             td.textContent = row[i] || '';
           }
@@ -3306,21 +3309,27 @@
       const dashboard = getDashboardData();
       if (dashboard.loading) {
         if (dateSpan) dateSpan.textContent = '';
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--muted); padding: 24px;">Đang tải dữ liệu số chuyến...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--muted); padding: 24px;">Đang tải dữ liệu số chuyến...</td></tr>';
         return;
       }
       
       if (!latestTrips || !latestTrips.date || !latestTrips.trips || !latestTrips.trips.length) {
         if (dateSpan) dateSpan.textContent = '';
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--muted); padding: 24px;">Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--muted); padding: 24px;">Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>';
         return;
       }
       
       if (dateSpan) dateSpan.textContent = `(${latestTrips.date})`;
       
       tbody.innerHTML = '';
+      let totalTrips = 0;
       latestTrips.trips.forEach((item) => {
         const tr = document.createElement('tr');
+
+        const tdProject = document.createElement('td');
+        tdProject.textContent = item.project || '-';
+        tdProject.style.fontWeight = '600';
+        tdProject.style.color = 'var(--ink)';
         
         const tdVehicle = document.createElement('td');
         tdVehicle.textContent = item.vehicle || '';
@@ -3331,16 +3340,27 @@
         tdCount.textContent = Number(item.count || 0).toLocaleString('vi-VN');
         tdCount.style.fontWeight = '600';
         tdCount.style.color = 'var(--ink)';
+        totalTrips += Number(item.count || 0);
 
         const tdTicket = document.createElement('td');
         tdTicket.textContent = item.ticket || '-';
         tdTicket.style.color = 'var(--muted)';
         
+        tr.appendChild(tdProject);
         tr.appendChild(tdVehicle);
         tr.appendChild(tdCount);
         tr.appendChild(tdTicket);
         tbody.appendChild(tr);
       });
+
+      const totalRow = document.createElement('tr');
+      totalRow.className = 'total-row';
+      totalRow.innerHTML = `
+        <td colspan="2" style="font-weight:800;color:var(--deep);">Tổng cộng</td>
+        <td style="font-weight:800;color:var(--teal);">${totalTrips.toLocaleString('vi-VN')}</td>
+        <td></td>
+      `;
+      tbody.appendChild(totalRow);
     }
 
     function renderMetrics(latest) {
@@ -3349,59 +3369,61 @@
       
       const dashboard = getDashboardData();
       const timeStr = dashboard.updatedAt ? dashboard.updatedAt.split(' ')[1] : new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
-      
-      const parseValueUnit = (valText) => {
-        if (!valText || valText === '-') return { val: '-', unit: '' };
-        const cleanText = valText.trim();
-        const match = cleanText.match(/^(.*?)([\s₫a-zA-Z\/\%]+)$/);
-        if (match) {
-          return { val: match[1].trim(), unit: match[2].trim() };
-        }
-        return { val: cleanText, unit: '' };
+
+      const parsed = parseOverview(dashboard.overview.months);
+      const selectedIndex = parsed.rows.findIndex((row) => row.month === latest.month);
+      const previous = selectedIndex > 0 ? parsed.rows[selectedIndex - 1] : null;
+      const compareText = (current, previousValue) => {
+        if (!previous || !previousValue) return latest.month === 'Tất cả' ? 'Tổng hợp các kỳ báo cáo' : 'Chưa có tháng trước';
+        const pct = previousValue ? ((current - previousValue) / Math.abs(previousValue)) * 100 : 0;
+        if (!Number.isFinite(pct)) return 'Chưa có tháng trước';
+        const direction = pct >= 0 ? 'tăng' : 'giảm';
+        return `So với tháng trước ${direction} ${Math.abs(pct).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`;
       };
-      
-      const pRev = parseValueUnit(latest.revenueText);
-      const pGross = parseValueUnit(latest.grossText);
-      const pCost = parseValueUnit(latest.totalCostText);
-      const pFinal = parseValueUnit(latest.finalText);
-      
+
+      const operatingCost = latest.operatingCost || 0;
+      const cashCost = latest.cashCost || 0;
       const isPositive = (latest.final || 0) >= 0;
       
       const items = [
         {
           label: 'Tổng doanh thu',
-          val: pRev.val,
-          unit: pRev.unit,
+          value: latest.revenue || 0,
           badgeClass: 'blue',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`,
-          statusText: 'Doanh thu vận hành',
+          statusText: compareText(latest.revenue || 0, previous?.revenue || 0),
+          statusClass: 'ok'
+        },
+        {
+          label: 'Chi phí vận hành',
+          value: operatingCost,
+          badgeClass: 'red',
+          svg: `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>`,
+          statusText: compareText(operatingCost, previous?.operatingCost || 0),
           statusClass: 'ok'
         },
         {
           label: 'Lợi nhuận gộp',
-          val: pGross.val,
-          unit: pGross.unit,
+          value: latest.gross || 0,
           badgeClass: 'amber',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`,
-          statusText: 'Vận hành ổn định',
+          statusText: compareText(latest.gross || 0, previous?.gross || 0),
           statusClass: 'ok'
         },
         {
-          label: 'Chi phí',
-          val: pCost.val,
-          unit: pCost.unit,
+          label: 'Chi phí sau vận hành',
+          value: cashCost,
           badgeClass: 'red',
-          svg: `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>`,
-          statusText: 'Thuế, phí, dầu & quỹ',
+          svg: `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 6h18v12H3z"></path><path d="M7 10h.01M17 14h.01M12 12a2 2 0 1 0 0 .01"></path></svg>`,
+          statusText: compareText(cashCost, previous?.cashCost || 0),
           statusClass: 'ok'
         },
         {
           label: 'Lợi nhuận thực tế',
-          val: pFinal.val,
-          unit: pFinal.unit,
+          value: latest.final || 0,
           badgeClass: isPositive ? 'green' : 'red',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`,
-          statusText: isPositive ? 'Lợi nhuận dương' : 'Lợi nhuận âm',
+          statusText: compareText(latest.final || 0, previous?.final || 0),
           statusClass: isPositive ? 'ok' : 'err'
         }
       ];
@@ -3427,12 +3449,13 @@
           `;
         } else {
           const iconHtml = item.statusClass === 'ok' ? checkSvg : warningSvg;
+          const money = formatCurrencyParts(item.value);
           card.innerHTML = `
             <div class="kpi-card-header">
               <div class="kpi-label">${escapeHtml(item.label)}</div>
               <div class="kpi-icon-badge ${item.badgeClass}">${item.svg}</div>
             </div>
-            <div class="kpi-value">${escapeHtml(item.val)} ${item.unit ? `<span class="unit">${escapeHtml(item.unit)}</span>` : ''}</div>
+            <div class="kpi-value">${escapeHtml(money.value)} <span class="unit">${escapeHtml(money.unit)}</span></div>
             <div class="kpi-card-footer">
               <div class="kpi-status ${item.statusClass}">${iconHtml} <span>${escapeHtml(item.statusText)}</span></div>
               <div class="kpi-time">${escapeHtml(timeStr)}</div>
@@ -3458,7 +3481,9 @@
         return;
       }
       
-      const max = Math.max(...data.map((row) => Math.abs(row.final || 0)), 1);
+      const step = 500000000;
+      const maxValue = Math.max(...data.map((row) => Math.abs(row.final || 0)), 1);
+      const max = Math.max(step, Math.ceil(maxValue / step) * step);
       
       const formatShortMoney = (val) => {
         const absVal = Math.abs(val);
@@ -3498,11 +3523,11 @@
       yAxis.style.flexShrink = '0';
       yAxis.style.borderRight = '1px solid var(--line)';
       
-      yAxis.innerHTML = `
-        <div>${formatShortMoney(max)}</div>
-        <div>${formatShortMoney(max / 2)}</div>
-        <div>0</div>
-      `;
+      const ticks = [];
+      for (let value = max; value >= 0; value -= step) {
+        ticks.push(value);
+      }
+      yAxis.innerHTML = ticks.map((value) => `<div>${formatShortMoney(value)}</div>`).join('');
       
       // Chart Area
       const chartArea = document.createElement('div');
@@ -3525,11 +3550,10 @@
       gridLines.style.pointerEvents = 'none';
       gridLines.style.zIndex = '1';
       
-      gridLines.innerHTML = `
-        <div style="border-bottom: 1px dashed var(--line); width: 100%;"></div>
-        <div style="border-bottom: 1px dashed var(--line); width: 100%;"></div>
-        <div style="border-bottom: 2px solid var(--muted); width: 100%;"></div>
-      `;
+      gridLines.innerHTML = ticks.map((value) => {
+        const weight = value === 0 ? '2px solid var(--muted)' : '1px dashed var(--line)';
+        return `<div style="border-bottom: ${weight}; width: 100%;"></div>`;
+      }).join('');
       
       // Columns
       const chartContainer = document.createElement('div');
@@ -3555,7 +3579,7 @@
           : 'linear-gradient(180deg, var(--teal), var(--deep-2))';
           
         col.innerHTML = `
-          <div class="bar-value" style="${row.final < 0 ? 'color: var(--red);' : 'color: var(--teal);'}">${escapeHtml(row.finalText || '-')}</div>
+          <div class="bar-value" style="${row.final < 0 ? 'color: var(--red);' : 'color: var(--teal);'}">${escapeHtml(formatCurrencyText(row.final || 0))}</div>
           <div class="bar-track-v">
             <div class="bar-fill-v" style="height:${pct}%; background:${color}; width: 100%;"></div>
           </div>
@@ -4234,11 +4258,13 @@
           const fuelOut = parseMoney(row[6]);
           const toll = parseMoney(row[7]);
           const gross = rev - taxTndn - taxVat - fuelQM - toll;
-          const grossText = Math.round(gross).toLocaleString('vi-VN') + ' đ';
+          const grossText = formatCurrencyText(gross);
           
           const fund = parseMoney(row[9]);
+          const operatingCost = taxTndn + taxVat + fuelQM + toll;
+          const cashCost = fuelOut + fund;
           const totalCost = taxTndn + taxVat + fuelQM + fuelOut + toll + fund;
-          const totalCostText = Math.round(totalCost).toLocaleString('vi-VN') + ' đ';
+          const totalCostText = formatCurrencyText(totalCost);
           
           return {
             month: row[0],
@@ -4248,11 +4274,20 @@
             revenueText: row[2],
             revenue: rev,
             taxTndnText: row[3],
+            taxTndn: taxTndn,
             taxVatText: row[4],
+            taxVat: taxVat,
             fuelText: row[5] + (row[6] ? ' / ' + row[6] : ''),
+            fuelQM: fuelQM,
+            fuelOut: fuelOut,
             tollText: row[7],
+            toll: toll,
             grossText: grossText,
             gross: gross,
+            operatingCost: operatingCost,
+            operatingCostText: formatCurrencyText(operatingCost),
+            cashCost: cashCost,
+            cashCostText: formatCurrencyText(cashCost),
             totalCost: totalCost,
             totalCostText: totalCostText,
             fundText: row[9],
@@ -4283,6 +4318,8 @@
         let toll = 0;
         let gross = 0;
         let fund = 0;
+        let operatingCost = 0;
+        let cashCost = 0;
         let totalCost = 0;
         let final = 0;
         
@@ -4298,6 +4335,8 @@
             fund += parseMoney(r.source[9]);
           }
           gross += r.gross || 0;
+          operatingCost += r.operatingCost || 0;
+          cashCost += r.cashCost || 0;
           totalCost += r.totalCost || 0;
           final += r.final || 0;
         });
@@ -4307,15 +4346,24 @@
           volume: volume,
           volumeText: volume.toLocaleString('vi-VN') + ' tấn',
           revenue: revenue,
-          revenueText: Math.round(revenue).toLocaleString('vi-VN') + ' ₫',
-          taxTndnText: Math.round(taxTndn).toLocaleString('vi-VN') + ' ₫',
-          taxVatText: Math.round(taxVat).toLocaleString('vi-VN') + ' ₫',
-          fuelText: Math.round(fuelQM).toLocaleString('vi-VN') + ' ₫ / ' + Math.round(fuelOut).toLocaleString('vi-VN') + ' ₫',
-          tollText: Math.round(toll).toLocaleString('vi-VN') + ' ₫',
-          grossText: Math.round(gross).toLocaleString('vi-VN') + ' ₫',
-          fundText: Math.round(fund).toLocaleString('vi-VN') + ' ₫',
-          totalCostText: Math.round(totalCost).toLocaleString('vi-VN') + ' ₫',
-          finalText: Math.round(final).toLocaleString('vi-VN') + ' ₫',
+          revenueText: formatCurrencyText(revenue),
+          taxTndnText: formatCurrencyText(taxTndn),
+          taxTndn: taxTndn,
+          taxVatText: formatCurrencyText(taxVat),
+          taxVat: taxVat,
+          fuelText: formatCurrencyText(fuelQM) + ' / ' + formatCurrencyText(fuelOut),
+          fuelQM: fuelQM,
+          fuelOut: fuelOut,
+          tollText: formatCurrencyText(toll),
+          toll: toll,
+          grossText: formatCurrencyText(gross),
+          operatingCost: operatingCost,
+          operatingCostText: formatCurrencyText(operatingCost),
+          cashCost: cashCost,
+          cashCostText: formatCurrencyText(cashCost),
+          fundText: formatCurrencyText(fund),
+          totalCostText: formatCurrencyText(totalCost),
+          finalText: formatCurrencyText(final),
           final: final,
           source: [
             'Tất cả',
@@ -4400,6 +4448,19 @@
       const normalized = text.replace(/\./g, '').replace(',', '.');
       const number = Number(normalized);
       return Number.isFinite(number) ? number : 0;
+    }
+
+    function formatCurrencyParts(value) {
+      const rounded = Math.round(Number(value || 0));
+      return {
+        value: rounded.toLocaleString('vi-VN'),
+        unit: 'đ'
+      };
+    }
+
+    function formatCurrencyText(value) {
+      const money = formatCurrencyParts(value);
+      return `${money.value} ${money.unit}`;
     }
 
     function newBlankRow(seed = {}) {

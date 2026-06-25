@@ -10,6 +10,7 @@ Tài liệu này tổng hợp toàn bộ cấu trúc cơ sở dữ liệu Google
 * **Spreadsheet ID**: `1VSNLzSNKJFXaY_dcyM7WkPz9Braia0AjPM7jHHXXyeA`  
 * **Apps Script ID**: `1hNKU7xNvhORJSgv8mNIWKNguHU8bmCmM7mQBjxXLfv5FhawbN2HfJ2GX` (v47)
 * **Frontend Web App URL**: [vtdongbac.vercel.app](https://vtdongbac.vercel.app)
+* **Ghi chú kiến trúc mới**: Apps Script là web app độc lập trong My Projects, không gắn trực tiếp vào một Google Sheet. Code backend dùng chung cho nhiều file theo năm; spreadsheet active được resolve qua `AppConfig.gs` thay vì hard-code trong router.
 * **Quy trình triển khai**:
   * Chạy code Apps Script cục bộ (trong thư mục này) và đẩy lên qua clasp:
     ```bash
@@ -77,6 +78,11 @@ Tất cả các sheet nhập liệu đều có cột **Tháng** (Cột B hoặc 
 
 Backend chạy bằng Google Apps Script, xử lý thông qua file [Code.gs](file:///Users/ngotuong/AppsScript/VanTaiDongBac_2026_WebApp/Code.gs) đóng vai trò router nhận HTTP POST/GET.
 
+Từ bản refactor nền:
+* `AppConfig.gs` quản lý spreadsheet ID active. Có thể dùng Script Properties `ACTIVE_SPREADSHEET_ID`, `DEFAULT_SPREADSHEET_ID`, hoặc `SPREADSHEET_ID_2026`, `SPREADSHEET_ID_2027`, ...
+* API có thể nhận `year`, `spreadsheetId`, hoặc `ssId` để trỏ sang file năm khác khi cần.
+* Cache backend trong `SheetService.gs` đã scoped theo spreadsheet ID để tránh lẫn dữ liệu giữa các file năm.
+
 ### 4.1. Cơ Chế Định Tuyến API
 
 Mọi request được điều phối qua `doGet(e)` và `doPost(e)`:
@@ -117,6 +123,12 @@ Trang báo cáo hỗ trợ tùy chọn lọc **"Tất cả"** các tháng.
 ## 5. Giao Diện Người Dùng & Các Tối Ưu Hóa Trải Nghiệm (index.html)
 
 Giao diện là Web App SPA thiết kế tối ưu hóa cho thiết bị di động (Mobile-First / Safari di động).
+
+Từ bản refactor nền:
+* `index.html` chỉ giữ HTML shell.
+* `styles.html` chứa CSS.
+* `client.html` chứa JavaScript frontend.
+* `Code.gs` render bằng `HtmlService.createTemplateFromFile('index')` và helper `include(filename)`.
 
 ### 5.1. Hệ Thống Điều Hướng & Quản Lý View
 

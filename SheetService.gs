@@ -22,7 +22,7 @@ var SheetService = (function () {
   }
 
   function getCatalogs(formType) {
-    var key = 'catalogs:' + CACHE_VERSION + ':' + (formType || 'all');
+    var key = cacheKey_('catalogs', formType || 'all');
     var cached = getChunkedCache_(key);
     if (cached) return cached;
     var catalogs = readCatalogs_(getSpreadsheet_(), formType);
@@ -32,7 +32,7 @@ var SheetService = (function () {
 
   function getDashboard(month, forceRefresh) {
     var monthKey = normalizeMonthKey_(month) || 'latest';
-    var key = 'dashboard:' + CACHE_VERSION + ':' + monthKey;
+    var key = cacheKey_('dashboard', monthKey);
     if (forceRefresh) invalidateRuntimeCaches_();
     if (!forceRefresh) {
       var cached = getChunkedCache_(key);
@@ -52,7 +52,7 @@ var SheetService = (function () {
   }
 
   function getReports(forceRefresh) {
-    var cacheKey = 'reports:' + CACHE_VERSION + ':all';
+    var cacheKey = cacheKey_('reports', 'all');
     if (forceRefresh) invalidateRuntimeCaches_();
     if (!forceRefresh) {
       var cached = getChunkedCache_(cacheKey);
@@ -77,7 +77,7 @@ var SheetService = (function () {
   function getReport(type, month, forceRefresh) {
     var reportType = type || 'overview';
     var monthKey = normalizeMonthKey_(month) || 'all';
-    var cacheKey = 'report:' + CACHE_VERSION + ':' + reportType + ':' + monthKey;
+    var cacheKey = cacheKey_('report', reportType, monthKey);
     if (forceRefresh) invalidateRuntimeCaches_();
     if (!forceRefresh) {
       var cached = getChunkedCache_(cacheKey);
@@ -117,7 +117,7 @@ var SheetService = (function () {
 
   function getReportBundle(month, forceRefresh) {
     var monthKey = normalizeMonthKey_(month) || 'all';
-    var cacheKey = 'report_bundle:' + CACHE_VERSION + ':' + monthKey;
+    var cacheKey = cacheKey_('report_bundle', monthKey);
     if (forceRefresh) invalidateRuntimeCaches_();
     if (!forceRefresh) {
       var cached = getChunkedCache_(cacheKey);
@@ -679,7 +679,7 @@ var SheetService = (function () {
   }
 
   function readReportTables_(ss, forceRefresh) {
-    var cacheKey = 'report_tables:' + CACHE_VERSION + ':all';
+    var cacheKey = cacheKey_('report_tables', 'all');
     if (!forceRefresh) {
       var cached = getChunkedCache_(cacheKey);
       if (cached) return cached;
@@ -815,6 +815,14 @@ var SheetService = (function () {
     return text.replace(/[^\w-]/g, '_');
   }
 
+  function cacheKey_(type) {
+    var parts = ['ss', normalizeMonthKey_(APP_CONFIG.spreadsheetId), type, CACHE_VERSION];
+    for (var i = 1; i < arguments.length; i++) {
+      parts.push(normalizeMonthKey_(arguments[i]) || 'all');
+    }
+    return parts.join(':');
+  }
+
   function filterDisplayTableByMonth_(matrix, month) {
     if (month === 'Tất cả') return matrix || [];
     var key = normalizeDisplayMonth_(month);
@@ -919,13 +927,13 @@ var SheetService = (function () {
 
   function invalidateRuntimeCaches_() {
     bumpReportDataVersion_();
-    removeChunkedCache_('reports:' + CACHE_VERSION + ':all');
-    removeChunkedCache_('dashboard:' + CACHE_VERSION + ':latest');
-    removeChunkedCache_('report:' + CACHE_VERSION + ':overview:all');
-    removeChunkedCache_('report:' + CACHE_VERSION + ':payroll:all');
-    removeChunkedCache_('report:' + CACHE_VERSION + ':vehicles:all');
-    removeChunkedCache_('report_bundle:' + CACHE_VERSION + ':all');
-    removeChunkedCache_('report_tables:' + CACHE_VERSION + ':all');
+    removeChunkedCache_(cacheKey_('reports', 'all'));
+    removeChunkedCache_(cacheKey_('dashboard', 'latest'));
+    removeChunkedCache_(cacheKey_('report', 'overview', 'all'));
+    removeChunkedCache_(cacheKey_('report', 'payroll', 'all'));
+    removeChunkedCache_(cacheKey_('report', 'vehicles', 'all'));
+    removeChunkedCache_(cacheKey_('report_bundle', 'all'));
+    removeChunkedCache_(cacheKey_('report_tables', 'all'));
   }
 
   function readLatestTrips_(ss) {
@@ -1254,9 +1262,9 @@ var SheetService = (function () {
       clearAfterSubmitCache_();
 
       if (sheetName.indexOf('DM_') === 0) {
-        removeChunkedCache_('catalogs:' + CACHE_VERSION + ':all');
+        removeChunkedCache_(cacheKey_('catalogs', 'all'));
         for (var key in APP_CONFIG.sheets) {
-          removeChunkedCache_('catalogs:' + CACHE_VERSION + ':' + key);
+          removeChunkedCache_(cacheKey_('catalogs', key));
         }
       }
 
@@ -1319,9 +1327,9 @@ var SheetService = (function () {
       clearAfterSubmitCache_();
 
       if (sheetName.indexOf('DM_') === 0) {
-        removeChunkedCache_('catalogs:' + CACHE_VERSION + ':all');
+        removeChunkedCache_(cacheKey_('catalogs', 'all'));
         for (var key in APP_CONFIG.sheets) {
-          removeChunkedCache_('catalogs:' + CACHE_VERSION + ':' + key);
+          removeChunkedCache_(cacheKey_('catalogs', key));
         }
       }
 

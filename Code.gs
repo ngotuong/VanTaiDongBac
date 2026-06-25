@@ -1,25 +1,11 @@
-var APP_CONFIG = {
-  spreadsheetId: '1VSNLzSNKJFXaY_dcyM7WkPz9Braia0AjPM7jHHXXyeA',
-  timezone: 'Asia/Saigon',
-  sheets: {
-    vanChuyen: { name: 'NL_VanChuyen', headerRow: 2, columns: 7 },
-    taiXe: { name: 'NL_TaiXe', headerRow: 1, columns: 6 },
-    dau: { name: 'NL_Dau', headerRow: 2, columns: 8 },
-    chamCong: { name: 'NL_ChamCong', headerRow: 1, columns: 9 },
-    phat: { name: 'NL_Phat', headerRow: 1, columns: 7 },
-    nghiVanHanh: { name: 'NL_NghiVanHanh', headerRow: 1, columns: 9 }
-  }
-};
-
 function doGet(e) {
+  e = e || { parameter: {} };
+  AppConfig.activateFromEvent(e);
   var action = e.parameter.action;
   try {
     if (!action) {
       // Direct access fallback: render UI for developer/admin convenience
-      return HtmlService.createHtmlOutputFromFile('index')
-        .setTitle('Vận tải Đông Bắc - Hệ thống điều hành nội bộ')
-        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-        .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
+      return renderIndex_();
     }
     
     if (action === 'debugSheet') {
@@ -51,6 +37,10 @@ function doPost(e) {
       throw new Error('Yêu cầu POST thiếu nội dung dữ liệu.');
     }
     var payload = JSON.parse(contents);
+    AppConfig.activate({
+      spreadsheetId: payload.spreadsheetId || payload.ssId,
+      year: payload.year
+    });
     var action = payload.action;
     
     if (action === 'submitRows') {
@@ -79,6 +69,18 @@ function doPost(e) {
 function jsonResponse_(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function renderIndex_() {
+  return HtmlService.createTemplateFromFile('index')
+    .evaluate()
+    .setTitle('Vận tải Đông Bắc - Hệ thống điều hành nội bộ')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
+}
+
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
 function getInitialData() {

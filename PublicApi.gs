@@ -53,3 +53,11 @@ function deleteSheetRow(sheetName, rowIndex, columnsToClear) {
 function getFundTransactions(year, filter) {
   return FundService.getFundTransactions(year, filter);
 }
+
+function getFundFormOptions(year) {
+  return FundService.getFundFormOptions(year);
+}
+
+function addFundTransaction(year, transaction) {
+  return FundService.addFundTransaction(year, transaction);
+}

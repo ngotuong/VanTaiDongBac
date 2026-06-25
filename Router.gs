@@ -28,6 +28,7 @@ function doGet(e) {
         limit: e.parameter.limit
       }));
     }
+    if (action === 'getFundFormOptions') return jsonResponse_(FundService.getFundFormOptions(e.parameter.year));
 
     throw new Error('Hành động GET không hợp lệ: ' + action);
   } catch (err) {
@@ -63,6 +64,10 @@ function doPost(e) {
     if (action === 'deleteSheetRow') {
       var deleteResult = SheetService.deleteSheetRow(payload.sheetName, payload.rowIndex, payload.columnsToClear);
       return jsonResponse_(deleteResult);
+    }
+    if (action === 'addFundTransaction') {
+      var fundResult = FundService.addFundTransaction(payload.year, payload.transaction);
+      return jsonResponse_(fundResult);
     }
 
     throw new Error('Hành động POST không hợp lệ: ' + action);

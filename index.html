@@ -1981,7 +1981,71 @@
         </div>
 
         <div class="table-card" data-cashflow-panel="entry" style="display: none;">
-          <div class="panel-body" style="text-align: center; color: var(--muted); padding: 56px 24px;">Chức năng thêm khoản thu/chi sẽ được triển khai ở bước sau.</div>
+          <div class="panel-body">
+            <div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 18px;">
+              <div>
+                <div class="table-title">Thêm khoản thu/chi</div>
+                <div class="panel-note">Dữ liệu sẽ được ghi vào sheet NHAP_THUCHI của file Thu chi.</div>
+              </div>
+            </div>
+            <div id="fundEntryStatus" class="status" style="display: none;"></div>
+            <div class="fields">
+              <label>
+                Ngày
+                <input type="date" id="fundDateInput" required>
+              </label>
+              <label>
+                Loại
+                <select id="fundTypeInput" onchange="handleFundTypeChange()">
+                  <option value="Chi">Chi</option>
+                  <option value="Thu">Thu</option>
+                </select>
+              </label>
+              <label>
+                Mục thu/chi
+                <input type="text" id="fundCategoryInput" list="fundExpenseCategoryList" placeholder="Chọn hoặc nhập mục chi" required>
+                <datalist id="fundIncomeCategoryList"></datalist>
+                <datalist id="fundExpenseCategoryList"></datalist>
+              </label>
+              <label>
+                Hình thức
+                <select id="fundMethodInput">
+                  <option value="">Chọn hình thức</option>
+                </select>
+              </label>
+              <label>
+                Số tiền
+                <input type="number" id="fundAmountInput" min="1" step="1000" placeholder="0" required>
+              </label>
+              <label>
+                Người Thu/Chi
+                <input type="text" id="fundActorInput" list="fundActorList" placeholder="Người thực hiện" required>
+                <datalist id="fundActorList"></datalist>
+              </label>
+              <label>
+                Đối tác
+                <input type="text" id="fundPartnerInput" list="fundPartnerList" placeholder="Nhà cung cấp/khách hàng">
+                <datalist id="fundPartnerList"></datalist>
+              </label>
+              <label>
+                Công nợ
+                <span style="display: flex; align-items: center; gap: 10px; min-height: 46px;">
+                  <input type="checkbox" id="fundDebtInput" style="width: 18px; height: 18px;">
+                  <span style="font-weight: 700; color: var(--muted);">Đánh dấu là công nợ</span>
+                </span>
+              </label>
+              <label style="grid-column: 1 / -1;">
+                Nội dung
+                <textarea id="fundContentInput" placeholder="Nội dung thu/chi" rows="3"></textarea>
+              </label>
+            </div>
+            <div class="submit-bar">
+              <button type="button" class="primary grow" id="fundSaveBtn" onclick="submitFundTransaction()">
+                <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                Lưu vào Thu chi
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="table-card" data-cashflow-panel="monthly" style="display: none;">
@@ -2146,6 +2210,7 @@
     let currentEditCatalogRowIndex = null;
     let activeCashflowTab = 'overview';
     let fundTransactionsData = null;
+    let fundFormOptions = null;
     let reportBundleRequestSeq = 0;
     let reportBundlePrefetching = false;
     let reportCacheEpoch = 0;
@@ -2363,6 +2428,127 @@
       if (tab === 'transactions') {
         loadFundTransactions(false);
       }
+      if (tab === 'entry') {
+        loadFundFormOptions();
+      }
+    }
+
+    function loadFundFormOptions() {
+      if (fundFormOptions) return Promise.resolve(fundFormOptions);
+      return callApi('GET', 'getFundFormOptions', { year: '2026' })
+        .then((data) => {
+          fundFormOptions = data;
+          renderFundFormOptions();
+          return data;
+        })
+        .catch((err) => {
+          console.warn('Không thể tải danh mục Thu chi:', err);
+          renderFundFormOptions();
+          return null;
+        });
+    }
+
+    function renderFundFormOptions() {
+      const options = fundFormOptions || {};
+      fillDatalist('fundIncomeCategoryList', options.incomeCategories || []);
+      fillDatalist('fundExpenseCategoryList', options.expenseCategories || []);
+      fillDatalist('fundActorList', options.actors || []);
+      fillDatalist('fundPartnerList', options.partners || []);
+
+      const methodSelect = el('fundMethodInput');
+      if (methodSelect && !methodSelect.dataset.loaded) {
+        (options.methods || []).forEach((method) => {
+          const option = document.createElement('option');
+          option.value = method;
+          option.textContent = method;
+          methodSelect.appendChild(option);
+        });
+        methodSelect.dataset.loaded = 'true';
+      }
+    }
+
+    function fillDatalist(id, values) {
+      const list = el(id);
+      if (!list) return;
+      list.innerHTML = '';
+      values.forEach((value) => {
+        const option = document.createElement('option');
+        option.value = value;
+        list.appendChild(option);
+      });
+    }
+
+    function handleFundTypeChange() {
+      const type = el('fundTypeInput')?.value || 'Chi';
+      const category = el('fundCategoryInput');
+      if (category) {
+        category.setAttribute('list', type === 'Thu' ? 'fundIncomeCategoryList' : 'fundExpenseCategoryList');
+        category.placeholder = type === 'Thu' ? 'Chọn hoặc nhập mục thu' : 'Chọn hoặc nhập mục chi';
+      }
+    }
+
+    function submitFundTransaction() {
+      const btn = el('fundSaveBtn');
+      const transaction = {
+        date: el('fundDateInput')?.value || '',
+        type: el('fundTypeInput')?.value || '',
+        category: el('fundCategoryInput')?.value || '',
+        method: el('fundMethodInput')?.value || '',
+        amount: el('fundAmountInput')?.value || '',
+        actor: el('fundActorInput')?.value || '',
+        partner: el('fundPartnerInput')?.value || '',
+        content: el('fundContentInput')?.value || '',
+        debt: el('fundDebtInput')?.checked || false
+      };
+      const error = validateFundTransaction(transaction);
+      if (error) {
+        showFundEntryStatus('error', error);
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+      showFundEntryStatus('success', 'Đang lưu khoản thu/chi...');
+      callApi('POST', 'addFundTransaction', {}, { year: '2026', transaction })
+        .then(() => {
+          clearFundEntryForm();
+          showFundEntryStatus('success', 'Đã lưu khoản thu/chi vào file Thu chi.');
+          setCashflowTab('transactions');
+          loadFundTransactions(true);
+        })
+        .catch((err) => {
+          showFundEntryStatus('error', 'Không thể lưu khoản thu/chi: ' + err.message);
+        })
+        .finally(() => {
+          if (btn) btn.disabled = false;
+        });
+    }
+
+    function validateFundTransaction(transaction) {
+      if (!transaction.date) return 'Vui lòng nhập ngày.';
+      if (transaction.type !== 'Thu' && transaction.type !== 'Chi') return 'Vui lòng chọn loại Thu hoặc Chi.';
+      if (!transaction.category.trim()) return 'Vui lòng nhập mục thu/chi.';
+      if (!transaction.method.trim()) return 'Vui lòng nhập hình thức.';
+      if (!(parseLocaleNumber(transaction.amount) > 0)) return 'Số tiền phải lớn hơn 0.';
+      if (!transaction.actor.trim()) return 'Vui lòng nhập Người Thu/Chi.';
+      if (transaction.debt && !transaction.partner.trim()) return 'Khoản công nợ cần có Đối tác.';
+      return '';
+    }
+
+    function showFundEntryStatus(type, message) {
+      const status = el('fundEntryStatus');
+      if (!status) return;
+      status.className = 'status ' + (type === 'error' ? 'error' : 'success');
+      status.textContent = message;
+      status.style.display = 'block';
+    }
+
+    function clearFundEntryForm() {
+      ['fundCategoryInput', 'fundAmountInput', 'fundActorInput', 'fundPartnerInput', 'fundContentInput'].forEach((id) => {
+        const field = el(id);
+        if (field) field.value = '';
+      });
+      const debt = el('fundDebtInput');
+      if (debt) debt.checked = false;
     }
 
     function loadFundTransactions(forceRefresh) {

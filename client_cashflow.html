@@ -10,6 +10,128 @@
       if (tab === 'transactions') {
         loadFundTransactions(false);
       }
+      if (tab === 'entry') {
+        loadFundFormOptions();
+      }
+    }
+
+    function loadFundFormOptions() {
+      if (fundFormOptions) return Promise.resolve(fundFormOptions);
+      return callApi('GET', 'getFundFormOptions', { year: '2026' })
+        .then((data) => {
+          fundFormOptions = data;
+          renderFundFormOptions();
+          return data;
+        })
+        .catch((err) => {
+          console.warn('Không thể tải danh mục Thu chi:', err);
+          renderFundFormOptions();
+          return null;
+        });
+    }
+
+    function renderFundFormOptions() {
+      const options = fundFormOptions || {};
+      fillDatalist('fundIncomeCategoryList', options.incomeCategories || []);
+      fillDatalist('fundExpenseCategoryList', options.expenseCategories || []);
+      fillDatalist('fundActorList', options.actors || []);
+      fillDatalist('fundPartnerList', options.partners || []);
+
+      const methodSelect = el('fundMethodInput');
+      if (methodSelect && !methodSelect.dataset.loaded) {
+        (options.methods || []).forEach((method) => {
+          const option = document.createElement('option');
+          option.value = method;
+          option.textContent = method;
+          methodSelect.appendChild(option);
+        });
+        methodSelect.dataset.loaded = 'true';
+      }
+    }
+
+    function fillDatalist(id, values) {
+      const list = el(id);
+      if (!list) return;
+      list.innerHTML = '';
+      values.forEach((value) => {
+        const option = document.createElement('option');
+        option.value = value;
+        list.appendChild(option);
+      });
+    }
+
+    function handleFundTypeChange() {
+      const type = el('fundTypeInput')?.value || 'Chi';
+      const category = el('fundCategoryInput');
+      if (category) {
+        category.setAttribute('list', type === 'Thu' ? 'fundIncomeCategoryList' : 'fundExpenseCategoryList');
+        category.placeholder = type === 'Thu' ? 'Chọn hoặc nhập mục thu' : 'Chọn hoặc nhập mục chi';
+      }
+    }
+
+    function submitFundTransaction() {
+      const status = el('fundEntryStatus');
+      const btn = el('fundSaveBtn');
+      const transaction = {
+        date: el('fundDateInput')?.value || '',
+        type: el('fundTypeInput')?.value || '',
+        category: el('fundCategoryInput')?.value || '',
+        method: el('fundMethodInput')?.value || '',
+        amount: el('fundAmountInput')?.value || '',
+        actor: el('fundActorInput')?.value || '',
+        partner: el('fundPartnerInput')?.value || '',
+        content: el('fundContentInput')?.value || '',
+        debt: el('fundDebtInput')?.checked || false
+      };
+      const error = validateFundTransaction(transaction);
+      if (error) {
+        showFundEntryStatus('error', error);
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+      showFundEntryStatus('info', 'Đang lưu khoản thu/chi...');
+      callApi('POST', 'addFundTransaction', {}, { year: '2026', transaction })
+        .then(() => {
+          clearFundEntryForm();
+          showFundEntryStatus('success', 'Đã lưu khoản thu/chi vào file Thu chi.');
+          setCashflowTab('transactions');
+          loadFundTransactions(true);
+        })
+        .catch((err) => {
+          showFundEntryStatus('error', 'Không thể lưu khoản thu/chi: ' + err.message);
+        })
+        .finally(() => {
+          if (btn) btn.disabled = false;
+        });
+    }
+
+    function validateFundTransaction(transaction) {
+      if (!transaction.date) return 'Vui lòng nhập ngày.';
+      if (transaction.type !== 'Thu' && transaction.type !== 'Chi') return 'Vui lòng chọn loại Thu hoặc Chi.';
+      if (!transaction.category.trim()) return 'Vui lòng nhập mục thu/chi.';
+      if (!transaction.method.trim()) return 'Vui lòng nhập hình thức.';
+      if (!(parseLocaleNumber(transaction.amount) > 0)) return 'Số tiền phải lớn hơn 0.';
+      if (!transaction.actor.trim()) return 'Vui lòng nhập Người Thu/Chi.';
+      if (transaction.debt && !transaction.partner.trim()) return 'Khoản công nợ cần có Đối tác.';
+      return '';
+    }
+
+    function showFundEntryStatus(type, message) {
+      const status = el('fundEntryStatus');
+      if (!status) return;
+      status.className = 'status ' + (type === 'error' ? 'error' : 'success');
+      status.textContent = message;
+      status.style.display = 'block';
+    }
+
+    function clearFundEntryForm() {
+      ['fundCategoryInput', 'fundAmountInput', 'fundActorInput', 'fundPartnerInput', 'fundContentInput'].forEach((id) => {
+        const field = el(id);
+        if (field) field.value = '';
+      });
+      const debt = el('fundDebtInput');
+      if (debt) debt.checked = false;
     }
 
     function loadFundTransactions(forceRefresh) {

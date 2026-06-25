@@ -17,6 +17,18 @@ var FundService = (function () {
     'Công nợ'
   ];
 
+  function getFundFormOptions(year) {
+    var ss = getFundSpreadsheet_(year);
+    return {
+      ok: true,
+      incomeCategories: readNamedRangeValues_(ss, 'MUCTHU'),
+      expenseCategories: readNamedRangeValues_(ss, 'MUCCHI'),
+      methods: readNamedRangeValues_(ss, 'HINHTHUC'),
+      actors: readColumnValues_(ss, 'CAIDAT', 15, 3),
+      partners: readPartners_(ss)
+    };
+  }
+
   function getFundTransactions(year, filter) {
     var ss = getFundSpreadsheet_(year);
     var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
@@ -106,9 +118,134 @@ var FundService = (function () {
     };
   }
 
+  function addFundTransaction(year, payload) {
+    var ss = getFundSpreadsheet_(year);
+    var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
+    if (!sheet) {
+      throw new Error('Không tìm thấy sheet Thu chi: ' + TRANSACTION_SHEET_NAME);
+    }
+
+    var row = buildTransactionRow_(payload || {});
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      var appendRow = getAppendRow_(sheet);
+      if (sheet.getMaxRows() < appendRow) {
+        sheet.insertRowsAfter(sheet.getMaxRows(), appendRow - sheet.getMaxRows());
+      }
+
+      sheet.getRange(appendRow, 1, 1, row.length).setValues([row]);
+      sheet.getRange(appendRow, 2).setNumberFormat('dd/MM/yyyy');
+      sheet.getRange(appendRow, 6).setNumberFormat('#,##0');
+      if (row[9] === 'Có') {
+        sheet.getRange(appendRow, 13).setFormula(buildDebtFormula_(appendRow));
+      }
+      sheet.getRange(appendRow, 14).setFormula(buildFilterFormula_(appendRow));
+
+      return {
+        ok: true,
+        rowIndex: appendRow,
+        voucher: row[0],
+        sheetName: TRANSACTION_SHEET_NAME
+      };
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
   function getFundSpreadsheet_(year) {
     var spreadsheetId = resolveFundSpreadsheetId_(year);
     return SpreadsheetApp.openById(spreadsheetId);
+  }
+
+  function buildTransactionRow_(payload) {
+    var type = clean_(payload.type);
+    var date = parseDate_(payload.date, payload.date);
+    var category = clean_(payload.category);
+    var method = clean_(payload.method);
+    var amount = parseNumber_(payload.amount);
+    var actor = clean_(payload.actor);
+    var partner = clean_(payload.partner);
+    var content = clean_(payload.content);
+    var debt = payload.debt === true || clean_(payload.debt) === 'Có' ? 'Có' : '';
+
+    if (!date) throw new Error('Vui lòng nhập ngày hợp lệ.');
+    if (type !== 'Thu' && type !== 'Chi') throw new Error('Vui lòng chọn loại Thu hoặc Chi.');
+    if (!category) throw new Error('Vui lòng nhập mục thu/chi.');
+    if (!method) throw new Error('Vui lòng nhập hình thức.');
+    if (!(amount > 0)) throw new Error('Số tiền phải lớn hơn 0.');
+    if (!actor) throw new Error('Vui lòng nhập Người Thu/Chi.');
+    if (debt && !partner) throw new Error('Khoản công nợ cần có Đối tác.');
+
+    return [
+      buildVoucher_(),
+      date,
+      type === 'Thu' ? category : '',
+      type === 'Chi' ? category : '',
+      method,
+      amount,
+      actor,
+      partner,
+      content,
+      debt
+    ];
+  }
+
+  function getAppendRow_(sheet) {
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return 2;
+    var values = sheet.getRange(1, 2, lastRow, 1).getValues();
+    for (var i = values.length - 1; i >= 1; i--) {
+      var value = values[i][0];
+      if (value !== '' && value !== null && value !== undefined) return i + 2;
+    }
+    return 2;
+  }
+
+  function buildVoucher_() {
+    return Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'yyMMddHHmmss');
+  }
+
+  function buildDebtFormula_(rowNumber) {
+    var voucherCell = 'A' + rowNumber;
+    return '=IF(SUMIFS(F:F;A:A;' + voucherCell + ';J:J;"Có")-SUMIFS(F:F;A:A;' + voucherCell + ';J:J;"="&"")<=0;0;SUMIFS(F:F;A:A;' + voucherCell + ';J:J;"Có")-SUMIFS(F:F;A:A;' + voucherCell + ';J:J;"="&""))';
+  }
+
+  function buildFilterFormula_(rowNumber) {
+    return '=IF(BC_THUCHI!$C$15="";"";A' + rowNumber + ')&IF(BC_THUCHI!$J$15="";"";G' + rowNumber + ')&IF(BC_THUCHI!$K$15="";"";H' + rowNumber + ')';
+  }
+
+  function readNamedRangeValues_(ss, name) {
+    var range = ss.getRangeByName(name);
+    if (!range) return [];
+    return flattenValues_(range.getDisplayValues());
+  }
+
+  function readColumnValues_(ss, sheetName, column, startRow) {
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet || sheet.getLastRow() < startRow) return [];
+    return flattenValues_(sheet.getRange(startRow, column, sheet.getLastRow() - startRow + 1, 1).getDisplayValues());
+  }
+
+  function readPartners_(ss) {
+    var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
+    if (!sheet || sheet.getLastRow() < 2) return [];
+    return flattenValues_(sheet.getRange(2, 8, sheet.getLastRow() - 1, 1).getDisplayValues());
+  }
+
+  function flattenValues_(values) {
+    var seen = {};
+    var result = [];
+    values.forEach(function (row) {
+      row.forEach(function (cell) {
+        var value = clean_(cell);
+        if (value && !seen[value]) {
+          seen[value] = true;
+          result.push(value);
+        }
+      });
+    });
+    return result;
   }
 
   function resolveFundSpreadsheetId_(year) {
@@ -168,6 +305,8 @@ var FundService = (function () {
   }
 
   return {
+    addFundTransaction: addFundTransaction,
+    getFundFormOptions: getFundFormOptions,
     getFundTransactions: getFundTransactions,
     getFundSpreadsheet_: getFundSpreadsheet_
   };
@@ -175,6 +314,14 @@ var FundService = (function () {
 
 function getFundTransactions(year, filter) {
   return FundService.getFundTransactions(year, filter);
+}
+
+function getFundFormOptions(year) {
+  return FundService.getFundFormOptions(year);
+}
+
+function addFundTransaction(year, payload) {
+  return FundService.addFundTransaction(year, payload);
 }
 
 function getFundSpreadsheet_(year) {

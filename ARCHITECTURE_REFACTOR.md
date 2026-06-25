@@ -11,12 +11,32 @@ Web app là Apps Script độc lập trong My Projects, dùng chung code cho nhi
 ## Trạng thái sau bước khởi động
 
 - `AppConfig.gs` quản lý spreadsheet ID active.
-- `Code.gs` không còn hard-code cấu hình sheet 2026 trong router.
+- `Code.gs` chỉ còn marker dự án.
+- `Router.gs` chứa `doGet`, `doPost`, JSON response và render HTML.
+- `PublicApi.gs` chứa các hàm wrapper để gọi thủ công/tương thích Apps Script.
 - `SheetService.gs` vẫn giữ logic nghiệp vụ nhưng cache đã scoped theo spreadsheet ID để tránh lẫn dữ liệu giữa các năm.
 - Link báo cáo lấy `gid` động từ sheet đang active, không hard-code `gid` của file 2026.
 - `index.html` chỉ còn HTML shell.
-- `styles.html` chứa CSS.
+- `styles.html` chỉ include các module CSS theo thứ tự cascade.
 - `client.html` chỉ include các module JavaScript frontend theo thứ tự.
+
+## Backend module map
+
+- `AppConfig.gs`: runtime spreadsheet config, map theo năm và sheet schema.
+- `Router.gs`: HTTP GET/POST router, response helpers, HTML template include.
+- `PublicApi.gs`: Apps Script callable wrappers.
+- `SheetService.gs`: nghiệp vụ đọc/ghi sheet, báo cáo, cache, quản lý dữ liệu.
+- `ValidationService.gs`: chuẩn hóa và validate payload nhập liệu.
+
+## CSS module map
+
+- `styles_base.html`: design tokens, reset, base button/link styles.
+- `styles_layout.html`: app shell, sidebar, topbar, panels, chart base, quick actions.
+- `styles_dashboard.html`: KPI cards, dashboard chart, quick actions.
+- `styles_entry.html`: entry shell, form tabs, autocomplete, status, form controls, submit bar.
+- `styles_reports.html`: report tabs, report table cards, table base.
+- `styles_settings_modal.html`: settings cards and CRUD modal.
+- `styles_responsive.html`: bottom nav, icons, shimmer, loader, drawer, mobile quick access, responsive rules.
 
 ## Frontend module map
 

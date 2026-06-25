@@ -79,7 +79,10 @@ Tất cả các sheet nhập liệu đều có cột **Tháng** (Cột B hoặc 
 Backend chạy bằng Google Apps Script, xử lý thông qua file [Code.gs](file:///Users/ngotuong/AppsScript/VanTaiDongBac_2026_WebApp/Code.gs) đóng vai trò router nhận HTTP POST/GET.
 
 Từ bản refactor nền:
+* `Code.gs` chỉ còn marker dự án.
 * `AppConfig.gs` quản lý spreadsheet ID active. Có thể dùng Script Properties `ACTIVE_SPREADSHEET_ID`, `DEFAULT_SPREADSHEET_ID`, hoặc `SPREADSHEET_ID_2026`, `SPREADSHEET_ID_2027`, ...
+* `Router.gs` chứa `doGet`, `doPost`, JSON response và render HTML.
+* `PublicApi.gs` chứa các hàm wrapper để gọi thủ công/tương thích Apps Script.
 * API có thể nhận `year`, `spreadsheetId`, hoặc `ssId` để trỏ sang file năm khác khi cần.
 * Cache backend trong `SheetService.gs` đã scoped theo spreadsheet ID để tránh lẫn dữ liệu giữa các file năm.
 * Link báo cáo trong response lấy `gid` động từ sheet đang active, không còn hard-code `gid` của riêng file 2026.
@@ -127,7 +130,7 @@ Giao diện là Web App SPA thiết kế tối ưu hóa cho thiết bị di đ�
 
 Từ bản refactor nền:
 * `index.html` chỉ giữ HTML shell.
-* `styles.html` chứa CSS.
+* `styles.html` include các CSS module: `styles_base`, `styles_layout`, `styles_dashboard`, `styles_entry`, `styles_reports`, `styles_settings_modal`, `styles_responsive`.
 * `client.html` include các module JavaScript frontend nhỏ hơn: `client_config`, `client_api`, `client_manage`, `client_catalog`, `client_app`, `client_dashboard`, `client_entry`, `client_reports`, `client_data`, `client_ui`.
 * `Code.gs` render bằng `HtmlService.createTemplateFromFile('index')` và helper `include(filename)`.
 

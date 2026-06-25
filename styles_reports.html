@@ -1,0 +1,105 @@
+<style>
+    /* Reports List */
+    .report-stack { 
+      display: flex;
+      flex-direction: column;
+      gap: 20px; 
+    }
+    
+    .sub-tabs-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 4px 2px;
+      scrollbar-width: none; /* Firefox */
+    }
+    .sub-tabs-bar::-webkit-scrollbar {
+      display: none; /* Safari & Chrome */
+    }
+    
+    .sub-tab {
+      min-height: 38px !important;
+      padding: 0 18px !important;
+      border-radius: 20px !important;
+      background: var(--paper) !important;
+      border: 1px solid var(--line) !important;
+      color: var(--muted) !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      transition: all 0.2s !important;
+      white-space: nowrap;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    
+    .sub-tab:hover {
+      border-color: var(--teal) !important;
+      color: var(--teal) !important;
+      background: var(--mint-soft) !important;
+    }
+    
+    .sub-tab.active {
+      background: var(--deep) !important;
+      border-color: var(--deep) !important;
+      color: #fff !important;
+    }
+    
+    .table-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--paper);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .table-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(248, 250, 252, 0.6);
+    }
+    
+    .table-title { 
+      font-weight: 700; 
+      color: var(--deep);
+      font-size: 15px;
+    }
+    
+    .table-wrap { overflow-x: auto; }
+    
+    table { 
+      width: 100%; 
+      min-width: 800px; 
+      border-collapse: collapse; 
+    }
+    
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f1f5f9;
+      text-align: left;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+    
+    th { 
+      color: var(--muted); 
+      background: #f8fafc; 
+      font-size: 11px; 
+      font-weight: 800; 
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    tr:hover td {
+      background: #f8fafc;
+    }
+    
+    tr:last-child td { border-bottom: 0; }
+    
+</style>

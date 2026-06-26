@@ -421,6 +421,56 @@
       align-items: center;
       margin-top: auto;
     }
+
+    .fund-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .fund-kpi-card {
+      min-height: 104px;
+      padding: 14px;
+      border-radius: 12px;
+    }
+
+    .fund-kpi-card .kpi-label {
+      font-size: 10px;
+      line-height: 1.25;
+    }
+
+    .fund-kpi-card .kpi-value {
+      font-size: 20px;
+      margin: 8px 0 0;
+      line-height: 1.15;
+      word-break: break-word;
+    }
+
+    .fund-tone-income {
+      border-color: rgba(22, 163, 74, 0.24);
+      background: #f0fdf4;
+    }
+
+    .fund-tone-expense {
+      border-color: rgba(220, 38, 38, 0.22);
+      background: #fef2f2;
+    }
+
+    .fund-tone-balance {
+      border-color: rgba(13, 148, 136, 0.22);
+      background: #f0fdfa;
+    }
+
+    .fund-tone-net {
+      border-color: rgba(2, 132, 199, 0.22);
+      background: #f0f9ff;
+    }
+
+    .fund-tone-income .kpi-value { color: #15803d; }
+    .fund-tone-expense .kpi-value { color: #b91c1c; }
+    .fund-tone-balance .kpi-value { color: var(--deep); }
+    .fund-tone-net .kpi-value { color: #0369a1; }
     
     .kpi-status {
       display: flex;
@@ -1454,6 +1504,9 @@
       
       .form-tab-note { display: none; }
       .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .fund-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .fund-kpi-card { min-height: 92px; padding: 12px; }
+      .fund-kpi-card .kpi-value { font-size: 17px; }
     }
     
     @media (max-width: 640px) {
@@ -1477,6 +1530,9 @@
       .kpi-grid { grid-template-columns: 1fr; gap: 12px; }
       .kpi-card { padding: 20px 16px; min-height: 132px; }
       .kpi-value { font-size: 22px; margin-bottom: 8px; }
+      .fund-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .fund-kpi-card { min-height: 88px; padding: 10px; }
+      .fund-kpi-card .kpi-value { font-size: 16px; margin-bottom: 0; }
       
       .action-grid { grid-template-columns: 1fr; }
       .form-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1934,7 +1990,7 @@
               </label>
             </div>
           </section>
-          <div class="kpi-grid" id="fundOverviewMetrics" style="margin-bottom: 20px;">
+          <div class="fund-kpi-grid" id="fundOverviewMetrics">
             <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
             <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
             <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
@@ -1962,11 +2018,11 @@
               </div>
             </section>
           </div>
-          <section class="table-card">
+          <section class="table-card" id="fundCategoryDetailCard">
             <div class="table-card-head">
               <div>
                 <div class="table-title" id="fundCategoryDetailTitle">Chi tiết hạng mục</div>
-                <div class="panel-note">Bấm Chi tiết ở từng hạng mục để xem các dòng liên quan.</div>
+                <div class="panel-note" id="fundCategoryDetailHint">Bấm Xem ở từng hạng mục, hệ thống sẽ tự mở chi tiết tại đây.</div>
               </div>
             </div>
             <div class="table-wrap">
@@ -2028,6 +2084,7 @@
             <div id="fundTransactionsEmpty" class="panel-body" style="text-align: center; color: var(--muted); padding: 48px 24px; display: none;">
               Không có dữ liệu thu chi phù hợp.
             </div>
+            <div id="fundTransactionsPager" style="display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding: 12px 16px; border-top: 1px solid var(--line);"></div>
           </div>
         </div>
 
@@ -2311,6 +2368,8 @@
     let currentEditCatalogRowIndex = null;
     let activeCashflowTab = 'overview';
     let fundTransactionsData = null;
+    let fundTransactionsPage = 1;
+    const FUND_TRANSACTIONS_PAGE_SIZE = 20;
     let fundFormOptions = null;
     let fundOverviewData = null;
     let fundLoanData = null;
@@ -2564,13 +2623,20 @@
       renderFundOverviewMonthFilter(data.months || [], data.selectedMonth || '');
       const metrics = el('fundOverviewMetrics');
       metrics.innerHTML = (data.metrics || []).map((item) => `
-        <article class="kpi-card">
+        <article class="kpi-card fund-kpi-card ${getFundMetricTone(item.key)}">
           <div class="kpi-label">${escapeHtml(item.label)}</div>
           <div class="kpi-value">${formatFundAmount(item.value, '')}</div>
         </article>
       `).join('');
       renderFundCategoryRows('fundIncomeCategoryBody', data.incomeCategories || [], 'Thu');
       renderFundCategoryRows('fundExpenseCategoryBody', data.expenseCategories || [], 'Chi');
+    }
+
+    function getFundMetricTone(key) {
+      if (key === 'periodIncome') return 'fund-tone-income';
+      if (key === 'periodExpense') return 'fund-tone-expense';
+      if (key === 'periodNet') return 'fund-tone-net';
+      return 'fund-tone-balance';
     }
 
     function renderFundOverviewMonthFilter(months, selectedMonth) {
@@ -2598,8 +2664,8 @@
         <tr>
           <td>${escapeHtml(row.category)}</td>
           <td>${row.count || 0}</td>
-          <td style="text-align:right; font-weight:800;">${formatFundAmount(row.amount, '')}</td>
-          <td style="text-align:right;"><button type="button" class="sub-tab" style="min-height:28px;" onclick="showFundCategoryDetail('${type}', ${index})">Chi tiết</button></td>
+          <td style="text-align:right; font-weight:800; color:${type === 'Thu' ? 'var(--green)' : 'var(--red)'};">${formatFundAmount(row.amount, '')}</td>
+          <td style="text-align:right;"><button type="button" class="sub-tab" style="min-height:28px;" onclick="showFundCategoryDetail('${type}', ${index})">Xem</button></td>
         </tr>
       `).join('');
     }
@@ -2608,9 +2674,11 @@
       const rows = type === 'Thu' ? (fundOverviewData?.incomeCategories || []) : (fundOverviewData?.expenseCategories || []);
       const item = rows[index];
       const title = el('fundCategoryDetailTitle');
+      const hint = el('fundCategoryDetailHint');
       const body = el('fundCategoryDetailBody');
       if (!item || !body) return;
       if (title) title.textContent = `Chi tiết ${type.toLowerCase()} - ${item.category}`;
+      if (hint) hint.textContent = `${item.count || 0} dòng, tổng ${formatFundAmount(item.amount, '')}.`;
       body.innerHTML = (item.details || []).map((row) => `
         <tr>
           <td>${escapeHtml(row.dateText || row.date || '')}</td>
@@ -2622,6 +2690,7 @@
           <td>${escapeHtml(row.content || '')}</td>
         </tr>
       `).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
+      el('fundCategoryDetailCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function loadFundFormOptions() {
@@ -2866,10 +2935,12 @@
       const empty = el('fundTransactionsEmpty');
       const notice = el('fundTransactionsNotice');
       const monthFilter = el('fundMonthFilter');
+      const pager = el('fundTransactionsPager');
       if (!tableBody || !empty || !notice || !monthFilter) return;
 
       tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải dữ liệu thu chi...</td></tr>';
       empty.style.display = 'none';
+      if (pager) pager.style.display = 'none';
       notice.textContent = '';
       notice.style.display = 'none';
 
@@ -2882,6 +2953,7 @@
       })
         .then((data) => {
           fundTransactionsData = data;
+          fundTransactionsPage = 1;
           renderFundMonthFilter(data.months || [], data.selectedMonth || selectedMonth);
           renderFundTransactions(data);
         })
@@ -2910,6 +2982,7 @@
       const tableBody = el('fundTransactionsTableBody');
       const empty = el('fundTransactionsEmpty');
       const notice = el('fundTransactionsNotice');
+      const pager = el('fundTransactionsPager');
       if (!tableBody || !empty || !notice) return;
 
       const rows = data.transactions || [];
@@ -2917,11 +2990,17 @@
       if (!rows.length) {
         empty.style.display = 'block';
         empty.textContent = 'Không có dữ liệu thu chi phù hợp.';
+        if (pager) pager.style.display = 'none';
         return;
       }
 
+      empty.style.display = 'none';
+      const totalPages = Math.max(1, Math.ceil(rows.length / FUND_TRANSACTIONS_PAGE_SIZE));
+      fundTransactionsPage = Math.min(Math.max(1, fundTransactionsPage), totalPages);
+      const start = (fundTransactionsPage - 1) * FUND_TRANSACTIONS_PAGE_SIZE;
+      const pageRows = rows.slice(start, start + FUND_TRANSACTIONS_PAGE_SIZE);
       const fragment = document.createDocumentFragment();
-      rows.forEach((item) => {
+      pageRows.forEach((item) => {
         const tr = document.createElement('tr');
         const typeColor = item.type === 'Thu' ? 'var(--green)' : (item.type === 'Chi' ? 'var(--red)' : 'var(--muted)');
         tr.innerHTML = `
@@ -2938,14 +3017,40 @@
         fragment.appendChild(tr);
       });
       tableBody.appendChild(fragment);
+      renderFundTransactionsPager(rows.length, totalPages, start + 1, start + pageRows.length);
 
       if (data.limited) {
-        notice.textContent = `Đang hiển thị ${rows.length}/${data.totalRows} dòng mới nhất. Chọn tháng để thu hẹp dữ liệu.`;
+        notice.textContent = `Đang tải ${rows.length}/${data.totalRows} dòng mới nhất. Bảng đang chia ${FUND_TRANSACTIONS_PAGE_SIZE} dòng/trang.`;
         notice.style.display = 'block';
       } else {
-        notice.textContent = `Đang hiển thị ${rows.length} dòng.`;
+        notice.textContent = `Có ${rows.length} dòng, đang chia ${FUND_TRANSACTIONS_PAGE_SIZE} dòng/trang.`;
         notice.style.display = 'block';
       }
+    }
+
+    function renderFundTransactionsPager(totalRows, totalPages, startRow, endRow) {
+      const pager = el('fundTransactionsPager');
+      if (!pager) return;
+      if (totalRows <= FUND_TRANSACTIONS_PAGE_SIZE) {
+        pager.style.display = 'none';
+        return;
+      }
+      pager.style.display = 'flex';
+      pager.innerHTML = `
+        <div style="font-size:12.5px; font-weight:700; color:var(--muted);">Dòng ${startRow}-${endRow}/${totalRows}</div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="ghost" style="min-height:34px; height:34px; padding:0 12px;" onclick="setFundTransactionsPage(${fundTransactionsPage - 1})" ${fundTransactionsPage <= 1 ? 'disabled' : ''}>Trước</button>
+          <span style="font-size:12.5px; font-weight:800; color:var(--deep);">Trang ${fundTransactionsPage}/${totalPages}</span>
+          <button type="button" class="ghost" style="min-height:34px; height:34px; padding:0 12px;" onclick="setFundTransactionsPage(${fundTransactionsPage + 1})" ${fundTransactionsPage >= totalPages ? 'disabled' : ''}>Sau</button>
+        </div>
+      `;
+    }
+
+    function setFundTransactionsPage(page) {
+      if (!fundTransactionsData) return;
+      fundTransactionsPage = page;
+      renderFundTransactions(fundTransactionsData);
+      el('fundTransactionsTable')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function formatFundAmount(amount, fallbackText) {

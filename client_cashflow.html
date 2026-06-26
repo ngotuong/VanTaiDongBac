@@ -43,13 +43,20 @@
       renderFundOverviewMonthFilter(data.months || [], data.selectedMonth || '');
       const metrics = el('fundOverviewMetrics');
       metrics.innerHTML = (data.metrics || []).map((item) => `
-        <article class="kpi-card">
+        <article class="kpi-card fund-kpi-card ${getFundMetricTone(item.key)}">
           <div class="kpi-label">${escapeHtml(item.label)}</div>
           <div class="kpi-value">${formatFundAmount(item.value, '')}</div>
         </article>
       `).join('');
       renderFundCategoryRows('fundIncomeCategoryBody', data.incomeCategories || [], 'Thu');
       renderFundCategoryRows('fundExpenseCategoryBody', data.expenseCategories || [], 'Chi');
+    }
+
+    function getFundMetricTone(key) {
+      if (key === 'periodIncome') return 'fund-tone-income';
+      if (key === 'periodExpense') return 'fund-tone-expense';
+      if (key === 'periodNet') return 'fund-tone-net';
+      return 'fund-tone-balance';
     }
 
     function renderFundOverviewMonthFilter(months, selectedMonth) {
@@ -77,8 +84,8 @@
         <tr>
           <td>${escapeHtml(row.category)}</td>
           <td>${row.count || 0}</td>
-          <td style="text-align:right; font-weight:800;">${formatFundAmount(row.amount, '')}</td>
-          <td style="text-align:right;"><button type="button" class="sub-tab" style="min-height:28px;" onclick="showFundCategoryDetail('${type}', ${index})">Chi tiết</button></td>
+          <td style="text-align:right; font-weight:800; color:${type === 'Thu' ? 'var(--green)' : 'var(--red)'};">${formatFundAmount(row.amount, '')}</td>
+          <td style="text-align:right;"><button type="button" class="sub-tab" style="min-height:28px;" onclick="showFundCategoryDetail('${type}', ${index})">Xem</button></td>
         </tr>
       `).join('');
     }
@@ -87,9 +94,11 @@
       const rows = type === 'Thu' ? (fundOverviewData?.incomeCategories || []) : (fundOverviewData?.expenseCategories || []);
       const item = rows[index];
       const title = el('fundCategoryDetailTitle');
+      const hint = el('fundCategoryDetailHint');
       const body = el('fundCategoryDetailBody');
       if (!item || !body) return;
       if (title) title.textContent = `Chi tiết ${type.toLowerCase()} - ${item.category}`;
+      if (hint) hint.textContent = `${item.count || 0} dòng, tổng ${formatFundAmount(item.amount, '')}.`;
       body.innerHTML = (item.details || []).map((row) => `
         <tr>
           <td>${escapeHtml(row.dateText || row.date || '')}</td>
@@ -101,6 +110,7 @@
           <td>${escapeHtml(row.content || '')}</td>
         </tr>
       `).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
+      el('fundCategoryDetailCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function loadFundFormOptions() {
@@ -346,10 +356,12 @@
       const empty = el('fundTransactionsEmpty');
       const notice = el('fundTransactionsNotice');
       const monthFilter = el('fundMonthFilter');
+      const pager = el('fundTransactionsPager');
       if (!tableBody || !empty || !notice || !monthFilter) return;
 
       tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải dữ liệu thu chi...</td></tr>';
       empty.style.display = 'none';
+      if (pager) pager.style.display = 'none';
       notice.textContent = '';
       notice.style.display = 'none';
 
@@ -362,6 +374,7 @@
       })
         .then((data) => {
           fundTransactionsData = data;
+          fundTransactionsPage = 1;
           renderFundMonthFilter(data.months || [], data.selectedMonth || selectedMonth);
           renderFundTransactions(data);
         })
@@ -390,6 +403,7 @@
       const tableBody = el('fundTransactionsTableBody');
       const empty = el('fundTransactionsEmpty');
       const notice = el('fundTransactionsNotice');
+      const pager = el('fundTransactionsPager');
       if (!tableBody || !empty || !notice) return;
 
       const rows = data.transactions || [];
@@ -397,11 +411,17 @@
       if (!rows.length) {
         empty.style.display = 'block';
         empty.textContent = 'Không có dữ liệu thu chi phù hợp.';
+        if (pager) pager.style.display = 'none';
         return;
       }
 
+      empty.style.display = 'none';
+      const totalPages = Math.max(1, Math.ceil(rows.length / FUND_TRANSACTIONS_PAGE_SIZE));
+      fundTransactionsPage = Math.min(Math.max(1, fundTransactionsPage), totalPages);
+      const start = (fundTransactionsPage - 1) * FUND_TRANSACTIONS_PAGE_SIZE;
+      const pageRows = rows.slice(start, start + FUND_TRANSACTIONS_PAGE_SIZE);
       const fragment = document.createDocumentFragment();
-      rows.forEach((item) => {
+      pageRows.forEach((item) => {
         const tr = document.createElement('tr');
         const typeColor = item.type === 'Thu' ? 'var(--green)' : (item.type === 'Chi' ? 'var(--red)' : 'var(--muted)');
         tr.innerHTML = `
@@ -418,14 +438,40 @@
         fragment.appendChild(tr);
       });
       tableBody.appendChild(fragment);
+      renderFundTransactionsPager(rows.length, totalPages, start + 1, start + pageRows.length);
 
       if (data.limited) {
-        notice.textContent = `Đang hiển thị ${rows.length}/${data.totalRows} dòng mới nhất. Chọn tháng để thu hẹp dữ liệu.`;
+        notice.textContent = `Đang tải ${rows.length}/${data.totalRows} dòng mới nhất. Bảng đang chia ${FUND_TRANSACTIONS_PAGE_SIZE} dòng/trang.`;
         notice.style.display = 'block';
       } else {
-        notice.textContent = `Đang hiển thị ${rows.length} dòng.`;
+        notice.textContent = `Có ${rows.length} dòng, đang chia ${FUND_TRANSACTIONS_PAGE_SIZE} dòng/trang.`;
         notice.style.display = 'block';
       }
+    }
+
+    function renderFundTransactionsPager(totalRows, totalPages, startRow, endRow) {
+      const pager = el('fundTransactionsPager');
+      if (!pager) return;
+      if (totalRows <= FUND_TRANSACTIONS_PAGE_SIZE) {
+        pager.style.display = 'none';
+        return;
+      }
+      pager.style.display = 'flex';
+      pager.innerHTML = `
+        <div style="font-size:12.5px; font-weight:700; color:var(--muted);">Dòng ${startRow}-${endRow}/${totalRows}</div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="ghost" style="min-height:34px; height:34px; padding:0 12px;" onclick="setFundTransactionsPage(${fundTransactionsPage - 1})" ${fundTransactionsPage <= 1 ? 'disabled' : ''}>Trước</button>
+          <span style="font-size:12.5px; font-weight:800; color:var(--deep);">Trang ${fundTransactionsPage}/${totalPages}</span>
+          <button type="button" class="ghost" style="min-height:34px; height:34px; padding:0 12px;" onclick="setFundTransactionsPage(${fundTransactionsPage + 1})" ${fundTransactionsPage >= totalPages ? 'disabled' : ''}>Sau</button>
+        </div>
+      `;
+    }
+
+    function setFundTransactionsPage(page) {
+      if (!fundTransactionsData) return;
+      fundTransactionsPage = page;
+      renderFundTransactions(fundTransactionsData);
+      el('fundTransactionsTable')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function formatFundAmount(amount, fallbackText) {

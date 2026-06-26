@@ -248,6 +248,9 @@
       
       .form-tab-note { display: none; }
       .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .fund-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .fund-kpi-card { min-height: 92px; padding: 12px; }
+      .fund-kpi-card .kpi-value { font-size: 17px; }
     }
     
     @media (max-width: 640px) {
@@ -271,6 +274,9 @@
       .kpi-grid { grid-template-columns: 1fr; gap: 12px; }
       .kpi-card { padding: 20px 16px; min-height: 132px; }
       .kpi-value { font-size: 22px; margin-bottom: 8px; }
+      .fund-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .fund-kpi-card { min-height: 88px; padding: 10px; }
+      .fund-kpi-card .kpi-value { font-size: 16px; margin-bottom: 0; }
       
       .action-grid { grid-template-columns: 1fr; }
       .form-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }

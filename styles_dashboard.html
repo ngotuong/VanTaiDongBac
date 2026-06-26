@@ -77,6 +77,56 @@
       align-items: center;
       margin-top: auto;
     }
+
+    .fund-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .fund-kpi-card {
+      min-height: 104px;
+      padding: 14px;
+      border-radius: 12px;
+    }
+
+    .fund-kpi-card .kpi-label {
+      font-size: 10px;
+      line-height: 1.25;
+    }
+
+    .fund-kpi-card .kpi-value {
+      font-size: 20px;
+      margin: 8px 0 0;
+      line-height: 1.15;
+      word-break: break-word;
+    }
+
+    .fund-tone-income {
+      border-color: rgba(22, 163, 74, 0.24);
+      background: #f0fdf4;
+    }
+
+    .fund-tone-expense {
+      border-color: rgba(220, 38, 38, 0.22);
+      background: #fef2f2;
+    }
+
+    .fund-tone-balance {
+      border-color: rgba(13, 148, 136, 0.22);
+      background: #f0fdfa;
+    }
+
+    .fund-tone-net {
+      border-color: rgba(2, 132, 199, 0.22);
+      background: #f0f9ff;
+    }
+
+    .fund-tone-income .kpi-value { color: #15803d; }
+    .fund-tone-expense .kpi-value { color: #b91c1c; }
+    .fund-tone-balance .kpi-value { color: var(--deep); }
+    .fund-tone-net .kpi-value { color: #0369a1; }
     
     .kpi-status {
       display: flex;

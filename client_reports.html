@@ -79,7 +79,6 @@
           if (idx === 0) return { isSticky: true, left: '0px' };
         } else if (type === 'payroll') {
           if (idx === 0) return { isSticky: true, left: '0px' };
-          if (idx === 1) return { isSticky: true, left: '80px' };
         } else if (type === 'vehicles') {
           if (idx === 0) return { isSticky: true, left: '0px' };
           if (idx === 1) return { isSticky: true, left: '90px' };
@@ -161,7 +160,11 @@
               if (isProfitRow) {
                 rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep); background-color: var(--amber-soft);"';
               } else if (isTotalRow) {
-                rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep); background-color: var(--mint-soft);"';
+                if (type === 'details') {
+                  rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep);"'; // Bỏ màu nền total row trong bảng chi tiết
+                } else {
+                  rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep); background-color: var(--mint-soft);"';
+                }
               } else {
                 rowStyle = 'style="font-weight: 500; font-size: 12.5px;"';
               }
@@ -177,7 +180,9 @@
                 // Color formatting based on content / headers
                 if (type === 'details') {
                   if (i === 0) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 500 !important');
+                    styleRules.push('color: var(--ink)', 'font-weight: 700'); // Danh mục in đậm
+                  } else if (colLower.includes('giải thích') || colLower.includes('nội dung') || i === 4) {
+                    styleRules.push('color: var(--ink)', 'font-weight: 500 !important'); // Cột Giải thích (thứ 5) màu đen, không in đậm
                   } else {
                     const cat = String(row[0] || '').toLowerCase().trim();
                     if (cat.includes('khối lượng')) {
@@ -199,8 +204,8 @@
                     styleRules.push('color: var(--red)', 'font-weight: 600');
                   }
                 } else if (type === 'payroll') {
-                  if (colLower.includes('nhân sự') || colLower.includes('tên') || colLower.includes('tài xế') || colLower.includes('họ tên') || colLower.includes('nhân viên') || i === 1) {
-                    styleRules.push('font-weight: 700', 'color: var(--deep)');
+                  if (i === 0) {
+                    styleRules.push('font-weight: 700', 'color: var(--deep)'); // Chỉ in đậm Tên nhân sự (cột 1)
                   } else if (colLower.includes('thực nhận') || colLower.includes('tổng lương') || colLower.includes('thưởng')) {
                     styleRules.push('color: var(--green)', 'font-weight: 600');
                   } else if (colLower.includes('phạt') || colLower.includes('ứng lương')) {

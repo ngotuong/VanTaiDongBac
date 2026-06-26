@@ -3996,20 +3996,28 @@
         const btnEdit = document.createElement('button');
         btnEdit.type = 'button';
         btnEdit.className = 'primary';
-        btnEdit.style.padding = '4px 10px';
-        btnEdit.style.fontSize = '12px';
+        btnEdit.title = 'Sửa';
+        btnEdit.style.width = '28px';
         btnEdit.style.height = '28px';
-        btnEdit.style.marginRight = '6px';
-        btnEdit.textContent = 'Sửa';
+        btnEdit.style.padding = '0';
+        btnEdit.style.marginRight = '4px';
+        btnEdit.style.display = 'inline-flex';
+        btnEdit.style.alignItems = 'center';
+        btnEdit.style.justifyContent = 'center';
+        btnEdit.innerHTML = `<svg class="btn-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
         btnEdit.onclick = () => openManageEditModal(row);
 
         const btnDelete = document.createElement('button');
         btnDelete.type = 'button';
         btnDelete.className = 'danger';
-        btnDelete.style.padding = '4px 10px';
-        btnDelete.style.fontSize = '12px';
+        btnDelete.title = 'Xóa';
+        btnDelete.style.width = '28px';
         btnDelete.style.height = '28px';
-        btnDelete.textContent = 'Xóa';
+        btnDelete.style.padding = '0';
+        btnDelete.style.display = 'inline-flex';
+        btnDelete.style.alignItems = 'center';
+        btnDelete.style.justifyContent = 'center';
+        btnDelete.innerHTML = `<svg class="btn-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
         btnDelete.onclick = () => deleteManageRow(row.rowIndex);
 
         tdActions.appendChild(btnEdit);
@@ -4460,20 +4468,28 @@
         const btnEdit = document.createElement('button');
         btnEdit.type = 'button';
         btnEdit.className = 'primary';
-        btnEdit.style.padding = '4px 10px';
-        btnEdit.style.fontSize = '12px';
+        btnEdit.title = 'Sửa';
+        btnEdit.style.width = '28px';
         btnEdit.style.height = '28px';
-        btnEdit.style.marginRight = '6px';
-        btnEdit.textContent = 'Sửa';
+        btnEdit.style.padding = '0';
+        btnEdit.style.marginRight = '4px';
+        btnEdit.style.display = 'inline-flex';
+        btnEdit.style.alignItems = 'center';
+        btnEdit.style.justifyContent = 'center';
+        btnEdit.innerHTML = `<svg class="btn-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
         btnEdit.onclick = () => openManageEditModal(row);
 
         const btnDelete = document.createElement('button');
         btnDelete.type = 'button';
         btnDelete.className = 'danger';
-        btnDelete.style.padding = '4px 10px';
-        btnDelete.style.fontSize = '12px';
+        btnDelete.title = 'Xóa';
+        btnDelete.style.width = '28px';
         btnDelete.style.height = '28px';
-        btnDelete.textContent = 'Xóa';
+        btnDelete.style.padding = '0';
+        btnDelete.style.display = 'inline-flex';
+        btnDelete.style.alignItems = 'center';
+        btnDelete.style.justifyContent = 'center';
+        btnDelete.innerHTML = `<svg class="btn-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
         btnDelete.onclick = () => deleteManageRow(row.rowIndex);
 
         tdActions.appendChild(btnEdit);
@@ -5553,9 +5569,12 @@
             <tbody>${body.map((row) => {
               let rowStyle = '';
               const firstCell = String(row[0] || '').toLowerCase().trim();
+              const isProfitRow = firstCell.includes('lợi nhuận thực');
               const isTotalRow = firstCell.includes('tổng') || firstCell.includes('cộng') || firstCell.includes('trung bình') || firstCell.includes('thực nhận') || firstCell.includes('lợi nhuận');
               
-              if (isTotalRow) {
+              if (isProfitRow) {
+                rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep); background-color: var(--amber-soft);"';
+              } else if (isTotalRow) {
                 rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep); background-color: var(--mint-soft);"';
               } else {
                 rowStyle = 'style="font-weight: 500; font-size: 12.5px;"';
@@ -5572,7 +5591,7 @@
                 // Color formatting based on content / headers
                 if (type === 'details') {
                   if (i === 0) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 700');
+                    styleRules.push('color: var(--ink)', 'font-weight: 500 !important');
                   } else {
                     const cat = String(row[0] || '').toLowerCase().trim();
                     if (cat.includes('khối lượng')) {
@@ -5587,20 +5606,24 @@
                   }
                 } else if (type === 'finance') {
                   if (colLower.includes('khối lượng')) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 500');
+                    styleRules.push('color: var(--ink)', 'font-weight: 800');
                   } else if (colLower.includes('doanh thu') || colLower.includes('lợi nhuận') || colLower.includes('gộp')) {
                     styleRules.push('color: var(--green)', 'font-weight: 600');
                   } else if (colLower.includes('chi') || colLower.includes('thuế') || colLower.includes('dầu') || colLower.includes('phí')) {
                     styleRules.push('color: var(--red)', 'font-weight: 600');
                   }
                 } else if (type === 'payroll') {
-                  if (colLower.includes('thực nhận') || colLower.includes('tổng lương') || colLower.includes('thưởng')) {
+                  if (colLower.includes('nhân sự') || colLower.includes('tên') || colLower.includes('tài xế') || colLower.includes('họ tên') || colLower.includes('nhân viên') || i === 1) {
+                    styleRules.push('font-weight: 700', 'color: var(--deep)');
+                  } else if (colLower.includes('thực nhận') || colLower.includes('tổng lương') || colLower.includes('thưởng')) {
                     styleRules.push('color: var(--green)', 'font-weight: 600');
                   } else if (colLower.includes('phạt') || colLower.includes('ứng lương')) {
                     styleRules.push('color: var(--red)', 'font-weight: 600');
                   }
                 } else if (type === 'vehicles') {
-                  if (colLower.includes('lợi nhuận') || colLower.includes('lãi gộp') || colLower.includes('doanh thu')) {
+                  if (colLower.includes('công ty') || colLower.includes('chủ xe') || colLower.includes('nhà xe') || colLower.includes('đơn vị') || i === 2) {
+                    styleRules.push('font-weight: 700', 'color: var(--deep)');
+                  } else if (colLower.includes('lợi nhuận') || colLower.includes('lãi gộp') || colLower.includes('doanh thu')) {
                     const numVal = parseCellValue(val);
                     if (numVal < 0) {
                       styleRules.push('color: var(--red)', 'font-weight: 600');

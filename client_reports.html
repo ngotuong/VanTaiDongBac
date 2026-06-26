@@ -155,9 +155,12 @@
             <tbody>${body.map((row) => {
               let rowStyle = '';
               const firstCell = String(row[0] || '').toLowerCase().trim();
+              const isProfitRow = firstCell.includes('lợi nhuận thực');
               const isTotalRow = firstCell.includes('tổng') || firstCell.includes('cộng') || firstCell.includes('trung bình') || firstCell.includes('thực nhận') || firstCell.includes('lợi nhuận');
               
-              if (isTotalRow) {
+              if (isProfitRow) {
+                rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep); background-color: var(--amber-soft);"';
+              } else if (isTotalRow) {
                 rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep); background-color: var(--mint-soft);"';
               } else {
                 rowStyle = 'style="font-weight: 500; font-size: 12.5px;"';
@@ -174,7 +177,7 @@
                 // Color formatting based on content / headers
                 if (type === 'details') {
                   if (i === 0) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 700');
+                    styleRules.push('color: var(--ink)', 'font-weight: 500 !important');
                   } else {
                     const cat = String(row[0] || '').toLowerCase().trim();
                     if (cat.includes('khối lượng')) {
@@ -189,20 +192,24 @@
                   }
                 } else if (type === 'finance') {
                   if (colLower.includes('khối lượng')) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 500');
+                    styleRules.push('color: var(--ink)', 'font-weight: 800');
                   } else if (colLower.includes('doanh thu') || colLower.includes('lợi nhuận') || colLower.includes('gộp')) {
                     styleRules.push('color: var(--green)', 'font-weight: 600');
                   } else if (colLower.includes('chi') || colLower.includes('thuế') || colLower.includes('dầu') || colLower.includes('phí')) {
                     styleRules.push('color: var(--red)', 'font-weight: 600');
                   }
                 } else if (type === 'payroll') {
-                  if (colLower.includes('thực nhận') || colLower.includes('tổng lương') || colLower.includes('thưởng')) {
+                  if (colLower.includes('nhân sự') || colLower.includes('tên') || colLower.includes('tài xế') || colLower.includes('họ tên') || colLower.includes('nhân viên') || i === 1) {
+                    styleRules.push('font-weight: 700', 'color: var(--deep)');
+                  } else if (colLower.includes('thực nhận') || colLower.includes('tổng lương') || colLower.includes('thưởng')) {
                     styleRules.push('color: var(--green)', 'font-weight: 600');
                   } else if (colLower.includes('phạt') || colLower.includes('ứng lương')) {
                     styleRules.push('color: var(--red)', 'font-weight: 600');
                   }
                 } else if (type === 'vehicles') {
-                  if (colLower.includes('lợi nhuận') || colLower.includes('lãi gộp') || colLower.includes('doanh thu')) {
+                  if (colLower.includes('công ty') || colLower.includes('chủ xe') || colLower.includes('nhà xe') || colLower.includes('đơn vị') || i === 2) {
+                    styleRules.push('font-weight: 700', 'color: var(--deep)');
+                  } else if (colLower.includes('lợi nhuận') || colLower.includes('lãi gộp') || colLower.includes('doanh thu')) {
                     const numVal = parseCellValue(val);
                     if (numVal < 0) {
                       styleRules.push('color: var(--red)', 'font-weight: 600');

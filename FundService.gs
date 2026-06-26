@@ -155,6 +155,8 @@ var FundService = (function () {
         loanMap[key] = {
           code: row.code,
           partner: row.partner,
+          loanDate: row.type === 'Vay' ? row.date : '',
+          lastPaymentDate: '',
           borrowed: 0,
           principalPaid: 0,
           interestPaid: 0,
@@ -169,12 +171,16 @@ var FundService = (function () {
       if (row.type === 'Vay') {
         loanMap[key].borrowed += row.amount;
         totalOutstandingBorrowed += row.amount;
+        if (!loanMap[key].loanDate || row.date < loanMap[key].loanDate) loanMap[key].loanDate = row.date;
       }
       if (row.type === 'Trả nợ') {
         loanMap[key].principalPaid += row.amount;
         totalOutstandingPrincipalPaid += row.amount;
       }
       if (row.type === 'Trả lãi') loanMap[key].interestPaid += row.amount;
+      if (row.type === 'Trả nợ' || row.type === 'Trả lãi') {
+        if (!loanMap[key].lastPaymentDate || row.date > loanMap[key].lastPaymentDate) loanMap[key].lastPaymentDate = row.date;
+      }
       if (row.date > loanMap[key].latestDate) loanMap[key].latestDate = row.date;
     });
 
@@ -290,11 +296,15 @@ var FundService = (function () {
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      var targetRow = rowIndex > 1 ? rowIndex : getAppendRow_(sheet);
+      var config = getFundCatalogGroupConfig_(groupKey);
+      var targetRow = rowIndex > 1 ? rowIndex : findNextCatalogRow_(sheet, config);
       if (sheet.getMaxRows() < targetRow) {
         sheet.insertRowsAfter(sheet.getMaxRows(), targetRow - sheet.getMaxRows());
       }
-      sheet.getRange(targetRow, 1, 1, 3).setValues([[getFundCatalogGroupLabel_(groupKey), value, note]]);
+      sheet.getRange(targetRow, config.valueColumn, 1, 1).setValue(value);
+      if (config.noteColumn) {
+        sheet.getRange(targetRow, config.noteColumn, 1, 1).setValue(note);
+      }
       return { ok: true, rowIndex: targetRow, group: groupKey, value: value, note: note, sheetName: CATALOG_SHEET_NAME };
     } finally {
       lock.releaseLock();
@@ -304,13 +314,16 @@ var FundService = (function () {
   function deleteFundCatalogItem(year, payload) {
     var ss = getFundSpreadsheet_(year);
     var sheet = ensureFundCatalogSheet_(ss);
+    var groupKey = normalizeFundCatalogGroup_(payload && payload.group);
     var rowIndex = parseInt((payload && payload.rowIndex) || '', 10);
     if (!(rowIndex > 1)) throw new Error('Thiếu dòng danh mục cần xóa.');
+    if (!groupKey) throw new Error('Thiếu nhóm danh mục cần xóa.');
 
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      sheet.deleteRow(rowIndex);
+      var config = getFundCatalogGroupConfig_(groupKey);
+      sheet.getRange(rowIndex, config.valueColumn, 1, config.noteColumn ? 2 : 1).clearContent();
       return { ok: true, rowIndex: rowIndex, sheetName: CATALOG_SHEET_NAME };
     } finally {
       lock.releaseLock();
@@ -557,7 +570,6 @@ var FundService = (function () {
   }
 
   function readFundCatalogGroups_(ss) {
-    var rows = readFundCatalogRows_(ensureFundCatalogSheet_(ss));
     var grouped = {
       incomeCategories: [],
       expenseCategories: [],
@@ -565,6 +577,7 @@ var FundService = (function () {
       partners: [],
       loanPartners: []
     };
+    var rows = readFundCatalogRows_(ensureFundCatalogSheet_(ss));
     rows.forEach(function (row) {
       if (row.groupKey && grouped[row.groupKey]) {
         grouped[row.groupKey].push(row.value);
@@ -591,26 +604,33 @@ var FundService = (function () {
     var sheet = ss.getSheetByName(CATALOG_SHEET_NAME);
     if (!sheet) {
       sheet = ss.insertSheet(CATALOG_SHEET_NAME);
-      sheet.getRange(1, 1, 1, CATALOG_HEADERS.length).setValues([CATALOG_HEADERS]);
-      sheet.setFrozenRows(1);
     }
     return sheet;
   }
 
   function readFundCatalogRows_(sheet) {
-    if (!sheet || sheet.getLastRow() < 2) return [];
-    var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 3).getDisplayValues();
-    return values.map(function (row, index) {
-      return {
-        rowIndex: index + 2,
-        group: clean_(row[0]),
-        groupKey: normalizeFundCatalogGroup_(row[0]),
-        value: clean_(row[1]),
-        note: clean_(row[2])
-      };
-    }).filter(function (row) {
-      return row.groupKey && row.value;
+    if (!sheet) return [];
+    var rows = [];
+    CATALOG_GROUPS.forEach(function (group) {
+      var config = getFundCatalogGroupConfig_(group.key);
+      var dataRows = Math.max(sheet.getLastRow(), config.startRow) - config.startRow + 1;
+      if (dataRows <= 0) return;
+      var values = sheet.getRange(config.startRow, config.valueColumn, dataRows, 1).getDisplayValues();
+      var notes = config.noteColumn ? sheet.getRange(config.startRow, config.noteColumn, dataRows, 1).getDisplayValues() : [];
+      values.forEach(function (row, index) {
+        var value = clean_(row[0]);
+        var note = config.noteColumn ? clean_(notes[index][0]) : '';
+        if (!value) return;
+        rows.push({
+          rowIndex: config.startRow + index,
+          group: group.label,
+          groupKey: group.key,
+          value: value,
+          note: note
+        });
+      });
     });
+    return rows;
   }
 
   function getFundCatalogGroupSummary_(rows) {
@@ -644,6 +664,27 @@ var FundService = (function () {
     if (text === 'noi vay' || text === 'nơi vay' || text === 'loanpartners') return 'loanPartners';
     var exact = CATALOG_GROUPS.find(function (group) { return group.key.toLowerCase() === text; });
     return exact ? exact.key : '';
+  }
+
+  function getFundCatalogGroupConfig_(groupKey) {
+    var configs = {
+      incomeCategories: { startRow: 3, valueColumn: 5, noteColumn: 6 },
+      expenseCategories: { startRow: 3, valueColumn: 8, noteColumn: 9 },
+      loanPartners: { startRow: 3, valueColumn: 11, noteColumn: 12 },
+      partners: { startRow: 3, valueColumn: 13, noteColumn: 14 },
+      actors: { startRow: 3, valueColumn: 15, noteColumn: 16 }
+    };
+    return configs[groupKey] || { startRow: 3, valueColumn: 1, noteColumn: 2 };
+  }
+
+  function findNextCatalogRow_(sheet, config) {
+    var lastRow = sheet.getLastRow();
+    if (lastRow < config.startRow) return config.startRow;
+    var values = sheet.getRange(config.startRow, config.valueColumn, lastRow - config.startRow + 1, 1).getDisplayValues();
+    for (var i = values.length - 1; i >= 0; i--) {
+      if (clean_(values[i][0])) return config.startRow + i + 1;
+    }
+    return config.startRow;
   }
 
   function uniqueValues_(values) {

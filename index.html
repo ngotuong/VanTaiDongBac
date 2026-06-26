@@ -2539,7 +2539,7 @@
             <div class="table-card-head"><div class="table-title">Tổng quan các khoản vay</div></div>
             <div class="table-wrap">
               <table class="report-table">
-                <thead><tr><th>Mã vay</th><th>Đối tác</th><th style="text-align:right;">Đã vay</th><th style="text-align:right;">Đã trả gốc</th><th style="text-align:right;">Đã trả lãi</th><th style="text-align:right;">Dư nợ</th><th>Ngày gần nhất</th><th style="text-align:right;">Thao tác</th></tr></thead>
+                <thead><tr><th>Ngày vay</th><th>Đối tác</th><th style="text-align:right;">Đã vay</th><th style="text-align:right;">Đã trả gốc</th><th style="text-align:right;">Đã trả lãi</th><th style="text-align:right;">Dư nợ</th><th>Ngày trả</th><th style="text-align:right;">Thao tác</th></tr></thead>
                 <tbody id="fundLoanSummaryBody"><tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
             </div>
@@ -3039,49 +3039,64 @@
 
   <script>
     // API REST Request Layer
-    const DEFAULT_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
-    
+    const DEFAULT_BACKEND_URL = '';
+
     const getBackendUrl = () => {
-      return localStorage.getItem('eb_backend_url') || DEFAULT_BACKEND_URL;
+      return localStorage.getItem('eb_backend_url') || window.location.href.split('?')[0] || DEFAULT_BACKEND_URL;
     };
 
     function callApi(method, action, params = {}, bodyData = null) {
+      const currentUrl = window.location.href.split('?')[0];
       const backendUrl = getBackendUrl();
       if (!backendUrl) {
         return Promise.reject(new Error('Chưa cấu hình đường dẫn Web App trong Cài đặt!'));
       }
-      
-      let url = new URL(backendUrl);
-      url.searchParams.set('action', action);
-      Object.keys(params).forEach(k => {
-        url.searchParams.set(k, params[k]);
-      });
-      if (params.forceRefresh === true || params.forceRefresh === 'true') {
-        url.searchParams.set('_ts', Date.now());
-      }
-      
-      const options = {
-        method: method,
-        headers: {
-          'Content-Type': 'text/plain;charset=UTF-8' // bypass preflight CORS
+
+      const buildUrl = (baseUrl) => {
+        const url = new URL(baseUrl);
+        url.searchParams.set('action', action);
+        Object.keys(params).forEach((k) => {
+          url.searchParams.set(k, params[k]);
+        });
+        if (params.forceRefresh === true || params.forceRefresh === 'true') {
+          url.searchParams.set('_ts', Date.now());
         }
+        return url;
       };
-      
-      if (bodyData) {
-        options.body = JSON.stringify({ action: action, ...bodyData });
-      }
-      
-      return fetch(url.toString(), options)
-        .then(res => {
+
+      const execute = (baseUrl) => {
+        const url = buildUrl(baseUrl);
+        const options = {
+          method: method,
+          headers: {
+            'Content-Type': 'text/plain;charset=UTF-8'
+          }
+        };
+
+        if (bodyData) {
+          options.body = JSON.stringify({ action: action, ...bodyData });
+        }
+
+        return fetch(url.toString(), options).then((res) => {
           if (!res.ok) throw new Error('Kết nối API thất bại, status: ' + res.status);
           return res.json();
-        })
-        .then(data => {
+        }).then((data) => {
           if (data && data.ok === false) {
             throw new Error(data.error || 'Lỗi API hệ thống.');
           }
           return data;
         });
+      };
+
+      const shouldRetryOnCurrentUrl = (err) => {
+        const message = String(err && err.message ? err.message : err || '');
+        return backendUrl !== currentUrl && /Hành động (GET|POST) không hợp lệ/.test(message);
+      };
+
+      return execute(backendUrl).catch((err) => {
+        if (!shouldRetryOnCurrentUrl(err)) throw err;
+        return execute(currentUrl);
+      });
     }
 
     function removeSessionKeysByPrefix(prefix) {
@@ -3644,6 +3659,7 @@
       callApi('POST', 'deleteFundCatalogItem', {}, {
         year: '2026',
         payload: {
+          group: activeFundCatalogGroup,
           rowIndex: rowIndex
         }
       }).then(() => {
@@ -3689,16 +3705,18 @@
       const loans = data.loans || [];
       summary.innerHTML = loans.length ? loans.map((item) => `
         <tr>
-          <td>${escapeHtml(item.code || '')}</td>
+          <td>${escapeHtml(item.loanDate || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>
           <td style="text-align:right; font-weight:800;">${formatFundAmount(item.borrowed, '')}</td>
           <td style="text-align:right;">${formatFundAmount(item.principalPaid, '')}</td>
           <td style="text-align:right;">${formatFundAmount(item.interestPaid, '')}</td>
           <td style="text-align:right; font-weight:800;">${formatFundAmount(item.outstanding, '')}</td>
-          <td>${escapeHtml(item.latestDate || '')}</td>
+          <td>${escapeHtml(item.lastPaymentDate || '')}</td>
           <td style="text-align:right; white-space:nowrap;">
-            <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'partial')">Trả</button>
-            <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'settle')" ${Number(item.outstanding || 0) <= 0 ? 'disabled' : ''}>Tất toán</button>
+            ${Number(item.outstanding || 0) > 0 ? `
+              <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'partial')">Trả</button>
+              <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'settle')">Tất toán</button>
+            ` : '<span style="color:var(--muted); font-weight:600;">Đã tất toán</span>'}
           </td>
         </tr>
       `).join('') : '<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Chưa có khoản vay.</td></tr>';
@@ -4877,7 +4895,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.4_fund_catalog_selects';
+      const APP_VERSION = 'v3.5_fund_catalog_columns';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);

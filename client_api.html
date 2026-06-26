@@ -1,48 +1,63 @@
 <script>
     // API REST Request Layer
-    const DEFAULT_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
-    
+    const DEFAULT_BACKEND_URL = '';
+
     const getBackendUrl = () => {
-      return localStorage.getItem('eb_backend_url') || DEFAULT_BACKEND_URL;
+      return localStorage.getItem('eb_backend_url') || window.location.href.split('?')[0] || DEFAULT_BACKEND_URL;
     };
 
     function callApi(method, action, params = {}, bodyData = null) {
+      const currentUrl = window.location.href.split('?')[0];
       const backendUrl = getBackendUrl();
       if (!backendUrl) {
         return Promise.reject(new Error('Chưa cấu hình đường dẫn Web App trong Cài đặt!'));
       }
-      
-      let url = new URL(backendUrl);
-      url.searchParams.set('action', action);
-      Object.keys(params).forEach(k => {
-        url.searchParams.set(k, params[k]);
-      });
-      if (params.forceRefresh === true || params.forceRefresh === 'true') {
-        url.searchParams.set('_ts', Date.now());
-      }
-      
-      const options = {
-        method: method,
-        headers: {
-          'Content-Type': 'text/plain;charset=UTF-8' // bypass preflight CORS
+
+      const buildUrl = (baseUrl) => {
+        const url = new URL(baseUrl);
+        url.searchParams.set('action', action);
+        Object.keys(params).forEach((k) => {
+          url.searchParams.set(k, params[k]);
+        });
+        if (params.forceRefresh === true || params.forceRefresh === 'true') {
+          url.searchParams.set('_ts', Date.now());
         }
+        return url;
       };
-      
-      if (bodyData) {
-        options.body = JSON.stringify({ action: action, ...bodyData });
-      }
-      
-      return fetch(url.toString(), options)
-        .then(res => {
+
+      const execute = (baseUrl) => {
+        const url = buildUrl(baseUrl);
+        const options = {
+          method: method,
+          headers: {
+            'Content-Type': 'text/plain;charset=UTF-8'
+          }
+        };
+
+        if (bodyData) {
+          options.body = JSON.stringify({ action: action, ...bodyData });
+        }
+
+        return fetch(url.toString(), options).then((res) => {
           if (!res.ok) throw new Error('Kết nối API thất bại, status: ' + res.status);
           return res.json();
-        })
-        .then(data => {
+        }).then((data) => {
           if (data && data.ok === false) {
             throw new Error(data.error || 'Lỗi API hệ thống.');
           }
           return data;
         });
+      };
+
+      const shouldRetryOnCurrentUrl = (err) => {
+        const message = String(err && err.message ? err.message : err || '');
+        return backendUrl !== currentUrl && /Hành động (GET|POST) không hợp lệ/.test(message);
+      };
+
+      return execute(backendUrl).catch((err) => {
+        if (!shouldRetryOnCurrentUrl(err)) throw err;
+        return execute(currentUrl);
+      });
     }
 
     function removeSessionKeysByPrefix(prefix) {

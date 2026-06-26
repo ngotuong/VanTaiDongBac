@@ -3039,10 +3039,19 @@
 
   <script>
     // API REST Request Layer
-    const DEFAULT_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
+    function getCurrentWebAppUrl() {
+      try {
+        const url = new URL(window.location.href);
+        url.search = '';
+        url.hash = '';
+        return url.toString();
+      } catch (err) {
+        return '';
+      }
+    }
     
     const getBackendUrl = () => {
-      return localStorage.getItem('eb_backend_url') || DEFAULT_BACKEND_URL;
+      return localStorage.getItem('eb_backend_url') || getCurrentWebAppUrl();
     };
 
     function callApi(method, action, params = {}, bodyData = null) {
@@ -4877,7 +4886,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.4_fund_catalog_selects';
+      const APP_VERSION = 'v3.4_fund_catalog_selects_url_fallback_fix';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);

@@ -1292,7 +1292,7 @@
     
     tr.grand-total-row td,
     tr.grand-total-row td.sticky-col {
-      background: var(--amber-soft) !important;
+      background: rgba(13, 148, 136, 0.08) !important;
     }
     
     /* Sticky Right Column (Actions) */
@@ -1952,7 +1952,7 @@
       th.sticky-col { background: #f8fafc !important; }
       td.sticky-col { background: var(--paper) !important; }
       tr.total-row td.sticky-col { background: var(--mint-soft) !important; }
-      tr.grand-total-row td.sticky-col { background: var(--amber-soft) !important; }
+      tr.grand-total-row td.sticky-col { background: rgba(13, 148, 136, 0.08) !important; }
     }
 </style>
 
@@ -2248,7 +2248,7 @@
                 <option value="all">Tất cả nguồn chi</option>
                 <option value="Quang Quân">Quang Quân</option>
                 <option value="Minh Vương">Minh Vương</option>
-                <option value="Quỹ">Quỹ (Chi quỹ)</option>
+                <option value="Quỹ">Quỹ</option>
               </select>
             </label>
           </div>
@@ -5572,8 +5572,8 @@
             }).join('')}</tr></thead>
             <tbody>${body.map((row, rowIndex) => {
               let rowStyle = '';
-              const firstCell = String(row[0] || '').toLowerCase().trim();
-              const isGrandTotal = rowIndex === body.length - 1;
+              const isGrandTotalText = firstCell.includes('tổng cộng') || firstCell.includes('cộng') || firstCell.includes('lợi nhuận thực') || firstCell.includes('thực nhận');
+              const isGrandTotal = isGrandTotalText && (rowIndex === body.length - 1);
               const isTotalRow = firstCell.includes('tổng') || firstCell.includes('cộng') || firstCell.includes('trung bình') || firstCell.includes('thực nhận') || firstCell.includes('lợi nhuận');
               
               if (isGrandTotal) {

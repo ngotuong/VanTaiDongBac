@@ -730,6 +730,46 @@ var SheetService = (function () {
     return getLastNonEmptyRowInColumn_(sheet, 1, headerRow + 1, false) + 1;
   }
 
+  function getAppendRowForRowData_(sheet, headerRow, headers, rowData) {
+    if (rowData && rowData['Giá dầu áp dụng'] !== undefined) {
+      return getAppendRowInHeaders_(sheet, headerRow, headers, [
+        'Giá dầu áp dụng',
+        'Ngày áp dụng giá dầu',
+        'Ghi chú'
+      ]);
+    }
+    if (rowData && rowData['Mã tham số'] !== undefined) {
+      return getAppendRowInHeaders_(sheet, headerRow, headers, [
+        'Mã tham số',
+        'Tên tham số',
+        'Giá trị',
+        'Ngày áp dụng tham số'
+      ]);
+    }
+    return getAppendRow_(sheet, headerRow);
+  }
+
+  function getAppendRowInHeaders_(sheet, headerRow, headers, targetHeaders) {
+    var targetColumns = targetHeaders.map(function (header) {
+      return headers.indexOf(header) + 1;
+    }).filter(function (column) {
+      return column > 0;
+    });
+    if (!targetColumns.length) return getAppendRow_(sheet, headerRow);
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= headerRow) return headerRow + 1;
+    for (var rowNumber = lastRow; rowNumber > headerRow; rowNumber--) {
+      for (var i = 0; i < targetColumns.length; i++) {
+        var value = sheet.getRange(rowNumber, targetColumns[i]).getValue();
+        if (value !== '' && value !== null && value !== undefined) {
+          return rowNumber + 1;
+        }
+      }
+    }
+    return headerRow + 1;
+  }
+
   function getLastNonEmptyRowInColumn_(sheet, column, minRow, useCache) {
     var lastRow = sheet.getLastRow();
     if (lastRow < minRow) return minRow - 1;
@@ -1197,7 +1237,7 @@ var SheetService = (function () {
 
       var rowNum = parseInt(rowIndex, 10);
       if (isNaN(rowNum) || rowNum <= 0) {
-        rowNum = getAppendRow_(sheet, headerRow);
+        rowNum = getAppendRowForRowData_(sheet, headerRow, headers, rowData);
         ensureRows_(sheet, rowNum);
       }
 

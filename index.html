@@ -5572,6 +5572,7 @@
             }).join('')}</tr></thead>
             <tbody>${body.map((row, rowIndex) => {
               let rowStyle = '';
+              const firstCell = String(row[0] || '').toLowerCase().trim();
               const isGrandTotalText = firstCell.includes('tổng cộng') || firstCell.includes('cộng') || firstCell.includes('lợi nhuận thực') || firstCell.includes('thực nhận');
               const isGrandTotal = isGrandTotalText && (rowIndex === body.length - 1);
               const isTotalRow = firstCell.includes('tổng') || firstCell.includes('cộng') || firstCell.includes('trung bình') || firstCell.includes('thực nhận') || firstCell.includes('lợi nhuận');

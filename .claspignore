@@ -1,4 +1,5 @@
 docs/**
+scripts/**
 *.md
 .git/**
 .gitignore

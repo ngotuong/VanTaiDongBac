@@ -225,8 +225,9 @@ var FundService = (function () {
     }
 
     var headerValues = sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    var columns = getTransactionColumns_(headerValues);
     var displayValues = sheet.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
-    var rawDateValues = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
+    var rawDateValues = sheet.getRange(2, columns.date + 1, lastRow - 1, 1).getValues();
     var transactions = [];
     var monthMap = {};
 
@@ -238,32 +239,32 @@ var FundService = (function () {
       });
       if (!hasBusinessData) continue;
 
-      var parsedDate = parseDate_(rawDate, row[1]);
+      var parsedDate = parseDate_(rawDate, row[columns.date]);
       var monthKey = parsedDate ? Utilities.formatDate(parsedDate, APP_CONFIG.timezone, 'yyyy-MM') : '';
       var monthLabel = parsedDate ? Utilities.formatDate(parsedDate, APP_CONFIG.timezone, 'MM/yyyy') : '';
       if (monthKey) monthMap[monthKey] = monthLabel;
       if (selectedMonth && monthKey !== selectedMonth) continue;
 
-      var incomeCategory = clean_(row[2]);
-      var expenseCategory = clean_(row[3]);
+      var incomeCategory = clean_(row[columns.income]);
+      var expenseCategory = clean_(row[columns.expense]);
       transactions.push({
         rowIndex: i + 2,
-        voucher: clean_(row[0]),
-        date: parsedDate ? Utilities.formatDate(parsedDate, APP_CONFIG.timezone, 'yyyy-MM-dd') : clean_(row[1]),
-        dateText: clean_(row[1]),
+        voucher: columns.voucher >= 0 ? clean_(row[columns.voucher]) : '',
+        date: parsedDate ? Utilities.formatDate(parsedDate, APP_CONFIG.timezone, 'yyyy-MM-dd') : clean_(row[columns.date]),
+        dateText: clean_(row[columns.date]),
         month: monthKey,
         monthLabel: monthLabel,
         type: incomeCategory ? 'Thu' : (expenseCategory ? 'Chi' : ''),
         category: incomeCategory || expenseCategory,
         incomeCategory: incomeCategory,
         expenseCategory: expenseCategory,
-        method: clean_(row[4]),
-        amount: parseNumber_(row[5]),
-        amountText: clean_(row[5]),
-        actor: clean_(row[6]),
-        partner: clean_(row[7]),
-        content: clean_(row[8]),
-        debt: clean_(row[9])
+        method: clean_(row[columns.method]),
+        amount: parseNumber_(row[columns.amount]),
+        amountText: clean_(row[columns.amount]),
+        actor: clean_(row[columns.actor]),
+        partner: clean_(row[columns.partner]),
+        content: clean_(row[columns.content]),
+        debt: clean_(row[columns.debt])
       });
     }
 
@@ -330,36 +331,79 @@ var FundService = (function () {
     var lastRow = sheet.getLastRow();
     var lastCol = Math.max(sheet.getLastColumn(), TRANSACTION_HEADERS.length);
     if (lastRow < 2) return [];
+    var headerValues = sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    var columns = getTransactionColumns_(headerValues);
     var displayValues = sheet.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
-    var rawDateValues = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
+    var rawDateValues = sheet.getRange(2, columns.date + 1, lastRow - 1, 1).getValues();
     var rows = [];
     displayValues.forEach(function (row, index) {
       if (!row.slice(0, TRANSACTION_HEADERS.length).some(function (cell) { return clean_(cell); })) return;
-      var dateObj = parseDate_(rawDateValues[index][0], row[1]);
-      var incomeCategory = clean_(row[2]);
-      var expenseCategory = clean_(row[3]);
+      var dateObj = parseDate_(rawDateValues[index][0], row[columns.date]);
+      var incomeCategory = clean_(row[columns.income]);
+      var expenseCategory = clean_(row[columns.expense]);
       rows.push({
         rowIndex: index + 2,
-        voucher: clean_(row[0]),
+        voucher: columns.voucher >= 0 ? clean_(row[columns.voucher]) : '',
         dateObj: dateObj,
-        date: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'yyyy-MM-dd') : clean_(row[1]),
-        dateText: clean_(row[1]),
+        date: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'yyyy-MM-dd') : clean_(row[columns.date]),
+        dateText: clean_(row[columns.date]),
         month: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'yyyy-MM') : '',
         monthLabel: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'MM/yyyy') : '',
         type: incomeCategory ? 'Thu' : (expenseCategory ? 'Chi' : ''),
         category: incomeCategory || expenseCategory,
         incomeCategory: incomeCategory,
         expenseCategory: expenseCategory,
-        method: clean_(row[4]),
-        amount: parseNumber_(row[5]),
-        amountText: clean_(row[5]),
-        actor: clean_(row[6]),
-        partner: clean_(row[7]),
-        content: clean_(row[8]),
-        debt: clean_(row[9])
+        method: clean_(row[columns.method]),
+        amount: parseNumber_(row[columns.amount]),
+        amountText: clean_(row[columns.amount]),
+        actor: clean_(row[columns.actor]),
+        partner: clean_(row[columns.partner]),
+        content: clean_(row[columns.content]),
+        debt: clean_(row[columns.debt])
       });
     });
     return rows;
+  }
+
+  function getTransactionColumns_(headers) {
+    var hasVoucher = findHeaderIndex_(headers, ['so phieu', 'số phiếu']) >= 0;
+    var offset = hasVoucher ? 0 : -1;
+    return {
+      voucher: findHeaderIndex_(headers, ['so phieu', 'số phiếu']),
+      date: requiredHeaderIndex_(headers, ['ngay', 'ngày'], 1 + offset),
+      income: requiredHeaderIndex_(headers, ['muc thu', 'mục thu'], 2 + offset),
+      expense: requiredHeaderIndex_(headers, ['muc chi', 'mục chi'], 3 + offset),
+      method: requiredHeaderIndex_(headers, ['hinh thuc', 'hình thức'], 4 + offset),
+      amount: requiredHeaderIndex_(headers, ['so tien', 'số tiền'], 5 + offset),
+      actor: requiredHeaderIndex_(headers, ['nguoi thu chi', 'người thu chi', 'nguoi thu/chi', 'người thu/chi'], 6 + offset),
+      partner: requiredHeaderIndex_(headers, ['doi tac', 'đối tác'], 7 + offset),
+      content: requiredHeaderIndex_(headers, ['noi dung', 'nội dung'], 8 + offset),
+      debt: requiredHeaderIndex_(headers, ['cong no', 'công nợ'], 9 + offset)
+    };
+  }
+
+  function requiredHeaderIndex_(headers, names, fallbackIndex) {
+    var index = findHeaderIndex_(headers, names);
+    return index >= 0 ? index : Math.max(0, fallbackIndex);
+  }
+
+  function findHeaderIndex_(headers, names) {
+    var normalizedNames = names.map(normalizeHeader_);
+    for (var i = 0; i < headers.length; i++) {
+      var value = normalizeHeader_(headers[i]);
+      if (normalizedNames.indexOf(value) >= 0) return i;
+    }
+    return -1;
+  }
+
+  function normalizeHeader_(value) {
+    return clean_(value)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
   }
 
   function readLoanRows_(ss) {
@@ -567,7 +611,9 @@ var FundService = (function () {
   function readPartners_(ss) {
     var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
     if (!sheet || sheet.getLastRow() < 2) return [];
-    return flattenValues_(sheet.getRange(2, 8, sheet.getLastRow() - 1, 1).getDisplayValues());
+    var headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), TRANSACTION_HEADERS.length)).getDisplayValues()[0];
+    var columns = getTransactionColumns_(headers);
+    return flattenValues_(sheet.getRange(2, columns.partner + 1, sheet.getLastRow() - 1, 1).getDisplayValues());
   }
 
   function flattenValues_(values) {

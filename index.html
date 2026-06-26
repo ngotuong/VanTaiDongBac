@@ -3027,9 +3027,6 @@
     }
 
     function loadFundOverview(forceRefresh) {
-      const monthFilter = el('fundOverviewMonthFilter');
-      const month = monthFilter ? monthFilter.value : '';
-    function loadFundOverview(forceRefresh) {
       const metricsHolder = el('fundOverviewMetrics');
       if (metricsHolder) {
         metricsHolder.innerHTML = `
@@ -3188,7 +3185,7 @@
       if (!item) return;
       
       if (title) title.textContent = `Chi tiết ${type.toLowerCase()} - ${item.category}`;
-      if (hint) hint.textContent = `${item.count || 0} dòng, tổng ${formatFundAmount(item.amount, '')}.`;
+      if (hint) hint.textContent = `Tổng ${formatFundAmount(item.amount, '')}.`;
       
       // Render Desktop Table
       if (body) {

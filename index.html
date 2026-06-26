@@ -2196,9 +2196,9 @@
       <section id="manageView" class="view">
         <!-- Nút trượt ngang chọn Nhật ký -->
         <div class="sub-tabs-bar" id="manageTabsBar" style="width: 100%; margin-bottom: 12px;">
-          <button type="button" class="sub-tab active" data-sheet="NL_Dau" onclick="setManageSheetTab('NL_Dau')">Dầu lẻ</button>
+          <button type="button" class="sub-tab active" data-sheet="NL_Dau" onclick="setManageSheetTab('NL_Dau')">Xăng dầu</button>
           <button type="button" class="sub-tab" data-sheet="NL_VanChuyen" onclick="setManageSheetTab('NL_VanChuyen')">Vận chuyển</button>
-          <button type="button" class="sub-tab" data-sheet="NL_TaiXe" onclick="setManageSheetTab('NL_TaiXe')">Chi tiết tài xế</button>
+          <button type="button" class="sub-tab" data-sheet="NL_TaiXe" onclick="setManageSheetTab('NL_TaiXe')">Tài xế</button>
           <button type="button" class="sub-tab" data-sheet="NL_ChamCong" onclick="setManageSheetTab('NL_ChamCong')">Chấm công</button>
           <button type="button" class="sub-tab" data-sheet="NL_Phat" onclick="setManageSheetTab('NL_Phat')">Phạt nội bộ</button>
           <button type="button" class="sub-tab" data-sheet="NL_NghiVanHanh" onclick="setManageSheetTab('NL_NghiVanHanh')">Nghỉ vận hành</button>
@@ -2208,14 +2208,25 @@
         <div class="filter-bar" style="margin-bottom: 16px;">
           <div class="filter-container" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1;">
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                Kỳ:
+                <select id="manageQuickDateFilter" style="height: 38px; width: 145px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="setManageQuickDate(this.value)">
+                  <option value="recent">Mới nhất</option>
+                  <option value="today">Hôm nay</option>
+                  <option value="7days">7 ngày</option>
+                  <option value="thisMonth">Tháng này</option>
+                  <option value="lastMonth">Tháng trước</option>
+                  <option value="custom">Tùy chọn</option>
+                </select>
+              </label>
               <div id="manageDateFilterGroup" style="display: flex; gap: 8px; align-items: center;">
                 <label style="margin: 0; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted);">
                   Từ:
-                  <input type="date" id="manageStartDate" style="height: 38px; width: 125px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="loadManageSheetData()">
+                  <input type="date" id="manageStartDate" style="height: 38px; width: 125px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
                 </label>
                 <label style="margin: 0; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted);">
                   Đến:
-                  <input type="date" id="manageEndDate" style="height: 38px; width: 125px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="loadManageSheetData()">
+                  <input type="date" id="manageEndDate" style="height: 38px; width: 125px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
                 </label>
               </div>
               <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
@@ -2231,7 +2242,11 @@
           </div>
         </div>
 
-        <!-- Khối lọc & thống kê riêng cho Dầu lẻ -->
+        <div id="manageTaiXeStatsBlock" style="display: none; padding: 10px 14px; margin-bottom: 12px; background: var(--blue-soft); border-left: 4px solid var(--blue); border-radius: 8px; font-size: 13.5px; font-weight: 700; color: var(--deep);">
+          Tổng số chuyến: <span id="manageTaiXeTotalTrips" style="color: var(--blue); font-size: 15px;">0</span>
+        </div>
+
+        <!-- Khối lọc & thống kê riêng cho Xăng dầu -->
         <div id="manageDauFilterBlock" style="display: none; padding: 12px; margin-bottom: 12px; background: var(--mint-soft); border-radius: 12px; border: 1px solid var(--line); flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box;">
           <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;">
             <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--deep);">
@@ -2260,7 +2275,7 @@
 
         <div class="table-card">
           <div id="manageLimitNotice" style="background: var(--mint-soft); border-left: 4px solid var(--teal); padding: 10px 14px; font-size: 12.5px; font-weight: 600; color: var(--deep); margin: 12px 12px 0 12px; border-radius: 6px; display: none;">
-            💡 Đang hiển thị 10 giao dịch mới nhất. Hãy chọn khoảng thời gian ở bộ lọc để xem các giao dịch cũ hơn.
+            Đang hiển thị các giao dịch mới nhất. Hãy chọn kỳ nhanh hoặc khoảng thời gian cụ thể để xem dữ liệu cũ hơn.
           </div>
           <div class="table-scroll" style="max-height: calc(100vh - 280px); overflow-y: auto; padding: 12px;">
             <table class="report-table" id="manageTable">
@@ -3758,6 +3773,11 @@
       } else {
         el('manageDauFilterBlock').style.display = 'none';
       }
+      if (sheetName === 'NL_TaiXe') {
+        el('manageTaiXeStatsBlock').style.display = 'block';
+      } else {
+        el('manageTaiXeStatsBlock').style.display = 'none';
+      }
       
       thead.innerHTML = '';
       tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; padding: 48px; color: var(--muted);"><div style="display:inline-block; width: 30px; height: 30px; border: 3px solid var(--mint-soft); border-radius: 50%; border-top-color: var(--teal); animation: spin 1s linear infinite; margin-bottom: 12px;"></div><br>Đang tải dữ liệu từ Google Sheets...</td></tr>`;
@@ -3767,7 +3787,12 @@
       const startDate = el('manageStartDate').value;
       const endDate = el('manageEndDate').value;
 
-      callApi('GET', 'readSheetData', { sheetName: sheetName, startDate: startDate, endDate: endDate })
+      callApi('GET', 'readSheetData', {
+        sheetName: sheetName,
+        startDate: startDate,
+        endDate: endDate,
+        limit: startDate || endDate ? 500 : 50
+      })
         .then((res) => {
           if (res.ok) {
             currentManageData = res;
@@ -3788,8 +3813,10 @@
 
     function renderManageTable() {
       if (!currentManageData) return;
+      const sheetName = el('manageSheetSelect').value;
       const headers = [...currentManageData.headers];
       const rawRows = currentManageData.rows || [];
+      const visibleColumns = getManageVisibleColumns(headers, sheetName);
       
       let vehicleColIdx = -1;
       for (let i = 0; i < headers.length; i++) {
@@ -3800,14 +3827,15 @@
         }
       }
 
-      const showOwnerCol = (vehicleColIdx !== -1);
+      const showOwnerCol = shouldShowManageOwnerColumn(sheetName, vehicleColIdx);
       const thead = el('manageTableHeader');
       thead.innerHTML = '';
       
-      headers.forEach((h, idx) => {
+      visibleColumns.forEach((idx) => {
+        const h = headers[idx];
         const th = document.createElement('th');
         th.textContent = h;
-        if (idx === 0) th.className = 'sticky-col';
+        if (idx === visibleColumns[0]) th.className = 'sticky-col';
         thead.appendChild(th);
         
         if (showOwnerCol && idx === vehicleColIdx) {
@@ -3838,6 +3866,61 @@
       });
 
       filterManageRows();
+    }
+
+    function getManageVisibleColumns(headers, sheetName) {
+      return headers.map((header, index) => ({ header, index }))
+        .filter(({ header }) => {
+          const h = String(header || '').trim().toLowerCase();
+          if (h === 'tháng') return false;
+          return true;
+        })
+        .map(({ index }) => index);
+    }
+
+    function shouldShowManageOwnerColumn(sheetName, vehicleColIdx) {
+      if (vehicleColIdx === -1) return false;
+      if (sheetName === 'NL_TaiXe' || sheetName === 'NL_NghiVanHanh') return false;
+      return true;
+    }
+
+    function setManageQuickDate(mode) {
+      const start = el('manageStartDate');
+      const end = el('manageEndDate');
+      const today = new Date();
+      const toIso = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      };
+
+      if (mode === 'recent') {
+        start.value = '';
+        end.value = '';
+      } else if (mode === 'today') {
+        start.value = toIso(today);
+        end.value = toIso(today);
+      } else if (mode === '7days') {
+        const from = new Date(today);
+        from.setDate(today.getDate() - 6);
+        start.value = toIso(from);
+        end.value = toIso(today);
+      } else if (mode === 'thisMonth') {
+        start.value = toIso(new Date(today.getFullYear(), today.getMonth(), 1));
+        end.value = toIso(today);
+      } else if (mode === 'lastMonth') {
+        start.value = toIso(new Date(today.getFullYear(), today.getMonth() - 1, 1));
+        end.value = toIso(new Date(today.getFullYear(), today.getMonth(), 0));
+      }
+
+      if (mode !== 'custom') loadManageSheetData();
+    }
+
+    function setManageCustomDate() {
+      const quick = el('manageQuickDateFilter');
+      if (quick) quick.value = 'custom';
+      loadManageSheetData();
     }
 
     let manageSearchTimeout = null;
@@ -3883,6 +3966,9 @@
       let litColIdx = -1;
       let amountColIdx = -1;
       let noteColIdx = -1;
+      let tripsColIdx = -1;
+      const sheetName = el('manageSheetSelect').value;
+      const visibleColumns = currentManageData ? getManageVisibleColumns(currentManageData.headers, sheetName) : [];
 
       if (currentManageData) {
         currentManageData.headers.forEach((h, idx) => {
@@ -3892,10 +3978,12 @@
           if (hLower === 'số lít' || hLower === 'lít') litColIdx = idx;
           if (hLower === 'thành tiền' || hLower === 'tổng tiền' || hLower === 'tiền') amountColIdx = idx;
           if (hLower === 'ghi chú' || hLower === 'ghi chú thêm') noteColIdx = idx;
+          if (hLower === 'số chuyến' || hLower.includes('số chuyến')) tripsColIdx = idx;
         });
       }
-      const showOwnerCol = (vehicleColIdx !== -1);
-      const isDauSheet = el('manageSheetSelect').value === 'NL_Dau';
+      const showOwnerCol = shouldShowManageOwnerColumn(sheetName, vehicleColIdx);
+      const isDauSheet = sheetName === 'NL_Dau';
+      const isTaiXeSheet = sheetName === 'NL_TaiXe';
 
       const matched = filteredManageRowsData.filter(row => {
         // 1. Search Query filter
@@ -3947,6 +4035,17 @@
         el('manageDauTotalAmount').textContent = Math.round(totalAmount).toLocaleString('vi-VN') + ' ₫';
       }
 
+      if (currentManageData && isTaiXeSheet) {
+        let totalTrips = 0;
+        matched.forEach(row => {
+          if (tripsColIdx !== -1) {
+            totalTrips += parseLocaleNumber(row.values[tripsColIdx]) || 0;
+          }
+        });
+        const totalTarget = el('manageTaiXeTotalTrips');
+        if (totalTarget) totalTarget.textContent = Math.round(totalTrips).toLocaleString('vi-VN');
+      }
+
       if (matched.length === 0) {
         el('manageTableEmpty').style.display = 'block';
         return;
@@ -3957,9 +4056,10 @@
       matched.forEach(row => {
         const tr = document.createElement('tr');
         
-        row.values.forEach((val, idx) => {
+        visibleColumns.forEach((idx) => {
+          const val = row.values[idx];
           const td = document.createElement('td');
-          if (idx === 0) td.className = 'sticky-col';
+          if (idx === visibleColumns[0]) td.className = 'sticky-col';
           
           const header = currentManageData.headers[idx];
           const headerLower = header.toLowerCase().trim();

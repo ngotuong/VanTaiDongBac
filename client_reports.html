@@ -82,7 +82,6 @@
         } else if (type === 'vehicles') {
           if (idx === 0) return { isSticky: true, left: '0px' };
           if (idx === 1) return { isSticky: true, left: '90px' };
-          if (idx === 2) return { isSticky: true, left: '170px' };
         }
         return { isSticky: false };
       };
@@ -151,25 +150,29 @@
               const styleAttr = sticky.isSticky ? `style="left: ${sticky.left};"` : '';
               return `<th ${className} ${styleAttr}>${escapeHtml(cell)}</th>`;
             }).join('')}</tr></thead>
-            <tbody>${body.map((row) => {
+            <tbody>${body.map((row, rowIndex) => {
               let rowStyle = '';
               const firstCell = String(row[0] || '').toLowerCase().trim();
-              const isProfitRow = firstCell.includes('lợi nhuận thực');
+              const isGrandTotal = rowIndex === body.length - 1;
               const isTotalRow = firstCell.includes('tổng') || firstCell.includes('cộng') || firstCell.includes('trung bình') || firstCell.includes('thực nhận') || firstCell.includes('lợi nhuận');
               
-              if (isProfitRow) {
-                rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep); background-color: var(--amber-soft);"';
+              if (isGrandTotal) {
+                rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep);"';
               } else if (isTotalRow) {
-                if (type === 'details') {
-                  rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep);"'; // Bỏ màu nền total row trong bảng chi tiết
-                } else {
-                  rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep); background-color: var(--mint-soft);"';
-                }
+                rowStyle = 'style="font-weight: 800; font-size: 13px; color: var(--deep);"';
               } else {
                 rowStyle = 'style="font-weight: 500; font-size: 12.5px;"';
               }
               
-              const rowClass = isTotalRow ? 'class="total-row"' : '';
+              let rowClass = '';
+              if (isGrandTotal) {
+                rowClass = 'class="total-row grand-total-row"';
+              } else if (isTotalRow) {
+                if (type !== 'details') {
+                  rowClass = 'class="total-row"';
+                }
+              }
+              
               const searchText = removeAccents(row.join(' ').toLowerCase());
               
               return `<tr ${rowClass} ${rowStyle} data-search-text="${escapeHtml(searchText)}">${head.map((colName, i) => {

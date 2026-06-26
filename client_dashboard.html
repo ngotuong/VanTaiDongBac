@@ -372,7 +372,7 @@
           : 'linear-gradient(180deg, var(--teal), var(--deep-2))';
           
         col.innerHTML = `
-          <div class="bar-value">${escapeHtml(row.month)}: ${row.final < 0 ? '-' : ''}${escapeHtml(formatCurrencyText(Math.abs(row.final || 0)))}</div>
+          <div class="bar-value">${row.final < 0 ? '-' : ''}${escapeHtml(formatCurrencyText(Math.abs(row.final || 0)))}</div>
           <div class="bar-track-v">
             <div class="bar-fill-v" style="height:0%; background:${color}; width: 100%;"></div>
           </div>

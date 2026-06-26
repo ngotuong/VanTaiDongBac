@@ -304,6 +304,9 @@
       }
       .panel-body { padding: 16px; }
       
+      .table-wrap { max-height: none !important; }
+      #rows { max-height: none !important; overflow-y: visible !important; }
+      
       .submit-bar {
         position: fixed;
         bottom: calc(76px + env(safe-area-inset-bottom));
@@ -313,6 +316,11 @@
         border-radius: 0;
         box-shadow: 0 -8px 20px rgba(6, 46, 43, 0.08);
         padding: 12px 16px;
+        transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      
+      .submit-bar.nav-hidden {
+        bottom: calc(12px + env(safe-area-inset-bottom)) !important;
       }
       
       .submit-bar button { flex: 1 1 30%; }

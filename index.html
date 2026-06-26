@@ -721,7 +721,7 @@
       opacity: 0;
       transform: translate(-50%, 4px);
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      background: var(--ink);
+      background: var(--deep);
       color: #fff !important;
       padding: 4px 8px;
       border-radius: 6px;
@@ -741,7 +741,7 @@
       margin-left: -4px;
       border-width: 4px;
       border-style: solid;
-      border-color: var(--ink) transparent transparent transparent;
+      border-color: var(--deep) transparent transparent transparent;
     }
     
     .chart-col:hover .bar-value, .chart-col.active .bar-value {
@@ -1906,6 +1906,9 @@
       }
       .panel-body { padding: 16px; }
       
+      .table-wrap { max-height: none !important; }
+      #rows { max-height: none !important; overflow-y: visible !important; }
+      
       .submit-bar {
         position: fixed;
         bottom: calc(76px + env(safe-area-inset-bottom));
@@ -1915,6 +1918,11 @@
         border-radius: 0;
         box-shadow: 0 -8px 20px rgba(6, 46, 43, 0.08);
         padding: 12px 16px;
+        transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      
+      .submit-bar.nav-hidden {
+        bottom: calc(12px + env(safe-area-inset-bottom)) !important;
       }
       
       .submit-bar button { flex: 1 1 30%; }
@@ -5104,7 +5112,7 @@
           : 'linear-gradient(180deg, var(--teal), var(--deep-2))';
           
         col.innerHTML = `
-          <div class="bar-value">${escapeHtml(row.month)}: ${row.final < 0 ? '-' : ''}${escapeHtml(formatCurrencyText(Math.abs(row.final || 0)))}</div>
+          <div class="bar-value">${row.final < 0 ? '-' : ''}${escapeHtml(formatCurrencyText(Math.abs(row.final || 0)))}</div>
           <div class="bar-track-v">
             <div class="bar-fill-v" style="height:0%; background:${color}; width: 100%;"></div>
           </div>
@@ -6481,20 +6489,52 @@
     el('cloneBtn').onclick = cloneRow;
     el('submitBtn').onclick = submitAll;
     
-    // Scroll handling for bottom-nav visibility on mobile
+    // Scroll handling for bottom-nav and submit-bar visibility on mobile
     let lastScrollY = window.scrollY;
+    let accumulatedDelta = 0;
+    const threshold = 15; // Minimum scroll delta in px to trigger toggle
+    
     window.addEventListener('scroll', () => {
       const bottomNav = el('bottomNav');
       if (!bottomNav) return;
       
+      const submitBars = document.querySelectorAll('.submit-bar');
       const currentScrollY = window.scrollY;
+      const delta = currentScrollY - lastScrollY;
       
-      // Hide if scrolling down past a threshold (e.g. 50px)
-      if (currentScrollY > lastScrollY && currentScrollY > 50) {
-        bottomNav.classList.add('nav-hidden');
-      } else if (currentScrollY < lastScrollY) {
-        // Show if scrolling up
+      // Ignore elastic bounce scroll on iOS/Safari
+      const maxScrollY = document.documentElement.scrollHeight - window.innerHeight;
+      if (currentScrollY < 0 || currentScrollY > maxScrollY) {
+        lastScrollY = currentScrollY;
+        return;
+      }
+      
+      accumulatedDelta += delta;
+      
+      if (accumulatedDelta > threshold) {
+        // Scroll down -> hide bottomNav, move submit-bar down
+        if (currentScrollY > 80) {
+          bottomNav.classList.add('nav-hidden');
+          submitBars.forEach(bar => bar.classList.add('nav-hidden'));
+        }
+        accumulatedDelta = 0;
+      } else if (accumulatedDelta < -threshold) {
+        // Scroll up -> show bottomNav, move submit-bar up
         bottomNav.classList.remove('nav-hidden');
+        submitBars.forEach(bar => bar.classList.remove('nav-hidden'));
+        accumulatedDelta = 0;
+      }
+      
+      // Always hide bottomNav and lower submit-bar when close to the bottom of the page
+      if (currentScrollY >= maxScrollY - 60) {
+        bottomNav.classList.add('nav-hidden');
+        submitBars.forEach(bar => bar.classList.add('nav-hidden'));
+      }
+      
+      // Always show bottomNav and raise submit-bar when close to the top of the page
+      if (currentScrollY <= 10) {
+        bottomNav.classList.remove('nav-hidden');
+        submitBars.forEach(bar => bar.classList.remove('nav-hidden'));
       }
       
       lastScrollY = currentScrollY;

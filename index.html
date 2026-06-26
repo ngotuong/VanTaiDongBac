@@ -2478,10 +2478,6 @@
                 </select>
               </label>
               <label>
-                Hình thức
-                <select id="fundMethodInput"></select>
-              </label>
-              <label>
                 Mục thu/chi
                 <select id="fundCategoryInput" required></select>
               </label>
@@ -2618,7 +2614,6 @@
               <div class="sub-tabs-bar" style="width: auto; margin: 0;">
                 <button type="button" class="sub-tab active" data-fund-catalog-group="incomeCategories" onclick="setFundCatalogGroup('incomeCategories')">Mục Thu</button>
                 <button type="button" class="sub-tab" data-fund-catalog-group="expenseCategories" onclick="setFundCatalogGroup('expenseCategories')">Mục Chi</button>
-                <button type="button" class="sub-tab" data-fund-catalog-group="methods" onclick="setFundCatalogGroup('methods')">Hình thức</button>
                 <button type="button" class="sub-tab" data-fund-catalog-group="actors" onclick="setFundCatalogGroup('actors')">Người Thu/Chi</button>
                 <button type="button" class="sub-tab" data-fund-catalog-group="partners" onclick="setFundCatalogGroup('partners')">Đối tác</button>
                 <button type="button" class="sub-tab" data-fund-catalog-group="loanPartners" onclick="setFundCatalogGroup('loanPartners')">Nơi vay</button>
@@ -3387,12 +3382,6 @@
       fillSelect('fundPartnerInput', options.partners || [], 'Chọn đối tác');
       fillSelect('loanPartnerInput', options.loanPartners || [], 'Chọn nơi vay');
       fillSelect('loanPaymentPartnerInput', options.loanPartners || [], 'Chọn đối tác');
-
-      const methodSelect = el('fundMethodInput');
-      if (methodSelect) {
-        fillSelect('fundMethodInput', options.methods || [], 'Chọn hình thức');
-        methodSelect.dataset.loaded = 'true';
-      }
     }
 
     function fillSelect(id, values, placeholder) {
@@ -3465,7 +3454,6 @@
         date: el('fundDateInput')?.value || '',
         type: el('fundTypeInput')?.value || '',
         category: el('fundCategoryInput')?.value || '',
-        method: el('fundMethodInput')?.value || '',
         amount: el('fundAmountInput')?.value || '',
         actor: el('fundActorInput')?.value || '',
         partner: el('fundPartnerInput')?.value || '',
@@ -3514,7 +3502,7 @@
     }
 
     function clearFundEntryForm() {
-      ['fundAmountInput', 'fundMethodInput', 'fundActorInput', 'fundPartnerInput', 'fundContentInput'].forEach((id) => {
+      ['fundAmountInput', 'fundActorInput', 'fundPartnerInput', 'fundContentInput'].forEach((id) => {
         const field = el(id);
         if (field) field.value = '';
       });
@@ -3587,7 +3575,6 @@
       const labels = {
         incomeCategories: 'Mục Thu',
         expenseCategories: 'Mục Chi',
-        methods: 'Hình thức',
         actors: 'Người Thu/Chi',
         partners: 'Đối tác',
         loanPartners: 'Nơi vay'

@@ -10,7 +10,6 @@ var FundService = (function () {
   var CATALOG_GROUPS = [
     { key: 'incomeCategories', label: 'Mục Thu' },
     { key: 'expenseCategories', label: 'Mục Chi' },
-    { key: 'methods', label: 'Hình thức' },
     { key: 'actors', label: 'Người Thu/Chi' },
     { key: 'partners', label: 'Đối tác' },
     { key: 'loanPartners', label: 'Nơi vay' }
@@ -256,7 +255,6 @@ var FundService = (function () {
       ok: true,
       incomeCategories: mergeUniqueValues_(catalogs.incomeCategories, getFallbackFundIncomeCategories_(ss, settings)),
       expenseCategories: mergeUniqueValues_(catalogs.expenseCategories, getFallbackFundExpenseCategories_(ss)),
-      methods: mergeUniqueValues_(catalogs.methods, getFallbackFundMethods_(ss)),
       actors: mergeUniqueValues_(catalogs.actors, getFallbackFundActors_(ss)),
       partners: mergeUniqueValues_(catalogs.partners, getFallbackFundPartners_(ss)),
       loanPartners: mergeUniqueValues_(catalogs.loanPartners, getFallbackFundLoanPartners_(ss))
@@ -563,7 +561,6 @@ var FundService = (function () {
     var grouped = {
       incomeCategories: [],
       expenseCategories: [],
-      methods: [],
       actors: [],
       partners: [],
       loanPartners: []
@@ -642,7 +639,6 @@ var FundService = (function () {
     var text = clean_(value).toLowerCase();
     if (text === 'muc thu' || text === 'mục thu' || text === 'incomecategories') return 'incomeCategories';
     if (text === 'muc chi' || text === 'mục chi' || text === 'expensecategories') return 'expenseCategories';
-    if (text === 'hinh thuc' || text === 'hình thức' || text === 'methods') return 'methods';
     if (text === 'nguoi thu/chi' || text === 'người thu/chi' || text === 'actors') return 'actors';
     if (text === 'doi tac' || text === 'đối tác' || text === 'partners') return 'partners';
     if (text === 'noi vay' || text === 'nơi vay' || text === 'loanpartners') return 'loanPartners';

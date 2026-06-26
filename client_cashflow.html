@@ -276,12 +276,6 @@
       fillSelect('fundPartnerInput', options.partners || [], 'Chọn đối tác');
       fillSelect('loanPartnerInput', options.loanPartners || [], 'Chọn nơi vay');
       fillSelect('loanPaymentPartnerInput', options.loanPartners || [], 'Chọn đối tác');
-
-      const methodSelect = el('fundMethodInput');
-      if (methodSelect) {
-        fillSelect('fundMethodInput', options.methods || [], 'Chọn hình thức');
-        methodSelect.dataset.loaded = 'true';
-      }
     }
 
     function fillSelect(id, values, placeholder) {
@@ -354,7 +348,6 @@
         date: el('fundDateInput')?.value || '',
         type: el('fundTypeInput')?.value || '',
         category: el('fundCategoryInput')?.value || '',
-        method: el('fundMethodInput')?.value || '',
         amount: el('fundAmountInput')?.value || '',
         actor: el('fundActorInput')?.value || '',
         partner: el('fundPartnerInput')?.value || '',
@@ -403,7 +396,7 @@
     }
 
     function clearFundEntryForm() {
-      ['fundAmountInput', 'fundMethodInput', 'fundActorInput', 'fundPartnerInput', 'fundContentInput'].forEach((id) => {
+      ['fundAmountInput', 'fundActorInput', 'fundPartnerInput', 'fundContentInput'].forEach((id) => {
         const field = el(id);
         if (field) field.value = '';
       });
@@ -476,7 +469,6 @@
       const labels = {
         incomeCategories: 'Mục Thu',
         expenseCategories: 'Mục Chi',
-        methods: 'Hình thức',
         actors: 'Người Thu/Chi',
         partners: 'Đối tác',
         loanPartners: 'Nơi vay'

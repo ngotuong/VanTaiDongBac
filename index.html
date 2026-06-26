@@ -1485,6 +1485,7 @@
       flex-direction: column;
       border-radius: 0 !important;
       border: 0;
+      overflow: hidden !important;
     }
     
     .fund-detail-drawer.open {
@@ -1497,33 +1498,36 @@
       padding-bottom: 16px;
       padding-left: 20px;
       padding-right: 20px;
+      flex-shrink: 0;
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
     }
     
     .fund-detail-drawer .table-wrap {
-      flex: 1;
-      overflow-y: auto;
-      max-height: calc(100vh - 80px - env(safe-area-inset-top, 0px)) !important;
+      flex: 1 1 auto;
+      overflow: auto;
+      min-height: 0;
     }
     
     /* Mobile Detail Cards List */
     .fund-detail-mobile-list {
       display: none;
-      flex: 1;
+      flex: 1 1 auto;
       overflow-y: auto;
-      padding: 16px;
+      padding: 12px;
       flex-direction: column;
-      gap: 12px;
-      max-height: calc(100vh - 80px - env(safe-area-inset-top, 0px)) !important;
+      gap: 10px;
+      min-height: 0;
     }
     
     .fund-detail-mobile-card {
       background: var(--canvas);
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 6px;
       box-shadow: var(--shadow-sm);
     }
     
@@ -1531,14 +1535,14 @@
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      font-size: 13px;
-      gap: 12px;
+      font-size: 12.5px;
+      gap: 10px;
     }
     
     .fund-detail-mobile-card-label {
       color: var(--muted);
       font-weight: 600;
-      font-size: 12px;
+      font-size: 11px;
       flex-shrink: 0;
     }
     
@@ -1550,7 +1554,7 @@
     }
     
     .fund-detail-mobile-card-amount {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 800;
     }
 
@@ -1581,6 +1585,7 @@
         border-radius: var(--radius-lg) !important;
         border: 1px solid var(--line) !important;
         box-shadow: var(--shadow-premium) !important;
+        overflow: hidden !important;
       }
       
       .fund-detail-drawer .table-card-head {
@@ -1588,7 +1593,9 @@
       }
       
       .fund-detail-drawer .table-wrap {
-        max-height: calc(100vh - 120px) !important;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
       }
     }
 </style>
@@ -3037,12 +3044,43 @@
     function renderFundOverview(data) {
       renderFundOverviewMonthFilter(data.months || [], data.selectedMonth || '');
       const metrics = el('fundOverviewMetrics');
-      metrics.innerHTML = (data.metrics || []).map((item) => `
-        <article class="kpi-card fund-kpi-card ${getFundMetricTone(item.key)}">
-          <div class="kpi-label">${escapeHtml(item.label)}</div>
-          <div class="kpi-value">${formatFundAmount(item.value, '')}</div>
-        </article>
-      `).join('');
+      const timeStr = new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+      
+      const config = {
+        openingBalance: { badge: 'blue', icon: `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"></rect><circle cx="12" cy="12" r="3"></circle></svg>` },
+        periodIncome: { badge: 'green', icon: `<svg class="btn-svg" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>` },
+        periodExpense: { badge: 'red', icon: `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>` },
+        periodNet: { badge: 'amber', icon: `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>` },
+        closingBalance: { badge: 'blue', icon: `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>` },
+        currentBalance: { badge: 'green', icon: `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>` }
+      };
+
+      metrics.innerHTML = (data.metrics || []).map((item) => {
+        const conf = config[item.key] || { badge: 'blue', icon: '' };
+        const formatted = formatFundAmount(item.value, '0');
+        const numPart = formatted.replace(' đ', '');
+        const unitPart = 'đ';
+        
+        let badgeColor = conf.badge;
+        if (item.key === 'periodNet') {
+          badgeColor = (item.value >= 0) ? 'green' : 'red';
+        }
+        
+        return `
+          <article class="kpi-card">
+            <div class="kpi-card-header">
+              <div class="kpi-label">${escapeHtml(item.label)}</div>
+              <div class="kpi-icon-badge ${badgeColor}">${conf.icon}</div>
+            </div>
+            <div class="kpi-value ${badgeColor}">${escapeHtml(numPart)} <span class="unit">${escapeHtml(unitPart)}</span></div>
+            <div class="kpi-card-footer" style="border-top:none; padding-top:0; margin-top:4px;">
+              <div class="kpi-status ok" style="background:var(--mint-soft); color:var(--teal); font-size:10px; padding:2px 6px;"><span>Quỹ 2026</span></div>
+              <div class="kpi-time">${escapeHtml(timeStr)}</div>
+            </div>
+          </article>
+        `;
+      }).join('');
+      
       renderFundCategoryRows('fundIncomeCategoryBody', data.incomeCategories || [], 'Thu');
       renderFundCategoryRows('fundExpenseCategoryBody', data.expenseCategories || [], 'Chi');
     }

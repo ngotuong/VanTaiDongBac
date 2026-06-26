@@ -177,6 +177,7 @@
       flex-direction: column;
       border-radius: 0 !important;
       border: 0;
+      overflow: hidden !important;
     }
     
     .fund-detail-drawer.open {
@@ -189,33 +190,36 @@
       padding-bottom: 16px;
       padding-left: 20px;
       padding-right: 20px;
+      flex-shrink: 0;
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
     }
     
     .fund-detail-drawer .table-wrap {
-      flex: 1;
-      overflow-y: auto;
-      max-height: calc(100vh - 80px - env(safe-area-inset-top, 0px)) !important;
+      flex: 1 1 auto;
+      overflow: auto;
+      min-height: 0;
     }
     
     /* Mobile Detail Cards List */
     .fund-detail-mobile-list {
       display: none;
-      flex: 1;
+      flex: 1 1 auto;
       overflow-y: auto;
-      padding: 16px;
+      padding: 12px;
       flex-direction: column;
-      gap: 12px;
-      max-height: calc(100vh - 80px - env(safe-area-inset-top, 0px)) !important;
+      gap: 10px;
+      min-height: 0;
     }
     
     .fund-detail-mobile-card {
       background: var(--canvas);
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 6px;
       box-shadow: var(--shadow-sm);
     }
     
@@ -223,14 +227,14 @@
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      font-size: 13px;
-      gap: 12px;
+      font-size: 12.5px;
+      gap: 10px;
     }
     
     .fund-detail-mobile-card-label {
       color: var(--muted);
       font-weight: 600;
-      font-size: 12px;
+      font-size: 11px;
       flex-shrink: 0;
     }
     
@@ -242,7 +246,7 @@
     }
     
     .fund-detail-mobile-card-amount {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 800;
     }
 
@@ -273,6 +277,7 @@
         border-radius: var(--radius-lg) !important;
         border: 1px solid var(--line) !important;
         box-shadow: var(--shadow-premium) !important;
+        overflow: hidden !important;
       }
       
       .fund-detail-drawer .table-card-head {
@@ -280,7 +285,9 @@
       }
       
       .fund-detail-drawer .table-wrap {
-        max-height: calc(100vh - 120px) !important;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
       }
     }
 </style>

@@ -469,11 +469,14 @@
               </div>
               <button type="button" class="ghost" style="min-height:32px; height:32px; width:32px; padding:0; border-radius:50%; font-size:18px; display:flex; align-items:center; justify-content:center;" onclick="closeFundDetailDrawer()">×</button>
             </div>
-            <div class="table-wrap">
+            <div class="table-wrap" id="fundDetailTableWrap">
               <table class="report-table">
                 <thead><tr><th>Ngày</th><th>Số phiếu</th><th>Loại</th><th>Hạng mục</th><th style="text-align:right;">Số tiền</th><th>Đối tác</th><th>Nội dung</th></tr></thead>
                 <tbody id="fundCategoryDetailBody"><tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Chưa chọn hạng mục.</td></tr></tbody>
               </table>
+            </div>
+            <div class="fund-detail-mobile-list" id="fundDetailMobileList" style="display: none;">
+              <div style="text-align:center; color:var(--muted); padding:24px;">Chưa chọn hạng mục.</div>
             </div>
           </section>
         </div>

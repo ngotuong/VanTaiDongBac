@@ -67,6 +67,12 @@
       line-height: 1.2;
     }
     
+    /* Specific Colors for KPI values to help distinguish them */
+    .kpi-value.blue { color: var(--blue) !important; }
+    .kpi-value.red { color: var(--red) !important; }
+    .kpi-value.amber { color: var(--amber) !important; }
+    .kpi-value.green { color: var(--green) !important; }
+    
     .kpi-value span.unit {
       font-size: 12px;
       font-weight: 500;
@@ -272,18 +278,19 @@
       color: var(--deep); 
       font-weight: 700; 
     }
-
-    /* Vertical Chart upgrades for 12 months */
+ 
+    /* Vertical Chart upgrades for 12 months (Optimized height and padding) */
     .chart-v {
       display: flex;
       align-items: flex-end;
       justify-content: space-around;
-      height: 250px;
-      padding-top: 30px;
+      height: 190px;
+      padding-top: 50px;
       padding-bottom: 10px;
       gap: 8px;
       width: 100%;
       overflow-x: auto;
+      overflow-y: visible;
       scrollbar-width: thin;
     }
     
@@ -328,14 +335,15 @@
       white-space: nowrap;
       text-align: center;
       opacity: 0;
-      transform: translateY(4px);
+      transform: translate(-50%, 4px);
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       background: var(--ink);
       color: #fff !important;
       padding: 4px 8px;
       border-radius: 6px;
       position: absolute;
-      bottom: 160px;
+      top: 12px;
+      left: 50%;
       z-index: 10;
       box-shadow: var(--shadow-md);
       pointer-events: none;
@@ -352,9 +360,9 @@
       border-color: var(--ink) transparent transparent transparent;
     }
     
-    .chart-col:hover .bar-value {
+    .chart-col:hover .bar-value, .chart-col.active .bar-value {
       opacity: 1;
-      transform: translateY(0);
+      transform: translate(-50%, 0);
     }
     
     .chart-col .bar-label {

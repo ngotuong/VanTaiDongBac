@@ -166,27 +166,121 @@
       top: 0;
       right: 0;
       bottom: 0;
-      width: min(650px, 100vw);
+      width: 100vw;
       height: 100vh;
       z-index: 120;
       background: var(--paper);
       box-shadow: -8px 0 30px rgba(15, 23, 42, 0.1);
-      transform: translateX(105%);
+      transform: translateX(110%);
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
       border-radius: 0 !important;
-      border-left: 1px solid var(--line);
-      border-top: 0 !important;
+      border: 0;
     }
     
     .fund-detail-drawer.open {
       transform: translateX(0);
     }
     
+    /* Support Mobile Safe Area (Notch) */
+    .fund-detail-drawer .table-card-head {
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
+      padding-bottom: 16px;
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+    
     .fund-detail-drawer .table-wrap {
       flex: 1;
       overflow-y: auto;
-      max-height: calc(100vh - 72px) !important;
+      max-height: calc(100vh - 80px - env(safe-area-inset-top, 0px)) !important;
+    }
+    
+    /* Mobile Detail Cards List */
+    .fund-detail-mobile-list {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      flex-direction: column;
+      gap: 12px;
+      max-height: calc(100vh - 80px - env(safe-area-inset-top, 0px)) !important;
+    }
+    
+    .fund-detail-mobile-card {
+      background: var(--canvas);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .fund-detail-mobile-card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 13px;
+      gap: 12px;
+    }
+    
+    .fund-detail-mobile-card-label {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    
+    .fund-detail-mobile-card-value {
+      color: var(--ink);
+      font-weight: 700;
+      text-align: right;
+      word-break: break-word;
+    }
+    
+    .fund-detail-mobile-card-amount {
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    /* Screen Queries for Floating Desktop Style & Responsive Lists */
+    @media (max-width: 639px) {
+      #fundDetailTableWrap {
+        display: none !important;
+      }
+      #fundDetailMobileList {
+        display: flex !important;
+      }
+    }
+    
+    @media (min-width: 640px) {
+      #fundDetailTableWrap {
+        display: block !important;
+      }
+      #fundDetailMobileList {
+        display: none !important;
+      }
+      
+      .fund-detail-drawer {
+        top: 20px !important;
+        right: 20px !important;
+        bottom: 20px !important;
+        height: calc(100vh - 40px) !important;
+        width: min(750px, 90vw) !important;
+        border-radius: var(--radius-lg) !important;
+        border: 1px solid var(--line) !important;
+        box-shadow: var(--shadow-premium) !important;
+      }
+      
+      .fund-detail-drawer .table-card-head {
+        padding-top: 16px;
+      }
+      
+      .fund-detail-drawer .table-wrap {
+        max-height: calc(100vh - 120px) !important;
+      }
     }
 </style>

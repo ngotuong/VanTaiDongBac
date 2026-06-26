@@ -96,22 +96,66 @@
       const title = el('fundCategoryDetailTitle');
       const hint = el('fundCategoryDetailHint');
       const body = el('fundCategoryDetailBody');
+      const mobileList = el('fundDetailMobileList');
       const card = el('fundCategoryDetailCard');
       const backdrop = el('fundDetailBackdrop');
-      if (!item || !body) return;
+      if (!item) return;
+      
       if (title) title.textContent = `Chi tiết ${type.toLowerCase()} - ${item.category}`;
       if (hint) hint.textContent = `${item.count || 0} dòng, tổng ${formatFundAmount(item.amount, '')}.`;
-      body.innerHTML = (item.details || []).map((row) => `
-        <tr>
-          <td>${escapeHtml(row.dateText || row.date || '')}</td>
-          <td>${escapeHtml(row.voucher || '')}</td>
-          <td>${escapeHtml(row.type || '')}</td>
-          <td>${escapeHtml(row.category || '')}</td>
-          <td style="text-align:right; font-weight:800;">${formatFundAmount(row.amount, row.amountText)}</td>
-          <td>${escapeHtml(row.partner || '')}</td>
-          <td>${escapeHtml(row.content || '')}</td>
-        </tr>
-      `).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
+      
+      // Render Desktop Table
+      if (body) {
+        body.innerHTML = (item.details || []).map((row) => `
+          <tr>
+            <td>${escapeHtml(row.dateText || row.date || '')}</td>
+            <td>${escapeHtml(row.voucher || '')}</td>
+            <td>${escapeHtml(row.type || '')}</td>
+            <td>${escapeHtml(row.category || '')}</td>
+            <td style="text-align:right; font-weight:800; color:${type === 'Thu' ? 'var(--green)' : 'var(--red)'};">${formatFundAmount(row.amount, row.amountText)}</td>
+            <td>${escapeHtml(row.partner || '')}</td>
+            <td>${escapeHtml(row.content || '')}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
+      }
+      
+      // Render Mobile Card List with clear titles/labels
+      if (mobileList) {
+        mobileList.innerHTML = (item.details || []).map((row) => `
+          <div class="fund-detail-mobile-card">
+            <div class="fund-detail-mobile-card-row">
+              <span class="fund-detail-mobile-card-label">Số phiếu</span>
+              <span class="fund-detail-mobile-card-value" style="font-family: monospace; font-size: 13px; color: var(--teal);">${escapeHtml(row.voucher || '-')}</span>
+            </div>
+            <div class="fund-detail-mobile-card-row">
+              <span class="fund-detail-mobile-card-label">Ngày</span>
+              <span class="fund-detail-mobile-card-value">${escapeHtml(row.dateText || row.date || '-')}</span>
+            </div>
+            <div class="fund-detail-mobile-card-row">
+              <span class="fund-detail-mobile-card-label">Hạng mục</span>
+              <span class="fund-detail-mobile-card-value">${escapeHtml(row.category || '-')}</span>
+            </div>
+            <div class="fund-detail-mobile-card-row">
+              <span class="fund-detail-mobile-card-label">Phân loại</span>
+              <span class="fund-detail-mobile-card-value">${escapeHtml(row.type || '-')}</span>
+            </div>
+            <div class="fund-detail-mobile-card-row">
+              <span class="fund-detail-mobile-card-label">Đối tác</span>
+              <span class="fund-detail-mobile-card-value">${escapeHtml(row.partner || '-')}</span>
+            </div>
+            <div class="fund-detail-mobile-card-row" style="border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 4px;">
+              <span class="fund-detail-mobile-card-label">Số tiền</span>
+              <span class="fund-detail-mobile-card-value fund-detail-mobile-card-amount" style="color: ${type === 'Thu' ? 'var(--green)' : 'var(--red)'};">
+                ${type === 'Thu' ? '+' : '-'}${formatFundAmount(row.amount, row.amountText)}
+              </span>
+            </div>
+            <div class="fund-detail-mobile-card-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+              <span class="fund-detail-mobile-card-label">Nội dung</span>
+              <span class="fund-detail-mobile-card-value" style="font-weight: 500; color: var(--muted); text-align: left; width: 100%; word-break: break-word; font-size: 12px; margin-top: 2px;">${escapeHtml(row.content || 'Không có nội dung')}</span>
+            </div>
+          </div>
+        `).join('') || '<div style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</div>';
+      }
       
       if (card) card.classList.add('open');
       if (backdrop) backdrop.style.display = 'block';

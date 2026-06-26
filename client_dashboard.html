@@ -153,17 +153,36 @@
       const parsed = parseOverview(dashboard.overview.months);
       const selectedIndex = parsed.rows.findIndex((row) => row.month === latest.month);
       const previous = selectedIndex > 0 ? parsed.rows[selectedIndex - 1] : null;
-      const compareText = (current, previousValue) => {
-        if (!previous || !previousValue) return latest.month === 'Tất cả' ? 'Tổng hợp các kỳ báo cáo' : 'Chưa có tháng trước';
-        const pct = previousValue ? ((current - previousValue) / Math.abs(previousValue)) * 100 : 0;
-        if (!Number.isFinite(pct)) return 'Chưa có tháng trước';
-        const direction = pct >= 0 ? 'tăng' : 'giảm';
-        return `So với tháng trước ${direction} ${Math.abs(pct).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`;
+      
+      // Helper function to build a shortened growth comparison
+      const getGrowth = (current, previousValue, invertGood = false) => {
+        if (!previous || previousValue === undefined || previousValue === null || previousValue === 0) {
+          return { text: latest.month === 'Tất cả' ? 'Tổng hợp' : '-', statusClass: 'ok' };
+        }
+        const pct = ((current - previousValue) / Math.abs(previousValue)) * 100;
+        if (!Number.isFinite(pct)) return { text: '-', statusClass: 'ok' };
+        
+        const symbol = pct >= 0 ? '▲' : '▼';
+        const formattedPct = `${symbol} ${Math.abs(pct).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`;
+        
+        let isGood = pct >= 0;
+        if (invertGood) isGood = !isGood; // For cost metrics, down is good, up is bad
+        
+        return {
+          text: formattedPct,
+          statusClass: isGood ? 'ok' : 'err'
+        };
       };
 
       const operatingCost = latest.operatingCost || 0;
       const cashCost = latest.cashCost || 0;
       const isPositive = (latest.final || 0) >= 0;
+      
+      const revenueGrowth = getGrowth(latest.revenue || 0, previous?.revenue || 0);
+      const operatingCostGrowth = getGrowth(operatingCost, previous?.operatingCost || 0, true);
+      const grossGrowth = getGrowth(latest.gross || 0, previous?.gross || 0);
+      const cashCostGrowth = getGrowth(cashCost, previous?.cashCost || 0, true);
+      const finalGrowth = getGrowth(latest.final || 0, previous?.final || 0);
       
       const items = [
         {
@@ -171,45 +190,42 @@
           value: latest.revenue || 0,
           badgeClass: 'blue',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`,
-          statusText: compareText(latest.revenue || 0, previous?.revenue || 0),
-          statusClass: 'ok'
+          statusText: revenueGrowth.text,
+          statusClass: revenueGrowth.statusClass
         },
         {
           label: 'Chi phí vận hành',
           value: operatingCost,
           badgeClass: 'red',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>`,
-          statusText: compareText(operatingCost, previous?.operatingCost || 0),
-          statusClass: 'ok'
+          statusText: operatingCostGrowth.text,
+          statusClass: operatingCostGrowth.statusClass
         },
         {
           label: 'Lợi nhuận gộp',
           value: latest.gross || 0,
           badgeClass: 'amber',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`,
-          statusText: compareText(latest.gross || 0, previous?.gross || 0),
-          statusClass: 'ok'
+          statusText: grossGrowth.text,
+          statusClass: grossGrowth.statusClass
         },
         {
           label: 'Chi phí sau vận hành',
           value: cashCost,
           badgeClass: 'red',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 6h18v12H3z"></path><path d="M7 10h.01M17 14h.01M12 12a2 2 0 1 0 0 .01"></path></svg>`,
-          statusText: compareText(cashCost, previous?.cashCost || 0),
-          statusClass: 'ok'
+          statusText: cashCostGrowth.text,
+          statusClass: cashCostGrowth.statusClass
         },
         {
           label: 'Lợi nhuận thực tế',
           value: latest.final || 0,
           badgeClass: isPositive ? 'green' : 'red',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`,
-          statusText: compareText(latest.final || 0, previous?.final || 0),
-          statusClass: isPositive ? 'ok' : 'err'
+          statusText: finalGrowth.text,
+          statusClass: finalGrowth.statusClass
         }
       ];
-      
-      const checkSvg = `<svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-      const warningSvg = `<svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
 
       items.forEach((item) => {
         const card = document.createElement('article');
@@ -228,16 +244,15 @@
             </div>
           `;
         } else {
-          const iconHtml = item.statusClass === 'ok' ? checkSvg : warningSvg;
           const money = formatCurrencyParts(item.value);
           card.innerHTML = `
             <div class="kpi-card-header">
               <div class="kpi-label">${escapeHtml(item.label)}</div>
               <div class="kpi-icon-badge ${item.badgeClass}">${item.svg}</div>
             </div>
-            <div class="kpi-value">${escapeHtml(money.value)} <span class="unit">${escapeHtml(money.unit)}</span></div>
+            <div class="kpi-value ${item.badgeClass}">${escapeHtml(money.value)} <span class="unit">${escapeHtml(money.unit)}</span></div>
             <div class="kpi-card-footer">
-              <div class="kpi-status ${item.statusClass}">${iconHtml} <span>${escapeHtml(item.statusText)}</span></div>
+              <div class="kpi-status ${item.statusClass}"><span>${escapeHtml(item.statusText)}</span></div>
               <div class="kpi-time">${escapeHtml(timeStr)}</div>
             </div>
           `;
@@ -344,10 +359,8 @@
       chartContainer.style.display = 'flex';
       chartContainer.style.alignItems = 'flex-end';
       chartContainer.style.justifyContent = 'space-around';
-      chartContainer.style.height = '175px';
+      chartContainer.style.height = '190px'; // Matching optimized CSS height
       chartContainer.style.width = '100%';
-      chartContainer.style.paddingTop = '0';
-      chartContainer.style.paddingBottom = '0';
       chartContainer.style.gap = '8px';
       
       data.forEach((row) => {
@@ -365,6 +378,17 @@
           </div>
           <div class="bar-label">${escapeHtml(row.month)}</div>
         `;
+
+        // Support mobile hover alternative: touch/click event to show tooltip
+        const toggleActive = (e) => {
+          e.stopPropagation();
+          const wasActive = col.classList.contains('active');
+          document.querySelectorAll('.chart-col').forEach(c => c.classList.remove('active'));
+          if (!wasActive) col.classList.add('active');
+        };
+        col.onclick = toggleActive;
+        col.ontouchstart = toggleActive;
+
         chartContainer.appendChild(col);
         
         // Trigger micro-animation for growing bars
@@ -373,6 +397,16 @@
           if (fill) fill.style.height = pct + '%';
         }, 60);
       });
+
+      // Bind global event once to hide active tooltips when clicking outside
+      if (!window.chartClickBound) {
+        const hideTooltips = () => {
+          document.querySelectorAll('.chart-col').forEach(c => c.classList.remove('active'));
+        };
+        document.addEventListener('click', hideTooltips);
+        document.addEventListener('touchstart', hideTooltips);
+        window.chartClickBound = true;
+      }
       
       chartArea.appendChild(gridLines);
       chartArea.appendChild(chartContainer);

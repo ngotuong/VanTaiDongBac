@@ -451,6 +451,12 @@
       line-height: 1.2;
     }
     
+    /* Specific Colors for KPI values to help distinguish them */
+    .kpi-value.blue { color: var(--blue) !important; }
+    .kpi-value.red { color: var(--red) !important; }
+    .kpi-value.amber { color: var(--amber) !important; }
+    .kpi-value.green { color: var(--green) !important; }
+    
     .kpi-value span.unit {
       font-size: 12px;
       font-weight: 500;
@@ -656,18 +662,19 @@
       color: var(--deep); 
       font-weight: 700; 
     }
-
-    /* Vertical Chart upgrades for 12 months */
+ 
+    /* Vertical Chart upgrades for 12 months (Optimized height and padding) */
     .chart-v {
       display: flex;
       align-items: flex-end;
       justify-content: space-around;
-      height: 250px;
-      padding-top: 30px;
+      height: 190px;
+      padding-top: 50px;
       padding-bottom: 10px;
       gap: 8px;
       width: 100%;
       overflow-x: auto;
+      overflow-y: visible;
       scrollbar-width: thin;
     }
     
@@ -712,14 +719,15 @@
       white-space: nowrap;
       text-align: center;
       opacity: 0;
-      transform: translateY(4px);
+      transform: translate(-50%, 4px);
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       background: var(--ink);
       color: #fff !important;
       padding: 4px 8px;
       border-radius: 6px;
       position: absolute;
-      bottom: 160px;
+      top: 12px;
+      left: 50%;
       z-index: 10;
       box-shadow: var(--shadow-md);
       pointer-events: none;
@@ -736,9 +744,9 @@
       border-color: var(--ink) transparent transparent transparent;
     }
     
-    .chart-col:hover .bar-value {
+    .chart-col:hover .bar-value, .chart-col.active .bar-value {
       opacity: 1;
-      transform: translateY(0);
+      transform: translate(-50%, 0);
     }
     
     .chart-col .bar-label {
@@ -1466,28 +1474,122 @@
       top: 0;
       right: 0;
       bottom: 0;
-      width: min(650px, 100vw);
+      width: 100vw;
       height: 100vh;
       z-index: 120;
       background: var(--paper);
       box-shadow: -8px 0 30px rgba(15, 23, 42, 0.1);
-      transform: translateX(105%);
+      transform: translateX(110%);
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
       border-radius: 0 !important;
-      border-left: 1px solid var(--line);
-      border-top: 0 !important;
+      border: 0;
     }
     
     .fund-detail-drawer.open {
       transform: translateX(0);
     }
     
+    /* Support Mobile Safe Area (Notch) */
+    .fund-detail-drawer .table-card-head {
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
+      padding-bottom: 16px;
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+    
     .fund-detail-drawer .table-wrap {
       flex: 1;
       overflow-y: auto;
-      max-height: calc(100vh - 72px) !important;
+      max-height: calc(100vh - 80px - env(safe-area-inset-top, 0px)) !important;
+    }
+    
+    /* Mobile Detail Cards List */
+    .fund-detail-mobile-list {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      flex-direction: column;
+      gap: 12px;
+      max-height: calc(100vh - 80px - env(safe-area-inset-top, 0px)) !important;
+    }
+    
+    .fund-detail-mobile-card {
+      background: var(--canvas);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .fund-detail-mobile-card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 13px;
+      gap: 12px;
+    }
+    
+    .fund-detail-mobile-card-label {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    
+    .fund-detail-mobile-card-value {
+      color: var(--ink);
+      font-weight: 700;
+      text-align: right;
+      word-break: break-word;
+    }
+    
+    .fund-detail-mobile-card-amount {
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    /* Screen Queries for Floating Desktop Style & Responsive Lists */
+    @media (max-width: 639px) {
+      #fundDetailTableWrap {
+        display: none !important;
+      }
+      #fundDetailMobileList {
+        display: flex !important;
+      }
+    }
+    
+    @media (min-width: 640px) {
+      #fundDetailTableWrap {
+        display: block !important;
+      }
+      #fundDetailMobileList {
+        display: none !important;
+      }
+      
+      .fund-detail-drawer {
+        top: 20px !important;
+        right: 20px !important;
+        bottom: 20px !important;
+        height: calc(100vh - 40px) !important;
+        width: min(750px, 90vw) !important;
+        border-radius: var(--radius-lg) !important;
+        border: 1px solid var(--line) !important;
+        box-shadow: var(--shadow-premium) !important;
+      }
+      
+      .fund-detail-drawer .table-card-head {
+        padding-top: 16px;
+      }
+      
+      .fund-detail-drawer .table-wrap {
+        max-height: calc(100vh - 120px) !important;
+      }
     }
 </style>
 
@@ -2270,11 +2372,14 @@
               </div>
               <button type="button" class="ghost" style="min-height:32px; height:32px; width:32px; padding:0; border-radius:50%; font-size:18px; display:flex; align-items:center; justify-content:center;" onclick="closeFundDetailDrawer()">×</button>
             </div>
-            <div class="table-wrap">
+            <div class="table-wrap" id="fundDetailTableWrap">
               <table class="report-table">
                 <thead><tr><th>Ngày</th><th>Số phiếu</th><th>Loại</th><th>Hạng mục</th><th style="text-align:right;">Số tiền</th><th>Đối tác</th><th>Nội dung</th></tr></thead>
                 <tbody id="fundCategoryDetailBody"><tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Chưa chọn hạng mục.</td></tr></tbody>
               </table>
+            </div>
+            <div class="fund-detail-mobile-list" id="fundDetailMobileList" style="display: none;">
+              <div style="text-align:center; color:var(--muted); padding:24px;">Chưa chọn hạng mục.</div>
             </div>
           </section>
         </div>
@@ -2986,22 +3091,66 @@
       const title = el('fundCategoryDetailTitle');
       const hint = el('fundCategoryDetailHint');
       const body = el('fundCategoryDetailBody');
+      const mobileList = el('fundDetailMobileList');
       const card = el('fundCategoryDetailCard');
       const backdrop = el('fundDetailBackdrop');
-      if (!item || !body) return;
+      if (!item) return;
+      
       if (title) title.textContent = `Chi tiết ${type.toLowerCase()} - ${item.category}`;
       if (hint) hint.textContent = `${item.count || 0} dòng, tổng ${formatFundAmount(item.amount, '')}.`;
-      body.innerHTML = (item.details || []).map((row) => `
-        <tr>
-          <td>${escapeHtml(row.dateText || row.date || '')}</td>
-          <td>${escapeHtml(row.voucher || '')}</td>
-          <td>${escapeHtml(row.type || '')}</td>
-          <td>${escapeHtml(row.category || '')}</td>
-          <td style="text-align:right; font-weight:800;">${formatFundAmount(row.amount, row.amountText)}</td>
-          <td>${escapeHtml(row.partner || '')}</td>
-          <td>${escapeHtml(row.content || '')}</td>
-        </tr>
-      `).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
+      
+      // Render Desktop Table
+      if (body) {
+        body.innerHTML = (item.details || []).map((row) => `
+          <tr>
+            <td>${escapeHtml(row.dateText || row.date || '')}</td>
+            <td>${escapeHtml(row.voucher || '')}</td>
+            <td>${escapeHtml(row.type || '')}</td>
+            <td>${escapeHtml(row.category || '')}</td>
+            <td style="text-align:right; font-weight:800; color:${type === 'Thu' ? 'var(--green)' : 'var(--red)'};">${formatFundAmount(row.amount, row.amountText)}</td>
+            <td>${escapeHtml(row.partner || '')}</td>
+            <td>${escapeHtml(row.content || '')}</td>
+          </tr>
+        `).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
+      }
+      
+      // Render Mobile Card List with clear titles/labels
+      if (mobileList) {
+        mobileList.innerHTML = (item.details || []).map((row) => `
+          <div class="fund-detail-mobile-card">
+            <div class="fund-detail-mobile-card-row">
+              <span class="fund-detail-mobile-card-label">Số phiếu</span>
+              <span class="fund-detail-mobile-card-value" style="font-family: monospace; font-size: 13px; color: var(--teal);">${escapeHtml(row.voucher || '-')}</span>
+            </div>
+            <div class="fund-detail-mobile-card-row">
+              <span class="fund-detail-mobile-card-label">Ngày</span>
+              <span class="fund-detail-mobile-card-value">${escapeHtml(row.dateText || row.date || '-')}</span>
+            </div>
+            <div class="fund-detail-mobile-card-row">
+              <span class="fund-detail-mobile-card-label">Hạng mục</span>
+              <span class="fund-detail-mobile-card-value">${escapeHtml(row.category || '-')}</span>
+            </div>
+            <div class="fund-detail-mobile-card-row">
+              <span class="fund-detail-mobile-card-label">Phân loại</span>
+              <span class="fund-detail-mobile-card-value">${escapeHtml(row.type || '-')}</span>
+            </div>
+            <div class="fund-detail-mobile-card-row">
+              <span class="fund-detail-mobile-card-label">Đối tác</span>
+              <span class="fund-detail-mobile-card-value">${escapeHtml(row.partner || '-')}</span>
+            </div>
+            <div class="fund-detail-mobile-card-row" style="border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 4px;">
+              <span class="fund-detail-mobile-card-label">Số tiền</span>
+              <span class="fund-detail-mobile-card-value fund-detail-mobile-card-amount" style="color: ${type === 'Thu' ? 'var(--green)' : 'var(--red)'};">
+                ${type === 'Thu' ? '+' : '-'}${formatFundAmount(row.amount, row.amountText)}
+              </span>
+            </div>
+            <div class="fund-detail-mobile-card-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+              <span class="fund-detail-mobile-card-label">Nội dung</span>
+              <span class="fund-detail-mobile-card-value" style="font-weight: 500; color: var(--muted); text-align: left; width: 100%; word-break: break-word; font-size: 12px; margin-top: 2px;">${escapeHtml(row.content || 'Không có nội dung')}</span>
+            </div>
+          </div>
+        `).join('') || '<div style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</div>';
+      }
       
       if (card) card.classList.add('open');
       if (backdrop) backdrop.style.display = 'block';
@@ -4540,17 +4689,36 @@
       const parsed = parseOverview(dashboard.overview.months);
       const selectedIndex = parsed.rows.findIndex((row) => row.month === latest.month);
       const previous = selectedIndex > 0 ? parsed.rows[selectedIndex - 1] : null;
-      const compareText = (current, previousValue) => {
-        if (!previous || !previousValue) return latest.month === 'Tất cả' ? 'Tổng hợp các kỳ báo cáo' : 'Chưa có tháng trước';
-        const pct = previousValue ? ((current - previousValue) / Math.abs(previousValue)) * 100 : 0;
-        if (!Number.isFinite(pct)) return 'Chưa có tháng trước';
-        const direction = pct >= 0 ? 'tăng' : 'giảm';
-        return `So với tháng trước ${direction} ${Math.abs(pct).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`;
+      
+      // Helper function to build a shortened growth comparison
+      const getGrowth = (current, previousValue, invertGood = false) => {
+        if (!previous || previousValue === undefined || previousValue === null || previousValue === 0) {
+          return { text: latest.month === 'Tất cả' ? 'Tổng hợp' : '-', statusClass: 'ok' };
+        }
+        const pct = ((current - previousValue) / Math.abs(previousValue)) * 100;
+        if (!Number.isFinite(pct)) return { text: '-', statusClass: 'ok' };
+        
+        const symbol = pct >= 0 ? '▲' : '▼';
+        const formattedPct = `${symbol} ${Math.abs(pct).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`;
+        
+        let isGood = pct >= 0;
+        if (invertGood) isGood = !isGood; // For cost metrics, down is good, up is bad
+        
+        return {
+          text: formattedPct,
+          statusClass: isGood ? 'ok' : 'err'
+        };
       };
 
       const operatingCost = latest.operatingCost || 0;
       const cashCost = latest.cashCost || 0;
       const isPositive = (latest.final || 0) >= 0;
+      
+      const revenueGrowth = getGrowth(latest.revenue || 0, previous?.revenue || 0);
+      const operatingCostGrowth = getGrowth(operatingCost, previous?.operatingCost || 0, true);
+      const grossGrowth = getGrowth(latest.gross || 0, previous?.gross || 0);
+      const cashCostGrowth = getGrowth(cashCost, previous?.cashCost || 0, true);
+      const finalGrowth = getGrowth(latest.final || 0, previous?.final || 0);
       
       const items = [
         {
@@ -4558,45 +4726,42 @@
           value: latest.revenue || 0,
           badgeClass: 'blue',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`,
-          statusText: compareText(latest.revenue || 0, previous?.revenue || 0),
-          statusClass: 'ok'
+          statusText: revenueGrowth.text,
+          statusClass: revenueGrowth.statusClass
         },
         {
           label: 'Chi phí vận hành',
           value: operatingCost,
           badgeClass: 'red',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>`,
-          statusText: compareText(operatingCost, previous?.operatingCost || 0),
-          statusClass: 'ok'
+          statusText: operatingCostGrowth.text,
+          statusClass: operatingCostGrowth.statusClass
         },
         {
           label: 'Lợi nhuận gộp',
           value: latest.gross || 0,
           badgeClass: 'amber',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`,
-          statusText: compareText(latest.gross || 0, previous?.gross || 0),
-          statusClass: 'ok'
+          statusText: grossGrowth.text,
+          statusClass: grossGrowth.statusClass
         },
         {
           label: 'Chi phí sau vận hành',
           value: cashCost,
           badgeClass: 'red',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 6h18v12H3z"></path><path d="M7 10h.01M17 14h.01M12 12a2 2 0 1 0 0 .01"></path></svg>`,
-          statusText: compareText(cashCost, previous?.cashCost || 0),
-          statusClass: 'ok'
+          statusText: cashCostGrowth.text,
+          statusClass: cashCostGrowth.statusClass
         },
         {
           label: 'Lợi nhuận thực tế',
           value: latest.final || 0,
           badgeClass: isPositive ? 'green' : 'red',
           svg: `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`,
-          statusText: compareText(latest.final || 0, previous?.final || 0),
-          statusClass: isPositive ? 'ok' : 'err'
+          statusText: finalGrowth.text,
+          statusClass: finalGrowth.statusClass
         }
       ];
-      
-      const checkSvg = `<svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-      const warningSvg = `<svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
 
       items.forEach((item) => {
         const card = document.createElement('article');
@@ -4615,16 +4780,15 @@
             </div>
           `;
         } else {
-          const iconHtml = item.statusClass === 'ok' ? checkSvg : warningSvg;
           const money = formatCurrencyParts(item.value);
           card.innerHTML = `
             <div class="kpi-card-header">
               <div class="kpi-label">${escapeHtml(item.label)}</div>
               <div class="kpi-icon-badge ${item.badgeClass}">${item.svg}</div>
             </div>
-            <div class="kpi-value">${escapeHtml(money.value)} <span class="unit">${escapeHtml(money.unit)}</span></div>
+            <div class="kpi-value ${item.badgeClass}">${escapeHtml(money.value)} <span class="unit">${escapeHtml(money.unit)}</span></div>
             <div class="kpi-card-footer">
-              <div class="kpi-status ${item.statusClass}">${iconHtml} <span>${escapeHtml(item.statusText)}</span></div>
+              <div class="kpi-status ${item.statusClass}"><span>${escapeHtml(item.statusText)}</span></div>
               <div class="kpi-time">${escapeHtml(timeStr)}</div>
             </div>
           `;
@@ -4731,10 +4895,8 @@
       chartContainer.style.display = 'flex';
       chartContainer.style.alignItems = 'flex-end';
       chartContainer.style.justifyContent = 'space-around';
-      chartContainer.style.height = '175px';
+      chartContainer.style.height = '190px'; // Matching optimized CSS height
       chartContainer.style.width = '100%';
-      chartContainer.style.paddingTop = '0';
-      chartContainer.style.paddingBottom = '0';
       chartContainer.style.gap = '8px';
       
       data.forEach((row) => {
@@ -4752,6 +4914,17 @@
           </div>
           <div class="bar-label">${escapeHtml(row.month)}</div>
         `;
+
+        // Support mobile hover alternative: touch/click event to show tooltip
+        const toggleActive = (e) => {
+          e.stopPropagation();
+          const wasActive = col.classList.contains('active');
+          document.querySelectorAll('.chart-col').forEach(c => c.classList.remove('active'));
+          if (!wasActive) col.classList.add('active');
+        };
+        col.onclick = toggleActive;
+        col.ontouchstart = toggleActive;
+
         chartContainer.appendChild(col);
         
         // Trigger micro-animation for growing bars
@@ -4760,6 +4933,16 @@
           if (fill) fill.style.height = pct + '%';
         }, 60);
       });
+
+      // Bind global event once to hide active tooltips when clicking outside
+      if (!window.chartClickBound) {
+        const hideTooltips = () => {
+          document.querySelectorAll('.chart-col').forEach(c => c.classList.remove('active'));
+        };
+        document.addEventListener('click', hideTooltips);
+        document.addEventListener('touchstart', hideTooltips);
+        window.chartClickBound = true;
+      }
       
       chartArea.appendChild(gridLines);
       chartArea.appendChild(chartContainer);

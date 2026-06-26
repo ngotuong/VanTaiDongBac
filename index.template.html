@@ -443,8 +443,8 @@
               <div class="table-card-head"><div class="table-title">Hạng mục thu trong kỳ</div></div>
               <div class="table-wrap">
                 <table class="report-table">
-                  <thead><tr><th>Hạng mục</th><th>Số dòng</th><th style="text-align:right;">Số tiền</th><th></th></tr></thead>
-                  <tbody id="fundIncomeCategoryBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                  <thead><tr><th>Hạng mục</th><th style="text-align:right;">Số tiền</th><th></th></tr></thead>
+                  <tbody id="fundIncomeCategoryBody"><tr><td colspan="3" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
                 </table>
               </div>
             </section>
@@ -452,33 +452,12 @@
               <div class="table-card-head"><div class="table-title">Hạng mục chi trong kỳ</div></div>
               <div class="table-wrap">
                 <table class="report-table">
-                  <thead><tr><th>Hạng mục</th><th>Số dòng</th><th style="text-align:right;">Số tiền</th><th></th></tr></thead>
-                  <tbody id="fundExpenseCategoryBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                  <thead><tr><th>Hạng mục</th><th style="text-align:right;">Số tiền</th><th></th></tr></thead>
+                  <tbody id="fundExpenseCategoryBody"><tr><td colspan="3" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
                 </table>
               </div>
             </section>
           </div>
-          <!-- Backdrop cho Drawer Chi tiết Quỹ -->
-          <div class="drawer-backdrop" id="fundDetailBackdrop" onclick="closeFundDetailDrawer()"></div>
-          
-          <section class="table-card fund-detail-drawer" id="fundCategoryDetailCard">
-            <div class="table-card-head" style="position: sticky; top: 0; background: var(--paper); z-index: 10;">
-              <div>
-                <div class="table-title" id="fundCategoryDetailTitle">Chi tiết hạng mục</div>
-                <div class="panel-note" id="fundCategoryDetailHint">Bấm Xem ở từng hạng mục để xem chi tiết.</div>
-              </div>
-              <button type="button" class="ghost" style="min-height:32px; height:32px; width:32px; padding:0; border-radius:50%; font-size:18px; display:flex; align-items:center; justify-content:center;" onclick="closeFundDetailDrawer()">×</button>
-            </div>
-            <div class="table-wrap" id="fundDetailTableWrap">
-              <table class="report-table">
-                <thead><tr><th>Ngày</th><th>Số phiếu</th><th>Loại</th><th>Hạng mục</th><th style="text-align:right;">Số tiền</th><th>Đối tác</th><th>Nội dung</th></tr></thead>
-                <tbody id="fundCategoryDetailBody"><tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Chưa chọn hạng mục.</td></tr></tbody>
-              </table>
-            </div>
-            <div class="fund-detail-mobile-list" id="fundDetailMobileList" style="display: none;">
-              <div style="text-align:center; color:var(--muted); padding:24px;">Chưa chọn hạng mục.</div>
-            </div>
-          </section>
         </div>
 
         <div data-cashflow-panel="transactions" style="display: none;">
@@ -511,7 +490,6 @@
                 <thead>
                   <tr>
                     <th>Ngày</th>
-                    <th>Số phiếu</th>
                     <th>Loại</th>
                     <th>Mục</th>
                     <th>Hình thức</th>
@@ -523,7 +501,7 @@
                 </thead>
                 <tbody id="fundTransactionsTableBody">
                   <tr>
-                    <td colspan="9" style="text-align: center; color: var(--muted); padding: 24px;">Chọn tab Danh sách thu chi để tải dữ liệu.</td>
+                    <td colspan="8" style="text-align: center; color: var(--muted); padding: 24px;">Chọn tab Danh sách thu chi để tải dữ liệu.</td>
                   </tr>
                 </tbody>
               </table>
@@ -722,6 +700,28 @@
       </form>
     </div>
   </div>
+
+  <!-- Backdrop cho Drawer Chi tiết Quỹ (được đặt ở gốc để tránh transform container bug) -->
+  <div class="drawer-backdrop" id="fundDetailBackdrop" onclick="closeFundDetailDrawer()"></div>
+  
+  <section class="table-card fund-detail-drawer" id="fundCategoryDetailCard">
+    <div class="table-card-head" style="position: sticky; top: 0; background: var(--paper); z-index: 10;">
+      <div>
+        <div class="table-title" id="fundCategoryDetailTitle">Chi tiết hạng mục</div>
+        <div class="panel-note" id="fundCategoryDetailHint">Bấm Xem ở từng hạng mục để xem chi tiết.</div>
+      </div>
+      <button type="button" class="ghost" style="min-height:32px; height:32px; width:32px; padding:0; border-radius:50%; font-size:18px; display:flex; align-items:center; justify-content:center;" onclick="closeFundDetailDrawer()">×</button>
+    </div>
+    <div class="table-wrap" id="fundDetailTableWrap">
+      <table class="report-table">
+        <thead><tr><th>Ngày</th><th>Loại</th><th>Hạng mục</th><th style="text-align:right;">Số tiền</th><th>Đối tác</th><th>Nội dung</th></tr></thead>
+        <tbody id="fundCategoryDetailBody"><tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Chưa chọn hạng mục.</td></tr></tbody>
+      </table>
+    </div>
+    <div class="fund-detail-mobile-list" id="fundDetailMobileList" style="display: none;">
+      <div style="text-align:center; color:var(--muted); padding:24px;">Chưa chọn hạng mục.</div>
+    </div>
+  </section>
 
   <div class="drawer-backdrop" id="drawerBackdrop"></div>
   <nav class="bottom-nav" id="bottomNav"></nav>

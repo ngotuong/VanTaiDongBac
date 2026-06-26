@@ -27,19 +27,64 @@
     function loadFundOverview(forceRefresh) {
       const monthFilter = el('fundOverviewMonthFilter');
       const month = monthFilter ? monthFilter.value : '';
+    function loadFundOverview(forceRefresh) {
+      const metricsHolder = el('fundOverviewMetrics');
+      if (metricsHolder) {
+        metricsHolder.innerHTML = `
+          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
+        `;
+      }
+      
+      const month = el('fundOverviewMonthFilter')?.value || '';
       return callApi('GET', 'getFundOverview', {
         year: '2026',
         month: month,
         forceRefresh: forceRefresh ? 'true' : ''
       }).then((data) => {
         fundOverviewData = data;
-        renderFundOverview(data);
+        renderFundOverview(data, null);
+        
+        const months = data.months || [];
+        const selectedIndex = months.findIndex(m => m.key === data.selectedMonth);
+        if (selectedIndex >= 0 && selectedIndex + 1 < months.length) {
+          const prevMonthKey = months[selectedIndex + 1].key;
+          callApi('GET', 'getFundOverview', {
+            year: '2026',
+            month: prevMonthKey
+          }).then((prevData) => {
+            renderFundOverview(data, prevData);
+          }).catch(() => {});
+        }
       }).catch((err) => {
         el('fundOverviewMetrics').innerHTML = `<article class="kpi-card"><div class="kpi-label">Lỗi tải quỹ</div><div class="kpi-value" style="font-size:18px;">${escapeHtml(err.message)}</div></article>`;
       });
     }
 
-    function renderFundOverview(data) {
+    function getFundGrowth(currVal, prevVal, invert = false) {
+      if (prevVal === undefined || prevVal === null || prevVal === 0) {
+        return { text: '-', statusClass: 'ok' };
+      }
+      const pct = ((currVal - prevVal) / Math.abs(prevVal)) * 100;
+      if (!Number.isFinite(pct)) return { text: '-', statusClass: 'ok' };
+      
+      const symbol = pct >= 0 ? '▲' : '▼';
+      const formattedPct = `${symbol} ${Math.abs(pct).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`;
+      
+      let isGood = pct >= 0;
+      if (invert) isGood = !isGood;
+      
+      return {
+        text: formattedPct,
+        statusClass: isGood ? 'ok' : 'err'
+      };
+    }
+
+    function renderFundOverview(data, prevData) {
       renderFundOverviewMonthFilter(data.months || [], data.selectedMonth || '');
       const metrics = el('fundOverviewMetrics');
       const timeStr = new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
@@ -64,6 +109,22 @@
           badgeColor = (item.value >= 0) ? 'green' : 'red';
         }
         
+        let growthText = '...';
+        let growthClass = 'ok';
+        if (prevData) {
+          const prevItem = (prevData.metrics || []).find(m => m.key === item.key);
+          if (prevItem) {
+            const invert = item.key === 'periodExpense';
+            const growth = getFundGrowth(item.value, prevItem.value, invert);
+            growthText = growth.text;
+            growthClass = growth.statusClass;
+          } else {
+            growthText = '-';
+          }
+        } else if (prevData === null) {
+          growthText = '-';
+        }
+        
         return `
           <article class="kpi-card">
             <div class="kpi-card-header">
@@ -72,7 +133,7 @@
             </div>
             <div class="kpi-value ${badgeColor}">${escapeHtml(numPart)} <span class="unit">${escapeHtml(unitPart)}</span></div>
             <div class="kpi-card-footer" style="border-top:none; padding-top:0; margin-top:4px;">
-              <div class="kpi-status ok" style="background:var(--mint-soft); color:var(--teal); font-size:10px; padding:2px 6px;"><span>Quỹ 2026</span></div>
+              <div class="kpi-status ${growthClass}"><span>${escapeHtml(growthText)}</span></div>
               <div class="kpi-time">${escapeHtml(timeStr)}</div>
             </div>
           </article>
@@ -81,13 +142,6 @@
       
       renderFundCategoryRows('fundIncomeCategoryBody', data.incomeCategories || [], 'Thu');
       renderFundCategoryRows('fundExpenseCategoryBody', data.expenseCategories || [], 'Chi');
-    }
-
-    function getFundMetricTone(key) {
-      if (key === 'periodIncome') return 'fund-tone-income';
-      if (key === 'periodExpense') return 'fund-tone-expense';
-      if (key === 'periodNet') return 'fund-tone-net';
-      return 'fund-tone-balance';
     }
 
     function renderFundOverviewMonthFilter(months, selectedMonth) {
@@ -108,13 +162,12 @@
       const body = el(targetId);
       if (!body) return;
       if (!rows.length) {
-        body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Không có dữ liệu.</td></tr>';
+        body.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--muted); padding:24px;">Không có dữ liệu.</td></tr>';
         return;
       }
       body.innerHTML = rows.map((row, index) => `
         <tr>
           <td>${escapeHtml(row.category)}</td>
-          <td>${row.count || 0}</td>
           <td style="text-align:right; font-weight:800; color:${type === 'Thu' ? 'var(--green)' : 'var(--red)'};">${formatFundAmount(row.amount, '')}</td>
           <td style="text-align:right;"><button type="button" class="sub-tab" style="min-height:28px;" onclick="showFundCategoryDetail('${type}', ${index})">Xem</button></td>
         </tr>
@@ -140,24 +193,19 @@
         body.innerHTML = (item.details || []).map((row) => `
           <tr>
             <td>${escapeHtml(row.dateText || row.date || '')}</td>
-            <td>${escapeHtml(row.voucher || '')}</td>
             <td>${escapeHtml(row.type || '')}</td>
             <td>${escapeHtml(row.category || '')}</td>
             <td style="text-align:right; font-weight:800; color:${type === 'Thu' ? 'var(--green)' : 'var(--red)'};">${formatFundAmount(row.amount, row.amountText)}</td>
             <td>${escapeHtml(row.partner || '')}</td>
             <td>${escapeHtml(row.content || '')}</td>
           </tr>
-        `).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
+        `).join('') || '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
       }
       
       // Render Mobile Card List with clear titles/labels
       if (mobileList) {
         mobileList.innerHTML = (item.details || []).map((row) => `
           <div class="fund-detail-mobile-card">
-            <div class="fund-detail-mobile-card-row">
-              <span class="fund-detail-mobile-card-label">Số phiếu</span>
-              <span class="fund-detail-mobile-card-value" style="font-family: monospace; font-size: 13px; color: var(--teal);">${escapeHtml(row.voucher || '-')}</span>
-            </div>
             <div class="fund-detail-mobile-card-row">
               <span class="fund-detail-mobile-card-label">Ngày</span>
               <span class="fund-detail-mobile-card-value">${escapeHtml(row.dateText || row.date || '-')}</span>
@@ -518,7 +566,6 @@
         const typeColor = item.type === 'Thu' ? 'var(--green)' : (item.type === 'Chi' ? 'var(--red)' : 'var(--muted)');
         tr.innerHTML = `
           <td>${escapeHtml(item.dateText || formatTableDate(item.date, false))}</td>
-          <td>${escapeHtml(item.voucher || '')}</td>
           <td><span style="font-weight: 800; color: ${typeColor};">${escapeHtml(item.type || '-')}</span></td>
           <td>${escapeHtml(item.category || '')}</td>
           <td>${escapeHtml(item.method || '')}</td>

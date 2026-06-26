@@ -89,8 +89,10 @@
         if (row.workdayType && c && c.chamCongTypes) {
           const typeObj = c.chamCongTypes.find(t => t.name === row.workdayType);
           if (typeObj) {
-            const isCung = typeObj.salary === 'Có';
-            badges.push(`<span class="preview-badge ${isCung ? 'success' : 'warning'}">Lương cứng: ${typeObj.salary}</span>`);
+            if (typeObj.salary) {
+              const isCung = typeObj.salary === 'Có';
+              badges.push(`<span class="preview-badge ${isCung ? 'success' : 'warning'}">Lương cứng: ${typeObj.salary}</span>`);
+            }
             if (typeObj.group) {
               badges.push(`<span class="preview-badge info">Nhóm: ${typeObj.group}</span>`);
             }

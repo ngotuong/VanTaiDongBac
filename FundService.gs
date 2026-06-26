@@ -247,7 +247,8 @@ var FundService = (function () {
       expenseCategories: readNamedRangeValues_(ss, 'MUCCHI'),
       methods: readNamedRangeValues_(ss, 'HINHTHUC'),
       actors: readColumnValues_(ss, 'CAIDAT', 15, 3),
-      partners: readPartners_(ss)
+      partners: readPartners_(ss),
+      loanPartners: readColumnValues_(ss, 'CAIDAT', 11, 3)
     };
   }
 

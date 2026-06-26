@@ -66,8 +66,21 @@
     }
 
     function parseLocaleNumber(value) {
-      if (!value) return 0;
-      const text = String(value).replace(/[₫đĐ\s]/g, '').replace(/\./g, '').replace(',', '.');
+      if (value === null || value === undefined || value === '') return 0;
+      if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+      let text = String(value).replace(/[₫đĐ\s]/g, '').trim();
+      if (!text) return 0;
+      const comma = text.lastIndexOf(',');
+      const dot = text.lastIndexOf('.');
+      if (comma >= 0 && dot >= 0) {
+        text = text.replace(/\./g, '').replace(',', '.');
+      } else if (comma >= 0) {
+        text = text.replace(/\./g, '').replace(',', '.');
+      } else if (dot >= 0) {
+        const decimals = text.length - dot - 1;
+        if (decimals === 3) text = text.replace(/\./g, '');
+      }
+      text = text.replace(/,/g, '');
       const number = Number(text);
       return Number.isFinite(number) ? number : 0;
     }
@@ -80,12 +93,7 @@
         penalties: [], activePenalties: [],
         assignments: [],
         params: {},
-        chamCongTypes: [
-          { name: 'Nghỉ phép', group: 'NGHI_PHEP', salary: 'Có' },
-          { name: 'Nghỉ không phép', group: 'TRU_LUONG', salary: 'Không' },
-          { name: 'Nghỉ không lương', group: 'TRU_LUONG', salary: 'Không' },
-          { name: 'Nghỉ việc tạm thời', group: 'TRU_LUONG', salary: 'Không' }
-        ],
+        chamCongTypes: [],
         nghiVanHanhTypes: ['Mỏ báo nghỉ', 'Mưa', 'Lễ/Tết', 'Xe hỏng', 'Khác'],
         fuelSources: ['Quang Minh', 'Đổ ngoài']
       };

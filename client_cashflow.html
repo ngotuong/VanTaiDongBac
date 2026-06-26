@@ -271,6 +271,7 @@
       fillDatalist('fundExpenseCategoryList', options.expenseCategories || []);
       fillDatalist('fundActorList', options.actors || []);
       fillDatalist('fundPartnerList', options.partners || []);
+      fillDatalist('loanPartnerList', options.loanPartners || []);
 
       const methodSelect = el('fundMethodInput');
       if (methodSelect && !methodSelect.dataset.loaded) {

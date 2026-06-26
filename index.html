@@ -2558,7 +2558,7 @@
                 <label>Ngày thanh toán<input type="date" id="loanPaymentDateInput" required></label>
                 <label>Mã vay<input type="text" id="loanPaymentCodeInput" readonly></label>
                 <label>Loại thanh toán<select id="loanPaymentTypeInput"><option value="Trả nợ">Trả nợ gốc</option><option value="Trả lãi">Trả lãi</option></select></label>
-                <label>Đối tác<input type="text" id="loanPaymentPartnerInput" list="fundPartnerList" required></label>
+                <label>Đối tác<input type="text" id="loanPaymentPartnerInput" list="loanPartnerList" required></label>
                 <label>Số tiền<input type="number" id="loanPaymentAmountInput" min="1" step="1000" required></label>
                 <label style="grid-column: 1 / -1;">Nội dung<textarea id="loanPaymentContentInput" rows="2" placeholder="Nội dung thanh toán"></textarea></label>
               </div>
@@ -2590,7 +2590,7 @@
             <div id="fundLoanEntryStatus" class="status" style="display:none;"></div>
             <div class="fields">
               <label>Ngày vay<input type="date" id="loanDateInput" required></label>
-              <label>Đối tác<input type="text" id="loanPartnerInput" list="fundPartnerList" placeholder="Người/đơn vị cho vay" required></label>
+              <label>Đối tác<input type="text" id="loanPartnerInput" list="loanPartnerList" placeholder="Người/đơn vị cho vay" required><datalist id="loanPartnerList"></datalist></label>
               <label>Số tiền<input type="number" id="loanAmountInput" min="1" step="1000" required></label>
               <label>Kỳ hạn vay (tháng)<input type="number" id="loanTermInput" min="0" step="1"></label>
               <label>Lãi suất/năm<input type="number" id="loanRateInput" min="0" step="0.01" placeholder="VD: 12"></label>
@@ -3335,6 +3335,7 @@
       fillDatalist('fundExpenseCategoryList', options.expenseCategories || []);
       fillDatalist('fundActorList', options.actors || []);
       fillDatalist('fundPartnerList', options.partners || []);
+      fillDatalist('loanPartnerList', options.loanPartners || []);
 
       const methodSelect = el('fundMethodInput');
       if (methodSelect && !methodSelect.dataset.loaded) {
@@ -4616,7 +4617,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.2_report_prefetch';
+      const APP_VERSION = 'v3.3_manage_fund_catalogs';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -5413,8 +5414,10 @@
         if (row.workdayType && c && c.chamCongTypes) {
           const typeObj = c.chamCongTypes.find(t => t.name === row.workdayType);
           if (typeObj) {
-            const isCung = typeObj.salary === 'Có';
-            badges.push(`<span class="preview-badge ${isCung ? 'success' : 'warning'}">Lương cứng: ${typeObj.salary}</span>`);
+            if (typeObj.salary) {
+              const isCung = typeObj.salary === 'Có';
+              badges.push(`<span class="preview-badge ${isCung ? 'success' : 'warning'}">Lương cứng: ${typeObj.salary}</span>`);
+            }
             if (typeObj.group) {
               badges.push(`<span class="preview-badge info">Nhóm: ${typeObj.group}</span>`);
             }
@@ -6238,8 +6241,21 @@
     }
 
     function parseLocaleNumber(value) {
-      if (!value) return 0;
-      const text = String(value).replace(/[₫đĐ\s]/g, '').replace(/\./g, '').replace(',', '.');
+      if (value === null || value === undefined || value === '') return 0;
+      if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+      let text = String(value).replace(/[₫đĐ\s]/g, '').trim();
+      if (!text) return 0;
+      const comma = text.lastIndexOf(',');
+      const dot = text.lastIndexOf('.');
+      if (comma >= 0 && dot >= 0) {
+        text = text.replace(/\./g, '').replace(',', '.');
+      } else if (comma >= 0) {
+        text = text.replace(/\./g, '').replace(',', '.');
+      } else if (dot >= 0) {
+        const decimals = text.length - dot - 1;
+        if (decimals === 3) text = text.replace(/\./g, '');
+      }
+      text = text.replace(/,/g, '');
       const number = Number(text);
       return Number.isFinite(number) ? number : 0;
     }
@@ -6252,12 +6268,7 @@
         penalties: [], activePenalties: [],
         assignments: [],
         params: {},
-        chamCongTypes: [
-          { name: 'Nghỉ phép', group: 'NGHI_PHEP', salary: 'Có' },
-          { name: 'Nghỉ không phép', group: 'TRU_LUONG', salary: 'Không' },
-          { name: 'Nghỉ không lương', group: 'TRU_LUONG', salary: 'Không' },
-          { name: 'Nghỉ việc tạm thời', group: 'TRU_LUONG', salary: 'Không' }
-        ],
+        chamCongTypes: [],
         nghiVanHanhTypes: ['Mỏ báo nghỉ', 'Mưa', 'Lễ/Tết', 'Xe hỏng', 'Khác'],
         fuelSources: ['Quang Minh', 'Đổ ngoài']
       };

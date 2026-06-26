@@ -1,5 +1,5 @@
 var SheetService = (function () {
-  var CACHE_VERSION = 'v10';
+  var CACHE_VERSION = 'v11';
   var CATALOG_TTL_SECONDS = 21600;
   var REPORT_TTL_SECONDS = 600;
   var REPORT_CACHE_SHEET_NAME = 'SYS_ReportCache';
@@ -275,6 +275,7 @@ var SheetService = (function () {
     var projectRows = needs.projects ? readRows_(ss, 'DM_DuAn') : [];
     var penaltyRows = needs.penalties ? readRows_(ss, 'DM_PhatNoiBo') : [];
     var assignmentRows = needs.assignments ? readRows_(ss, 'DM_PhanCongLaiXe') : [];
+    var chamCongTypes = needs.chamCongTypes ? readChamCongTypes_(ss) : [];
 
     var people = peopleRows.map(function (row) {
       return {
@@ -338,21 +339,16 @@ var SheetService = (function () {
       activePenalties: penalties.filter(function (item) { return item.status === 'Dang ap dung' || item.status === 'Đang áp dụng'; }),
       assignments: assignments,
       params: params,
-      chamCongTypes: [
-        { name: 'Nghỉ phép', group: 'NGHI_PHEP', salary: 'Có' },
-        { name: 'Nghỉ không phép', group: 'TRU_LUONG', salary: 'Không' },
-        { name: 'Nghỉ không lương', group: 'TRU_LUONG', salary: 'Không' },
-        { name: 'Nghỉ việc tạm thời', group: 'TRU_LUONG', salary: 'Không' }
-      ],
+      chamCongTypes: chamCongTypes,
       nghiVanHanhTypes: ['Mỏ báo nghỉ', 'Mưa', 'Lễ/Tết', 'Xe hỏng', 'Khác'],
       fuelSources: ['Quang Minh', 'Đổ ngoài']
     };
   }
 
   function catalogNeeds_(formType) {
-    var needs = { params: false, people: false, vehicles: false, projects: false, penalties: false, assignments: false };
+    var needs = { params: false, people: false, vehicles: false, projects: false, penalties: false, assignments: false, chamCongTypes: false };
     if (!formType) {
-      return { params: true, people: true, vehicles: true, projects: true, penalties: true, assignments: true };
+      return { params: true, people: true, vehicles: true, projects: true, penalties: true, assignments: true, chamCongTypes: true };
     }
     if (formType === 'vanChuyen') {
       needs.vehicles = true;
@@ -365,6 +361,7 @@ var SheetService = (function () {
       needs.vehicles = true;
     } else if (formType === 'chamCong') {
       needs.people = true;
+      needs.chamCongTypes = true;
     } else if (formType === 'phat') {
       needs.people = true;
       needs.penalties = true;
@@ -385,6 +382,21 @@ var SheetService = (function () {
     var lastColumn = sheet.getLastColumn();
     if (lastRow < 2 || lastColumn < 1) return [];
     return sheet.getRange(2, 1, lastRow - 1, lastColumn).getValues();
+  }
+
+  function readChamCongTypes_(ss) {
+    var sheet = ss.getSheetByName('NL_ChamCong');
+    if (!sheet || sheet.getLastRow() < 2 || sheet.getLastColumn() < 10) return [];
+    var values = sheet.getRange(2, 10, sheet.getLastRow() - 1, 1).getDisplayValues();
+    var seen = {};
+    var result = [];
+    values.forEach(function (row) {
+      var name = clean_(row[0]);
+      if (!name || seen[name]) return;
+      seen[name] = true;
+      result.push({ name: name, group: '', salary: '' });
+    });
+    return result;
   }
 
   function readParams_(ss) {

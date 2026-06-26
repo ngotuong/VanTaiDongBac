@@ -625,7 +625,7 @@
                 <label>Ngày thanh toán<input type="date" id="loanPaymentDateInput" required></label>
                 <label>Mã vay<input type="text" id="loanPaymentCodeInput" readonly></label>
                 <label>Loại thanh toán<select id="loanPaymentTypeInput"><option value="Trả nợ">Trả nợ gốc</option><option value="Trả lãi">Trả lãi</option></select></label>
-                <label>Đối tác<input type="text" id="loanPaymentPartnerInput" list="fundPartnerList" required></label>
+                <label>Đối tác<input type="text" id="loanPaymentPartnerInput" list="loanPartnerList" required></label>
                 <label>Số tiền<input type="number" id="loanPaymentAmountInput" min="1" step="1000" required></label>
                 <label style="grid-column: 1 / -1;">Nội dung<textarea id="loanPaymentContentInput" rows="2" placeholder="Nội dung thanh toán"></textarea></label>
               </div>
@@ -657,7 +657,7 @@
             <div id="fundLoanEntryStatus" class="status" style="display:none;"></div>
             <div class="fields">
               <label>Ngày vay<input type="date" id="loanDateInput" required></label>
-              <label>Đối tác<input type="text" id="loanPartnerInput" list="fundPartnerList" placeholder="Người/đơn vị cho vay" required></label>
+              <label>Đối tác<input type="text" id="loanPartnerInput" list="loanPartnerList" placeholder="Người/đơn vị cho vay" required><datalist id="loanPartnerList"></datalist></label>
               <label>Số tiền<input type="number" id="loanAmountInput" min="1" step="1000" required></label>
               <label>Kỳ hạn vay (tháng)<input type="number" id="loanTermInput" min="0" step="1"></label>
               <label>Lãi suất/năm<input type="number" id="loanRateInput" min="0" step="0.01" placeholder="VD: 12"></label>

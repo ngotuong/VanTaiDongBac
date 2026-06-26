@@ -21,6 +21,13 @@
       background: rgba(255, 255, 255, 0.85);
       box-shadow: 0 20px 25px -5px rgba(6, 46, 43, 0.15), 0 8px 10px -6px rgba(6, 46, 43, 0.1);
       backdrop-filter: blur(20px);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+    
+    .bottom-nav.nav-hidden {
+      transform: translateY(calc(100% + 24px)) !important;
+      opacity: 0 !important;
+      pointer-events: none;
     }
     
     .bottom-nav button {
@@ -265,8 +272,9 @@
       }
       
       .topbar > div:first-of-type { min-width: 0; }
-      .top-actions { grid-column: 1 / -1; justify-content: stretch; }
-      .top-actions button, .top-actions a { flex: 1; }
+      .top-actions { grid-column: 1 / -1; display: flex; gap: 10px; justify-content: stretch; }
+      .top-actions > button, .top-actions > a { flex: 1; display: flex; }
+      .top-actions > a button { width: 100%; }
       
       h1 { font-size: 24px; }
       .subtitle { font-size: 13px; }

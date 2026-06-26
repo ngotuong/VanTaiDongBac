@@ -89,6 +89,25 @@
     el('cloneBtn').onclick = cloneRow;
     el('submitBtn').onclick = submitAll;
     
+    // Scroll handling for bottom-nav visibility on mobile
+    let lastScrollY = window.scrollY;
+    window.addEventListener('scroll', () => {
+      const bottomNav = el('bottomNav');
+      if (!bottomNav) return;
+      
+      const currentScrollY = window.scrollY;
+      
+      // Hide if scrolling down past a threshold (e.g. 50px)
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        bottomNav.classList.add('nav-hidden');
+      } else if (currentScrollY < lastScrollY) {
+        // Show if scrolling up
+        bottomNav.classList.remove('nav-hidden');
+      }
+      
+      lastScrollY = currentScrollY;
+    }, { passive: true });
+    
     // Run initial boot
     init();
 </script>

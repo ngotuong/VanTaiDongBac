@@ -1623,6 +1623,13 @@
       background: rgba(255, 255, 255, 0.85);
       box-shadow: 0 20px 25px -5px rgba(6, 46, 43, 0.15), 0 8px 10px -6px rgba(6, 46, 43, 0.1);
       backdrop-filter: blur(20px);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+    
+    .bottom-nav.nav-hidden {
+      transform: translateY(calc(100% + 24px)) !important;
+      opacity: 0 !important;
+      pointer-events: none;
     }
     
     .bottom-nav button {
@@ -1867,8 +1874,9 @@
       }
       
       .topbar > div:first-of-type { min-width: 0; }
-      .top-actions { grid-column: 1 / -1; justify-content: stretch; }
-      .top-actions button, .top-actions a { flex: 1; }
+      .top-actions { grid-column: 1 / -1; display: flex; gap: 10px; justify-content: stretch; }
+      .top-actions > button, .top-actions > a { flex: 1; display: flex; }
+      .top-actions > a button { width: 100%; }
       
       h1 { font-size: 24px; }
       .subtitle { font-size: 13px; }
@@ -1975,7 +1983,7 @@
         <div class="top-actions">
           <button type="button" class="ghost" id="refreshBtn">
             <svg class="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
-            Làm mới
+            Cập nhật
           </button>
           <a id="openSheetTop" href="#" target="_blank">
             <button type="button" class="ghost">
@@ -1995,10 +2003,7 @@
             Tháng
           </div>
           <div style="display: flex; align-items: center; gap: 12px;">
-            <label style="font-size: 13px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 8px; margin: 0;">
-              Chọn kỳ báo cáo:
-              <select id="homeMonthFilter" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s; cursor: pointer;"></select>
-            </label>
+            <select id="homeMonthFilter" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s; cursor: pointer;"></select>
           </div>
         </div>
 
@@ -4607,7 +4612,7 @@
       });
       
       const meta = {
-        home: ['Tổng quan', 'Báo cáo & Nhập liệu nhanh', `Dữ liệu cập nhật: ${getDashboardData()?.updatedAt || 'Vui lòng chờ...'}`],
+        home: ['Tổng quan', 'Báo cáo kinh doanh', `Dữ liệu cập nhật: ${getDashboardData()?.updatedAt || 'Vui lòng chờ...'}`],
         entry: ['Nhập liệu', 'Bảng kê nhập liệu', 'Thông tin tháng tự sinh theo ngày nhập dữ liệu.'],
         reports: ['Báo cáo', 'Báo cáo chi tiết tổng hợp', 'Đồng bộ từ các sheet tính toán gốc.'],
         manage: ['Quản lý nhật ký', 'Quản lý các giao dịch nhật ký', 'Xem, tìm kiếm lọc theo ngày, sửa hoặc xóa dòng nhật ký.'],
@@ -6475,6 +6480,25 @@
     el('addBtn').onclick = addRow;
     el('cloneBtn').onclick = cloneRow;
     el('submitBtn').onclick = submitAll;
+    
+    // Scroll handling for bottom-nav visibility on mobile
+    let lastScrollY = window.scrollY;
+    window.addEventListener('scroll', () => {
+      const bottomNav = el('bottomNav');
+      if (!bottomNav) return;
+      
+      const currentScrollY = window.scrollY;
+      
+      // Hide if scrolling down past a threshold (e.g. 50px)
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        bottomNav.classList.add('nav-hidden');
+      } else if (currentScrollY < lastScrollY) {
+        // Show if scrolling up
+        bottomNav.classList.remove('nav-hidden');
+      }
+      
+      lastScrollY = currentScrollY;
+    }, { passive: true });
     
     // Run initial boot
     init();

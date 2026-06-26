@@ -41,13 +41,36 @@
       --green: #16a34a;
       --green-soft: #f0fdfa;
       
+      /* Premium Soft Tones for Fund Cards */
+      --fund-income-bg: rgba(22, 163, 74, 0.06);
+      --fund-income-border: rgba(22, 163, 74, 0.15);
+      --fund-income-text: #15803d;
+      
+      --fund-expense-bg: rgba(220, 38, 38, 0.06);
+      --fund-expense-border: rgba(220, 38, 38, 0.15);
+      --fund-expense-text: #b91c1c;
+
+      --fund-loan-bg: rgba(217, 119, 6, 0.06);
+      --fund-loan-border: rgba(217, 119, 6, 0.15);
+      --fund-loan-text: #b45309;
+
+      --fund-balance-bg: rgba(13, 148, 136, 0.06);
+      --fund-balance-border: rgba(13, 148, 136, 0.15);
+      --fund-balance-text: #0f766e;
+      
       /* Shadow & Glass System */
       --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
-      --shadow-premium: 0 20px 25px -5px rgba(6, 46, 43, 0.06), 0 8px 10px -6px rgba(6, 46, 43, 0.04);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+      --shadow-premium: 0 20px 25px -5px rgba(6, 46, 43, 0.05), 0 8px 10px -6px rgba(6, 46, 43, 0.03);
       --radius: 12px;
       --radius-lg: 16px;
+      
+      /* Glassmorphism System */
+      --glass-bg: rgba(255, 255, 255, 0.65);
+      --glass-blur: blur(20px);
+      --glass-border: 1px solid rgba(226, 232, 240, 0.8);
+      
       font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
     }
 
@@ -148,7 +171,8 @@
     }
     
 </style>
-<style>
+
+  <style>
     /* Layout */
     .app {
       display: grid;
@@ -339,70 +363,88 @@
     .menu-button { display: none; }
     
     .view { display: none; }
-    .view.active { display: block; }
+    
+    @keyframes fadeInSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .view.active { 
+      display: block; 
+      animation: fadeInSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
     
 </style>
-<style>
-    /* KPI Dashboard Cards */
+
+  <style>
+    /* KPI Dashboard Cards (Transport KPI cards shrunk to match Fund KPIs) */
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 16px;
+      gap: 12px;
       margin-bottom: 24px;
     }
     
     .kpi-card {
-      padding: 24px;
+      padding: 14px;
       border: 1px solid #e2e8f0;
-      border-radius: 16px;
+      border-radius: var(--radius);
       background: var(--paper);
-      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.02);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 148px;
+      min-height: 108px;
       position: relative;
-      transition: all 0.2s;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .kpi-card:hover {
-      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.05);
+      box-shadow: var(--shadow-md);
       transform: translateY(-2px);
+      border-color: var(--teal);
     }
     
     .kpi-card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 6px;
     }
     
     .kpi-label {
-      color: #94a3b8;
-      font-size: 11px;
+      color: var(--muted);
+      font-size: 10.5px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     
     .kpi-icon-badge {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       display: grid;
       place-items: center;
+      font-size: 12px;
     }
-    .kpi-icon-badge.teal { background: #f0fdfa; color: #0d9488; }
-    .kpi-icon-badge.blue { background: #f0f9ff; color: #0284c7; }
-    .kpi-icon-badge.amber { background: #fffbeb; color: #d97706; }
-    .kpi-icon-badge.green { background: #f0fdf4; color: #16a34a; }
-    .kpi-icon-badge.red { background: #fef2f2; color: #dc2626; }
+    .kpi-icon-badge.teal { background: var(--mint-soft); color: var(--teal); }
+    .kpi-icon-badge.blue { background: var(--blue-soft); color: var(--blue); }
+    .kpi-icon-badge.amber { background: var(--amber-soft); color: var(--amber); }
+    .kpi-icon-badge.green { background: var(--green-soft); color: var(--green); }
+    .kpi-icon-badge.red { background: var(--red-soft); color: var(--red); }
     
     .kpi-value {
-      font-size: 26px;
+      font-size: 20px;
       font-weight: 800;
-      color: #0f172a;
-      margin: 0 0 16px 0;
+      color: var(--ink);
+      margin: 6px 0 0 0;
       display: flex;
       align-items: baseline;
       gap: 4px;
@@ -410,67 +452,84 @@
     }
     
     .kpi-value span.unit {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 500;
-      color: #64748b;
+      color: var(--muted);
     }
     
     .kpi-card-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: auto;
+      margin-top: 4px;
     }
 
+    /* Fund KPIs: Redesigned with premium soft HSL colors */
     .fund-kpi-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+      gap: 12px;
       margin-bottom: 16px;
     }
 
     .fund-kpi-card {
-      min-height: 104px;
+      min-height: 108px;
       padding: 14px;
-      border-radius: 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--paper);
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.02);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .fund-kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
 
     .fund-kpi-card .kpi-label {
-      font-size: 10px;
-      line-height: 1.25;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .fund-kpi-card .kpi-value {
       font-size: 20px;
-      margin: 8px 0 0;
-      line-height: 1.15;
+      margin: 6px 0 0;
+      line-height: 1.2;
+      font-weight: 800;
       word-break: break-word;
     }
 
     .fund-tone-income {
-      border-color: rgba(22, 163, 74, 0.24);
-      background: #f0fdf4;
+      border-color: var(--fund-income-border);
+      background: var(--fund-income-bg);
     }
 
     .fund-tone-expense {
-      border-color: rgba(220, 38, 38, 0.22);
-      background: #fef2f2;
+      border-color: var(--fund-expense-border);
+      background: var(--fund-expense-bg);
     }
 
     .fund-tone-balance {
-      border-color: rgba(13, 148, 136, 0.22);
-      background: #f0fdfa;
+      border-color: var(--fund-balance-border);
+      background: var(--fund-balance-bg);
     }
 
     .fund-tone-net {
-      border-color: rgba(2, 132, 199, 0.22);
-      background: #f0f9ff;
+      border-color: var(--fund-loan-border);
+      background: var(--fund-loan-bg);
     }
 
-    .fund-tone-income .kpi-value { color: #15803d; }
-    .fund-tone-expense .kpi-value { color: #b91c1c; }
-    .fund-tone-balance .kpi-value { color: var(--deep); }
-    .fund-tone-net .kpi-value { color: #0369a1; }
+    .fund-tone-income .kpi-value { color: var(--fund-income-text); }
+    .fund-tone-expense .kpi-value { color: var(--fund-expense-text); }
+    .fund-tone-balance .kpi-value { color: var(--fund-balance-text); }
+    .fund-tone-net .kpi-value { color: var(--fund-loan-text); }
     
     .kpi-status {
       display: flex;
@@ -620,32 +679,66 @@
       min-width: 60px;
       height: 100%;
       justify-content: flex-end;
+      position: relative;
     }
     
     .bar-track-v {
-      width: 20px;
+      width: 22px;
       height: 130px;
       background: #f1f5f9;
-      border-radius: 999px;
+      border-radius: 4px;
       position: relative;
       display: flex;
       align-items: flex-end;
       overflow: hidden;
+      transition: background-color 0.2s;
+    }
+    
+    .chart-col:hover .bar-track-v {
+      background: #e2e8f0;
     }
     
     .bar-fill-v {
       width: 100%;
       min-height: 4px;
-      border-radius: 999px;
-      transition: height 1s ease-out;
+      border-radius: 3px 3px 0 0;
+      transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     
     .chart-col .bar-value {
-      font-size: 10px;
-      font-weight: 700;
+      font-size: 9.5px;
+      font-weight: 800;
       margin-bottom: 6px;
       white-space: nowrap;
       text-align: center;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      background: var(--ink);
+      color: #fff !important;
+      padding: 4px 8px;
+      border-radius: 6px;
+      position: absolute;
+      bottom: 160px;
+      z-index: 10;
+      box-shadow: var(--shadow-md);
+      pointer-events: none;
+    }
+
+    .chart-col .bar-value::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -4px;
+      border-width: 4px;
+      border-style: solid;
+      border-color: var(--ink) transparent transparent transparent;
+    }
+    
+    .chart-col:hover .bar-value {
+      opacity: 1;
+      transform: translateY(0);
     }
     
     .chart-col .bar-label {
@@ -654,6 +747,11 @@
       color: var(--muted);
       margin-top: 8px;
       white-space: nowrap;
+      transition: color 0.2s;
+    }
+
+    .chart-col:hover .bar-label {
+      color: var(--teal);
     }
     
     /* Quick Actions */
@@ -725,7 +823,8 @@
     }
     
 </style>
-<style>
+
+  <style>
     /* Entries & Multi-row Forms */
     .entry-shell {
       display: grid;
@@ -846,7 +945,7 @@
       transition: background 0.15s;
     }
     
-    .ac-item:hover {
+    .ac-item:hover, .ac-item.active {
       background: var(--mint-soft);
       color: var(--teal);
     }
@@ -861,6 +960,40 @@
       color: var(--muted);
       font-style: italic;
       cursor: default;
+    }
+    
+    /* Real-time Preview Badges */
+    .preview-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      animation: fadeIn 0.2s ease;
+      width: fit-content;
+    }
+    .preview-badge.success {
+      background: var(--green-soft);
+      color: var(--green);
+      border: 1px solid rgba(22, 163, 74, 0.15);
+    }
+    .preview-badge.warning {
+      background: var(--amber-soft);
+      color: var(--amber);
+      border: 1px solid rgba(217, 119, 6, 0.15);
+    }
+    .preview-badge.info {
+      background: var(--blue-soft);
+      color: var(--blue);
+      border: 1px solid rgba(2, 132, 199, 0.15);
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     
     /* Form Status & Inputs */
@@ -880,6 +1013,15 @@
     .status.warn { border: 1px solid #fde047; color: var(--amber); background: var(--amber-soft); }
     .status.err { border: 1px solid #fca5a5; color: var(--red); background: var(--red-soft); }
     
+    @keyframes rowAppear {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes rowDisappear {
+      from { opacity: 1; transform: scale(1); }
+      to { opacity: 0; transform: scale(0.95); height: 0; padding: 0; margin: 0; border: 0; }
+    }
+
     .entry-row {
       border: 1px solid var(--line);
       border-radius: var(--radius-lg);
@@ -887,11 +1029,17 @@
       padding: 20px;
       margin-bottom: 16px;
       box-shadow: var(--shadow-md);
-      transition: border-color 0.2s;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: rowAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    
+    .entry-row.removing {
+      animation: rowDisappear 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     
     .entry-row:focus-within {
       border-color: var(--teal);
+      box-shadow: 0 4px 20px rgba(13, 148, 136, 0.04);
     }
     
     .entry-row-head {
@@ -986,7 +1134,8 @@
     .grow { flex: 1; }
     
 </style>
-<style>
+
+  <style>
     /* Reports List */
     .report-stack { 
       display: flex;
@@ -1059,12 +1208,18 @@
       font-size: 15px;
     }
     
-    .table-wrap { overflow-x: auto; }
+    .table-wrap { 
+      overflow-x: auto; 
+      max-height: 580px; 
+      position: relative;
+      scrollbar-width: thin;
+    }
     
     table { 
       width: 100%; 
       min-width: 800px; 
-      border-collapse: collapse; 
+      border-collapse: separate; 
+      border-spacing: 0;
     }
     
     th, td {
@@ -1082,16 +1237,68 @@
       font-weight: 800; 
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      box-shadow: 0 1px 0 var(--line);
+    }
+    
+    /* Sticky First Column System */
+    .sticky-col {
+      position: sticky !important;
+      left: 0;
+      z-index: 4;
+      background: var(--paper) !important;
+      box-shadow: 3px 0 6px rgba(15, 23, 42, 0.04);
+    }
+    
+    th.sticky-col {
+      z-index: 6 !important;
+      background: #f8fafc !important;
+      box-shadow: 3px 0 6px rgba(15, 23, 42, 0.04), 0 1px 0 var(--line) !important;
     }
     
     tr:hover td {
       background: #f8fafc;
     }
+
+    tr:hover td.sticky-col {
+      background: #f1f5f9 !important;
+    }
+    
+    tr.total-row td {
+      background: var(--mint-soft) !important;
+      font-weight: 700;
+    }
+
+    tr.total-row td.sticky-col {
+      background: var(--mint-soft) !important;
+    }
+    
+    /* Sticky Right Column (Actions) */
+    .sticky-col-right {
+      position: sticky !important;
+      right: 0;
+      z-index: 4;
+      background: var(--paper) !important;
+      box-shadow: -3px 0 6px rgba(15, 23, 42, 0.04);
+    }
+    
+    th.sticky-col-right {
+      z-index: 6 !important;
+      background: #f8fafc !important;
+      box-shadow: -3px 0 6px rgba(15, 23, 42, 0.04), 0 1px 0 var(--line) !important;
+    }
+
+    tr:hover td.sticky-col-right {
+      background: #f1f5f9 !important;
+    }
     
     tr:last-child td { border-bottom: 0; }
     
 </style>
-<style>
+
+  <style>
     /* Settings Section */
     .settings-grid {
       display: grid;
@@ -1253,8 +1460,38 @@
       box-shadow: 0 0 0 3px var(--mint-soft);
     }
     
+    /* Fund Detail Drawer */
+    .fund-detail-drawer {
+      position: fixed !important;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: min(650px, 100vw);
+      height: 100vh;
+      z-index: 120;
+      background: var(--paper);
+      box-shadow: -8px 0 30px rgba(15, 23, 42, 0.1);
+      transform: translateX(105%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      border-radius: 0 !important;
+      border-left: 1px solid var(--line);
+      border-top: 0 !important;
+    }
+    
+    .fund-detail-drawer.open {
+      transform: translateX(0);
+    }
+    
+    .fund-detail-drawer .table-wrap {
+      flex: 1;
+      overflow-y: auto;
+      max-height: calc(100vh - 72px) !important;
+    }
 </style>
-<style>
+
+  <style>
     @media (max-width: 600px) {
       .modal-grid {
         grid-template-columns: 1fr;
@@ -1527,11 +1764,14 @@
       h1 { font-size: 24px; }
       .subtitle { font-size: 13px; }
       
-      .kpi-grid { grid-template-columns: 1fr; gap: 12px; }
-      .kpi-card { padding: 20px 16px; min-height: 132px; }
-      .kpi-value { font-size: 22px; margin-bottom: 8px; }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .kpi-card { padding: 10px; min-height: 88px; border-radius: var(--radius); }
+      .kpi-card .kpi-value { font-size: 16px; margin-bottom: 0; }
+      .kpi-card .kpi-icon-badge { width: 24px; height: 24px; font-size: 10px; }
+      .kpi-card .kpi-card-header { margin-bottom: 4px; }
+      
       .fund-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-      .fund-kpi-card { min-height: 88px; padding: 10px; }
+      .fund-kpi-card { min-height: 88px; padding: 10px; border-radius: var(--radius); }
       .fund-kpi-card .kpi-value { font-size: 16px; margin-bottom: 0; }
       
       .action-grid { grid-template-columns: 1fr; }
@@ -1583,6 +1823,7 @@
       tr.total-row td.sticky-col { background: var(--mint-soft) !important; }
     }
 </style>
+
 </head>
 <body class="locked">
 
@@ -2018,12 +2259,16 @@
               </div>
             </section>
           </div>
-          <section class="table-card" id="fundCategoryDetailCard">
-            <div class="table-card-head">
+          <!-- Backdrop cho Drawer Chi tiết Quỹ -->
+          <div class="drawer-backdrop" id="fundDetailBackdrop" onclick="closeFundDetailDrawer()"></div>
+          
+          <section class="table-card fund-detail-drawer" id="fundCategoryDetailCard">
+            <div class="table-card-head" style="position: sticky; top: 0; background: var(--paper); z-index: 10;">
               <div>
                 <div class="table-title" id="fundCategoryDetailTitle">Chi tiết hạng mục</div>
-                <div class="panel-note" id="fundCategoryDetailHint">Bấm Xem ở từng hạng mục, hệ thống sẽ tự mở chi tiết tại đây.</div>
+                <div class="panel-note" id="fundCategoryDetailHint">Bấm Xem ở từng hạng mục để xem chi tiết.</div>
               </div>
+              <button type="button" class="ghost" style="min-height:32px; height:32px; width:32px; padding:0; border-radius:50%; font-size:18px; display:flex; align-items:center; justify-content:center;" onclick="closeFundDetailDrawer()">×</button>
             </div>
             <div class="table-wrap">
               <table class="report-table">
@@ -2447,36 +2692,99 @@
       const dropdown = document.createElement('div');
       dropdown.className = 'ac-dropdown hidden';
       
+      let filteredOptions = [];
+      let activeIndex = -1;
+      
       const renderOptions = (filterText = '') => {
         dropdown.innerHTML = '';
         const normFilter = filterText.toLowerCase().trim();
-        const filtered = options.filter(o => 
+        filteredOptions = options.filter(o => 
           o.label.toLowerCase().includes(normFilter) || 
           o.value.toLowerCase().includes(normFilter)
         );
         
-        if (filtered.length === 0) {
+        if (filteredOptions.length === 0) {
           const item = document.createElement('div');
           item.className = 'ac-item empty';
           item.textContent = 'Không tìm thấy mục khớp';
           dropdown.appendChild(item);
+          activeIndex = -1;
           return;
         }
         
-        filtered.slice(0, 30).forEach(opt => {
+        activeIndex = -1;
+        filteredOptions.slice(0, 30).forEach((opt, idx) => {
           const item = document.createElement('div');
           item.className = `ac-item ${opt.value === value ? 'selected' : ''}`;
           item.textContent = opt.label;
+          item.dataset.index = idx;
           
           item.onmousedown = (e) => {
             e.preventDefault();
-            value = opt.value;
-            input.value = opt.label;
-            dropdown.classList.add('hidden');
-            onChange(opt.value);
+            selectOption(opt);
           };
           dropdown.appendChild(item);
         });
+      };
+      
+      const selectOption = (opt) => {
+        value = opt.value;
+        input.value = opt.label;
+        dropdown.classList.add('hidden');
+        onChange(opt.value);
+      };
+      
+      const updateActiveItem = () => {
+        const items = dropdown.querySelectorAll('.ac-item:not(.empty)');
+        items.forEach((item, idx) => {
+          if (idx === activeIndex) {
+            item.classList.add('active');
+            item.scrollIntoView({ block: 'nearest' });
+          } else {
+            item.classList.remove('active');
+          }
+        });
+      };
+      
+      input.onkeydown = (e) => {
+        if (dropdown.classList.contains('hidden')) {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            dropdown.classList.remove('hidden');
+            renderOptions(input.value);
+          }
+          return;
+        }
+        
+        const itemsCount = filteredOptions.slice(0, 30).length;
+        
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (itemsCount > 0) {
+            activeIndex = (activeIndex + 1) % itemsCount;
+            updateActiveItem();
+          }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (itemsCount > 0) {
+            activeIndex = (activeIndex - 1 + itemsCount) % itemsCount;
+            updateActiveItem();
+          }
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (activeIndex >= 0 && activeIndex < itemsCount) {
+            selectOption(filteredOptions[activeIndex]);
+            input.blur();
+          } else if (itemsCount > 0) {
+            selectOption(filteredOptions[0]);
+            input.blur();
+          }
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          dropdown.classList.add('hidden');
+          const currentOpt = options.find(o => o.value === value);
+          input.value = currentOpt ? currentOpt.label : '';
+          input.blur();
+        }
       };
       
       input.onfocus = () => {
@@ -2505,14 +2813,15 @@
             const currentOpt = options.find(o => o.value === value);
             input.value = currentOpt ? currentOpt.label : '';
           }
-        }, 200);
+        }, 220);
       };
       
       wrap.appendChild(input);
       wrap.appendChild(dropdown);
     }
 </script>
-<script>
+
+  <script>
     // API REST Request Layer
     const DEFAULT_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
     
@@ -2578,7 +2887,8 @@
       });
     }
 </script>
-<script>
+
+  <script>
     function setCashflowTab(tab) {
       activeCashflowTab = tab;
       document.querySelectorAll('[data-cashflow-tab]').forEach((button) => {
@@ -2676,6 +2986,8 @@
       const title = el('fundCategoryDetailTitle');
       const hint = el('fundCategoryDetailHint');
       const body = el('fundCategoryDetailBody');
+      const card = el('fundCategoryDetailCard');
+      const backdrop = el('fundDetailBackdrop');
       if (!item || !body) return;
       if (title) title.textContent = `Chi tiết ${type.toLowerCase()} - ${item.category}`;
       if (hint) hint.textContent = `${item.count || 0} dòng, tổng ${formatFundAmount(item.amount, '')}.`;
@@ -2690,8 +3002,23 @@
           <td>${escapeHtml(row.content || '')}</td>
         </tr>
       `).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
-      el('fundCategoryDetailCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      
+      if (card) card.classList.add('open');
+      if (backdrop) backdrop.style.display = 'block';
+      document.body.classList.add('locked');
     }
+
+    window.closeFundDetailDrawer = function() {
+      const card = el('fundCategoryDetailCard');
+      const backdrop = el('fundDetailBackdrop');
+      if (card) card.classList.remove('open');
+      if (backdrop) backdrop.style.display = 'none';
+      
+      // Chỉ mở khóa body nếu không có menu sidebar di động đang mở
+      if (!document.body.classList.contains('drawer-open')) {
+        document.body.classList.remove('locked');
+      }
+    };
 
     function loadFundFormOptions() {
       if (fundFormOptions) return Promise.resolve(fundFormOptions);
@@ -2748,6 +3075,7 @@
     }
 
     function submitFundTransaction() {
+      const status = el('fundEntryStatus');
       const btn = el('fundSaveBtn');
       const transaction = {
         date: el('fundDateInput')?.value || '',
@@ -2767,7 +3095,7 @@
       }
 
       if (btn) btn.disabled = true;
-      showFundEntryStatus('success', 'Đang lưu khoản thu/chi...');
+      showFundEntryStatus('info', 'Đang lưu khoản thu/chi...');
       callApi('POST', 'addFundTransaction', {}, { year: '2026', transaction })
         .then(() => {
           clearFundEntryForm();
@@ -3059,7 +3387,8 @@
       return escapeHtml(fallbackText || '');
     }
 </script>
-<script>
+
+  <script>
     // CRUD Manager Operations
     function loadManageSheetData() {
       const sheetName = el('manageSheetSelect').value;
@@ -3120,6 +3449,7 @@
       headers.forEach((h, idx) => {
         const th = document.createElement('th');
         th.textContent = h;
+        if (idx === 0) th.className = 'sticky-col';
         thead.appendChild(th);
         
         if (showOwnerCol && idx === vehicleColIdx) {
@@ -3132,6 +3462,7 @@
       const thActions = document.createElement('th');
       thActions.textContent = 'Thao tác';
       thActions.style.textAlign = 'center';
+      thActions.className = 'sticky-col-right';
       thead.appendChild(thActions);
 
       const vehiclesByPlate = buildVehicleOwnerMap();
@@ -3270,6 +3601,7 @@
         
         row.values.forEach((val, idx) => {
           const td = document.createElement('td');
+          if (idx === 0) td.className = 'sticky-col';
           
           const header = currentManageData.headers[idx];
           const headerLower = header.toLowerCase().trim();
@@ -3305,6 +3637,7 @@
         });
 
         const tdActions = document.createElement('td');
+        tdActions.className = 'sticky-col-right';
         tdActions.style.textAlign = 'center';
         tdActions.style.whiteSpace = 'nowrap';
         
@@ -3585,7 +3918,8 @@
         });
     }
 </script>
-<script>
+
+  <script>
     // Catalog CRUD Operations
     function loadCatalogSheetData() {
       const displaySheetName = el('catalogSheetSelect').value;
@@ -3664,6 +3998,7 @@
       headers.forEach((h, idx) => {
         const th = document.createElement('th');
         th.textContent = h;
+        if (idx === 0) th.className = 'sticky-col';
         thead.appendChild(th);
         
         if (showOwnerCol && idx === vehicleColIdx) {
@@ -3676,6 +4011,7 @@
       const thActions = document.createElement('th');
       thActions.textContent = 'Thao tác';
       thActions.style.textAlign = 'center';
+      thActions.className = 'sticky-col-right';
       thead.appendChild(thActions);
 
       const vehiclesByPlate = buildVehicleOwnerMap();
@@ -3729,6 +4065,7 @@
         
         row.values.forEach((val, idx) => {
           const td = document.createElement('td');
+          if (idx === 0) td.className = 'sticky-col';
           
           const header = currentCatalogData.headers[idx];
           const headerLower = header.toLowerCase().trim();
@@ -3764,6 +4101,7 @@
         });
 
         const tdActions = document.createElement('td');
+        tdActions.className = 'sticky-col-right';
         tdActions.style.textAlign = 'center';
         tdActions.style.whiteSpace = 'nowrap';
         
@@ -3799,7 +4137,8 @@
       openManageAddModal();
     }
 </script>
-<script>
+
+  <script>
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
@@ -4045,7 +4384,8 @@
         });
     }
 </script>
-<script>
+
+  <script>
     // Dashboard rendering
     function renderHomeSummaryTable(matrix) {
       const table = el('homeSummaryTable');
@@ -4406,13 +4746,19 @@
           : 'linear-gradient(180deg, var(--teal), var(--deep-2))';
           
         col.innerHTML = `
-          <div class="bar-value" style="${row.final < 0 ? 'color: var(--red);' : 'color: var(--teal);'}">${escapeHtml(formatCurrencyText(row.final || 0))}</div>
+          <div class="bar-value">${escapeHtml(row.month)}: ${row.final < 0 ? '-' : ''}${escapeHtml(formatCurrencyText(Math.abs(row.final || 0)))}</div>
           <div class="bar-track-v">
-            <div class="bar-fill-v" style="height:${pct}%; background:${color}; width: 100%;"></div>
+            <div class="bar-fill-v" style="height:0%; background:${color}; width: 100%;"></div>
           </div>
           <div class="bar-label">${escapeHtml(row.month)}</div>
         `;
         chartContainer.appendChild(col);
+        
+        // Trigger micro-animation for growing bars
+        setTimeout(() => {
+          const fill = col.querySelector('.bar-fill-v');
+          if (fill) fill.style.height = pct + '%';
+        }, 60);
       });
       
       chartArea.appendChild(gridLines);
@@ -4467,7 +4813,8 @@
       return button;
     }
 </script>
-<script>
+
+  <script>
     function renderFormTabs() {
       const holder = el('formTabs');
       holder.innerHTML = '';
@@ -4535,44 +4882,43 @@
     function getEntryRowExtraTitle(row) {
       if (!row) return '';
       const c = getCurrentCatalogs();
+      let badges = [];
 
       if (activeForm === 'dau') {
         const liters = parseLocaleNumber(row.liters) || 0;
         const price = parseLocaleNumber(row.price) || 0;
         const total = liters * price;
         if (total > 0) {
-          return ` &mdash; <span style="color: var(--teal); font-weight: 700;">Thành tiền: ${Math.round(total).toLocaleString('vi-VN')} ₫</span>`;
+          badges.push(`<span class="preview-badge success">Thành tiền: ${Math.round(total).toLocaleString('vi-VN')} ₫</span>`);
         }
       }
 
       if (activeForm === 'chamCong') {
-        let parts = [];
         if (row.fromDate && row.toDate) {
           const d1 = new Date(row.fromDate);
           const d2 = new Date(row.toDate);
           if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d2 >= d1) {
             const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-            parts.push(`Số ngày nghỉ: <span style="color: var(--teal); font-weight: 700;">${diffDays} ngày</span>`);
+            badges.push(`<span class="preview-badge info">Số ngày nghỉ: ${diffDays} ngày</span>`);
           }
         }
         if (row.workdayType && c && c.chamCongTypes) {
           const typeObj = c.chamCongTypes.find(t => t.name === row.workdayType);
           if (typeObj) {
-            parts.push(`Lương cứng: <span style="color: var(--blue); font-weight: 700;">${typeObj.salary}</span>`);
+            const isCung = typeObj.salary === 'Có';
+            badges.push(`<span class="preview-badge ${isCung ? 'success' : 'warning'}">Lương cứng: ${typeObj.salary}</span>`);
             if (typeObj.group) {
-              parts.push(`Nhóm: <span style="color: var(--deep); font-weight: 600;">${typeObj.group}</span>`);
+              badges.push(`<span class="preview-badge info">Nhóm: ${typeObj.group}</span>`);
             }
           }
-        }
-        if (parts.length > 0) {
-          return ' &mdash; ' + parts.join(' | ');
         }
       }
 
       if (activeForm === 'phat' && row.penaltyCode && c && c.penalties) {
         const penObj = c.penalties.find(p => p.code === row.penaltyCode);
         if (penObj) {
-          return ` &mdash; <span style="color: var(--deep); font-weight: 600;">${penObj.content}</span> | <span style="color: var(--red); font-weight: 700;">Số tiền phạt: ${Math.round(penObj.amount).toLocaleString('vi-VN')} ₫</span>`;
+          badges.push(`<span class="preview-badge warning">${penObj.content}</span>`);
+          badges.push(`<span class="preview-badge success">Phạt: ${Math.round(penObj.amount).toLocaleString('vi-VN')} ₫</span>`);
         }
       }
 
@@ -4581,10 +4927,13 @@
         if (hours > 0) {
           const hoursPerTrip = (c && c.params && c.params.SO_GIO_1_CHUYEN_KPI) || 4;
           const estReduce = hours / hoursPerTrip;
-          return ` &mdash; <span style="color: var(--amber); font-weight: 700;">Giảm KPI dự kiến: ${estReduce.toFixed(1)} chuyến</span>`;
+          badges.push(`<span class="preview-badge warning">Giảm KPI dự kiến: -${estReduce.toFixed(1)} chuyến</span>`);
         }
       }
 
+      if (badges.length > 0) {
+        return ' &mdash; ' + badges.join(' ');
+      }
       return '';
     }
 
@@ -4605,8 +4954,11 @@
       remove.textContent = 'Xóa';
       remove.disabled = rows.length === 1;
       remove.onclick = () => { 
-        rows.splice(index, 1); 
-        renderEntry(); 
+        card.classList.add('removing');
+        setTimeout(() => {
+          rows.splice(index, 1); 
+          renderEntry(); 
+        }, 220);
       };
       
       head.appendChild(remove);
@@ -4657,7 +5009,8 @@
       return wrap;
     }
 </script>
-<script>
+
+  <script>
     // Reports Rendering
     function renderReports() {
       const dashboard = getDashboardData();
@@ -5292,7 +5645,8 @@
       return `${money.value} ${money.unit}`;
     }
 </script>
-<script>
+
+  <script>
     function newBlankRow(seed = {}) {
       const today = appData?.today || new Date().toISOString().slice(0, 10);
       const row = { ...seed };
@@ -5656,7 +6010,8 @@
       });
     }
 </script>
-<script>
+
+  <script>
     function setBusy(isBusy) {
       ['submitBtn', 'addBtn', 'cloneBtn'].forEach((id) => el(id).disabled = isBusy);
       el('submitBtn').innerHTML = isBusy 
@@ -5750,5 +6105,6 @@
     // Run initial boot
     init();
 </script>
+
 </body>
 </html>

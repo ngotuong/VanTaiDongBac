@@ -96,6 +96,8 @@
       const title = el('fundCategoryDetailTitle');
       const hint = el('fundCategoryDetailHint');
       const body = el('fundCategoryDetailBody');
+      const card = el('fundCategoryDetailCard');
+      const backdrop = el('fundDetailBackdrop');
       if (!item || !body) return;
       if (title) title.textContent = `Chi tiết ${type.toLowerCase()} - ${item.category}`;
       if (hint) hint.textContent = `${item.count || 0} dòng, tổng ${formatFundAmount(item.amount, '')}.`;
@@ -110,8 +112,23 @@
           <td>${escapeHtml(row.content || '')}</td>
         </tr>
       `).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
-      el('fundCategoryDetailCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      
+      if (card) card.classList.add('open');
+      if (backdrop) backdrop.style.display = 'block';
+      document.body.classList.add('locked');
     }
+
+    window.closeFundDetailDrawer = function() {
+      const card = el('fundCategoryDetailCard');
+      const backdrop = el('fundDetailBackdrop');
+      if (card) card.classList.remove('open');
+      if (backdrop) backdrop.style.display = 'none';
+      
+      // Chỉ mở khóa body nếu không có menu sidebar di động đang mở
+      if (!document.body.classList.contains('drawer-open')) {
+        document.body.classList.remove('locked');
+      }
+    };
 
     function loadFundFormOptions() {
       if (fundFormOptions) return Promise.resolve(fundFormOptions);

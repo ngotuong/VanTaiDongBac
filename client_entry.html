@@ -66,44 +66,43 @@
     function getEntryRowExtraTitle(row) {
       if (!row) return '';
       const c = getCurrentCatalogs();
+      let badges = [];
 
       if (activeForm === 'dau') {
         const liters = parseLocaleNumber(row.liters) || 0;
         const price = parseLocaleNumber(row.price) || 0;
         const total = liters * price;
         if (total > 0) {
-          return ` &mdash; <span style="color: var(--teal); font-weight: 700;">Thành tiền: ${Math.round(total).toLocaleString('vi-VN')} ₫</span>`;
+          badges.push(`<span class="preview-badge success">Thành tiền: ${Math.round(total).toLocaleString('vi-VN')} ₫</span>`);
         }
       }
 
       if (activeForm === 'chamCong') {
-        let parts = [];
         if (row.fromDate && row.toDate) {
           const d1 = new Date(row.fromDate);
           const d2 = new Date(row.toDate);
           if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d2 >= d1) {
             const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-            parts.push(`Số ngày nghỉ: <span style="color: var(--teal); font-weight: 700;">${diffDays} ngày</span>`);
+            badges.push(`<span class="preview-badge info">Số ngày nghỉ: ${diffDays} ngày</span>`);
           }
         }
         if (row.workdayType && c && c.chamCongTypes) {
           const typeObj = c.chamCongTypes.find(t => t.name === row.workdayType);
           if (typeObj) {
-            parts.push(`Lương cứng: <span style="color: var(--blue); font-weight: 700;">${typeObj.salary}</span>`);
+            const isCung = typeObj.salary === 'Có';
+            badges.push(`<span class="preview-badge ${isCung ? 'success' : 'warning'}">Lương cứng: ${typeObj.salary}</span>`);
             if (typeObj.group) {
-              parts.push(`Nhóm: <span style="color: var(--deep); font-weight: 600;">${typeObj.group}</span>`);
+              badges.push(`<span class="preview-badge info">Nhóm: ${typeObj.group}</span>`);
             }
           }
-        }
-        if (parts.length > 0) {
-          return ' &mdash; ' + parts.join(' | ');
         }
       }
 
       if (activeForm === 'phat' && row.penaltyCode && c && c.penalties) {
         const penObj = c.penalties.find(p => p.code === row.penaltyCode);
         if (penObj) {
-          return ` &mdash; <span style="color: var(--deep); font-weight: 600;">${penObj.content}</span> | <span style="color: var(--red); font-weight: 700;">Số tiền phạt: ${Math.round(penObj.amount).toLocaleString('vi-VN')} ₫</span>`;
+          badges.push(`<span class="preview-badge warning">${penObj.content}</span>`);
+          badges.push(`<span class="preview-badge success">Phạt: ${Math.round(penObj.amount).toLocaleString('vi-VN')} ₫</span>`);
         }
       }
 
@@ -112,10 +111,13 @@
         if (hours > 0) {
           const hoursPerTrip = (c && c.params && c.params.SO_GIO_1_CHUYEN_KPI) || 4;
           const estReduce = hours / hoursPerTrip;
-          return ` &mdash; <span style="color: var(--amber); font-weight: 700;">Giảm KPI dự kiến: ${estReduce.toFixed(1)} chuyến</span>`;
+          badges.push(`<span class="preview-badge warning">Giảm KPI dự kiến: -${estReduce.toFixed(1)} chuyến</span>`);
         }
       }
 
+      if (badges.length > 0) {
+        return ' &mdash; ' + badges.join(' ');
+      }
       return '';
     }
 
@@ -136,8 +138,11 @@
       remove.textContent = 'Xóa';
       remove.disabled = rows.length === 1;
       remove.onclick = () => { 
-        rows.splice(index, 1); 
-        renderEntry(); 
+        card.classList.add('removing');
+        setTimeout(() => {
+          rows.splice(index, 1); 
+          renderEntry(); 
+        }, 220);
       };
       
       head.appendChild(remove);

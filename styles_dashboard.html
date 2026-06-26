@@ -1,64 +1,66 @@
 <style>
-    /* KPI Dashboard Cards */
+    /* KPI Dashboard Cards (Transport KPI cards shrunk to match Fund KPIs) */
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 16px;
+      gap: 12px;
       margin-bottom: 24px;
     }
     
     .kpi-card {
-      padding: 24px;
+      padding: 14px;
       border: 1px solid #e2e8f0;
-      border-radius: 16px;
+      border-radius: var(--radius);
       background: var(--paper);
-      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.02);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 148px;
+      min-height: 108px;
       position: relative;
-      transition: all 0.2s;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .kpi-card:hover {
-      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.05);
+      box-shadow: var(--shadow-md);
       transform: translateY(-2px);
+      border-color: var(--teal);
     }
     
     .kpi-card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 6px;
     }
     
     .kpi-label {
-      color: #94a3b8;
-      font-size: 11px;
+      color: var(--muted);
+      font-size: 10.5px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     
     .kpi-icon-badge {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       display: grid;
       place-items: center;
+      font-size: 12px;
     }
-    .kpi-icon-badge.teal { background: #f0fdfa; color: #0d9488; }
-    .kpi-icon-badge.blue { background: #f0f9ff; color: #0284c7; }
-    .kpi-icon-badge.amber { background: #fffbeb; color: #d97706; }
-    .kpi-icon-badge.green { background: #f0fdf4; color: #16a34a; }
-    .kpi-icon-badge.red { background: #fef2f2; color: #dc2626; }
+    .kpi-icon-badge.teal { background: var(--mint-soft); color: var(--teal); }
+    .kpi-icon-badge.blue { background: var(--blue-soft); color: var(--blue); }
+    .kpi-icon-badge.amber { background: var(--amber-soft); color: var(--amber); }
+    .kpi-icon-badge.green { background: var(--green-soft); color: var(--green); }
+    .kpi-icon-badge.red { background: var(--red-soft); color: var(--red); }
     
     .kpi-value {
-      font-size: 26px;
+      font-size: 20px;
       font-weight: 800;
-      color: #0f172a;
-      margin: 0 0 16px 0;
+      color: var(--ink);
+      margin: 6px 0 0 0;
       display: flex;
       align-items: baseline;
       gap: 4px;
@@ -66,67 +68,84 @@
     }
     
     .kpi-value span.unit {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 500;
-      color: #64748b;
+      color: var(--muted);
     }
     
     .kpi-card-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: auto;
+      margin-top: 4px;
     }
 
+    /* Fund KPIs: Redesigned with premium soft HSL colors */
     .fund-kpi-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+      gap: 12px;
       margin-bottom: 16px;
     }
 
     .fund-kpi-card {
-      min-height: 104px;
+      min-height: 108px;
       padding: 14px;
-      border-radius: 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--paper);
+      box-shadow: 0 2px 12px rgba(15, 23, 42, 0.02);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .fund-kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
 
     .fund-kpi-card .kpi-label {
-      font-size: 10px;
-      line-height: 1.25;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .fund-kpi-card .kpi-value {
       font-size: 20px;
-      margin: 8px 0 0;
-      line-height: 1.15;
+      margin: 6px 0 0;
+      line-height: 1.2;
+      font-weight: 800;
       word-break: break-word;
     }
 
     .fund-tone-income {
-      border-color: rgba(22, 163, 74, 0.24);
-      background: #f0fdf4;
+      border-color: var(--fund-income-border);
+      background: var(--fund-income-bg);
     }
 
     .fund-tone-expense {
-      border-color: rgba(220, 38, 38, 0.22);
-      background: #fef2f2;
+      border-color: var(--fund-expense-border);
+      background: var(--fund-expense-bg);
     }
 
     .fund-tone-balance {
-      border-color: rgba(13, 148, 136, 0.22);
-      background: #f0fdfa;
+      border-color: var(--fund-balance-border);
+      background: var(--fund-balance-bg);
     }
 
     .fund-tone-net {
-      border-color: rgba(2, 132, 199, 0.22);
-      background: #f0f9ff;
+      border-color: var(--fund-loan-border);
+      background: var(--fund-loan-bg);
     }
 
-    .fund-tone-income .kpi-value { color: #15803d; }
-    .fund-tone-expense .kpi-value { color: #b91c1c; }
-    .fund-tone-balance .kpi-value { color: var(--deep); }
-    .fund-tone-net .kpi-value { color: #0369a1; }
+    .fund-tone-income .kpi-value { color: var(--fund-income-text); }
+    .fund-tone-expense .kpi-value { color: var(--fund-expense-text); }
+    .fund-tone-balance .kpi-value { color: var(--fund-balance-text); }
+    .fund-tone-net .kpi-value { color: var(--fund-loan-text); }
     
     .kpi-status {
       display: flex;
@@ -276,32 +295,66 @@
       min-width: 60px;
       height: 100%;
       justify-content: flex-end;
+      position: relative;
     }
     
     .bar-track-v {
-      width: 20px;
+      width: 22px;
       height: 130px;
       background: #f1f5f9;
-      border-radius: 999px;
+      border-radius: 4px;
       position: relative;
       display: flex;
       align-items: flex-end;
       overflow: hidden;
+      transition: background-color 0.2s;
+    }
+    
+    .chart-col:hover .bar-track-v {
+      background: #e2e8f0;
     }
     
     .bar-fill-v {
       width: 100%;
       min-height: 4px;
-      border-radius: 999px;
-      transition: height 1s ease-out;
+      border-radius: 3px 3px 0 0;
+      transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     
     .chart-col .bar-value {
-      font-size: 10px;
-      font-weight: 700;
+      font-size: 9.5px;
+      font-weight: 800;
       margin-bottom: 6px;
       white-space: nowrap;
       text-align: center;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      background: var(--ink);
+      color: #fff !important;
+      padding: 4px 8px;
+      border-radius: 6px;
+      position: absolute;
+      bottom: 160px;
+      z-index: 10;
+      box-shadow: var(--shadow-md);
+      pointer-events: none;
+    }
+
+    .chart-col .bar-value::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -4px;
+      border-width: 4px;
+      border-style: solid;
+      border-color: var(--ink) transparent transparent transparent;
+    }
+    
+    .chart-col:hover .bar-value {
+      opacity: 1;
+      transform: translateY(0);
     }
     
     .chart-col .bar-label {
@@ -310,6 +363,11 @@
       color: var(--muted);
       margin-top: 8px;
       white-space: nowrap;
+      transition: color 0.2s;
+    }
+
+    .chart-col:hover .bar-label {
+      color: var(--teal);
     }
     
     /* Quick Actions */

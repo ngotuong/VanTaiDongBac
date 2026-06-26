@@ -77,6 +77,7 @@
       headers.forEach((h, idx) => {
         const th = document.createElement('th');
         th.textContent = h;
+        if (idx === 0) th.className = 'sticky-col';
         thead.appendChild(th);
         
         if (showOwnerCol && idx === vehicleColIdx) {
@@ -89,6 +90,7 @@
       const thActions = document.createElement('th');
       thActions.textContent = 'Thao tác';
       thActions.style.textAlign = 'center';
+      thActions.className = 'sticky-col-right';
       thead.appendChild(thActions);
 
       const vehiclesByPlate = buildVehicleOwnerMap();
@@ -142,6 +144,7 @@
         
         row.values.forEach((val, idx) => {
           const td = document.createElement('td');
+          if (idx === 0) td.className = 'sticky-col';
           
           const header = currentCatalogData.headers[idx];
           const headerLower = header.toLowerCase().trim();
@@ -177,6 +180,7 @@
         });
 
         const tdActions = document.createElement('td');
+        tdActions.className = 'sticky-col-right';
         tdActions.style.textAlign = 'center';
         tdActions.style.whiteSpace = 'nowrap';
         

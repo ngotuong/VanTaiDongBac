@@ -166,36 +166,99 @@
       const dropdown = document.createElement('div');
       dropdown.className = 'ac-dropdown hidden';
       
+      let filteredOptions = [];
+      let activeIndex = -1;
+      
       const renderOptions = (filterText = '') => {
         dropdown.innerHTML = '';
         const normFilter = filterText.toLowerCase().trim();
-        const filtered = options.filter(o => 
+        filteredOptions = options.filter(o => 
           o.label.toLowerCase().includes(normFilter) || 
           o.value.toLowerCase().includes(normFilter)
         );
         
-        if (filtered.length === 0) {
+        if (filteredOptions.length === 0) {
           const item = document.createElement('div');
           item.className = 'ac-item empty';
           item.textContent = 'Không tìm thấy mục khớp';
           dropdown.appendChild(item);
+          activeIndex = -1;
           return;
         }
         
-        filtered.slice(0, 30).forEach(opt => {
+        activeIndex = -1;
+        filteredOptions.slice(0, 30).forEach((opt, idx) => {
           const item = document.createElement('div');
           item.className = `ac-item ${opt.value === value ? 'selected' : ''}`;
           item.textContent = opt.label;
+          item.dataset.index = idx;
           
           item.onmousedown = (e) => {
             e.preventDefault();
-            value = opt.value;
-            input.value = opt.label;
-            dropdown.classList.add('hidden');
-            onChange(opt.value);
+            selectOption(opt);
           };
           dropdown.appendChild(item);
         });
+      };
+      
+      const selectOption = (opt) => {
+        value = opt.value;
+        input.value = opt.label;
+        dropdown.classList.add('hidden');
+        onChange(opt.value);
+      };
+      
+      const updateActiveItem = () => {
+        const items = dropdown.querySelectorAll('.ac-item:not(.empty)');
+        items.forEach((item, idx) => {
+          if (idx === activeIndex) {
+            item.classList.add('active');
+            item.scrollIntoView({ block: 'nearest' });
+          } else {
+            item.classList.remove('active');
+          }
+        });
+      };
+      
+      input.onkeydown = (e) => {
+        if (dropdown.classList.contains('hidden')) {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            dropdown.classList.remove('hidden');
+            renderOptions(input.value);
+          }
+          return;
+        }
+        
+        const itemsCount = filteredOptions.slice(0, 30).length;
+        
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (itemsCount > 0) {
+            activeIndex = (activeIndex + 1) % itemsCount;
+            updateActiveItem();
+          }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (itemsCount > 0) {
+            activeIndex = (activeIndex - 1 + itemsCount) % itemsCount;
+            updateActiveItem();
+          }
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (activeIndex >= 0 && activeIndex < itemsCount) {
+            selectOption(filteredOptions[activeIndex]);
+            input.blur();
+          } else if (itemsCount > 0) {
+            selectOption(filteredOptions[0]);
+            input.blur();
+          }
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          dropdown.classList.add('hidden');
+          const currentOpt = options.find(o => o.value === value);
+          input.value = currentOpt ? currentOpt.label : '';
+          input.blur();
+        }
       };
       
       input.onfocus = () => {
@@ -224,7 +287,7 @@
             const currentOpt = options.find(o => o.value === value);
             input.value = currentOpt ? currentOpt.label : '';
           }
-        }, 200);
+        }, 220);
       };
       
       wrap.appendChild(input);

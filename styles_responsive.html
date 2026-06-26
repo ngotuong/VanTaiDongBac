@@ -271,11 +271,14 @@
       h1 { font-size: 24px; }
       .subtitle { font-size: 13px; }
       
-      .kpi-grid { grid-template-columns: 1fr; gap: 12px; }
-      .kpi-card { padding: 20px 16px; min-height: 132px; }
-      .kpi-value { font-size: 22px; margin-bottom: 8px; }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .kpi-card { padding: 10px; min-height: 88px; border-radius: var(--radius); }
+      .kpi-card .kpi-value { font-size: 16px; margin-bottom: 0; }
+      .kpi-card .kpi-icon-badge { width: 24px; height: 24px; font-size: 10px; }
+      .kpi-card .kpi-card-header { margin-bottom: 4px; }
+      
       .fund-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-      .fund-kpi-card { min-height: 88px; padding: 10px; }
+      .fund-kpi-card { min-height: 88px; padding: 10px; border-radius: var(--radius); }
       .fund-kpi-card .kpi-value { font-size: 16px; margin-bottom: 0; }
       
       .action-grid { grid-template-columns: 1fr; }

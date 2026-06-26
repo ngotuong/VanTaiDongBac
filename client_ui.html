@@ -89,7 +89,7 @@
     el('cloneBtn').onclick = cloneRow;
     el('submitBtn').onclick = submitAll;
     
-    // Scroll handling for bottom-nav and submit-bar visibility on mobile
+    // Scroll handling for bottom-nav visibility on mobile
     let lastScrollY = window.scrollY;
     let accumulatedDelta = 0;
     const threshold = 15; // Minimum scroll delta in px to trigger toggle
@@ -98,7 +98,6 @@
       const bottomNav = el('bottomNav');
       if (!bottomNav) return;
       
-      const submitBars = document.querySelectorAll('.submit-bar');
       const currentScrollY = window.scrollY;
       const delta = currentScrollY - lastScrollY;
       
@@ -112,29 +111,25 @@
       accumulatedDelta += delta;
       
       if (accumulatedDelta > threshold) {
-        // Scroll down -> hide bottomNav, move submit-bar down
+        // Scroll down -> hide bottomNav
         if (currentScrollY > 80) {
           bottomNav.classList.add('nav-hidden');
-          submitBars.forEach(bar => bar.classList.add('nav-hidden'));
         }
         accumulatedDelta = 0;
       } else if (accumulatedDelta < -threshold) {
-        // Scroll up -> show bottomNav, move submit-bar up
+        // Scroll up -> show bottomNav
         bottomNav.classList.remove('nav-hidden');
-        submitBars.forEach(bar => bar.classList.remove('nav-hidden'));
         accumulatedDelta = 0;
       }
       
-      // Always hide bottomNav and lower submit-bar when close to the bottom of the page
+      // Always hide bottomNav when close to the bottom of the page (to avoid blocking content)
       if (currentScrollY >= maxScrollY - 60) {
         bottomNav.classList.add('nav-hidden');
-        submitBars.forEach(bar => bar.classList.add('nav-hidden'));
       }
       
-      // Always show bottomNav and raise submit-bar when close to the top of the page
+      // Always show bottomNav when close to the top of the page
       if (currentScrollY <= 10) {
         bottomNav.classList.remove('nav-hidden');
-        submitBars.forEach(bar => bar.classList.remove('nav-hidden'));
       }
       
       lastScrollY = currentScrollY;

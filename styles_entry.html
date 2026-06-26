@@ -264,6 +264,9 @@
     
     input, select, textarea {
       width: 100%;
+      max-width: 100%;
+      box-sizing: border-box !important;
+      -webkit-box-sizing: border-box !important;
       min-height: 46px;
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -278,7 +281,11 @@
     input[type="date"] {
       display: block;
       width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
       box-sizing: border-box !important;
+      -webkit-box-sizing: border-box !important;
+      margin: 0 !important;
     }
     
     textarea { 

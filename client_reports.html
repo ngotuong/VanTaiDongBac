@@ -92,7 +92,9 @@
       
       let displayTitle = title;
       if (selectedMonth) {
-        displayTitle = `${title} - Tháng ${selectedMonth}`;
+        displayTitle = selectedMonth === 'Tất cả'
+          ? `${title} - Tất cả tháng`
+          : `${title} - Tháng ${selectedMonth}`;
       }
       
       const isMonthCol = head[0] && /tháng/i.test(head[0].trim());
@@ -101,8 +103,11 @@
         body = body.map(row => row.slice(1));
       }
       
-      // Calculate and append total row dynamically for payroll and vehicles
-      if (type === 'payroll' || type === 'vehicles') {
+      // Calculate and append total row dynamically for finance/payroll/vehicles
+      const shouldAppendTotalRow = type === 'finance'
+        ? selectedMonth === 'Tất cả'
+        : (type === 'payroll' || type === 'vehicles');
+      if (shouldAppendTotalRow) {
         const totalRow = [];
         totalRow[0] = 'Tổng cộng';
         for (let i = 1; i < head.length; i++) {
@@ -607,6 +612,9 @@
       let headIndex = matrix.findIndex(row => row && row[0] && String(row[0]).trim().toLowerCase() === 'tháng');
       if (headIndex === -1) headIndex = 1; // Fallback to index 1
       const head = matrix[headIndex] || [];
+      if (month === 'Tất cả') {
+        return [head].concat(matrix.slice(headIndex + 1));
+      }
       // Filter rows that match the month
       const rows = matrix.slice(headIndex + 1).filter((row) => row[0] === month);
       return [head].concat(rows);

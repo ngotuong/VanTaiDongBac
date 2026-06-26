@@ -18,9 +18,13 @@
       }
       if (tab === 'loans') {
         loadFundLoanOverview(false);
+        loadFundFormOptions();
       }
       if (tab === 'loanEntry') {
         loadFundFormOptions();
+      }
+      if (tab === 'catalog') {
+        loadFundCatalog(false);
       }
     }
 
@@ -267,22 +271,63 @@
 
     function renderFundFormOptions() {
       const options = fundFormOptions || {};
-      fillDatalist('fundIncomeCategoryList', options.incomeCategories || []);
-      fillDatalist('fundExpenseCategoryList', options.expenseCategories || []);
-      fillDatalist('fundActorList', options.actors || []);
-      fillDatalist('fundPartnerList', options.partners || []);
-      fillDatalist('loanPartnerList', options.loanPartners || []);
+      renderFundCategoryOptions();
+      fillSelect('fundActorInput', options.actors || [], 'Chọn người thu/chi');
+      fillSelect('fundPartnerInput', options.partners || [], 'Chọn đối tác');
+      fillSelect('loanPartnerInput', options.loanPartners || [], 'Chọn nơi vay');
+      fillSelect('loanPaymentPartnerInput', options.loanPartners || [], 'Chọn đối tác');
 
       const methodSelect = el('fundMethodInput');
-      if (methodSelect && !methodSelect.dataset.loaded) {
-        (options.methods || []).forEach((method) => {
-          const option = document.createElement('option');
-          option.value = method;
-          option.textContent = method;
-          methodSelect.appendChild(option);
-        });
+      if (methodSelect) {
+        fillSelect('fundMethodInput', options.methods || [], 'Chọn hình thức');
         methodSelect.dataset.loaded = 'true';
       }
+    }
+
+    function fillSelect(id, values, placeholder) {
+      const list = el(id);
+      if (!list) return;
+      const currentValue = list.value || '';
+      const unique = [];
+      const seen = new Set();
+      (values || []).forEach((value) => {
+        const text = String(value || '').trim();
+        if (!text) return;
+        const key = text.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        unique.push(text);
+      });
+      list.innerHTML = '';
+      const placeholderOption = document.createElement('option');
+      placeholderOption.value = '';
+      placeholderOption.textContent = placeholder || 'Chọn danh mục';
+      placeholderOption.disabled = true;
+      placeholderOption.selected = !currentValue;
+      list.appendChild(placeholderOption);
+      unique.forEach((value) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        list.appendChild(option);
+      });
+      if (currentValue && !unique.some((item) => item === currentValue)) {
+        const option = document.createElement('option');
+        option.value = currentValue;
+        option.textContent = currentValue;
+        list.appendChild(option);
+      }
+      if (currentValue) list.value = currentValue;
+    }
+
+    function renderFundCategoryOptions() {
+      const options = fundFormOptions || {};
+      const type = el('fundTypeInput')?.value || 'Chi';
+      const categorySelect = el('fundCategoryInput');
+      if (!categorySelect) return;
+      const source = type === 'Thu' ? (options.incomeCategories || []) : (options.expenseCategories || []);
+      fillSelect('fundCategoryInput', source, type === 'Thu' ? 'Chọn mục thu' : 'Chọn mục chi');
+      categorySelect.value = categorySelect.dataset.selected || categorySelect.value || '';
     }
 
     function fillDatalist(id, values) {
@@ -297,12 +342,9 @@
     }
 
     function handleFundTypeChange() {
-      const type = el('fundTypeInput')?.value || 'Chi';
       const category = el('fundCategoryInput');
-      if (category) {
-        category.setAttribute('list', type === 'Thu' ? 'fundIncomeCategoryList' : 'fundExpenseCategoryList');
-        category.placeholder = type === 'Thu' ? 'Chọn hoặc nhập mục thu' : 'Chọn hoặc nhập mục chi';
-      }
+      if (category) category.value = '';
+      renderFundCategoryOptions();
     }
 
     function submitFundTransaction() {
@@ -361,12 +403,166 @@
     }
 
     function clearFundEntryForm() {
-      ['fundCategoryInput', 'fundAmountInput', 'fundActorInput', 'fundPartnerInput', 'fundContentInput'].forEach((id) => {
+      ['fundAmountInput', 'fundMethodInput', 'fundActorInput', 'fundPartnerInput', 'fundContentInput'].forEach((id) => {
         const field = el(id);
         if (field) field.value = '';
       });
+      const category = el('fundCategoryInput');
+      if (category) {
+        category.value = '';
+      }
       const debt = el('fundDebtInput');
       if (debt) debt.checked = false;
+    }
+
+    function loadFundCatalog(forceRefresh) {
+      const group = activeFundCatalogGroup || 'incomeCategories';
+      const tableBody = el('fundCatalogTableBody');
+      if (tableBody) {
+        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải danh mục...</td></tr>';
+      }
+      return callApi('GET', 'getFundCatalog', {
+        year: '2026',
+        group: group,
+        forceRefresh: forceRefresh ? 'true' : ''
+      }).then((data) => {
+        fundCatalogData = data;
+        renderFundCatalog(data);
+      }).catch((err) => {
+        if (tableBody) {
+          tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--red); padding: 24px;">Lỗi tải danh mục: ${escapeHtml(err.message)}</td></tr>`;
+        }
+      });
+    }
+
+    function setFundCatalogGroup(group) {
+      activeFundCatalogGroup = group;
+      document.querySelectorAll('[data-fund-catalog-group]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.fundCatalogGroup === group);
+      });
+      fundCatalogEditRowIndex = null;
+      clearFundCatalogForm();
+      loadFundCatalog(false);
+    }
+
+    function renderFundCatalog(data) {
+      const rows = data.rows || [];
+      const tableBody = el('fundCatalogTableBody');
+      const title = el('fundCatalogTitle');
+      const note = el('fundCatalogNote');
+      if (title) title.textContent = getFundCatalogGroupLabel(activeFundCatalogGroup);
+      if (note) note.textContent = `Có ${rows.length} mục trong nhóm này.`;
+      if (!tableBody) return;
+
+      if (!rows.length) {
+        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 24px;">Chưa có danh mục nào.</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = rows.map((row, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(row.value || '')}</td>
+          <td>${escapeHtml(row.note || '')}</td>
+          <td style="text-align:right; white-space:nowrap;">
+            <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundCatalogEdit(${row.rowIndex}, decodeURIComponent('${encodeURIComponent(row.value || '')}'), decodeURIComponent('${encodeURIComponent(row.note || '')}'))">Sửa</button>
+            <button type="button" class="danger" style="min-height:28px;" onclick="deleteFundCatalogItem(${row.rowIndex})">Xóa</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function getFundCatalogGroupLabel(group) {
+      const labels = {
+        incomeCategories: 'Mục Thu',
+        expenseCategories: 'Mục Chi',
+        methods: 'Hình thức',
+        actors: 'Người Thu/Chi',
+        partners: 'Đối tác',
+        loanPartners: 'Nơi vay'
+      };
+      return labels[group] || group;
+    }
+
+    function openFundCatalogEdit(rowIndex, value, note) {
+      fundCatalogEditRowIndex = rowIndex;
+      const valueInput = el('fundCatalogValueInput');
+      const noteInput = el('fundCatalogNoteInput');
+      if (valueInput) valueInput.value = value || '';
+      if (noteInput) noteInput.value = note || '';
+      const status = el('fundCatalogStatus');
+      if (status) {
+        status.style.display = 'none';
+        status.textContent = '';
+      }
+    }
+
+    function clearFundCatalogForm() {
+      const valueInput = el('fundCatalogValueInput');
+      const noteInput = el('fundCatalogNoteInput');
+      if (valueInput) valueInput.value = '';
+      if (noteInput) noteInput.value = '';
+      fundCatalogEditRowIndex = null;
+    }
+
+    function saveFundCatalogItem() {
+      const value = el('fundCatalogValueInput')?.value || '';
+      const note = el('fundCatalogNoteInput')?.value || '';
+      const btn = el('fundCatalogSaveBtn');
+      if (!value.trim()) {
+        showFundCatalogStatus('error', 'Vui lòng nhập giá trị danh mục.');
+        return;
+      }
+      if (btn) btn.disabled = true;
+      showFundCatalogStatus('success', 'Đang lưu danh mục...');
+      callApi('POST', 'saveFundCatalogItem', {}, {
+        year: '2026',
+        payload: {
+          group: activeFundCatalogGroup,
+          rowIndex: fundCatalogEditRowIndex || '',
+          value: value,
+          note: note
+        }
+      })
+        .then(() => {
+          showFundCatalogStatus('success', 'Đã lưu danh mục.');
+          clearFundCatalogForm();
+          fundFormOptions = null;
+          return Promise.all([
+            loadFundCatalog(true),
+            loadFundFormOptions()
+          ]);
+        })
+        .catch((err) => {
+          showFundCatalogStatus('error', 'Không thể lưu danh mục: ' + err.message);
+        })
+        .finally(() => {
+          if (btn) btn.disabled = false;
+        });
+    }
+
+    function deleteFundCatalogItem(rowIndex) {
+      if (!confirm('Xóa mục danh mục này?')) return;
+      callApi('POST', 'deleteFundCatalogItem', {}, {
+        year: '2026',
+        payload: {
+          rowIndex: rowIndex
+        }
+      }).then(() => {
+        fundFormOptions = null;
+        loadFundCatalog(true);
+        loadFundFormOptions();
+      }).catch((err) => {
+        showFundCatalogStatus('error', 'Không thể xóa danh mục: ' + err.message);
+      });
+    }
+
+    function showFundCatalogStatus(type, message) {
+      const status = el('fundCatalogStatus');
+      if (!status) return;
+      status.className = 'status ' + (type === 'error' ? 'error' : 'success');
+      status.textContent = message;
+      status.style.display = 'block';
     }
 
     function loadFundLoanOverview(forceRefresh) {

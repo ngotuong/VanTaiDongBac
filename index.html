@@ -2356,6 +2356,7 @@
           <button type="button" class="sub-tab" data-cashflow-tab="entry" onclick="setCashflowTab('entry')">Thêm khoản thu/chi</button>
           <button type="button" class="sub-tab" data-cashflow-tab="loans" onclick="setCashflowTab('loans')">Khoản vay</button>
           <button type="button" class="sub-tab" data-cashflow-tab="loanEntry" onclick="setCashflowTab('loanEntry')">Nhập vay</button>
+          <button type="button" class="sub-tab" data-cashflow-tab="catalog" onclick="setCashflowTab('catalog')">Danh mục</button>
         </div>
 
         <div data-cashflow-panel="overview">
@@ -2477,10 +2478,12 @@
                 </select>
               </label>
               <label>
+                Hình thức
+                <select id="fundMethodInput"></select>
+              </label>
+              <label>
                 Mục thu/chi
-                <input type="text" id="fundCategoryInput" list="fundExpenseCategoryList" placeholder="Chọn hoặc nhập mục chi" required>
-                <datalist id="fundIncomeCategoryList"></datalist>
-                <datalist id="fundExpenseCategoryList"></datalist>
+                <select id="fundCategoryInput" required></select>
               </label>
               <label>
                 Số tiền
@@ -2488,13 +2491,11 @@
               </label>
               <label>
                 Người Thu/Chi
-                <input type="text" id="fundActorInput" list="fundActorList" placeholder="Người thực hiện" required>
-                <datalist id="fundActorList"></datalist>
+                <select id="fundActorInput" required></select>
               </label>
               <label>
                 Đối tác
-                <input type="text" id="fundPartnerInput" list="fundPartnerList" placeholder="Nhà cung cấp/khách hàng">
-                <datalist id="fundPartnerList"></datalist>
+                <select id="fundPartnerInput"></select>
               </label>
               <label>
                 Công nợ
@@ -2558,7 +2559,7 @@
                 <label>Ngày thanh toán<input type="date" id="loanPaymentDateInput" required></label>
                 <label>Mã vay<input type="text" id="loanPaymentCodeInput" readonly></label>
                 <label>Loại thanh toán<select id="loanPaymentTypeInput"><option value="Trả nợ">Trả nợ gốc</option><option value="Trả lãi">Trả lãi</option></select></label>
-                <label>Đối tác<input type="text" id="loanPaymentPartnerInput" list="loanPartnerList" required></label>
+                <label>Đối tác<select id="loanPaymentPartnerInput" required></select></label>
                 <label>Số tiền<input type="number" id="loanPaymentAmountInput" min="1" step="1000" required></label>
                 <label style="grid-column: 1 / -1;">Nội dung<textarea id="loanPaymentContentInput" rows="2" placeholder="Nội dung thanh toán"></textarea></label>
               </div>
@@ -2590,7 +2591,7 @@
             <div id="fundLoanEntryStatus" class="status" style="display:none;"></div>
             <div class="fields">
               <label>Ngày vay<input type="date" id="loanDateInput" required></label>
-              <label>Đối tác<input type="text" id="loanPartnerInput" list="loanPartnerList" placeholder="Người/đơn vị cho vay" required><datalist id="loanPartnerList"></datalist></label>
+              <label>Đối tác<select id="loanPartnerInput" required></select></label>
               <label>Số tiền<input type="number" id="loanAmountInput" min="1" step="1000" required></label>
               <label>Kỳ hạn vay (tháng)<input type="number" id="loanTermInput" min="0" step="1"></label>
               <label>Lãi suất/năm<input type="number" id="loanRateInput" min="0" step="0.01" placeholder="VD: 12"></label>
@@ -2603,6 +2604,49 @@
                 <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                 Lưu khoản vay
               </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card" data-cashflow-panel="catalog" style="display: none;">
+          <div class="panel-body">
+            <div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 18px;">
+              <div>
+                <div class="table-title" id="fundCatalogTitle">Danh mục quỹ</div>
+                <div class="panel-note" id="fundCatalogNote">Quản lý danh mục dùng chung cho module Quỹ.</div>
+              </div>
+              <div class="sub-tabs-bar" style="width: auto; margin: 0;">
+                <button type="button" class="sub-tab active" data-fund-catalog-group="incomeCategories" onclick="setFundCatalogGroup('incomeCategories')">Mục Thu</button>
+                <button type="button" class="sub-tab" data-fund-catalog-group="expenseCategories" onclick="setFundCatalogGroup('expenseCategories')">Mục Chi</button>
+                <button type="button" class="sub-tab" data-fund-catalog-group="methods" onclick="setFundCatalogGroup('methods')">Hình thức</button>
+                <button type="button" class="sub-tab" data-fund-catalog-group="actors" onclick="setFundCatalogGroup('actors')">Người Thu/Chi</button>
+                <button type="button" class="sub-tab" data-fund-catalog-group="partners" onclick="setFundCatalogGroup('partners')">Đối tác</button>
+                <button type="button" class="sub-tab" data-fund-catalog-group="loanPartners" onclick="setFundCatalogGroup('loanPartners')">Nơi vay</button>
+              </div>
+            </div>
+            <div id="fundCatalogStatus" class="status" style="display:none;"></div>
+            <div class="fields" style="margin-bottom: 16px;">
+              <label>
+                Giá trị
+                <input type="text" id="fundCatalogValueInput" placeholder="Nhập danh mục">
+              </label>
+              <label class="full-width">
+                Ghi chú
+                <textarea id="fundCatalogNoteInput" rows="2" placeholder="Ghi chú (nếu có)"></textarea>
+              </label>
+            </div>
+            <div class="submit-bar" style="margin-bottom: 18px;">
+              <button type="button" class="primary grow" id="fundCatalogSaveBtn" onclick="saveFundCatalogItem()">
+                <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                Lưu danh mục
+              </button>
+              <button type="button" class="ghost" onclick="clearFundCatalogForm()">Xóa nhập</button>
+            </div>
+            <div class="table-wrap">
+              <table class="report-table">
+                <thead><tr><th style="width:80px;">STT</th><th>Giá trị</th><th>Ghi chú</th><th style="text-align:right;">Thao tác</th></tr></thead>
+                <tbody id="fundCatalogTableBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Chọn một nhóm danh mục để tải dữ liệu.</td></tr></tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -2792,6 +2836,9 @@
     let fundFormOptions = null;
     let fundOverviewData = null;
     let fundLoanData = null;
+    let fundCatalogData = null;
+    let activeFundCatalogGroup = 'incomeCategories';
+    let fundCatalogEditRowIndex = null;
     let reportBundleRequestSeq = 0;
     let reportBundlePrefetching = false;
     let reportCacheEpoch = 0;
@@ -3082,9 +3129,13 @@
       }
       if (tab === 'loans') {
         loadFundLoanOverview(false);
+        loadFundFormOptions();
       }
       if (tab === 'loanEntry') {
         loadFundFormOptions();
+      }
+      if (tab === 'catalog') {
+        loadFundCatalog(false);
       }
     }
 
@@ -3331,22 +3382,63 @@
 
     function renderFundFormOptions() {
       const options = fundFormOptions || {};
-      fillDatalist('fundIncomeCategoryList', options.incomeCategories || []);
-      fillDatalist('fundExpenseCategoryList', options.expenseCategories || []);
-      fillDatalist('fundActorList', options.actors || []);
-      fillDatalist('fundPartnerList', options.partners || []);
-      fillDatalist('loanPartnerList', options.loanPartners || []);
+      renderFundCategoryOptions();
+      fillSelect('fundActorInput', options.actors || [], 'Chọn người thu/chi');
+      fillSelect('fundPartnerInput', options.partners || [], 'Chọn đối tác');
+      fillSelect('loanPartnerInput', options.loanPartners || [], 'Chọn nơi vay');
+      fillSelect('loanPaymentPartnerInput', options.loanPartners || [], 'Chọn đối tác');
 
       const methodSelect = el('fundMethodInput');
-      if (methodSelect && !methodSelect.dataset.loaded) {
-        (options.methods || []).forEach((method) => {
-          const option = document.createElement('option');
-          option.value = method;
-          option.textContent = method;
-          methodSelect.appendChild(option);
-        });
+      if (methodSelect) {
+        fillSelect('fundMethodInput', options.methods || [], 'Chọn hình thức');
         methodSelect.dataset.loaded = 'true';
       }
+    }
+
+    function fillSelect(id, values, placeholder) {
+      const list = el(id);
+      if (!list) return;
+      const currentValue = list.value || '';
+      const unique = [];
+      const seen = new Set();
+      (values || []).forEach((value) => {
+        const text = String(value || '').trim();
+        if (!text) return;
+        const key = text.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        unique.push(text);
+      });
+      list.innerHTML = '';
+      const placeholderOption = document.createElement('option');
+      placeholderOption.value = '';
+      placeholderOption.textContent = placeholder || 'Chọn danh mục';
+      placeholderOption.disabled = true;
+      placeholderOption.selected = !currentValue;
+      list.appendChild(placeholderOption);
+      unique.forEach((value) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        list.appendChild(option);
+      });
+      if (currentValue && !unique.some((item) => item === currentValue)) {
+        const option = document.createElement('option');
+        option.value = currentValue;
+        option.textContent = currentValue;
+        list.appendChild(option);
+      }
+      if (currentValue) list.value = currentValue;
+    }
+
+    function renderFundCategoryOptions() {
+      const options = fundFormOptions || {};
+      const type = el('fundTypeInput')?.value || 'Chi';
+      const categorySelect = el('fundCategoryInput');
+      if (!categorySelect) return;
+      const source = type === 'Thu' ? (options.incomeCategories || []) : (options.expenseCategories || []);
+      fillSelect('fundCategoryInput', source, type === 'Thu' ? 'Chọn mục thu' : 'Chọn mục chi');
+      categorySelect.value = categorySelect.dataset.selected || categorySelect.value || '';
     }
 
     function fillDatalist(id, values) {
@@ -3361,12 +3453,9 @@
     }
 
     function handleFundTypeChange() {
-      const type = el('fundTypeInput')?.value || 'Chi';
       const category = el('fundCategoryInput');
-      if (category) {
-        category.setAttribute('list', type === 'Thu' ? 'fundIncomeCategoryList' : 'fundExpenseCategoryList');
-        category.placeholder = type === 'Thu' ? 'Chọn hoặc nhập mục thu' : 'Chọn hoặc nhập mục chi';
-      }
+      if (category) category.value = '';
+      renderFundCategoryOptions();
     }
 
     function submitFundTransaction() {
@@ -3425,12 +3514,166 @@
     }
 
     function clearFundEntryForm() {
-      ['fundCategoryInput', 'fundAmountInput', 'fundActorInput', 'fundPartnerInput', 'fundContentInput'].forEach((id) => {
+      ['fundAmountInput', 'fundMethodInput', 'fundActorInput', 'fundPartnerInput', 'fundContentInput'].forEach((id) => {
         const field = el(id);
         if (field) field.value = '';
       });
+      const category = el('fundCategoryInput');
+      if (category) {
+        category.value = '';
+      }
       const debt = el('fundDebtInput');
       if (debt) debt.checked = false;
+    }
+
+    function loadFundCatalog(forceRefresh) {
+      const group = activeFundCatalogGroup || 'incomeCategories';
+      const tableBody = el('fundCatalogTableBody');
+      if (tableBody) {
+        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải danh mục...</td></tr>';
+      }
+      return callApi('GET', 'getFundCatalog', {
+        year: '2026',
+        group: group,
+        forceRefresh: forceRefresh ? 'true' : ''
+      }).then((data) => {
+        fundCatalogData = data;
+        renderFundCatalog(data);
+      }).catch((err) => {
+        if (tableBody) {
+          tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--red); padding: 24px;">Lỗi tải danh mục: ${escapeHtml(err.message)}</td></tr>`;
+        }
+      });
+    }
+
+    function setFundCatalogGroup(group) {
+      activeFundCatalogGroup = group;
+      document.querySelectorAll('[data-fund-catalog-group]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.fundCatalogGroup === group);
+      });
+      fundCatalogEditRowIndex = null;
+      clearFundCatalogForm();
+      loadFundCatalog(false);
+    }
+
+    function renderFundCatalog(data) {
+      const rows = data.rows || [];
+      const tableBody = el('fundCatalogTableBody');
+      const title = el('fundCatalogTitle');
+      const note = el('fundCatalogNote');
+      if (title) title.textContent = getFundCatalogGroupLabel(activeFundCatalogGroup);
+      if (note) note.textContent = `Có ${rows.length} mục trong nhóm này.`;
+      if (!tableBody) return;
+
+      if (!rows.length) {
+        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 24px;">Chưa có danh mục nào.</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = rows.map((row, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(row.value || '')}</td>
+          <td>${escapeHtml(row.note || '')}</td>
+          <td style="text-align:right; white-space:nowrap;">
+            <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundCatalogEdit(${row.rowIndex}, decodeURIComponent('${encodeURIComponent(row.value || '')}'), decodeURIComponent('${encodeURIComponent(row.note || '')}'))">Sửa</button>
+            <button type="button" class="danger" style="min-height:28px;" onclick="deleteFundCatalogItem(${row.rowIndex})">Xóa</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function getFundCatalogGroupLabel(group) {
+      const labels = {
+        incomeCategories: 'Mục Thu',
+        expenseCategories: 'Mục Chi',
+        methods: 'Hình thức',
+        actors: 'Người Thu/Chi',
+        partners: 'Đối tác',
+        loanPartners: 'Nơi vay'
+      };
+      return labels[group] || group;
+    }
+
+    function openFundCatalogEdit(rowIndex, value, note) {
+      fundCatalogEditRowIndex = rowIndex;
+      const valueInput = el('fundCatalogValueInput');
+      const noteInput = el('fundCatalogNoteInput');
+      if (valueInput) valueInput.value = value || '';
+      if (noteInput) noteInput.value = note || '';
+      const status = el('fundCatalogStatus');
+      if (status) {
+        status.style.display = 'none';
+        status.textContent = '';
+      }
+    }
+
+    function clearFundCatalogForm() {
+      const valueInput = el('fundCatalogValueInput');
+      const noteInput = el('fundCatalogNoteInput');
+      if (valueInput) valueInput.value = '';
+      if (noteInput) noteInput.value = '';
+      fundCatalogEditRowIndex = null;
+    }
+
+    function saveFundCatalogItem() {
+      const value = el('fundCatalogValueInput')?.value || '';
+      const note = el('fundCatalogNoteInput')?.value || '';
+      const btn = el('fundCatalogSaveBtn');
+      if (!value.trim()) {
+        showFundCatalogStatus('error', 'Vui lòng nhập giá trị danh mục.');
+        return;
+      }
+      if (btn) btn.disabled = true;
+      showFundCatalogStatus('success', 'Đang lưu danh mục...');
+      callApi('POST', 'saveFundCatalogItem', {}, {
+        year: '2026',
+        payload: {
+          group: activeFundCatalogGroup,
+          rowIndex: fundCatalogEditRowIndex || '',
+          value: value,
+          note: note
+        }
+      })
+        .then(() => {
+          showFundCatalogStatus('success', 'Đã lưu danh mục.');
+          clearFundCatalogForm();
+          fundFormOptions = null;
+          return Promise.all([
+            loadFundCatalog(true),
+            loadFundFormOptions()
+          ]);
+        })
+        .catch((err) => {
+          showFundCatalogStatus('error', 'Không thể lưu danh mục: ' + err.message);
+        })
+        .finally(() => {
+          if (btn) btn.disabled = false;
+        });
+    }
+
+    function deleteFundCatalogItem(rowIndex) {
+      if (!confirm('Xóa mục danh mục này?')) return;
+      callApi('POST', 'deleteFundCatalogItem', {}, {
+        year: '2026',
+        payload: {
+          rowIndex: rowIndex
+        }
+      }).then(() => {
+        fundFormOptions = null;
+        loadFundCatalog(true);
+        loadFundFormOptions();
+      }).catch((err) => {
+        showFundCatalogStatus('error', 'Không thể xóa danh mục: ' + err.message);
+      });
+    }
+
+    function showFundCatalogStatus(type, message) {
+      const status = el('fundCatalogStatus');
+      if (!status) return;
+      status.className = 'status ' + (type === 'error' ? 'error' : 'success');
+      status.textContent = message;
+      status.style.display = 'block';
     }
 
     function loadFundLoanOverview(forceRefresh) {
@@ -4647,7 +4890,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.3_manage_fund_catalogs';
+      const APP_VERSION = 'v3.4_fund_catalog_selects';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -5645,7 +5888,9 @@
       
       let displayTitle = title;
       if (selectedMonth) {
-        displayTitle = `${title} - Tháng ${selectedMonth}`;
+        displayTitle = selectedMonth === 'Tất cả'
+          ? `${title} - Tất cả tháng`
+          : `${title} - Tháng ${selectedMonth}`;
       }
       
       const isMonthCol = head[0] && /tháng/i.test(head[0].trim());
@@ -5654,8 +5899,11 @@
         body = body.map(row => row.slice(1));
       }
       
-      // Calculate and append total row dynamically for payroll and vehicles
-      if (type === 'payroll' || type === 'vehicles') {
+      // Calculate and append total row dynamically for finance/payroll/vehicles
+      const shouldAppendTotalRow = type === 'finance'
+        ? selectedMonth === 'Tất cả'
+        : (type === 'payroll' || type === 'vehicles');
+      if (shouldAppendTotalRow) {
         const totalRow = [];
         totalRow[0] = 'Tổng cộng';
         for (let i = 1; i < head.length; i++) {
@@ -6160,6 +6408,9 @@
       let headIndex = matrix.findIndex(row => row && row[0] && String(row[0]).trim().toLowerCase() === 'tháng');
       if (headIndex === -1) headIndex = 1; // Fallback to index 1
       const head = matrix[headIndex] || [];
+      if (month === 'Tất cả') {
+        return [head].concat(matrix.slice(headIndex + 1));
+      }
       // Filter rows that match the month
       const rows = matrix.slice(headIndex + 1).filter((row) => row[0] === month);
       return [head].concat(rows);

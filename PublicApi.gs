@@ -58,6 +58,10 @@ function getFundFormOptions(year) {
   return FundService.getFundFormOptions(year);
 }
 
+function getFundCatalog(year, group) {
+  return FundService.getFundCatalog(year, group);
+}
+
 function addFundTransaction(year, transaction) {
   return FundService.addFundTransaction(year, transaction);
 }
@@ -76,4 +80,12 @@ function addFundLoan(year, loan) {
 
 function addFundLoanPayment(year, payment) {
   return FundService.addFundLoanPayment(year, payment);
+}
+
+function saveFundCatalogItem(year, item) {
+  return FundService.saveFundCatalogItem(year, item);
+}
+
+function deleteFundCatalogItem(year, item) {
+  return FundService.deleteFundCatalogItem(year, item);
 }

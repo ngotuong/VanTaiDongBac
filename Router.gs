@@ -39,6 +39,9 @@ function doGet(e) {
       }));
     }
     if (action === 'getFundFormOptions') return jsonResponse_(FundService.getFundFormOptions(e.parameter.year));
+    if (action === 'getFundCatalog') {
+      return jsonResponse_(FundService.getFundCatalog(e.parameter.year, e.parameter.group));
+    }
 
     throw new Error('Hành động GET không hợp lệ: ' + action);
   } catch (err) {
@@ -86,6 +89,14 @@ function doPost(e) {
     if (action === 'addFundLoanPayment') {
       var loanPaymentResult = FundService.addFundLoanPayment(payload.year, payload.payment);
       return jsonResponse_(loanPaymentResult);
+    }
+    if (action === 'saveFundCatalogItem') {
+      var saveFundCatalogResult = FundService.saveFundCatalogItem(payload.year, payload.item || payload.payload || payload);
+      return jsonResponse_(saveFundCatalogResult);
+    }
+    if (action === 'deleteFundCatalogItem') {
+      var deleteFundCatalogResult = FundService.deleteFundCatalogItem(payload.year, payload.item || payload.payload || payload);
+      return jsonResponse_(deleteFundCatalogResult);
     }
 
     throw new Error('Hành động POST không hợp lệ: ' + action);

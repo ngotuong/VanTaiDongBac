@@ -423,6 +423,7 @@
           <button type="button" class="sub-tab" data-cashflow-tab="entry" onclick="setCashflowTab('entry')">Thêm khoản thu/chi</button>
           <button type="button" class="sub-tab" data-cashflow-tab="loans" onclick="setCashflowTab('loans')">Khoản vay</button>
           <button type="button" class="sub-tab" data-cashflow-tab="loanEntry" onclick="setCashflowTab('loanEntry')">Nhập vay</button>
+          <button type="button" class="sub-tab" data-cashflow-tab="catalog" onclick="setCashflowTab('catalog')">Danh mục</button>
         </div>
 
         <div data-cashflow-panel="overview">
@@ -544,10 +545,12 @@
                 </select>
               </label>
               <label>
+                Hình thức
+                <select id="fundMethodInput"></select>
+              </label>
+              <label>
                 Mục thu/chi
-                <input type="text" id="fundCategoryInput" list="fundExpenseCategoryList" placeholder="Chọn hoặc nhập mục chi" required>
-                <datalist id="fundIncomeCategoryList"></datalist>
-                <datalist id="fundExpenseCategoryList"></datalist>
+                <select id="fundCategoryInput" required></select>
               </label>
               <label>
                 Số tiền
@@ -555,13 +558,11 @@
               </label>
               <label>
                 Người Thu/Chi
-                <input type="text" id="fundActorInput" list="fundActorList" placeholder="Người thực hiện" required>
-                <datalist id="fundActorList"></datalist>
+                <select id="fundActorInput" required></select>
               </label>
               <label>
                 Đối tác
-                <input type="text" id="fundPartnerInput" list="fundPartnerList" placeholder="Nhà cung cấp/khách hàng">
-                <datalist id="fundPartnerList"></datalist>
+                <select id="fundPartnerInput"></select>
               </label>
               <label>
                 Công nợ
@@ -625,7 +626,7 @@
                 <label>Ngày thanh toán<input type="date" id="loanPaymentDateInput" required></label>
                 <label>Mã vay<input type="text" id="loanPaymentCodeInput" readonly></label>
                 <label>Loại thanh toán<select id="loanPaymentTypeInput"><option value="Trả nợ">Trả nợ gốc</option><option value="Trả lãi">Trả lãi</option></select></label>
-                <label>Đối tác<input type="text" id="loanPaymentPartnerInput" list="loanPartnerList" required></label>
+                <label>Đối tác<select id="loanPaymentPartnerInput" required></select></label>
                 <label>Số tiền<input type="number" id="loanPaymentAmountInput" min="1" step="1000" required></label>
                 <label style="grid-column: 1 / -1;">Nội dung<textarea id="loanPaymentContentInput" rows="2" placeholder="Nội dung thanh toán"></textarea></label>
               </div>
@@ -657,7 +658,7 @@
             <div id="fundLoanEntryStatus" class="status" style="display:none;"></div>
             <div class="fields">
               <label>Ngày vay<input type="date" id="loanDateInput" required></label>
-              <label>Đối tác<input type="text" id="loanPartnerInput" list="loanPartnerList" placeholder="Người/đơn vị cho vay" required><datalist id="loanPartnerList"></datalist></label>
+              <label>Đối tác<select id="loanPartnerInput" required></select></label>
               <label>Số tiền<input type="number" id="loanAmountInput" min="1" step="1000" required></label>
               <label>Kỳ hạn vay (tháng)<input type="number" id="loanTermInput" min="0" step="1"></label>
               <label>Lãi suất/năm<input type="number" id="loanRateInput" min="0" step="0.01" placeholder="VD: 12"></label>
@@ -670,6 +671,49 @@
                 <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                 Lưu khoản vay
               </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card" data-cashflow-panel="catalog" style="display: none;">
+          <div class="panel-body">
+            <div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 18px;">
+              <div>
+                <div class="table-title" id="fundCatalogTitle">Danh mục quỹ</div>
+                <div class="panel-note" id="fundCatalogNote">Quản lý danh mục dùng chung cho module Quỹ.</div>
+              </div>
+              <div class="sub-tabs-bar" style="width: auto; margin: 0;">
+                <button type="button" class="sub-tab active" data-fund-catalog-group="incomeCategories" onclick="setFundCatalogGroup('incomeCategories')">Mục Thu</button>
+                <button type="button" class="sub-tab" data-fund-catalog-group="expenseCategories" onclick="setFundCatalogGroup('expenseCategories')">Mục Chi</button>
+                <button type="button" class="sub-tab" data-fund-catalog-group="methods" onclick="setFundCatalogGroup('methods')">Hình thức</button>
+                <button type="button" class="sub-tab" data-fund-catalog-group="actors" onclick="setFundCatalogGroup('actors')">Người Thu/Chi</button>
+                <button type="button" class="sub-tab" data-fund-catalog-group="partners" onclick="setFundCatalogGroup('partners')">Đối tác</button>
+                <button type="button" class="sub-tab" data-fund-catalog-group="loanPartners" onclick="setFundCatalogGroup('loanPartners')">Nơi vay</button>
+              </div>
+            </div>
+            <div id="fundCatalogStatus" class="status" style="display:none;"></div>
+            <div class="fields" style="margin-bottom: 16px;">
+              <label>
+                Giá trị
+                <input type="text" id="fundCatalogValueInput" placeholder="Nhập danh mục">
+              </label>
+              <label class="full-width">
+                Ghi chú
+                <textarea id="fundCatalogNoteInput" rows="2" placeholder="Ghi chú (nếu có)"></textarea>
+              </label>
+            </div>
+            <div class="submit-bar" style="margin-bottom: 18px;">
+              <button type="button" class="primary grow" id="fundCatalogSaveBtn" onclick="saveFundCatalogItem()">
+                <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                Lưu danh mục
+              </button>
+              <button type="button" class="ghost" onclick="clearFundCatalogForm()">Xóa nhập</button>
+            </div>
+            <div class="table-wrap">
+              <table class="report-table">
+                <thead><tr><th style="width:80px;">STT</th><th>Giá trị</th><th>Ghi chú</th><th style="text-align:right;">Thao tác</th></tr></thead>
+                <tbody id="fundCatalogTableBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Chọn một nhóm danh mục để tải dữ liệu.</td></tr></tbody>
+              </table>
             </div>
           </div>
         </div>

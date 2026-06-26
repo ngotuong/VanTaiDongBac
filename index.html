@@ -2402,7 +2402,6 @@
                     <th>Ngày</th>
                     <th>Loại</th>
                     <th>Mục</th>
-                    <th>Hình thức</th>
                     <th style="text-align: right;">Số tiền</th>
                     <th>Người Thu/Chi</th>
                     <th>Đối tác</th>
@@ -2411,7 +2410,7 @@
                 </thead>
                 <tbody id="fundTransactionsTableBody">
                   <tr>
-                    <td colspan="8" style="text-align: center; color: var(--muted); padding: 24px;">Chọn tab Danh sách thu chi để tải dữ liệu.</td>
+                    <td colspan="7" style="text-align: center; color: var(--muted); padding: 24px;">Chọn tab Danh sách thu chi để tải dữ liệu.</td>
                   </tr>
                 </tbody>
               </table>
@@ -2451,12 +2450,6 @@
                 <datalist id="fundExpenseCategoryList"></datalist>
               </label>
               <label>
-                Hình thức
-                <select id="fundMethodInput">
-                  <option value="">Chọn hình thức</option>
-                </select>
-              </label>
-              <label>
                 Số tiền
                 <input type="number" id="fundAmountInput" min="1" step="1000" placeholder="0" required>
               </label>
@@ -2492,6 +2485,20 @@
         </div>
 
         <div data-cashflow-panel="loans" style="display: none;">
+          <section class="panel" style="margin-bottom: 16px;">
+            <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h2 class="panel-title">Khoản vay</h2>
+                <div class="panel-note">Theo dõi phát sinh vay, trả nợ và trả lãi trong file Thu chi.</div>
+              </div>
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                Tháng:
+                <select id="fundLoanMonthFilter" style="height: 38px; width: 150px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundLoanOverview(false)">
+                  <option value="">Tất cả tháng</option>
+                </select>
+              </label>
+            </div>
+          </section>
           <div class="kpi-grid" id="fundLoanMetrics" style="margin-bottom: 20px;">
             <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
             <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
@@ -2502,9 +2509,32 @@
             <div class="table-card-head"><div class="table-title">Tổng quan các khoản vay</div></div>
             <div class="table-wrap">
               <table class="report-table">
-                <thead><tr><th>Mã vay</th><th>Đối tác</th><th style="text-align:right;">Đã vay</th><th style="text-align:right;">Đã trả gốc</th><th style="text-align:right;">Đã trả lãi</th><th style="text-align:right;">Dư nợ</th><th>Ngày gần nhất</th></tr></thead>
-                <tbody id="fundLoanSummaryBody"><tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                <thead><tr><th>Mã vay</th><th>Đối tác</th><th style="text-align:right;">Đã vay</th><th style="text-align:right;">Đã trả gốc</th><th style="text-align:right;">Đã trả lãi</th><th style="text-align:right;">Dư nợ</th><th>Ngày gần nhất</th><th style="text-align:right;">Thao tác</th></tr></thead>
+                <tbody id="fundLoanSummaryBody"><tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
+            </div>
+          </section>
+          <section class="table-card" id="fundLoanPaymentPanel" style="display:none; margin-bottom: 20px;">
+            <div class="panel-body">
+              <div style="margin-bottom: 14px;">
+                <div class="table-title">Thanh toán khoản vay</div>
+                <div class="panel-note">Ghi thêm dòng Trả nợ hoặc Trả lãi vào sheet NHAP_VAY.</div>
+              </div>
+              <div id="fundLoanPaymentStatus" class="status" style="display:none;"></div>
+              <div class="fields">
+                <label>Ngày thanh toán<input type="date" id="loanPaymentDateInput" required></label>
+                <label>Mã vay<input type="text" id="loanPaymentCodeInput" readonly></label>
+                <label>Loại thanh toán<select id="loanPaymentTypeInput"><option value="Trả nợ">Trả nợ gốc</option><option value="Trả lãi">Trả lãi</option></select></label>
+                <label>Đối tác<input type="text" id="loanPaymentPartnerInput" list="fundPartnerList" required></label>
+                <label>Số tiền<input type="number" id="loanPaymentAmountInput" min="1" step="1000" required></label>
+                <label style="grid-column: 1 / -1;">Nội dung<textarea id="loanPaymentContentInput" rows="2" placeholder="Nội dung thanh toán"></textarea></label>
+              </div>
+              <div class="submit-bar">
+                <button type="button" class="primary grow" id="loanPaymentSaveBtn" onclick="submitFundLoanPayment()">
+                  <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                  Lưu thanh toán
+                </button>
+              </div>
             </div>
           </section>
           <section class="table-card">
@@ -2527,7 +2557,6 @@
             <div id="fundLoanEntryStatus" class="status" style="display:none;"></div>
             <div class="fields">
               <label>Ngày vay<input type="date" id="loanDateInput" required></label>
-              <label>Hình thức<select id="loanMethodInput"><option value="">Chọn hình thức</option></select></label>
               <label>Đối tác<input type="text" id="loanPartnerInput" list="fundPartnerList" placeholder="Người/đơn vị cho vay" required></label>
               <label>Số tiền<input type="number" id="loanAmountInput" min="1" step="1000" required></label>
               <label>Kỳ hạn vay (tháng)<input type="number" id="loanTermInput" min="0" step="1"></label>
@@ -3022,7 +3051,7 @@
         loadFundLoanOverview(false);
       }
       if (tab === 'loanEntry') {
-        loadFundFormOptions().then(renderLoanMethodOptions);
+        loadFundFormOptions();
       }
     }
 
@@ -3347,7 +3376,6 @@
       if (!transaction.date) return 'Vui lòng nhập ngày.';
       if (transaction.type !== 'Thu' && transaction.type !== 'Chi') return 'Vui lòng chọn loại Thu hoặc Chi.';
       if (!transaction.category.trim()) return 'Vui lòng nhập mục thu/chi.';
-      if (!transaction.method.trim()) return 'Vui lòng nhập hình thức.';
       if (!(parseLocaleNumber(transaction.amount) > 0)) return 'Số tiền phải lớn hơn 0.';
       if (!transaction.actor.trim()) return 'Vui lòng nhập Người Thu/Chi.';
       if (transaction.debt && !transaction.partner.trim()) return 'Khoản công nợ cần có Đối tác.';
@@ -3371,21 +3399,9 @@
       if (debt) debt.checked = false;
     }
 
-    function renderLoanMethodOptions() {
-      const options = fundFormOptions || {};
-      const select = el('loanMethodInput');
-      if (!select || select.dataset.loaded) return;
-      (options.methods || []).forEach((method) => {
-        const option = document.createElement('option');
-        option.value = method;
-        option.textContent = method;
-        select.appendChild(option);
-      });
-      select.dataset.loaded = 'true';
-    }
-
     function loadFundLoanOverview(forceRefresh) {
-      return callApi('GET', 'getFundLoanOverview', { year: '2026', forceRefresh: forceRefresh ? 'true' : '' })
+      const month = el('fundLoanMonthFilter')?.value || '';
+      return callApi('GET', 'getFundLoanOverview', { year: '2026', month: month, forceRefresh: forceRefresh ? 'true' : '' })
         .then((data) => {
           fundLoanData = data;
           renderFundLoanOverview(data);
@@ -3396,6 +3412,7 @@
     }
 
     function renderFundLoanOverview(data) {
+      renderFundLoanMonthFilter(data.months || [], data.selectedMonth || '');
       const metrics = el('fundLoanMetrics');
       metrics.innerHTML = (data.metrics || []).map((item) => `
         <article class="kpi-card">
@@ -3415,8 +3432,12 @@
           <td style="text-align:right;">${formatFundAmount(item.interestPaid, '')}</td>
           <td style="text-align:right; font-weight:800;">${formatFundAmount(item.outstanding, '')}</td>
           <td>${escapeHtml(item.latestDate || '')}</td>
+          <td style="text-align:right; white-space:nowrap;">
+            <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'partial')">Trả</button>
+            <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'settle')" ${Number(item.outstanding || 0) <= 0 ? 'disabled' : ''}>Tất toán</button>
+          </td>
         </tr>
-      `).join('') : '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Chưa có khoản vay.</td></tr>';
+      `).join('') : '<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Chưa có khoản vay.</td></tr>';
 
       const history = el('fundLoanHistoryBody');
       const rows = data.recentRows || [];
@@ -3432,11 +3453,101 @@
       `).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
     }
 
+    function renderFundLoanMonthFilter(months, selectedMonth) {
+      const select = el('fundLoanMonthFilter');
+      if (!select) return;
+      const current = selectedMonth || select.value || '';
+      select.innerHTML = '<option value="">Tất cả tháng</option>';
+      months.forEach((month) => {
+        const option = document.createElement('option');
+        option.value = month.key;
+        option.textContent = month.label;
+        select.appendChild(option);
+      });
+      select.value = current;
+    }
+
+    function openFundLoanPayment(code, partner, outstanding, mode) {
+      const panel = el('fundLoanPaymentPanel');
+      if (!panel) return;
+      panel.style.display = 'block';
+      el('loanPaymentCodeInput').value = code || '';
+      el('loanPaymentPartnerInput').value = partner || '';
+      el('loanPaymentTypeInput').value = 'Trả nợ';
+      el('loanPaymentAmountInput').value = mode === 'settle' ? Math.max(0, Math.round(Number(outstanding || 0))) : '';
+      el('loanPaymentContentInput').value = mode === 'settle' ? 'Tất toán khoản vay' : '';
+      showFundLoanPaymentStatus('', '');
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function submitFundLoanPayment() {
+      const btn = el('loanPaymentSaveBtn');
+      const payment = {
+        date: el('loanPaymentDateInput')?.value || '',
+        code: el('loanPaymentCodeInput')?.value || '',
+        type: el('loanPaymentTypeInput')?.value || '',
+        partner: el('loanPaymentPartnerInput')?.value || '',
+        amount: el('loanPaymentAmountInput')?.value || '',
+        content: el('loanPaymentContentInput')?.value || ''
+      };
+      const error = validateFundLoanPayment(payment);
+      if (error) {
+        showFundLoanPaymentStatus('error', error);
+        return;
+      }
+      if (btn) btn.disabled = true;
+      showFundLoanPaymentStatus('success', 'Đang lưu thanh toán khoản vay...');
+      callApi('POST', 'addFundLoanPayment', {}, { year: '2026', payment })
+        .then(() => {
+          showFundLoanPaymentStatus('success', 'Đã lưu thanh toán vào NHAP_VAY.');
+          clearFundLoanPaymentForm();
+          loadFundLoanOverview(true);
+          loadFundOverview(true);
+        })
+        .catch((err) => {
+          showFundLoanPaymentStatus('error', 'Không thể lưu thanh toán: ' + err.message);
+        })
+        .finally(() => {
+          if (btn) btn.disabled = false;
+        });
+    }
+
+    function validateFundLoanPayment(payment) {
+      if (!payment.date) return 'Vui lòng nhập ngày thanh toán.';
+      if (!payment.code.trim()) return 'Vui lòng chọn mã khoản vay.';
+      if (payment.type !== 'Trả nợ' && payment.type !== 'Trả lãi') return 'Vui lòng chọn Trả nợ hoặc Trả lãi.';
+      if (!payment.partner.trim()) return 'Vui lòng nhập đối tác.';
+      if (!(parseLocaleNumber(payment.amount) > 0)) return 'Số tiền thanh toán phải lớn hơn 0.';
+      return '';
+    }
+
+    function showFundLoanPaymentStatus(type, message) {
+      const status = el('fundLoanPaymentStatus');
+      if (!status) return;
+      if (!message) {
+        status.style.display = 'none';
+        status.textContent = '';
+        return;
+      }
+      status.className = 'status ' + (type === 'error' ? 'error' : 'success');
+      status.textContent = message;
+      status.style.display = 'block';
+    }
+
+    function clearFundLoanPaymentForm() {
+      ['loanPaymentDateInput', 'loanPaymentCodeInput', 'loanPaymentPartnerInput', 'loanPaymentAmountInput', 'loanPaymentContentInput'].forEach((id) => {
+        const field = el(id);
+        if (field) field.value = '';
+      });
+      const type = el('loanPaymentTypeInput');
+      if (type) type.value = 'Trả nợ';
+    }
+
     function submitFundLoan() {
       const btn = el('loanSaveBtn');
       const loan = {
         date: el('loanDateInput')?.value || '',
-        method: el('loanMethodInput')?.value || '',
+        method: '',
         partner: el('loanPartnerInput')?.value || '',
         amount: el('loanAmountInput')?.value || '',
         termMonths: el('loanTermInput')?.value || '',
@@ -3469,7 +3580,6 @@
 
     function validateFundLoan(loan) {
       if (!loan.date) return 'Vui lòng nhập ngày vay.';
-      if (!loan.method.trim()) return 'Vui lòng chọn hình thức vay.';
       if (!loan.partner.trim()) return 'Vui lòng nhập đối tác.';
       if (!(parseLocaleNumber(loan.amount) > 0)) return 'Số tiền vay phải lớn hơn 0.';
       return '';
@@ -3498,7 +3608,7 @@
       const pager = el('fundTransactionsPager');
       if (!tableBody || !empty || !notice || !monthFilter) return;
 
-      tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải dữ liệu thu chi...</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải dữ liệu thu chi...</td></tr>';
       empty.style.display = 'none';
       if (pager) pager.style.display = 'none';
       notice.textContent = '';
@@ -3567,7 +3677,6 @@
           <td>${escapeHtml(item.dateText || formatTableDate(item.date, false))}</td>
           <td><span style="font-weight: 800; color: ${typeColor};">${escapeHtml(item.type || '-')}</span></td>
           <td>${escapeHtml(item.category || '')}</td>
-          <td>${escapeHtml(item.method || '')}</td>
           <td style="text-align: right; font-weight: 800;">${formatFundAmount(item.amount, item.amountText)}</td>
           <td>${escapeHtml(item.actor || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>

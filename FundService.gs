@@ -78,8 +78,14 @@ var FundService = (function () {
         if (isLoanOut) beforeLoanOut += item.amount;
       }
       if (!period || (item.dateObj >= period.start && item.dateObj <= period.end)) {
-        if (isLoanIn) income += item.amount;
-        if (isLoanOut) expense += item.amount;
+        if (isLoanIn) {
+          income += item.amount;
+          addCategory_(incomeMap, settings.loanIncomeName, item.amount, toFundCategoryDetail_(item, 'Thu', settings.loanIncomeName));
+        }
+        if (isLoanOut) {
+          expense += item.amount;
+          addCategory_(expenseMap, item.type, item.amount, toFundCategoryDetail_(item, 'Chi', item.type));
+        }
       }
       if (item.dateObj <= today) {
         if (isLoanIn) currentLoanIn += item.amount;
@@ -109,18 +115,32 @@ var FundService = (function () {
     };
   }
 
-  function getFundLoanOverview(year) {
+  function getFundLoanOverview(year, filter) {
     var ss = getFundSpreadsheet_(year);
     var rows = readLoanRows_(ss);
+    var months = buildMonths_(rows);
+    var monthKey = normalizeMonthKey_((filter || {}).month);
+    var period = monthKey ? monthPeriod_(monthKey) : null;
+    var filteredRows = period ? rows.filter(function (row) {
+      return row.dateObj && row.dateObj >= period.start && row.dateObj <= period.end;
+    }) : rows;
+    var summaryRows = period ? rows.filter(function (row) {
+      return row.dateObj && row.dateObj <= period.end;
+    }) : rows;
     var totalBorrowed = 0;
     var totalPrincipalPaid = 0;
     var totalInterestPaid = 0;
+    var totalOutstandingBorrowed = 0;
+    var totalOutstandingPrincipalPaid = 0;
     var loanMap = {};
 
-    rows.forEach(function (row) {
+    filteredRows.forEach(function (row) {
       if (row.type === 'Vay') totalBorrowed += row.amount;
       if (row.type === 'Trả nợ') totalPrincipalPaid += row.amount;
       if (row.type === 'Trả lãi') totalInterestPaid += row.amount;
+    });
+
+    summaryRows.forEach(function (row) {
       var key = row.code || row.partner || ('row-' + row.rowIndex);
       if (!loanMap[key]) {
         loanMap[key] = {
@@ -137,8 +157,14 @@ var FundService = (function () {
           firstInterestDate: row.firstInterestDate
         };
       }
-      if (row.type === 'Vay') loanMap[key].borrowed += row.amount;
-      if (row.type === 'Trả nợ') loanMap[key].principalPaid += row.amount;
+      if (row.type === 'Vay') {
+        loanMap[key].borrowed += row.amount;
+        totalOutstandingBorrowed += row.amount;
+      }
+      if (row.type === 'Trả nợ') {
+        loanMap[key].principalPaid += row.amount;
+        totalOutstandingPrincipalPaid += row.amount;
+      }
       if (row.type === 'Trả lãi') loanMap[key].interestPaid += row.amount;
       if (row.date > loanMap[key].latestDate) loanMap[key].latestDate = row.date;
     });
@@ -153,14 +179,16 @@ var FundService = (function () {
 
     return {
       ok: true,
+      months: months,
+      selectedMonth: monthKey,
       metrics: [
         { key: 'borrowed', label: 'Tổng khoản vay', value: totalBorrowed },
         { key: 'principalPaid', label: 'Đã trả nợ gốc', value: totalPrincipalPaid },
         { key: 'interestPaid', label: 'Đã trả lãi', value: totalInterestPaid },
-        { key: 'outstanding', label: 'Dư nợ hiện tại', value: totalBorrowed - totalPrincipalPaid }
+        { key: 'outstanding', label: period ? 'Dư nợ cuối kỳ' : 'Dư nợ hiện tại', value: totalOutstandingBorrowed - totalOutstandingPrincipalPaid }
       ],
       loans: loans,
-      recentRows: rows.slice().sort(function (a, b) {
+      recentRows: filteredRows.slice().sort(function (a, b) {
         return a.date < b.date ? 1 : -1;
       }).slice(0, 100)
     };
@@ -188,11 +216,34 @@ var FundService = (function () {
     }
   }
 
+  function addFundLoanPayment(year, payload) {
+    var ss = getFundSpreadsheet_(year);
+    var sheet = ss.getSheetByName(LOAN_SHEET_NAME);
+    if (!sheet) throw new Error('Không tìm thấy sheet khoản vay: ' + LOAN_SHEET_NAME);
+    var row = buildLoanPaymentRow_(payload || {});
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      var appendRow = getAppendRow_(sheet);
+      if (sheet.getMaxRows() < appendRow) {
+        sheet.insertRowsAfter(sheet.getMaxRows(), appendRow - sheet.getMaxRows());
+      }
+      sheet.getRange(appendRow, 1, 1, row.length).setValues([row]);
+      sheet.getRange(appendRow, 2).setNumberFormat('dd/MM/yyyy');
+      sheet.getRange(appendRow, 6).setNumberFormat('#,##0');
+      sheet.getRange(appendRow, 14).setFormula(buildLoanFilterFormula_(appendRow));
+      return { ok: true, rowIndex: appendRow, code: row[0], sheetName: LOAN_SHEET_NAME };
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
   function getFundFormOptions(year) {
     var ss = getFundSpreadsheet_(year);
+    var settings = readFundSettings_(ss);
     return {
       ok: true,
-      incomeCategories: readNamedRangeValues_(ss, 'MUCTHU'),
+      incomeCategories: ensureOption_(readNamedRangeValues_(ss, 'MUCTHU'), settings.loanIncomeName),
       expenseCategories: readNamedRangeValues_(ss, 'MUCCHI'),
       methods: readNamedRangeValues_(ss, 'HINHTHUC'),
       actors: readColumnValues_(ss, 'CAIDAT', 15, 3),
@@ -445,7 +496,8 @@ var FundService = (function () {
       bankOpening: parseNumber_(readNamedRangeDisplay_(ss, 'TKDK')),
       loanStartDate: readNamedRangeDate_(ss, 'NGAYTINHVAY'),
       depositName: readNamedRangeDisplay_(ss, 'NOPTIEN') || 'Nộp vào TK',
-      withdrawName: readNamedRangeDisplay_(ss, 'RUTTIEN') || 'Rút tiền'
+      withdrawName: readNamedRangeDisplay_(ss, 'RUTTIEN') || 'Rút tiền',
+      loanIncomeName: readNamedRangeDisplay_(ss, 'KHOANVAY') || 'Khoản vay'
     };
   }
 
@@ -493,6 +545,29 @@ var FundService = (function () {
     map[key].details.push(item);
   }
 
+  function toFundCategoryDetail_(row, type, category) {
+    return {
+      rowIndex: row.rowIndex,
+      voucher: row.code,
+      dateObj: row.dateObj,
+      date: row.date,
+      dateText: row.dateText,
+      month: row.month,
+      monthLabel: row.monthLabel,
+      type: type,
+      category: category,
+      incomeCategory: type === 'Thu' ? category : '',
+      expenseCategory: type === 'Chi' ? category : '',
+      method: row.method,
+      amount: row.amount,
+      amountText: row.amountText,
+      actor: '',
+      partner: row.partner,
+      content: row.content,
+      debt: ''
+    };
+  }
+
   function mapToRows_(map) {
     return Object.keys(map).map(function (key) {
       return map[key];
@@ -520,7 +595,6 @@ var FundService = (function () {
     if (!date) throw new Error('Vui lòng nhập ngày hợp lệ.');
     if (type !== 'Thu' && type !== 'Chi') throw new Error('Vui lòng chọn loại Thu hoặc Chi.');
     if (!category) throw new Error('Vui lòng nhập mục thu/chi.');
-    if (!method) throw new Error('Vui lòng nhập hình thức.');
     if (!(amount > 0)) throw new Error('Số tiền phải lớn hơn 0.');
     if (!actor) throw new Error('Vui lòng nhập Người Thu/Chi.');
     if (debt && !partner) throw new Error('Khoản công nợ cần có Đối tác.');
@@ -550,7 +624,6 @@ var FundService = (function () {
     var firstInterestDate = parseDate_(payload.firstInterestDate, payload.firstInterestDate);
     var content = clean_(payload.content);
     if (!date) throw new Error('Vui lòng nhập ngày vay hợp lệ.');
-    if (!method) throw new Error('Vui lòng nhập hình thức vay.');
     if (!partner) throw new Error('Vui lòng nhập đối tác cho khoản vay.');
     if (!(amount > 0)) throw new Error('Số tiền vay phải lớn hơn 0.');
     return [
@@ -564,6 +637,33 @@ var FundService = (function () {
       annualRate || '',
       interestPeriodMonths || '',
       firstInterestDate || '',
+      content
+    ];
+  }
+
+  function buildLoanPaymentRow_(payload) {
+    var date = parseDate_(payload.date, payload.date);
+    var code = clean_(payload.code);
+    var type = clean_(payload.type);
+    var partner = clean_(payload.partner);
+    var amount = parseNumber_(payload.amount);
+    var content = clean_(payload.content);
+    if (!date) throw new Error('Vui lòng nhập ngày thanh toán hợp lệ.');
+    if (!code) throw new Error('Thiếu mã khoản vay cần thanh toán.');
+    if (type !== 'Trả nợ' && type !== 'Trả lãi') throw new Error('Vui lòng chọn Trả nợ hoặc Trả lãi.');
+    if (!partner) throw new Error('Vui lòng nhập đối tác cho khoản vay.');
+    if (!(amount > 0)) throw new Error('Số tiền thanh toán phải lớn hơn 0.');
+    return [
+      code,
+      date,
+      type,
+      '',
+      partner,
+      amount,
+      '',
+      '',
+      '',
+      '',
       content
     ];
   }
@@ -631,6 +731,16 @@ var FundService = (function () {
     return result;
   }
 
+  function ensureOption_(values, option) {
+    var target = clean_(option);
+    if (!target) return values || [];
+    var result = values || [];
+    var exists = result.some(function (value) {
+      return normalizeHeader_(value) === normalizeHeader_(target);
+    });
+    return exists ? result : result.concat([target]);
+  }
+
   function resolveFundSpreadsheetId_(year) {
     var props = PropertiesService.getScriptProperties();
     var normalizedYear = clean_(year);
@@ -690,6 +800,7 @@ var FundService = (function () {
   return {
     addFundTransaction: addFundTransaction,
     addFundLoan: addFundLoan,
+    addFundLoanPayment: addFundLoanPayment,
     getFundFormOptions: getFundFormOptions,
     getFundLoanOverview: getFundLoanOverview,
     getFundOverview: getFundOverview,
@@ -714,12 +825,16 @@ function getFundOverview(year, filter) {
   return FundService.getFundOverview(year, filter);
 }
 
-function getFundLoanOverview(year) {
-  return FundService.getFundLoanOverview(year);
+function getFundLoanOverview(year, filter) {
+  return FundService.getFundLoanOverview(year, filter);
 }
 
 function addFundLoan(year, payload) {
   return FundService.addFundLoan(year, payload);
+}
+
+function addFundLoanPayment(year, payload) {
+  return FundService.addFundLoanPayment(year, payload);
 }
 
 function getFundSpreadsheet_(year) {

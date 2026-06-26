@@ -66,10 +66,14 @@ function getFundOverview(year, filter) {
   return FundService.getFundOverview(year, filter);
 }
 
-function getFundLoanOverview(year) {
-  return FundService.getFundLoanOverview(year);
+function getFundLoanOverview(year, filter) {
+  return FundService.getFundLoanOverview(year, filter);
 }
 
 function addFundLoan(year, loan) {
   return FundService.addFundLoan(year, loan);
+}
+
+function addFundLoanPayment(year, payment) {
+  return FundService.addFundLoanPayment(year, payment);
 }

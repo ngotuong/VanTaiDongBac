@@ -492,7 +492,6 @@
                     <th>Ngày</th>
                     <th>Loại</th>
                     <th>Mục</th>
-                    <th>Hình thức</th>
                     <th style="text-align: right;">Số tiền</th>
                     <th>Người Thu/Chi</th>
                     <th>Đối tác</th>
@@ -501,7 +500,7 @@
                 </thead>
                 <tbody id="fundTransactionsTableBody">
                   <tr>
-                    <td colspan="8" style="text-align: center; color: var(--muted); padding: 24px;">Chọn tab Danh sách thu chi để tải dữ liệu.</td>
+                    <td colspan="7" style="text-align: center; color: var(--muted); padding: 24px;">Chọn tab Danh sách thu chi để tải dữ liệu.</td>
                   </tr>
                 </tbody>
               </table>
@@ -541,12 +540,6 @@
                 <datalist id="fundExpenseCategoryList"></datalist>
               </label>
               <label>
-                Hình thức
-                <select id="fundMethodInput">
-                  <option value="">Chọn hình thức</option>
-                </select>
-              </label>
-              <label>
                 Số tiền
                 <input type="number" id="fundAmountInput" min="1" step="1000" placeholder="0" required>
               </label>
@@ -582,6 +575,20 @@
         </div>
 
         <div data-cashflow-panel="loans" style="display: none;">
+          <section class="panel" style="margin-bottom: 16px;">
+            <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h2 class="panel-title">Khoản vay</h2>
+                <div class="panel-note">Theo dõi phát sinh vay, trả nợ và trả lãi trong file Thu chi.</div>
+              </div>
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                Tháng:
+                <select id="fundLoanMonthFilter" style="height: 38px; width: 150px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundLoanOverview(false)">
+                  <option value="">Tất cả tháng</option>
+                </select>
+              </label>
+            </div>
+          </section>
           <div class="kpi-grid" id="fundLoanMetrics" style="margin-bottom: 20px;">
             <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
             <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
@@ -592,9 +599,32 @@
             <div class="table-card-head"><div class="table-title">Tổng quan các khoản vay</div></div>
             <div class="table-wrap">
               <table class="report-table">
-                <thead><tr><th>Mã vay</th><th>Đối tác</th><th style="text-align:right;">Đã vay</th><th style="text-align:right;">Đã trả gốc</th><th style="text-align:right;">Đã trả lãi</th><th style="text-align:right;">Dư nợ</th><th>Ngày gần nhất</th></tr></thead>
-                <tbody id="fundLoanSummaryBody"><tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                <thead><tr><th>Mã vay</th><th>Đối tác</th><th style="text-align:right;">Đã vay</th><th style="text-align:right;">Đã trả gốc</th><th style="text-align:right;">Đã trả lãi</th><th style="text-align:right;">Dư nợ</th><th>Ngày gần nhất</th><th style="text-align:right;">Thao tác</th></tr></thead>
+                <tbody id="fundLoanSummaryBody"><tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
+            </div>
+          </section>
+          <section class="table-card" id="fundLoanPaymentPanel" style="display:none; margin-bottom: 20px;">
+            <div class="panel-body">
+              <div style="margin-bottom: 14px;">
+                <div class="table-title">Thanh toán khoản vay</div>
+                <div class="panel-note">Ghi thêm dòng Trả nợ hoặc Trả lãi vào sheet NHAP_VAY.</div>
+              </div>
+              <div id="fundLoanPaymentStatus" class="status" style="display:none;"></div>
+              <div class="fields">
+                <label>Ngày thanh toán<input type="date" id="loanPaymentDateInput" required></label>
+                <label>Mã vay<input type="text" id="loanPaymentCodeInput" readonly></label>
+                <label>Loại thanh toán<select id="loanPaymentTypeInput"><option value="Trả nợ">Trả nợ gốc</option><option value="Trả lãi">Trả lãi</option></select></label>
+                <label>Đối tác<input type="text" id="loanPaymentPartnerInput" list="fundPartnerList" required></label>
+                <label>Số tiền<input type="number" id="loanPaymentAmountInput" min="1" step="1000" required></label>
+                <label style="grid-column: 1 / -1;">Nội dung<textarea id="loanPaymentContentInput" rows="2" placeholder="Nội dung thanh toán"></textarea></label>
+              </div>
+              <div class="submit-bar">
+                <button type="button" class="primary grow" id="loanPaymentSaveBtn" onclick="submitFundLoanPayment()">
+                  <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                  Lưu thanh toán
+                </button>
+              </div>
             </div>
           </section>
           <section class="table-card">
@@ -617,7 +647,6 @@
             <div id="fundLoanEntryStatus" class="status" style="display:none;"></div>
             <div class="fields">
               <label>Ngày vay<input type="date" id="loanDateInput" required></label>
-              <label>Hình thức<select id="loanMethodInput"><option value="">Chọn hình thức</option></select></label>
               <label>Đối tác<input type="text" id="loanPartnerInput" list="fundPartnerList" placeholder="Người/đơn vị cho vay" required></label>
               <label>Số tiền<input type="number" id="loanAmountInput" min="1" step="1000" required></label>
               <label>Kỳ hạn vay (tháng)<input type="number" id="loanTermInput" min="0" step="1"></label>

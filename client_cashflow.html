@@ -20,7 +20,7 @@
         loadFundLoanOverview(false);
       }
       if (tab === 'loanEntry') {
-        loadFundFormOptions().then(renderLoanMethodOptions);
+        loadFundFormOptions();
       }
     }
 
@@ -345,7 +345,6 @@
       if (!transaction.date) return 'Vui lòng nhập ngày.';
       if (transaction.type !== 'Thu' && transaction.type !== 'Chi') return 'Vui lòng chọn loại Thu hoặc Chi.';
       if (!transaction.category.trim()) return 'Vui lòng nhập mục thu/chi.';
-      if (!transaction.method.trim()) return 'Vui lòng nhập hình thức.';
       if (!(parseLocaleNumber(transaction.amount) > 0)) return 'Số tiền phải lớn hơn 0.';
       if (!transaction.actor.trim()) return 'Vui lòng nhập Người Thu/Chi.';
       if (transaction.debt && !transaction.partner.trim()) return 'Khoản công nợ cần có Đối tác.';
@@ -369,21 +368,9 @@
       if (debt) debt.checked = false;
     }
 
-    function renderLoanMethodOptions() {
-      const options = fundFormOptions || {};
-      const select = el('loanMethodInput');
-      if (!select || select.dataset.loaded) return;
-      (options.methods || []).forEach((method) => {
-        const option = document.createElement('option');
-        option.value = method;
-        option.textContent = method;
-        select.appendChild(option);
-      });
-      select.dataset.loaded = 'true';
-    }
-
     function loadFundLoanOverview(forceRefresh) {
-      return callApi('GET', 'getFundLoanOverview', { year: '2026', forceRefresh: forceRefresh ? 'true' : '' })
+      const month = el('fundLoanMonthFilter')?.value || '';
+      return callApi('GET', 'getFundLoanOverview', { year: '2026', month: month, forceRefresh: forceRefresh ? 'true' : '' })
         .then((data) => {
           fundLoanData = data;
           renderFundLoanOverview(data);
@@ -394,6 +381,7 @@
     }
 
     function renderFundLoanOverview(data) {
+      renderFundLoanMonthFilter(data.months || [], data.selectedMonth || '');
       const metrics = el('fundLoanMetrics');
       metrics.innerHTML = (data.metrics || []).map((item) => `
         <article class="kpi-card">
@@ -413,8 +401,12 @@
           <td style="text-align:right;">${formatFundAmount(item.interestPaid, '')}</td>
           <td style="text-align:right; font-weight:800;">${formatFundAmount(item.outstanding, '')}</td>
           <td>${escapeHtml(item.latestDate || '')}</td>
+          <td style="text-align:right; white-space:nowrap;">
+            <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'partial')">Trả</button>
+            <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'settle')" ${Number(item.outstanding || 0) <= 0 ? 'disabled' : ''}>Tất toán</button>
+          </td>
         </tr>
-      `).join('') : '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:24px;">Chưa có khoản vay.</td></tr>';
+      `).join('') : '<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Chưa có khoản vay.</td></tr>';
 
       const history = el('fundLoanHistoryBody');
       const rows = data.recentRows || [];
@@ -430,11 +422,101 @@
       `).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
     }
 
+    function renderFundLoanMonthFilter(months, selectedMonth) {
+      const select = el('fundLoanMonthFilter');
+      if (!select) return;
+      const current = selectedMonth || select.value || '';
+      select.innerHTML = '<option value="">Tất cả tháng</option>';
+      months.forEach((month) => {
+        const option = document.createElement('option');
+        option.value = month.key;
+        option.textContent = month.label;
+        select.appendChild(option);
+      });
+      select.value = current;
+    }
+
+    function openFundLoanPayment(code, partner, outstanding, mode) {
+      const panel = el('fundLoanPaymentPanel');
+      if (!panel) return;
+      panel.style.display = 'block';
+      el('loanPaymentCodeInput').value = code || '';
+      el('loanPaymentPartnerInput').value = partner || '';
+      el('loanPaymentTypeInput').value = 'Trả nợ';
+      el('loanPaymentAmountInput').value = mode === 'settle' ? Math.max(0, Math.round(Number(outstanding || 0))) : '';
+      el('loanPaymentContentInput').value = mode === 'settle' ? 'Tất toán khoản vay' : '';
+      showFundLoanPaymentStatus('', '');
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function submitFundLoanPayment() {
+      const btn = el('loanPaymentSaveBtn');
+      const payment = {
+        date: el('loanPaymentDateInput')?.value || '',
+        code: el('loanPaymentCodeInput')?.value || '',
+        type: el('loanPaymentTypeInput')?.value || '',
+        partner: el('loanPaymentPartnerInput')?.value || '',
+        amount: el('loanPaymentAmountInput')?.value || '',
+        content: el('loanPaymentContentInput')?.value || ''
+      };
+      const error = validateFundLoanPayment(payment);
+      if (error) {
+        showFundLoanPaymentStatus('error', error);
+        return;
+      }
+      if (btn) btn.disabled = true;
+      showFundLoanPaymentStatus('success', 'Đang lưu thanh toán khoản vay...');
+      callApi('POST', 'addFundLoanPayment', {}, { year: '2026', payment })
+        .then(() => {
+          showFundLoanPaymentStatus('success', 'Đã lưu thanh toán vào NHAP_VAY.');
+          clearFundLoanPaymentForm();
+          loadFundLoanOverview(true);
+          loadFundOverview(true);
+        })
+        .catch((err) => {
+          showFundLoanPaymentStatus('error', 'Không thể lưu thanh toán: ' + err.message);
+        })
+        .finally(() => {
+          if (btn) btn.disabled = false;
+        });
+    }
+
+    function validateFundLoanPayment(payment) {
+      if (!payment.date) return 'Vui lòng nhập ngày thanh toán.';
+      if (!payment.code.trim()) return 'Vui lòng chọn mã khoản vay.';
+      if (payment.type !== 'Trả nợ' && payment.type !== 'Trả lãi') return 'Vui lòng chọn Trả nợ hoặc Trả lãi.';
+      if (!payment.partner.trim()) return 'Vui lòng nhập đối tác.';
+      if (!(parseLocaleNumber(payment.amount) > 0)) return 'Số tiền thanh toán phải lớn hơn 0.';
+      return '';
+    }
+
+    function showFundLoanPaymentStatus(type, message) {
+      const status = el('fundLoanPaymentStatus');
+      if (!status) return;
+      if (!message) {
+        status.style.display = 'none';
+        status.textContent = '';
+        return;
+      }
+      status.className = 'status ' + (type === 'error' ? 'error' : 'success');
+      status.textContent = message;
+      status.style.display = 'block';
+    }
+
+    function clearFundLoanPaymentForm() {
+      ['loanPaymentDateInput', 'loanPaymentCodeInput', 'loanPaymentPartnerInput', 'loanPaymentAmountInput', 'loanPaymentContentInput'].forEach((id) => {
+        const field = el(id);
+        if (field) field.value = '';
+      });
+      const type = el('loanPaymentTypeInput');
+      if (type) type.value = 'Trả nợ';
+    }
+
     function submitFundLoan() {
       const btn = el('loanSaveBtn');
       const loan = {
         date: el('loanDateInput')?.value || '',
-        method: el('loanMethodInput')?.value || '',
+        method: '',
         partner: el('loanPartnerInput')?.value || '',
         amount: el('loanAmountInput')?.value || '',
         termMonths: el('loanTermInput')?.value || '',
@@ -467,7 +549,6 @@
 
     function validateFundLoan(loan) {
       if (!loan.date) return 'Vui lòng nhập ngày vay.';
-      if (!loan.method.trim()) return 'Vui lòng chọn hình thức vay.';
       if (!loan.partner.trim()) return 'Vui lòng nhập đối tác.';
       if (!(parseLocaleNumber(loan.amount) > 0)) return 'Số tiền vay phải lớn hơn 0.';
       return '';
@@ -496,7 +577,7 @@
       const pager = el('fundTransactionsPager');
       if (!tableBody || !empty || !notice || !monthFilter) return;
 
-      tableBody.innerHTML = '<tr><td colspan="9" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải dữ liệu thu chi...</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải dữ liệu thu chi...</td></tr>';
       empty.style.display = 'none';
       if (pager) pager.style.display = 'none';
       notice.textContent = '';
@@ -565,7 +646,6 @@
           <td>${escapeHtml(item.dateText || formatTableDate(item.date, false))}</td>
           <td><span style="font-weight: 800; color: ${typeColor};">${escapeHtml(item.type || '-')}</span></td>
           <td>${escapeHtml(item.category || '')}</td>
-          <td>${escapeHtml(item.method || '')}</td>
           <td style="text-align: right; font-weight: 800;">${formatFundAmount(item.amount, item.amountText)}</td>
           <td>${escapeHtml(item.actor || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>

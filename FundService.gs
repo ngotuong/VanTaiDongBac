@@ -141,7 +141,7 @@ var FundService = (function () {
     });
 
     summaryRows.forEach(function (row) {
-      var key = row.code || row.partner || ('row-' + row.rowIndex);
+      var key = row.code || ('row-' + row.rowIndex);
       if (!loanMap[key]) {
         loanMap[key] = {
           code: row.code,
@@ -248,7 +248,7 @@ var FundService = (function () {
       methods: readNamedRangeValues_(ss, 'HINHTHUC'),
       actors: readColumnValues_(ss, 'CAIDAT', 15, 3),
       partners: readPartners_(ss),
-      loanPartners: readColumnValues_(ss, 'CAIDAT', 11, 3)
+      loanPartners: readLoanPartners_(ss)
     };
   }
 
@@ -715,6 +715,11 @@ var FundService = (function () {
     var headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), TRANSACTION_HEADERS.length)).getDisplayValues()[0];
     var columns = getTransactionColumns_(headers);
     return flattenValues_(sheet.getRange(2, columns.partner + 1, sheet.getLastRow() - 1, 1).getDisplayValues());
+  }
+
+  function readLoanPartners_(ss) {
+    // Danh mục "Nơi vay" nằm ở cột K của sheet CAIDAT trong file ThuChi.
+    return readColumnValues_(ss, 'CAIDAT', 11, 3);
   }
 
   function flattenValues_(values) {

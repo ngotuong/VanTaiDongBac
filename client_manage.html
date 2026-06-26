@@ -110,9 +110,17 @@
         .filter(({ header }) => {
           const h = String(header || '').trim().toLowerCase();
           if (h === 'tháng') return false;
+          if (shouldHideManageField_(h, sheetName)) return false;
           return true;
         })
         .map(({ index }) => index);
+    }
+
+    function shouldHideManageField_(headerLower, sheetName) {
+      if (sheetName === 'NL_ChamCong') {
+        return headerLower === 'loại ngày công hợp lệ' || headerLower === 'lưu ý';
+      }
+      return false;
     }
 
     function shouldShowManageOwnerColumn(sheetName, vehicleColIdx) {
@@ -261,6 +269,7 @@
         let totalLiters = 0;
         let totalAmount = 0;
         matched.forEach(row => {
+          if (!isValidManageDataRow_(row, sheetName, row.values)) return;
           if (litColIdx !== -1) {
             totalLiters += parseLocaleNumber(row.values[litColIdx]) || 0;
           }
@@ -275,6 +284,7 @@
       if (currentManageData && isTaiXeSheet) {
         let totalTrips = 0;
         matched.forEach(row => {
+          if (!isValidManageDataRow_(row, sheetName, row.values)) return;
           if (tripsColIdx !== -1) {
             totalTrips += parseLocaleNumber(row.values[tripsColIdx]) || 0;
           }
@@ -372,6 +382,23 @@
       tbody.appendChild(fragment);
     }
 
+    function isValidManageDataRow_(row, sheetName, values) {
+      if (!row || !Array.isArray(values) || !values.length) return false;
+      const firstCell = values[0];
+      const hasDate = typeof firstCell === 'string'
+        ? /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(firstCell.trim()) || /^\d{4}-\d{2}-\d{2}/.test(firstCell.trim())
+        : firstCell instanceof Date && !isNaN(firstCell.getTime());
+      if (!hasDate) return false;
+
+      if (sheetName === 'NL_Dau') {
+        return values.some((val) => parseLocaleNumber(val) !== 0 || String(val || '').trim() === '0');
+      }
+      if (sheetName === 'NL_TaiXe') {
+        return values.some((val, idx) => idx !== 0 && idx !== 1 && String(val || '').trim() !== '');
+      }
+      return true;
+    }
+
     function openManageAddModal() {
       if (activeView === 'catalog') {
         currentEditCatalogRowIndex = null;
@@ -448,6 +475,9 @@
       currentData.headers.forEach((header) => {
         const hLower = header.toLowerCase();
         if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
+          return;
+        }
+        if (shouldHideManageField_(hLower, sheetName)) {
           return;
         }
         

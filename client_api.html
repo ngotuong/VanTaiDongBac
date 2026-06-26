@@ -1,8 +1,9 @@
 <script>
     // API REST Request Layer
-    function getCurrentWebAppUrl() {
+    function normalizeWebAppUrl(rawUrl) {
+      if (!rawUrl) return '';
       try {
-        const url = new URL(window.location.href);
+        const url = new URL(rawUrl);
         url.search = '';
         url.hash = '';
         return url.toString();
@@ -12,7 +13,7 @@
     }
     
     const getBackendUrl = () => {
-      return localStorage.getItem('eb_backend_url') || getCurrentWebAppUrl();
+      return normalizeWebAppUrl(window.__APP_SERVICE_URL) || normalizeWebAppUrl(localStorage.getItem('eb_backend_url'));
     };
 
     function callApi(method, action, params = {}, bodyData = null) {

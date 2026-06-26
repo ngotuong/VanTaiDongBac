@@ -111,7 +111,9 @@ function jsonResponse_(data) {
 }
 
 function renderIndex_() {
-  return HtmlService.createTemplateFromFile('index')
+  var template = HtmlService.createTemplateFromFile('index');
+  template.serviceUrl = ScriptApp.getService().getUrl() || '';
+  return template
     .evaluate()
     .setTitle('Vận tải Đông Bắc - Hệ thống điều hành nội bộ')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)

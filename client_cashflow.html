@@ -724,8 +724,9 @@
 
     function openFundLoanPayment(code, partner, outstanding) {
       currentLoanOutstanding = Number(outstanding || 0);
-      const modal = el('fundLoanPaymentModal');
-      if (!modal) return;
+      const drawer = el('fundLoanPaymentDrawer');
+      const backdrop = el('fundLoanPaymentBackdrop');
+      if (!drawer || !backdrop) return;
       
       el('loanPaymentCodeInput').value = code || '';
       el('loanPaymentPartnerInput').value = partner || '';
@@ -736,17 +737,18 @@
       
       onLoanPaymentTypeChange();
       
-      modal.classList.add('active');
+      drawer.classList.add('open');
+      backdrop.classList.add('active');
       document.body.classList.add('locked');
       showFundLoanPaymentStatus('', '');
     }
 
-    function closeFundLoanPaymentModal() {
-      const modal = el('fundLoanPaymentModal');
-      if (modal) {
-        modal.classList.remove('active');
-        document.body.classList.remove('locked');
-      }
+    function closeFundLoanPaymentDrawer() {
+      const drawer = el('fundLoanPaymentDrawer');
+      const backdrop = el('fundLoanPaymentBackdrop');
+      if (drawer) drawer.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('active');
+      document.body.classList.remove('locked');
     }
 
     function onLoanPaymentTypeChange() {
@@ -758,7 +760,8 @@
       if (!amountInput || !contentInput) return;
 
       if (type === 'Trả gốc') {
-        amountInput.value = Math.max(0, Math.round(currentLoanOutstanding));
+        const rawAmount = Math.max(0, Math.round(currentLoanOutstanding));
+        amountInput.value = rawAmount.toLocaleString('vi-VN').replace(/,/g, '.');
         amountInput.readOnly = true;
         amountInput.style.background = 'var(--canvas)';
         contentInput.value = `Tất toán khoản vay [${partner}] mã vay [${code}]`;
@@ -805,7 +808,7 @@
           clearFundLoanPaymentForm();
           loadFundLoanOverview(true);
           loadFundOverview(true);
-          setTimeout(closeFundLoanPaymentModal, 1000);
+          setTimeout(closeFundLoanPaymentDrawer, 1000);
         })
         .catch((err) => {
           showFundLoanPaymentStatus('error', 'Không thể lưu thanh toán: ' + err.message);
@@ -844,6 +847,11 @@
       });
       const type = el('loanPaymentTypeInput');
       if (type) type.value = 'Trả nợ';
+      const amountInput = el('loanPaymentAmountInput');
+      if (amountInput) {
+        amountInput.readOnly = false;
+        amountInput.style.background = 'var(--paper)';
+      }
     }
 
     function submitFundLoan() {
@@ -1053,7 +1061,10 @@
       el('fundCategoryInput').dataset.selected = item.category || '';
       handleFundTypeChange();
       
-      if (el('fundAmountInput')) el('fundAmountInput').value = item.amountText || item.amount || '';
+      if (el('fundAmountInput')) {
+        el('fundAmountInput').value = item.amountText || item.amount || '';
+        el('fundAmountInput').dispatchEvent(new Event('input'));
+      }
       if (el('fundActorInput')) el('fundActorInput').value = item.actor || '';
       if (el('fundPartnerInput')) el('fundPartnerInput').value = item.partner || '';
       if (el('fundContentInput')) el('fundContentInput').value = item.content || '';

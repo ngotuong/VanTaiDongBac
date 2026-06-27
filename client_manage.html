@@ -525,6 +525,9 @@
             } else if (headerClean.includes('số lít') || headerClean.includes('số chuyến') || headerClean.includes('đơn giá') || headerClean.includes('tiền') || headerClean.includes('số ngày') || headerClean.includes('số giờ') || headerClean.includes('cự ly') || headerClean.includes('công')) {
               input.type = 'text';
               input.inputMode = 'decimal';
+              if (headerClean.includes('tiền') || headerClean.includes('đơn giá')) {
+                input.classList.add('format-money-input');
+              }
             } else {
               input.type = 'text';
             }

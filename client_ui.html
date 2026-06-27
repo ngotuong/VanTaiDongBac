@@ -135,6 +135,40 @@
       lastScrollY = currentScrollY;
     }, { passive: true });
     
+    function formatMoneyInput(inputElement) {
+      const selectionStart = inputElement.selectionStart;
+      const selectionEnd = inputElement.selectionEnd;
+      const originalLength = inputElement.value.length;
+      
+      let rawValue = inputElement.value.replace(/\D/g, '');
+      if (rawValue === '') {
+        inputElement.value = '';
+        return;
+      }
+      
+      const formattedValue = Number(rawValue).toLocaleString('vi-VN').replace(/,/g, '.');
+      inputElement.value = formattedValue;
+      
+      const newLength = formattedValue.length;
+      const cursorOffset = newLength - originalLength;
+      
+      try {
+        inputElement.setSelectionRange(selectionStart + cursorOffset, selectionEnd + cursorOffset);
+      } catch (err) {
+        // Tránh lỗi trên các trình duyệt cũ hoặc kiểu input đặc biệt
+      }
+    }
+
+    document.addEventListener('input', function(e) {
+      const target = e.target;
+      const isStaticMoney = ['fundAmountInput', 'loanAmountInput', 'loanPaymentAmountInput'].includes(target.id);
+      const isDynamicMoney = target.classList.contains('format-money-input');
+      
+      if (isStaticMoney || isDynamicMoney) {
+        formatMoneyInput(target);
+      }
+    });
+    
     // Run initial boot
     init();
 </script>

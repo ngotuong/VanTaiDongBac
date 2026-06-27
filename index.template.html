@@ -777,17 +777,22 @@
   <div class="drawer-backdrop" id="fundDetailBackdrop" onclick="closeFundDetailDrawer()"></div>
   
   <section class="table-card fund-detail-drawer" id="fundCategoryDetailCard">
-    <div class="table-card-head" style="position: sticky; top: 0; background: var(--paper); z-index: 10;">
-      <div>
-        <div class="table-title" id="fundCategoryDetailTitle">Chi tiết hạng mục</div>
-        <div class="panel-note" id="fundCategoryDetailHint">Bấm Xem ở từng hạng mục để xem chi tiết.</div>
+    <div class="table-card-head" style="position: sticky; top: 0; background: var(--paper); z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px;">
+      <div style="flex: 1; min-width: 0;">
+        <div class="table-title" id="fundCategoryDetailTitle" style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Chi tiết hạng mục</div>
+        <div class="panel-note" id="fundCategoryDetailHint" style="font-size: 11.5px; margin-top: 2px;">Bấm Xem ở từng hạng mục để xem chi tiết.</div>
       </div>
-      <button type="button" class="ghost" style="min-height:32px; height:32px; width:32px; padding:0; border-radius:50%; font-size:18px; display:flex; align-items:center; justify-content:center;" onclick="closeFundDetailDrawer()">×</button>
+      <div id="fundDetailFilterArea" style="display: none; align-items: center;">
+        <select id="fundDetailPartnerFilter" style="height: 34px; width: 145px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 12.5px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="filterFundDetailByPartner()">
+          <option value="">Tất cả đối tác</option>
+        </select>
+      </div>
+      <button type="button" class="ghost" style="min-height:32px; height:32px; width:32px; padding:0; border-radius:50%; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink: 0;" onclick="closeFundDetailDrawer()">×</button>
     </div>
     <div class="table-wrap" id="fundDetailTableWrap">
       <table class="report-table">
-        <thead><tr><th>Ngày</th><th>Loại</th><th>Hạng mục</th><th style="text-align:right;">Số tiền</th><th>Đối tác</th><th>Nội dung</th></tr></thead>
-        <tbody id="fundCategoryDetailBody"><tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Chưa chọn hạng mục.</td></tr></tbody>
+        <thead><tr><th>Ngày</th><th>Hạng mục</th><th style="text-align:right;">Số tiền</th><th>Đối tác</th><th>Nội dung</th></tr></thead>
+        <tbody id="fundCategoryDetailBody"><tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Chưa chọn hạng mục.</td></tr></tbody>
       </table>
     </div>
     <div class="fund-detail-mobile-list" id="fundDetailMobileList" style="display: none;">

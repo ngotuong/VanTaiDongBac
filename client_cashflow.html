@@ -181,37 +181,26 @@
       `).join('');
     }
 
-    function showFundCategoryDetail(type, index) {
-      const rows = type === 'Thu' ? (fundOverviewData?.incomeCategories || []) : (fundOverviewData?.expenseCategories || []);
-      const item = rows[index];
-      const title = el('fundCategoryDetailTitle');
-      const hint = el('fundCategoryDetailHint');
+    function renderFundDetailRows(details, type) {
       const body = el('fundCategoryDetailBody');
       const mobileList = el('fundDetailMobileList');
-      const card = el('fundCategoryDetailCard');
-      const backdrop = el('fundDetailBackdrop');
-      if (!item) return;
       
-      if (title) title.textContent = `Chi tiết ${type.toLowerCase()} - ${item.category}`;
-      if (hint) hint.textContent = `Tổng ${formatFundAmount(item.amount, '')}.`;
-      
-      // Render Desktop Table
+      // Render Desktop Table (bỏ cột Loại)
       if (body) {
-        body.innerHTML = (item.details || []).map((row) => `
+        body.innerHTML = (details || []).map((row) => `
           <tr>
             <td>${escapeHtml(row.dateText || row.date || '')}</td>
-            <td>${escapeHtml(row.type || '')}</td>
             <td>${escapeHtml(row.category || '')}</td>
             <td style="text-align:right; font-weight:800; color:${type === 'Thu' ? 'var(--green)' : 'var(--red)'};">${formatFundAmount(row.amount, row.amountText)}</td>
             <td>${escapeHtml(row.partner || '')}</td>
             <td>${escapeHtml(row.content || '')}</td>
           </tr>
-        `).join('') || '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
+        `).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
       }
       
-      // Render Mobile Card List with clear titles/labels
+      // Render Mobile Card List (bỏ Phân loại, đưa Nội dung lên dưới Đối tác căn trái, tiền ở dưới cùng)
       if (mobileList) {
-        mobileList.innerHTML = (item.details || []).map((row) => `
+        mobileList.innerHTML = (details || []).map((row) => `
           <div class="fund-detail-mobile-card">
             <div class="fund-detail-mobile-card-row">
               <span class="fund-detail-mobile-card-label">Ngày</span>
@@ -222,12 +211,12 @@
               <span class="fund-detail-mobile-card-value">${escapeHtml(row.category || '-')}</span>
             </div>
             <div class="fund-detail-mobile-card-row">
-              <span class="fund-detail-mobile-card-label">Phân loại</span>
-              <span class="fund-detail-mobile-card-value">${escapeHtml(row.type || '-')}</span>
-            </div>
-            <div class="fund-detail-mobile-card-row">
               <span class="fund-detail-mobile-card-label">Đối tác</span>
               <span class="fund-detail-mobile-card-value">${escapeHtml(row.partner || '-')}</span>
+            </div>
+            <div class="fund-detail-mobile-card-row" style="align-items: flex-start; justify-content: flex-start; gap: 8px;">
+              <span class="fund-detail-mobile-card-label" style="width: 70px; flex-shrink: 0;">Nội dung</span>
+              <span class="fund-detail-mobile-card-value" style="text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; white-space: normal;">${escapeHtml(row.content || 'Không có nội dung')}</span>
             </div>
             <div class="fund-detail-mobile-card-row" style="border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 4px;">
               <span class="fund-detail-mobile-card-label">Số tiền</span>
@@ -235,24 +224,72 @@
                 ${type === 'Thu' ? '+' : '-'}${formatFundAmount(row.amount, row.amountText)}
               </span>
             </div>
-            <div class="fund-detail-mobile-card-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
-              <span class="fund-detail-mobile-card-label">Nội dung</span>
-              <span class="fund-detail-mobile-card-value" style="font-weight: 500; color: var(--muted); text-align: left; width: 100%; word-break: break-word; font-size: 12px; margin-top: 2px;">${escapeHtml(row.content || 'Không có nội dung')}</span>
-            </div>
           </div>
         `).join('') || '<div style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</div>';
       }
+    }
+
+    function showFundCategoryDetail(type, index) {
+      const rows = type === 'Thu' ? (fundOverviewData?.incomeCategories || []) : (fundOverviewData?.expenseCategories || []);
+      const item = rows[index];
+      const title = el('fundCategoryDetailTitle');
+      const hint = el('fundCategoryDetailHint');
+      const card = el('fundCategoryDetailCard');
+      const backdrop = el('fundDetailBackdrop');
+      if (!item) return;
+      
+      currentDetailItem = item;
+      currentDetailType = type;
+      
+      if (title) title.textContent = `Chi tiết ${type.toLowerCase()} - ${item.category}`;
+      if (hint) hint.textContent = `Tổng ${formatFundAmount(item.amount, '')}.`;
+      
+      // Tạo danh sách đối tác độc nhất để đổ vào bộ lọc
+      const select = el('fundDetailPartnerFilter');
+      const filterArea = el('fundDetailFilterArea');
+      if (select) {
+        const partners = Array.from(new Set((item.details || []).map(d => String(d.partner || '').trim()).filter(Boolean)));
+        select.innerHTML = '<option value="">Tất cả đối tác</option>';
+        partners.sort().forEach((p) => {
+          const opt = document.createElement('option');
+          opt.value = p;
+          opt.textContent = p;
+          select.appendChild(opt);
+        });
+        select.value = '';
+      }
+      if (filterArea) filterArea.style.display = 'flex';
+      
+      renderFundDetailRows(item.details || [], type);
       
       if (card) card.classList.add('open');
       if (backdrop) backdrop.style.display = 'block';
       document.body.classList.add('locked');
     }
 
+    window.filterFundDetailByPartner = function() {
+      if (!currentDetailItem) return;
+      const selectedPartner = el('fundDetailPartnerFilter')?.value || '';
+      const details = currentDetailItem.details || [];
+      const filtered = selectedPartner
+        ? details.filter(d => String(d.partner || '').trim() === selectedPartner)
+        : details;
+      
+      // Tính lại tổng tiền sau khi lọc đối tác
+      const total = filtered.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+      const hint = el('fundCategoryDetailHint');
+      if (hint) hint.textContent = `Tổng ${formatFundAmount(total, '')}.`;
+      
+      renderFundDetailRows(filtered, currentDetailType);
+    };
+
     window.closeFundDetailDrawer = function() {
       const card = el('fundCategoryDetailCard');
       const backdrop = el('fundDetailBackdrop');
+      const filterArea = el('fundDetailFilterArea');
       if (card) card.classList.remove('open');
       if (backdrop) backdrop.style.display = 'none';
+      if (filterArea) filterArea.style.display = 'none';
       
       // Chỉ mở khóa body nếu không có menu sidebar di động đang mở
       if (!document.body.classList.contains('drawer-open')) {

@@ -208,6 +208,16 @@
         transform: translateX(-105%);
         transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 20px 0 25px -5px rgba(6, 46, 43, 0.1);
+        align-items: stretch !important;
+      }
+      
+      .nav-stack {
+        align-items: stretch !important;
+      }
+      
+      .nav-btn {
+        width: 100% !important;
+        justify-content: flex-start !important;
       }
       
       body.drawer-open .sidebar { transform: translateX(0); }
@@ -265,16 +275,18 @@
       .bottom-nav { display: grid; }
       
       .topbar {
-        display: grid;
-        grid-template-columns: 46px minmax(0, 1fr);
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
+        gap: 12px;
       }
       
-      .topbar > div:first-of-type { min-width: 0; }
-      .top-actions { grid-column: 1 / -1; display: flex; gap: 10px; justify-content: stretch; }
-      .top-actions > button, .top-actions > a { flex: 1; display: flex; }
-      .top-actions > a button { width: 100%; }
+      .topbar > div:first-of-type { min-width: 0; flex-grow: 1; }
+      .top-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; margin-top: 0; }
+      .top-actions > button, .top-actions > a { flex: none; display: inline-flex; }
+      .top-actions > a button { width: auto; }
       
       h1 { font-size: 24px; }
       .subtitle { font-size: 13px; }

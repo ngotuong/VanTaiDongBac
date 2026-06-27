@@ -66,14 +66,12 @@
           <div class="subtitle" id="subtitle">Đang liên kết dữ liệu nền...</div>
         </div>
         <div class="top-actions">
-          <button type="button" class="ghost" id="refreshBtn">
-            <svg class="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
-            Cập nhật
+          <button type="button" class="ghost" id="refreshBtn" title="Cập nhật" style="height: 38px; width: 38px; min-width: 38px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px;">
+            <svg class="btn-svg" viewBox="0 0 24 24" style="margin: 0;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
           </button>
-          <a id="openSheetTop" href="#" target="_blank">
-            <button type="button" class="ghost">
-              <svg class="btn-svg" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"></path></svg>
-              Google Sheet
+          <a id="openSheetTop" href="#" target="_blank" title="Google Sheet" style="display: inline-flex;">
+            <button type="button" class="ghost" style="height: 38px; width: 38px; min-width: 38px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px;">
+              <svg class="btn-svg" viewBox="0 0 24 24" style="margin: 0;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"></path></svg>
             </button>
           </a>
         </div>
@@ -124,7 +122,6 @@
                 Dữ liệu chuyến gần đây
                 <span id="latestTripsDate" style="color: var(--teal); font-weight: 700; font-size: 14px;"></span>
               </div>
-              <div class="panel-note" style="margin-top: 2px;">Dữ liệu tổng hợp từ NK vận chuyển cho ngày gần nhất</div>
             </div>
             <div style="display: flex; gap: 8px;">
               <button type="button" class="sub-tab" title="Xuất ảnh" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;" onclick="exportCardAsImage(this, 'SoChuyenXe')">
@@ -154,7 +151,7 @@
         <!-- Condensed Financial Summary Table Panel -->
         <section class="panel table-card" id="homeSummaryTableCard" style="margin-bottom: 24px;">
           <div class="table-card-head">
-            <div class="table-title">Tóm tắt kết quả kinh doanh theo tháng</div>
+            <div class="table-title">Báo cáo kinh doanh theo tháng</div>
             <div style="display: flex; gap: 8px;">
               <button type="button" class="sub-tab" title="Xuất ảnh" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;" onclick="exportCardAsImage(this, 'TongQuan')">
                 <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>

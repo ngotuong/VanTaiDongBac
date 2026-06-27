@@ -7463,15 +7463,29 @@
 </script>
 
   <script>
+    function withElement(id, callback) {
+      const node = el(id);
+      if (node) callback(node);
+      return node;
+    }
+
     function setBusy(isBusy) {
-      ['submitBtn', 'addBtn', 'cloneBtn'].forEach((id) => el(id).disabled = isBusy);
-      el('submitBtn').innerHTML = isBusy 
-        ? '<div class="spinner" style="width:16px;height:16px;margin:0;"></div> Đang ghi...' 
-        : `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg> Gửi dữ liệu lên Sheets`;
+      ['submitBtn', 'addBtn', 'cloneBtn'].forEach((id) => {
+        withElement(id, (node) => {
+          node.disabled = isBusy;
+        });
+      });
+      withElement('submitBtn', (node) => {
+        node.innerHTML = isBusy
+          ? '<div class="spinner" style="width:16px;height:16px;margin:0;"></div> Đang ghi...'
+          : `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg> Gửi dữ liệu lên Sheets`;
+      });
     }
 
     function setRefreshBusy(isBusy) {
-      el('refreshBtn').disabled = isBusy;
+      withElement('refreshBtn', (node) => {
+        node.disabled = isBusy;
+      });
     }
 
     function showStatus(type, message) {
@@ -7545,13 +7559,27 @@
     }
 
     // Trigger binding
-    el('refreshBtn').onclick = () => refreshReports(true);
-    el('menuBtn').onclick = openDrawer;
-    el('drawerClose').onclick = closeDrawer;
-    el('drawerBackdrop').onclick = closeDrawer;
-    el('addBtn').onclick = addRow;
-    el('cloneBtn').onclick = cloneRow;
-    el('submitBtn').onclick = submitAll;
+    withElement('refreshBtn', (node) => {
+      node.onclick = () => refreshReports(true);
+    });
+    withElement('menuBtn', (node) => {
+      node.onclick = openDrawer;
+    });
+    withElement('drawerClose', (node) => {
+      node.onclick = closeDrawer;
+    });
+    withElement('drawerBackdrop', (node) => {
+      node.onclick = closeDrawer;
+    });
+    withElement('addBtn', (node) => {
+      node.onclick = addRow;
+    });
+    withElement('cloneBtn', (node) => {
+      node.onclick = cloneRow;
+    });
+    withElement('submitBtn', (node) => {
+      node.onclick = submitAll;
+    });
     
     // Scroll handling for bottom-nav visibility on mobile
     let lastScrollY = window.scrollY;

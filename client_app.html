@@ -57,13 +57,10 @@
 
     function renderAll() {
       renderView();
-      renderFormTabs();
-      renderEntry();
       renderDashboard();
       renderReports();
       const links = getLinks();
       el('openSheetTop').href = links.spreadsheet || '#';
-      el('sheetLink').href = links.spreadsheet || '#';
     }
 
     function renderNav() {
@@ -95,13 +92,18 @@
       closeDrawer();
       clearStatus();
       renderView();
-      if (view === 'entry') {
-        loadCatalogs(activeForm);
-      }
       if (view === 'reports') {
         loadReportBundle(false);
       }
       if (view === 'manage') {
+        const quick = el('manageQuickDateFilter');
+        if (quick) {
+          const start = el('manageStartDate');
+          if (start && !start.value) {
+            quick.value = 'thisMonth';
+            setManageQuickDate('thisMonth');
+          }
+        }
         loadAllCatalogsIfNeeded(() => {
           loadManageSheetData();
         });
@@ -122,15 +124,14 @@
       document.querySelectorAll('[data-view]').forEach((button) => {
         button.classList.toggle('active', button.dataset.view === activeView);
       });
-      ['home', 'entry', 'reports', 'manage', 'catalog', 'cashflow', 'settings'].forEach((view) => {
+      ['home', 'reports', 'manage', 'catalog', 'cashflow', 'settings'].forEach((view) => {
         el(`${view}View`).classList.toggle('active', view === activeView);
       });
       
       const meta = {
         home: ['Tổng quan', 'Kết quả kinh doanh', `Dữ liệu cập nhật: ${getDashboardData()?.updatedAt || 'Vui lòng chờ...'}`],
-        entry: ['Nhập liệu', 'Bảng kê nhập liệu', 'Thông tin tháng tự sinh theo ngày nhập dữ liệu.'],
         reports: ['Báo cáo', 'Tổng hợp chi tiết', 'Tổng hợp các hạng mục báo cáo.'],
-        manage: ['Quản lý nhật ký', 'Quản lý các giao dịch nhật ký', 'Xem, tìm kiếm lọc theo ngày, sửa hoặc xóa dòng nhật ký.'],
+        manage: ['Vận tải', 'Nhật ký & Vận hành', 'Xem, tìm kiếm, sửa hoặc xóa dòng nhật ký và nhập mới bảng kê.'],
         catalog: ['Danh mục', 'Quản lý danh mục hệ thống', 'Xem, tìm kiếm, thêm mới, sửa hoặc xóa danh mục gốc.'],
         cashflow: ['Quỹ', 'Quản lý quỹ', 'Theo dõi thu chi, số dư và khoản vay.'],
         settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', 'Tối ưu hóa chạy webapp như ứng dụng thực tế.']

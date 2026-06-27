@@ -154,8 +154,12 @@
     function renderFundOverviewMonthFilter(months, selectedMonth) {
       const select = el('fundOverviewMonthFilter');
       if (!select) return;
-      const current = selectedMonth || select.value || '';
-      select.innerHTML = '<option value="">Tháng gần nhất</option>';
+      const today = new Date();
+      const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const hasCurrentMonth = months.some(m => m.key === currentMonthKey);
+      const current = selectedMonth || select.value || (hasCurrentMonth ? currentMonthKey : '');
+      
+      select.innerHTML = '<option value="">Tất cả</option>';
       months.forEach((month) => {
         const option = document.createElement('option');
         option.value = month.key;
@@ -711,8 +715,12 @@
     function renderFundLoanMonthFilter(months, selectedMonth) {
       const select = el('fundLoanMonthFilter');
       if (!select) return;
-      const current = selectedMonth || select.value || '';
-      select.innerHTML = '<option value="">Tất cả tháng</option>';
+      const today = new Date();
+      const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const hasCurrentMonth = months.some(m => m.key === currentMonthKey);
+      const current = selectedMonth || select.value || (hasCurrentMonth ? currentMonthKey : '');
+      
+      select.innerHTML = '<option value="">Tất cả</option>';
       months.forEach((month) => {
         const option = document.createElement('option');
         option.value = month.key;
@@ -1001,8 +1009,12 @@
     function renderFundMonthFilter(months, selectedMonth) {
       const select = el('fundMonthFilter');
       if (!select) return;
-      const current = selectedMonth || select.value || '';
-      select.innerHTML = '<option value="">Tất cả tháng</option>';
+      const today = new Date();
+      const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const hasCurrentMonth = months.some(m => m.key === currentMonthKey);
+      const current = selectedMonth || select.value || (hasCurrentMonth ? currentMonthKey : '');
+      
+      select.innerHTML = '<option value="">Tất cả</option>';
       months.forEach((month) => {
         const option = document.createElement('option');
         option.value = month.key;

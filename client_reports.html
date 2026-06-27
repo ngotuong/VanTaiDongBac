@@ -580,6 +580,14 @@
 
     // Render month filter inputs
     function renderMonthFilters(rows) {
+      const today = new Date();
+      const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+      const hasCurrentMonth = rows.some(row => row.month === currentMonthKey);
+      const defaultMonth = hasCurrentMonth ? currentMonthKey : (rows[rows.length - 1]?.month || '');
+      if (!selectedMonth) {
+        selectedMonth = defaultMonth;
+      }
+
       ['homeMonthFilter', 'reportMonthFilter'].forEach((id) => {
         const select = el(id);
         if (!select) return;
@@ -587,7 +595,7 @@
         select.innerHTML = '';
         select.appendChild(new Option("Tất cả", "Tất cả"));
         rows.forEach((row) => select.appendChild(new Option(row.month, row.month)));
-        select.value = selectedMonth || previous || (rows[rows.length - 1]?.month || '');
+        select.value = selectedMonth || previous;
         select.onchange = () => {
           selectedMonth = select.value;
           

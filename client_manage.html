@@ -533,7 +533,11 @@
             }
           }
           
-          input.value = rowData[header] === undefined || rowData[header] === null ? '' : rowData[header];
+          let val = rowData[header] === undefined || rowData[header] === null ? '' : rowData[header];
+          if (!val && input.type === 'date') {
+            val = new Date().toISOString().slice(0, 10);
+          }
+          input.value = val;
           input.dataset.header = header;
           input.classList.add('manage-form-field');
           
@@ -641,4 +645,225 @@
           alert('Lỗi xóa dữ liệu: ' + err.message);
         });
     }
+
+    window.renderEntry = function() {
+      if (typeof renderTransportEntry === 'function') renderTransportEntry();
+    };
+    window.renderFormTabs = function() {};
+
+    window.openTransportEntryDrawer = function() {
+      const sheetName = el('manageSheetSelect').value;
+      const sheetToFormMap = {
+        'NL_Dau': 'dau',
+        'NL_VanChuyen': 'vanChuyen',
+        'NL_TaiXe': 'taiXe',
+        'NL_ChamCong': 'chamCong',
+        'NL_Phat': 'phat',
+        'NL_NghiVanHanh': 'nghiVanHanh'
+      };
+      activeForm = sheetToFormMap[sheetName] || 'vanChuyen';
+      
+      const drawer = el('transportEntryDrawer');
+      const backdrop = el('transportEntryBackdrop');
+      if (!drawer || !backdrop) return;
+      
+      rows = [newBlankRow()];
+      
+      drawer.classList.add('open');
+      backdrop.classList.add('active');
+      document.body.classList.add('locked');
+      
+      el('transportEntryDrawerTitle').textContent = `Nhập bảng kê: ${FORM_LABELS[activeForm]}`;
+      el('transportEntryDrawerNote').textContent = `${FORM_NOTES[activeForm]}.`;
+      
+      showTransportEntryStatus('', '');
+      renderTransportEntry();
+      loadCatalogs(activeForm);
+    };
+
+    window.closeTransportEntryDrawer = function() {
+      const drawer = el('transportEntryDrawer');
+      const backdrop = el('transportEntryBackdrop');
+      if (drawer) drawer.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('active');
+      document.body.classList.remove('locked');
+    };
+
+    window.addTransportRow = function() {
+      rows.push(newBlankRow());
+      renderTransportEntry();
+    };
+
+    window.cloneTransportRow = function() {
+      if (rows.length > 0) {
+        rows.push(newBlankRow({ ...rows[rows.length - 1] }));
+        renderTransportEntry();
+      }
+    };
+
+    function showTransportEntryStatus(type, message) {
+      const status = el('transportEntryStatus');
+      if (!status) return;
+      if (!message) {
+        status.style.display = 'none';
+        status.textContent = '';
+        return;
+      }
+      status.className = 'status ' + (type === 'error' ? 'error' : (type === 'info' ? 'info' : 'success'));
+      status.textContent = message;
+      status.style.display = 'block';
+    }
+
+    function renderTransportEntry() {
+      const holder = el('transportEntryRows');
+      if (!holder) return;
+      holder.innerHTML = '';
+      
+      const catalogsReady = Boolean(catalogsByForm[activeForm]);
+      if (!catalogsReady) {
+        const note = document.createElement('div');
+        note.className = 'loading-note';
+        note.textContent = 'Đang đồng bộ danh mục từ Google Sheets. Bạn có thể bắt đầu điền thông tin, ô tìm kiếm sẽ sẵn sàng ngay sau khi tải xong.';
+        holder.appendChild(note);
+      }
+      
+      rows.forEach((row, index) => {
+        holder.appendChild(renderTransportRow(row, index));
+      });
+      
+      el('transportEntryDrawerNote').textContent = `${FORM_NOTES[activeForm]}. Đang lập ${rows.length} dòng kê.`;
+    }
+
+    function renderTransportRow(row, index) {
+      const card = document.createElement('article');
+      card.className = 'entry-row';
+      
+      const head = document.createElement('div');
+      head.className = 'entry-row-head';
+      
+      const extraTitleHtml = getEntryRowExtraTitle(row);
+      
+      head.innerHTML = `<div class="entry-row-title"><span class="row-number">${index + 1}</span><span>Dòng chứng từ<span class="entry-row-extra-title-${index}">${extraTitleHtml}</span></span></div>`;
+      
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'danger';
+      remove.textContent = 'Xóa';
+      remove.disabled = rows.length === 1;
+      remove.onclick = () => { 
+        card.classList.add('removing');
+        setTimeout(() => {
+          rows.splice(index, 1); 
+          renderTransportEntry(); 
+        }, 220);
+      };
+      
+      head.appendChild(remove);
+      card.appendChild(head);
+      
+      const grid = document.createElement('div');
+      grid.className = 'fields';
+      
+      FIELD_SETS[activeForm].forEach(([key, label, kind]) => {
+        grid.appendChild(renderTransportField(row, index, key, label, kind));
+      });
+      
+      card.appendChild(grid);
+      return card;
+    }
+
+    function renderTransportField(row, index, key, label, kind) {
+      const wrap = document.createElement('label');
+      if (kind === 'textarea') wrap.className = 'full';
+      wrap.appendChild(document.createTextNode(label));
+      
+      if (kind.startsWith('select:')) {
+        const acWrap = document.createElement('div');
+        const sourceName = kind.split(':')[1];
+        
+        if (catalogsByForm[activeForm]) {
+          createAutocomplete(acWrap, getOptions(sourceName), row[key], (newValue) => {
+            rows[index][key] = newValue;
+            handleTransportFieldChange(index, key);
+          });
+        } else {
+          acWrap.innerHTML = '<input type="text" class="ac-input" placeholder="Đang tải danh mục..." disabled>';
+        }
+        wrap.appendChild(acWrap);
+      } else {
+        const input = document.createElement(kind === 'textarea' ? 'textarea' : 'input');
+        input.type = kind === 'number' ? 'text' : kind;
+        if (kind === 'number') input.inputMode = 'decimal';
+        input.value = row[key] || '';
+        
+        if (kind === 'number' || key.toLowerCase().includes('tiền') || key.toLowerCase().includes('đơn giá')) {
+          input.classList.add('format-money-input');
+        }
+        
+        input.oninput = () => {
+          rows[index][key] = input.value;
+          handleTransportFieldChange(index, key);
+        };
+        wrap.appendChild(input);
+      }
+      
+      return wrap;
+    }
+
+    function handleTransportFieldChange(index, key) {
+      const row = rows[index];
+      if (activeForm === 'taiXe' && (key === 'vehicle' || key === 'date') && !row.driver) {
+        const drivers = suggestDrivers(row.vehicle, row.date);
+        if (drivers.length === 1) {
+          row.driver = drivers[0];
+          renderTransportEntry();
+        }
+      }
+      
+      const span = document.querySelector(`.entry-row-extra-title-${index}`);
+      if (span) {
+        span.innerHTML = getEntryRowExtraTitle(row);
+      }
+    }
+
+    window.submitTransportRows = function() {
+      const btn = el('transportSubmitBtn');
+      if (btn) btn.disabled = true;
+      showTransportEntryStatus('info', 'Đang gửi dữ liệu lên Google Sheets...');
+      
+      const submittedForm = activeForm;
+      const submittedRows = rows.map((row) => ({ ...row }));
+      
+      callApi('POST', 'submitRows', {}, { formType: submittedForm, rows: rows })
+        .then((result) => {
+          const details = [];
+          if (result.errors?.length) details.push(result.errors.join('\n'));
+          if (result.warnings?.length) details.push(result.warnings.join('\n'));
+          const sheetText = result.sheetName ? ` sheet ${result.sheetName}` : ' Google Sheet';
+          
+          showTransportEntryStatus(
+            result.errors?.length ? 'error' : 'success', 
+            `Đã ghi nhận ${result.inserted} dòng kê vào${sheetText}.${details.length ? '\nLưu ý:\n' + details.join('\n') : ''}`
+          );
+          
+          if (result.inserted) {
+            invalidateReportSessionCache();
+            rows = [newBlankRow()];
+            loadManageSheetData(true);
+            setTimeout(closeTransportEntryDrawer, 1500);
+          }
+          
+          if (result.inserted && (submittedForm === 'vanChuyen' || submittedForm === 'taiXe')) {
+            if (typeof checkTripReconciliation === 'function') {
+              checkTripReconciliation(submittedRows);
+            }
+          }
+        })
+        .catch((err) => {
+          showTransportEntryStatus('error', err.message || String(err));
+        })
+        .finally(() => {
+          if (btn) btn.disabled = false;
+        });
+    };
 </script>

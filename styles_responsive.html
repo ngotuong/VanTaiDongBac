@@ -324,7 +324,14 @@
       .bar-row { grid-template-columns: 70px minmax(0, 1fr); }
       .bar-value { grid-column: 2; text-align: left; margin-top: 4px; }
       
-      table { min-width: 600px; }
+      table { min-width: 480px !important; }
+      th, td {
+        padding: 6px 8px !important;
+        font-size: 11.5px !important;
+      }
+      .sticky-col-right {
+        padding: 6px 4px !important;
+      }
       input, select, textarea, .ac-input { min-height: 48px; font-size: 16px; }
       button { min-height: 46px; }
     }

@@ -467,21 +467,19 @@
 
         <div data-cashflow-panel="transactions" style="display: none;">
           <section class="panel" style="margin-bottom: 16px;">
-            <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
-              <div>
-                <h2 class="panel-title">Danh sách thu chi</h2>
-                <div class="panel-note">Dữ liệu đọc từ sheet NHAP_THUCHI của file Thu chi.</div>
+            <div class="panel-head" style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; padding: 16px 20px;">
+              <div style="display: flex; align-items: center; min-height: 38px;">
+                <h2 class="panel-title" style="margin: 0;">Danh sách thu chi</h2>
               </div>
-              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap;">
                   Tháng:
-                  <select id="fundMonthFilter" style="height: 38px; width: 150px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundTransactions(false)">
+                  <select id="fundMonthFilter" style="height: 36px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundTransactions(false)">
                     <option value="">Tất cả tháng</option>
                   </select>
                 </label>
-                <button type="button" class="ghost" style="height: 38px; min-height: 38px;" onclick="loadFundTransactions(true)">
-                  <svg class="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
-                  Tải lại
+                <button type="button" class="ghost" style="height: 36px; min-height: 36px; width: 36px; padding: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center;" title="Tải lại" onclick="loadFundTransactions(true)">
+                  <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin: 0;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
                 </button>
               </div>
             </div>
@@ -501,11 +499,12 @@
                     <th>Người Thu/Chi</th>
                     <th>Đối tác</th>
                     <th>Nội dung</th>
+                    <th style="text-align: center;" class="sticky-col-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody id="fundTransactionsTableBody">
                   <tr>
-                    <td colspan="7" style="text-align: center; color: var(--muted); padding: 24px;">Chọn tab Danh sách thu chi để tải dữ liệu.</td>
+                    <td colspan="8" style="text-align: center; color: var(--muted); padding: 24px;">Chọn tab Danh sách thu chi để tải dữ liệu.</td>
                   </tr>
                 </tbody>
               </table>

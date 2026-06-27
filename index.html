@@ -2449,21 +2449,19 @@
 
         <div data-cashflow-panel="transactions" style="display: none;">
           <section class="panel" style="margin-bottom: 16px;">
-            <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
-              <div>
-                <h2 class="panel-title">Danh sách thu chi</h2>
-                <div class="panel-note">Dữ liệu đọc từ sheet NHAP_THUCHI của file Thu chi.</div>
+            <div class="panel-head" style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; padding: 16px 20px;">
+              <div style="display: flex; align-items: center; min-height: 38px;">
+                <h2 class="panel-title" style="margin: 0;">Danh sách thu chi</h2>
               </div>
-              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap;">
                   Tháng:
-                  <select id="fundMonthFilter" style="height: 38px; width: 150px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundTransactions(false)">
+                  <select id="fundMonthFilter" style="height: 36px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundTransactions(false)">
                     <option value="">Tất cả tháng</option>
                   </select>
                 </label>
-                <button type="button" class="ghost" style="height: 38px; min-height: 38px;" onclick="loadFundTransactions(true)">
-                  <svg class="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
-                  Tải lại
+                <button type="button" class="ghost" style="height: 36px; min-height: 36px; width: 36px; padding: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center;" title="Tải lại" onclick="loadFundTransactions(true)">
+                  <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin: 0;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
                 </button>
               </div>
             </div>
@@ -2483,11 +2481,12 @@
                     <th>Người Thu/Chi</th>
                     <th>Đối tác</th>
                     <th>Nội dung</th>
+                    <th style="text-align: center;" class="sticky-col-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody id="fundTransactionsTableBody">
                   <tr>
-                    <td colspan="7" style="text-align: center; color: var(--muted); padding: 24px;">Chọn tab Danh sách thu chi để tải dữ liệu.</td>
+                    <td colspan="8" style="text-align: center; color: var(--muted); padding: 24px;">Chọn tab Danh sách thu chi để tải dữ liệu.</td>
                   </tr>
                 </tbody>
               </table>
@@ -2884,6 +2883,8 @@
     let fundCatalogEditRowIndex = null;
     let currentDetailItem = null;
     let currentDetailType = '';
+    let fundTransactionEditRowIndex = null;
+    let currentEditingTransaction = null;
     let reportBundleRequestSeq = 0;
     let reportBundlePrefetching = false;
     let reportCacheEpoch = 0;
@@ -3364,7 +3365,7 @@
         `).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Không có chi tiết.</td></tr>';
       }
       
-      // Render Mobile Card List (bỏ Phân loại, đưa Nội dung lên dưới Đối tác căn trái, tiền ở dưới cùng)
+      // Render Mobile Card List (bỏ Phân loại, đưa Nội dung lên dưới Đối tác căn phải, tiền ở dưới cùng)
       if (mobileList) {
         mobileList.innerHTML = (details || []).map((row) => `
           <div class="fund-detail-mobile-card">
@@ -3380,9 +3381,9 @@
               <span class="fund-detail-mobile-card-label">Đối tác</span>
               <span class="fund-detail-mobile-card-value">${escapeHtml(row.partner || '-')}</span>
             </div>
-            <div class="fund-detail-mobile-card-row" style="align-items: flex-start; justify-content: flex-start; gap: 8px;">
-              <span class="fund-detail-mobile-card-label" style="width: 70px; flex-shrink: 0;">Nội dung</span>
-              <span class="fund-detail-mobile-card-value" style="text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; white-space: normal;">${escapeHtml(row.content || 'Không có nội dung')}</span>
+            <div class="fund-detail-mobile-card-row" style="align-items: flex-start;">
+              <span class="fund-detail-mobile-card-label">Nội dung</span>
+              <span class="fund-detail-mobile-card-value" style="color: var(--muted); font-weight: 500; font-size: 12px; max-width: 70%; text-align: right; white-space: normal;">${escapeHtml(row.content || 'Không có nội dung')}</span>
             </div>
             <div class="fund-detail-mobile-card-row" style="border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 4px;">
               <span class="fund-detail-mobile-card-label">Số tiền</span>
@@ -3570,20 +3571,58 @@
       }
 
       if (btn) btn.disabled = true;
-      showFundEntryStatus('info', 'Đang lưu khoản thu/chi...');
-      callApi('POST', 'addFundTransaction', {}, { year: '2026', transaction })
-        .then(() => {
-          clearFundEntryForm();
-          showFundEntryStatus('success', 'Đã lưu khoản thu/chi vào file Thu chi.');
-          setCashflowTab('transactions');
-          loadFundTransactions(true);
+
+      if (fundTransactionEditRowIndex) {
+        showFundEntryStatus('info', 'Đang cập nhật khoản thu/chi...');
+        const oldItem = currentEditingTransaction || {};
+        const rowData = [
+          oldItem.voucher || '', // Số phiếu
+          transaction.date, // Ngày
+          transaction.type === 'Thu' ? transaction.category : '', // MỤC THU
+          transaction.type === 'Chi' ? transaction.category : '', // MỤC CHI
+          oldItem.method || '', // Hình thức
+          parseLocaleNumber(transaction.amount), // Số tiền
+          transaction.actor, // Người Thu/Chi
+          transaction.partner, // Đối tác
+          transaction.content, // Nội dung
+          transaction.debt ? 'Có' : '' // Công nợ
+        ];
+
+        callApi('POST', 'saveSheetRow', {}, {
+          sheetName: 'NHAP_THUCHI',
+          rowIndex: fundTransactionEditRowIndex,
+          rowData: rowData
         })
-        .catch((err) => {
-          showFundEntryStatus('error', 'Không thể lưu khoản thu/chi: ' + err.message);
-        })
-        .finally(() => {
-          if (btn) btn.disabled = false;
-        });
+          .then(() => {
+            clearFundEntryForm();
+            showFundEntryStatus('success', 'Đã cập nhật khoản thu/chi thành công.');
+            setCashflowTab('transactions');
+            loadFundTransactions(true);
+            loadFundOverview(true);
+          })
+          .catch((err) => {
+            showFundEntryStatus('error', 'Không thể cập nhật khoản thu/chi: ' + err.message);
+          })
+          .finally(() => {
+            if (btn) btn.disabled = false;
+          });
+      } else {
+        showFundEntryStatus('info', 'Đang lưu khoản thu/chi...');
+        callApi('POST', 'addFundTransaction', {}, { year: '2026', transaction })
+          .then(() => {
+            clearFundEntryForm();
+            showFundEntryStatus('success', 'Đã lưu khoản thu/chi vào file Thu chi.');
+            setCashflowTab('transactions');
+            loadFundTransactions(true);
+            loadFundOverview(true);
+          })
+          .catch((err) => {
+            showFundEntryStatus('error', 'Không thể lưu khoản thu/chi: ' + err.message);
+          })
+          .finally(() => {
+            if (btn) btn.disabled = false;
+          });
+      }
     }
 
     function validateFundTransaction(transaction) {
@@ -3979,7 +4018,7 @@
       const pager = el('fundTransactionsPager');
       if (!tableBody || !empty || !notice || !monthFilter) return;
 
-      tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải dữ liệu thu chi...</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải dữ liệu thu chi...</td></tr>';
       empty.style.display = 'none';
       if (pager) pager.style.display = 'none';
       notice.textContent = '';
@@ -4052,6 +4091,14 @@
           <td>${escapeHtml(item.actor || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>
           <td>${escapeHtml(item.content || '')}</td>
+          <td style="text-align: center; white-space: nowrap;" class="sticky-col-right">
+            <button type="button" class="btn-table-action edit" title="Sửa" style="margin-right: 4px;" onclick="editFundTransaction(${item.rowIndex})">
+              <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </button>
+            <button type="button" class="btn-table-action delete" title="Xóa" onclick="deleteFundTransaction(${item.rowIndex})">
+              <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </button>
+          </td>
         `;
         fragment.appendChild(tr);
       });
@@ -4096,6 +4143,66 @@
       const number = Number(amount || 0);
       if (number) return Math.round(number).toLocaleString('vi-VN') + ' ₫';
       return escapeHtml(fallbackText || '');
+    }
+
+    window.editFundTransaction = function(rowIndex) {
+      const item = fundTransactionsData?.transactions?.find(t => t.rowIndex === rowIndex);
+      if (!item) return;
+
+      fundTransactionEditRowIndex = rowIndex;
+      currentEditingTransaction = item;
+
+      // Điền dữ liệu cũ vào form Thêm khoản thu/chi
+      if (el('fundDateInput')) el('fundDateInput').value = item.date || '';
+      if (el('fundTypeInput')) el('fundTypeInput').value = item.type || 'Chi';
+      
+      // Kích hoạt thay đổi loại để cập nhật danh sách hạng mục dropdown
+      el('fundCategoryInput').dataset.selected = item.category || '';
+      handleFundTypeChange();
+      
+      if (el('fundAmountInput')) el('fundAmountInput').value = item.amountText || item.amount || '';
+      if (el('fundActorInput')) el('fundActorInput').value = item.actor || '';
+      if (el('fundPartnerInput')) el('fundPartnerInput').value = item.partner || '';
+      if (el('fundContentInput')) el('fundContentInput').value = item.content || '';
+      if (el('fundDebtInput')) el('fundDebtInput').checked = (item.debt === 'Có');
+
+      const btn = el('fundSaveBtn');
+      if (btn) btn.textContent = 'Cập nhật khoản thu/chi';
+
+      setCashflowTab('entry');
+    };
+
+    window.deleteFundTransaction = function(rowIndex) {
+      if (!confirm('Bạn có chắc chắn muốn xóa giao dịch thu chi này?')) return;
+
+      showGlobalLoader('Đang xóa giao dịch...', 'Hệ thống đang tiến hành xóa dòng trên Google Sheets...');
+      callApi('POST', 'deleteSheetRow', {}, {
+        sheetName: 'NHAP_THUCHI',
+        rowIndex: rowIndex
+      })
+        .then(() => {
+          hideGlobalLoader();
+          loadFundTransactions(true);
+          loadFundOverview(true);
+        })
+        .catch((err) => {
+          hideGlobalLoader();
+          alert('Không thể xóa giao dịch: ' + err.message);
+        });
+    };
+
+    function showGlobalLoader(title, text) {
+      const loader = el('loader');
+      if (loader) {
+        loader.querySelector('.loader-title').textContent = title || 'Đang xử lý';
+        loader.querySelector('.loader-text').textContent = text || 'Vui lòng đợi trong giây lát...';
+        loader.querySelector('.spinner').classList.remove('hidden');
+        loader.classList.remove('hidden');
+      }
+    }
+
+    function hideGlobalLoader() {
+      el('loader')?.classList.add('hidden');
     }
 </script>
 

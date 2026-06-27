@@ -411,15 +411,6 @@
 
       <!-- View: Cashflow Module Placeholder -->
       <section id="cashflowView" class="view">
-        <section class="panel" style="margin-bottom: 20px;">
-          <div class="panel-head" style="align-items: flex-start; gap: 16px;">
-            <div>
-              <h2 class="panel-title">Quản lý quỹ</h2>
-              <div class="panel-note">Theo dõi thu chi, số dư quỹ và các khoản vay.</div>
-            </div>
-          </div>
-        </section>
-
         <div class="sub-tabs-bar" style="width: 100%; margin-bottom: 12px;">
           <button type="button" class="sub-tab active" data-cashflow-tab="overview" onclick="setCashflowTab('overview')">Tổng quan</button>
           <button type="button" class="sub-tab" data-cashflow-tab="transactions" onclick="setCashflowTab('transactions')">Danh sách thu chi</button>
@@ -431,14 +422,14 @@
 
         <div data-cashflow-panel="overview">
           <section class="panel" style="margin-bottom: 16px;">
-            <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
+            <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; gap: 12px; padding: 16px 20px;">
               <div>
                 <h2 class="panel-title">Tổng quan quỹ</h2>
-                <div class="panel-note">Tổng hợp theo logic báo cáo Thu chi hiện có.</div>
+                <div class="panel-note" id="fundOverviewNote">Tháng gần nhất</div>
               </div>
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap;">
                 Tháng:
-                <select id="fundOverviewMonthFilter" style="height: 38px; width: 150px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundOverview(false)">
+                <select id="fundOverviewMonthFilter" style="height: 38px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundOverview(false)">
                   <option value="">Tháng gần nhất</option>
                 </select>
               </label>
@@ -456,7 +447,7 @@
             <section class="table-card">
               <div class="table-card-head"><div class="table-title">Hạng mục thu trong kỳ</div></div>
               <div class="table-wrap">
-                <table class="report-table">
+                <table class="report-table" style="min-width: auto !important; width: 100%;">
                   <thead><tr><th>Hạng mục</th><th style="text-align:right;">Số tiền</th><th></th></tr></thead>
                   <tbody id="fundIncomeCategoryBody"><tr><td colspan="3" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
                 </table>
@@ -465,7 +456,7 @@
             <section class="table-card">
               <div class="table-card-head"><div class="table-title">Hạng mục chi trong kỳ</div></div>
               <div class="table-wrap">
-                <table class="report-table">
+                <table class="report-table" style="min-width: auto !important; width: 100%;">
                   <thead><tr><th>Hạng mục</th><th style="text-align:right;">Số tiền</th><th></th></tr></thead>
                   <tbody id="fundExpenseCategoryBody"><tr><td colspan="3" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
                 </table>

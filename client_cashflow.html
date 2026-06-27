@@ -87,6 +87,12 @@
 
     function renderFundOverview(data, prevData) {
       renderFundOverviewMonthFilter(data.months || [], data.selectedMonth || '');
+      const filterSelect = el('fundOverviewMonthFilter');
+      const noteEl = el('fundOverviewNote');
+      if (filterSelect && noteEl) {
+        const selectedText = filterSelect.options[filterSelect.selectedIndex]?.text || 'Tháng gần nhất';
+        noteEl.textContent = `Tháng: ${selectedText}`;
+      }
       const metrics = el('fundOverviewMetrics');
       const timeStr = new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
       

@@ -91,10 +91,11 @@
       let body = tableRows.slice(1);
       
       let displayTitle = title;
+      let displayMonth = '';
       if (selectedMonth) {
-        displayTitle = selectedMonth === 'Tất cả'
-          ? `${title} - Tất cả tháng`
-          : `${title} - Tháng ${selectedMonth}`;
+        displayMonth = selectedMonth === 'Tất cả'
+          ? `Tất cả tháng`
+          : `Tháng ${selectedMonth}`;
       }
       
       const isMonthCol = head[0] && /tháng/i.test(head[0].trim());
@@ -136,8 +137,11 @@
       }
       
       card.innerHTML = `
-        <div class="table-card-head">
-          <div class="table-title">${escapeHtml(displayTitle)}</div>
+        <div class="table-card-head" style="align-items: flex-start;">
+          <div>
+            <div class="table-title">${escapeHtml(displayTitle)}</div>
+            ${displayMonth ? `<div class="panel-note" style="margin-top: 4px; font-weight: 500; font-size: 13px; color: var(--muted);">${escapeHtml(displayMonth)}</div>` : ''}
+          </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <button type="button" class="sub-tab" title="Xuất ảnh" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;" onclick="exportCardAsImage(this, '${escapeHtml(type)}')">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>

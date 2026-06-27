@@ -2147,7 +2147,7 @@
         <!-- Condensed Financial Summary Table Panel -->
         <section class="panel table-card" id="homeSummaryTableCard" style="margin-bottom: 24px;">
           <div class="table-card-head">
-            <div class="table-title">Báo cáo kinh doanh theo tháng</div>
+            <div class="table-title">Kết quả kinh doanh theo tháng</div>
             <div style="display: flex; gap: 8px;">
               <button type="button" class="sub-tab" title="Xuất ảnh" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;" onclick="exportCardAsImage(this, 'TongQuan')">
                 <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
@@ -2227,15 +2227,9 @@
               <h2 class="panel-title">Tùy chọn hiển thị báo cáo</h2>
               <div class="panel-note">Chọn tháng để hiển thị bảng báo cáo chi tiết</div>
             </div>
-            <div class="filter-row" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
-                Lọc nhanh:
-                <input type="text" id="reportSearchInput" placeholder="Tìm xe, tài xế (ngăn cách , hoặc ;)..." style="height: 38px; width: 160px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s;" oninput="debounceReportSearch()"/>
-              </label>
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
-                Tháng báo cáo:
-                <select id="reportMonthFilter" style="height: 38px; width: 160px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s; cursor: pointer;"></select>
-              </label>
+            <div class="filter-row" style="display: flex; gap: 12px; align-items: center; width: 100%; max-width: 500px; flex-wrap: nowrap;">
+              <input type="text" id="reportSearchInput" placeholder="Tìm xe, tài xế..." style="height: 38px; flex: 1; min-width: 0; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s;" oninput="debounceReportSearch()"/>
+              <select id="reportMonthFilter" style="height: 38px; flex: 1; min-width: 0; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s; cursor: pointer;"></select>
             </div>
           </div>
         </section>
@@ -5203,9 +5197,9 @@
       });
       
       const meta = {
-        home: ['Tổng quan', 'Báo cáo kinh doanh', `Dữ liệu cập nhật: ${getDashboardData()?.updatedAt || 'Vui lòng chờ...'}`],
+        home: ['Tổng quan', 'Kết quả kinh doanh', `Dữ liệu cập nhật: ${getDashboardData()?.updatedAt || 'Vui lòng chờ...'}`],
         entry: ['Nhập liệu', 'Bảng kê nhập liệu', 'Thông tin tháng tự sinh theo ngày nhập dữ liệu.'],
-        reports: ['Báo cáo', 'Báo cáo chi tiết tổng hợp', 'Đồng bộ từ các sheet tính toán gốc.'],
+        reports: ['Báo cáo', 'Tổng hợp chi tiết', 'Tổng hợp các hạng mục báo cáo.'],
         manage: ['Quản lý nhật ký', 'Quản lý các giao dịch nhật ký', 'Xem, tìm kiếm lọc theo ngày, sửa hoặc xóa dòng nhật ký.'],
         catalog: ['Danh mục', 'Quản lý danh mục hệ thống', 'Xem, tìm kiếm, thêm mới, sửa hoặc xóa danh mục gốc.'],
         cashflow: ['Quỹ', 'Quản lý quỹ', 'Theo dõi thu chi, số dư và khoản vay.'],
@@ -6075,10 +6069,11 @@
       let body = tableRows.slice(1);
       
       let displayTitle = title;
+      let displayMonth = '';
       if (selectedMonth) {
-        displayTitle = selectedMonth === 'Tất cả'
-          ? `${title} - Tất cả tháng`
-          : `${title} - Tháng ${selectedMonth}`;
+        displayMonth = selectedMonth === 'Tất cả'
+          ? `Tất cả tháng`
+          : `Tháng ${selectedMonth}`;
       }
       
       const isMonthCol = head[0] && /tháng/i.test(head[0].trim());
@@ -6120,8 +6115,11 @@
       }
       
       card.innerHTML = `
-        <div class="table-card-head">
-          <div class="table-title">${escapeHtml(displayTitle)}</div>
+        <div class="table-card-head" style="align-items: flex-start;">
+          <div>
+            <div class="table-title">${escapeHtml(displayTitle)}</div>
+            ${displayMonth ? `<div class="panel-note" style="margin-top: 4px; font-weight: 500; font-size: 13px; color: var(--muted);">${escapeHtml(displayMonth)}</div>` : ''}
+          </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <button type="button" class="sub-tab" title="Xuất ảnh" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;" onclick="exportCardAsImage(this, '${escapeHtml(type)}')">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>

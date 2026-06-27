@@ -673,7 +673,7 @@
           <td style="text-align:right; font-weight:800;">${formatFundAmount(item.borrowed, '')}</td>
           <td style="text-align:right;">${formatFundAmount(item.principalPaid, '')}</td>
           <td style="text-align:right;">${formatFundAmount(item.interestPaid, '')}</td>
-          <td style="text-align:right; font-weight:800;">${formatFundAmount(item.outstanding, '')}</td>
+          <td style="text-align:right; font-weight:800; color: var(--red);">${formatFundAmount(item.outstanding, '')}</td>
           <td>${escapeHtml(item.principalLatestDateText || item.principalLatestDate || '')}</td>
           <td style="text-align:right; white-space:nowrap;">
             ${Number(item.outstanding || 0) > 0 ? `
@@ -686,16 +686,20 @@
 
       const history = el('fundLoanHistoryBody');
       const rows = data.recentRows || [];
-      history.innerHTML = rows.length ? rows.map((row) => `
-        <tr>
-          <td>${escapeHtml(row.dateText || row.date || '')}</td>
-          <td>${row.isSettled ? '<span class="preview-badge success" style="white-space:nowrap;">Đã trả gốc</span>' : ''}</td>
-          <td>${escapeHtml(row.type || '')}</td>
-          <td>${escapeHtml(row.partner || '')}</td>
-          <td style="text-align:right; font-weight:800;">${formatFundAmount(row.amount, row.amountText)}</td>
-          <td>${escapeHtml(row.content || '')}</td>
-        </tr>
-      `).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
+      history.innerHTML = rows.length ? rows.map((row) => {
+        const amountColor = row.type === 'Vay' ? 'var(--green)' : 'var(--red)';
+        const amountSign = row.type === 'Vay' ? '+' : '-';
+        return `
+          <tr>
+            <td>${escapeHtml(row.dateText || row.date || '')}</td>
+            <td>${row.isSettled ? '<span class="preview-badge success" style="white-space:nowrap;">Đã trả gốc</span>' : ''}</td>
+            <td>${escapeHtml(row.type || '')}</td>
+            <td>${escapeHtml(row.partner || '')}</td>
+            <td style="text-align:right; font-weight:800; color: ${amountColor};">${amountSign}${formatFundAmount(row.amount, row.amountText)}</td>
+            <td>${escapeHtml(row.content || '')}</td>
+          </tr>
+        `;
+      }).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
     }
 
     function renderFundLoanMonthFilter(months, selectedMonth) {
@@ -922,7 +926,7 @@
           <td>${escapeHtml(item.dateText || formatTableDate(item.date, false))}</td>
           <td><span style="font-weight: 800; color: ${typeColor};">${escapeHtml(item.type || '-')}</span></td>
           <td>${escapeHtml(item.category || '')}</td>
-          <td style="text-align: right; font-weight: 800;">${formatFundAmount(item.amount, item.amountText)}</td>
+          <td style="text-align: right; font-weight: 800; color: ${typeColor};">${item.type === 'Thu' ? '+' : (item.type === 'Chi' ? '-' : '')}${formatFundAmount(item.amount, item.amountText)}</td>
           <td>${escapeHtml(item.actor || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>
           <td>${escapeHtml(item.content || '')}</td>

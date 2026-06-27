@@ -231,9 +231,9 @@
               <h2 class="panel-title">Tùy chọn hiển thị báo cáo</h2>
               <div class="panel-note">Chọn tháng để hiển thị bảng báo cáo chi tiết</div>
             </div>
-            <div class="filter-row" style="display: flex; gap: 12px; align-items: center; width: 100%; max-width: 500px; flex-wrap: nowrap;">
-              <input type="text" id="reportSearchInput" placeholder="Tìm xe, tài xế..." style="height: 38px; flex: 1; min-width: 0; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s;" oninput="debounceReportSearch()"/>
-              <select id="reportMonthFilter" style="height: 38px; flex: 1; min-width: 0; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s; cursor: pointer;"></select>
+            <div class="filter-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 500px; box-sizing: border-box;">
+              <input type="text" id="reportSearchInput" placeholder="Tìm xe, tài xế..." style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s;" oninput="debounceReportSearch()"/>
+              <select id="reportMonthFilter" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s; cursor: pointer;"></select>
             </div>
           </div>
         </section>
@@ -267,11 +267,11 @@
         <input type="hidden" id="manageSheetSelect" value="NL_Dau">
 
         <div class="filter-bar" style="margin-bottom: 16px;">
-          <div class="filter-container" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
-            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1;">
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+          <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; min-width: 145px;">
                 Kỳ:
-                <select id="manageQuickDateFilter" style="height: 38px; width: 145px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="setManageQuickDate(this.value)">
+                <select id="manageQuickDateFilter" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="setManageQuickDate(this.value)">
                   <option value="recent">Mới nhất</option>
                   <option value="today">Hôm nay</option>
                   <option value="7days">7 ngày</option>
@@ -280,19 +280,19 @@
                   <option value="custom">Tùy chọn</option>
                 </select>
               </label>
-              <div id="manageDateFilterGroup" style="display: flex; gap: 8px; align-items: center;">
-                <label style="margin: 0; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted);">
+              <div id="manageDateFilterGroup" style="display: flex; gap: 8px; align-items: center; flex: 2; min-width: 260px;">
+                <label style="margin: 0; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; min-width: 120px;">
                   Từ:
-                  <input type="date" id="manageStartDate" style="height: 38px; width: 125px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
+                  <input type="date" id="manageStartDate" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
                 </label>
-                <label style="margin: 0; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted);">
+                <label style="margin: 0; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; min-width: 120px;">
                   Đến:
-                  <input type="date" id="manageEndDate" style="height: 38px; width: 125px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
+                  <input type="date" id="manageEndDate" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
                 </label>
               </div>
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 2; min-width: 220px;">
                 Tìm kiếm:
-                <input type="text" id="manageSearchInput" placeholder="Tìm theo biển số, tài xế..." style="height: 38px; width: 220px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="debounceManageSearch()">
+                <input type="text" id="manageSearchInput" placeholder="Tìm theo biển số, tài xế..." style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="debounceManageSearch()">
               </label>
             </div>
             <div>
@@ -370,11 +370,11 @@
         <input type="hidden" id="catalogSheetSelect" value="DM_NhanSu">
 
         <div class="filter-bar" style="margin-bottom: 16px;">
-          <div class="filter-container" style="flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
-            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1;">
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
+          <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
+              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; max-width: 400px; width: 100%;">
                 Tìm kiếm:
-                <input type="text" id="catalogSearchInput" placeholder="Tìm kiếm trong danh mục..." style="height: 38px; width: 260px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="debounceCatalogSearch()">
+                <input type="text" id="catalogSearchInput" placeholder="Tìm kiếm trong danh mục..." style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="debounceCatalogSearch()">
               </label>
             </div>
             <div>
@@ -480,7 +480,7 @@
 
           <div class="table-card">
             <div class="table-scroll" style="max-height: calc(100vh - 300px); overflow-y: auto; padding: 12px;">
-              <table class="report-table" id="fundTransactionsTable">
+              <table class="report-table table-wide" id="fundTransactionsTable">
                 <thead>
                   <tr>
                     <th>Ngày</th>
@@ -589,7 +589,7 @@
           <section class="table-card" style="margin-bottom: 20px;">
             <div class="table-card-head"><div class="table-title">Tổng quan các khoản vay</div></div>
             <div class="table-wrap">
-              <table class="report-table">
+              <table class="report-table table-wide">
                 <thead><tr><th>Ngày vay</th><th>Đối tác</th><th style="text-align:right;">Đã vay</th><th style="text-align:right;">Đã trả gốc</th><th style="text-align:right;">Đã trả lãi</th><th style="text-align:right;">Dư nợ</th><th>Ngày trả gốc</th><th style="text-align:right;">Thao tác</th></tr></thead>
                 <tbody id="fundLoanSummaryBody"><tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
@@ -621,7 +621,7 @@
           <section class="table-card">
             <div class="table-card-head"><div class="table-title">Lịch sử vay/trả</div></div>
             <div class="table-wrap">
-              <table class="report-table">
+              <table class="report-table table-wide">
                 <thead><tr><th>Ngày</th><th>Trạng thái</th><th>Loại</th><th>Đối tác</th><th style="text-align:right;">Số tiền</th><th>Nội dung</th></tr></thead>
                 <tbody id="fundLoanHistoryBody"><tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>

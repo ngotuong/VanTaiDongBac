@@ -4562,7 +4562,7 @@
       return true;
     }
 
-    function setManageQuickDate(mode) {
+    window.setManageQuickDate = function(mode) {
       const start = el('manageStartDate');
       const end = el('manageEndDate');
       const today = new Date();
@@ -4595,20 +4595,20 @@
       if (mode !== 'custom') loadManageSheetData();
     }
 
-    function setManageCustomDate() {
+    window.setManageCustomDate = function() {
       const quick = el('manageQuickDateFilter');
       if (quick) quick.value = 'custom';
       loadManageSheetData();
     }
 
     let manageSearchTimeout = null;
-    function debounceManageSearch() {
+    window.debounceManageSearch = function() {
       clearTimeout(manageSearchTimeout);
       manageSearchTimeout = setTimeout(filterManageRows, 150);
     }
     
     let catalogSearchTimeout = null;
-    function debounceCatalogSearch() {
+    window.debounceCatalogSearch = function() {
       clearTimeout(catalogSearchTimeout);
       catalogSearchTimeout = setTimeout(filterCatalogRows, 150);
     }
@@ -5520,7 +5520,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.6_entry_route_and_backend_autodetect_fix';
+      const APP_VERSION = 'v3.7_batch_entry_and_date_defaults';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -7046,7 +7046,7 @@
         if (!select) return;
         const previous = select.value;
         select.innerHTML = '';
-        select.appendChild(new Option("Tất cả", "Tất cả"));
+        select.appendChild(new Option("Tất cả", ""));
         rows.forEach((row) => select.appendChild(new Option(row.month, row.month)));
         select.value = selectedMonth || previous;
         select.onchange = () => {

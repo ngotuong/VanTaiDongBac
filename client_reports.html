@@ -593,7 +593,7 @@
         if (!select) return;
         const previous = select.value;
         select.innerHTML = '';
-        select.appendChild(new Option("Tất cả", "Tất cả"));
+        select.appendChild(new Option("Tất cả", ""));
         rows.forEach((row) => select.appendChild(new Option(row.month, row.month)));
         select.value = selectedMonth || previous;
         select.onchange = () => {

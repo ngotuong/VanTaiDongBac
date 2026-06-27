@@ -129,7 +129,7 @@
       return true;
     }
 
-    function setManageQuickDate(mode) {
+    window.setManageQuickDate = function(mode) {
       const start = el('manageStartDate');
       const end = el('manageEndDate');
       const today = new Date();
@@ -162,20 +162,20 @@
       if (mode !== 'custom') loadManageSheetData();
     }
 
-    function setManageCustomDate() {
+    window.setManageCustomDate = function() {
       const quick = el('manageQuickDateFilter');
       if (quick) quick.value = 'custom';
       loadManageSheetData();
     }
 
     let manageSearchTimeout = null;
-    function debounceManageSearch() {
+    window.debounceManageSearch = function() {
       clearTimeout(manageSearchTimeout);
       manageSearchTimeout = setTimeout(filterManageRows, 150);
     }
     
     let catalogSearchTimeout = null;
-    function debounceCatalogSearch() {
+    window.debounceCatalogSearch = function() {
       clearTimeout(catalogSearchTimeout);
       catalogSearchTimeout = setTimeout(filterCatalogRows, 150);
     }

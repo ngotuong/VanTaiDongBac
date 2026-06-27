@@ -1,5 +1,12 @@
 <script>
     // API REST Request Layer
+    function hasAppsScriptRuntime() {
+      return typeof google !== 'undefined'
+        && google.script
+        && google.script.run
+        && typeof google.script.run.withSuccessHandler === 'function';
+    }
+
     function normalizeWebAppUrl(rawUrl) {
       if (!rawUrl) return '';
       try {
@@ -17,7 +24,7 @@
     };
 
     function callAppsScriptAction(method, action, params = {}, bodyData = null) {
-      if (!(typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.withSuccessHandler === 'function')) {
+      if (!hasAppsScriptRuntime()) {
         return Promise.reject(new Error('google.script.run unavailable'));
       }
 
@@ -73,15 +80,42 @@
             throw new Error(data.error || 'Lỗi API hệ thống.');
           }
           return data;
+        })
+        .catch((err) => {
+          const fallbackResult = buildFetchPostFallbackResult_(method, action, bodyData, backendUrl, err);
+          if (fallbackResult) return fallbackResult;
+          throw err;
         });
     }
 
     function callApi(method, action, params = {}, bodyData = null) {
       const normalizedMethod = String(method || '').toUpperCase();
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
+      if (hasAppsScriptRuntime()) {
         return callAppsScriptAction(normalizedMethod, action, params, bodyData);
       }
       return callFetchApi(normalizedMethod, action, params, bodyData);
+    }
+
+    function buildFetchPostFallbackResult_(method, action, bodyData, backendUrl, err) {
+      if (String(method || '').toUpperCase() !== 'POST') return null;
+      if (!/script\.google\.com$/i.test((new URL(backendUrl)).hostname)) return null;
+      const message = String(err && err.message ? err.message : err || '');
+      if (!/Failed to fetch|NetworkError|Load failed/i.test(message)) return null;
+
+      const warning = 'Yêu cầu đã được gửi tới Apps Script nhưng trình duyệt không đọc được phản hồi. Nếu dữ liệu đã xuất hiện trong Google Sheet thì có thể bỏ qua cảnh báo này.';
+      if (action === 'submitRows') {
+        return {
+          ok: true,
+          inserted: Array.isArray(bodyData && bodyData.rows) ? bodyData.rows.length : 0,
+          sheetName: '',
+          errors: [],
+          warnings: [warning]
+        };
+      }
+      return {
+        ok: true,
+        warnings: [warning]
+      };
     }
 
     function removeSessionKeysByPrefix(prefix) {

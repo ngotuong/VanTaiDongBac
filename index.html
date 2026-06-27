@@ -2618,7 +2618,7 @@
             <div class="table-card-head"><div class="table-title">Lịch sử vay/trả</div></div>
             <div class="table-wrap">
               <table class="report-table">
-                <thead><tr><th>Ngày</th><th>Mã</th><th>Loại</th><th>Đối tác</th><th style="text-align:right;">Số tiền</th><th>Nội dung</th></tr></thead>
+                <thead><tr><th>Ngày</th><th>Trạng thái</th><th>Loại</th><th>Đối tác</th><th style="text-align:right;">Số tiền</th><th>Nội dung</th></tr></thead>
                 <tbody id="fundLoanHistoryBody"><tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
             </div>
@@ -3095,6 +3095,13 @@
 
   <script>
     // API REST Request Layer
+    function hasAppsScriptRuntime() {
+      return typeof google !== 'undefined'
+        && google.script
+        && google.script.run
+        && typeof google.script.run.withSuccessHandler === 'function';
+    }
+
     function normalizeWebAppUrl(rawUrl) {
       if (!rawUrl) return '';
       try {
@@ -3112,7 +3119,7 @@
     };
 
     function callAppsScriptAction(method, action, params = {}, bodyData = null) {
-      if (!(typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.withSuccessHandler === 'function')) {
+      if (!hasAppsScriptRuntime()) {
         return Promise.reject(new Error('google.script.run unavailable'));
       }
 
@@ -3168,15 +3175,42 @@
             throw new Error(data.error || 'Lỗi API hệ thống.');
           }
           return data;
+        })
+        .catch((err) => {
+          const fallbackResult = buildFetchPostFallbackResult_(method, action, bodyData, backendUrl, err);
+          if (fallbackResult) return fallbackResult;
+          throw err;
         });
     }
 
     function callApi(method, action, params = {}, bodyData = null) {
       const normalizedMethod = String(method || '').toUpperCase();
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
+      if (hasAppsScriptRuntime()) {
         return callAppsScriptAction(normalizedMethod, action, params, bodyData);
       }
       return callFetchApi(normalizedMethod, action, params, bodyData);
+    }
+
+    function buildFetchPostFallbackResult_(method, action, bodyData, backendUrl, err) {
+      if (String(method || '').toUpperCase() !== 'POST') return null;
+      if (!/script\.google\.com$/i.test((new URL(backendUrl)).hostname)) return null;
+      const message = String(err && err.message ? err.message : err || '');
+      if (!/Failed to fetch|NetworkError|Load failed/i.test(message)) return null;
+
+      const warning = 'Yêu cầu đã được gửi tới Apps Script nhưng trình duyệt không đọc được phản hồi. Nếu dữ liệu đã xuất hiện trong Google Sheet thì có thể bỏ qua cảnh báo này.';
+      if (action === 'submitRows') {
+        return {
+          ok: true,
+          inserted: Array.isArray(bodyData && bodyData.rows) ? bodyData.rows.length : 0,
+          sheetName: '',
+          errors: [],
+          warnings: [warning]
+        };
+      }
+      return {
+        ok: true,
+        warnings: [warning]
+      };
     }
 
     function removeSessionKeysByPrefix(prefix) {
@@ -3890,7 +3924,7 @@
       history.innerHTML = rows.length ? rows.map((row) => `
         <tr>
           <td>${escapeHtml(row.dateText || row.date || '')}</td>
-          <td>${escapeHtml(row.code || '')}</td>
+          <td>${row.isSettled ? '<span class="preview-badge success" style="white-space:nowrap;">Đã trả gốc</span>' : ''}</td>
           <td>${escapeHtml(row.type || '')}</td>
           <td>${escapeHtml(row.partner || '')}</td>
           <td style="text-align:right; font-weight:800;">${formatFundAmount(row.amount, row.amountText)}</td>
@@ -5103,7 +5137,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.4_fund_catalog_selects_url_fallback_fix';
+      const APP_VERSION = 'v3.5_post_fallback_loan_history_fix';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -5114,7 +5148,7 @@
       setupConfigInput();
       
       const backendUrl = getBackendUrl();
-      if (!backendUrl) {
+      if (!backendUrl && !hasAppsScriptRuntime()) {
         el('loader').querySelector('.loader-title').textContent = 'Chưa thiết lập kết nối';
         el('loader').querySelector('.loader-text').innerHTML = 
           'Vui lòng cấu hình link Apps Script trong Cài đặt.<br><a href="#" onclick="showSettingsFromLoader()" style="color:var(--teal);font-weight:bold;text-decoration:underline;display:inline-block;margin-top:10px;">Cấu hình ngay</a>';
@@ -6835,10 +6869,11 @@
           const details = [];
           if (result.errors?.length) details.push(result.errors.join('\n'));
           if (result.warnings?.length) details.push(result.warnings.join('\n'));
+          const sheetText = result.sheetName ? ` sheet ${result.sheetName}` : ' Google Sheet';
           
           showStatus(
             result.errors?.length ? 'warn' : 'ok', 
-            `Đã ghi nhận ${result.inserted} dòng kê vào sheet ${result.sheetName || ''}.${details.length ? '\nLưu ý:\n' + details.join('\n') : ''}`
+            `Đã ghi nhận ${result.inserted} dòng kê vào${sheetText}.${details.length ? '\nLưu ý:\n' + details.join('\n') : ''}`
           );
           
           if (result.inserted) {

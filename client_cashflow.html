@@ -689,7 +689,7 @@
       history.innerHTML = rows.length ? rows.map((row) => `
         <tr>
           <td>${escapeHtml(row.dateText || row.date || '')}</td>
-          <td>${escapeHtml(row.code || '')}</td>
+          <td>${row.isSettled ? '<span class="preview-badge success" style="white-space:nowrap;">Đã trả gốc</span>' : ''}</td>
           <td>${escapeHtml(row.type || '')}</td>
           <td>${escapeHtml(row.partner || '')}</td>
           <td style="text-align:right; font-weight:800;">${formatFundAmount(row.amount, row.amountText)}</td>

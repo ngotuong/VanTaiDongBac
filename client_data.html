@@ -162,10 +162,11 @@
           const details = [];
           if (result.errors?.length) details.push(result.errors.join('\n'));
           if (result.warnings?.length) details.push(result.warnings.join('\n'));
+          const sheetText = result.sheetName ? ` sheet ${result.sheetName}` : ' Google Sheet';
           
           showStatus(
             result.errors?.length ? 'warn' : 'ok', 
-            `Đã ghi nhận ${result.inserted} dòng kê vào sheet ${result.sheetName || ''}.${details.length ? '\nLưu ý:\n' + details.join('\n') : ''}`
+            `Đã ghi nhận ${result.inserted} dòng kê vào${sheetText}.${details.length ? '\nLưu ý:\n' + details.join('\n') : ''}`
           );
           
           if (result.inserted) {

@@ -2,7 +2,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.4_fund_catalog_selects_url_fallback_fix';
+      const APP_VERSION = 'v3.5_post_fallback_loan_history_fix';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -13,7 +13,7 @@
       setupConfigInput();
       
       const backendUrl = getBackendUrl();
-      if (!backendUrl) {
+      if (!backendUrl && !hasAppsScriptRuntime()) {
         el('loader').querySelector('.loader-title').textContent = 'Chưa thiết lập kết nối';
         el('loader').querySelector('.loader-text').innerHTML = 
           'Vui lòng cấu hình link Apps Script trong Cài đặt.<br><a href="#" onclick="showSettingsFromLoader()" style="color:var(--teal);font-weight:bold;text-decoration:underline;display:inline-block;margin-top:10px;">Cấu hình ngay</a>';

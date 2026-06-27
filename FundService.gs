@@ -130,6 +130,7 @@ var FundService = (function () {
     var months = buildMonths_(rows);
     var monthKey = normalizeMonthKey_((filter || {}).month);
     var period = monthKey ? monthPeriod_(monthKey) : null;
+    var overallLoanMap = buildLoanSummaryMap_(rows);
     var filteredRows = period ? rows.filter(function (row) {
       return row.dateObj && row.dateObj >= period.start && row.dateObj <= period.end;
     }) : rows;
@@ -211,7 +212,10 @@ var FundService = (function () {
       loans: loans,
       recentRows: filteredRows.slice().sort(function (a, b) {
         return a.date < b.date ? 1 : -1;
-      }).slice(0, 100)
+      }).slice(0, 100).map(function (row) {
+        var overallLoan = overallLoanMap[row.code || ('row-' + row.rowIndex)] || null;
+        return extendLoanHistoryRow_(row, overallLoan);
+      })
     };
   }
 
@@ -566,6 +570,52 @@ var FundService = (function () {
       });
     });
     return rows;
+  }
+
+  function buildLoanSummaryMap_(rows) {
+    var loanMap = {};
+    (rows || []).forEach(function (row) {
+      var key = row.code || ('row-' + row.rowIndex);
+      if (!loanMap[key]) {
+        loanMap[key] = {
+          code: row.code,
+          borrowed: 0,
+          principalPaid: 0
+        };
+      }
+      if (row.type === 'Vay') loanMap[key].borrowed += row.amount;
+      if (row.type === 'Trả nợ') loanMap[key].principalPaid += row.amount;
+    });
+
+    Object.keys(loanMap).forEach(function (key) {
+      loanMap[key].outstanding = loanMap[key].borrowed - loanMap[key].principalPaid;
+      loanMap[key].isSettled = loanMap[key].borrowed > 0 && loanMap[key].outstanding <= 0;
+    });
+    return loanMap;
+  }
+
+  function extendLoanHistoryRow_(row, overallLoan) {
+    return {
+      rowIndex: row.rowIndex,
+      code: row.code,
+      dateObj: row.dateObj,
+      date: row.date,
+      dateText: row.dateText,
+      month: row.month,
+      monthLabel: row.monthLabel,
+      type: row.type,
+      method: row.method,
+      partner: row.partner,
+      amount: row.amount,
+      amountText: row.amountText,
+      termMonths: row.termMonths,
+      annualRate: row.annualRate,
+      interestPeriodMonths: row.interestPeriodMonths,
+      firstInterestDate: row.firstInterestDate,
+      content: row.content,
+      isSettled: Boolean(overallLoan && overallLoan.isSettled),
+      statusLabel: overallLoan && overallLoan.isSettled ? 'Đã trả gốc' : ''
+    };
   }
 
   function readFundCatalogGroups_(ss) {

@@ -668,16 +668,18 @@
       const loans = data.loans || [];
       summary.innerHTML = loans.length ? loans.map((item) => `
         <tr>
-          <td>${escapeHtml(item.code || '')}</td>
+          <td>${escapeHtml(item.loanDateText || item.loanDate || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>
           <td style="text-align:right; font-weight:800;">${formatFundAmount(item.borrowed, '')}</td>
           <td style="text-align:right;">${formatFundAmount(item.principalPaid, '')}</td>
           <td style="text-align:right;">${formatFundAmount(item.interestPaid, '')}</td>
           <td style="text-align:right; font-weight:800;">${formatFundAmount(item.outstanding, '')}</td>
-          <td>${escapeHtml(item.latestDate || '')}</td>
+          <td>${escapeHtml(item.principalLatestDateText || item.principalLatestDate || '')}</td>
           <td style="text-align:right; white-space:nowrap;">
-            <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'partial')">Trả</button>
-            <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'settle')" ${Number(item.outstanding || 0) <= 0 ? 'disabled' : ''}>Tất toán</button>
+            ${Number(item.outstanding || 0) > 0 ? `
+              <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'partial')">Trả</button>
+              <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'settle')">Tất toán</button>
+            ` : `<span style="color: var(--muted); font-weight: 600;">Đã gốc</span>`}
           </td>
         </tr>
       `).join('') : '<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Chưa có khoản vay.</td></tr>';

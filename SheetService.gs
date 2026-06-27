@@ -199,28 +199,18 @@ var SheetService = (function () {
       ensureRows_(sheet, appendRow + result.values.length - 1);
       
       if (formType === 'dau') {
-        var lastCol = sheet.getLastColumn();
-        var headers = sheet.getRange(cfg.headerRow, 1, 1, lastCol).getValues()[0].map(function (h) {
+        var dauHeaders = sheet.getRange(cfg.headerRow, 1, 1, sheet.getLastColumn()).getValues()[0].map(function (h) {
           return String(h).trim();
         });
-        var litColIdx = headers.indexOf('Số lít');
-        var priceColIdx = headers.indexOf('Giá dầu');
-        var totalColIdx = headers.indexOf('Thành tiền');
-        if (litColIdx === -1) litColIdx = 4;
-        if (priceColIdx === -1) priceColIdx = 5;
+        var totalColIdx = dauHeaders.indexOf('Thành tiền');
         if (totalColIdx === -1) totalColIdx = 6;
-        
-        var litLetter = String.fromCharCode(65 + litColIdx);
-        var priceLetter = String.fromCharCode(65 + priceColIdx);
-
         for (var i = 0; i < result.values.length; i++) {
-          var currRow = appendRow + i;
-          result.values[i][totalColIdx] = '=' + litLetter + currRow + '*' + priceLetter + currRow;
+          writeRowSkippingColumns_(sheet, appendRow + i, result.values[i], [totalColIdx]);
         }
+      } else {
+        var range = sheet.getRange(appendRow, 1, result.values.length, cfg.columns);
+        range.setValues(result.values);
       }
-      
-      var range = sheet.getRange(appendRow, 1, result.values.length, cfg.columns);
-      range.setValues(result.values);
       var formatWarnings = applyFormatsSafely_(sheet, formType, appendRow, result.values.length);
 
       clearAfterSubmitCache_();
@@ -742,6 +732,33 @@ var SheetService = (function () {
     return getLastNonEmptyRowInColumn_(sheet, 1, headerRow + 1, false) + 1;
   }
 
+  function writeRowSkippingColumns_(sheet, rowNum, values, skippedColumns) {
+    var skipMap = {};
+    (skippedColumns || []).forEach(function (colIdx) {
+      skipMap[colIdx] = true;
+    });
+
+    var startCol = null;
+    var segment = [];
+    for (var colIdx = 0; colIdx < values.length; colIdx++) {
+      if (skipMap[colIdx]) {
+        if (segment.length) {
+          sheet.getRange(rowNum, startCol + 1, 1, segment.length).setValues([segment]);
+          segment = [];
+          startCol = null;
+        }
+        continue;
+      }
+
+      if (startCol === null) startCol = colIdx;
+      segment.push(values[colIdx]);
+    }
+
+    if (segment.length) {
+      sheet.getRange(rowNum, startCol + 1, 1, segment.length).setValues([segment]);
+    }
+  }
+
   function getAppendRowForRowData_(sheet, headerRow, headers, rowData) {
     if (rowData && rowData['Giá dầu áp dụng'] !== undefined) {
       return getAppendRowInHeaders_(sheet, headerRow, headers, [
@@ -1261,12 +1278,16 @@ var SheetService = (function () {
       }
 
       var valuesToSet = [];
+      var skippedColumns = [];
       for (var colIdx = 0; colIdx < headers.length; colIdx++) {
         var header = headers[colIdx];
         var val = rowData[header];
 
         if (existingFormulas && existingFormulas[colIdx]) {
           valuesToSet.push(existingFormulas[colIdx]);
+        } else if (sheetName === 'NL_Dau' && header === 'Thành tiền') {
+          valuesToSet.push(existingValues ? existingValues[colIdx] : '');
+          skippedColumns.push(colIdx);
         } else if (val === undefined && existingValues) {
           valuesToSet.push(existingValues[colIdx]);
         } else if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
@@ -1277,14 +1298,6 @@ var SheetService = (function () {
           valuesToSet.push('');
         } else if (sheetName === 'NL_NghiVanHanh' && (header.toLowerCase().indexOf('tính kpi') !== -1 || header.toLowerCase().indexOf('giảm kpi') !== -1)) {
           valuesToSet.push('');
-        } else if (sheetName === 'NL_Dau' && header === 'Thành tiền') {
-          var litColIdx = headers.indexOf('Số lít');
-          var priceColIdx = headers.indexOf('Giá dầu');
-          if (litColIdx === -1) litColIdx = 4;
-          if (priceColIdx === -1) priceColIdx = 5;
-          var litLetter = String.fromCharCode(65 + litColIdx);
-          var priceLetter = String.fromCharCode(65 + priceColIdx);
-          valuesToSet.push('=' + litLetter + rowNum + '*' + priceLetter + rowNum);
         } else {
           if (val === undefined || val === null) {
             valuesToSet.push('');
@@ -1304,8 +1317,7 @@ var SheetService = (function () {
         }
       }
 
-      var range = sheet.getRange(rowNum, 1, 1, valuesToSet.length);
-      range.setValues([valuesToSet]);
+      writeRowSkippingColumns_(sheet, rowNum, valuesToSet, skippedColumns);
 
       var formType = null;
       for (var key in APP_CONFIG.sheets) {

@@ -158,6 +158,8 @@ var FundService = (function () {
           borrowed: 0,
           principalPaid: 0,
           interestPaid: 0,
+          loanDateObj: null,
+          principalDateObj: null,
           latestDate: row.date,
           content: row.content,
           termMonths: row.termMonths,
@@ -169,10 +171,16 @@ var FundService = (function () {
       if (row.type === 'Vay') {
         loanMap[key].borrowed += row.amount;
         totalOutstandingBorrowed += row.amount;
+        if (!loanMap[key].loanDateObj || row.dateObj < loanMap[key].loanDateObj) {
+          loanMap[key].loanDateObj = row.dateObj;
+        }
       }
       if (row.type === 'Trả nợ') {
         loanMap[key].principalPaid += row.amount;
         totalOutstandingPrincipalPaid += row.amount;
+        if (!loanMap[key].principalDateObj || row.dateObj > loanMap[key].principalDateObj) {
+          loanMap[key].principalDateObj = row.dateObj;
+        }
       }
       if (row.type === 'Trả lãi') loanMap[key].interestPaid += row.amount;
       if (row.date > loanMap[key].latestDate) loanMap[key].latestDate = row.date;
@@ -181,6 +189,10 @@ var FundService = (function () {
     var loans = Object.keys(loanMap).map(function (key) {
       var item = loanMap[key];
       item.outstanding = item.borrowed - item.principalPaid;
+      item.loanDate = item.loanDateObj ? Utilities.formatDate(item.loanDateObj, APP_CONFIG.timezone, 'yyyy-MM-dd') : '';
+      item.loanDateText = item.loanDateObj ? Utilities.formatDate(item.loanDateObj, APP_CONFIG.timezone, 'dd/MM/yyyy') : '';
+      item.principalLatestDate = item.principalDateObj ? Utilities.formatDate(item.principalDateObj, APP_CONFIG.timezone, 'yyyy-MM-dd') : '';
+      item.principalLatestDateText = item.principalDateObj ? Utilities.formatDate(item.principalDateObj, APP_CONFIG.timezone, 'dd/MM/yyyy') : '';
       return item;
     }).sort(function (a, b) {
       return (b.outstanding || 0) - (a.outstanding || 0);

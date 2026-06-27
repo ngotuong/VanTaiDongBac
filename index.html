@@ -2587,34 +2587,44 @@
             <div class="table-card-head"><div class="table-title">Tổng quan các khoản vay</div></div>
             <div class="table-wrap">
               <table class="report-table table-wide">
-                <thead><tr><th>Ngày vay</th><th>Đối tác</th><th style="text-align:right;">Đã vay</th><th style="text-align:right;">Đã trả gốc</th><th style="text-align:right;">Đã trả lãi</th><th style="text-align:right;">Dư nợ</th><th>Ngày trả gốc</th><th style="text-align:right;">Thao tác</th></tr></thead>
-                <tbody id="fundLoanSummaryBody"><tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                <thead><tr><th>Ngày vay</th><th>Đối tác</th><th style="text-align:right;">Số tiền còn nợ</th><th style="text-align:right;">Thao tác</th></tr></thead>
+                <tbody id="fundLoanSummaryBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
             </div>
           </section>
-          <section class="table-card" id="fundLoanPaymentPanel" style="display:none; margin-bottom: 20px;">
-            <div class="panel-body">
-              <div style="margin-bottom: 14px;">
-                <div class="table-title">Thanh toán khoản vay</div>
-                <div class="panel-note">Ghi thêm dòng Trả nợ hoặc Trả lãi vào sheet NHAP_VAY.</div>
+
+          <!-- Modal Popup for Loan Payment -->
+          <div class="modal-overlay" id="fundLoanPaymentModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; background: rgba(0,0,0,0.4); align-items: center; justify-content: center;">
+            <div class="modal-container" style="max-width: 500px; width: 90%; background: var(--paper); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; animation: modalFadeIn 0.2s ease;">
+              <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line);">
+                <h3 id="loanPaymentModalTitle" style="margin:0; font-size:16px; font-weight:700; color:var(--deep);">Thanh toán khoản vay</h3>
+                <button type="button" class="modal-close-btn" style="background:none; border:none; font-size:24px; cursor:pointer; color:var(--muted);" onclick="closeFundLoanPaymentModal()">&times;</button>
               </div>
-              <div id="fundLoanPaymentStatus" class="status" style="display:none;"></div>
-              <div class="fields">
-                <label>Ngày thanh toán<input type="date" id="loanPaymentDateInput" required></label>
-                <label>Mã vay<input type="text" id="loanPaymentCodeInput" readonly></label>
-                <label>Loại thanh toán<select id="loanPaymentTypeInput"><option value="Trả nợ">Trả nợ gốc</option><option value="Trả lãi">Trả lãi</option></select></label>
-                <label>Đối tác<select id="loanPaymentPartnerInput" required></select></label>
-                <label>Số tiền<input type="number" id="loanPaymentAmountInput" min="1" step="1000" required></label>
-                <label style="grid-column: 1 / -1;">Nội dung<textarea id="loanPaymentContentInput" rows="2" placeholder="Nội dung thanh toán"></textarea></label>
-              </div>
-              <div class="submit-bar">
-                <button type="button" class="primary grow" id="loanPaymentSaveBtn" onclick="submitFundLoanPayment()">
-                  <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                  Lưu thanh toán
-                </button>
-              </div>
+              <form id="loanPaymentModalForm" onsubmit="event.preventDefault(); submitFundLoanPayment();">
+                <div class="modal-body" style="padding: 20px; max-height: calc(100vh - 200px); overflow-y: auto;">
+                  <div id="fundLoanPaymentStatus" class="status" style="display:none; margin-bottom: 12px; padding: 10px; border-radius: 8px;"></div>
+                  <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Ngày thanh toán<input type="date" id="loanPaymentDateInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" required></label>
+                    <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Mã vay<input type="text" id="loanPaymentCodeInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--canvas); font-size:13px;" readonly></label>
+                    <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Đối tác<input type="text" id="loanPaymentPartnerInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--canvas); font-size:13px;" readonly></label>
+                    <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Loại thanh toán
+                      <select id="loanPaymentTypeInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;" onchange="onLoanPaymentTypeChange()">
+                        <option value="Trả nợ">Trả nợ (Một phần)</option>
+                        <option value="Trả gốc">Trả gốc (Tất toán)</option>
+                        <option value="Trả lãi">Trả lãi</option>
+                      </select>
+                    </label>
+                    <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền (đ)<input type="number" id="loanPaymentAmountInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" min="1" step="1000" required></label>
+                    <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Nội dung<textarea id="loanPaymentContentInput" rows="2" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" placeholder="Nội dung thanh toán"></textarea></label>
+                  </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--canvas);">
+                  <button type="button" class="outline" style="min-height:38px;" onclick="closeFundLoanPaymentModal()">Hủy bỏ</button>
+                  <button type="submit" class="primary" style="min-height:38px;" id="loanPaymentSaveBtn">Lưu thanh toán</button>
+                </div>
+              </form>
             </div>
-          </section>
+          </div>
           <section class="table-card">
             <div class="table-card-head"><div class="table-title">Lịch sử vay/trả</div></div>
             <div class="table-wrap">
@@ -3890,35 +3900,41 @@
         });
     }
 
+    let currentLoanOutstanding = 0;
+
     function renderFundLoanOverview(data) {
       renderFundLoanMonthFilter(data.months || [], data.selectedMonth || '');
       const metrics = el('fundLoanMetrics');
-      metrics.innerHTML = (data.metrics || []).map((item) => `
-        <article class="kpi-card">
-          <div class="kpi-label">${escapeHtml(item.label)}</div>
-          <div class="kpi-value">${formatFundAmount(item.value, '')}</div>
-        </article>
-      `).join('');
+      const loanKpiColors = {
+        borrowed: 'blue',
+        principalPaid: 'green',
+        interestPaid: 'amber',
+        outstanding: 'red'
+      };
+      metrics.innerHTML = (data.metrics || []).map((item) => {
+        const color = loanKpiColors[item.key] || 'blue';
+        return `
+          <article class="kpi-card">
+            <div class="kpi-label">${escapeHtml(item.label)}</div>
+            <div class="kpi-value ${color}">${formatFundAmount(item.value, '')}</div>
+          </article>
+        `;
+      }).join('');
 
       const summary = el('fundLoanSummaryBody');
       const loans = data.loans || [];
-      summary.innerHTML = loans.length ? loans.map((item) => `
+      // Lọc chỉ hiển thị các khoản vay đang còn nợ (outstanding > 0)
+      const activeLoans = loans.filter(item => Number(item.outstanding || 0) > 0);
+      summary.innerHTML = activeLoans.length ? activeLoans.map((item) => `
         <tr>
           <td>${escapeHtml(item.loanDateText || item.loanDate || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>
-          <td style="text-align:right; font-weight:800;">${formatFundAmount(item.borrowed, '')}</td>
-          <td style="text-align:right;">${formatFundAmount(item.principalPaid, '')}</td>
-          <td style="text-align:right;">${formatFundAmount(item.interestPaid, '')}</td>
           <td style="text-align:right; font-weight:800; color: var(--red);">${formatFundAmount(item.outstanding, '')}</td>
-          <td>${escapeHtml(item.principalLatestDateText || item.principalLatestDate || '')}</td>
           <td style="text-align:right; white-space:nowrap;">
-            ${Number(item.outstanding || 0) > 0 ? `
-              <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'partial')">Trả</button>
-              <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)}, 'settle')">Tất toán</button>
-            ` : `<span style="color: var(--muted); font-weight: 600;">Đã gốc</span>`}
+            <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)})">Thanh toán</button>
           </td>
         </tr>
-      `).join('') : '<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Chưa có khoản vay.</td></tr>';
+      `).join('') : '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>';
 
       const history = el('fundLoanHistoryBody');
       const rows = data.recentRows || [];
@@ -3952,34 +3968,81 @@
       select.value = current;
     }
 
-    function openFundLoanPayment(code, partner, outstanding, mode) {
-      const panel = el('fundLoanPaymentPanel');
-      if (!panel) return;
-      panel.style.display = 'block';
+    function openFundLoanPayment(code, partner, outstanding) {
+      currentLoanOutstanding = Number(outstanding || 0);
+      const modal = el('fundLoanPaymentModal');
+      if (!modal) return;
+      
       el('loanPaymentCodeInput').value = code || '';
       el('loanPaymentPartnerInput').value = partner || '';
-      el('loanPaymentTypeInput').value = 'Trả nợ';
-      el('loanPaymentAmountInput').value = mode === 'settle' ? Math.max(0, Math.round(Number(outstanding || 0))) : '';
-      el('loanPaymentContentInput').value = mode === 'settle' ? 'Tất toán khoản vay' : '';
+      el('loanPaymentDateInput').value = new Date().toISOString().split('T')[0];
+      
+      const typeSelect = el('loanPaymentTypeInput');
+      if (typeSelect) typeSelect.value = 'Trả nợ';
+      
+      onLoanPaymentTypeChange();
+      
+      modal.style.display = 'flex';
+      document.body.classList.add('locked');
       showFundLoanPaymentStatus('', '');
-      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function closeFundLoanPaymentModal() {
+      const modal = el('fundLoanPaymentModal');
+      if (modal) {
+        modal.style.display = 'none';
+        document.body.classList.remove('locked');
+      }
+    }
+
+    function onLoanPaymentTypeChange() {
+      const type = el('loanPaymentTypeInput')?.value;
+      const code = el('loanPaymentCodeInput')?.value || '';
+      const partner = el('loanPaymentPartnerInput')?.value || '';
+      const amountInput = el('loanPaymentAmountInput');
+      const contentInput = el('loanPaymentContentInput');
+      if (!amountInput || !contentInput) return;
+
+      if (type === 'Trả gốc') {
+        amountInput.value = Math.max(0, Math.round(currentLoanOutstanding));
+        amountInput.readOnly = true;
+        amountInput.style.background = 'var(--canvas)';
+        contentInput.value = `Tất toán khoản vay [${partner}] mã vay [${code}]`;
+      } else if (type === 'Trả nợ') {
+        amountInput.value = '';
+        amountInput.readOnly = false;
+        amountInput.style.background = 'var(--paper)';
+        contentInput.value = `Trả 1 phần khoản vay [${partner}] mã vay [${code}]`;
+      } else if (type === 'Trả lãi') {
+        amountInput.value = '';
+        amountInput.readOnly = false;
+        amountInput.style.background = 'var(--paper)';
+        contentInput.value = `Trả lãi khoản vay [${partner}] mã vay [${code}]`;
+      }
     }
 
     function submitFundLoanPayment() {
       const btn = el('loanPaymentSaveBtn');
+      let submitType = el('loanPaymentTypeInput')?.value || '';
+      if (submitType === 'Trả gốc') {
+        submitType = 'Trả nợ'; // Map 'Trả gốc' sang 'Trả nợ' khi ghi xuống Google Sheets
+      }
+      
       const payment = {
         date: el('loanPaymentDateInput')?.value || '',
         code: el('loanPaymentCodeInput')?.value || '',
-        type: el('loanPaymentTypeInput')?.value || '',
+        type: submitType,
         partner: el('loanPaymentPartnerInput')?.value || '',
         amount: el('loanPaymentAmountInput')?.value || '',
         content: el('loanPaymentContentInput')?.value || ''
       };
+      
       const error = validateFundLoanPayment(payment);
       if (error) {
         showFundLoanPaymentStatus('error', error);
         return;
       }
+      
       if (btn) btn.disabled = true;
       showFundLoanPaymentStatus('success', 'Đang lưu thanh toán khoản vay...');
       callApi('POST', 'addFundLoanPayment', {}, { year: '2026', payment })
@@ -3988,6 +4051,7 @@
           clearFundLoanPaymentForm();
           loadFundLoanOverview(true);
           loadFundOverview(true);
+          setTimeout(closeFundLoanPaymentModal, 1000);
         })
         .catch((err) => {
           showFundLoanPaymentStatus('error', 'Không thể lưu thanh toán: ' + err.message);
@@ -4000,7 +4064,7 @@
     function validateFundLoanPayment(payment) {
       if (!payment.date) return 'Vui lòng nhập ngày thanh toán.';
       if (!payment.code.trim()) return 'Vui lòng chọn mã khoản vay.';
-      if (payment.type !== 'Trả nợ' && payment.type !== 'Trả lãi') return 'Vui lòng chọn Trả nợ hoặc Trả lãi.';
+      if (payment.type !== 'Trả nợ' && payment.type !== 'Trả lãi') return 'Vui lòng chọn loại thanh toán.';
       if (!payment.partner.trim()) return 'Vui lòng nhập đối tác.';
       if (!(parseLocaleNumber(payment.amount) > 0)) return 'Số tiền thanh toán phải lớn hơn 0.';
       return '';

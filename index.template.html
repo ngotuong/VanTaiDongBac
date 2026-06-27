@@ -590,34 +590,44 @@
             <div class="table-card-head"><div class="table-title">Tổng quan các khoản vay</div></div>
             <div class="table-wrap">
               <table class="report-table table-wide">
-                <thead><tr><th>Ngày vay</th><th>Đối tác</th><th style="text-align:right;">Đã vay</th><th style="text-align:right;">Đã trả gốc</th><th style="text-align:right;">Đã trả lãi</th><th style="text-align:right;">Dư nợ</th><th>Ngày trả gốc</th><th style="text-align:right;">Thao tác</th></tr></thead>
-                <tbody id="fundLoanSummaryBody"><tr><td colspan="8" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                <thead><tr><th>Ngày vay</th><th>Đối tác</th><th style="text-align:right;">Số tiền còn nợ</th><th style="text-align:right;">Thao tác</th></tr></thead>
+                <tbody id="fundLoanSummaryBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
             </div>
           </section>
-          <section class="table-card" id="fundLoanPaymentPanel" style="display:none; margin-bottom: 20px;">
-            <div class="panel-body">
-              <div style="margin-bottom: 14px;">
-                <div class="table-title">Thanh toán khoản vay</div>
-                <div class="panel-note">Ghi thêm dòng Trả nợ hoặc Trả lãi vào sheet NHAP_VAY.</div>
+
+          <!-- Modal Popup for Loan Payment -->
+          <div class="modal-overlay" id="fundLoanPaymentModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; background: rgba(0,0,0,0.4); align-items: center; justify-content: center;">
+            <div class="modal-container" style="max-width: 500px; width: 90%; background: var(--paper); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; animation: modalFadeIn 0.2s ease;">
+              <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line);">
+                <h3 id="loanPaymentModalTitle" style="margin:0; font-size:16px; font-weight:700; color:var(--deep);">Thanh toán khoản vay</h3>
+                <button type="button" class="modal-close-btn" style="background:none; border:none; font-size:24px; cursor:pointer; color:var(--muted);" onclick="closeFundLoanPaymentModal()">&times;</button>
               </div>
-              <div id="fundLoanPaymentStatus" class="status" style="display:none;"></div>
-              <div class="fields">
-                <label>Ngày thanh toán<input type="date" id="loanPaymentDateInput" required></label>
-                <label>Mã vay<input type="text" id="loanPaymentCodeInput" readonly></label>
-                <label>Loại thanh toán<select id="loanPaymentTypeInput"><option value="Trả nợ">Trả nợ gốc</option><option value="Trả lãi">Trả lãi</option></select></label>
-                <label>Đối tác<select id="loanPaymentPartnerInput" required></select></label>
-                <label>Số tiền<input type="number" id="loanPaymentAmountInput" min="1" step="1000" required></label>
-                <label style="grid-column: 1 / -1;">Nội dung<textarea id="loanPaymentContentInput" rows="2" placeholder="Nội dung thanh toán"></textarea></label>
-              </div>
-              <div class="submit-bar">
-                <button type="button" class="primary grow" id="loanPaymentSaveBtn" onclick="submitFundLoanPayment()">
-                  <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                  Lưu thanh toán
-                </button>
-              </div>
+              <form id="loanPaymentModalForm" onsubmit="event.preventDefault(); submitFundLoanPayment();">
+                <div class="modal-body" style="padding: 20px; max-height: calc(100vh - 200px); overflow-y: auto;">
+                  <div id="fundLoanPaymentStatus" class="status" style="display:none; margin-bottom: 12px; padding: 10px; border-radius: 8px;"></div>
+                  <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Ngày thanh toán<input type="date" id="loanPaymentDateInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" required></label>
+                    <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Mã vay<input type="text" id="loanPaymentCodeInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--canvas); font-size:13px;" readonly></label>
+                    <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Đối tác<input type="text" id="loanPaymentPartnerInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--canvas); font-size:13px;" readonly></label>
+                    <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Loại thanh toán
+                      <select id="loanPaymentTypeInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;" onchange="onLoanPaymentTypeChange()">
+                        <option value="Trả nợ">Trả nợ (Một phần)</option>
+                        <option value="Trả gốc">Trả gốc (Tất toán)</option>
+                        <option value="Trả lãi">Trả lãi</option>
+                      </select>
+                    </label>
+                    <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền (đ)<input type="number" id="loanPaymentAmountInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" min="1" step="1000" required></label>
+                    <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Nội dung<textarea id="loanPaymentContentInput" rows="2" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" placeholder="Nội dung thanh toán"></textarea></label>
+                  </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--canvas);">
+                  <button type="button" class="outline" style="min-height:38px;" onclick="closeFundLoanPaymentModal()">Hủy bỏ</button>
+                  <button type="submit" class="primary" style="min-height:38px;" id="loanPaymentSaveBtn">Lưu thanh toán</button>
+                </div>
+              </form>
             </div>
-          </section>
+          </div>
           <section class="table-card">
             <div class="table-card-head"><div class="table-title">Lịch sử vay/trả</div></div>
             <div class="table-wrap">

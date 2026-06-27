@@ -2415,12 +2415,9 @@
                 <h2 class="panel-title">Tổng quan quỹ</h2>
                 <div class="panel-note" id="fundOverviewNote">Tháng gần nhất</div>
               </div>
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap;">
-                Tháng:
-                <select id="fundOverviewMonthFilter" style="height: 38px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundOverview(false)">
-                  <option value="">Tháng gần nhất</option>
-                </select>
-              </label>
+              <select id="fundOverviewMonthFilter" style="height: 38px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundOverview(false)">
+                <option value="">Tháng gần nhất</option>
+              </select>
             </div>
           </section>
           <div class="fund-kpi-grid" id="fundOverviewMetrics">
@@ -2455,18 +2452,15 @@
 
         <div data-cashflow-panel="transactions" style="display: none;">
           <section class="panel" style="margin-bottom: 16px;">
-            <div class="panel-head" style="display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; padding: 16px 20px;">
-              <div style="display: flex; align-items: center; min-height: 38px;">
+            <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; gap: 12px; padding: 16px 20px;">
+              <div>
                 <h2 class="panel-title" style="margin: 0;">Danh sách thu chi</h2>
               </div>
-              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-                <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap;">
-                  Tháng:
-                  <select id="fundMonthFilter" style="height: 36px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundTransactions(false)">
-                    <option value="">Tất cả tháng</option>
-                  </select>
-                </label>
-                <button type="button" class="ghost" style="height: 36px; min-height: 36px; width: 36px; padding: 0; border-radius: 8px; display: flex; align-items: center; justify-content: center;" title="Tải lại" onclick="loadFundTransactions(true)">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <select id="fundMonthFilter" style="height: 36px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundTransactions(false)">
+                  <option value="">Tất cả tháng</option>
+                </select>
+                <button type="button" class="ghost" style="height: 36px; min-height: 36px; width: 36px; padding: 0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;" title="Tải lại" onclick="loadFundTransactions(true)">
                   <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin: 0;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
                 </button>
               </div>
@@ -2564,17 +2558,14 @@
 
         <div data-cashflow-panel="loans" style="display: none;">
           <section class="panel" style="margin-bottom: 16px;">
-            <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
+            <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; gap: 12px; padding: 16px 20px;">
               <div>
                 <h2 class="panel-title">Khoản vay</h2>
                 <div class="panel-note">Theo dõi phát sinh vay, trả nợ và trả lãi trong file Thu chi.</div>
               </div>
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted);">
-                Tháng:
-                <select id="fundLoanMonthFilter" style="height: 38px; width: 150px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundLoanOverview(false)">
-                  <option value="">Tất cả tháng</option>
-                </select>
-              </label>
+              <select id="fundLoanMonthFilter" style="height: 38px; width: 150px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundLoanOverview(false)">
+                <option value="">Tất cả tháng</option>
+              </select>
             </div>
           </section>
           <div class="kpi-grid" id="fundLoanMetrics" style="margin-bottom: 20px;">
@@ -2594,7 +2585,7 @@
           </section>
 
           <!-- Modal Popup for Loan Payment -->
-          <div class="modal-overlay" id="fundLoanPaymentModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; background: rgba(0,0,0,0.4); align-items: center; justify-content: center;">
+          <div class="modal-overlay" id="fundLoanPaymentModal">
             <div class="modal-container" style="max-width: 500px; width: 90%; background: var(--paper); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; animation: modalFadeIn 0.2s ease;">
               <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line);">
                 <h3 id="loanPaymentModalTitle" style="margin:0; font-size:16px; font-weight:700; color:var(--deep);">Thanh toán khoản vay</h3>

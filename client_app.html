@@ -2,7 +2,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.5_post_fallback_loan_history_fix';
+      const APP_VERSION = 'v3.6_entry_route_and_backend_autodetect_fix';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -88,6 +88,32 @@
     }
 
     function setView(view) {
+      if (view === 'entry') {
+        activeView = 'manage';
+        renderView();
+        const mapFormToSheet = {
+          vanChuyen: 'NL_VanChuyen',
+          taiXe: 'NL_TaiXe',
+          dau: 'NL_Dau',
+          chamCong: 'NL_ChamCong',
+          phat: 'NL_Phat',
+          nghiVanHanh: 'NL_NghiVanHanh'
+        };
+        const targetSheet = mapFormToSheet[activeForm] || 'NL_VanChuyen';
+        const manageSelect = el('manageSheetSelect');
+        if (manageSelect) manageSelect.value = targetSheet;
+        document.querySelectorAll('#manageTabsBar .sub-tab').forEach((button) => {
+          button.classList.toggle('active', button.dataset.sheet === targetSheet);
+        });
+        loadAllCatalogsIfNeeded(() => {
+          loadManageSheetData();
+          if (typeof openTransportEntryDrawer === 'function') {
+            openTransportEntryDrawer();
+          }
+        });
+        return;
+      }
+
       activeView = view;
       closeDrawer();
       clearStatus();

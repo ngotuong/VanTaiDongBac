@@ -356,7 +356,7 @@
 
     // Refresh reports
     function refreshReports(showMessage = true) {
-      if (showMessage && activeView === 'entry') {
+      if (showMessage && (activeView === 'entry' || activeView === 'manage')) {
         showStatus('ok', 'Đang làm mới dữ liệu báo cáo...');
       }
       

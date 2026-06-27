@@ -258,6 +258,9 @@
       #fundDetailMobileList {
         display: flex !important;
       }
+      .fund-detail-drawer {
+        height: 100dvh !important;
+      }
     }
     
     @media (min-width: 640px) {
@@ -278,6 +281,10 @@
         border: 1px solid var(--line) !important;
         box-shadow: var(--shadow-premium) !important;
         overflow: hidden !important;
+      }
+
+      #fundLoanPaymentDrawer, #fundLoanAddDrawer, #fundTransactionAddDrawer {
+        width: min(480px, 90vw) !important;
       }
       
       .fund-detail-drawer .table-card-head {

@@ -429,9 +429,9 @@
           .then(() => {
             clearFundEntryForm();
             showFundEntryStatus('success', 'Đã cập nhật khoản thu/chi thành công.');
-            setCashflowTab('transactions');
             loadFundTransactions(true);
             loadFundOverview(true);
+            setTimeout(closeFundTransactionAddDrawer, 1000);
           })
           .catch((err) => {
             showFundEntryStatus('error', 'Không thể cập nhật khoản thu/chi: ' + err.message);
@@ -445,9 +445,9 @@
           .then(() => {
             clearFundEntryForm();
             showFundEntryStatus('success', 'Đã lưu khoản thu/chi vào file Thu chi.');
-            setCashflowTab('transactions');
             loadFundTransactions(true);
             loadFundOverview(true);
+            setTimeout(closeFundTransactionAddDrawer, 1000);
           })
           .catch((err) => {
             showFundEntryStatus('error', 'Không thể lưu khoản thu/chi: ' + err.message);
@@ -751,6 +751,59 @@
       document.body.classList.remove('locked');
     }
 
+    function openFundTransactionAddDrawer(isEdit = false) {
+      loadFundFormOptions();
+      const drawer = el('fundTransactionAddDrawer');
+      const backdrop = el('fundTransactionAddBackdrop');
+      if (!drawer || !backdrop) return;
+      
+      const title = el('fundTransactionDrawerTitle');
+      const saveBtn = el('fundSaveBtn');
+      
+      if (!isEdit) {
+        clearFundEntryForm();
+        fundTransactionEditRowIndex = null;
+        currentEditingTransaction = null;
+        if (title) title.textContent = 'Thêm khoản thu/chi';
+        if (saveBtn) saveBtn.textContent = 'Lưu vào Thu chi';
+      }
+      
+      drawer.classList.add('open');
+      backdrop.classList.add('active');
+      document.body.classList.add('locked');
+      showFundEntryStatus('', '');
+    }
+
+    function closeFundTransactionAddDrawer() {
+      const drawer = el('fundTransactionAddDrawer');
+      const backdrop = el('fundTransactionAddBackdrop');
+      if (drawer) drawer.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('active');
+      document.body.classList.remove('locked');
+    }
+
+    function openFundLoanAddDrawer() {
+      loadFundFormOptions();
+      const drawer = el('fundLoanAddDrawer');
+      const backdrop = el('fundLoanAddBackdrop');
+      if (!drawer || !backdrop) return;
+      
+      clearFundLoanForm();
+      
+      drawer.classList.add('open');
+      backdrop.classList.add('active');
+      document.body.classList.add('locked');
+      showFundLoanStatus('', '');
+    }
+
+    function closeFundLoanAddDrawer() {
+      const drawer = el('fundLoanAddDrawer');
+      const backdrop = el('fundLoanAddBackdrop');
+      if (drawer) drawer.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('active');
+      document.body.classList.remove('locked');
+    }
+
     function onLoanPaymentTypeChange() {
       const type = el('loanPaymentTypeInput')?.value;
       const code = el('loanPaymentCodeInput')?.value || '';
@@ -878,8 +931,8 @@
         .then(() => {
           clearFundLoanForm();
           showFundLoanStatus('success', 'Đã lưu khoản vay vào file Thu chi.');
-          setCashflowTab('loans');
           loadFundLoanOverview(true);
+          setTimeout(closeFundLoanAddDrawer, 1000);
         })
         .catch((err) => {
           showFundLoanStatus('error', 'Không thể lưu khoản vay: ' + err.message);
@@ -1073,7 +1126,7 @@
       const btn = el('fundSaveBtn');
       if (btn) btn.textContent = 'Cập nhật khoản thu/chi';
 
-      setCashflowTab('entry');
+      openFundTransactionAddDrawer(true);
     };
 
     window.deleteFundTransaction = function(rowIndex) {

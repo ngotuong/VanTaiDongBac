@@ -4,6 +4,7 @@ const path = require('path');
 const TEMPLATE_FILE = path.join(__dirname, '..', 'index.template.html');
 const OUTPUT_FILE = path.join(__dirname, '..', 'index.html');
 const WORKSPACE_DIR = path.join(__dirname, '..');
+const STATIC_SERVICE_URL = process.env.STATIC_SERVICE_URL || 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
 
 console.log('🔄 Bắt đầu quá trình build index.html...');
 
@@ -34,8 +35,12 @@ try {
     return fs.readFileSync(filePath, 'utf8');
   });
 
+  // Thay template tag Apps Script bằng URL backend tĩnh cho bản static trên Vercel.
+  templateContent = templateContent.split("<?!= JSON.stringify(serviceUrl || '') ?>").join(JSON.stringify(STATIC_SERVICE_URL));
+
   fs.writeFileSync(OUTPUT_FILE, templateContent, 'utf8');
   console.log(`✅ Build thành công! Đã ghi file ${OUTPUT_FILE} (${matchesFound} file được gộp).`);
+  console.log(`🔗 Static backend URL: ${STATIC_SERVICE_URL}`);
 } catch (err) {
   console.error('❌ Lỗi trong quá trình build:', err);
   process.exit(1);

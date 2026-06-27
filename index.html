@@ -3973,7 +3973,7 @@
       
       onLoanPaymentTypeChange();
       
-      modal.style.display = 'flex';
+      modal.classList.add('active');
       document.body.classList.add('locked');
       showFundLoanPaymentStatus('', '');
     }
@@ -3981,7 +3981,7 @@
     function closeFundLoanPaymentModal() {
       const modal = el('fundLoanPaymentModal');
       if (modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('active');
         document.body.classList.remove('locked');
       }
     }

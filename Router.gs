@@ -121,7 +121,7 @@ function jsonResponse_(data) {
 }
 
 function renderIndex_() {
-  var template = HtmlService.createTemplateFromFile('index');
+  var template = HtmlService.createTemplateFromFile('index.template');
   template.serviceUrl = ScriptApp.getService().getUrl() || '';
   return template
     .evaluate()

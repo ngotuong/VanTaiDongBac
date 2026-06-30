@@ -2,7 +2,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.8_kpi_detail_fast_mobile_submit';
+      const APP_VERSION = 'v3.9_dynamic_service_url';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -22,37 +22,39 @@
         return;
       }
       
-      const cachedBootstrap = sessionStorage.getItem('eb_bootstrap');
-      if (cachedBootstrap) {
-        appData = JSON.parse(cachedBootstrap);
-        activeForm = appData.formTypes[0] || 'vanChuyen';
+      const finishBootstrap = (data) => {
+        appData = data;
+        activeForm = data.formTypes[0] || 'vanChuyen';
         rows = [newBlankRow()];
         document.body.classList.remove('locked');
         el('loader').classList.add('hidden');
         renderAll();
         loadCatalogs(activeForm);
         loadDashboard(false);
-      } else {
-        callApi('GET', 'getBootstrap')
-          .then((data) => {
-            appData = data;
-            sessionStorage.setItem('eb_bootstrap', JSON.stringify(data));
-            activeForm = data.formTypes[0] || 'vanChuyen';
-            rows = [newBlankRow()];
-            document.body.classList.remove('locked');
-            el('loader').classList.add('hidden');
-            renderAll();
-            loadCatalogs(activeForm);
-            loadDashboard(false);
-          })
-          .catch((err) => {
-            el('loader').querySelector('.loader-title').textContent = 'Lỗi kết nối API';
-            el('loader').querySelector('.loader-text').innerHTML = 
-              `Không thể đồng bộ với Google Sheets.<br>Chi tiết: ${err.message}<br><a href="#" onclick="showSettingsFromLoader()" style="color:var(--teal);font-weight:bold;text-decoration:underline;display:inline-block;margin-top:10px;">Kiểm tra cài đặt URL</a>`;
-            el('loader').querySelector('.spinner').classList.add('hidden');
-            document.body.classList.remove('locked');
-          });
       }
+
+      const cachedBootstrap = sessionStorage.getItem('eb_bootstrap');
+      if (cachedBootstrap) {
+        try {
+          finishBootstrap(JSON.parse(cachedBootstrap));
+          return;
+        } catch (err) {
+          sessionStorage.removeItem('eb_bootstrap');
+        }
+      }
+
+      callApi('GET', 'getBootstrap')
+        .then((data) => {
+          sessionStorage.setItem('eb_bootstrap', JSON.stringify(data));
+          finishBootstrap(data);
+        })
+        .catch((err) => {
+          el('loader').querySelector('.loader-title').textContent = 'Lỗi kết nối API';
+          el('loader').querySelector('.loader-text').innerHTML = 
+            `Không thể đồng bộ với Google Sheets.<br>Chi tiết: ${err.message}<br><a href="#" onclick="showSettingsFromLoader()" style="color:var(--teal);font-weight:bold;text-decoration:underline;display:inline-block;margin-top:10px;">Kiểm tra cài đặt URL</a>`;
+          el('loader').querySelector('.spinner').classList.add('hidden');
+          document.body.classList.remove('locked');
+        });
     }
 
     function renderAll() {

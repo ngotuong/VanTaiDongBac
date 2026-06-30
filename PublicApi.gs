@@ -1,9 +1,17 @@
+function health() {
+  return SheetService.health();
+}
+
 function getInitialData() {
   return SheetService.getInitialData();
 }
 
 function getBootstrap() {
   return SheetService.getBootstrap();
+}
+
+function getStartupData(formType) {
+  return SheetService.getStartupData(formType);
 }
 
 function getCatalogs(formType) {
@@ -100,7 +108,9 @@ function invokeApi(method, action, params, bodyData) {
   });
 
   if (normalizedMethod === 'GET') {
+    if (action === 'health') return SheetService.health();
     if (action === 'getBootstrap') return SheetService.getBootstrap();
+    if (action === 'getStartupData') return SheetService.getStartupData(safeParams.formType);
     if (action === 'getInitialData') return SheetService.getInitialData();
     if (action === 'getCatalogs') return SheetService.getCatalogs(safeParams.formType);
     if (action === 'getDashboard') return SheetService.getDashboard(safeParams.month, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');

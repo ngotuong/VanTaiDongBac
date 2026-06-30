@@ -16,7 +16,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
-    window.__APP_SERVICE_URL = <?!= JSON.stringify(serviceUrl || '') ?>;
+    window.__DEFAULT_APP_SERVICE_URL = 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
+    window.__APP_SERVICE_URL = "https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec" || window.__DEFAULT_APP_SERVICE_URL;
   </script>
   
   <style>
@@ -3143,10 +3144,22 @@
         return '';
       }
     }
+
+    const DEFAULT_BACKEND_URL = normalizeWebAppUrl(window.__DEFAULT_APP_SERVICE_URL);
     
     const getBackendUrl = () => {
-      return normalizeWebAppUrl(window.__APP_SERVICE_URL) || normalizeWebAppUrl(localStorage.getItem('eb_backend_url'));
+      return normalizeWebAppUrl(window.__APP_SERVICE_URL)
+        || normalizeWebAppUrl(localStorage.getItem('eb_backend_url'))
+        || DEFAULT_BACKEND_URL;
     };
+
+    function getBackendUrlSource() {
+      const appUrl = normalizeWebAppUrl(window.__APP_SERVICE_URL);
+      if (appUrl) return 'app';
+      const storedUrl = normalizeWebAppUrl(localStorage.getItem('eb_backend_url'));
+      if (storedUrl) return 'localStorage';
+      return DEFAULT_BACKEND_URL ? 'default' : '';
+    }
 
     function callAppsScriptAction(method, action, params = {}, bodyData = null) {
       if (!hasAppsScriptRuntime()) {
@@ -3197,7 +3210,9 @@
       
       return fetch(url.toString(), options)
         .then(res => {
-          if (!res.ok) throw new Error('Kết nối API thất bại, status: ' + res.status);
+          if (!res.ok) {
+            throw new Error(`Kết nối API thất bại, status: ${res.status}. URL: ${backendUrl}`);
+          }
           return res.json();
         })
         .then(data => {
@@ -3255,6 +3270,7 @@
       removeSessionKeysByPrefix('eb_report_bundle_');
       removeSessionKeysByPrefix('eb_catalogs_');
       sessionStorage.removeItem('eb_dashboard_v3');
+      sessionStorage.removeItem('eb_startup_data');
     }
 
     function invalidateServerCaches() {
@@ -5364,7 +5380,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.5_post_fallback_loan_history_fix';
+      const APP_VERSION = 'v3.6_startup_api_health';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -5384,28 +5400,24 @@
         return;
       }
       
-      const cachedBootstrap = sessionStorage.getItem('eb_bootstrap');
-      if (cachedBootstrap) {
-        appData = JSON.parse(cachedBootstrap);
-        activeForm = appData.formTypes[0] || 'vanChuyen';
+      const cachedStartup = sessionStorage.getItem('eb_startup_data');
+      if (cachedStartup) {
+        hydrateStartupData(JSON.parse(cachedStartup));
         rows = [newBlankRow()];
         document.body.classList.remove('locked');
         el('loader').classList.add('hidden');
         renderAll();
-        loadCatalogs(activeForm);
-        loadDashboard(false);
+        setTimeout(() => loadDashboard(false), 100);
       } else {
-        callApi('GET', 'getBootstrap')
+        callApi('GET', 'getStartupData', { formType: 'vanChuyen' })
           .then((data) => {
-            appData = data;
-            sessionStorage.setItem('eb_bootstrap', JSON.stringify(data));
-            activeForm = data.formTypes[0] || 'vanChuyen';
+            hydrateStartupData(data);
+            sessionStorage.setItem('eb_startup_data', JSON.stringify(data));
             rows = [newBlankRow()];
             document.body.classList.remove('locked');
             el('loader').classList.add('hidden');
             renderAll();
-            loadCatalogs(activeForm);
-            loadDashboard(false);
+            setTimeout(() => loadDashboard(false), 100);
           })
           .catch((err) => {
             el('loader').querySelector('.loader-title').textContent = 'Lỗi kết nối API';
@@ -5414,6 +5426,19 @@
             el('loader').querySelector('.spinner').classList.add('hidden');
             document.body.classList.remove('locked');
           });
+      }
+    }
+
+    function hydrateStartupData(data) {
+      appData = data || {};
+      activeForm = appData.formTypes?.[0] || 'vanChuyen';
+      if (appData.catalogs) {
+        const catalogFormType = appData.catalogFormType || activeForm;
+        catalogsByForm[catalogFormType] = appData.catalogs;
+        sessionStorage.setItem('eb_catalogs_' + catalogFormType, JSON.stringify(appData.catalogs));
+      }
+      if (appData.dashboard) {
+        appData.reports = { ...(appData.reports || {}), ...appData.dashboard, loading: false };
       }
     }
 

@@ -15,6 +15,38 @@ var SheetService = (function () {
     };
   }
 
+  function health() {
+    return {
+      ok: true,
+      spreadsheetId: APP_CONFIG.spreadsheetId,
+      cacheVersion: CACHE_VERSION,
+      checkedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm:ss')
+    };
+  }
+
+  function getStartupData(formType) {
+    var data = getBootstrap();
+    var selectedFormType = formType || data.formTypes[0] || '';
+    var ss = getSpreadsheet_();
+    data.catalogs = getCatalogs(selectedFormType);
+    data.catalogFormType = selectedFormType;
+    data.dashboard = getStartupDashboard_(ss);
+    data.reports = Object.assign({}, data.reports, data.dashboard, { loading: false });
+    return data;
+  }
+
+  function getStartupDashboard_(ss) {
+    return {
+      updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
+      overview: readOverviewDashboard_(ss),
+      inputs: [],
+      latestTrips: { date: '', trips: [] },
+      links: reportLinks_(ss),
+      cached: false,
+      partial: true
+    };
+  }
+
   function getInitialData() {
     var data = getBootstrap();
     data.catalogs = getCatalogs();
@@ -823,13 +855,15 @@ var SheetService = (function () {
   function getLastNonEmptyRowInColumn_(sheet, column, minRow, useCache) {
     var lastRow = sheet.getLastRow();
     if (lastRow < minRow) return minRow - 1;
-    var values = sheet.getRange(1, column, lastRow, 1).getValues();
-    for (var i = values.length - 1; i >= 0; i--) {
-      var val = values[i][0];
-      if (val !== '' && val !== null && val !== undefined) {
-        var row = i + 1;
-        if (row >= minRow) return row;
-        break;
+    var chunkSize = 1000;
+    for (var endRow = lastRow; endRow >= minRow; endRow -= chunkSize) {
+      var startRow = Math.max(minRow, endRow - chunkSize + 1);
+      var values = sheet.getRange(startRow, column, endRow - startRow + 1, 1).getValues();
+      for (var i = values.length - 1; i >= 0; i--) {
+        var val = values[i][0];
+        if (val !== '' && val !== null && val !== undefined) {
+          return startRow + i;
+        }
       }
     }
     return minRow - 1;
@@ -1445,7 +1479,9 @@ var SheetService = (function () {
   }
 
   return {
+    health: health,
     getBootstrap: getBootstrap,
+    getStartupData: getStartupData,
     getInitialData: getInitialData,
     getCatalogs: getCatalogs,
     getDashboard: getDashboard,

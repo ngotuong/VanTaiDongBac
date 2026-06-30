@@ -18,10 +18,22 @@
         return '';
       }
     }
+
+    const DEFAULT_BACKEND_URL = normalizeWebAppUrl(window.__DEFAULT_APP_SERVICE_URL);
     
     const getBackendUrl = () => {
-      return normalizeWebAppUrl(window.__APP_SERVICE_URL) || normalizeWebAppUrl(localStorage.getItem('eb_backend_url'));
+      return normalizeWebAppUrl(window.__APP_SERVICE_URL)
+        || normalizeWebAppUrl(localStorage.getItem('eb_backend_url'))
+        || DEFAULT_BACKEND_URL;
     };
+
+    function getBackendUrlSource() {
+      const appUrl = normalizeWebAppUrl(window.__APP_SERVICE_URL);
+      if (appUrl) return 'app';
+      const storedUrl = normalizeWebAppUrl(localStorage.getItem('eb_backend_url'));
+      if (storedUrl) return 'localStorage';
+      return DEFAULT_BACKEND_URL ? 'default' : '';
+    }
 
     function callAppsScriptAction(method, action, params = {}, bodyData = null) {
       if (!hasAppsScriptRuntime()) {
@@ -72,7 +84,9 @@
       
       return fetch(url.toString(), options)
         .then(res => {
-          if (!res.ok) throw new Error('Kết nối API thất bại, status: ' + res.status);
+          if (!res.ok) {
+            throw new Error(`Kết nối API thất bại, status: ${res.status}. URL: ${backendUrl}`);
+          }
           return res.json();
         })
         .then(data => {
@@ -130,6 +144,7 @@
       removeSessionKeysByPrefix('eb_report_bundle_');
       removeSessionKeysByPrefix('eb_catalogs_');
       sessionStorage.removeItem('eb_dashboard_v3');
+      sessionStorage.removeItem('eb_startup_data');
     }
 
     function invalidateServerCaches() {

@@ -4,6 +4,7 @@ const path = require('path');
 const TEMPLATE_FILE = path.join(__dirname, '..', 'index.template.html');
 const OUTPUT_FILE = path.join(__dirname, '..', 'index.html');
 const WORKSPACE_DIR = path.join(__dirname, '..');
+const DEFAULT_SERVICE_URL = 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
 
 console.log('🔄 Bắt đầu quá trình build index.html...');
 
@@ -14,6 +15,10 @@ try {
   }
 
   let templateContent = fs.readFileSync(TEMPLATE_FILE, 'utf8');
+  templateContent = templateContent.replace(
+    /<\?!=\s*JSON\.stringify\(serviceUrl\s*\|\|\s*''\)\s*\?>/g,
+    JSON.stringify(DEFAULT_SERVICE_URL)
+  );
 
   // Regex tìm kiếm tag Apps Script: <?!= include('filename'); ?>
   const includeRegex = /<\?!=\s*include\('([^']+)'\);\s*\?>/g;

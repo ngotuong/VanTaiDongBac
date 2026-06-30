@@ -6,8 +6,8 @@ function getBootstrap() {
   return SheetService.getBootstrap();
 }
 
-function getCatalogs(formType) {
-  return SheetService.getCatalogs(formType);
+function getCatalogs(formType, forceRefresh) {
+  return SheetService.getCatalogs(formType, forceRefresh);
 }
 
 function getDashboard(month, forceRefresh) {
@@ -54,12 +54,12 @@ function getFundTransactions(year, filter) {
   return FundService.getFundTransactions(year, filter);
 }
 
-function getFundFormOptions(year) {
-  return FundService.getFundFormOptions(year);
+function getFundFormOptions(year, forceRefresh) {
+  return FundService.getFundFormOptions(year, forceRefresh);
 }
 
-function getFundCatalog(year, group) {
-  return FundService.getFundCatalog(year, group);
+function getFundCatalog(year, group, forceRefresh) {
+  return FundService.getFundCatalog(year, group, forceRefresh);
 }
 
 function addFundTransaction(year, transaction) {
@@ -102,7 +102,7 @@ function invokeApi(method, action, params, bodyData) {
   if (normalizedMethod === 'GET') {
     if (action === 'getBootstrap') return SheetService.getBootstrap();
     if (action === 'getInitialData') return SheetService.getInitialData();
-    if (action === 'getCatalogs') return SheetService.getCatalogs(safeParams.formType);
+    if (action === 'getCatalogs') return SheetService.getCatalogs(safeParams.formType, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
     if (action === 'getDashboard') return SheetService.getDashboard(safeParams.month, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
     if (action === 'getReports') return SheetService.getReports(safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
     if (action === 'getReport') return SheetService.getReport(safeParams.type, safeParams.month, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
@@ -112,21 +112,24 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'getFundTransactions') {
       return FundService.getFundTransactions(safeParams.year, {
         month: safeParams.month,
-        limit: safeParams.limit
+        limit: safeParams.limit,
+        forceRefresh: safeParams.forceRefresh === true || safeParams.forceRefresh === 'true'
       });
     }
     if (action === 'getFundOverview') {
       return FundService.getFundOverview(safeParams.year, {
-        month: safeParams.month
+        month: safeParams.month,
+        forceRefresh: safeParams.forceRefresh === true || safeParams.forceRefresh === 'true'
       });
     }
     if (action === 'getFundLoanOverview') {
       return FundService.getFundLoanOverview(safeParams.year, {
-        month: safeParams.month
+        month: safeParams.month,
+        forceRefresh: safeParams.forceRefresh === true || safeParams.forceRefresh === 'true'
       });
     }
-    if (action === 'getFundFormOptions') return FundService.getFundFormOptions(safeParams.year);
-    if (action === 'getFundCatalog') return FundService.getFundCatalog(safeParams.year, safeParams.group);
+    if (action === 'getFundFormOptions') return FundService.getFundFormOptions(safeParams.year, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
+    if (action === 'getFundCatalog') return FundService.getFundCatalog(safeParams.year, safeParams.group, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
     throw new Error('Hành động GET không hợp lệ: ' + action);
   }
 

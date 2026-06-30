@@ -1,4 +1,39 @@
 <script>
+    const FUND_CACHE_TTL_MS = 3 * 60 * 1000;
+
+    function getFundCacheKey(type, suffix) {
+      return 'eb_fund_' + type + '_' + (suffix || 'default');
+    }
+
+    function readFundSessionCache(type, suffix) {
+      const key = getFundCacheKey(type, suffix);
+      const cached = sessionStorage.getItem(key);
+      const cachedAt = Number(sessionStorage.getItem(key + '_ts') || 0);
+      if (!cached || Date.now() - cachedAt > FUND_CACHE_TTL_MS) return null;
+      try {
+        return JSON.parse(cached);
+      } catch (err) {
+        sessionStorage.removeItem(key);
+        sessionStorage.removeItem(key + '_ts');
+        return null;
+      }
+    }
+
+    function writeFundSessionCache(type, suffix, data) {
+      const key = getFundCacheKey(type, suffix);
+      sessionStorage.setItem(key, JSON.stringify(data));
+      sessionStorage.setItem(key + '_ts', String(Date.now()));
+    }
+
+    function invalidateFundSessionCache() {
+      removeSessionKeysByPrefix('eb_fund_');
+      fundOverviewData = null;
+      fundTransactionsData = null;
+      fundLoanData = null;
+      fundFormOptions = null;
+      fundCatalogData = null;
+    }
+
     function setCashflowTab(tab) {
       activeCashflowTab = tab;
       document.querySelectorAll('[data-cashflow-tab]').forEach((button) => {
@@ -42,12 +77,22 @@
       }
       
       const month = el('fundOverviewMonthFilter')?.value || '';
+      const cacheKey = month || 'latest';
+      if (!forceRefresh) {
+        const cached = readFundSessionCache('overview', cacheKey);
+        if (cached) {
+          fundOverviewData = cached;
+          renderFundOverview(cached, null);
+          return Promise.resolve(cached);
+        }
+      }
       return callApi('GET', 'getFundOverview', {
         year: '2026',
         month: month,
         forceRefresh: forceRefresh ? 'true' : ''
       }).then((data) => {
         fundOverviewData = data;
+        writeFundSessionCache('overview', cacheKey, data);
         renderFundOverview(data, null);
         
         const months = data.months || [];
@@ -299,9 +344,16 @@
 
     function loadFundFormOptions() {
       if (fundFormOptions) return Promise.resolve(fundFormOptions);
+      const cached = readFundSessionCache('form_options', '2026');
+      if (cached) {
+        fundFormOptions = cached;
+        renderFundFormOptions();
+        return Promise.resolve(cached);
+      }
       return callApi('GET', 'getFundFormOptions', { year: '2026' })
         .then((data) => {
           fundFormOptions = data;
+          writeFundSessionCache('form_options', '2026', data);
           renderFundFormOptions();
           return data;
         })
@@ -427,6 +479,7 @@
           rowData: rowData
         })
           .then(() => {
+            invalidateFundSessionCache();
             clearFundEntryForm();
             showFundEntryStatus('success', 'Đã cập nhật khoản thu/chi thành công.');
             loadFundTransactions(true);
@@ -443,6 +496,7 @@
         showFundEntryStatus('info', 'Đang lưu khoản thu/chi...');
         callApi('POST', 'addFundTransaction', {}, { year: '2026', transaction })
           .then(() => {
+            invalidateFundSessionCache();
             clearFundEntryForm();
             showFundEntryStatus('success', 'Đã lưu khoản thu/chi vào file Thu chi.');
             loadFundTransactions(true);
@@ -492,6 +546,14 @@
     function loadFundCatalog(forceRefresh) {
       const group = activeFundCatalogGroup || 'incomeCategories';
       const tableBody = el('fundCatalogTableBody');
+      if (!forceRefresh) {
+        const cached = readFundSessionCache('catalog', group);
+        if (cached) {
+          fundCatalogData = cached;
+          renderFundCatalog(cached);
+          return Promise.resolve(cached);
+        }
+      }
       if (tableBody) {
         tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải danh mục...</td></tr>';
       }
@@ -501,6 +563,7 @@
         forceRefresh: forceRefresh ? 'true' : ''
       }).then((data) => {
         fundCatalogData = data;
+        writeFundSessionCache('catalog', group, data);
         renderFundCatalog(data);
       }).catch((err) => {
         if (tableBody) {
@@ -602,6 +665,7 @@
         }
       })
         .then(() => {
+          invalidateFundSessionCache();
           showFundCatalogStatus('success', 'Đã lưu danh mục.');
           clearFundCatalogForm();
           fundFormOptions = null;
@@ -626,6 +690,7 @@
           rowIndex: rowIndex
         }
       }).then(() => {
+        invalidateFundSessionCache();
         fundFormOptions = null;
         loadFundCatalog(true);
         loadFundFormOptions();
@@ -644,9 +709,19 @@
 
     function loadFundLoanOverview(forceRefresh) {
       const month = el('fundLoanMonthFilter')?.value || '';
+      const cacheKey = month || 'all';
+      if (!forceRefresh) {
+        const cached = readFundSessionCache('loan_overview', cacheKey);
+        if (cached) {
+          fundLoanData = cached;
+          renderFundLoanOverview(cached);
+          return Promise.resolve(cached);
+        }
+      }
       return callApi('GET', 'getFundLoanOverview', { year: '2026', month: month, forceRefresh: forceRefresh ? 'true' : '' })
         .then((data) => {
           fundLoanData = data;
+          writeFundSessionCache('loan_overview', cacheKey, data);
           renderFundLoanOverview(data);
         })
         .catch((err) => {
@@ -857,6 +932,7 @@
       showFundLoanPaymentStatus('success', 'Đang lưu thanh toán khoản vay...');
       callApi('POST', 'addFundLoanPayment', {}, { year: '2026', payment })
         .then(() => {
+          invalidateFundSessionCache();
           showFundLoanPaymentStatus('success', 'Đã lưu thanh toán vào NHAP_VAY.');
           clearFundLoanPaymentForm();
           loadFundLoanOverview(true);
@@ -929,6 +1005,7 @@
       showFundLoanStatus('success', 'Đang lưu khoản vay...');
       callApi('POST', 'addFundLoan', {}, { year: '2026', loan })
         .then(() => {
+          invalidateFundSessionCache();
           clearFundLoanForm();
           showFundLoanStatus('success', 'Đã lưu khoản vay vào file Thu chi.');
           loadFundLoanOverview(true);
@@ -979,6 +1056,17 @@
       notice.style.display = 'none';
 
       const selectedMonth = monthFilter.value || '';
+      const cacheKey = selectedMonth || 'latest';
+      if (!forceRefresh) {
+        const cached = readFundSessionCache('transactions', cacheKey);
+        if (cached) {
+          fundTransactionsData = cached;
+          fundTransactionsPage = 1;
+          renderFundMonthFilter(cached.months || [], cached.selectedMonth || selectedMonth);
+          renderFundTransactions(cached);
+          return;
+        }
+      }
       callApi('GET', 'getFundTransactions', {
         year: '2026',
         month: selectedMonth,
@@ -987,6 +1075,7 @@
       })
         .then((data) => {
           fundTransactionsData = data;
+          writeFundSessionCache('transactions', cacheKey, data);
           fundTransactionsPage = 1;
           renderFundMonthFilter(data.months || [], data.selectedMonth || selectedMonth);
           renderFundTransactions(data);
@@ -1138,6 +1227,7 @@
         rowIndex: rowIndex
       })
         .then(() => {
+          invalidateFundSessionCache();
           hideGlobalLoader();
           loadFundTransactions(true);
           loadFundOverview(true);

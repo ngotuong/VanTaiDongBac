@@ -3190,8 +3190,8 @@
           return data;
         })
         .catch((err) => {
-          const fallbackResult = buildFetchPostFallbackResult_(method, action, bodyData, backendUrl, err);
-          if (fallbackResult) return fallbackResult;
+          const fallbackError = buildFetchPostFallbackError_(method, action, backendUrl, err);
+          if (fallbackError) throw fallbackError;
           throw err;
         });
     }
@@ -3204,26 +3204,16 @@
       return callFetchApi(normalizedMethod, action, params, bodyData);
     }
 
-    function buildFetchPostFallbackResult_(method, action, bodyData, backendUrl, err) {
+    function buildFetchPostFallbackError_(method, action, backendUrl, err) {
       if (String(method || '').toUpperCase() !== 'POST') return null;
       if (!/script\.google\.com$/i.test((new URL(backendUrl)).hostname)) return null;
       const message = String(err && err.message ? err.message : err || '');
       if (!/Failed to fetch|NetworkError|Load failed/i.test(message)) return null;
 
-      const warning = 'Yêu cầu đã được gửi tới Apps Script nhưng trình duyệt không đọc được phản hồi. Nếu dữ liệu đã xuất hiện trong Google Sheet thì có thể bỏ qua cảnh báo này.';
-      if (action === 'submitRows') {
-        return {
-          ok: true,
-          inserted: Array.isArray(bodyData && bodyData.rows) ? bodyData.rows.length : 0,
-          sheetName: '',
-          errors: [],
-          warnings: [warning]
-        };
-      }
-      return {
-        ok: true,
-        warnings: [warning]
-      };
+      const prefix = action === 'submitRows'
+        ? 'Chưa xác nhận được việc ghi dữ liệu.'
+        : 'Chưa xác nhận được thao tác ghi.';
+      return new Error(prefix + ' Trình duyệt không đọc được phản hồi từ Apps Script, nên web app sẽ giữ nguyên dữ liệu trên màn hình. Hãy thử mở đúng URL Web App /exec hoặc bấm gửi lại khi mạng ổn định.');
     }
 
     function removeSessionKeysByPrefix(prefix) {
@@ -3247,6 +3237,41 @@
 </script>
 
   <script>
+    const FUND_CACHE_TTL_MS = 3 * 60 * 1000;
+
+    function getFundCacheKey(type, suffix) {
+      return 'eb_fund_' + type + '_' + (suffix || 'default');
+    }
+
+    function readFundSessionCache(type, suffix) {
+      const key = getFundCacheKey(type, suffix);
+      const cached = sessionStorage.getItem(key);
+      const cachedAt = Number(sessionStorage.getItem(key + '_ts') || 0);
+      if (!cached || Date.now() - cachedAt > FUND_CACHE_TTL_MS) return null;
+      try {
+        return JSON.parse(cached);
+      } catch (err) {
+        sessionStorage.removeItem(key);
+        sessionStorage.removeItem(key + '_ts');
+        return null;
+      }
+    }
+
+    function writeFundSessionCache(type, suffix, data) {
+      const key = getFundCacheKey(type, suffix);
+      sessionStorage.setItem(key, JSON.stringify(data));
+      sessionStorage.setItem(key + '_ts', String(Date.now()));
+    }
+
+    function invalidateFundSessionCache() {
+      removeSessionKeysByPrefix('eb_fund_');
+      fundOverviewData = null;
+      fundTransactionsData = null;
+      fundLoanData = null;
+      fundFormOptions = null;
+      fundCatalogData = null;
+    }
+
     function setCashflowTab(tab) {
       activeCashflowTab = tab;
       document.querySelectorAll('[data-cashflow-tab]').forEach((button) => {
@@ -3290,12 +3315,22 @@
       }
       
       const month = el('fundOverviewMonthFilter')?.value || '';
+      const cacheKey = month || 'latest';
+      if (!forceRefresh) {
+        const cached = readFundSessionCache('overview', cacheKey);
+        if (cached) {
+          fundOverviewData = cached;
+          renderFundOverview(cached, null);
+          return Promise.resolve(cached);
+        }
+      }
       return callApi('GET', 'getFundOverview', {
         year: '2026',
         month: month,
         forceRefresh: forceRefresh ? 'true' : ''
       }).then((data) => {
         fundOverviewData = data;
+        writeFundSessionCache('overview', cacheKey, data);
         renderFundOverview(data, null);
         
         const months = data.months || [];
@@ -3547,9 +3582,16 @@
 
     function loadFundFormOptions() {
       if (fundFormOptions) return Promise.resolve(fundFormOptions);
+      const cached = readFundSessionCache('form_options', '2026');
+      if (cached) {
+        fundFormOptions = cached;
+        renderFundFormOptions();
+        return Promise.resolve(cached);
+      }
       return callApi('GET', 'getFundFormOptions', { year: '2026' })
         .then((data) => {
           fundFormOptions = data;
+          writeFundSessionCache('form_options', '2026', data);
           renderFundFormOptions();
           return data;
         })
@@ -3675,6 +3717,7 @@
           rowData: rowData
         })
           .then(() => {
+            invalidateFundSessionCache();
             clearFundEntryForm();
             showFundEntryStatus('success', 'Đã cập nhật khoản thu/chi thành công.');
             loadFundTransactions(true);
@@ -3691,6 +3734,7 @@
         showFundEntryStatus('info', 'Đang lưu khoản thu/chi...');
         callApi('POST', 'addFundTransaction', {}, { year: '2026', transaction })
           .then(() => {
+            invalidateFundSessionCache();
             clearFundEntryForm();
             showFundEntryStatus('success', 'Đã lưu khoản thu/chi vào file Thu chi.');
             loadFundTransactions(true);
@@ -3740,6 +3784,14 @@
     function loadFundCatalog(forceRefresh) {
       const group = activeFundCatalogGroup || 'incomeCategories';
       const tableBody = el('fundCatalogTableBody');
+      if (!forceRefresh) {
+        const cached = readFundSessionCache('catalog', group);
+        if (cached) {
+          fundCatalogData = cached;
+          renderFundCatalog(cached);
+          return Promise.resolve(cached);
+        }
+      }
       if (tableBody) {
         tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải danh mục...</td></tr>';
       }
@@ -3749,6 +3801,7 @@
         forceRefresh: forceRefresh ? 'true' : ''
       }).then((data) => {
         fundCatalogData = data;
+        writeFundSessionCache('catalog', group, data);
         renderFundCatalog(data);
       }).catch((err) => {
         if (tableBody) {
@@ -3850,6 +3903,7 @@
         }
       })
         .then(() => {
+          invalidateFundSessionCache();
           showFundCatalogStatus('success', 'Đã lưu danh mục.');
           clearFundCatalogForm();
           fundFormOptions = null;
@@ -3874,6 +3928,7 @@
           rowIndex: rowIndex
         }
       }).then(() => {
+        invalidateFundSessionCache();
         fundFormOptions = null;
         loadFundCatalog(true);
         loadFundFormOptions();
@@ -3892,9 +3947,19 @@
 
     function loadFundLoanOverview(forceRefresh) {
       const month = el('fundLoanMonthFilter')?.value || '';
+      const cacheKey = month || 'all';
+      if (!forceRefresh) {
+        const cached = readFundSessionCache('loan_overview', cacheKey);
+        if (cached) {
+          fundLoanData = cached;
+          renderFundLoanOverview(cached);
+          return Promise.resolve(cached);
+        }
+      }
       return callApi('GET', 'getFundLoanOverview', { year: '2026', month: month, forceRefresh: forceRefresh ? 'true' : '' })
         .then((data) => {
           fundLoanData = data;
+          writeFundSessionCache('loan_overview', cacheKey, data);
           renderFundLoanOverview(data);
         })
         .catch((err) => {
@@ -4105,6 +4170,7 @@
       showFundLoanPaymentStatus('success', 'Đang lưu thanh toán khoản vay...');
       callApi('POST', 'addFundLoanPayment', {}, { year: '2026', payment })
         .then(() => {
+          invalidateFundSessionCache();
           showFundLoanPaymentStatus('success', 'Đã lưu thanh toán vào NHAP_VAY.');
           clearFundLoanPaymentForm();
           loadFundLoanOverview(true);
@@ -4177,6 +4243,7 @@
       showFundLoanStatus('success', 'Đang lưu khoản vay...');
       callApi('POST', 'addFundLoan', {}, { year: '2026', loan })
         .then(() => {
+          invalidateFundSessionCache();
           clearFundLoanForm();
           showFundLoanStatus('success', 'Đã lưu khoản vay vào file Thu chi.');
           loadFundLoanOverview(true);
@@ -4227,6 +4294,17 @@
       notice.style.display = 'none';
 
       const selectedMonth = monthFilter.value || '';
+      const cacheKey = selectedMonth || 'latest';
+      if (!forceRefresh) {
+        const cached = readFundSessionCache('transactions', cacheKey);
+        if (cached) {
+          fundTransactionsData = cached;
+          fundTransactionsPage = 1;
+          renderFundMonthFilter(cached.months || [], cached.selectedMonth || selectedMonth);
+          renderFundTransactions(cached);
+          return;
+        }
+      }
       callApi('GET', 'getFundTransactions', {
         year: '2026',
         month: selectedMonth,
@@ -4235,6 +4313,7 @@
       })
         .then((data) => {
           fundTransactionsData = data;
+          writeFundSessionCache('transactions', cacheKey, data);
           fundTransactionsPage = 1;
           renderFundMonthFilter(data.months || [], data.selectedMonth || selectedMonth);
           renderFundTransactions(data);
@@ -4386,6 +4465,7 @@
         rowIndex: rowIndex
       })
         .then(() => {
+          invalidateFundSessionCache();
           hideGlobalLoader();
           loadFundTransactions(true);
           loadFundOverview(true);
@@ -5285,7 +5365,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.5_post_fallback_loan_history_fix';
+      const APP_VERSION = 'v3.6_mobile_confirm_catalog_fund_cache';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -6973,7 +7053,8 @@
         return;
       }
       const cached = sessionStorage.getItem('eb_catalogs_all');
-      if (cached) {
+      const cachedTime = Number(sessionStorage.getItem('eb_catalogs_all_ts') || 0);
+      if (cached && Date.now() - cachedTime < 5 * 60 * 1000) {
         catalogsByForm['all'] = JSON.parse(cached);
         if (callback) callback();
         return;
@@ -6982,6 +7063,7 @@
         .then(res => {
           catalogsByForm['all'] = res;
           sessionStorage.setItem('eb_catalogs_all', JSON.stringify(res));
+          sessionStorage.setItem('eb_catalogs_all_ts', String(Date.now()));
           if (callback) callback();
         })
         .catch(err => {
@@ -7017,7 +7099,7 @@
       const submitted = rows.map((row) => describeRow(submittedForm, row));
       const submittedRows = rows.map((row) => ({ ...row }));
       
-      callApi('POST', 'submitRows', {}, { formType: submittedForm, rows: rows })
+      callApi('POST', 'submitRows', {}, { formType: submittedForm, rows: submittedRows })
         .then((result) => {
           const details = [];
           if (result.errors?.length) details.push(result.errors.join('\n'));
@@ -7081,7 +7163,8 @@
       if (catalogsByForm[formType]) return;
       
       const cachedCatalogs = sessionStorage.getItem('eb_catalogs_' + formType);
-      if (cachedCatalogs) {
+      const cachedCatalogTime = Number(sessionStorage.getItem('eb_catalogs_' + formType + '_ts') || 0);
+      if (cachedCatalogs && Date.now() - cachedCatalogTime < 5 * 60 * 1000) {
         catalogsByForm[formType] = JSON.parse(cachedCatalogs);
         if (formType === activeForm) {
           renderEntry();
@@ -7094,6 +7177,7 @@
         .then((catalogs) => {
           catalogsByForm[formType] = catalogs;
           sessionStorage.setItem('eb_catalogs_' + formType, JSON.stringify(catalogs));
+          sessionStorage.setItem('eb_catalogs_' + formType + '_ts', String(Date.now()));
           
           if (formType === activeForm) {
             renderEntry();

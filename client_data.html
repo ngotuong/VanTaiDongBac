@@ -118,7 +118,8 @@
         return;
       }
       const cached = sessionStorage.getItem('eb_catalogs_all');
-      if (cached) {
+      const cachedTime = Number(sessionStorage.getItem('eb_catalogs_all_ts') || 0);
+      if (cached && Date.now() - cachedTime < 5 * 60 * 1000) {
         catalogsByForm['all'] = JSON.parse(cached);
         if (callback) callback();
         return;
@@ -127,6 +128,7 @@
         .then(res => {
           catalogsByForm['all'] = res;
           sessionStorage.setItem('eb_catalogs_all', JSON.stringify(res));
+          sessionStorage.setItem('eb_catalogs_all_ts', String(Date.now()));
           if (callback) callback();
         })
         .catch(err => {
@@ -162,7 +164,7 @@
       const submitted = rows.map((row) => describeRow(submittedForm, row));
       const submittedRows = rows.map((row) => ({ ...row }));
       
-      callApi('POST', 'submitRows', {}, { formType: submittedForm, rows: rows })
+      callApi('POST', 'submitRows', {}, { formType: submittedForm, rows: submittedRows })
         .then((result) => {
           const details = [];
           if (result.errors?.length) details.push(result.errors.join('\n'));
@@ -226,7 +228,8 @@
       if (catalogsByForm[formType]) return;
       
       const cachedCatalogs = sessionStorage.getItem('eb_catalogs_' + formType);
-      if (cachedCatalogs) {
+      const cachedCatalogTime = Number(sessionStorage.getItem('eb_catalogs_' + formType + '_ts') || 0);
+      if (cachedCatalogs && Date.now() - cachedCatalogTime < 5 * 60 * 1000) {
         catalogsByForm[formType] = JSON.parse(cachedCatalogs);
         if (formType === activeForm) {
           renderEntry();
@@ -239,6 +242,7 @@
         .then((catalogs) => {
           catalogsByForm[formType] = catalogs;
           sessionStorage.setItem('eb_catalogs_' + formType, JSON.stringify(catalogs));
+          sessionStorage.setItem('eb_catalogs_' + formType + '_ts', String(Date.now()));
           
           if (formType === activeForm) {
             renderEntry();

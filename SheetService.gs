@@ -1,6 +1,6 @@
 var SheetService = (function () {
   var CACHE_VERSION = 'v11';
-  var CATALOG_TTL_SECONDS = 21600;
+  var CATALOG_TTL_SECONDS = 300;
   var REPORT_TTL_SECONDS = 600;
   var REPORT_CACHE_SHEET_NAME = 'SYS_ReportCache';
   var REPORT_DATA_VERSION_PROP = 'REPORT_DATA_VERSION_V1';
@@ -21,9 +21,9 @@ var SheetService = (function () {
     return data;
   }
 
-  function getCatalogs(formType) {
+  function getCatalogs(formType, forceRefresh) {
     var key = cacheKey_('catalogs', formType || 'all');
-    var cached = getChunkedCache_(key);
+    var cached = forceRefresh ? null : getChunkedCache_(key);
     if (cached) return cached;
     var catalogs = readCatalogs_(getSpreadsheet_(), formType);
     putChunkedCache_(key, catalogs, CATALOG_TTL_SECONDS);

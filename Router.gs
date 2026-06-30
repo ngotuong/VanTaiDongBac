@@ -15,7 +15,7 @@ function doGet(e) {
     }
     if (action === 'getBootstrap') return jsonResponse_(SheetService.getBootstrap());
     if (action === 'getInitialData') return jsonResponse_(SheetService.getInitialData());
-    if (action === 'getCatalogs') return jsonResponse_(SheetService.getCatalogs(e.parameter.formType));
+    if (action === 'getCatalogs') return jsonResponse_(SheetService.getCatalogs(e.parameter.formType, e.parameter.forceRefresh === 'true'));
     if (action === 'getDashboard') return jsonResponse_(SheetService.getDashboard(e.parameter.month, e.parameter.forceRefresh === 'true'));
     if (action === 'getReports') return jsonResponse_(SheetService.getReports(e.parameter.forceRefresh === 'true'));
     if (action === 'getReport') return jsonResponse_(SheetService.getReport(e.parameter.type, e.parameter.month, e.parameter.forceRefresh === 'true'));
@@ -25,22 +25,25 @@ function doGet(e) {
     if (action === 'getFundTransactions') {
       return jsonResponse_(FundService.getFundTransactions(e.parameter.year, {
         month: e.parameter.month,
-        limit: e.parameter.limit
+        limit: e.parameter.limit,
+        forceRefresh: e.parameter.forceRefresh === 'true'
       }));
     }
     if (action === 'getFundOverview') {
       return jsonResponse_(FundService.getFundOverview(e.parameter.year, {
-        month: e.parameter.month
+        month: e.parameter.month,
+        forceRefresh: e.parameter.forceRefresh === 'true'
       }));
     }
     if (action === 'getFundLoanOverview') {
       return jsonResponse_(FundService.getFundLoanOverview(e.parameter.year, {
-        month: e.parameter.month
+        month: e.parameter.month,
+        forceRefresh: e.parameter.forceRefresh === 'true'
       }));
     }
-    if (action === 'getFundFormOptions') return jsonResponse_(FundService.getFundFormOptions(e.parameter.year));
+    if (action === 'getFundFormOptions') return jsonResponse_(FundService.getFundFormOptions(e.parameter.year, e.parameter.forceRefresh === 'true'));
     if (action === 'getFundCatalog') {
-      return jsonResponse_(FundService.getFundCatalog(e.parameter.year, e.parameter.group));
+      return jsonResponse_(FundService.getFundCatalog(e.parameter.year, e.parameter.group, e.parameter.forceRefresh === 'true'));
     }
 
     throw new Error('Hành động GET không hợp lệ: ' + action);

@@ -1,6 +1,13 @@
 <script>
+    let managePage = 1;
+    const managePageSize = 20;
+    let lastManageQuery = '';
+    let lastManageSheet = '';
+
     // CRUD Manager Operations
     function loadManageSheetData() {
+      managePage = 1;
+      lastManageQuery = '';
       const sheetName = el('manageSheetSelect').value;
       const tbody = el('manageTableBody');
       const thead = el('manageTableHeader');
@@ -203,6 +210,14 @@
 
     function filterManageRows() {
       const query = el('manageSearchInput').value.toLowerCase().trim();
+      const sheetName = el('manageSheetSelect').value;
+      
+      if (query !== lastManageQuery || sheetName !== lastManageSheet) {
+        managePage = 1;
+        lastManageQuery = query;
+        lastManageSheet = sheetName;
+      }
+      
       const tbody = el('manageTableBody');
       tbody.innerHTML = '';
       
@@ -212,7 +227,6 @@
       let amountColIdx = -1;
       let noteColIdx = -1;
       let tripsColIdx = -1;
-      const sheetName = el('manageSheetSelect').value;
       const visibleColumns = currentManageData ? getManageVisibleColumns(currentManageData.headers, sheetName) : [];
 
       if (currentManageData) {
@@ -293,14 +307,32 @@
         if (totalTarget) totalTarget.textContent = Math.round(totalTrips).toLocaleString('vi-VN');
       }
 
-      if (matched.length === 0) {
+      // Pagination calculation
+      const totalMatched = matched.length;
+      const totalPages = Math.ceil(totalMatched / managePageSize) || 1;
+      if (managePage > totalPages) managePage = totalPages;
+      if (managePage < 1) managePage = 1;
+
+      const startIndex = (managePage - 1) * managePageSize;
+      const endIndex = Math.min(startIndex + managePageSize, totalMatched);
+      const pageRows = matched.slice(startIndex, endIndex);
+
+      const paginBar = el('managePaginationBar');
+      if (paginBar) {
+        paginBar.style.display = totalMatched > 0 ? 'flex' : 'none';
+        el('managePaginationInfo').textContent = totalMatched ? `Đang hiển thị ${startIndex + 1}-${endIndex} trên ${totalMatched}` : 'Hiển thị 0-0 trên 0';
+        el('managePrevPageBtn').disabled = (managePage <= 1);
+        el('manageNextPageBtn').disabled = (managePage >= totalPages);
+      }
+
+      if (totalMatched === 0) {
         el('manageTableEmpty').style.display = 'block';
         return;
       }
       el('manageTableEmpty').style.display = 'none';
 
       const fragment = document.createDocumentFragment();
-      matched.forEach(row => {
+      pageRows.forEach(row => {
         const tr = document.createElement('tr');
         
         visibleColumns.forEach((idx) => {
@@ -640,5 +672,10 @@
         .catch((err) => {
           alert('Lỗi xóa dữ liệu: ' + err.message);
         });
+    }
+
+    function changeManagePage(offset) {
+      managePage += offset;
+      filterManageRows();
     }
 </script>

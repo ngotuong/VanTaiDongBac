@@ -464,8 +464,8 @@
       const fuelOutColIdx = getColIdx(['dầu ngoài', 'đổ ngoài'], 6);
       const tollColIdx = getColIdx(['cầu đường', 'phí cầu đường'], 7);
       const payrollColIdx = getColIdx(['lương', 'chi phí lương'], 8);
-      const fundColIdx = getColIdx(['chi quỹ', 'quỹ'], 9);
-      const finalColIdx = getColIdx(['lợi nhuận', 'thực tế'], 10);
+      const fundColIdx = getColIdx(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 9);
+      const finalColIdx = getColIdx(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận'], 10);
 
       const rows = matrix.slice(1)
         .filter((row) => row[monthColIdx] && String(row[monthColIdx]).trim() !== '' && String(row[monthColIdx]).trim() !== 'Tháng')
@@ -555,8 +555,8 @@
       const fuelOutColIdx = getColIdx(['dầu ngoài', 'đổ ngoài'], 6);
       const tollColIdx = getColIdx(['cầu đường', 'phí cầu đường'], 7);
       const payrollColIdx = getColIdx(['lương', 'chi phí lương'], 8);
-      const fundColIdx = getColIdx(['chi quỹ', 'quỹ'], 9);
-      const finalColIdx = getColIdx(['lợi nhuận', 'thực tế'], 10);
+      const fundColIdx = getColIdx(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 9);
+      const finalColIdx = getColIdx(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận'], 10);
 
       if (selectedMonth === 'Tất cả') {
         let volume = 0, revenue = 0, taxTndn = 0, taxVat = 0, fuelQM = 0, fuelOut = 0, toll = 0, payroll = 0, fund = 0, gross = 0, operatingCost = 0, cashCost = 0, totalCost = 0, final = 0;

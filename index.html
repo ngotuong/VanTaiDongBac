@@ -2353,6 +2353,13 @@
           <div id="manageTableEmpty" class="panel-body" style="text-align: center; color: var(--muted); padding: 48px 24px; display: none;">
             Không có dữ liệu phù hợp với tìm kiếm của bạn.
           </div>
+          <div id="managePaginationBar" style="display: none; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--muted); background: var(--paper); border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; flex-wrap: wrap; gap: 8px;">
+            <span id="managePaginationInfo">Đang hiển thị 0-0 trên 0</span>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="secondary" id="managePrevPageBtn" onclick="changeManagePage(-1)" style="height: 32px; padding: 0 12px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 6px; cursor: pointer; font-weight: 600;">&larr; Trước</button>
+              <button type="button" class="secondary" id="manageNextPageBtn" onclick="changeManagePage(1)" style="height: 32px; padding: 0 12px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 6px; cursor: pointer; font-weight: 600;">Sau &rarr;</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -4423,8 +4430,15 @@
 </script>
 
   <script>
+    let managePage = 1;
+    const managePageSize = 20;
+    let lastManageQuery = '';
+    let lastManageSheet = '';
+
     // CRUD Manager Operations
     function loadManageSheetData() {
+      managePage = 1;
+      lastManageQuery = '';
       const sheetName = el('manageSheetSelect').value;
       const tbody = el('manageTableBody');
       const thead = el('manageTableHeader');
@@ -4627,6 +4641,14 @@
 
     function filterManageRows() {
       const query = el('manageSearchInput').value.toLowerCase().trim();
+      const sheetName = el('manageSheetSelect').value;
+      
+      if (query !== lastManageQuery || sheetName !== lastManageSheet) {
+        managePage = 1;
+        lastManageQuery = query;
+        lastManageSheet = sheetName;
+      }
+      
       const tbody = el('manageTableBody');
       tbody.innerHTML = '';
       
@@ -4636,7 +4658,6 @@
       let amountColIdx = -1;
       let noteColIdx = -1;
       let tripsColIdx = -1;
-      const sheetName = el('manageSheetSelect').value;
       const visibleColumns = currentManageData ? getManageVisibleColumns(currentManageData.headers, sheetName) : [];
 
       if (currentManageData) {
@@ -4717,14 +4738,32 @@
         if (totalTarget) totalTarget.textContent = Math.round(totalTrips).toLocaleString('vi-VN');
       }
 
-      if (matched.length === 0) {
+      // Pagination calculation
+      const totalMatched = matched.length;
+      const totalPages = Math.ceil(totalMatched / managePageSize) || 1;
+      if (managePage > totalPages) managePage = totalPages;
+      if (managePage < 1) managePage = 1;
+
+      const startIndex = (managePage - 1) * managePageSize;
+      const endIndex = Math.min(startIndex + managePageSize, totalMatched);
+      const pageRows = matched.slice(startIndex, endIndex);
+
+      const paginBar = el('managePaginationBar');
+      if (paginBar) {
+        paginBar.style.display = totalMatched > 0 ? 'flex' : 'none';
+        el('managePaginationInfo').textContent = totalMatched ? `Đang hiển thị ${startIndex + 1}-${endIndex} trên ${totalMatched}` : 'Hiển thị 0-0 trên 0';
+        el('managePrevPageBtn').disabled = (managePage <= 1);
+        el('manageNextPageBtn').disabled = (managePage >= totalPages);
+      }
+
+      if (totalMatched === 0) {
         el('manageTableEmpty').style.display = 'block';
         return;
       }
       el('manageTableEmpty').style.display = 'none';
 
       const fragment = document.createDocumentFragment();
-      matched.forEach(row => {
+      pageRows.forEach(row => {
         const tr = document.createElement('tr');
         
         visibleColumns.forEach((idx) => {
@@ -5064,6 +5103,11 @@
         .catch((err) => {
           alert('Lỗi xóa dữ liệu: ' + err.message);
         });
+    }
+
+    function changeManagePage(offset) {
+      managePage += offset;
+      filterManageRows();
     }
 </script>
 
@@ -6696,8 +6740,8 @@
       const fuelOutColIdx = getColIdx(['dầu ngoài', 'đổ ngoài'], 6);
       const tollColIdx = getColIdx(['cầu đường', 'phí cầu đường'], 7);
       const payrollColIdx = getColIdx(['lương', 'chi phí lương'], 8);
-      const fundColIdx = getColIdx(['chi quỹ', 'quỹ'], 9);
-      const finalColIdx = getColIdx(['lợi nhuận', 'thực tế'], 10);
+      const fundColIdx = getColIdx(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 9);
+      const finalColIdx = getColIdx(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận'], 10);
 
       const rows = matrix.slice(1)
         .filter((row) => row[monthColIdx] && String(row[monthColIdx]).trim() !== '' && String(row[monthColIdx]).trim() !== 'Tháng')
@@ -6787,8 +6831,8 @@
       const fuelOutColIdx = getColIdx(['dầu ngoài', 'đổ ngoài'], 6);
       const tollColIdx = getColIdx(['cầu đường', 'phí cầu đường'], 7);
       const payrollColIdx = getColIdx(['lương', 'chi phí lương'], 8);
-      const fundColIdx = getColIdx(['chi quỹ', 'quỹ'], 9);
-      const finalColIdx = getColIdx(['lợi nhuận', 'thực tế'], 10);
+      const fundColIdx = getColIdx(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 9);
+      const finalColIdx = getColIdx(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận'], 10);
 
       if (selectedMonth === 'Tất cả') {
         let volume = 0, revenue = 0, taxTndn = 0, taxVat = 0, fuelQM = 0, fuelOut = 0, toll = 0, payroll = 0, fund = 0, gross = 0, operatingCost = 0, cashCost = 0, totalCost = 0, final = 0;

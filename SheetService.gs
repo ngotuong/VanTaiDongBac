@@ -281,9 +281,9 @@ var SheetService = (function () {
 
     var vehicles = vehicleRows.map(function (row) {
       return {
-        plate: clean_(row[0]),
-        status: clean_(row[3]),
-        owner: clean_(row[5])
+        plate: clean_(row[1]),
+        status: clean_(row[5]),
+        owner: clean_(row[7])
       };
     }).filter(function (item) { return item.plate; });
 

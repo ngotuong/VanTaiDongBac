@@ -2400,6 +2400,13 @@
           <div id="catalogTableEmpty" class="panel-body" style="text-align: center; color: var(--muted); padding: 48px 24px; display: none;">
             Không có dữ liệu phù hợp với tìm kiếm của bạn.
           </div>
+          <div id="catalogPaginationBar" style="display: none; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--muted); background: var(--paper); border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; flex-wrap: wrap; gap: 8px;">
+            <span id="catalogPaginationInfo">Đang hiển thị 0-0 trên 0</span>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="secondary" id="catalogPrevPageBtn" onclick="changeCatalogPage(-1)" style="height: 32px; padding: 0 12px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 6px; cursor: pointer; font-weight: 600;">&larr; Trước</button>
+              <button type="button" class="secondary" id="catalogNextPageBtn" onclick="changeCatalogPage(1)" style="height: 32px; padding: 0 12px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 6px; cursor: pointer; font-weight: 600;">Sau &rarr;</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -4541,7 +4548,7 @@
 
     function shouldShowManageOwnerColumn(sheetName, vehicleColIdx) {
       if (vehicleColIdx === -1) return false;
-      if (sheetName === 'NL_TaiXe' || sheetName === 'NL_NghiVanHanh') return false;
+      if (sheetName === 'NL_TaiXe' || sheetName === 'NL_NghiVanHanh' || sheetName === 'NL_Dau') return false;
       return true;
     }
 
@@ -5060,8 +5067,14 @@
 </script>
 
   <script>
+    let catalogPage = 1;
+    const catalogPageSize = 20;
+    let lastCatalogQuery = '';
+
     // Catalog CRUD Operations
     function loadCatalogSheetData() {
+      catalogPage = 1;
+      lastCatalogQuery = '';
       const displaySheetName = el('catalogSheetSelect').value;
       const sheetName = (displaySheetName === 'DM_ThamSo_TS' || displaySheetName === 'DM_ThamSo_GD') ? 'DM_ThamSo' : displaySheetName;
       
@@ -5173,6 +5186,11 @@
 
     function filterCatalogRows() {
       const query = el('catalogSearchInput').value.toLowerCase().trim();
+      if (query !== lastCatalogQuery) {
+        catalogPage = 1;
+        lastCatalogQuery = query;
+      }
+      
       const tbody = el('catalogTableBody');
       tbody.innerHTML = '';
       
@@ -5193,14 +5211,32 @@
         return row.searchText.includes(removeAccents(query));
       });
 
-      if (matched.length === 0) {
+      const totalMatched = matched.length;
+      const totalPages = Math.ceil(totalMatched / catalogPageSize) || 1;
+      
+      if (catalogPage > totalPages) catalogPage = totalPages;
+      if (catalogPage < 1) catalogPage = 1;
+      
+      const startIndex = (catalogPage - 1) * catalogPageSize;
+      const endIndex = Math.min(startIndex + catalogPageSize, totalMatched);
+      const pageRows = matched.slice(startIndex, endIndex);
+
+      const paginBar = el('catalogPaginationBar');
+      if (paginBar) {
+        paginBar.style.display = totalMatched > 0 ? 'flex' : 'none';
+        el('catalogPaginationInfo').textContent = totalMatched ? `Đang hiển thị ${startIndex + 1}-${endIndex} trên ${totalMatched}` : 'Hiển thị 0-0 trên 0';
+        el('catalogPrevPageBtn').disabled = (catalogPage <= 1);
+        el('catalogNextPageBtn').disabled = (catalogPage >= totalPages);
+      }
+
+      if (totalMatched === 0) {
         el('catalogTableEmpty').style.display = 'block';
         return;
       }
       el('catalogTableEmpty').style.display = 'none';
 
       const fragment = document.createDocumentFragment();
-      matched.forEach(row => {
+      pageRows.forEach(row => {
         const tr = document.createElement('tr');
         
         row.values.forEach((val, idx) => {
@@ -5271,6 +5307,11 @@
 
     function openCatalogAddModal() {
       openManageAddModal();
+    }
+
+    function changeCatalogPage(offset) {
+      catalogPage += offset;
+      filterCatalogRows();
     }
 </script>
 

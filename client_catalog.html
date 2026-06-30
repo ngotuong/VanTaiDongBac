@@ -1,6 +1,12 @@
 <script>
+    let catalogPage = 1;
+    const catalogPageSize = 20;
+    let lastCatalogQuery = '';
+
     // Catalog CRUD Operations
     function loadCatalogSheetData() {
+      catalogPage = 1;
+      lastCatalogQuery = '';
       const displaySheetName = el('catalogSheetSelect').value;
       const sheetName = (displaySheetName === 'DM_ThamSo_TS' || displaySheetName === 'DM_ThamSo_GD') ? 'DM_ThamSo' : displaySheetName;
       
@@ -112,6 +118,11 @@
 
     function filterCatalogRows() {
       const query = el('catalogSearchInput').value.toLowerCase().trim();
+      if (query !== lastCatalogQuery) {
+        catalogPage = 1;
+        lastCatalogQuery = query;
+      }
+      
       const tbody = el('catalogTableBody');
       tbody.innerHTML = '';
       
@@ -132,14 +143,32 @@
         return row.searchText.includes(removeAccents(query));
       });
 
-      if (matched.length === 0) {
+      const totalMatched = matched.length;
+      const totalPages = Math.ceil(totalMatched / catalogPageSize) || 1;
+      
+      if (catalogPage > totalPages) catalogPage = totalPages;
+      if (catalogPage < 1) catalogPage = 1;
+      
+      const startIndex = (catalogPage - 1) * catalogPageSize;
+      const endIndex = Math.min(startIndex + catalogPageSize, totalMatched);
+      const pageRows = matched.slice(startIndex, endIndex);
+
+      const paginBar = el('catalogPaginationBar');
+      if (paginBar) {
+        paginBar.style.display = totalMatched > 0 ? 'flex' : 'none';
+        el('catalogPaginationInfo').textContent = totalMatched ? `Đang hiển thị ${startIndex + 1}-${endIndex} trên ${totalMatched}` : 'Hiển thị 0-0 trên 0';
+        el('catalogPrevPageBtn').disabled = (catalogPage <= 1);
+        el('catalogNextPageBtn').disabled = (catalogPage >= totalPages);
+      }
+
+      if (totalMatched === 0) {
         el('catalogTableEmpty').style.display = 'block';
         return;
       }
       el('catalogTableEmpty').style.display = 'none';
 
       const fragment = document.createDocumentFragment();
-      matched.forEach(row => {
+      pageRows.forEach(row => {
         const tr = document.createElement('tr');
         
         row.values.forEach((val, idx) => {
@@ -210,5 +239,10 @@
 
     function openCatalogAddModal() {
       openManageAddModal();
+    }
+
+    function changeCatalogPage(offset) {
+      catalogPage += offset;
+      filterCatalogRows();
     }
 </script>

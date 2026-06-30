@@ -1029,6 +1029,12 @@ var SheetService = (function () {
     removeChunkedCache_(cacheKey_('report', 'vehicles', 'all'));
     removeChunkedCache_(cacheKey_('report_bundle', 'all'));
     removeChunkedCache_(cacheKey_('report_tables', 'all'));
+    
+    // Clear catalog caches
+    var formTypes = ['all', 'vanChuyen', 'taiXe', 'dau', 'chamCong', 'phat', 'nghiVanHanh'];
+    formTypes.forEach(function (type) {
+      removeChunkedCache_(cacheKey_('catalogs', type));
+    });
   }
 
   function readLatestTrips_(ss) {

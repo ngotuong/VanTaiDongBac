@@ -376,6 +376,7 @@
       }
       
       invalidateReportSessionCache();
+      catalogsByForm = {};
       setRefreshBusy(true);
       invalidateServerCaches().then(() => {
         if (activeView === 'reports') {

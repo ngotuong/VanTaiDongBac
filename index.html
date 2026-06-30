@@ -3246,6 +3246,7 @@
       reportCacheEpoch += 1;
       reportBundlePrefetching = false;
       removeSessionKeysByPrefix('eb_report_bundle_');
+      removeSessionKeysByPrefix('eb_catalogs_');
       sessionStorage.removeItem('eb_dashboard_v3');
     }
 
@@ -6668,39 +6669,69 @@
     }
 
     function parseOverview(matrix) {
-      const rows = (matrix || []).slice(1)
-        .filter((row) => row[0] && row[0].trim() !== '' && row[0] !== 'Tháng')
+      if (!matrix || !matrix.length) return { rows: [], latest: {} };
+      const headers = matrix[0].map(h => String(h || '').trim().toLowerCase());
+      
+      const getColIdx = (names, defaultIdx) => {
+        for (let i = 0; i < headers.length; i++) {
+          const h = headers[i];
+          if (names.some(name => h.includes(name))) return i;
+        }
+        return defaultIdx;
+      };
+
+      const monthColIdx = getColIdx(['tháng'], 0);
+      const volumeColIdx = getColIdx(['sản lượng', 'khối lượng'], 1);
+      const revenueColIdx = getColIdx(['doanh thu'], 2);
+      const taxTndnColIdx = getColIdx(['thuế tndn', 'tndn'], 3);
+      const taxVatColIdx = getColIdx(['thuế vat', 'vat'], 4);
+      const fuelQMColIdx = getColIdx(['dầu qm', 'quang minh'], 5);
+      const fuelOutColIdx = getColIdx(['dầu ngoài', 'đổ ngoài'], 6);
+      const tollColIdx = getColIdx(['cầu đường', 'phí cầu đường'], 7);
+      const payrollColIdx = getColIdx(['lương', 'chi phí lương'], 8);
+      const fundColIdx = getColIdx(['chi quỹ', 'quỹ'], 9);
+      const finalColIdx = getColIdx(['lợi nhuận', 'thực tế'], 10);
+
+      const rows = matrix.slice(1)
+        .filter((row) => row[monthColIdx] && String(row[monthColIdx]).trim() !== '' && String(row[monthColIdx]).trim() !== 'Tháng')
         .map((row) => {
-          const rev = parseMoney(row[2]);
-          const taxTndn = parseMoney(row[3]);
-          const taxVat = parseMoney(row[4]);
-          const fuelQM = parseMoney(row[5]);
-          const fuelOut = parseMoney(row[6]);
-          const toll = parseMoney(row[7]);
+          const monthVal = row[monthColIdx] || '';
+          const volumeVal = row[volumeColIdx] || '';
+          const rev = parseMoney(row[revenueColIdx]);
+          const taxTndn = parseMoney(row[taxTndnColIdx]);
+          const taxVat = parseMoney(row[taxVatColIdx]);
+          const fuelQM = parseMoney(row[fuelQMColIdx]);
+          const fuelOut = parseMoney(row[fuelOutColIdx]);
+          const toll = parseMoney(row[tollColIdx]);
+          const payroll = parseMoney(row[payrollColIdx]);
+          const fund = parseMoney(row[fundColIdx]);
+          const final = parseMoney(row[finalColIdx]);
+          
           const gross = rev - taxTndn - taxVat - fuelQM - toll;
           const grossText = formatCurrencyText(gross);
           
-          const fund = parseMoney(row[9]);
           const operatingCost = taxTndn + taxVat + fuelQM + toll;
-          const cashCost = fuelOut + fund;
-          const totalCost = taxTndn + taxVat + fuelQM + fuelOut + toll + fund;
+          const cashCost = fuelOut + payroll + fund;
+          const totalCost = operatingCost + cashCost;
           const totalCostText = formatCurrencyText(totalCost);
           
           return {
-            month: row[0],
+            month: monthVal,
             source: row,
-            volumeText: row[1],
-            volume: parseMoney(row[1]),
-            revenueText: row[2],
+            volumeText: volumeVal,
+            volume: parseMoney(volumeVal),
+            revenueText: formatCurrencyText(rev),
             revenue: rev,
-            taxTndnText: row[3],
+            taxTndnText: formatCurrencyText(taxTndn),
             taxTndn: taxTndn,
-            taxVatText: row[4],
+            taxVatText: formatCurrencyText(taxVat),
             taxVat: taxVat,
-            fuelText: row[5] + (row[6] ? ' / ' + row[6] : ''),
+            fuelText: formatCurrencyText(fuelQM) + (fuelOut ? ' / ' + formatCurrencyText(fuelOut) : ''),
             fuelQM: fuelQM,
             fuelOut: fuelOut,
-            tollText: row[7],
+            payroll: payroll,
+            payrollText: formatCurrencyText(payroll),
+            tollText: formatCurrencyText(toll),
             toll: toll,
             grossText: grossText,
             gross: gross,
@@ -6710,10 +6741,10 @@
             cashCostText: formatCurrencyText(cashCost),
             totalCost: totalCost,
             totalCostText: totalCostText,
-            fundText: row[9],
+            fundText: formatCurrencyText(fund),
             fund: fund,
-            finalText: row[10],
-            final: parseMoney(row[10])
+            finalText: formatCurrencyText(final),
+            final: final
           };
         });
       return { rows, latest: rows[rows.length - 1] || {} };
@@ -6728,38 +6759,64 @@
 
     function getSelectedOverviewRow(rows) {
       if (!rows.length) return {};
+      const dashboard = getDashboardData();
+      const matrix = dashboard.overview.months || [];
+      const headers = matrix[0] ? matrix[0].map(h => String(h || '').trim().toLowerCase()) : [];
+      
+      const getColIdx = (names, defaultIdx) => {
+        for (let i = 0; i < headers.length; i++) {
+          const h = headers[i];
+          if (names.some(name => h.includes(name))) return i;
+        }
+        return defaultIdx;
+      };
+
+      const monthColIdx = getColIdx(['tháng'], 0);
+      const volumeColIdx = getColIdx(['sản lượng', 'khối lượng'], 1);
+      const revenueColIdx = getColIdx(['doanh thu'], 2);
+      const taxTndnColIdx = getColIdx(['thuế tndn', 'tndn'], 3);
+      const taxVatColIdx = getColIdx(['thuế vat', 'vat'], 4);
+      const fuelQMColIdx = getColIdx(['dầu qm', 'quang minh'], 5);
+      const fuelOutColIdx = getColIdx(['dầu ngoài', 'đổ ngoài'], 6);
+      const tollColIdx = getColIdx(['cầu đường', 'phí cầu đường'], 7);
+      const payrollColIdx = getColIdx(['lương', 'chi phí lương'], 8);
+      const fundColIdx = getColIdx(['chi quỹ', 'quỹ'], 9);
+      const finalColIdx = getColIdx(['lợi nhuận', 'thực tế'], 10);
+
       if (selectedMonth === 'Tất cả') {
-        let volume = 0;
-        let revenue = 0;
-        let taxTndn = 0;
-        let taxVat = 0;
-        let fuelQM = 0;
-        let fuelOut = 0;
-        let toll = 0;
-        let gross = 0;
-        let fund = 0;
-        let operatingCost = 0;
-        let cashCost = 0;
-        let totalCost = 0;
-        let final = 0;
+        let volume = 0, revenue = 0, taxTndn = 0, taxVat = 0, fuelQM = 0, fuelOut = 0, toll = 0, payroll = 0, fund = 0, gross = 0, operatingCost = 0, cashCost = 0, totalCost = 0, final = 0;
         
         rows.forEach(r => {
           volume += r.volume || 0;
           revenue += r.revenue || 0;
-          taxTndn += parseMoney(r.taxTndnText);
-          taxVat += parseMoney(r.taxVatText);
-          if (r.source) {
-            fuelQM += parseMoney(r.source[5]);
-            fuelOut += parseMoney(r.source[6]);
-            toll += parseMoney(r.source[7]);
-            fund += parseMoney(r.source[9]);
-          }
+          taxTndn += r.taxTndn || 0;
+          taxVat += r.taxVat || 0;
+          fuelQM += r.fuelQM || 0;
+          fuelOut += r.fuelOut || 0;
+          toll += r.toll || 0;
+          payroll += r.payroll || 0;
+          fund += r.fund || 0;
           gross += r.gross || 0;
           operatingCost += r.operatingCost || 0;
           cashCost += r.cashCost || 0;
           totalCost += r.totalCost || 0;
           final += r.final || 0;
         });
+
+        const totalSource = new Array(headers.length).fill('');
+        if (headers.length) {
+          totalSource[monthColIdx] = 'Tất cả';
+          totalSource[volumeColIdx] = volume.toLocaleString('vi-VN');
+          totalSource[revenueColIdx] = Math.round(revenue).toLocaleString('vi-VN') + ' ₫';
+          totalSource[taxTndnColIdx] = Math.round(taxTndn).toLocaleString('vi-VN') + ' ₫';
+          totalSource[taxVatColIdx] = Math.round(taxVat).toLocaleString('vi-VN') + ' ₫';
+          totalSource[fuelQMColIdx] = Math.round(fuelQM).toLocaleString('vi-VN') + ' ₫';
+          totalSource[fuelOutColIdx] = Math.round(fuelOut).toLocaleString('vi-VN') + ' ₫';
+          totalSource[tollColIdx] = Math.round(toll).toLocaleString('vi-VN') + ' ₫';
+          if (payrollColIdx < headers.length) totalSource[payrollColIdx] = Math.round(payroll).toLocaleString('vi-VN') + ' ₫';
+          if (fundColIdx < headers.length) totalSource[fundColIdx] = Math.round(fund).toLocaleString('vi-VN') + ' ₫';
+          if (finalColIdx < headers.length) totalSource[finalColIdx] = Math.round(final).toLocaleString('vi-VN') + ' ₫';
+        }
 
         return {
           month: 'Tất cả',
@@ -6783,21 +6840,10 @@
           cashCostText: formatCurrencyText(cashCost),
           fundText: formatCurrencyText(fund),
           totalCostText: formatCurrencyText(totalCost),
+          totalCost: totalCost,
           finalText: formatCurrencyText(final),
           final: final,
-          source: [
-            'Tất cả',
-            volume.toLocaleString('vi-VN'),
-            Math.round(revenue).toLocaleString('vi-VN') + ' ₫',
-            Math.round(taxTndn).toLocaleString('vi-VN') + ' ₫',
-            Math.round(taxVat).toLocaleString('vi-VN') + ' ₫',
-            Math.round(fuelQM).toLocaleString('vi-VN') + ' ₫',
-            Math.round(fuelOut).toLocaleString('vi-VN') + ' ₫',
-            Math.round(toll).toLocaleString('vi-VN') + ' ₫',
-            '',
-            Math.round(fund).toLocaleString('vi-VN') + ' ₫',
-            Math.round(final).toLocaleString('vi-VN') + ' ₫'
-          ]
+          source: totalSource
         };
       }
       return rows.find((row) => row.month === selectedMonth) || rows[rows.length - 1] || {};
@@ -6860,6 +6906,7 @@
         ['Tổng chi phí dầu', row.fuelText || ''],
         ['Chi phí phí cầu đường', row.tollText || ''],
         ['Doanh thu gộp (Sau VAT & cầu đường/dầu)', row.grossText || ''],
+        ['Chi phí lương', row.payrollText || '0 đ'],
         ['Chi quỹ thực tế (Ngân quỹ)', row.fundText || ''],
         ['Lợi nhuận thực nhận (Tổng cuối)', row.finalText || '']
       ];
@@ -7265,6 +7312,7 @@
       }
       
       invalidateReportSessionCache();
+      catalogsByForm = {};
       setRefreshBusy(true);
       invalidateServerCaches().then(() => {
         if (activeView === 'reports') {

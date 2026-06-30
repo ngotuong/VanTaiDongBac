@@ -299,6 +299,7 @@
     }
 
     function scheduleReportBundlePrefetch() {
+      return;
       if (reportBundlePrefetching || activeView !== 'reports') return;
       const overviewRows = parseOverview(getDashboardData().overview.months).rows || [];
       const months = [...new Set(overviewRows.map((row) => row.month).filter(Boolean))]

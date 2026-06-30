@@ -456,9 +456,10 @@
           const grossText = formatCurrencyText(gross);
           
           const fund = parseMoney(row[9]);
+          const final = parseMoney(row[10]);
           const operatingCost = taxTndn + taxVat + fuelQM + toll;
-          const cashCost = fuelOut + fund;
-          const totalCost = taxTndn + taxVat + fuelQM + fuelOut + toll + fund;
+          const cashCost = gross - final;
+          const totalCost = operatingCost + cashCost;
           const totalCostText = formatCurrencyText(totalCost);
           
           return {
@@ -488,7 +489,7 @@
             fundText: row[9],
             fund: fund,
             finalText: row[10],
-            final: parseMoney(row[10])
+            final: final
           };
         });
       return { rows, latest: rows[rows.length - 1] || {} };

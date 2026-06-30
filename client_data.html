@@ -113,12 +113,12 @@
     }
 
     function loadAllCatalogsIfNeeded(callback) {
-      if (catalogsByForm['all']) {
+      const cachedTime = Number(sessionStorage.getItem('eb_catalogs_all_ts') || 0);
+      if (catalogsByForm['all'] && Date.now() - cachedTime < 5 * 60 * 1000) {
         if (callback) callback();
         return;
       }
       const cached = sessionStorage.getItem('eb_catalogs_all');
-      const cachedTime = Number(sessionStorage.getItem('eb_catalogs_all_ts') || 0);
       if (cached && Date.now() - cachedTime < 5 * 60 * 1000) {
         catalogsByForm['all'] = JSON.parse(cached);
         if (callback) callback();
@@ -225,10 +225,10 @@
 
     // Catalogs loader (sessionStorage optimized)
     function loadCatalogs(formType) {
-      if (catalogsByForm[formType]) return;
+      const cachedCatalogTime = Number(sessionStorage.getItem('eb_catalogs_' + formType + '_ts') || 0);
+      if (catalogsByForm[formType] && Date.now() - cachedCatalogTime < 5 * 60 * 1000) return;
       
       const cachedCatalogs = sessionStorage.getItem('eb_catalogs_' + formType);
-      const cachedCatalogTime = Number(sessionStorage.getItem('eb_catalogs_' + formType + '_ts') || 0);
       if (cachedCatalogs && Date.now() - cachedCatalogTime < 5 * 60 * 1000) {
         catalogsByForm[formType] = JSON.parse(cachedCatalogs);
         if (formType === activeForm) {

@@ -34,6 +34,10 @@ function submitRows(formType, rows) {
   return SheetService.submitRows(formType, rows);
 }
 
+function verifySubmittedRows(formType, rows) {
+  return SheetService.verifySubmittedRows(formType, rows);
+}
+
 function checkTripReconciliation(rows) {
   return SheetService.checkTripReconciliation(rows);
 }
@@ -109,6 +113,7 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'getReportBundle') return SheetService.getReportBundle(safeParams.month, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
     if (action === 'invalidateCaches') return SheetService.invalidateCaches();
     if (action === 'readSheetData') return SheetService.readSheetData(safeParams.sheetName, safeParams.startDate, safeParams.endDate, safeParams.limit);
+    if (action === 'verifySubmittedRows') return SheetService.verifySubmittedRows(safeParams.formType, JSON.parse(safeParams.rows || '[]'));
     if (action === 'getFundTransactions') {
       return FundService.getFundTransactions(safeParams.year, {
         month: safeParams.month,
@@ -135,6 +140,7 @@ function invokeApi(method, action, params, bodyData) {
 
   if (normalizedMethod === 'POST') {
     if (action === 'submitRows') return SheetService.submitRows(safeBody.formType, safeBody.rows);
+    if (action === 'verifySubmittedRows') return SheetService.verifySubmittedRows(safeBody.formType, safeBody.rows);
     if (action === 'checkTripReconciliation') return SheetService.checkTripReconciliation(safeBody.rows);
     if (action === 'saveSheetRow') return SheetService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData);
     if (action === 'deleteSheetRow') return SheetService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear);

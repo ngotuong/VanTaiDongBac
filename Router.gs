@@ -22,6 +22,9 @@ function doGet(e) {
     if (action === 'getReportBundle') return jsonResponse_(SheetService.getReportBundle(e.parameter.month, e.parameter.forceRefresh === 'true'));
     if (action === 'invalidateCaches') return jsonResponse_(SheetService.invalidateCaches());
     if (action === 'readSheetData') return jsonResponse_(SheetService.readSheetData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate, e.parameter.limit));
+    if (action === 'verifySubmittedRows') {
+      return jsonResponse_(SheetService.verifySubmittedRows(e.parameter.formType, JSON.parse(e.parameter.rows || '[]')));
+    }
     if (action === 'getFundTransactions') {
       return jsonResponse_(FundService.getFundTransactions(e.parameter.year, {
         month: e.parameter.month,
@@ -72,6 +75,10 @@ function doPost(e) {
     if (action === 'checkTripReconciliation') {
       var checkResult = SheetService.checkTripReconciliation(payload.rows);
       return jsonResponse_(checkResult);
+    }
+    if (action === 'verifySubmittedRows') {
+      var verifyResult = SheetService.verifySubmittedRows(payload.formType, payload.rows);
+      return jsonResponse_(verifyResult);
     }
     if (action === 'saveSheetRow') {
       var saveResult = SheetService.saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData);

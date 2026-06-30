@@ -82,8 +82,8 @@
           return data;
         })
         .catch((err) => {
-          const fallbackError = buildFetchPostFallbackError_(method, action, backendUrl, err);
-          if (fallbackError) throw fallbackError;
+          const fallbackResult = handleFetchPostFallback_(method, action, bodyData, backendUrl, err);
+          if (fallbackResult) return fallbackResult;
           throw err;
         });
     }
@@ -96,16 +96,42 @@
       return callFetchApi(normalizedMethod, action, params, bodyData);
     }
 
-    function buildFetchPostFallbackError_(method, action, backendUrl, err) {
+    function handleFetchPostFallback_(method, action, bodyData, backendUrl, err) {
       if (String(method || '').toUpperCase() !== 'POST') return null;
       if (!/script\.google\.com$/i.test((new URL(backendUrl)).hostname)) return null;
       const message = String(err && err.message ? err.message : err || '');
       if (!/Failed to fetch|NetworkError|Load failed/i.test(message)) return null;
 
-      const prefix = action === 'submitRows'
-        ? 'Chưa xác nhận được việc ghi dữ liệu.'
-        : 'Chưa xác nhận được thao tác ghi.';
-      return new Error(prefix + ' Trình duyệt không đọc được phản hồi từ Apps Script, nên web app sẽ giữ nguyên dữ liệu trên màn hình. Hãy thử mở đúng URL Web App /exec hoặc bấm gửi lại khi mạng ổn định.');
+      if (action === 'submitRows' && bodyData && Array.isArray(bodyData.rows)) {
+        return verifySubmittedRowsAfterUnreadablePost_(backendUrl, bodyData)
+          .then((verified) => {
+            if (verified && verified.verified) {
+              return {
+                ok: true,
+                inserted: verified.inserted || bodyData.rows.length,
+                sheetName: verified.sheetName || '',
+                errors: [],
+                warnings: ['Dữ liệu đã có trong Google Sheet, nhưng trình duyệt không đọc được phản hồi ghi ban đầu từ Apps Script.']
+              };
+            }
+            throw new Error('Chưa xác nhận được việc ghi dữ liệu. Trình duyệt không đọc được phản hồi từ Apps Script và chưa tìm thấy dòng vừa gửi trong Google Sheet. Web app sẽ giữ nguyên dữ liệu trên màn hình để bạn kiểm tra trước khi gửi lại.');
+          });
+      }
+
+      return Promise.reject(new Error('Chưa xác nhận được thao tác ghi. Trình duyệt không đọc được phản hồi từ Apps Script, nên web app sẽ giữ nguyên dữ liệu trên màn hình.'));
+    }
+
+    function verifySubmittedRowsAfterUnreadablePost_(backendUrl, bodyData) {
+      const verifyUrl = new URL(backendUrl);
+      verifyUrl.searchParams.set('action', 'verifySubmittedRows');
+      verifyUrl.searchParams.set('formType', bodyData.formType || '');
+      verifyUrl.searchParams.set('rows', JSON.stringify(bodyData.rows || []));
+      verifyUrl.searchParams.set('_ts', Date.now());
+      return fetch(verifyUrl.toString(), { method: 'GET' })
+        .then((res) => {
+          if (!res.ok) throw new Error('Không xác minh được dữ liệu vừa gửi.');
+          return res.json();
+        });
     }
 
     function removeSessionKeysByPrefix(prefix) {

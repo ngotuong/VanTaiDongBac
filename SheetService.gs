@@ -1,5 +1,5 @@
 var SheetService = (function () {
-  var CACHE_VERSION = 'v11';
+  var CACHE_VERSION = 'v12';
   var CATALOG_TTL_SECONDS = 300;
   var REPORT_TTL_SECONDS = 600;
   var REPORT_CACHE_SHEET_NAME = 'SYS_ReportCache';
@@ -250,6 +250,53 @@ var SheetService = (function () {
       if (diff === 0) return null;
       return Utilities.formatDate(pair.date, APP_CONFIG.timezone, 'dd/MM/yyyy') + ' - ' + pair.plate + ': báo cáo ' + planned + ', tài xế ' + actual + ', lệch ' + diff + '.';
     }).filter(function (message) { return message; });
+  }
+
+  function verifySubmittedRows(formType, rows) {
+    if (!APP_CONFIG.sheets[formType]) {
+      throw new Error('Loai form khong hop le: ' + formType);
+    }
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return { ok: true, verified: false, inserted: 0 };
+    }
+
+    var ss = getSpreadsheet_();
+    var catalogs = getCatalogs(formType, true);
+    var result = ValidationService.buildRows(formType, rows, catalogs);
+    if (!result.values.length) {
+      return { ok: true, verified: false, inserted: 0 };
+    }
+
+    var cfg = APP_CONFIG.sheets[formType];
+    var sheet = ss.getSheetByName(cfg.name);
+    if (!sheet) throw new Error('Khong tim thay sheet ' + cfg.name);
+
+    var headers = sheet.getRange(cfg.headerRow, 1, 1, sheet.getLastColumn()).getValues()[0].map(function (h) {
+      return String(h).trim();
+    });
+    var compareColumns = getWritableInputColumnIndexes_(cfg.name, headers, result.values[0].length);
+    if (!compareColumns.length) return { ok: true, verified: false, inserted: 0 };
+
+    var lastDataRow = getLastNonEmptyRowInColumn_(sheet, 1, cfg.headerRow + 1, false);
+    var scanRows = Math.min(Math.max(lastDataRow - cfg.headerRow, 0), 80);
+    if (!scanRows) return { ok: true, verified: false, inserted: 0 };
+
+    var startRow = lastDataRow - scanRows + 1;
+    var values = sheet.getRange(startRow, 1, scanRows, Math.max.apply(null, compareColumns) + 1).getValues();
+    var matched = result.values.every(function (expected) {
+      return values.some(function (actual) {
+        return compareColumns.every(function (colIdx) {
+          return sameSubmittedCell_(actual[colIdx], expected[colIdx]);
+        });
+      });
+    });
+
+    return {
+      ok: true,
+      verified: matched,
+      inserted: matched ? result.values.length : 0,
+      sheetName: cfg.name
+    };
   }
 
   function getSpreadsheet_() {
@@ -798,6 +845,18 @@ var SheetService = (function () {
     return skipped;
   }
 
+  function getWritableInputColumnIndexes_(sheetName, headers, maxLength) {
+    var skipped = {};
+    getFormulaInputColumnIndexes_(sheetName, headers).forEach(function (colIdx) {
+      skipped[colIdx] = true;
+    });
+    var result = [];
+    for (var i = 0; i < maxLength; i++) {
+      if (!skipped[i]) result.push(i);
+    }
+    return result;
+  }
+
   function normalizeHeader_(value) {
     return clean_(value).toLowerCase();
   }
@@ -989,6 +1048,18 @@ var SheetService = (function () {
     var bIsDate = Object.prototype.toString.call(b) === '[object Date]' && !isNaN(b.getTime());
     if (aIsDate && bIsDate) return a.getTime() === b.getTime();
     return clean_(a) === clean_(b);
+  }
+
+  function sameSubmittedCell_(actual, expected) {
+    var actualIsDate = Object.prototype.toString.call(actual) === '[object Date]' && !isNaN(actual.getTime());
+    var expectedIsDate = Object.prototype.toString.call(expected) === '[object Date]' && !isNaN(expected.getTime());
+    if (actualIsDate && expectedIsDate) {
+      return Utilities.formatDate(actual, APP_CONFIG.timezone, 'yyyy-MM-dd') === Utilities.formatDate(expected, APP_CONFIG.timezone, 'yyyy-MM-dd');
+    }
+    if (typeof actual === 'number' || typeof expected === 'number') {
+      return Math.abs(parseNumberLoose_(actual) - parseNumberLoose_(expected)) < 0.0001;
+    }
+    return clean_(actual) === clean_(expected);
   }
 
   function putChunkedCache_(key, data, ttlSeconds) {
@@ -1492,6 +1563,7 @@ var SheetService = (function () {
     invalidateCaches: invalidateCaches,
     submitRows: submitRows,
     checkTripReconciliation: checkTripReconciliation,
+    verifySubmittedRows: verifySubmittedRows,
     readSheetData: readSheetData,
     saveSheetRow: saveSheetRow,
     deleteSheetRow: deleteSheetRow

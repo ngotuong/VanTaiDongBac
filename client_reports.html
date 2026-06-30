@@ -471,6 +471,7 @@
 
       const dataRows = headerIndex >= 0 ? matrix.slice(headerIndex + 1) : matrix.slice(1);
       const readMoney = (row, idx) => idx >= 0 && idx < row.length ? parseMoney(row[idx]) : 0;
+      const kpisByMonth = buildOverviewKpiMap_();
 
       const rows = dataRows
         .filter((row) => row[monthColIdx] && String(row[monthColIdx]).trim() !== '' && String(row[monthColIdx]).trim() !== 'Tháng')
@@ -484,15 +485,18 @@
           const fuelOut = readMoney(row, fuelOutColIdx);
           const toll = readMoney(row, tollColIdx);
           const fund = readMoney(row, fundColIdx);
-          const final = readMoney(row, finalColIdx);
+          const finalFromSummary = readMoney(row, finalColIdx);
+          const monthKey = normalizeMonthLabel_(monthVal);
+          const kpi = kpisByMonth[monthKey] || null;
           
           const calculatedGross = rev - taxTndn - taxVat - fuelQM - toll;
-          const gross = grossColIdx >= 0 ? readMoney(row, grossColIdx) : calculatedGross;
+          const gross = kpi ? kpi.gross : (grossColIdx >= 0 ? readMoney(row, grossColIdx) : calculatedGross);
+          const final = kpi ? kpi.final : finalFromSummary;
           const grossText = formatCurrencyText(gross);
           
           const operatingCost = taxTndn + taxVat + fuelQM + toll;
-          const cashCost = gross - final;
-          const payroll = payrollColIdx >= 0 ? readMoney(row, payrollColIdx) : cashCost - fuelOut - fund;
+          const cashCost = kpi ? kpi.cashCost : gross - final;
+          const payroll = kpi ? kpi.payroll : (payrollColIdx >= 0 ? readMoney(row, payrollColIdx) : cashCost - fuelOut - fund);
           const totalCost = operatingCost + cashCost;
           const totalCostText = formatCurrencyText(totalCost);
           
@@ -529,6 +533,34 @@
           };
         });
       return { rows, latest: rows[rows.length - 1] || {} };
+    }
+
+    function buildOverviewKpiMap_() {
+      const dashboard = getDashboardData();
+      const result = {};
+      (dashboard?.overview?.kpis || []).forEach((item) => {
+        const key = normalizeMonthLabel_(item.month || item.monthKey || '');
+        if (!key) return;
+        result[key] = {
+          gross: Number(item.gross || 0),
+          final: Number(item.final || 0),
+          cashCost: Number(item.cashCost || 0),
+          fuelOut: Number(item.fuelOut || 0),
+          payroll: Number(item.payroll || 0),
+          fund: Number(item.fund || 0)
+        };
+      });
+      return result;
+    }
+
+    function normalizeMonthLabel_(value) {
+      const text = String(value || '').trim();
+      if (!text) return '';
+      const vn = text.match(/^(\d{1,2})\/(\d{4})$/);
+      if (vn) return `${vn[2]}-${String(Number(vn[1])).padStart(2, '0')}`;
+      const iso = text.match(/^(\d{4})-(\d{1,2})/);
+      if (iso) return `${iso[1]}-${String(Number(iso[2])).padStart(2, '0')}`;
+      return text;
     }
 
     function ensureSelectedMonth(rows) {

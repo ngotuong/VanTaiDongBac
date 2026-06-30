@@ -1,4 +1,8 @@
 var FundService = (function () {
+  var FUND_CACHE_VERSION = 'fund_v1';
+  var FUND_TTL_SECONDS = 300;
+  var FUND_CATALOG_TTL_SECONDS = 21600;
+  var FUND_DATA_VERSION_PROP = 'FUND_DATA_VERSION_V1';
   var DEFAULT_FUND_SPREADSHEET_ID = '1PWwGC6HCdskiV2fEZjDFiAt6kA_nsx64twrVTgrRerw';
   var FUND_SPREADSHEET_ID_PROP = 'FUND_SPREADSHEET_ID';
   var FUND_SPREADSHEET_ID_PREFIX = 'FUND_SPREADSHEET_ID_';
@@ -28,6 +32,9 @@ var FundService = (function () {
   ];
 
   function getFundOverview(year, filter) {
+    var overviewCacheKey = fundCacheKey_(year, 'overview', normalizeMonthKey_((filter || {}).month) || 'all');
+    var overviewCached = getFundCache_(overviewCacheKey);
+    if (overviewCached) return overviewCached;
     var ss = getFundSpreadsheet_(year);
     var transactions = readFundTransactions_(ss);
     var loans = readLoanRows_(ss);
@@ -107,7 +114,7 @@ var FundService = (function () {
     var closingBalance = openingBalance + net;
     var currentBalance = openingBase + currentIncome - currentExpense + currentLoanIn - currentLoanOut;
 
-    return {
+    var result = {
       ok: true,
       months: months,
       selectedMonth: monthKey,
@@ -122,9 +129,14 @@ var FundService = (function () {
       incomeCategories: mapToRows_(incomeMap),
       expenseCategories: mapToRows_(expenseMap)
     };
+    putFundCache_(overviewCacheKey, result, FUND_TTL_SECONDS);
+    return result;
   }
 
   function getFundLoanOverview(year, filter) {
+    var loanCacheKey = fundCacheKey_(year, 'loan_overview', normalizeMonthKey_((filter || {}).month) || 'all');
+    var loanCached = getFundCache_(loanCacheKey);
+    if (loanCached) return loanCached;
     var ss = getFundSpreadsheet_(year);
     var rows = readLoanRows_(ss);
     var months = buildMonths_(rows);
@@ -199,7 +211,7 @@ var FundService = (function () {
       return (b.outstanding || 0) - (a.outstanding || 0);
     });
 
-    return {
+    var result = {
       ok: true,
       months: months,
       selectedMonth: monthKey,
@@ -217,6 +229,8 @@ var FundService = (function () {
         return extendLoanHistoryRow_(row, overallLoan);
       })
     };
+    putFundCache_(loanCacheKey, result, FUND_TTL_SECONDS);
+    return result;
   }
 
   function addFundLoan(year, payload) {
@@ -235,6 +249,7 @@ var FundService = (function () {
       sheet.getRange(appendRow, 2).setNumberFormat('dd/MM/yyyy');
       sheet.getRange(appendRow, 6).setNumberFormat('#,##0');
       sheet.getRange(appendRow, 14).setFormula(buildLoanFilterFormula_(appendRow));
+      bumpFundDataVersion_();
       return { ok: true, rowIndex: appendRow, code: row[0], sheetName: LOAN_SHEET_NAME };
     } finally {
       lock.releaseLock();
@@ -257,6 +272,7 @@ var FundService = (function () {
       sheet.getRange(appendRow, 2).setNumberFormat('dd/MM/yyyy');
       sheet.getRange(appendRow, 6).setNumberFormat('#,##0');
       sheet.getRange(appendRow, 14).setFormula(buildLoanFilterFormula_(appendRow));
+      bumpFundDataVersion_();
       return { ok: true, rowIndex: appendRow, code: row[0], sheetName: LOAN_SHEET_NAME };
     } finally {
       lock.releaseLock();
@@ -264,10 +280,13 @@ var FundService = (function () {
   }
 
   function getFundFormOptions(year) {
+    var optionsCacheKey = fundCacheKey_(year, 'form_options');
+    var optionsCached = getFundCache_(optionsCacheKey);
+    if (optionsCached) return optionsCached;
     var ss = getFundSpreadsheet_(year);
     var settings = readFundSettings_(ss);
     var catalogs = readFundCatalogGroups_(ss);
-    return {
+    var result = {
       ok: true,
       incomeCategories: mergeUniqueValues_(catalogs.incomeCategories, getFallbackFundIncomeCategories_(ss, settings)),
       expenseCategories: mergeUniqueValues_(catalogs.expenseCategories, getFallbackFundExpenseCategories_(ss)),
@@ -275,21 +294,28 @@ var FundService = (function () {
       partners: mergeUniqueValues_(catalogs.partners, getFallbackFundPartners_(ss)),
       loanPartners: mergeUniqueValues_(catalogs.loanPartners, getFallbackFundLoanPartners_(ss))
     };
+    putFundCache_(optionsCacheKey, result, FUND_CATALOG_TTL_SECONDS);
+    return result;
   }
 
   function getFundCatalog(year, group) {
+    var catalogCacheKey = fundCacheKey_(year, 'catalog', normalizeFundCatalogGroup_(group) || 'all');
+    var catalogCached = getFundCache_(catalogCacheKey);
+    if (catalogCached) return catalogCached;
     var ss = getFundSpreadsheet_(year);
     var catalogSheet = ensureFundCatalogSheet_(ss);
     var rows = readFundCatalogRows_(catalogSheet);
     var normalizedGroup = normalizeFundCatalogGroup_(group);
     var groups = getFundCatalogGroupSummary_(rows);
-    return {
+    var result = {
       ok: true,
       sheetName: CATALOG_SHEET_NAME,
       groups: groups,
       selectedGroup: normalizedGroup,
       rows: normalizedGroup ? rows.filter(function (row) { return row.groupKey === normalizedGroup; }) : rows
     };
+    putFundCache_(catalogCacheKey, result, FUND_CATALOG_TTL_SECONDS);
+    return result;
   }
 
   function saveFundCatalogItem(year, payload) {
@@ -311,6 +337,7 @@ var FundService = (function () {
         sheet.insertRowsAfter(sheet.getMaxRows(), targetRow - sheet.getMaxRows());
       }
       sheet.getRange(targetRow, 1, 1, 3).setValues([[getFundCatalogGroupLabel_(groupKey), value, note]]);
+      bumpFundDataVersion_();
       return { ok: true, rowIndex: targetRow, group: groupKey, value: value, note: note, sheetName: CATALOG_SHEET_NAME };
     } finally {
       lock.releaseLock();
@@ -327,6 +354,7 @@ var FundService = (function () {
     lock.waitLock(30000);
     try {
       sheet.deleteRow(rowIndex);
+      bumpFundDataVersion_();
       return { ok: true, rowIndex: rowIndex, sheetName: CATALOG_SHEET_NAME };
     } finally {
       lock.releaseLock();
@@ -334,6 +362,9 @@ var FundService = (function () {
   }
 
   function getFundTransactions(year, filter) {
+    var transactionsCacheKey = fundCacheKey_(year, 'transactions', normalizeMonthKey_((filter || {}).month) || 'all', String((filter || {}).limit || ''));
+    var transactionsCached = getFundCache_(transactionsCacheKey);
+    if (transactionsCached) return transactionsCached;
     var ss = getFundSpreadsheet_(year);
     var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
     if (!sheet) {
@@ -347,7 +378,7 @@ var FundService = (function () {
     var lastCol = Math.max(sheet.getLastColumn(), TRANSACTION_HEADERS.length);
 
     if (lastRow < 2) {
-      return {
+      var emptyResult = {
         ok: true,
         year: clean_(year) || '',
         sheetName: TRANSACTION_SHEET_NAME,
@@ -355,6 +386,8 @@ var FundService = (function () {
         months: [],
         transactions: []
       };
+      putFundCache_(transactionsCacheKey, emptyResult, FUND_TTL_SECONDS);
+      return emptyResult;
     }
 
     var headerValues = sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
@@ -410,7 +443,7 @@ var FundService = (function () {
       return { key: key, label: monthMap[key] };
     });
 
-    return {
+    var result = {
       ok: true,
       year: clean_(year) || '',
       sheetName: TRANSACTION_SHEET_NAME,
@@ -421,6 +454,8 @@ var FundService = (function () {
       totalRows: transactions.length,
       limited: transactions.length > limit
     };
+    putFundCache_(transactionsCacheKey, result, FUND_TTL_SECONDS);
+    return result;
   }
 
   function addFundTransaction(year, payload) {
@@ -446,6 +481,7 @@ var FundService = (function () {
         sheet.getRange(appendRow, 13).setFormula(buildDebtFormula_(appendRow));
       }
       sheet.getRange(appendRow, 14).setFormula(buildFilterFormula_(appendRow));
+      bumpFundDataVersion_();
 
       return {
         ok: true,
@@ -1044,6 +1080,38 @@ var FundService = (function () {
     }
 
     return clean_(props.getProperty(FUND_SPREADSHEET_ID_PROP)) || DEFAULT_FUND_SPREADSHEET_ID;
+  }
+
+  function fundCacheKey_(year) {
+    var parts = [FUND_CACHE_VERSION, getFundDataVersion_(), clean_(year) || 'default'];
+    for (var i = 1; i < arguments.length; i++) {
+      parts.push(clean_(arguments[i]) || 'all');
+    }
+    return parts.join(':');
+  }
+
+  function getFundDataVersion_() {
+    return PropertiesService.getScriptProperties().getProperty(FUND_DATA_VERSION_PROP) || '0';
+  }
+
+  function bumpFundDataVersion_() {
+    PropertiesService.getScriptProperties().setProperty(FUND_DATA_VERSION_PROP, String(new Date().getTime()));
+  }
+
+  function getFundCache_(key) {
+    var text = CacheService.getScriptCache().get(key);
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function putFundCache_(key, value, ttlSeconds) {
+    var text = JSON.stringify(value);
+    if (text.length > 95000) return;
+    CacheService.getScriptCache().put(key, text, ttlSeconds);
   }
 
   function parseDate_(rawValue, displayValue) {

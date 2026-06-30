@@ -25,6 +25,14 @@ function doGet(e) {
     if (action === 'getReportBundle') return timedJsonResponse_(action, startedAt, SheetService.getReportBundle(e.parameter.month, e.parameter.forceRefresh === 'true'));
     if (action === 'invalidateCaches') return timedJsonResponse_(action, startedAt, SheetService.invalidateCaches());
     if (action === 'readSheetData') return timedJsonResponse_(action, startedAt, SheetService.readSheetData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate, e.parameter.limit));
+    if (action === 'submitRowsGet') {
+      var submitPayload = JSON.parse(e.parameter.payload || '{}');
+      AppConfig.activate({
+        spreadsheetId: submitPayload.spreadsheetId || submitPayload.ssId,
+        year: submitPayload.year
+      });
+      return timedJsonResponse_(action, startedAt, SheetService.submitRows(submitPayload.formType, submitPayload.rows));
+    }
     if (action === 'getFundTransactions') {
       return timedJsonResponse_(action, startedAt, FundService.getFundTransactions(e.parameter.year, {
         month: e.parameter.month,

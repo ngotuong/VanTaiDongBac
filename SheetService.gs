@@ -436,7 +436,8 @@ var SheetService = (function () {
   function readOverviewDashboard_(ss) {
     var sheet = ss.getSheetByName('BC_TongQuan');
     if (!sheet) return { months: [], details: [] };
-    return { months: readOverviewMonths_(sheet), details: [] };
+    var months = readOverviewMonths_(sheet);
+    return { months: months, details: [], kpis: readOverviewKpis_(ss, sheet, months) };
   }
 
   function readOverviewMonths_(sheet) {
@@ -487,6 +488,66 @@ var SheetService = (function () {
 
     var computed = computeAndCacheOverviewDetails_(ss, sheet, [targetMonth], dataVersion);
     return computed[monthKey] || readCurrentOverviewDetails_(sheet);
+  }
+
+  function readOverviewKpis_(ss, sheet, months) {
+    var activeMonths = getActiveReportMonths_(months);
+    if (!activeMonths.length) return [];
+    var dataVersion = getReportDataVersion_();
+    var cached = readReportDetailsCacheMap_(ss, dataVersion);
+    var missing = activeMonths.filter(function (month) {
+      var key = normalizeDisplayMonth_(month) || normalizeMonthKey_(month);
+      return !cached[key];
+    });
+    if (missing.length) {
+      var computed = computeAndCacheOverviewDetails_(ss, sheet, missing, dataVersion);
+      Object.keys(computed).forEach(function (key) {
+        cached[key] = computed[key];
+      });
+    }
+
+    return activeMonths.map(function (month) {
+      var monthKey = normalizeDisplayMonth_(month) || normalizeMonthKey_(month);
+      var details = cached[monthKey] || [];
+      var kpi = parseOverviewKpiDetails_(details);
+      kpi.month = month;
+      kpi.monthKey = monthKey;
+      return kpi;
+    });
+  }
+
+  function parseOverviewKpiDetails_(details) {
+    var rows = details || [];
+    var gross = readDetailNumber_(rows, 'Lợi nhuận gộp');
+    var finalProfit = readDetailNumber_(rows, 'Lợi nhuận thực');
+    var outsideFuel = readDetailNumber_(rows, 'Chi phí dầu', 'đổ ngoài');
+    var payroll = readDetailNumber_(rows, 'Chi phí lương');
+    var fund = readDetailNumber_(rows, 'Chi quỹ thực tế');
+    var cashCost = gross - finalProfit;
+    return {
+      gross: gross,
+      final: finalProfit,
+      cashCost: cashCost,
+      fuelOut: outsideFuel,
+      payroll: payroll,
+      fund: fund,
+      totalCost: cashCost
+    };
+  }
+
+  function readDetailNumber_(rows, label, explanationContains) {
+    var normalizedLabel = normalizeText_(label);
+    var normalizedExplanation = normalizeText_(explanationContains || '');
+    var fallback = null;
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i] || [];
+      if (normalizeText_(row[0]) !== normalizedLabel) continue;
+      if (!normalizedExplanation || normalizeText_(row[4]).indexOf(normalizedExplanation) !== -1) {
+        return parseNumberLoose_(row[1]);
+      }
+      if (fallback === null) fallback = parseNumberLoose_(row[1]);
+    }
+    return fallback === null ? 0 : fallback;
   }
 
   function readAggregatedOverviewDetails_(ss, sheet, activeMonths) {
@@ -913,6 +974,16 @@ var SheetService = (function () {
     return value === null || value === undefined ? '' : String(value).trim();
   }
 
+  function normalizeText_(value) {
+    return clean_(value)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+  }
+
   function serializeDate_(value) {
     if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
       return Utilities.formatDate(value, APP_CONFIG.timezone, 'yyyy-MM-dd');
@@ -1203,14 +1274,20 @@ var SheetService = (function () {
           var endLimit = endDateStr ? new Date(endDateStr + 'T23:59:59') : null;
 
           if (hasDateFilter) {
-            var dateValues = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, 1).getValues();
             var matchedRows = [];
-            for (var dIdx = 0; dIdx < dateValues.length; dIdx++) {
-              var parsedDate = parseSheetDate_(dateValues[dIdx][0]);
-              if (parsedDate && (!startLimit || parsedDate >= startLimit) && (!endLimit || parsedDate <= endLimit)) {
-                matchedRows.push(headerRow + 1 + dIdx);
+            var scanChunkSize = 1000;
+            for (var scanEnd = lastRow; scanEnd > headerRow && matchedRows.length < rowLimit; scanEnd -= scanChunkSize) {
+              var scanStart = Math.max(headerRow + 1, scanEnd - scanChunkSize + 1);
+              var dateValues = sheet.getRange(scanStart, 1, scanEnd - scanStart + 1, 1).getValues();
+              for (var dIdx = dateValues.length - 1; dIdx >= 0; dIdx--) {
+                var parsedDate = parseSheetDate_(dateValues[dIdx][0]);
+                if (parsedDate && (!startLimit || parsedDate >= startLimit) && (!endLimit || parsedDate <= endLimit)) {
+                  matchedRows.push(scanStart + dIdx);
+                  if (matchedRows.length >= rowLimit) break;
+                }
               }
             }
+            matchedRows.sort(function (a, b) { return a - b; });
 
             if (matchedRows.length) {
               var groupStart = matchedRows[0];

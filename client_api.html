@@ -107,6 +107,12 @@
       if (hasAppsScriptRuntime()) {
         return callAppsScriptAction(normalizedMethod, action, params, bodyData);
       }
+      if (normalizedMethod === 'POST' && action === 'submitRows') {
+        const payload = JSON.stringify({ action: action, ...(bodyData || {}) });
+        if (payload.length < 7000) {
+          return callFetchApi('GET', 'submitRowsGet', { payload: payload }, null);
+        }
+      }
       return callFetchApi(normalizedMethod, action, params, bodyData);
     }
 
@@ -115,6 +121,7 @@
       if (!/script\.google\.com$/i.test((new URL(backendUrl)).hostname)) return null;
       const message = String(err && err.message ? err.message : err || '');
       if (!/Failed to fetch|NetworkError|Load failed/i.test(message)) return null;
+      if (action === 'submitRows') return null;
 
       const warning = 'Yêu cầu đã được gửi tới Apps Script nhưng trình duyệt không đọc được phản hồi. Nếu dữ liệu đã xuất hiện trong Google Sheet thì có thể bỏ qua cảnh báo này.';
       if (action === 'submitRows') {

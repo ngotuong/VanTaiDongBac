@@ -52,8 +52,9 @@ var ValidationService = (function () {
     var source = requireText_(row.source, 'Nguon dau');
     var liters = requirePositiveNumber_(row.liters, 'So lit');
     var price = requirePositiveNumber_(row.price, 'Gia dau');
+    var paymentSource = clean_(row.paymentSource) || defaultFuelPaymentSource_(source);
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
-    return [date, '', plate, source, liters, price, '', clean_(row.note)];
+    return [date, '', plate, source, liters, price, '', paymentSource, ''];
   }
 
   function buildChamCong_(row, catalogs, line, warnings) {
@@ -176,6 +177,13 @@ var ValidationService = (function () {
   function defaultSalary_(type, catalogs) {
     var found = findBy_(catalogs.chamCongTypes || [], 'name', type);
     return found ? found.salary : 'Không';
+  }
+
+  function defaultFuelPaymentSource_(source) {
+    var normalized = normalize_(source);
+    if (normalized === normalize_('Quang Minh')) return 'Quang Minh';
+    if (normalized === normalize_('Đổ ngoài')) return 'Đổ ngoài';
+    return '';
   }
 
   function normalize_(value) {

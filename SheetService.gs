@@ -198,14 +198,13 @@ var SheetService = (function () {
       var appendRow = getAppendRow_(sheet, cfg.headerRow);
       ensureRows_(sheet, appendRow + result.values.length - 1);
       
-      if (formType === 'dau') {
-        var dauHeaders = sheet.getRange(cfg.headerRow, 1, 1, sheet.getLastColumn()).getValues()[0].map(function (h) {
-          return String(h).trim();
-        });
-        var totalColIdx = dauHeaders.indexOf('Thành tiền');
-        if (totalColIdx === -1) totalColIdx = 6;
+      var sheetHeaders = sheet.getRange(cfg.headerRow, 1, 1, sheet.getLastColumn()).getValues()[0].map(function (h) {
+        return String(h).trim();
+      });
+      var skippedColumns = getFormulaInputColumnIndexes_(cfg.name, sheetHeaders);
+      if (skippedColumns.length) {
         for (var i = 0; i < result.values.length; i++) {
-          writeRowSkippingColumns_(sheet, appendRow + i, result.values[i], [totalColIdx]);
+          writeRowSkippingColumns_(sheet, appendRow + i, result.values[i], skippedColumns);
         }
       } else {
         var range = sheet.getRange(appendRow, 1, result.values.length, cfg.columns);
@@ -264,7 +263,7 @@ var SheetService = (function () {
     var vehicleRows = needs.vehicles ? readRows_(ss, 'DM_Xe') : [];
     var projectRows = needs.projects ? readRows_(ss, 'DM_DuAn') : [];
     var penaltyRows = needs.penalties ? readRows_(ss, 'DM_PhatNoiBo') : [];
-    var assignmentRows = needs.assignments ? readRows_(ss, 'DM_PhanCongLaiXe') : [];
+    var assignmentRows = [];
     var chamCongTypes = needs.chamCongTypes ? readChamCongTypes_(ss) : [];
 
     var people = peopleRows.map(function (row) {
@@ -346,7 +345,6 @@ var SheetService = (function () {
     } else if (formType === 'taiXe') {
       needs.vehicles = true;
       needs.people = true;
-      needs.assignments = true;
     } else if (formType === 'dau') {
       needs.vehicles = true;
     } else if (formType === 'chamCong') {
@@ -549,7 +547,8 @@ var SheetService = (function () {
 
   function computeAndCacheOverviewDetails_(ss, sheet, months, dataVersion) {
     var detailsByMonth = {};
-    var originalMonth = clean_(sheet.getRange('B1').getValue());
+    var monthCell = sheet.getRange('B1');
+    var originalMonth = monthCell.getValue();
     var lock = LockService.getScriptLock();
     var locked = false;
     try {
@@ -558,13 +557,18 @@ var SheetService = (function () {
       months.forEach(function (month) {
         var monthLabel = clean_(month);
         if (!monthLabel) return;
-        sheet.getRange('B1').setValue(monthLabel);
+        var monthDate = parseReportMonthDate_(monthLabel);
+        monthCell.setValue(monthDate || monthLabel);
+        if (monthDate) monthCell.setNumberFormat('mm/yyyy');
         SpreadsheetApp.flush();
         var monthKey = normalizeDisplayMonth_(monthLabel) || normalizeMonthKey_(monthLabel);
         detailsByMonth[monthKey] = readCurrentOverviewDetails_(sheet);
       });
-      if (clean_(sheet.getRange('B1').getValue()) !== originalMonth) {
-        sheet.getRange('B1').setValue(originalMonth);
+      if (!sameSheetValue_(monthCell.getValue(), originalMonth)) {
+        monthCell.setValue(originalMonth);
+        if (Object.prototype.toString.call(originalMonth) === '[object Date]' && !isNaN(originalMonth.getTime())) {
+          monthCell.setNumberFormat('mm/yyyy');
+        }
         SpreadsheetApp.flush();
       }
     } catch (e) {
@@ -759,6 +763,49 @@ var SheetService = (function () {
     }
   }
 
+  function getFormulaInputColumnIndexes_(sheetName, headers) {
+    var skipped = [];
+    (headers || []).forEach(function (header, index) {
+      var normalized = normalizeHeader_(header);
+      if (sheetName === 'NL_Dau' && (
+        normalized === normalizeHeader_('Thành tiền') ||
+        normalized === normalizeHeader_('Công ty sở hữu')
+      )) {
+        skipped.push(index);
+      } else if (sheetName === 'NL_ChamCong' && (
+        normalized === normalizeHeader_('Tháng') ||
+        normalized === normalizeHeader_('Số ngày') ||
+        normalized === normalizeHeader_('Tính lương cứng') ||
+        normalized === normalizeHeader_('Nhóm xử lý')
+      )) {
+        skipped.push(index);
+      } else if (sheetName === 'NL_Phat' && (
+        normalized === normalizeHeader_('Tháng') ||
+        normalized === normalizeHeader_('Nội dung phạt') ||
+        normalized === normalizeHeader_('Số tiền phạt')
+      )) {
+        skipped.push(index);
+      } else if (sheetName === 'NL_NghiVanHanh' && (
+        normalized === normalizeHeader_('Tháng') ||
+        normalized === normalizeHeader_('Tính KPI?') ||
+        normalized === normalizeHeader_('Giảm KPI')
+      )) {
+        skipped.push(index);
+      } else if (sheetName.indexOf('NL_') === 0 && normalized === normalizeHeader_('Tháng')) {
+        skipped.push(index);
+      }
+    });
+    return skipped;
+  }
+
+  function normalizeHeader_(value) {
+    return clean_(value).toLowerCase();
+  }
+
+  function isFormulaInputColumn_(sheetName, header) {
+    return getFormulaInputColumnIndexes_(sheetName, [header]).length > 0;
+  }
+
   function getAppendRowForRowData_(sheet, headerRow, headers, rowData) {
     if (rowData && rowData['Giá dầu áp dụng'] !== undefined) {
       return getAppendRowInHeaders_(sheet, headerRow, headers, [
@@ -920,6 +967,28 @@ var SheetService = (function () {
     var iso = text.match(/^(\d{4})-(\d{2})/);
     if (iso) return iso[1] + '-' + iso[2];
     return text;
+  }
+
+  function parseReportMonthDate_(value) {
+    if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+      return new Date(value.getFullYear(), value.getMonth(), 1);
+    }
+    var text = clean_(value);
+    if (!text) return null;
+    var date = ValidationService.parseDate(text);
+    if (date) return new Date(date.getFullYear(), date.getMonth(), 1);
+    var monthYear = text.match(/^(\d{1,2})\/(\d{4})$/);
+    if (monthYear) return new Date(Number(monthYear[2]), Number(monthYear[1]) - 1, 1);
+    var iso = text.match(/^(\d{4})-(\d{2})$/);
+    if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, 1);
+    return null;
+  }
+
+  function sameSheetValue_(a, b) {
+    var aIsDate = Object.prototype.toString.call(a) === '[object Date]' && !isNaN(a.getTime());
+    var bIsDate = Object.prototype.toString.call(b) === '[object Date]' && !isNaN(b.getTime());
+    if (aIsDate && bIsDate) return a.getTime() === b.getTime();
+    return clean_(a) === clean_(b);
   }
 
   function putChunkedCache_(key, data, ttlSeconds) {
@@ -1285,7 +1354,7 @@ var SheetService = (function () {
 
         if (existingFormulas && existingFormulas[colIdx]) {
           valuesToSet.push(existingFormulas[colIdx]);
-        } else if (sheetName === 'NL_Dau' && header === 'Thành tiền') {
+        } else if (isFormulaInputColumn_(sheetName, header)) {
           valuesToSet.push(existingValues ? existingValues[colIdx] : '');
           skippedColumns.push(colIdx);
         } else if (val === undefined && existingValues) {

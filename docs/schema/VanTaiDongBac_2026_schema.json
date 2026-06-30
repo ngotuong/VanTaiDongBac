@@ -1,0 +1,1079 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-06-30T06:50:45.420983+00:00",
+  "source": {
+    "type": "google_sheets",
+    "title": "VanTaiDongBac_2026",
+    "spreadsheet_id": "1VSNLzSNKJFXaY_dcyM7WkPz9Braia0AjPM7jHHXXyeA",
+    "url": "https://docs.google.com/spreadsheets/d/1VSNLzSNKJFXaY_dcyM7WkPz9Braia0AjPM7jHHXXyeA",
+    "locale": "vi_VN",
+    "timezone": "Asia/Saigon"
+  },
+  "export_scope": {
+    "purpose": "Technical JSON schema for AI/Codex to understand workbook structure, formulas, dependencies, business logic, and data flow.",
+    "important_note": "This is a logic/schema export, not a literal dump of every blank/repeated cell in 50k-row sheets. It records sheet metadata, headers, source formulas, dependencies, and master rules.",
+    "includes": [
+      "workbook metadata",
+      "sheet list",
+      "headers",
+      "main source formulas",
+      "business rules",
+      "master tables",
+      "dependencies",
+      "validation notes",
+      "deprecated/deleted logic"
+    ]
+  },
+  "recent_cleanup": {
+    "deleted_sheets": [
+      "XL_NgoaiLe",
+      "DM_PhanCongLaiXe"
+    ],
+    "deleted_rules_or_rows": [
+      "DM_LuongChuyen row CHUA_DU_2_LAI",
+      "DM_ThamSo parameter DG_CHUA_DU_2_LAI",
+      "DM_ThamSo parameter THIEU_LAI_CHUYEN_TOI_THIEU"
+    ],
+    "kept_legacy_parameters": [
+      "GIA_DAU_GOC",
+      "BUOC_GIA_DAU",
+      "BUOC_DON_GIA"
+    ],
+    "comment": "Legacy oil-step parameters are kept for historical/audit reference. Current transport pricing is mainly in DM_DonGiaVanChuyen."
+  },
+  "sheets": [
+    {
+      "index": 0,
+      "sheet_id": 0,
+      "name": "NL_VanChuyen",
+      "role": "raw_input_transport_trips",
+      "row_count": 50443,
+      "column_count": 7,
+      "frozen_rows": 2,
+      "frozen_columns": 3
+    },
+    {
+      "index": 1,
+      "sheet_id": 1096816049,
+      "name": "NL_TaiXe",
+      "role": "raw_input_driver_trips",
+      "row_count": 996,
+      "column_count": 26,
+      "frozen_rows": 1
+    },
+    {
+      "index": 2,
+      "sheet_id": 1937273732,
+      "name": "NL_Dau",
+      "role": "raw_input_fuel",
+      "row_count": 50487,
+      "column_count": 27,
+      "frozen_rows": 2,
+      "frozen_columns": 3
+    },
+    {
+      "index": 3,
+      "sheet_id": 1297543956,
+      "name": "NL_ChamCong",
+      "role": "raw_input_attendance_leave",
+      "row_count": 1000,
+      "column_count": 12,
+      "frozen_rows": 1
+    },
+    {
+      "index": 4,
+      "sheet_id": 2091758025,
+      "name": "NL_Phat",
+      "role": "raw_input_internal_penalties",
+      "row_count": 1000,
+      "column_count": 7,
+      "frozen_rows": 1
+    },
+    {
+      "index": 5,
+      "sheet_id": 20260610,
+      "name": "NL_NghiVanHanh",
+      "role": "raw_input_vehicle_operation_pause",
+      "row_count": 1008,
+      "column_count": 10,
+      "frozen_rows": 1,
+      "frozen_columns": 3
+    },
+    {
+      "index": 6,
+      "sheet_id": 1125715924,
+      "name": "XL_DoiSoatChuyen",
+      "role": "processing_trip_reconciliation_and_hot_bonus_alerts",
+      "row_count": 50500,
+      "column_count": 17,
+      "frozen_rows": 1
+    },
+    {
+      "index": 7,
+      "sheet_id": 1619846287,
+      "name": "XL_VanChuyen",
+      "role": "processing_transport_revenue",
+      "row_count": 50500,
+      "column_count": 19,
+      "frozen_rows": 1,
+      "frozen_columns": 3
+    },
+    {
+      "index": 8,
+      "sheet_id": 864765816,
+      "name": "XL_LuongTheoXe",
+      "role": "processing_driver_trip_salary_by_vehicle",
+      "row_count": 5000,
+      "column_count": 17,
+      "frozen_rows": 1
+    },
+    {
+      "index": 9,
+      "sheet_id": 1137210395,
+      "name": "XL_LuongNhanSu",
+      "role": "processing_monthly_personnel_salary",
+      "row_count": 5000,
+      "column_count": 21,
+      "frozen_rows": 1,
+      "frozen_columns": 2
+    },
+    {
+      "index": 10,
+      "sheet_id": 1494120172,
+      "name": "XL_ThuongQuanLy",
+      "role": "processing_manager_and_recruitment_bonus",
+      "row_count": 5000,
+      "column_count": 9,
+      "frozen_rows": 1
+    },
+    {
+      "index": 11,
+      "sheet_id": 20260626,
+      "name": "BC_TongQuan",
+      "role": "report_overview_profit",
+      "row_count": 201,
+      "column_count": 17
+    },
+    {
+      "index": 12,
+      "sheet_id": 1296722813,
+      "name": "BC_BangLuong",
+      "role": "report_salary_table",
+      "row_count": 1001,
+      "column_count": 14,
+      "frozen_rows": 2,
+      "frozen_columns": 2
+    },
+    {
+      "index": 13,
+      "sheet_id": 20260623,
+      "name": "BC_TongHopXe",
+      "role": "report_vehicle_summary",
+      "row_count": 1001,
+      "column_count": 12,
+      "frozen_rows": 2
+    },
+    {
+      "index": 14,
+      "sheet_id": 233041380,
+      "name": "DM_DuAn",
+      "role": "master_project_route_distance",
+      "row_count": 1000,
+      "column_count": 26,
+      "hidden": true,
+      "frozen_rows": 1
+    },
+    {
+      "index": 15,
+      "sheet_id": 1777385133,
+      "name": "DM_Xe",
+      "role": "master_vehicle",
+      "row_count": 998,
+      "column_count": 29,
+      "hidden": true,
+      "frozen_rows": 1,
+      "frozen_columns": 2
+    },
+    {
+      "index": 16,
+      "sheet_id": 841171694,
+      "name": "DM_NhanSu",
+      "role": "master_personnel",
+      "row_count": 1001,
+      "column_count": 27,
+      "frozen_rows": 1,
+      "frozen_columns": 1
+    },
+    {
+      "index": 17,
+      "sheet_id": 777350390,
+      "name": "DM_ThamSo",
+      "role": "master_parameters_and_oil_price_history",
+      "row_count": 998,
+      "column_count": 23,
+      "hidden": true,
+      "frozen_rows": 1
+    },
+    {
+      "index": 18,
+      "sheet_id": 1853217475,
+      "name": "DM_LuongChuyen",
+      "role": "master_trip_salary_tiers",
+      "row_count": 999,
+      "column_count": 26,
+      "hidden": true,
+      "frozen_rows": 1
+    },
+    {
+      "index": 19,
+      "sheet_id": 1582416336,
+      "name": "DM_DonGiaVanChuyen",
+      "role": "master_transport_rate_rules",
+      "row_count": 1000,
+      "column_count": 11,
+      "hidden": true,
+      "frozen_rows": 1
+    },
+    {
+      "index": 20,
+      "sheet_id": 597371844,
+      "name": "DM_ThuongQuanLy",
+      "role": "master_manager_bonus_rules",
+      "row_count": 1000,
+      "column_count": 8,
+      "hidden": true,
+      "frozen_rows": 1
+    },
+    {
+      "index": 21,
+      "sheet_id": 410839731,
+      "name": "DM_PhatNoiBo",
+      "role": "master_internal_penalty_rules",
+      "row_count": 1000,
+      "column_count": 8,
+      "hidden": true,
+      "frozen_rows": 1
+    },
+    {
+      "index": 22,
+      "sheet_id": 1924990050,
+      "name": "IMP_ThuChi",
+      "role": "import_cashbook_from_external_sheet",
+      "row_count": 999,
+      "column_count": 26,
+      "hidden": true,
+      "frozen_rows": 1
+    },
+    {
+      "index": 23,
+      "sheet_id": 1474417029,
+      "name": "SYS_ReportCache",
+      "role": "system_report_cache_for_web_app",
+      "row_count": 1183,
+      "column_count": 26,
+      "hidden": true
+    }
+  ],
+  "architecture": {
+    "raw_input_prefix": "NL_",
+    "processing_prefix": "XL_",
+    "report_prefix": "BC_",
+    "master_prefix": "DM_",
+    "import_prefix": "IMP_",
+    "system_prefix": "SYS_",
+    "data_flow": [
+      "NL_* input sheets + IMP_ThuChi import data",
+      "DM_* master sheets define rules/parameters",
+      "XL_* processing sheets calculate reconciliation/revenue/salary/bonus",
+      "BC_* report sheets display outputs",
+      "SYS_ReportCache may support Apps Script/web app"
+    ]
+  },
+  "business_rules": {
+    "month_key": "Month columns use first day of month: DATE(YEAR(date);MONTH(date);1).",
+    "transport_revenue": "Volume = vehicle capacity * trips. Route distance is selected from DM_DuAn by project/date. Unit rate is selected from DM_DonGiaVanChuyen by project, km, effective dates and trip band.",
+    "transport_rate_types": {
+      "Theo dầu": "Oil adjustment = (current oil price - base oil price)/1000 * coefficient * km.",
+      "Cố định": "No oil adjustment.",
+      "Mốc thủ công": "Use manually announced company rate; no extrapolation."
+    },
+    "driver_salary": "XL_LuongTheoXe aggregates trips by month/driver/vehicle. Salary tier comes from DM_LuongChuyen. If a driver quit mid-month, tier lookup caps vehicle trips at trips up to quit date.",
+    "hot_bonus_alerts": {
+      "start_date": "2026-07-01",
+      "daily_1_driver": "If actual driver count = 1 and vehicle trips >= 5, bonus trips = trips - 4.",
+      "daily_2_or_more_drivers": "If actual driver count >= 2 and vehicle trips >= 7, bonus trips = trips - 6.",
+      "daily_amount_per_excess_trip": 200000,
+      "over_168_real": "Uses real monthly cumulative vehicle trips, not reduced KPI.",
+      "over_168_amount_parameter": "THUONG_VUOT_168",
+      "accounting": "Alerts only in VanTai workbook; actual cash paid should be entered into Thu Chi."
+    },
+    "overview_profit": "BC_TongQuan real profit = gross profit - outside fuel - payroll cost - actual cash spending after exclusions.",
+    "actual_cash_exclusions": [
+      "góp quỹ",
+      "xăng dầu/dầu",
+      "thuế doanh nghiệp/TNDN",
+      "VAT",
+      "phí đi đường/phí đường bộ",
+      "trả lương",
+      "ứng lương"
+    ]
+  },
+  "formulas_by_sheet": {
+    "NL_VanChuyen": {
+      "headers": [
+        "Ngày",
+        "Tháng",
+        "Biển số xe",
+        "Dự án",
+        "Số chuyến",
+        "Số phiếu",
+        "Ghi chú"
+      ],
+      "formulas": {
+        "E1": "=SUBTOTAL(109;E3:E)",
+        "B3": "=ARRAYFORMULA(IF(A3:A=\"\";\"\";DATE(YEAR(A3:A);MONTH(A3:A);1)))"
+      }
+    },
+    "NL_TaiXe": {
+      "headers": [
+        "Ngày",
+        "Tháng",
+        "Biển số xe",
+        "Tài xế",
+        "Số chuyến",
+        "Ghi chú"
+      ],
+      "formulas": {
+        "B2": "=ARRAYFORMULA(IF(A2:A=\"\"; \"\"; DATE(YEAR(A2:A); MONTH(A2:A); 1)))"
+      }
+    },
+    "NL_Dau": {
+      "headers": [
+        "Ngày",
+        "Tháng",
+        "Biển số xe",
+        "Nguồn dầu",
+        "Số lít",
+        "Giá dầu",
+        "Thành tiền",
+        "Nguồn chi",
+        "Công ty sở hữu"
+      ],
+      "formulas": {
+        "E1": "=SUBTOTAL(109;E3:E)",
+        "G1": "=SUBTOTAL(109;G3:G)",
+        "B3": "=ARRAYFORMULA(IF(A3:A=\"\"; \"\"; DATE(YEAR(A3:A); MONTH(A3:A); 1)))",
+        "G3": "=ARRAYFORMULA(IF(E3:E=\"\";\"\";IF(F3:F=\"\";\"\";E3:E*F3:F)))",
+        "I3": "=MAP(C3:C;LAMBDA(xe;IF(xe=\"\";\"\";IFERROR(XLOOKUP(xe;DM_Xe!B:B;DM_Xe!H:H;\"\");\"\"))))"
+      }
+    },
+    "NL_ChamCong": {
+      "headers": [
+        "Từ ngày",
+        "Đến ngày",
+        "Tháng",
+        "Nhân sự",
+        "Hình thức",
+        "Số ngày",
+        "Tính lương cứng",
+        "Nhóm xử lý",
+        "Ghi chú",
+        "Loại ngày công hợp lệ",
+        "Lưu ý"
+      ],
+      "formulas": {
+        "C2": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";DATE(YEAR(A2:A);MONTH(A2:A);1)))",
+        "F2": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";B2:B-A2:A+1))",
+        "G2": "=ARRAYFORMULA(IF(E2:E=\"\";\"\";IF(REGEXMATCH(E2:E;\"Xe sửa|Chờ việc|Không có chuyến do công ty|Điều động việc khác|Nghỉ phép\");\"Có\";\"Không\")))",
+        "H2": "=ARRAYFORMULA(IF(E2:E=\"\";\"\";IFS(E2:E=\"Nghỉ phép\";\"NGHI_PHEP\";REGEXMATCH(E2:E;\"Nghỉ không phép|Nghỉ không lương|Nghỉ việc tạm thời\");\"TRU_LUONG\";REGEXMATCH(E2:E;\"Xe sửa|Chờ việc|Không có chuyến do công ty|Điều động việc khác\");\"KHONG_TRU\";TRUE;\"KHAC\")))"
+      },
+      "notes": [
+        "If leave period crosses two months, split into two rows by month."
+      ]
+    },
+    "NL_Phat": {
+      "headers": [
+        "Ngày",
+        "Tháng",
+        "Nhân sự",
+        "Mã phạt",
+        "Nội dung phạt",
+        "Số tiền phạt",
+        "Ghi chú"
+      ],
+      "formulas": {
+        "B2": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";DATE(YEAR(A2:A);MONTH(A2:A);1)))",
+        "E2": "=MAP(A2:A;D2:D;LAMBDA(ngay;ma;IF(ma=\"\";\"\";IFERROR(INDEX(FILTER(DM_PhatNoiBo!B:B;DM_PhatNoiBo!A:A=ma;DM_PhatNoiBo!F:F<=ngay;(DM_PhatNoiBo!G:G=\"\")+(DM_PhatNoiBo!G:G>=ngay));1);\"\"))))",
+        "F2": "=MAP(A2:A;D2:D;LAMBDA(ngay;ma;IF(ma=\"\";\"\";IFERROR(INDEX(FILTER(DM_PhatNoiBo!C:C;DM_PhatNoiBo!A:A=ma;DM_PhatNoiBo!F:F<=ngay;(DM_PhatNoiBo!G:G=\"\")+(DM_PhatNoiBo!G:G>=ngay));1);0))))"
+      }
+    },
+    "NL_NghiVanHanh": {
+      "headers": [
+        "Ngày",
+        "Tháng",
+        "Biển số xe",
+        "Dự án",
+        "Loại nghỉ ",
+        "Số giờ nghỉ",
+        "Tính KPI?",
+        "Giảm KPI",
+        "Ghi chú"
+      ],
+      "formulas": {
+        "B2": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";DATE(YEAR(A2:A);MONTH(A2:A);1)))",
+        "G2": "=ARRAYFORMULA(IF(E2:E=\"\";\"\";IF(REGEXMATCH(E2:E;\"Mưa|Lễ|Tết|Mỏ báo|Thời tiết|Mỏ dừng|Mỏ nghỉ\");\"Có\";\"Không\")))",
+        "H2": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";IF(G2:G=\"Có\";IFERROR(F2:F/XLOOKUP(\"SO_GIO_1_CHUYEN_KPI\";DM_ThamSo!A:A;DM_ThamSo!C:C);0);0)))"
+      },
+      "validations": {
+        "C2:C": "=DM_Xe!$B$2:$B",
+        "D2:D": "=DM_DuAn!$A$2:$A"
+      }
+    },
+    "XL_DoiSoatChuyen": {
+      "headers": [
+        "Ngày",
+        "Tháng",
+        "Biển số",
+        "Dự án",
+        "Báo cáo",
+        "Thực tế",
+        "Chênh lệch",
+        "Trạng thái",
+        "Số lái thực tế",
+        "Điều kiện thưởng nóng ngày",
+        "Chuyến vượt mốc ngày",
+        "Tiền thưởng ngày gợi ý",
+        "Lũy kế trước ngày",
+        "Chuyến vượt 168 thực",
+        "Tiền vượt 168 gợi ý",
+        "Ghi chú thưởng nóng",
+        "Tổng thưởng nóng gợi ý"
+      ],
+      "formulas": {
+        "A2:E2": "Pulls date/month/vehicle/project/reported trips from NL_VanChuyen.",
+        "F2": "=MAP(A2:A;C2:C;LAMBDA(ngay;xe;IF(ngay=\"\";\"\";SUMIFS(NL_TaiXe!E:E;NL_TaiXe!A:A;ngay;NL_TaiXe!C:C;xe))))",
+        "G2": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";E2:E-F2:F))",
+        "H2": "=MAP(G2:G;LAMBDA(le;IF(le=\"\";\"\";IFS(le=0;\"Khớp\";le>0;\"Thiếu chuyến tài xế\";le<0;\"Tài xế khai dư\"))))",
+        "I2": "=MAP(A2:A;C2:C;LAMBDA(ngay;xe;IF(ngay=\"\";\"\";COUNTUNIQUEIFS(NL_TaiXe!D:D;NL_TaiXe!A:A;ngay;NL_TaiXe!C:C;xe))))",
+        "J2": "=MAP(A2:A;F2:F;I2:I;LAMBDA(ngay;ch;sl;IF(ngay=\"\";\"\";IF(ngay<DATE(2026;7;1);\"\";IFS((sl=1)*(ch>=5);\"Xe 1 lái vượt mốc 4 chuyến\";(sl>=2)*(ch>=7);\"Xe 2 lái vượt mốc 6 chuyến\";TRUE;\"\")))))",
+        "K2": "=MAP(A2:A;F2:F;I2:I;J2:J;LAMBDA(ngay;ch;sl;dk;IF(ngay=\"\";\"\";IF(dk=\"\";0;IF(sl=1;MAX(0;ch-4);IF(sl>=2;MAX(0;ch-6);0))))))",
+        "L2": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";K2:K*200000))",
+        "M2": "=MAP(A2:A;B2:B;C2:C;LAMBDA(ngay;thang;xe;IF(ngay=\"\";\"\";SUMIFS(F:F;B:B;thang;C:C;xe;A:A;\"<\"&ngay))))",
+        "N2": "=MAP(A2:A;F2:F;M2:M;LAMBDA(ngay;ch;lk;IF(ngay=\"\";\"\";IF(ngay<DATE(2026;7;1);0;MAX(0;lk+ch-168)-MAX(0;lk-168)))))",
+        "O2": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";N2:N*XLOOKUP(\"THUONG_VUOT_168\";DM_ThamSo!A:A;DM_ThamSo!C:C)))",
+        "P2": "=MAP(J2:J5000;N2:N5000;LAMBDA(dk;cvvuot;IF((dk=\"\")*(cvvuot=0);\"\";\"Có thưởng nóng cần kiểm tra và nhập Thu chi nếu đã chi\")))",
+        "Q2": "=ARRAYFORMULA(IF(A2:A5000=\"\";\"\";L2:L5000+O2:O5000))"
+      }
+    },
+    "XL_VanChuyen": {
+      "headers": [
+        "Ngày",
+        "Tháng",
+        "Biển số",
+        "Dự án",
+        "Số chuyến",
+        "Tổng khối lượng",
+        "Số km",
+        "Giá dầu áp dụng",
+        "Đơn giá gốc",
+        "Điều chỉnh dầu",
+        "Đơn giá áp dụng",
+        "Doanh thu ước tính",
+        "Công ty sở hữu",
+        "Ghi chú"
+      ],
+      "formulas": {
+        "A2:E2": "Pulls date/month/vehicle/project/trips from NL_VanChuyen.",
+        "F2": "=MAP(C2:C;E2:E;LAMBDA(xe;ch;IF(xe=\"\";\"\";IFERROR(XLOOKUP(xe;DM_Xe!B:B;DM_Xe!D:D;0)*ch;\"\"))))",
+        "G2": "Looks up route km from DM_DuAn by project and effective date.",
+        "H2": "Looks up oil price from DM_ThamSo F:G by date with approximate match.",
+        "I2": "Filters DM_DonGiaVanChuyen by project/km/effective date/trip band and returns base rate.",
+        "J2": "Calculates oil adjustment only when rate type is Theo dầu.",
+        "K2": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";ROUND(I2:I+J2:J;0)))",
+        "L2": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";F2:F*K2:K))",
+        "M2": "=MAP(C2:C;LAMBDA(xe;IF(xe=\"\";\"\";IFERROR(XLOOKUP(xe;DM_Xe!B:B;DM_Xe!H:H;\"\");\"\"))))",
+        "N2": "=ARRAYFORMULA(IF(NL_VanChuyen!A3:A=\"\";\"\";NL_VanChuyen!G3:G))"
+      }
+    },
+    "XL_LuongTheoXe": {
+      "headers": [
+        "Tháng",
+        "Tài xế",
+        "Biển số xe",
+        "Cá nhân",
+        "Tổng của xe",
+        "Số lái",
+        "Loại tính",
+        "Đơn giá",
+        "Lương chuyến",
+        "Nghỉ tính chỉ tiêu",
+        "Chỉ tiêu sau nghỉ",
+        "Lương chuyến cuối"
+      ],
+      "formulas": {
+        "A2": "=QUERY(NL_TaiXe!B2:E;\"select B, D, C, sum(E) where B is not null group by B, D, C label sum(E) ''\";0)",
+        "E2": "=MAP(A2:A;C2:C;LAMBDA(thang;xe;IF(thang=\"\";\"\";SUMIFS(NL_TaiXe!E:E;NL_TaiXe!B:B;thang;NL_TaiXe!C:C;xe))))",
+        "F2": "=MAP(A2:A;C2:C;LAMBDA(thang;xe;IF(thang=\"\";\"\";COUNTUNIQUEIFS(NL_TaiXe!D:D;NL_TaiXe!B:B;thang;NL_TaiXe!C:C;xe))))",
+        "G2": "=MAP(F2:F;LAMBDA(solai;IF(solai=\"\";\"\";IF(solai=1;\"1_LAI\";\"NHIEU_LAI\"))))",
+        "H2": "Salary rate lookup from DM_LuongChuyen; caps vehicle trip count at quit date if driver quits within month.",
+        "I2": "=MAP(A2:A;D2:D;H2:H;LAMBDA(t;ch;dg;IF(t=\"\";\"\";ch*dg)))",
+        "J2": "=MAP(A2:A;C2:C;LAMBDA(t;xe;IF(t=\"\";\"\";SUMIFS(NL_NghiVanHanh!H:H;NL_NghiVanHanh!B:B;t;NL_NghiVanHanh!C:C;xe;NL_NghiVanHanh!G:G;\"Có\"))))",
+        "K2": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";XLOOKUP(\"MOC_KPI_CHUYEN\";DM_ThamSo!A:A;DM_ThamSo!C:C)-J2:J))",
+        "L2": "=ARRAYFORMULA(IF(A2:A=\"\";\"\";I2:I))"
+      }
+    },
+    "XL_LuongNhanSu": {
+      "headers": [
+        "Tháng",
+        "Nhân sự",
+        "Chức vụ",
+        "Số chuyến",
+        "Lương chuyến",
+        "Lương cứng",
+        "Ngày vào làm",
+        "Ngày nghỉ việc",
+        "Nghỉ chuẩn/tháng",
+        "Ngày biên chế",
+        "Nghỉ phép",
+        "Nghỉ vượt phép",
+        "Nghỉ trừ lương",
+        "Ngày trừ lương",
+        "Lương cứng/ngày",
+        "Lương cứng thực tính",
+        "Thưởng",
+        "Ứng lương",
+        "Phạt",
+        "Tổng lương",
+        "Thực nhận"
+      ],
+      "formulas_summary": {
+        "A2": "Large LET/MAKEARRAY formula creates monthly personnel matrix from DM_NhanSu, XL_LuongTheoXe and active periods.",
+        "P2": "Prorates fixed salary by active days and subtracts unpaid/over-limit leave.",
+        "Q2": "Combines Thu Chi bonuses, manager bonus, contract salary and recruitment bonus.",
+        "R2": "SUMIFS IMP_ThuChi Ứng lương.",
+        "S2": "SUMIFS IMP_ThuChi Phạt + NL_Phat.",
+        "T2": "= lương chuyến + lương cứng thực + thưởng.",
+        "U2": "= tổng lương - ứng - phạt."
+      }
+    },
+    "XL_ThuongQuanLy": {
+      "headers": [
+        "Tháng",
+        "Biển số xe",
+        "Tổng chuyến",
+        "Thưởng tuyển lái",
+        "Thưởng mốc 0-112",
+        "Thưởng mốc 140",
+        "Thưởng mốc 168",
+        "Tổng thưởng mốc QL",
+        "Tổng ngày QL"
+      ],
+      "formulas_summary": {
+        "A2": "QUERY XL_LuongTheoXe by month and vehicle, max total trips.",
+        "D2": "Recruitment bonus based on DM_ThuongQuanLy and recruiter periods in DM_NhanSu.",
+        "E2": "CHUYEN_112 bonus.",
+        "F2": "CHUYEN_140 bonus after KPI reduction.",
+        "G2": "CHUYEN_168 bonus after KPI reduction.",
+        "H2": "E + F + G.",
+        "I2": "Active management days after attendance leave."
+      }
+    },
+    "BC_TongQuan": {
+      "month_cell": "B1",
+      "month_cell_requirement": "real date serial formatted mm/yyyy, not Date.toString text",
+      "profit_formula": "B16 = B12 - SUM(B13;B14;B15)",
+      "depends_on": [
+        "XL_VanChuyen",
+        "NL_Dau",
+        "IMP_ThuChi",
+        "BC_BangLuong",
+        "DM_Xe",
+        "DM_ThamSo"
+      ]
+    },
+    "BC_BangLuong": {
+      "headers": [
+        "Tháng",
+        "Nhân sự",
+        "Chức vụ",
+        "Số chuyến",
+        "Lương chuyến",
+        "Lương cứng thực",
+        "Nghỉ phép",
+        "Ngày bị trừ",
+        "Thưởng",
+        "Tổng lương",
+        "Ứng lương",
+        "Phạt",
+        "Thực nhận",
+        "Ghi chú"
+      ],
+      "main_formula_A3": "Filters and sorts XL_LuongNhanSu rows with non-zero salary/trip/advance/penalty values."
+    },
+    "BC_TongHopXe": {
+      "headers": [
+        "Tháng",
+        "Công ty",
+        "Biển số",
+        "Số chuyến",
+        "Tổng khối",
+        "Doanh thu ước tính",
+        "Dầu lít",
+        "Tiền dầu",
+        "Chi phí sửa chữa",
+        "Tổng chi phí",
+        "Lãi gộp trước lương",
+        "Ghi chú"
+      ],
+      "main_formula_A3": "QUERY XL_VanChuyen by month/company/vehicle.",
+      "formulas_summary": {
+        "G3": "Fuel liters from NL_Dau.",
+        "H3": "Fuel cost from NL_Dau.",
+        "I3": "Vehicle repair/maintenance cost from IMP_ThuChi where text contains vehicle plate.",
+        "J3": "fuel cost + vehicle expense.",
+        "K3": "revenue - total cost."
+      }
+    },
+    "IMP_ThuChi": {
+      "headers": [
+        "Số phiếu",
+        "Ngày",
+        "Mục",
+        "Số tiền",
+        "Nhà cung cấp",
+        "Nội dung",
+        "Tháng tính",
+        "Đối tượng",
+        "Loại tính",
+        "Công nợ"
+      ],
+      "external_source": {
+        "spreadsheet_id": "1PWwGC6HCdskiV2fEZjDFiAt6kA_nsx64twrVTgrRerw",
+        "range": "NHAP_THUCHI!A:I"
+      },
+      "formulas_summary": {
+        "A2": "QUERY + IMPORTRANGE external Thu Chi rows, including Góp quỹ and expense rows.",
+        "G2": "Derives accounting month from T1..T12 suffix or transaction date.",
+        "H2": "Strips trailing T-month suffix to get target/object.",
+        "I2": "Classifies into Ứng lương, Phạt, Thưởng, Thuế, Trả lương, Phí đường bộ, Góp quỹ, Xăng dầu xe, Chi phí xe, Khác.",
+        "J2": "Looks up debt/settlement status from external sheet unless settled text."
+      }
+    }
+  },
+  "master_data": {
+    "DM_DuAn": {
+      "headers": [
+        "Tên dự án",
+        "Số km",
+        "Hiệu lực từ",
+        "Hiệu lực đến"
+      ],
+      "rows": [
+        {
+          "project": "Tràng Duệ 42",
+          "km": 42,
+          "effective_from_serial": 46143,
+          "effective_to": ""
+        }
+      ],
+      "rule": "Create new project/route row, e.g. Tràng Duệ 45, for route changes instead of overwriting historical rows."
+    },
+    "DM_Xe": {
+      "headers": [
+        "STT",
+        "Biển số xe",
+        "Biển số rơ mooc",
+        "Khối lượng",
+        "Loại xe",
+        "Trạng thái",
+        "Ghi chú",
+        "Công ty sở hữu"
+      ],
+      "lookup_columns": {
+        "vehicle_plate": "B",
+        "trailer_plate": "C",
+        "capacity": "D",
+        "owner": "H"
+      },
+      "sample_active_vehicles": [
+        {
+          "vehicle": "20H05602",
+          "trailer": "20RM1364",
+          "owner": "Quang Quân"
+        },
+        {
+          "vehicle": "20H06278",
+          "trailer": "20RM1365",
+          "owner": "Quang Quân"
+        },
+        {
+          "vehicle": "20H05664",
+          "trailer": "20RM1363",
+          "owner": "Minh Vương"
+        },
+        {
+          "vehicle": "20H06214",
+          "trailer": "20RM1362",
+          "owner": "Minh Vương"
+        }
+      ]
+    },
+    "DM_ThamSo": {
+      "parameters": [
+        {
+          "code": "GIA_DAU_GOC",
+          "value": 27650,
+          "status": "legacy_reference"
+        },
+        {
+          "code": "BUOC_GIA_DAU",
+          "value": 1000,
+          "status": "legacy_reference"
+        },
+        {
+          "code": "BUOC_DON_GIA",
+          "value": 2870,
+          "status": "legacy_reference"
+        },
+        {
+          "code": "QD_CHUYEN_NGHI_MAC_DINH",
+          "value": 6,
+          "status": "active"
+        },
+        {
+          "code": "THUONG_VUOT_168",
+          "value": 700000,
+          "status": "active_hot_bonus_alert"
+        },
+        {
+          "code": "MOC_KPI_CHUYEN",
+          "value": 168,
+          "status": "active"
+        },
+        {
+          "code": "NGHI_CHUAN_THANG",
+          "value": 2,
+          "status": "active"
+        },
+        {
+          "code": "SO_GIO_1_CHUYEN_KPI",
+          "value": 4,
+          "status": "active"
+        },
+        {
+          "code": "BQ_CHUYEN_CANHBAO_1_LAI",
+          "value": 4.5,
+          "status": "active_or_reserved"
+        },
+        {
+          "code": "THUE_TNDN_RATE",
+          "value": 0.1,
+          "status": "active"
+        },
+        {
+          "code": "THUE_VAT_RATE",
+          "value": 0.08,
+          "status": "active"
+        }
+      ],
+      "oil_price_history": [
+        {
+          "date_serial": 46167,
+          "price": 28760
+        },
+        {
+          "date_serial": 46171,
+          "price": 27650
+        },
+        {
+          "date_serial": 46178,
+          "price": 26860
+        },
+        {
+          "date_serial": 46185,
+          "price": 25870
+        },
+        {
+          "date_serial": 46192,
+          "price": 23530
+        },
+        {
+          "date_serial": 46199,
+          "price": 21860
+        }
+      ]
+    },
+    "DM_LuongChuyen": {
+      "tiers": [
+        {
+          "type": "1_LAI",
+          "from": 0,
+          "to": 104,
+          "rate": 250000
+        },
+        {
+          "type": "1_LAI",
+          "from": 105,
+          "to": 139,
+          "rate": 270000
+        },
+        {
+          "type": "1_LAI",
+          "from": 140,
+          "to": 999,
+          "rate": 320000
+        },
+        {
+          "type": "NHIEU_LAI",
+          "from": 0,
+          "to": 139,
+          "rate": 270000
+        },
+        {
+          "type": "NHIEU_LAI",
+          "from": 140,
+          "to": 167,
+          "rate": 300000
+        },
+        {
+          "type": "NHIEU_LAI",
+          "from": 168,
+          "to": 999,
+          "rate": 350000
+        }
+      ]
+    },
+    "DM_DonGiaVanChuyen": {
+      "rules": [
+        {
+          "project": "Tràng Duệ 42",
+          "km": 42,
+          "from_serial": 46143,
+          "to_serial": 46173,
+          "type": "Theo dầu",
+          "oil_base": 27650,
+          "coef": 68.3333333333,
+          "bands": [
+            [
+              0,
+              4,
+              120000
+            ],
+            [
+              5,
+              6,
+              124000
+            ],
+            [
+              7,
+              999,
+              129000
+            ]
+          ]
+        },
+        {
+          "project": "Tràng Duệ 42",
+          "km": 42,
+          "from_serial": 46174,
+          "to_serial": 46191,
+          "type": "Cố định",
+          "bands": [
+            [
+              0,
+              4,
+              120000
+            ],
+            [
+              5,
+              6,
+              124000
+            ],
+            [
+              7,
+              999,
+              129000
+            ]
+          ]
+        },
+        {
+          "project": "Tràng Duệ 42",
+          "km": 42,
+          "from_serial": 46192,
+          "to_serial": 46198,
+          "type": "Mốc thủ công",
+          "oil_base": 23530,
+          "coef": 70,
+          "bands": [
+            [
+              0,
+              4,
+              114000
+            ],
+            [
+              5,
+              6,
+              118000
+            ],
+            [
+              7,
+              999,
+              123000
+            ]
+          ]
+        },
+        {
+          "project": "Tràng Duệ 42",
+          "km": 42,
+          "from_serial": 46199,
+          "to_serial": "",
+          "type": "Mốc thủ công",
+          "oil_base": 21860,
+          "coef": 70,
+          "bands": [
+            [
+              0,
+              4,
+              111000
+            ],
+            [
+              5,
+              6,
+              115000
+            ],
+            [
+              7,
+              999,
+              120000
+            ]
+          ]
+        }
+      ]
+    },
+    "DM_ThuongQuanLy": {
+      "rules": [
+        {
+          "code": "TUYEN_DU_2_LAI",
+          "amount": 2000000
+        },
+        {
+          "code": "CHUYEN_112",
+          "amount": 1000000
+        },
+        {
+          "code": "CHUYEN_140",
+          "amount": 1000000
+        },
+        {
+          "code": "CHUYEN_168",
+          "amount": 1000000
+        },
+        {
+          "code": "TONG_TOI_DA",
+          "amount": 5000000,
+          "status": "reference"
+        }
+      ]
+    },
+    "DM_PhatNoiBo": {
+      "sample_rules": [
+        {
+          "code": "CABIN_BAN",
+          "amount": 250000
+        },
+        {
+          "code": "RUOU_CHATCAM",
+          "amount": 2000000
+        },
+        {
+          "code": "KHONG_CHAP_HANH",
+          "amount": 500000
+        },
+        {
+          "code": "QL_BAO_CAO_20H_7H",
+          "amount": 500000
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "XL_DoiSoatChuyen": [
+      "NL_VanChuyen",
+      "NL_TaiXe",
+      "DM_ThamSo"
+    ],
+    "XL_VanChuyen": [
+      "NL_VanChuyen",
+      "DM_Xe",
+      "DM_DuAn",
+      "DM_ThamSo",
+      "DM_DonGiaVanChuyen"
+    ],
+    "XL_LuongTheoXe": [
+      "NL_TaiXe",
+      "NL_NghiVanHanh",
+      "DM_NhanSu",
+      "DM_LuongChuyen",
+      "DM_ThamSo"
+    ],
+    "XL_LuongNhanSu": [
+      "DM_NhanSu",
+      "XL_LuongTheoXe",
+      "NL_ChamCong",
+      "IMP_ThuChi",
+      "NL_Phat",
+      "XL_ThuongQuanLy",
+      "DM_ThuongQuanLy"
+    ],
+    "XL_ThuongQuanLy": [
+      "XL_LuongTheoXe",
+      "DM_ThuongQuanLy",
+      "DM_NhanSu",
+      "NL_TaiXe",
+      "NL_NghiVanHanh",
+      "NL_ChamCong"
+    ],
+    "BC_TongQuan": [
+      "XL_VanChuyen",
+      "NL_Dau",
+      "IMP_ThuChi",
+      "BC_BangLuong",
+      "DM_Xe",
+      "DM_ThamSo"
+    ],
+    "BC_BangLuong": [
+      "XL_LuongNhanSu"
+    ],
+    "BC_TongHopXe": [
+      "XL_VanChuyen",
+      "NL_Dau",
+      "IMP_ThuChi"
+    ],
+    "IMP_ThuChi": [
+      "external_sheet:1PWwGC6HCdskiV2fEZjDFiAt6kA_nsx64twrVTgrRerw"
+    ]
+  },
+  "conditional_formatting_summary": {
+    "BC_TongQuan": [
+      "B3/C3 positive/negative profit highlighting",
+      "B16 positive/negative real profit highlighting"
+    ]
+  },
+  "future_design_notes": {
+    "driver_assignment_plan": {
+      "recommendation": "Use an effective-date assignment sheet rather than fixed columns in DM_Xe.",
+      "proposed_sheet": "DM_GanTaiXeTheoXe",
+      "proposed_columns": [
+        "Biển số xe",
+        "Tài xế 1",
+        "Tài xế 2",
+        "Từ ngày",
+        "Đến ngày",
+        "Trạng thái",
+        "Ghi chú"
+      ],
+      "lookup_key": "Biển số xe + Ngày",
+      "reason": "Supports transfer, temporary replacement, extra driver and historical reporting without editing old data."
+    },
+    "web_app_warning": "If Apps Script/web app references deleted sheets XL_NgoaiLe or DM_PhanCongLaiXe by name, code should be updated. Google Sheet formulas no longer reference them."
+  }
+}

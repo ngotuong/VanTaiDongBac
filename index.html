@@ -2363,7 +2363,6 @@
           <button type="button" class="sub-tab active" data-sheet="DM_NhanSu" onclick="setCatalogSheetTab('DM_NhanSu')">Nhân sự</button>
           <button type="button" class="sub-tab" data-sheet="DM_Xe" onclick="setCatalogSheetTab('DM_Xe')">Danh sách xe</button>
           <button type="button" class="sub-tab" data-sheet="DM_DuAn" onclick="setCatalogSheetTab('DM_DuAn')">Dự án & Cự ly</button>
-          <button type="button" class="sub-tab" data-sheet="DM_PhanCongLaiXe" onclick="setCatalogSheetTab('DM_PhanCongLaiXe')">Phân công lái xe</button>
           <button type="button" class="sub-tab" data-sheet="DM_LuongChuyen" onclick="setCatalogSheetTab('DM_LuongChuyen')">Lương chuyến xe</button>
           <button type="button" class="sub-tab" data-sheet="DM_ThamSo_TS" onclick="setCatalogSheetTab('DM_ThamSo_TS')">Tham số hệ thống</button>
           <button type="button" class="sub-tab" data-sheet="DM_ThamSo_GD" onclick="setCatalogSheetTab('DM_ThamSo_GD')">Lịch sử giá dầu</button>
@@ -2857,7 +2856,7 @@
       dau: [
         ['date', 'Ngày tiếp dầu', 'date'], ['vehicle', 'Biển số xe nhận', 'select:vehicles'],
         ['source', 'Nguồn cung cấp', 'select:fuelSources'], ['liters', 'Số lít dầu', 'number'],
-        ['price', 'Giá dầu / lít', 'number'], ['note', 'Ghi chú thêm', 'textarea']
+        ['price', 'Giá dầu / lít', 'number'], ['paymentSource', 'Nguồn chi', 'select:paymentSources']
       ],
       chamCong: [
         ['fromDate', 'Từ ngày', 'date'], ['toDate', 'Đến ngày (Gồm cả)', 'date'],
@@ -4531,6 +4530,9 @@
     }
 
     function shouldHideManageField_(headerLower, sheetName) {
+      if (sheetName === 'NL_Dau') {
+        return headerLower === 'công ty sở hữu';
+      }
       if (sheetName === 'NL_ChamCong') {
         return headerLower === 'loại ngày công hợp lệ' || headerLower === 'lưu ý';
       }
@@ -4625,6 +4627,7 @@
       let litColIdx = -1;
       let amountColIdx = -1;
       let noteColIdx = -1;
+      let paymentSourceColIdx = -1;
       let tripsColIdx = -1;
       const sheetName = el('manageSheetSelect').value;
       const visibleColumns = currentManageData ? getManageVisibleColumns(currentManageData.headers, sheetName) : [];
@@ -4633,10 +4636,11 @@
         currentManageData.headers.forEach((h, idx) => {
           const hLower = h.toLowerCase().trim();
           if (hLower === 'biển số xe' || hLower === 'xe' || hLower === 'bển số') vehicleColIdx = idx;
-          if (hLower === 'nguồn' || hLower === 'nguồn cung cấp' || hLower === 'nguồn dầu' || hLower.includes('nguồn')) sourceColIdx = idx;
+          if (hLower === 'nguồn dầu' || hLower === 'nguồn cung cấp' || hLower === 'nguồn') sourceColIdx = idx;
           if (hLower === 'số lít' || hLower === 'lít') litColIdx = idx;
           if (hLower === 'thành tiền' || hLower === 'tổng tiền' || hLower === 'tiền') amountColIdx = idx;
           if (hLower === 'ghi chú' || hLower === 'ghi chú thêm') noteColIdx = idx;
+          if (hLower === 'nguồn chi') paymentSourceColIdx = idx;
           if (hLower === 'số chuyến' || hLower.includes('số chuyến')) tripsColIdx = idx;
         });
       }
@@ -4667,9 +4671,11 @@
             const ownerKey = normalizeFilterValue(ownerFilter);
             const autoOwner = normalizeFilterValue(row.owner);
             const noteText = noteColIdx !== -1 ? normalizeFilterValue(row.values[noteColIdx]) : '';
+            const paymentSourceText = paymentSourceColIdx !== -1 ? normalizeFilterValue(row.values[paymentSourceColIdx]) : '';
             const matchAuto = autoOwner.includes(ownerKey);
             const matchNote = noteText.includes(ownerKey);
-            if (!matchAuto && !matchNote) {
+            const matchPaymentSource = paymentSourceText.includes(ownerKey);
+            if (!matchAuto && !matchNote && !matchPaymentSource) {
               return false;
             }
           }
@@ -4851,6 +4857,9 @@
       if (headerClean === 'nguồn dầu' || headerClean === 'nguồn') {
         return getOptions('fuelSources');
       }
+      if (headerClean === 'nguồn chi') {
+        return getOptions('paymentSources');
+      }
       if (headerClean === 'mã phạt') {
         return getOptions('penalties');
       }
@@ -4883,8 +4892,8 @@
           return;
         }
         
-        // Skip Thành tiền G column since it is formula-calculated
-        if (sheetName === 'NL_Dau' && header === 'Thành tiền') {
+        // Ẩn các cột công thức tự động của NL_Dau
+        if (sheetName === 'NL_Dau' && (headerClean === 'thành tiền' || headerClean === 'công ty sở hữu')) {
           return;
         }
 
@@ -6874,6 +6883,7 @@
       if (source === 'people') return (c.activePeople.length ? c.activePeople : c.people).map((x) => ({ value: x.name, label: `${x.name}${x.role ? ' - ' + x.role : ''}` }));
       if (source === 'penalties') return c.activePenalties.map((x) => ({ value: x.code, label: `${x.code} - ${x.content}` }));
       if (source === 'fuelSources') return c.fuelSources.map((x) => ({ value: x, label: x }));
+      if (source === 'paymentSources') return ['Quang Minh', 'Đổ ngoài', 'Quang Quân', 'Minh Vương', 'Quỹ'].map((x) => ({ value: x, label: x }));
       if (source === 'chamCongTypes') return c.chamCongTypes.map((x) => ({ value: x.name, label: x.name }));
       if (source === 'nghiVanHanhTypes') return c.nghiVanHanhTypes.map((x) => ({ value: x, label: x }));
       if (source === 'yesNo') return ['Có', 'Không'].map((x) => ({ value: x, label: x }));
@@ -6888,6 +6898,10 @@
           row.driver = drivers[0];
           renderEntry();
         }
+      }
+      if (activeForm === 'dau' && key === 'source' && !row.paymentSource) {
+        row.paymentSource = row.source || '';
+        renderEntry();
       }
       
       const span = document.querySelector(`.entry-row-extra-title-${index}`);

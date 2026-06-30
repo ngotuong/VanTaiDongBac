@@ -410,7 +410,9 @@ var SheetService = (function () {
   function readOverviewMonths_(sheet) {
     var rowCount = Math.min(sheet.getLastRow(), 24);
     if (rowCount < 1) return [];
-    return sheet.getRange(1, 7, rowCount, 11).getDisplayValues()
+    var lastColumn = sheet.getLastColumn();
+    var numColumns = Math.max(11, lastColumn - 7 + 1);
+    return sheet.getRange(1, 7, rowCount, numColumns).getDisplayValues()
       .filter(function (row, index) {
         return index === 0 || row.some(function (cell) { return clean_(cell); });
       });

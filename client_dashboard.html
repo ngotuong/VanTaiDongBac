@@ -51,6 +51,12 @@
 
     function renderDashboard() {
       const dashboard = getDashboardData();
+      if (dashboard.loading || !dashboard.overview || !dashboard.overview.months) {
+        renderMetrics({ month: 'Tất cả' });
+        renderProfitChart([]);
+        return;
+      }
+      
       const parsed = parseOverview(dashboard.overview.months);
       ensureSelectedMonth(parsed.rows);
       const selected = getSelectedOverviewRow(parsed.rows);

@@ -5616,6 +5616,12 @@
 
     function renderDashboard() {
       const dashboard = getDashboardData();
+      if (dashboard.loading || !dashboard.overview || !dashboard.overview.months) {
+        renderMetrics({ month: 'Tất cả' });
+        renderProfitChart([]);
+        return;
+      }
+      
       const parsed = parseOverview(dashboard.overview.months);
       ensureSelectedMonth(parsed.rows);
       const selected = getSelectedOverviewRow(parsed.rows);
@@ -6228,22 +6234,23 @@
     // Reports Rendering
     function renderReports() {
       const dashboard = getDashboardData();
-      const parsed = parseOverview(dashboard.overview.months);
-      ensureSelectedMonth(parsed.rows);
-      renderMonthFilters(parsed.rows);
-      
-      const filteredOverview = filterOverviewMatrix(dashboard.overview.months, selectedMonth);
-      const selected = getSelectedOverviewRow(parsed.rows);
       const holder = el('reports');
       holder.innerHTML = '';
       
-      if (dashboard.loading) {
+      if (dashboard.loading || !dashboard.overview || !dashboard.overview.months) {
         holder.innerHTML = `
           <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
           <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
         `;
         return;
       }
+      
+      const parsed = parseOverview(dashboard.overview.months);
+      ensureSelectedMonth(parsed.rows);
+      renderMonthFilters(parsed.rows);
+      
+      const filteredOverview = filterOverviewMatrix(dashboard.overview.months, selectedMonth);
+      const selected = getSelectedOverviewRow(parsed.rows);
       
       const links = getLinks();
       holder.appendChild(renderTableCard('Báo cáo tổng quan', filteredOverview, links.overview, 'finance'));

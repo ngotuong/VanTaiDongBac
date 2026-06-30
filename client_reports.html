@@ -445,7 +445,8 @@
 
     function parseOverview(matrix) {
       if (!matrix || !matrix.length) return { rows: [], latest: {} };
-      const headers = matrix[0].map(h => String(h || '').trim().toLowerCase());
+      const headerIndex = matrix.findIndex(row => row && String(row[0] || '').trim().toLowerCase() === 'tháng');
+      const headers = (matrix[headerIndex >= 0 ? headerIndex : 0] || []).map(h => String(h || '').trim().toLowerCase());
       
       const getColIdx = (names, defaultIdx) => {
         for (let i = 0; i < headers.length; i++) {
@@ -463,30 +464,35 @@
       const fuelQMColIdx = getColIdx(['dầu qm', 'quang minh'], 5);
       const fuelOutColIdx = getColIdx(['dầu ngoài', 'đổ ngoài'], 6);
       const tollColIdx = getColIdx(['cầu đường', 'phí cầu đường'], 7);
-      const payrollColIdx = getColIdx(['lương', 'chi phí lương'], 8);
+      const grossColIdx = getColIdx(['lợi nhuận gộp'], 8);
+      const payrollColIdx = getColIdx(['lương', 'chi phí lương'], -1);
       const fundColIdx = getColIdx(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 9);
-      const finalColIdx = getColIdx(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận'], 10);
+      const finalColIdx = getColIdx(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận thực'], 10);
 
-      const rows = matrix.slice(1)
+      const dataRows = headerIndex >= 0 ? matrix.slice(headerIndex + 1) : matrix.slice(1);
+      const readMoney = (row, idx) => idx >= 0 && idx < row.length ? parseMoney(row[idx]) : 0;
+
+      const rows = dataRows
         .filter((row) => row[monthColIdx] && String(row[monthColIdx]).trim() !== '' && String(row[monthColIdx]).trim() !== 'Tháng')
         .map((row) => {
           const monthVal = row[monthColIdx] || '';
           const volumeVal = row[volumeColIdx] || '';
-          const rev = parseMoney(row[revenueColIdx]);
-          const taxTndn = parseMoney(row[taxTndnColIdx]);
-          const taxVat = parseMoney(row[taxVatColIdx]);
-          const fuelQM = parseMoney(row[fuelQMColIdx]);
-          const fuelOut = parseMoney(row[fuelOutColIdx]);
-          const toll = parseMoney(row[tollColIdx]);
-          const payroll = parseMoney(row[payrollColIdx]);
-          const fund = parseMoney(row[fundColIdx]);
-          const final = parseMoney(row[finalColIdx]);
+          const rev = readMoney(row, revenueColIdx);
+          const taxTndn = readMoney(row, taxTndnColIdx);
+          const taxVat = readMoney(row, taxVatColIdx);
+          const fuelQM = readMoney(row, fuelQMColIdx);
+          const fuelOut = readMoney(row, fuelOutColIdx);
+          const toll = readMoney(row, tollColIdx);
+          const fund = readMoney(row, fundColIdx);
+          const final = readMoney(row, finalColIdx);
           
-          const gross = rev - taxTndn - taxVat - fuelQM - toll;
+          const calculatedGross = rev - taxTndn - taxVat - fuelQM - toll;
+          const gross = grossColIdx >= 0 ? readMoney(row, grossColIdx) : calculatedGross;
           const grossText = formatCurrencyText(gross);
           
           const operatingCost = taxTndn + taxVat + fuelQM + toll;
-          const cashCost = fuelOut + payroll + fund;
+          const cashCost = gross - final;
+          const payroll = payrollColIdx >= 0 ? readMoney(row, payrollColIdx) : cashCost - fuelOut - fund;
           const totalCost = operatingCost + cashCost;
           const totalCostText = formatCurrencyText(totalCost);
           
@@ -536,7 +542,8 @@
       if (!rows.length) return {};
       const dashboard = getDashboardData();
       const matrix = dashboard.overview.months || [];
-      const headers = matrix[0] ? matrix[0].map(h => String(h || '').trim().toLowerCase()) : [];
+      const headerIndex = matrix.findIndex(row => row && String(row[0] || '').trim().toLowerCase() === 'tháng');
+      const headers = matrix[headerIndex >= 0 ? headerIndex : 0] ? matrix[headerIndex >= 0 ? headerIndex : 0].map(h => String(h || '').trim().toLowerCase()) : [];
       
       const getColIdx = (names, defaultIdx) => {
         for (let i = 0; i < headers.length; i++) {
@@ -554,9 +561,9 @@
       const fuelQMColIdx = getColIdx(['dầu qm', 'quang minh'], 5);
       const fuelOutColIdx = getColIdx(['dầu ngoài', 'đổ ngoài'], 6);
       const tollColIdx = getColIdx(['cầu đường', 'phí cầu đường'], 7);
-      const payrollColIdx = getColIdx(['lương', 'chi phí lương'], 8);
+      const payrollColIdx = getColIdx(['lương', 'chi phí lương'], -1);
       const fundColIdx = getColIdx(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 9);
-      const finalColIdx = getColIdx(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận'], 10);
+      const finalColIdx = getColIdx(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận thực'], 10);
 
       if (selectedMonth === 'Tất cả') {
         let volume = 0, revenue = 0, taxTndn = 0, taxVat = 0, fuelQM = 0, fuelOut = 0, toll = 0, payroll = 0, fund = 0, gross = 0, operatingCost = 0, cashCost = 0, totalCost = 0, final = 0;
@@ -588,7 +595,7 @@
           totalSource[fuelQMColIdx] = Math.round(fuelQM).toLocaleString('vi-VN') + ' ₫';
           totalSource[fuelOutColIdx] = Math.round(fuelOut).toLocaleString('vi-VN') + ' ₫';
           totalSource[tollColIdx] = Math.round(toll).toLocaleString('vi-VN') + ' ₫';
-          if (payrollColIdx < headers.length) totalSource[payrollColIdx] = Math.round(payroll).toLocaleString('vi-VN') + ' ₫';
+          if (payrollColIdx >= 0 && payrollColIdx < headers.length) totalSource[payrollColIdx] = Math.round(payroll).toLocaleString('vi-VN') + ' ₫';
           if (fundColIdx < headers.length) totalSource[fundColIdx] = Math.round(fund).toLocaleString('vi-VN') + ' ₫';
           if (finalColIdx < headers.length) totalSource[finalColIdx] = Math.round(final).toLocaleString('vi-VN') + ' ₫';
         }

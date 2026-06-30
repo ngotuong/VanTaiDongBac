@@ -24,8 +24,8 @@ var AppConfig = (function () {
       sheets: {
         vanChuyen: { name: 'NL_VanChuyen', headerRow: 2, columns: 7 },
         taiXe: { name: 'NL_TaiXe', headerRow: 1, columns: 6 },
-        dau: { name: 'NL_Dau', headerRow: 2, columns: 8 },
-        chamCong: { name: 'NL_ChamCong', headerRow: 1, columns: 9 },
+        dau: { name: 'NL_Dau', headerRow: 2, columns: 9 },
+        chamCong: { name: 'NL_ChamCong', headerRow: 1, columns: 11 },
         phat: { name: 'NL_Phat', headerRow: 1, columns: 7 },
         nghiVanHanh: { name: 'NL_NghiVanHanh', headerRow: 1, columns: 9 }
       }

@@ -204,8 +204,11 @@ var SheetService = (function () {
         });
         var totalColIdx = dauHeaders.indexOf('Thành tiền');
         if (totalColIdx === -1) totalColIdx = 6;
+        var ownerColIdx = dauHeaders.indexOf('Công ty sở hữu');
+        if (ownerColIdx === -1) ownerColIdx = 8;
+        var skipped = [totalColIdx, ownerColIdx];
         for (var i = 0; i < result.values.length; i++) {
-          writeRowSkippingColumns_(sheet, appendRow + i, result.values[i], [totalColIdx]);
+          writeRowSkippingColumns_(sheet, appendRow + i, result.values[i], skipped);
         }
       } else {
         var range = sheet.getRange(appendRow, 1, result.values.length, cfg.columns);
@@ -264,7 +267,7 @@ var SheetService = (function () {
     var vehicleRows = needs.vehicles ? readRows_(ss, 'DM_Xe') : [];
     var projectRows = needs.projects ? readRows_(ss, 'DM_DuAn') : [];
     var penaltyRows = needs.penalties ? readRows_(ss, 'DM_PhatNoiBo') : [];
-    var assignmentRows = needs.assignments ? readRows_(ss, 'DM_PhanCongLaiXe') : [];
+    var assignmentRows = [];
     var chamCongTypes = needs.chamCongTypes ? readChamCongTypes_(ss) : [];
 
     var people = peopleRows.map(function (row) {
@@ -300,19 +303,6 @@ var SheetService = (function () {
       };
     }).filter(function (item) { return item.code; });
 
-    var assignments = assignmentRows.map(function (row) {
-      return {
-        plate: clean_(row[0]),
-        driver: clean_(row[1]),
-        role: clean_(row[2]),
-        fromDate: serializeDate_(row[3]),
-        toDate: serializeDate_(row[4]),
-        eligible: clean_(row[5]),
-        shortage: clean_(row[6]),
-        note: clean_(row[7])
-      };
-    }).filter(function (item) { return item.plate && item.driver; });
-
     var activeVehicles = vehicles.filter(function (item) { return item.status === 'Dang chay' || item.status === 'Đang chạy'; });
     var activePeople = people.filter(function (item) { return item.status === 'Dang lam' || item.status === 'Đang làm'; });
     var activeDrivers = people.filter(function (item) {
@@ -327,18 +317,19 @@ var SheetService = (function () {
       projects: projects,
       penalties: penalties,
       activePenalties: penalties.filter(function (item) { return item.status === 'Dang ap dung' || item.status === 'Đang áp dụng'; }),
-      assignments: assignments,
+      assignments: [],
       params: params,
       chamCongTypes: chamCongTypes,
       nghiVanHanhTypes: ['Mỏ báo nghỉ', 'Mưa', 'Lễ/Tết', 'Xe hỏng', 'Khác'],
-      fuelSources: ['Quang Minh', 'Đổ ngoài']
+      fuelSources: ['Quang Minh', 'Đổ ngoài'],
+      fuelPaymentSources: ['Quang Quân', 'Minh Vương', 'Quỹ']
     };
   }
 
   function catalogNeeds_(formType) {
     var needs = { params: false, people: false, vehicles: false, projects: false, penalties: false, assignments: false, chamCongTypes: false };
     if (!formType) {
-      return { params: true, people: true, vehicles: true, projects: true, penalties: true, assignments: true, chamCongTypes: true };
+      return { params: true, people: true, vehicles: true, projects: true, penalties: true, assignments: false, chamCongTypes: true };
     }
     if (formType === 'vanChuyen') {
       needs.vehicles = true;
@@ -346,7 +337,7 @@ var SheetService = (function () {
     } else if (formType === 'taiXe') {
       needs.vehicles = true;
       needs.people = true;
-      needs.assignments = true;
+      needs.assignments = false;
     } else if (formType === 'dau') {
       needs.vehicles = true;
     } else if (formType === 'chamCong') {
@@ -549,7 +540,7 @@ var SheetService = (function () {
 
   function computeAndCacheOverviewDetails_(ss, sheet, months, dataVersion) {
     var detailsByMonth = {};
-    var originalMonth = clean_(sheet.getRange('B1').getValue());
+    var originalMonthVal = sheet.getRange('B1').getValue();
     var lock = LockService.getScriptLock();
     var locked = false;
     try {
@@ -558,13 +549,23 @@ var SheetService = (function () {
       months.forEach(function (month) {
         var monthLabel = clean_(month);
         if (!monthLabel) return;
-        sheet.getRange('B1').setValue(monthLabel);
+        var dateValue = parseMonthLabelToDate_(monthLabel);
+        sheet.getRange('B1').setValue(dateValue);
         SpreadsheetApp.flush();
         var monthKey = normalizeDisplayMonth_(monthLabel) || normalizeMonthKey_(monthLabel);
         detailsByMonth[monthKey] = readCurrentOverviewDetails_(sheet);
       });
-      if (clean_(sheet.getRange('B1').getValue()) !== originalMonth) {
-        sheet.getRange('B1').setValue(originalMonth);
+      
+      // So sánh giá trị hiển thị hoặc thời gian để khôi phục nếu cần
+      var currentVal = sheet.getRange('B1').getValue();
+      var isSame = false;
+      if (originalMonthVal instanceof Date && currentVal instanceof Date) {
+        isSame = originalMonthVal.getTime() === currentVal.getTime();
+      } else {
+        isSame = originalMonthVal === currentVal;
+      }
+      if (!isSame) {
+        sheet.getRange('B1').setValue(originalMonthVal);
         SpreadsheetApp.flush();
       }
     } catch (e) {
@@ -575,6 +576,24 @@ var SheetService = (function () {
 
     writeReportDetailsCache_(ss, dataVersion, detailsByMonth);
     return detailsByMonth;
+  }
+
+  function parseMonthLabelToDate_(monthLabel) {
+    var cleanLabel = String(monthLabel).trim();
+    if (!cleanLabel) return null;
+    var match1 = cleanLabel.match(/^(\d{1,2})\/(\d{4})$/);
+    if (match1) {
+      return new Date(Number(match1[2]), Number(match1[1]) - 1, 1);
+    }
+    var match2 = cleanLabel.match(/^(\d{4})-(\d{1,2})$/);
+    if (match2) {
+      return new Date(Number(match2[1]), Number(match2[2]) - 1, 1);
+    }
+    var parsed = ValidationService.parseDate(cleanLabel);
+    if (parsed) {
+      return new Date(parsed.getFullYear(), parsed.getMonth(), 1);
+    }
+    return monthLabel;
   }
 
   function getReportDataVersion_() {
@@ -1281,23 +1300,28 @@ var SheetService = (function () {
       var skippedColumns = [];
       for (var colIdx = 0; colIdx < headers.length; colIdx++) {
         var header = headers[colIdx];
+        var headerLower = header.toLowerCase().trim();
         var val = rowData[header];
 
         if (existingFormulas && existingFormulas[colIdx]) {
           valuesToSet.push(existingFormulas[colIdx]);
-        } else if (sheetName === 'NL_Dau' && header === 'Thành tiền') {
+        } else if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
+          valuesToSet.push('');
+          skippedColumns.push(colIdx);
+        } else if (sheetName === 'NL_Dau' && (header === 'Thành tiền' || header === 'Công ty sở hữu')) {
           valuesToSet.push(existingValues ? existingValues[colIdx] : '');
+          skippedColumns.push(colIdx);
+        } else if (sheetName === 'NL_ChamCong' && (headerLower.indexOf('số ngày') !== -1 || headerLower.indexOf('tính lương cứng') !== -1 || headerLower.indexOf('nhóm xử lý') !== -1)) {
+          valuesToSet.push('');
+          skippedColumns.push(colIdx);
+        } else if (sheetName === 'NL_Phat' && (headerLower.indexOf('nội dung phạt') !== -1 || headerLower.indexOf('số tiền phạt') !== -1)) {
+          valuesToSet.push('');
+          skippedColumns.push(colIdx);
+        } else if (sheetName === 'NL_NghiVanHanh' && (headerLower.indexOf('tính kpi') !== -1 || headerLower.indexOf('giảm kpi') !== -1)) {
+          valuesToSet.push('');
           skippedColumns.push(colIdx);
         } else if (val === undefined && existingValues) {
           valuesToSet.push(existingValues[colIdx]);
-        } else if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
-          valuesToSet.push('');
-        } else if (sheetName === 'NL_ChamCong' && (header.toLowerCase().indexOf('số ngày') !== -1 || header.toLowerCase().indexOf('lương cứng') !== -1 || header.toLowerCase().indexOf('nhóm') !== -1)) {
-          valuesToSet.push('');
-        } else if (sheetName === 'NL_Phat' && (header.toLowerCase().indexOf('nội dung') !== -1 || header.toLowerCase().indexOf('tiền phạt') !== -1)) {
-          valuesToSet.push('');
-        } else if (sheetName === 'NL_NghiVanHanh' && (header.toLowerCase().indexOf('tính kpi') !== -1 || header.toLowerCase().indexOf('giảm kpi') !== -1)) {
-          valuesToSet.push('');
         } else {
           if (val === undefined || val === null) {
             valuesToSet.push('');

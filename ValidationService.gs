@@ -53,7 +53,7 @@ var ValidationService = (function () {
     var liters = requirePositiveNumber_(row.liters, 'So lit');
     var price = requirePositiveNumber_(row.price, 'Gia dau');
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
-    return [date, '', plate, source, liters, price, '', clean_(row.note)];
+    return [date, '', plate, source, liters, price, '', clean_(row.sourcePay), ''];
   }
 
   function buildChamCong_(row, catalogs, line, warnings) {
@@ -63,7 +63,7 @@ var ValidationService = (function () {
     var person = requireText_(row.person, 'Nhan su');
     var type = requireText_(row.workdayType, 'Loai ngay cong');
     warnIfMissing_(catalogs.people, 'name', person, 'Dong ' + line + ': Nhan su chua co trong DM_NhanSu.', warnings);
-    return [fromDate, toDate, '', person, type, '', '', '', clean_(row.note)];
+    return [fromDate, toDate, '', person, type, '', '', '', clean_(row.note), '', ''];
   }
 
   function buildPhat_(row, catalogs, line, warnings) {

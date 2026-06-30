@@ -28,6 +28,7 @@
       if (source === 'people') return (c.activePeople.length ? c.activePeople : c.people).map((x) => ({ value: x.name, label: `${x.name}${x.role ? ' - ' + x.role : ''}` }));
       if (source === 'penalties') return c.activePenalties.map((x) => ({ value: x.code, label: `${x.code} - ${x.content}` }));
       if (source === 'fuelSources') return c.fuelSources.map((x) => ({ value: x, label: x }));
+      if (source === 'fuelPaymentSources') return (c.fuelPaymentSources || ['Quang Quân', 'Minh Vương', 'Quỹ']).map((x) => ({ value: x, label: x }));
       if (source === 'chamCongTypes') return c.chamCongTypes.map((x) => ({ value: x.name, label: x.name }));
       if (source === 'nghiVanHanhTypes') return c.nghiVanHanhTypes.map((x) => ({ value: x, label: x }));
       if (source === 'yesNo') return ['Có', 'Không'].map((x) => ({ value: x, label: x }));
@@ -164,10 +165,24 @@
           if (result.warnings?.length) details.push(result.warnings.join('\n'));
           const sheetText = result.sheetName ? ` sheet ${result.sheetName}` : ' Google Sheet';
           
-          showStatus(
-            result.errors?.length ? 'warn' : 'ok', 
-            `Đã ghi nhận ${result.inserted} dòng kê vào${sheetText}.${details.length ? '\nLưu ý:\n' + details.join('\n') : ''}`
-          );
+          let status = 'ok';
+          if (result.errors?.length) {
+            status = 'warn';
+          } else if (!result.inserted) {
+            status = 'warn';
+          }
+          
+          let msg = '';
+          if (!result.inserted) {
+            msg = `Không có dòng dữ liệu nào được ghi nhận. Vui lòng kiểm tra lại thông tin nhập liệu (đặc biệt là các ô tìm kiếm gợi ý trên mobile)!`;
+          } else {
+            msg = `Đã ghi nhận ${result.inserted} dòng kê vào${sheetText}.`;
+          }
+          if (details.length) {
+            msg += `\nLưu ý:\n` + details.join('\n');
+          }
+          
+          showStatus(status, msg);
           
           if (result.inserted) {
             recentSubmissions = submitted.filter(Boolean).concat(recentSubmissions).slice(0, 8);

@@ -267,6 +267,7 @@
           renderReports();
           renderView();
           setRefreshBusy(false);
+          if (activeView === 'home') loadReportBundle(false);
           return;
         }
       }
@@ -281,6 +282,7 @@
           renderReports();
           renderView();
           setRefreshBusy(false);
+          if (activeView === 'home') loadReportBundle(false);
         })
         .catch((err) => {
           showStatus('err', err.message || String(err));
@@ -339,6 +341,7 @@
           appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt };
           appData.reports = { ...appData.reports, ...appData.dashboard, loading: false };
           
+          renderDashboard();
           renderReports();
           scheduleReportBundlePrefetch();
           return;
@@ -355,6 +358,7 @@
           
           sessionStorage.setItem(cacheKey, JSON.stringify(bundle));
           
+          renderDashboard();
           renderReports();
           scheduleReportBundlePrefetch();
         })

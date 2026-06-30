@@ -537,7 +537,7 @@
           final += r.final || 0;
         });
 
-        return {
+        const aggregated = {
           month: 'Tất cả',
           volume: volume,
           volumeText: volume.toLocaleString('vi-VN') + ' tấn',
@@ -575,8 +575,64 @@
             Math.round(final).toLocaleString('vi-VN') + ' ₫'
           ]
         };
+        return applyOverviewDetailOverrides(aggregated);
       }
-      return rows.find((row) => row.month === selectedMonth) || rows[rows.length - 1] || {};
+      const selected = rows.find((row) => row.month === selectedMonth) || rows[rows.length - 1] || {};
+      return applyOverviewDetailOverrides(selected);
+    }
+
+    function applyOverviewDetailOverrides(row) {
+      if (!row || !row.month) return row || {};
+      const details = getDashboardData()?.overview?.details || [];
+      if (!Array.isArray(details) || details.length < 2) return row;
+
+      const finalFromDetails = getOverviewDetailAmount(details, ['lợi nhuận thực']);
+      const fuelOutCost = getOverviewDetailAmount(details, ['dầu', 'ngoài']);
+      const payrollCost = getOverviewDetailAmount(details, ['lương']);
+      const actualFundCost = getOverviewDetailAmount(details, ['chi quỹ', 'thực tế']);
+      const hasPostOperatingParts = [fuelOutCost, payrollCost, actualFundCost].some((value) => value !== null);
+      const detailCashCost = hasPostOperatingParts
+        ? (fuelOutCost || 0) + (payrollCost || 0) + (actualFundCost || 0)
+        : null;
+
+      const final = finalFromDetails !== null ? finalFromDetails : row.final;
+      const cashCost = detailCashCost !== null
+        ? detailCashCost
+        : (finalFromDetails !== null ? (row.gross || 0) - finalFromDetails : row.cashCost);
+
+      return {
+        ...row,
+        final: final,
+        finalText: finalFromDetails !== null ? formatCurrencyText(final) : row.finalText,
+        cashCost: cashCost,
+        cashCostText: detailCashCost !== null || finalFromDetails !== null ? formatCurrencyText(cashCost) : row.cashCostText,
+        totalCost: (row.operatingCost || 0) + (cashCost || 0),
+        totalCostText: formatCurrencyText((row.operatingCost || 0) + (cashCost || 0))
+      };
+    }
+
+    function getOverviewDetailAmount(details, requiredTerms) {
+      const terms = (requiredTerms || []).map(normalizeOverviewText);
+      for (let i = 1; i < details.length; i++) {
+        const row = details[i] || [];
+        const label = normalizeOverviewText(row[0]);
+        if (!label || !terms.every((term) => label.includes(term))) continue;
+        for (let col = 1; col < row.length; col++) {
+          const raw = row[col];
+          if (String(raw || '').trim() === '') continue;
+          return parseMoney(raw);
+        }
+      }
+      return null;
+    }
+
+    function normalizeOverviewText(value) {
+      return String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .trim();
     }
 
     // Render month filter inputs
@@ -606,6 +662,7 @@
             renderDashboard();
             renderReports();
             renderView();
+            if (activeView === 'home') loadReportBundle(false);
           }
         };
       });

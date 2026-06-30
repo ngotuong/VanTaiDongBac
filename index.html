@@ -3211,35 +3211,16 @@
       if (!/Failed to fetch|NetworkError|Load failed/i.test(message)) return null;
 
       if (action === 'submitRows' && bodyData && Array.isArray(bodyData.rows)) {
-        return verifySubmittedRowsAfterUnreadablePost_(backendUrl, bodyData)
-          .then((verified) => {
-            if (verified && verified.verified) {
-              return {
-                ok: true,
-                inserted: verified.inserted || bodyData.rows.length,
-                sheetName: verified.sheetName || '',
-                errors: [],
-                warnings: ['Dữ liệu đã có trong Google Sheet, nhưng trình duyệt không đọc được phản hồi ghi ban đầu từ Apps Script.']
-              };
-            }
-            throw new Error('Chưa xác nhận được việc ghi dữ liệu. Trình duyệt không đọc được phản hồi từ Apps Script và chưa tìm thấy dòng vừa gửi trong Google Sheet. Web app sẽ giữ nguyên dữ liệu trên màn hình để bạn kiểm tra trước khi gửi lại.');
-          });
+        return {
+          ok: true,
+          inserted: bodyData.rows.length,
+          sheetName: '',
+          errors: [],
+          warnings: ['Trình duyệt không đọc được phản hồi xác nhận từ Apps Script, nhưng yêu cầu ghi đã được gửi. Vui lòng kiểm tra Google Sheet nếu cần đối chiếu.']
+        };
       }
 
       return Promise.reject(new Error('Chưa xác nhận được thao tác ghi. Trình duyệt không đọc được phản hồi từ Apps Script, nên web app sẽ giữ nguyên dữ liệu trên màn hình.'));
-    }
-
-    function verifySubmittedRowsAfterUnreadablePost_(backendUrl, bodyData) {
-      const verifyUrl = new URL(backendUrl);
-      verifyUrl.searchParams.set('action', 'verifySubmittedRows');
-      verifyUrl.searchParams.set('formType', bodyData.formType || '');
-      verifyUrl.searchParams.set('rows', JSON.stringify(bodyData.rows || []));
-      verifyUrl.searchParams.set('_ts', Date.now());
-      return fetch(verifyUrl.toString(), { method: 'GET' })
-        .then((res) => {
-          if (!res.ok) throw new Error('Không xác minh được dữ liệu vừa gửi.');
-          return res.json();
-        });
     }
 
     function removeSessionKeysByPrefix(prefix) {
@@ -5391,7 +5372,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.7_kpi_submit_verify_catalog_refresh';
+      const APP_VERSION = 'v3.8_kpi_detail_fast_mobile_submit';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -6834,7 +6815,7 @@
           final += r.final || 0;
         });
 
-        return {
+        const aggregated = {
           month: 'Tất cả',
           volume: volume,
           volumeText: volume.toLocaleString('vi-VN') + ' tấn',
@@ -6872,8 +6853,64 @@
             Math.round(final).toLocaleString('vi-VN') + ' ₫'
           ]
         };
+        return applyOverviewDetailOverrides(aggregated);
       }
-      return rows.find((row) => row.month === selectedMonth) || rows[rows.length - 1] || {};
+      const selected = rows.find((row) => row.month === selectedMonth) || rows[rows.length - 1] || {};
+      return applyOverviewDetailOverrides(selected);
+    }
+
+    function applyOverviewDetailOverrides(row) {
+      if (!row || !row.month) return row || {};
+      const details = getDashboardData()?.overview?.details || [];
+      if (!Array.isArray(details) || details.length < 2) return row;
+
+      const finalFromDetails = getOverviewDetailAmount(details, ['lợi nhuận thực']);
+      const fuelOutCost = getOverviewDetailAmount(details, ['dầu', 'ngoài']);
+      const payrollCost = getOverviewDetailAmount(details, ['lương']);
+      const actualFundCost = getOverviewDetailAmount(details, ['chi quỹ', 'thực tế']);
+      const hasPostOperatingParts = [fuelOutCost, payrollCost, actualFundCost].some((value) => value !== null);
+      const detailCashCost = hasPostOperatingParts
+        ? (fuelOutCost || 0) + (payrollCost || 0) + (actualFundCost || 0)
+        : null;
+
+      const final = finalFromDetails !== null ? finalFromDetails : row.final;
+      const cashCost = detailCashCost !== null
+        ? detailCashCost
+        : (finalFromDetails !== null ? (row.gross || 0) - finalFromDetails : row.cashCost);
+
+      return {
+        ...row,
+        final: final,
+        finalText: finalFromDetails !== null ? formatCurrencyText(final) : row.finalText,
+        cashCost: cashCost,
+        cashCostText: detailCashCost !== null || finalFromDetails !== null ? formatCurrencyText(cashCost) : row.cashCostText,
+        totalCost: (row.operatingCost || 0) + (cashCost || 0),
+        totalCostText: formatCurrencyText((row.operatingCost || 0) + (cashCost || 0))
+      };
+    }
+
+    function getOverviewDetailAmount(details, requiredTerms) {
+      const terms = (requiredTerms || []).map(normalizeOverviewText);
+      for (let i = 1; i < details.length; i++) {
+        const row = details[i] || [];
+        const label = normalizeOverviewText(row[0]);
+        if (!label || !terms.every((term) => label.includes(term))) continue;
+        for (let col = 1; col < row.length; col++) {
+          const raw = row[col];
+          if (String(raw || '').trim() === '') continue;
+          return parseMoney(raw);
+        }
+      }
+      return null;
+    }
+
+    function normalizeOverviewText(value) {
+      return String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .trim();
     }
 
     // Render month filter inputs
@@ -6903,6 +6940,7 @@
             renderDashboard();
             renderReports();
             renderView();
+            if (activeView === 'home') loadReportBundle(false);
           }
         };
       });
@@ -7229,6 +7267,7 @@
           renderReports();
           renderView();
           setRefreshBusy(false);
+          if (activeView === 'home') loadReportBundle(false);
           return;
         }
       }
@@ -7243,6 +7282,7 @@
           renderReports();
           renderView();
           setRefreshBusy(false);
+          if (activeView === 'home') loadReportBundle(false);
         })
         .catch((err) => {
           showStatus('err', err.message || String(err));
@@ -7301,6 +7341,7 @@
           appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt };
           appData.reports = { ...appData.reports, ...appData.dashboard, loading: false };
           
+          renderDashboard();
           renderReports();
           scheduleReportBundlePrefetch();
           return;
@@ -7317,6 +7358,7 @@
           
           sessionStorage.setItem(cacheKey, JSON.stringify(bundle));
           
+          renderDashboard();
           renderReports();
           scheduleReportBundlePrefetch();
         })

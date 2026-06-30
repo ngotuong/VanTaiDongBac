@@ -222,7 +222,8 @@
       tbody.innerHTML = '';
       
       let vehicleColIdx = -1;
-      let sourceColIdx = -1;
+      let fuelSourceColIdx = -1;
+      let paymentSourceColIdx = -1;
       let litColIdx = -1;
       let amountColIdx = -1;
       let noteColIdx = -1;
@@ -233,7 +234,8 @@
         currentManageData.headers.forEach((h, idx) => {
           const hLower = h.toLowerCase().trim();
           if (hLower === 'biển số xe' || hLower === 'xe' || hLower === 'bển số') vehicleColIdx = idx;
-          if (hLower === 'nguồn' || hLower === 'nguồn cung cấp' || hLower === 'nguồn dầu' || hLower.includes('nguồn')) sourceColIdx = idx;
+          if (hLower === 'nguồn' || hLower === 'nguồn cung cấp' || hLower === 'nguồn dầu') fuelSourceColIdx = idx;
+          if (hLower === 'nguồn chi') paymentSourceColIdx = idx;
           if (hLower === 'số lít' || hLower === 'lít') litColIdx = idx;
           if (hLower === 'thành tiền' || hLower === 'tổng tiền' || hLower === 'tiền') amountColIdx = idx;
           if (hLower === 'ghi chú' || hLower === 'ghi chú thêm') noteColIdx = idx;
@@ -255,8 +257,8 @@
         // 2. Custom NL_Dau filters
         if (currentManageData && isDauSheet) {
           const sourceFilter = el('manageDauSourceFilter').value;
-          if (sourceFilter !== 'all' && sourceColIdx !== -1) {
-            const rowSource = normalizeFilterValue(row.values[sourceColIdx]);
+          if (sourceFilter !== 'all' && fuelSourceColIdx !== -1) {
+            const rowSource = normalizeFilterValue(row.values[fuelSourceColIdx]);
             if (rowSource !== normalizeFilterValue(sourceFilter)) {
               return false;
             }
@@ -266,10 +268,12 @@
           if (ownerFilter !== 'all') {
             const ownerKey = normalizeFilterValue(ownerFilter);
             const autoOwner = normalizeFilterValue(row.owner);
+            const paymentSource = paymentSourceColIdx !== -1 ? normalizeFilterValue(row.values[paymentSourceColIdx]) : '';
             const noteText = noteColIdx !== -1 ? normalizeFilterValue(row.values[noteColIdx]) : '';
             const matchAuto = autoOwner.includes(ownerKey);
+            const matchPayment = paymentSource.includes(ownerKey);
             const matchNote = noteText.includes(ownerKey);
-            if (!matchAuto && !matchNote) {
+            if (!matchAuto && !matchPayment && !matchNote) {
               return false;
             }
           }

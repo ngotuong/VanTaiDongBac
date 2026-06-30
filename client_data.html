@@ -192,10 +192,6 @@
           
           renderEntry();
           
-          if (result.inserted && (submittedForm === 'vanChuyen' || submittedForm === 'taiXe')) {
-            checkTripReconciliation(submittedRows);
-          }
-          
           if (result.inserted && activeView === 'reports') {
             refreshReports(false);
           }

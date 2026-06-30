@@ -1099,8 +1099,22 @@ var FundService = (function () {
   }
 
   function getFundCache_(key) {
-    var text = CacheService.getScriptCache().get(key);
-    if (!text) return null;
+    var cache = CacheService.getScriptCache();
+    var countText = cache.get(key + ':count');
+    if (!countText) return null;
+    var count = parseInt(countText, 10);
+    if (!(count > 0)) return null;
+    var keys = [];
+    for (var i = 0; i < count; i++) {
+      keys.push(key + ':' + i);
+    }
+    var chunks = cache.getAll(keys);
+    var text = '';
+    for (var j = 0; j < count; j++) {
+      var chunk = chunks[key + ':' + j];
+      if (!chunk) return null;
+      text += chunk;
+    }
     try {
       return JSON.parse(text);
     } catch (e) {
@@ -1109,9 +1123,16 @@ var FundService = (function () {
   }
 
   function putFundCache_(key, value, ttlSeconds) {
+    var cache = CacheService.getScriptCache();
     var text = JSON.stringify(value);
-    if (text.length > 95000) return;
-    CacheService.getScriptCache().put(key, text, ttlSeconds);
+    var chunkSize = 90000;
+    var chunks = {};
+    var count = Math.ceil(text.length / chunkSize);
+    for (var i = 0; i < count; i++) {
+      chunks[key + ':' + i] = text.substring(i * chunkSize, (i + 1) * chunkSize);
+    }
+    cache.putAll(chunks, ttlSeconds);
+    cache.put(key + ':count', String(count), ttlSeconds);
   }
 
   function parseDate_(rawValue, displayValue) {

@@ -1,5 +1,5 @@
 var SheetService = (function () {
-  var CACHE_VERSION = 'v11';
+  var CACHE_VERSION = 'v12';
   var CATALOG_TTL_SECONDS = 21600;
   var REPORT_TTL_SECONDS = 600;
   var REPORT_CACHE_SHEET_NAME = 'SYS_ReportCache';
@@ -246,8 +246,6 @@ var SheetService = (function () {
         var range = sheet.getRange(appendRow, 1, result.values.length, cfg.columns);
         range.setValues(result.values);
       }
-      var formatWarnings = applyFormatsSafely_(sheet, formType, appendRow, result.values.length);
-
       clearAfterSubmitCache_();
       return {
         ok: result.errors.length === 0,
@@ -255,7 +253,7 @@ var SheetService = (function () {
         startRow: appendRow,
         sheetName: cfg.name,
         errors: result.errors,
-        warnings: result.warnings.concat(formatWarnings)
+        warnings: result.warnings
       };
     } finally {
       lock.releaseLock();
@@ -519,10 +517,13 @@ var SheetService = (function () {
   function parseOverviewKpiDetails_(details) {
     var rows = details || [];
     var gross = readDetailNumber_(rows, 'Lợi nhuận gộp');
-    var finalProfit = readDetailNumber_(rows, 'Lợi nhuận thực');
     var outsideFuel = readDetailNumber_(rows, 'Chi phí dầu', 'đổ ngoài');
     var payroll = readDetailNumber_(rows, 'Chi phí lương');
     var fund = readDetailNumber_(rows, 'Chi quỹ thực tế');
+    var finalProfit = readDetailNumber_(rows, 'Lợi nhuận thực');
+    if (!finalProfit && hasDetailFormulaError_(rows, 'Lợi nhuận thực')) {
+      finalProfit = gross - outsideFuel - payroll - fund;
+    }
     var cashCost = gross - finalProfit;
     return {
       gross: gross,
@@ -548,6 +549,16 @@ var SheetService = (function () {
       if (fallback === null) fallback = parseNumberLoose_(row[1]);
     }
     return fallback === null ? 0 : fallback;
+  }
+
+  function hasDetailFormulaError_(rows, label) {
+    var normalizedLabel = normalizeText_(label);
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i] || [];
+      if (normalizeText_(row[0]) !== normalizedLabel) continue;
+      return /^#/.test(clean_(row[1]));
+    }
+    return false;
   }
 
   function readAggregatedOverviewDetails_(ss, sheet, activeMonths) {

@@ -14,10 +14,10 @@
       const thead = el('catalogTableHeader');
       
       thead.innerHTML = '';
-      tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; padding: 48px; color: var(--muted);"><div style="display:inline-block; width: 30px; height: 30px; border: 3px solid var(--mint-soft); border-radius: 50%; border-top-color: var(--teal); animation: spin 1s linear infinite; margin-bottom: 12px;"></div><br>Đang tải danh mục từ Google Sheets...</td></tr>`;
+      renderTableLoading(tbody, 20, 'Đang tải danh mục từ Google Sheets...');
       el('catalogTableEmpty').style.display = 'none';
 
-      callApi('GET', 'readSheetData', { sheetName: sheetName })
+      return callApi('GET', 'readSheetData', { sheetName: sheetName })
         .then((res) => {
           if (res.ok) {
             if (displaySheetName === 'DM_NhanSu') {
@@ -53,12 +53,15 @@
             
             currentCatalogData = res;
             renderCatalogTable();
+            return res;
           } else {
-            tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; color: var(--red); padding: 48px;">Lỗi: ${res.error}</td></tr>`;
+            showTableError(tbody, 20, res.error || 'Google Sheets trả về lỗi không xác định.');
+            throw new Error(res.error || 'Google Sheets trả về lỗi không xác định.');
           }
         })
         .catch((err) => {
-          tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; color: var(--red); padding: 48px;">Lỗi kết nối: ${err.message}</td></tr>`;
+          showTableError(tbody, 20, err.message || String(err));
+          throw err;
         });
     }
 
@@ -176,6 +179,7 @@
           if (idx === 0) td.className = 'sticky-col';
           
           const header = currentCatalogData.headers[idx];
+          td.dataset.label = header;
           const headerLower = header.toLowerCase().trim();
           
           if (headerLower === 'tháng') {
@@ -196,6 +200,7 @@
 
           if (showOwnerCol && idx === vehicleColIdx) {
             const tdOwner = document.createElement('td');
+            tdOwner.dataset.label = 'Công ty/Chủ xe';
             if (row.owner) {
               const span = document.createElement('span');
               span.className = `badge ${row.owner.toLowerCase().includes('quang quân') ? 'amber' : 'blue'}`;
@@ -210,6 +215,7 @@
 
         const tdActions = document.createElement('td');
         tdActions.className = 'sticky-col-right';
+        tdActions.dataset.label = 'Thao tác';
         tdActions.style.textAlign = 'center';
         tdActions.style.whiteSpace = 'nowrap';
         
@@ -217,6 +223,7 @@
         btnEdit.type = 'button';
         btnEdit.className = 'btn-table-action edit';
         btnEdit.title = 'Sửa';
+        btnEdit.setAttribute('aria-label', 'Sửa dòng');
         btnEdit.style.marginRight = '4px';
         btnEdit.innerHTML = `<svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
         btnEdit.onclick = () => openManageEditModal(row);
@@ -225,6 +232,7 @@
         btnDelete.type = 'button';
         btnDelete.className = 'btn-table-action delete';
         btnDelete.title = 'Xóa';
+        btnDelete.setAttribute('aria-label', 'Xóa dòng');
         btnDelete.innerHTML = `<svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
         btnDelete.onclick = () => deleteManageRow(row.rowIndex);
 

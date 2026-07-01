@@ -269,11 +269,11 @@
           renderReports();
           renderView();
           setRefreshBusy(false);
-          return;
+          return Promise.resolve(dashboard);
         }
       }
       
-      callApi('GET', 'getDashboard', { forceRefresh: forceRefresh })
+      return callApi('GET', 'getDashboard', { forceRefresh: forceRefresh })
         .then((dashboard) => {
           appData.dashboard = dashboard;
           appData.reports = { ...appData.reports, ...dashboard, loading: false };
@@ -283,10 +283,12 @@
           renderReports();
           renderView();
           setRefreshBusy(false);
+          return dashboard;
         })
         .catch((err) => {
           showStatus('err', err.message || String(err));
           setRefreshBusy(false);
+          throw err;
         });
     }
 
@@ -331,6 +333,7 @@
     function loadReportBundle(forceRefresh) {
       const cacheKey = getReportBundleCacheKey(selectedMonth);
       const requestSeq = ++reportBundleRequestSeq;
+      if (forceRefresh) setRefreshBusy(true);
       
       if (!forceRefresh) {
         const cachedBundle = sessionStorage.getItem(cacheKey);
@@ -344,11 +347,11 @@
           
           renderReports();
           scheduleReportBundlePrefetch();
-          return;
+          return Promise.resolve(bundle);
         }
       }
       
-      callApi('GET', 'getReportBundle', { month: selectedMonth, forceRefresh: forceRefresh })
+      return callApi('GET', 'getReportBundle', { month: selectedMonth, forceRefresh: forceRefresh })
         .then((bundle) => {
           if (requestSeq !== reportBundleRequestSeq) return;
           reportsByType.payroll = { data: bundle.payroll };
@@ -360,27 +363,62 @@
           
           renderReports();
           scheduleReportBundlePrefetch();
+          return bundle;
         })
         .catch((err) => {
           if (requestSeq === reportBundleRequestSeq) showStatus('err', err.message || String(err));
+          throw err;
+        })
+        .finally(() => {
+          if (forceRefresh) setRefreshBusy(false);
         });
     }
 
     // Refresh reports
     function refreshReports(showMessage = true) {
-      if (showMessage && activeView === 'entry') {
-        showStatus('ok', 'Đang làm mới dữ liệu báo cáo...');
-      }
-      
+      if (showMessage) showSyncToast('Đang cập nhật dữ liệu từ Google Sheets...', 'info', true);
       invalidateReportSessionCache();
       catalogsByForm = {};
       setRefreshBusy(true);
       invalidateServerCaches().then(() => {
-        if (activeView === 'reports') {
-          loadReportBundle(true);
-        } else {
-          loadDashboard(true);
+        if (activeView === 'manage') {
+          loadAllCatalogsIfNeeded(() => {
+            loadManageSheetData()
+              .then(() => showMessage && showSyncToast('Đã cập nhật Vận hành.'))
+              .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
+              .finally(() => setRefreshBusy(false));
+          });
+          return;
         }
+        if (activeView === 'catalog') {
+          loadAllCatalogsIfNeeded(() => {
+            loadCatalogSheetData()
+              .then(() => showMessage && showSyncToast('Đã cập nhật Danh mục.'))
+              .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
+              .finally(() => setRefreshBusy(false));
+          });
+          return;
+        }
+        if (activeView === 'cashflow') {
+          if (activeCashflowTab === 'overview') loadFundOverview(true);
+          if (activeCashflowTab === 'transactions') loadFundTransactions(true);
+          if (activeCashflowTab === 'loans') loadFundLoanOverview(true);
+          setRefreshBusy(false);
+          showSyncToast('Đã gửi yêu cầu cập nhật Quỹ.');
+          return;
+        }
+        if (activeView === 'reports') {
+          loadReportBundle(true)
+            .then(() => showMessage && showSyncToast('Đã cập nhật Báo cáo.'))
+            .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'));
+        } else {
+          loadDashboard(true)
+            .then(() => showMessage && showSyncToast('Đã cập nhật Tổng quan.'))
+            .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'));
+        }
+      }).catch((err) => {
+        setRefreshBusy(false);
+        if (showMessage) showSyncToast(err.message || String(err), 'error');
       });
     }
 </script>

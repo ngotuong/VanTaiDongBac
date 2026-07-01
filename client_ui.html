@@ -7,7 +7,84 @@
     }
 
     function setRefreshBusy(isBusy) {
-      el('refreshBtn').disabled = isBusy;
+      const btn = el('refreshBtn');
+      if (!btn) return;
+      btn.disabled = isBusy;
+      btn.classList.toggle('is-busy', isBusy);
+      btn.innerHTML = isBusy
+        ? `<svg class="btn-svg spin-icon" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>`
+        : `<svg class="btn-svg" viewBox="0 0 24 24" style="margin: 0;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>`;
+    }
+
+    let syncToastTimer = null;
+    function showSyncToast(message, type = 'info', persistent = false) {
+      const toast = el('syncToast');
+      if (!toast) return;
+      clearTimeout(syncToastTimer);
+      toast.className = `sync-toast show ${type}`;
+      toast.innerHTML = `
+        <span class="sync-toast-icon ${persistent ? 'spinning' : ''}">
+          ${persistent
+            ? '<svg class="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>'
+            : '<svg class="btn-svg" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>'}
+        </span>
+        <span>${escapeHtml(message)}</span>
+      `;
+      if (!persistent) {
+        syncToastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
+      }
+    }
+
+    function hideSyncToast() {
+      const toast = el('syncToast');
+      if (!toast) return;
+      clearTimeout(syncToastTimer);
+      toast.classList.remove('show');
+    }
+
+    function renderTableLoading(tbody, colspan, message) {
+      if (!tbody) return;
+      const rowsHtml = Array.from({ length: 5 }).map((_, index) => `
+        <tr class="table-skeleton-row">
+          <td colspan="${colspan}">
+            <div class="record-skeleton">
+              <div>
+                <div class="shimmer shimmer-line" style="width:${index % 2 ? 52 : 64}%;"></div>
+                <div class="shimmer shimmer-line" style="width:${index % 2 ? 74 : 46}%;"></div>
+              </div>
+              <div class="shimmer shimmer-pill"></div>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+      tbody.innerHTML = `
+        <tr class="table-loading-message">
+          <td colspan="${colspan}">
+            <div class="loading-card">
+              <div class="spinner mini"></div>
+              <div>
+                <div class="loading-card-title">${escapeHtml(message)}</div>
+                <div class="loading-card-note">Đang lấy dữ liệu mới nhất, bạn có thể tiếp tục xem các mục khác.</div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        ${rowsHtml}
+      `;
+    }
+
+    function showTableError(tbody, colspan, message) {
+      if (!tbody) return;
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="${colspan}">
+            <div class="empty-card error">
+              <div class="empty-card-title">Không tải được dữ liệu</div>
+              <div class="empty-card-note">${escapeHtml(message)}</div>
+            </div>
+          </td>
+        </tr>
+      `;
     }
 
     function showStatus(type, message) {

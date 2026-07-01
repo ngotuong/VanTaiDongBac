@@ -2,7 +2,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.8_operations_menu';
+      const APP_VERSION = 'v3.9_mobile_ux';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -90,12 +90,15 @@
         s.onclick = () => setView(key);
         side.appendChild(s);
 
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.dataset.view = key;
-        b.innerHTML = `${icoSvg}<span>${label}</span>`;
-        b.onclick = () => setView(key);
-        bottom.appendChild(b);
+        if (BOTTOM_NAV_KEYS.includes(key)) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.dataset.view = key;
+          b.setAttribute('aria-label', label);
+          b.innerHTML = `${icoSvg}<span>${label}</span>`;
+          b.onclick = () => setView(key);
+          bottom.appendChild(b);
+        }
       });
     }
 

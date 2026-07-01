@@ -125,6 +125,8 @@
       document.querySelectorAll('#manageTabsBar .sub-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.sheet === sheetName);
       });
+      document.querySelector(`#manageTabsBar .sub-tab[data-sheet="${sheetName}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       const formType = SHEET_FORM_MAP[sheetName];
       if (formType && formType !== activeForm) {
         activeForm = formType;

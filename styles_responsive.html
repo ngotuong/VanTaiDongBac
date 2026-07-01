@@ -467,17 +467,33 @@
         box-shadow: var(--shadow-sm);
       }
 
-      .mobile-operation-title {
-        color: var(--deep);
-        font-size: 14px;
-        font-weight: 800;
+      .mobile-period-control {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex: 1 1 auto;
       }
 
-      .mobile-operation-note {
-        margin-top: 3px;
+      .mobile-period-control label {
         color: var(--muted);
         font-size: 12px;
-        line-height: 1.35;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .mobile-period-control select {
+        min-width: 0;
+        min-height: 44px;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--paper);
+        color: var(--ink);
+        font-size: 16px;
+        font-weight: 800;
+        padding: 0 10px;
       }
 
       .mobile-operation-bar button {
@@ -534,7 +550,7 @@
       body.mobile-entry-open #entryShell {
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: 76px minmax(0, 1fr);
+        grid-template-rows: 56px minmax(0, 1fr);
         gap: 8px;
         position: absolute;
         left: 0;
@@ -560,16 +576,17 @@
         flex-direction: row;
         flex-wrap: nowrap;
         gap: 8px;
-        height: 76px;
-        min-height: 76px;
-        max-height: 76px;
+        height: 56px;
+        min-height: 56px;
+        max-height: 56px;
         overflow-x: auto;
         overflow-y: hidden;
         overscroll-behavior-x: contain;
-        padding: 8px;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.96);
-        box-shadow: var(--shadow-md);
+        padding: 6px 2px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
         scrollbar-width: none;
       }
 
@@ -578,13 +595,28 @@
       }
 
       body.mobile-entry-open #entryShell .form-tab {
-        width: 112px;
-        min-width: 112px;
-        max-width: 112px;
-        min-height: 58px;
-        max-height: 58px;
-        padding: 6px 10px;
+        width: auto;
+        min-width: max-content;
+        max-width: none;
+        min-height: 44px;
+        max-height: 44px;
+        padding: 0 16px;
         flex: 0 0 auto;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.94);
+      }
+
+      body.mobile-entry-open #entryShell .form-tab-icon,
+      body.mobile-entry-open #entryShell .form-tab-note {
+        display: none !important;
+      }
+
+      body.mobile-entry-open #entryShell .form-tab-title {
+        display: block;
+        font-size: 14px;
+        font-weight: 800;
+        white-space: nowrap;
       }
 
       body.mobile-entry-open #entryShell .panel {
@@ -610,8 +642,12 @@
       }
 
       body.mobile-entry-open #entryShell .panel-title {
-        font-size: 22px;
+        font-size: clamp(18px, 4.6vw, 20px);
         line-height: 1.12;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       body.mobile-entry-open #entryShell .panel-note {
@@ -682,12 +718,36 @@
         gap: 6px !important;
       }
 
+      #manageView .filter-container .manage-period-filter {
+        display: none !important;
+      }
+
       #manageQuickDateFilter,
+      #manageQuickDateFilterMobile,
       #manageStartDate,
       #manageEndDate,
       #manageSearchInput {
         min-height: 44px !important;
         font-size: 16px !important;
+      }
+
+      input[type="date"] {
+        display: block !important;
+        inline-size: 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        flex: 1 1 auto !important;
+        align-self: stretch !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      input[type="date"]::-webkit-date-and-time-value {
+        min-width: 0;
+        text-align: left;
       }
       
       .mobile-quick { display: block; }

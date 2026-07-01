@@ -271,9 +271,16 @@
         <input type="hidden" id="manageSheetSelect" value="NL_VanChuyen">
 
         <div class="mobile-operation-bar">
-          <div>
-            <div class="mobile-operation-title">Nhật ký vận hành</div>
-            <div class="mobile-operation-note">Xem, lọc và nhập mới theo nghiệp vụ đang chọn.</div>
+          <div class="mobile-period-control">
+            <label for="manageQuickDateFilterMobile">Kỳ</label>
+            <select id="manageQuickDateFilterMobile" onchange="setManageQuickDate(this.value)">
+              <option value="recent">Mới nhất</option>
+              <option value="today">Hôm nay</option>
+              <option value="7days">7 ngày</option>
+              <option value="thisMonth">Tháng này</option>
+              <option value="lastMonth">Tháng trước</option>
+              <option value="custom">Tùy chọn</option>
+            </select>
           </div>
           <button type="button" class="primary" onclick="openMobileEntrySheet()">
             <svg class="btn-svg" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -284,7 +291,7 @@
         <div class="filter-bar" style="margin-bottom: 16px;">
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; min-width: 145px;">
+              <label class="manage-period-filter" style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; min-width: 145px;">
                 Kỳ:
                 <select id="manageQuickDateFilter" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="setManageQuickDate(this.value)">
                   <option value="recent">Mới nhất</option>

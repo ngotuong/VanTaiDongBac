@@ -37,7 +37,7 @@
     }
 
     function renderEntry() {
-      el('formTitle').textContent = `Nhập bảng kê: ${FORM_LABELS[activeForm]}`;
+      el('formTitle').textContent = `Nhập ${FORM_LABELS[activeForm].toLocaleLowerCase('vi-VN')}`;
       const catalogsReady = Boolean(catalogsByForm[activeForm]);
       el('formSummary').textContent = `${FORM_NOTES[activeForm]}. Đang lập ${rows.length} dòng kê.`;
       

@@ -1160,9 +1160,11 @@
       width: 100% !important;
       max-width: 100% !important;
       min-width: 0 !important;
+      inline-size: 100% !important;
       box-sizing: border-box !important;
       -webkit-box-sizing: border-box !important;
       margin: 0 !important;
+      overflow: hidden;
     }
     
     textarea { 
@@ -2173,17 +2175,33 @@
         box-shadow: var(--shadow-sm);
       }
 
-      .mobile-operation-title {
-        color: var(--deep);
-        font-size: 14px;
-        font-weight: 800;
+      .mobile-period-control {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex: 1 1 auto;
       }
 
-      .mobile-operation-note {
-        margin-top: 3px;
+      .mobile-period-control label {
         color: var(--muted);
         font-size: 12px;
-        line-height: 1.35;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .mobile-period-control select {
+        min-width: 0;
+        min-height: 44px;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--paper);
+        color: var(--ink);
+        font-size: 16px;
+        font-weight: 800;
+        padding: 0 10px;
       }
 
       .mobile-operation-bar button {
@@ -2240,7 +2258,7 @@
       body.mobile-entry-open #entryShell {
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: 76px minmax(0, 1fr);
+        grid-template-rows: 56px minmax(0, 1fr);
         gap: 8px;
         position: absolute;
         left: 0;
@@ -2266,16 +2284,17 @@
         flex-direction: row;
         flex-wrap: nowrap;
         gap: 8px;
-        height: 76px;
-        min-height: 76px;
-        max-height: 76px;
+        height: 56px;
+        min-height: 56px;
+        max-height: 56px;
         overflow-x: auto;
         overflow-y: hidden;
         overscroll-behavior-x: contain;
-        padding: 8px;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.96);
-        box-shadow: var(--shadow-md);
+        padding: 6px 2px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
         scrollbar-width: none;
       }
 
@@ -2284,13 +2303,28 @@
       }
 
       body.mobile-entry-open #entryShell .form-tab {
-        width: 112px;
-        min-width: 112px;
-        max-width: 112px;
-        min-height: 58px;
-        max-height: 58px;
-        padding: 6px 10px;
+        width: auto;
+        min-width: max-content;
+        max-width: none;
+        min-height: 44px;
+        max-height: 44px;
+        padding: 0 16px;
         flex: 0 0 auto;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.94);
+      }
+
+      body.mobile-entry-open #entryShell .form-tab-icon,
+      body.mobile-entry-open #entryShell .form-tab-note {
+        display: none !important;
+      }
+
+      body.mobile-entry-open #entryShell .form-tab-title {
+        display: block;
+        font-size: 14px;
+        font-weight: 800;
+        white-space: nowrap;
       }
 
       body.mobile-entry-open #entryShell .panel {
@@ -2316,8 +2350,12 @@
       }
 
       body.mobile-entry-open #entryShell .panel-title {
-        font-size: 22px;
+        font-size: clamp(18px, 4.6vw, 20px);
         line-height: 1.12;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       body.mobile-entry-open #entryShell .panel-note {
@@ -2388,12 +2426,36 @@
         gap: 6px !important;
       }
 
+      #manageView .filter-container .manage-period-filter {
+        display: none !important;
+      }
+
       #manageQuickDateFilter,
+      #manageQuickDateFilterMobile,
       #manageStartDate,
       #manageEndDate,
       #manageSearchInput {
         min-height: 44px !important;
         font-size: 16px !important;
+      }
+
+      input[type="date"] {
+        display: block !important;
+        inline-size: 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        flex: 1 1 auto !important;
+        align-self: stretch !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      input[type="date"]::-webkit-date-and-time-value {
+        min-width: 0;
+        text-align: left;
       }
       
       .mobile-quick { display: block; }
@@ -2790,9 +2852,16 @@
         <input type="hidden" id="manageSheetSelect" value="NL_VanChuyen">
 
         <div class="mobile-operation-bar">
-          <div>
-            <div class="mobile-operation-title">Nhật ký vận hành</div>
-            <div class="mobile-operation-note">Xem, lọc và nhập mới theo nghiệp vụ đang chọn.</div>
+          <div class="mobile-period-control">
+            <label for="manageQuickDateFilterMobile">Kỳ</label>
+            <select id="manageQuickDateFilterMobile" onchange="setManageQuickDate(this.value)">
+              <option value="recent">Mới nhất</option>
+              <option value="today">Hôm nay</option>
+              <option value="7days">7 ngày</option>
+              <option value="thisMonth">Tháng này</option>
+              <option value="lastMonth">Tháng trước</option>
+              <option value="custom">Tùy chọn</option>
+            </select>
           </div>
           <button type="button" class="primary" onclick="openMobileEntrySheet()">
             <svg class="btn-svg" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -2803,7 +2872,7 @@
         <div class="filter-bar" style="margin-bottom: 16px;">
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; min-width: 145px;">
+              <label class="manage-period-filter" style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; min-width: 145px;">
                 Kỳ:
                 <select id="manageQuickDateFilter" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="setManageQuickDate(this.value)">
                   <option value="recent">Mới nhất</option>
@@ -5155,6 +5224,7 @@
     }
 
     function setManageQuickDate(mode) {
+      syncManageQuickDateFilters(mode);
       const start = el('manageStartDate');
       const end = el('manageEndDate');
       const today = new Date();
@@ -5188,9 +5258,15 @@
     }
 
     function setManageCustomDate() {
-      const quick = el('manageQuickDateFilter');
-      if (quick) quick.value = 'custom';
+      syncManageQuickDateFilters('custom');
       loadManageSheetData();
+    }
+
+    function syncManageQuickDateFilters(mode) {
+      ['manageQuickDateFilter', 'manageQuickDateFilterMobile'].forEach((id) => {
+        const target = el(id);
+        if (target && target.value !== mode) target.value = mode;
+      });
     }
 
     let manageSearchTimeout = null;
@@ -5968,7 +6044,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.12_mobile_operations_fix';
+      const APP_VERSION = 'v3.13_mobile_entry_polish';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -6749,7 +6825,7 @@
     }
 
     function renderEntry() {
-      el('formTitle').textContent = `Nhập bảng kê: ${FORM_LABELS[activeForm]}`;
+      el('formTitle').textContent = `Nhập ${FORM_LABELS[activeForm].toLocaleLowerCase('vi-VN')}`;
       const catalogsReady = Boolean(catalogsByForm[activeForm]);
       el('formSummary').textContent = `${FORM_NOTES[activeForm]}. Đang lập ${rows.length} dòng kê.`;
       

@@ -423,6 +423,190 @@
       #manageTabsBar { display: none; }
       .fields { grid-template-columns: 1fr; gap: 12px; }
       .full { grid-column: auto; }
+
+      .mobile-operation-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: var(--paper);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .mobile-operation-title {
+        color: var(--deep);
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .mobile-operation-note {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .mobile-operation-bar button {
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 0 14px;
+        border-radius: 12px;
+      }
+
+      .manage-add-shortcut {
+        display: none !important;
+      }
+
+      #manageView > .entry-shell {
+        display: none;
+      }
+
+      body.mobile-entry-open {
+        overflow: hidden;
+      }
+
+      body.mobile-entry-open .entry-sheet-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 180;
+        background: rgba(15, 23, 42, 0.36);
+        backdrop-filter: blur(4px);
+      }
+
+      body.mobile-entry-open #entryShell {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 76px minmax(0, 1fr);
+        gap: 8px;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 190;
+        height: min(88dvh, 760px);
+        max-height: none;
+        margin: 0 !important;
+        padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+        align-items: stretch;
+        animation: mobileSheetUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      @keyframes mobileSheetUp {
+        from { transform: translateY(18px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      body.mobile-entry-open #entryShell .form-list {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 8px;
+        height: 76px;
+        min-height: 76px;
+        max-height: 76px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        padding: 8px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--shadow-md);
+        scrollbar-width: none;
+      }
+
+      body.mobile-entry-open #entryShell .form-list::-webkit-scrollbar {
+        display: none;
+      }
+
+      body.mobile-entry-open #entryShell .form-tab {
+        width: 112px;
+        min-width: 112px;
+        max-width: 112px;
+        min-height: 58px;
+        max-height: 58px;
+        padding: 6px 10px;
+        flex: 0 0 auto;
+      }
+
+      body.mobile-entry-open #entryShell .panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        max-height: none;
+        border-radius: 22px 22px 0 0;
+        overflow: hidden;
+        box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.18);
+      }
+
+      body.mobile-entry-open #entryShell .panel-head {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+      }
+
+      body.mobile-entry-open #entryShell .panel-head > div:first-child {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      body.mobile-entry-open #entryShell .panel-title {
+        font-size: 22px;
+        line-height: 1.12;
+      }
+
+      body.mobile-entry-open #entryShell .panel-note {
+        display: none;
+      }
+
+      body.mobile-entry-open #entryShell .panel-head > div:last-child {
+        flex: 0 0 auto;
+        gap: 8px !important;
+      }
+
+      body.mobile-entry-open .mobile-entry-close {
+        display: inline-flex !important;
+      }
+
+      body.mobile-entry-open #entryShell #rows {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      body.mobile-entry-open #entryShell .submit-bar {
+        position: sticky !important;
+        bottom: 0;
+        margin-top: 0;
+        padding: 12px 16px !important;
+        background: rgba(255, 255, 255, 0.96) !important;
+        box-shadow: 0 -10px 24px rgba(15, 23, 42, 0.08) !important;
+      }
+
+      body.mobile-entry-open #entryShell #addBtn,
+      body.mobile-entry-open #entryShell #cloneBtn,
+      body.mobile-entry-open #entryShell #sheetLink {
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
+        border-radius: 10px !important;
+      }
+
+      body.mobile-entry-open #entryShell .entry-row {
+        padding: 14px;
+        margin-bottom: 12px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+      }
       
       .mobile-quick { display: block; }
       

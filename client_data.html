@@ -191,6 +191,13 @@
           }
           
           renderEntry();
+          if (result.inserted && activeView === 'manage') {
+            if (isMobileViewport()) {
+              closeMobileEntrySheet();
+              showSyncToast('Đã ghi dữ liệu và cập nhật danh sách Vận hành.');
+            }
+            loadManageSheetData();
+          }
           
           if (result.inserted && activeView === 'reports') {
             refreshReports(false);

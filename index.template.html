@@ -220,7 +220,8 @@
 
       <!-- View: Manage Sheet Data (Transaction Logs CRUD) -->
       <section id="manageView" class="view">
-        <div class="entry-shell" style="margin-bottom: 16px;">
+        <div class="entry-sheet-backdrop" id="entrySheetBackdrop" onclick="closeMobileEntrySheet()"></div>
+        <div class="entry-shell" id="entryShell" style="margin-bottom: 16px;">
           <aside class="form-list" id="formTabs"></aside>
 
           <section class="panel grow">
@@ -230,6 +231,9 @@
                 <div class="panel-note" id="formSummary">Chọn một nghiệp vụ để tiến hành điền biểu mẫu.</div>
               </div>
               <div style="display: flex; gap: 8px; align-items: center;">
+                <button type="button" id="closeMobileEntryBtn" class="ghost icon-button mobile-entry-close" title="Đóng nhập liệu" aria-label="Đóng nhập liệu" onclick="closeMobileEntrySheet()">
+                  <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
                 <button type="button" id="addBtn" title="Thêm dòng" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;">
                   <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
@@ -266,6 +270,17 @@
         </div>
         <input type="hidden" id="manageSheetSelect" value="NL_VanChuyen">
 
+        <div class="mobile-operation-bar">
+          <div>
+            <div class="mobile-operation-title">Nhật ký vận hành</div>
+            <div class="mobile-operation-note">Xem, lọc và nhập mới theo nghiệp vụ đang chọn.</div>
+          </div>
+          <button type="button" class="primary" onclick="openMobileEntrySheet()">
+            <svg class="btn-svg" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Nhập mới
+          </button>
+        </div>
+
         <div class="filter-bar" style="margin-bottom: 16px;">
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
@@ -296,7 +311,7 @@
               </label>
             </div>
             <div>
-              <button type="button" class="primary icon-button" title="Thêm dòng mới" aria-label="Thêm dòng mới" style="padding: 0 !important; border-radius: 8px;" onclick="openManageAddModal()">
+              <button type="button" class="primary icon-button manage-add-shortcut" title="Thêm dòng mới" aria-label="Thêm dòng mới" style="padding: 0 !important; border-radius: 8px;" onclick="openResponsiveManageAdd()">
                 <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               </button>
             </div>

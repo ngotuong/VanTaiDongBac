@@ -2,7 +2,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.10_lazy_tables_fund_catalog';
+      const APP_VERSION = 'v3.11_mobile_operations_sheet';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -104,6 +104,7 @@
 
     function setView(view) {
       if (view === 'entry') view = 'manage';
+      closeMobileEntrySheet();
       activeView = view;
       closeDrawer();
       clearStatus();

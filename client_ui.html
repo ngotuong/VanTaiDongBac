@@ -107,6 +107,35 @@
       document.body.classList.remove('drawer-open');
     }
 
+    function isMobileViewport() {
+      return window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+    }
+
+    function openMobileEntrySheet() {
+      if (activeView !== 'manage') setView('manage');
+      if (!rows.length) rows = [newBlankRow()];
+      document.body.classList.add('mobile-entry-open');
+      document.body.classList.add('locked');
+      renderFormTabs();
+      renderEntry();
+      loadCatalogs(activeForm);
+    }
+
+    function closeMobileEntrySheet() {
+      document.body.classList.remove('mobile-entry-open');
+      if (!document.body.classList.contains('drawer-open')) {
+        document.body.classList.remove('locked');
+      }
+    }
+
+    function openResponsiveManageAdd() {
+      if (isMobileViewport()) {
+        openMobileEntrySheet();
+      } else {
+        openManageAddModal();
+      }
+    }
+
     // Configuration input controls binder
     function setupConfigInput() {
       const urlInput = el('backendUrlInput');

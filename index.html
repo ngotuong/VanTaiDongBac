@@ -877,6 +877,12 @@
       gap: 20px;
       align-items: start;
     }
+
+    .entry-sheet-backdrop,
+    .mobile-operation-bar,
+    .mobile-entry-close {
+      display: none;
+    }
     
     .form-list {
       display: flex;
@@ -2123,6 +2129,190 @@
       #manageTabsBar { display: none; }
       .fields { grid-template-columns: 1fr; gap: 12px; }
       .full { grid-column: auto; }
+
+      .mobile-operation-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: var(--paper);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .mobile-operation-title {
+        color: var(--deep);
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .mobile-operation-note {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .mobile-operation-bar button {
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 0 14px;
+        border-radius: 12px;
+      }
+
+      .manage-add-shortcut {
+        display: none !important;
+      }
+
+      #manageView > .entry-shell {
+        display: none;
+      }
+
+      body.mobile-entry-open {
+        overflow: hidden;
+      }
+
+      body.mobile-entry-open .entry-sheet-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 180;
+        background: rgba(15, 23, 42, 0.36);
+        backdrop-filter: blur(4px);
+      }
+
+      body.mobile-entry-open #entryShell {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 76px minmax(0, 1fr);
+        gap: 8px;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 190;
+        height: min(88dvh, 760px);
+        max-height: none;
+        margin: 0 !important;
+        padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+        align-items: stretch;
+        animation: mobileSheetUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      @keyframes mobileSheetUp {
+        from { transform: translateY(18px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      body.mobile-entry-open #entryShell .form-list {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 8px;
+        height: 76px;
+        min-height: 76px;
+        max-height: 76px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        padding: 8px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--shadow-md);
+        scrollbar-width: none;
+      }
+
+      body.mobile-entry-open #entryShell .form-list::-webkit-scrollbar {
+        display: none;
+      }
+
+      body.mobile-entry-open #entryShell .form-tab {
+        width: 112px;
+        min-width: 112px;
+        max-width: 112px;
+        min-height: 58px;
+        max-height: 58px;
+        padding: 6px 10px;
+        flex: 0 0 auto;
+      }
+
+      body.mobile-entry-open #entryShell .panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        max-height: none;
+        border-radius: 22px 22px 0 0;
+        overflow: hidden;
+        box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.18);
+      }
+
+      body.mobile-entry-open #entryShell .panel-head {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+      }
+
+      body.mobile-entry-open #entryShell .panel-head > div:first-child {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      body.mobile-entry-open #entryShell .panel-title {
+        font-size: 22px;
+        line-height: 1.12;
+      }
+
+      body.mobile-entry-open #entryShell .panel-note {
+        display: none;
+      }
+
+      body.mobile-entry-open #entryShell .panel-head > div:last-child {
+        flex: 0 0 auto;
+        gap: 8px !important;
+      }
+
+      body.mobile-entry-open .mobile-entry-close {
+        display: inline-flex !important;
+      }
+
+      body.mobile-entry-open #entryShell #rows {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      body.mobile-entry-open #entryShell .submit-bar {
+        position: sticky !important;
+        bottom: 0;
+        margin-top: 0;
+        padding: 12px 16px !important;
+        background: rgba(255, 255, 255, 0.96) !important;
+        box-shadow: 0 -10px 24px rgba(15, 23, 42, 0.08) !important;
+      }
+
+      body.mobile-entry-open #entryShell #addBtn,
+      body.mobile-entry-open #entryShell #cloneBtn,
+      body.mobile-entry-open #entryShell #sheetLink {
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
+        border-radius: 10px !important;
+      }
+
+      body.mobile-entry-open #entryShell .entry-row {
+        padding: 14px;
+        margin-bottom: 12px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+      }
       
       .mobile-quick { display: block; }
       
@@ -2467,7 +2657,8 @@
 
       <!-- View: Manage Sheet Data (Transaction Logs CRUD) -->
       <section id="manageView" class="view">
-        <div class="entry-shell" style="margin-bottom: 16px;">
+        <div class="entry-sheet-backdrop" id="entrySheetBackdrop" onclick="closeMobileEntrySheet()"></div>
+        <div class="entry-shell" id="entryShell" style="margin-bottom: 16px;">
           <aside class="form-list" id="formTabs"></aside>
 
           <section class="panel grow">
@@ -2477,6 +2668,9 @@
                 <div class="panel-note" id="formSummary">Chọn một nghiệp vụ để tiến hành điền biểu mẫu.</div>
               </div>
               <div style="display: flex; gap: 8px; align-items: center;">
+                <button type="button" id="closeMobileEntryBtn" class="ghost icon-button mobile-entry-close" title="Đóng nhập liệu" aria-label="Đóng nhập liệu" onclick="closeMobileEntrySheet()">
+                  <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
                 <button type="button" id="addBtn" title="Thêm dòng" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;">
                   <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
@@ -2513,6 +2707,17 @@
         </div>
         <input type="hidden" id="manageSheetSelect" value="NL_VanChuyen">
 
+        <div class="mobile-operation-bar">
+          <div>
+            <div class="mobile-operation-title">Nhật ký vận hành</div>
+            <div class="mobile-operation-note">Xem, lọc và nhập mới theo nghiệp vụ đang chọn.</div>
+          </div>
+          <button type="button" class="primary" onclick="openMobileEntrySheet()">
+            <svg class="btn-svg" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Nhập mới
+          </button>
+        </div>
+
         <div class="filter-bar" style="margin-bottom: 16px;">
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
@@ -2543,7 +2748,7 @@
               </label>
             </div>
             <div>
-              <button type="button" class="primary icon-button" title="Thêm dòng mới" aria-label="Thêm dòng mới" style="padding: 0 !important; border-radius: 8px;" onclick="openManageAddModal()">
+              <button type="button" class="primary icon-button manage-add-shortcut" title="Thêm dòng mới" aria-label="Thêm dòng mới" style="padding: 0 !important; border-radius: 8px;" onclick="openResponsiveManageAdd()">
                 <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               </button>
             </div>
@@ -5679,7 +5884,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.10_lazy_tables_fund_catalog';
+      const APP_VERSION = 'v3.11_mobile_operations_sheet';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -5781,6 +5986,7 @@
 
     function setView(view) {
       if (view === 'entry') view = 'manage';
+      closeMobileEntrySheet();
       activeView = view;
       closeDrawer();
       clearStatus();
@@ -7571,6 +7777,13 @@
           }
           
           renderEntry();
+          if (result.inserted && activeView === 'manage') {
+            if (isMobileViewport()) {
+              closeMobileEntrySheet();
+              showSyncToast('Đã ghi dữ liệu và cập nhật danh sách Vận hành.');
+            }
+            loadManageSheetData();
+          }
           
           if (result.inserted && activeView === 'reports') {
             refreshReports(false);
@@ -7909,6 +8122,35 @@
 
     function closeDrawer() {
       document.body.classList.remove('drawer-open');
+    }
+
+    function isMobileViewport() {
+      return window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+    }
+
+    function openMobileEntrySheet() {
+      if (activeView !== 'manage') setView('manage');
+      if (!rows.length) rows = [newBlankRow()];
+      document.body.classList.add('mobile-entry-open');
+      document.body.classList.add('locked');
+      renderFormTabs();
+      renderEntry();
+      loadCatalogs(activeForm);
+    }
+
+    function closeMobileEntrySheet() {
+      document.body.classList.remove('mobile-entry-open');
+      if (!document.body.classList.contains('drawer-open')) {
+        document.body.classList.remove('locked');
+      }
+    }
+
+    function openResponsiveManageAdd() {
+      if (isMobileViewport()) {
+        openMobileEntrySheet();
+      } else {
+        openManageAddModal();
+      }
     }
 
     // Configuration input controls binder

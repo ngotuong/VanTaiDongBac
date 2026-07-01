@@ -416,11 +416,13 @@
         if (activeView === 'reports') {
           loadReportBundle(true)
             .then(() => showMessage && showSyncToast('Đã cập nhật Báo cáo.'))
-            .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'));
+            .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
+            .finally(() => setRefreshBusy(false));
         } else {
           loadDashboard(true)
             .then(() => showMessage && showSyncToast('Đã cập nhật Tổng quan.'))
-            .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'));
+            .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
+            .finally(() => setRefreshBusy(false));
         }
       }).catch((err) => {
         setRefreshBusy(false);

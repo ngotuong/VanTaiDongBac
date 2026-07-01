@@ -28,18 +28,27 @@
       }
     }
 
+    function renderFundTableLoading(tbody, colspan, message) {
+      if (!tbody) return;
+      if (typeof renderTableLoading === 'function') {
+        renderTableLoading(tbody, colspan, message);
+        return;
+      }
+      tbody.innerHTML = `<tr><td colspan="${colspan}" style="padding:16px;"><div class="shimmer shimmer-table"></div></td></tr>`;
+    }
+
+    function renderFundKpiLoading(holder, count) {
+      if (!holder) return;
+      holder.innerHTML = Array.from({ length: count }).map(() => (
+        '<article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>'
+      )).join('');
+    }
+
     function loadFundOverview(forceRefresh) {
       const metricsHolder = el('fundOverviewMetrics');
-      if (metricsHolder) {
-        metricsHolder.innerHTML = `
-          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
-          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
-          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
-          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
-          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
-          <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
-        `;
-      }
+      renderFundKpiLoading(metricsHolder, 6);
+      renderFundTableLoading(el('fundIncomeCategoryBody'), 3, 'Đang tải hạng mục thu...');
+      renderFundTableLoading(el('fundExpenseCategoryBody'), 3, 'Đang tải hạng mục chi...');
       
       const month = el('fundOverviewMonthFilter')?.value || '';
       return callApi('GET', 'getFundOverview', {
@@ -492,9 +501,7 @@
     function loadFundCatalog(forceRefresh) {
       const group = activeFundCatalogGroup || 'incomeCategories';
       const tableBody = el('fundCatalogTableBody');
-      if (tableBody) {
-        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải danh mục...</td></tr>';
-      }
+      renderFundTableLoading(tableBody, 4, 'Đang tải danh mục quỹ...');
       return callApi('GET', 'getFundCatalog', {
         year: '2026',
         group: group,
@@ -648,6 +655,9 @@
 
     function loadFundLoanOverview(forceRefresh) {
       const month = el('fundLoanMonthFilter')?.value || '';
+      renderFundKpiLoading(el('fundLoanMetrics'), 4);
+      renderFundTableLoading(el('fundLoanSummaryBody'), 4, 'Đang tải khoản vay...');
+      renderFundTableLoading(el('fundLoanHistoryBody'), 6, 'Đang tải lịch sử vay/trả...');
       return callApi('GET', 'getFundLoanOverview', { year: '2026', month: month, forceRefresh: forceRefresh ? 'true' : '' })
         .then((data) => {
           fundLoanData = data;
@@ -976,7 +986,7 @@
       const pager = el('fundTransactionsPager');
       if (!tableBody || !empty || !notice || !monthFilter) return Promise.resolve();
 
-      tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải dữ liệu thu chi...</td></tr>';
+      renderFundTableLoading(tableBody, 8, 'Đang tải dữ liệu thu chi...');
       empty.style.display = 'none';
       if (pager) pager.style.display = 'none';
       notice.textContent = '';

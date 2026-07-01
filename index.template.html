@@ -397,7 +397,7 @@
         </div>
         <input type="hidden" id="catalogSheetSelect" value="DM_NhanSu">
 
-        <div class="filter-bar" style="margin-bottom: 16px;">
+        <div class="filter-bar catalog-sticky-toolbar" style="margin-bottom: 16px;">
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
               <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; max-width: 400px; width: 100%;">
@@ -610,30 +610,28 @@
           </section>
         </div>
 
-        <div class="table-card" data-cashflow-panel="catalog" style="display: none;">
+        <div class="table-card fund-catalog-card" data-cashflow-panel="catalog" style="display: none;">
           <div class="panel-body">
-            <div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 18px;">
+            <div class="fund-catalog-head">
               <div>
                 <div class="table-title" id="fundCatalogTitle">Danh mục quỹ</div>
                 <div class="panel-note" id="fundCatalogNote">Quản lý danh mục dùng chung cho module Quỹ.</div>
               </div>
-              <div class="sub-tabs-bar" style="width: auto; margin: 0;">
-                <button type="button" class="sub-tab active" data-fund-catalog-group="incomeCategories" onclick="setFundCatalogGroup('incomeCategories')">Mục Thu</button>
-                <button type="button" class="sub-tab" data-fund-catalog-group="expenseCategories" onclick="setFundCatalogGroup('expenseCategories')">Mục Chi</button>
-                <button type="button" class="sub-tab" data-fund-catalog-group="actors" onclick="setFundCatalogGroup('actors')">Người Thu/Chi</button>
-                <button type="button" class="sub-tab" data-fund-catalog-group="partners" onclick="setFundCatalogGroup('partners')">Đối tác</button>
-                <button type="button" class="sub-tab" data-fund-catalog-group="loanPartners" onclick="setFundCatalogGroup('loanPartners')">Nơi vay</button>
+              <div class="fund-catalog-chips">
+                <button type="button" class="fund-chip active" data-fund-catalog-group="incomeCategories" onclick="setFundCatalogGroup('incomeCategories')">Mục Thu</button>
+                <button type="button" class="fund-chip" data-fund-catalog-group="expenseCategories" onclick="setFundCatalogGroup('expenseCategories')">Mục Chi</button>
+                <button type="button" class="fund-chip" data-fund-catalog-group="actors" onclick="setFundCatalogGroup('actors')">Người Thu/Chi</button>
+                <button type="button" class="fund-chip" data-fund-catalog-group="partners" onclick="setFundCatalogGroup('partners')">Đối tác</button>
+                <button type="button" class="fund-chip" data-fund-catalog-group="loanPartners" onclick="setFundCatalogGroup('loanPartners')">Nơi vay</button>
               </div>
             </div>
             <div id="fundCatalogStatus" class="status" style="display:none;"></div>
-            <div class="fields" style="margin-bottom: 16px;">
+            <div class="fund-catalog-form">
               <label>
                 Giá trị
                 <input type="text" id="fundCatalogValueInput" placeholder="Nhập danh mục">
               </label>
-            </div>
-            <div class="submit-bar" style="margin-bottom: 18px;">
-              <button type="button" class="primary grow" id="fundCatalogSaveBtn" onclick="saveFundCatalogItem()">
+              <button type="button" class="primary" id="fundCatalogSaveBtn" onclick="saveFundCatalogItem()">
                 <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                 Lưu danh mục
               </button>

@@ -48,7 +48,7 @@
         renderManageTable();
       }
 
-      return callApi('GET', 'readSheetData', {
+      return callApi('GET', 'readManageData', {
         ...requestParams,
         forceRefresh: forceRefresh ? 'true' : ''
       })

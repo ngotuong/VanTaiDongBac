@@ -10,7 +10,6 @@
       lastCatalogQuery = '';
       const requestSeq = ++catalogLoadSeq;
       const displaySheetName = el('catalogSheetSelect').value;
-      const sheetName = (displaySheetName === 'DM_ThamSo_TS' || displaySheetName === 'DM_ThamSo_GD') ? 'DM_ThamSo' : displaySheetName;
       
       const tbody = el('catalogTableBody');
       const thead = el('catalogTableHeader');
@@ -19,51 +18,20 @@
       renderTableLoading(tbody, 20, 'Đang tải danh mục từ Google Sheets...');
       el('catalogTableEmpty').style.display = 'none';
 
-      const requestParams = { sheetName: sheetName };
+      const requestParams = { displaySheetName: displaySheetName };
       const cached = !forceRefresh && getCachedSheetData({ sheetName: displaySheetName });
       if (cached) {
         currentCatalogData = cached.data;
         renderCatalogTable();
       }
 
-      return callApi('GET', 'readSheetData', {
+      return callApi('GET', 'readCatalogData', {
           ...requestParams,
           forceRefresh: forceRefresh ? 'true' : ''
         })
         .then((res) => {
           if (requestSeq !== catalogLoadSeq) return res;
           if (res.ok) {
-            if (displaySheetName === 'DM_NhanSu') {
-              const colIdx = res.headers.indexOf('DS_TaiXe_DangLam');
-              if (colIdx !== -1) {
-                res.headers.splice(colIdx, 1);
-                res.rows = res.rows.map(r => {
-                  const newVals = [...r.values];
-                  newVals.splice(colIdx, 1);
-                  return {
-                    rowIndex: r.rowIndex,
-                    values: newVals
-                  };
-                });
-              }
-            } else if (displaySheetName === 'DM_ThamSo_TS') {
-              res.headers = ["Mã tham số", "Tên tham số", "Giá trị", "Ngày áp dụng tham số"];
-              res.rows = res.rows.map(r => {
-                return {
-                  rowIndex: r.rowIndex,
-                  values: [r.values[0], r.values[1], r.values[2], r.values[3]]
-                };
-              }).filter(r => String(r.values[0] || '').trim() !== '');
-            } else if (displaySheetName === 'DM_ThamSo_GD') {
-              res.headers = ["Giá dầu áp dụng", "Ngày áp dụng giá dầu", "Ghi chú"];
-              res.rows = res.rows.map(r => {
-                return {
-                  rowIndex: r.rowIndex,
-                  values: [r.values[6], r.values[5], r.values[7]]
-                };
-              }).filter(r => String(r.values[0] || '').trim() !== '');
-            }
-            
             currentCatalogData = res;
             setCachedSheetData({ sheetName: displaySheetName }, res);
             renderCatalogTable();

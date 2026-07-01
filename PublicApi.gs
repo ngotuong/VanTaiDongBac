@@ -50,6 +50,14 @@ function readSheetData(sheetName, startDate, endDate, limit) {
   return SheetService.readSheetData(sheetName, startDate, endDate, limit);
 }
 
+function readManageData(sheetName, startDate, endDate, limit) {
+  return SheetService.readManageData(sheetName, startDate, endDate, limit);
+}
+
+function readCatalogData(displaySheetName) {
+  return SheetService.readCatalogData(displaySheetName);
+}
+
 function saveSheetRow(sheetName, rowIndex, rowData) {
   return SheetService.saveSheetRow(sheetName, rowIndex, rowData);
 }
@@ -119,6 +127,8 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'getReportBundle') return SheetService.getReportBundle(safeParams.month, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
     if (action === 'invalidateCaches') return SheetService.invalidateCaches();
     if (action === 'readSheetData') return SheetService.readSheetData(safeParams.sheetName, safeParams.startDate, safeParams.endDate, safeParams.limit);
+    if (action === 'readManageData') return SheetService.readManageData(safeParams.sheetName, safeParams.startDate, safeParams.endDate, safeParams.limit);
+    if (action === 'readCatalogData') return SheetService.readCatalogData(safeParams.displaySheetName || safeParams.sheetName);
     if (action === 'getFundTransactions') {
       return FundService.getFundTransactions(safeParams.year, {
         month: safeParams.month,

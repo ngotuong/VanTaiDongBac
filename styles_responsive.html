@@ -477,6 +477,97 @@
         min-height: 44px;
         font-size: 16px;
       }
+
+      #catalogView .catalog-sticky-toolbar {
+        position: sticky;
+        top: calc(8px + env(safe-area-inset-top, 0px));
+        z-index: 30;
+        padding: 10px;
+        margin: 0 -2px 12px !important;
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.10);
+        backdrop-filter: blur(16px);
+      }
+
+      #catalogView .catalog-sticky-toolbar .filter-container {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 48px;
+        gap: 10px !important;
+        align-items: end !important;
+      }
+
+      #catalogView .catalog-sticky-toolbar label {
+        display: flex !important;
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 6px !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        font-size: 11px !important;
+        text-transform: uppercase;
+        font-weight: 800 !important;
+      }
+
+      #catalogView .catalog-sticky-toolbar input {
+        min-height: 44px;
+        font-size: 16px !important;
+        border-radius: 12px !important;
+      }
+
+      #catalogView .catalog-sticky-toolbar .icon-button {
+        width: 48px !important;
+        height: 48px !important;
+        min-width: 48px !important;
+        min-height: 48px !important;
+        border-radius: 14px !important;
+      }
+
+      .fund-catalog-head {
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .fund-catalog-chips {
+        width: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start;
+        margin: 0 -4px;
+        padding: 2px 4px 8px;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .fund-catalog-chips::-webkit-scrollbar {
+        display: none;
+      }
+
+      .fund-chip {
+        min-height: 44px;
+        flex: 0 0 auto;
+        padding: 0 16px;
+        font-size: 13px;
+      }
+
+      .fund-catalog-form {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 14px;
+      }
+
+      .fund-catalog-form input {
+        min-height: 48px;
+        font-size: 16px;
+      }
+
+      .fund-catalog-form button {
+        min-height: 46px;
+        width: 100%;
+      }
       
       .action-grid { grid-template-columns: 1fr; }
       .form-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }

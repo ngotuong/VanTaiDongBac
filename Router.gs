@@ -25,6 +25,8 @@ function doGet(e) {
     if (action === 'getReportBundle') return timedJsonResponse_(action, startedAt, SheetService.getReportBundle(e.parameter.month, e.parameter.forceRefresh === 'true'));
     if (action === 'invalidateCaches') return timedJsonResponse_(action, startedAt, SheetService.invalidateCaches());
     if (action === 'readSheetData') return timedJsonResponse_(action, startedAt, SheetService.readSheetData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate, e.parameter.limit));
+    if (action === 'readManageData') return timedJsonResponse_(action, startedAt, SheetService.readManageData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate, e.parameter.limit));
+    if (action === 'readCatalogData') return timedJsonResponse_(action, startedAt, SheetService.readCatalogData(e.parameter.displaySheetName || e.parameter.sheetName));
     if (action === 'submitRowsGet') {
       var submitPayload = JSON.parse(e.parameter.payload || '{}');
       AppConfig.activate({

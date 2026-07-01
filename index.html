@@ -1308,6 +1308,84 @@
       gap: 10px;
       flex-wrap: wrap;
     }
+
+    .fund-catalog-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .fund-catalog-chips {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .fund-chip {
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .fund-chip.active {
+      border-color: var(--deep);
+      background: var(--deep);
+      color: #fff;
+    }
+
+    .fund-catalog-form {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto auto;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 18px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #f8fafc;
+    }
+
+    .fund-catalog-form label {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .fund-catalog-form input {
+      min-height: 42px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 700;
+      outline: none;
+    }
+
+    .fund-catalog-form button {
+      min-height: 42px;
+      white-space: nowrap;
+    }
     
     .table-wrap { 
       overflow-x: auto; 
@@ -2315,6 +2393,97 @@
         min-height: 44px;
         font-size: 16px;
       }
+
+      #catalogView .catalog-sticky-toolbar {
+        position: sticky;
+        top: calc(8px + env(safe-area-inset-top, 0px));
+        z-index: 30;
+        padding: 10px;
+        margin: 0 -2px 12px !important;
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.10);
+        backdrop-filter: blur(16px);
+      }
+
+      #catalogView .catalog-sticky-toolbar .filter-container {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 48px;
+        gap: 10px !important;
+        align-items: end !important;
+      }
+
+      #catalogView .catalog-sticky-toolbar label {
+        display: flex !important;
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 6px !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        font-size: 11px !important;
+        text-transform: uppercase;
+        font-weight: 800 !important;
+      }
+
+      #catalogView .catalog-sticky-toolbar input {
+        min-height: 44px;
+        font-size: 16px !important;
+        border-radius: 12px !important;
+      }
+
+      #catalogView .catalog-sticky-toolbar .icon-button {
+        width: 48px !important;
+        height: 48px !important;
+        min-width: 48px !important;
+        min-height: 48px !important;
+        border-radius: 14px !important;
+      }
+
+      .fund-catalog-head {
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .fund-catalog-chips {
+        width: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start;
+        margin: 0 -4px;
+        padding: 2px 4px 8px;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .fund-catalog-chips::-webkit-scrollbar {
+        display: none;
+      }
+
+      .fund-chip {
+        min-height: 44px;
+        flex: 0 0 auto;
+        padding: 0 16px;
+        font-size: 13px;
+      }
+
+      .fund-catalog-form {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 14px;
+      }
+
+      .fund-catalog-form input {
+        min-height: 48px;
+        font-size: 16px;
+      }
+
+      .fund-catalog-form button {
+        min-height: 46px;
+        width: 100%;
+      }
       
       .action-grid { grid-template-columns: 1fr; }
       .form-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -3168,7 +3337,7 @@
         </div>
         <input type="hidden" id="catalogSheetSelect" value="DM_NhanSu">
 
-        <div class="filter-bar" style="margin-bottom: 16px;">
+        <div class="filter-bar catalog-sticky-toolbar" style="margin-bottom: 16px;">
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
               <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; max-width: 400px; width: 100%;">
@@ -3381,30 +3550,28 @@
           </section>
         </div>
 
-        <div class="table-card" data-cashflow-panel="catalog" style="display: none;">
+        <div class="table-card fund-catalog-card" data-cashflow-panel="catalog" style="display: none;">
           <div class="panel-body">
-            <div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 18px;">
+            <div class="fund-catalog-head">
               <div>
                 <div class="table-title" id="fundCatalogTitle">Danh mục quỹ</div>
                 <div class="panel-note" id="fundCatalogNote">Quản lý danh mục dùng chung cho module Quỹ.</div>
               </div>
-              <div class="sub-tabs-bar" style="width: auto; margin: 0;">
-                <button type="button" class="sub-tab active" data-fund-catalog-group="incomeCategories" onclick="setFundCatalogGroup('incomeCategories')">Mục Thu</button>
-                <button type="button" class="sub-tab" data-fund-catalog-group="expenseCategories" onclick="setFundCatalogGroup('expenseCategories')">Mục Chi</button>
-                <button type="button" class="sub-tab" data-fund-catalog-group="actors" onclick="setFundCatalogGroup('actors')">Người Thu/Chi</button>
-                <button type="button" class="sub-tab" data-fund-catalog-group="partners" onclick="setFundCatalogGroup('partners')">Đối tác</button>
-                <button type="button" class="sub-tab" data-fund-catalog-group="loanPartners" onclick="setFundCatalogGroup('loanPartners')">Nơi vay</button>
+              <div class="fund-catalog-chips">
+                <button type="button" class="fund-chip active" data-fund-catalog-group="incomeCategories" onclick="setFundCatalogGroup('incomeCategories')">Mục Thu</button>
+                <button type="button" class="fund-chip" data-fund-catalog-group="expenseCategories" onclick="setFundCatalogGroup('expenseCategories')">Mục Chi</button>
+                <button type="button" class="fund-chip" data-fund-catalog-group="actors" onclick="setFundCatalogGroup('actors')">Người Thu/Chi</button>
+                <button type="button" class="fund-chip" data-fund-catalog-group="partners" onclick="setFundCatalogGroup('partners')">Đối tác</button>
+                <button type="button" class="fund-chip" data-fund-catalog-group="loanPartners" onclick="setFundCatalogGroup('loanPartners')">Nơi vay</button>
               </div>
             </div>
             <div id="fundCatalogStatus" class="status" style="display:none;"></div>
-            <div class="fields" style="margin-bottom: 16px;">
+            <div class="fund-catalog-form">
               <label>
                 Giá trị
                 <input type="text" id="fundCatalogValueInput" placeholder="Nhập danh mục">
               </label>
-            </div>
-            <div class="submit-bar" style="margin-bottom: 18px;">
-              <button type="button" class="primary grow" id="fundCatalogSaveBtn" onclick="saveFundCatalogItem()">
+              <button type="button" class="primary" id="fundCatalogSaveBtn" onclick="saveFundCatalogItem()">
                 <svg class="btn-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                 Lưu danh mục
               </button>
@@ -5495,7 +5662,7 @@
         renderManageTable();
       }
 
-      return callApi('GET', 'readSheetData', {
+      return callApi('GET', 'readManageData', {
         ...requestParams,
         forceRefresh: forceRefresh ? 'true' : ''
       })
@@ -6176,7 +6343,6 @@
       lastCatalogQuery = '';
       const requestSeq = ++catalogLoadSeq;
       const displaySheetName = el('catalogSheetSelect').value;
-      const sheetName = (displaySheetName === 'DM_ThamSo_TS' || displaySheetName === 'DM_ThamSo_GD') ? 'DM_ThamSo' : displaySheetName;
       
       const tbody = el('catalogTableBody');
       const thead = el('catalogTableHeader');
@@ -6185,51 +6351,20 @@
       renderTableLoading(tbody, 20, 'Đang tải danh mục từ Google Sheets...');
       el('catalogTableEmpty').style.display = 'none';
 
-      const requestParams = { sheetName: sheetName };
+      const requestParams = { displaySheetName: displaySheetName };
       const cached = !forceRefresh && getCachedSheetData({ sheetName: displaySheetName });
       if (cached) {
         currentCatalogData = cached.data;
         renderCatalogTable();
       }
 
-      return callApi('GET', 'readSheetData', {
+      return callApi('GET', 'readCatalogData', {
           ...requestParams,
           forceRefresh: forceRefresh ? 'true' : ''
         })
         .then((res) => {
           if (requestSeq !== catalogLoadSeq) return res;
           if (res.ok) {
-            if (displaySheetName === 'DM_NhanSu') {
-              const colIdx = res.headers.indexOf('DS_TaiXe_DangLam');
-              if (colIdx !== -1) {
-                res.headers.splice(colIdx, 1);
-                res.rows = res.rows.map(r => {
-                  const newVals = [...r.values];
-                  newVals.splice(colIdx, 1);
-                  return {
-                    rowIndex: r.rowIndex,
-                    values: newVals
-                  };
-                });
-              }
-            } else if (displaySheetName === 'DM_ThamSo_TS') {
-              res.headers = ["Mã tham số", "Tên tham số", "Giá trị", "Ngày áp dụng tham số"];
-              res.rows = res.rows.map(r => {
-                return {
-                  rowIndex: r.rowIndex,
-                  values: [r.values[0], r.values[1], r.values[2], r.values[3]]
-                };
-              }).filter(r => String(r.values[0] || '').trim() !== '');
-            } else if (displaySheetName === 'DM_ThamSo_GD') {
-              res.headers = ["Giá dầu áp dụng", "Ngày áp dụng giá dầu", "Ghi chú"];
-              res.rows = res.rows.map(r => {
-                return {
-                  rowIndex: r.rowIndex,
-                  values: [r.values[6], r.values[5], r.values[7]]
-                };
-              }).filter(r => String(r.values[0] || '').trim() !== '');
-            }
-            
             currentCatalogData = res;
             setCachedSheetData({ sheetName: displaySheetName }, res);
             renderCatalogTable();

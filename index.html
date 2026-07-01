@@ -1267,6 +1267,47 @@
       color: var(--deep);
       font-size: 15px;
     }
+
+    .compact-filter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .compact-filter select {
+      min-height: 38px;
+      min-width: 160px;
+      max-width: 220px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+      padding: 0 10px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .fund-loan-summary-head,
+    .vehicle-volume-head {
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .vehicle-volume-filters {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
     
     .table-wrap { 
       overflow-x: auto; 
@@ -2250,6 +2291,29 @@
       }
       .fund-export-action button {
         min-height: 32px;
+      }
+
+      .fund-loan-summary-head,
+      .vehicle-volume-head {
+        align-items: stretch !important;
+      }
+
+      .compact-filter,
+      .vehicle-volume-filters {
+        width: 100%;
+      }
+
+      .compact-filter {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr);
+      }
+
+      .compact-filter select {
+        min-width: 0;
+        max-width: none;
+        width: 100%;
+        min-height: 44px;
+        font-size: 16px;
       }
       
       .action-grid { grid-template-columns: 1fr; }
@@ -3289,7 +3353,15 @@
             <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
           </div>
           <section class="table-card" style="margin-bottom: 20px;">
-            <div class="table-card-head"><div class="table-title">Tổng quan các khoản vay</div></div>
+            <div class="table-card-head fund-loan-summary-head">
+              <div class="table-title">Chi tiết các khoản vay</div>
+              <label class="compact-filter">
+                <span>Công ty</span>
+                <select id="fundLoanPartnerFilter" onchange="renderFundLoanOverview(fundLoanData || {})">
+                  <option value="">Tất cả công ty</option>
+                </select>
+              </label>
+            </div>
             <div class="table-wrap">
               <table class="report-table" style="min-width: auto !important; width: 100%;">
                 <thead><tr><th>Ngày vay</th><th>Đối tác</th><th style="text-align:right;">Số tiền còn nợ</th><th style="text-align:right;">Thao tác</th></tr></thead>
@@ -3330,10 +3402,6 @@
                 Giá trị
                 <input type="text" id="fundCatalogValueInput" placeholder="Nhập danh mục">
               </label>
-              <label class="full-width">
-                Ghi chú
-                <textarea id="fundCatalogNoteInput" rows="2" placeholder="Ghi chú (nếu có)"></textarea>
-              </label>
             </div>
             <div class="submit-bar" style="margin-bottom: 18px;">
               <button type="button" class="primary grow" id="fundCatalogSaveBtn" onclick="saveFundCatalogItem()">
@@ -3344,8 +3412,8 @@
             </div>
             <div class="table-wrap">
               <table class="report-table">
-                <thead><tr><th style="width:80px;">STT</th><th>Giá trị</th><th>Ghi chú</th><th style="text-align:right;">Thao tác</th></tr></thead>
-                <tbody id="fundCatalogTableBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Chọn một nhóm danh mục để tải dữ liệu.</td></tr></tbody>
+                <thead><tr><th style="width:80px;">STT</th><th>Giá trị</th><th style="text-align:right;">Thao tác</th></tr></thead>
+                <tbody id="fundCatalogTableBody"><tr><td colspan="3" style="text-align:center; color:var(--muted); padding:24px;">Chọn một nhóm danh mục để tải dữ liệu.</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -4672,7 +4740,7 @@
     function loadFundCatalog(forceRefresh) {
       const group = activeFundCatalogGroup || 'incomeCategories';
       const tableBody = el('fundCatalogTableBody');
-      renderFundTableLoading(tableBody, 4, 'Đang tải danh mục quỹ...');
+      renderFundTableLoading(tableBody, 3, 'Đang tải danh mục quỹ...');
       return callApi('GET', 'getFundCatalog', {
         year: '2026',
         group: group,
@@ -4682,7 +4750,7 @@
         renderFundCatalog(data);
       }).catch((err) => {
         if (tableBody) {
-          tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--red); padding: 24px;">Lỗi tải danh mục: ${escapeHtml(err.message)}</td></tr>`;
+          tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--red); padding: 24px;">Lỗi tải danh mục: ${escapeHtml(err.message)}</td></tr>`;
         }
       });
     }
@@ -4707,20 +4775,20 @@
       if (!tableBody) return;
 
       if (!rows.length) {
-        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 24px;">Chưa có danh mục nào.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: var(--muted); padding: 24px;">Chưa có danh mục nào.</td></tr>';
         return;
       }
 
       tableBody.innerHTML = rows.map((row, index) => `
         <tr>
           <td>${index + 1}</td>
-          <td>${escapeHtml(row.value || '')}</td>
-          <td>${row.source === 'fallback'
-            ? '<span class="preview-badge info" style="margin-top:0;">Từ dữ liệu hiện có</span>'
-            : escapeHtml(row.note || '')}</td>
+          <td>
+            ${escapeHtml(row.value || '')}
+            ${row.source === 'fallback' ? '<span class="preview-badge info" style="margin:0 0 0 8px;">Từ dữ liệu hiện có</span>' : ''}
+          </td>
           <td style="text-align:right; white-space:nowrap;">
             ${row.source === 'fallback' ? '' : `
-            <button type="button" class="btn-table-action edit" title="Sửa" aria-label="Sửa dòng" style="margin-right: 4px;" onclick="openFundCatalogEdit(${row.rowIndex}, decodeURIComponent('${encodeURIComponent(row.value || '')}'), decodeURIComponent('${encodeURIComponent(row.note || '')}'))">
+            <button type="button" class="btn-table-action edit" title="Sửa" aria-label="Sửa dòng" style="margin-right: 4px;" onclick="openFundCatalogEdit(${row.rowIndex}, decodeURIComponent('${encodeURIComponent(row.value || '')}'))">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
             </button>
             <button type="button" class="btn-table-action delete" title="Xóa" aria-label="Xóa dòng" onclick="deleteFundCatalogItem(${row.rowIndex})">
@@ -4743,12 +4811,10 @@
       return labels[group] || group;
     }
 
-    function openFundCatalogEdit(rowIndex, value, note) {
+    function openFundCatalogEdit(rowIndex, value) {
       fundCatalogEditRowIndex = rowIndex;
       const valueInput = el('fundCatalogValueInput');
-      const noteInput = el('fundCatalogNoteInput');
       if (valueInput) valueInput.value = value || '';
-      if (noteInput) noteInput.value = note || '';
       const status = el('fundCatalogStatus');
       if (status) {
         status.style.display = 'none';
@@ -4758,15 +4824,12 @@
 
     function clearFundCatalogForm() {
       const valueInput = el('fundCatalogValueInput');
-      const noteInput = el('fundCatalogNoteInput');
       if (valueInput) valueInput.value = '';
-      if (noteInput) noteInput.value = '';
       fundCatalogEditRowIndex = null;
     }
 
     function saveFundCatalogItem() {
       const value = el('fundCatalogValueInput')?.value || '';
-      const note = el('fundCatalogNoteInput')?.value || '';
       const btn = el('fundCatalogSaveBtn');
       if (!value.trim()) {
         showFundCatalogStatus('error', 'Vui lòng nhập giá trị danh mục.');
@@ -4780,7 +4843,7 @@
           group: activeFundCatalogGroup,
           rowIndex: fundCatalogEditRowIndex || '',
           value: value,
-          note: note
+          note: ''
         }
       })
         .then(() => {
@@ -4843,6 +4906,12 @@
 
     function renderFundLoanOverview(data) {
       renderFundLoanMonthFilter(data.months || [], data.selectedMonth || '');
+      renderFundLoanPartnerFilter(data.loans || []);
+      const selectedPartner = el('fundLoanPartnerFilter')?.value || '';
+      const loans = (data.loans || []).filter((item) => {
+        return !selectedPartner || String(item.partner || '') === selectedPartner;
+      });
+      const metricRows = buildFundLoanMetrics(data, loans, selectedPartner);
       const metrics = el('fundLoanMetrics');
       const loanKpiColors = {
         borrowed: 'blue',
@@ -4850,7 +4919,7 @@
         interestPaid: 'amber',
         outstanding: 'red'
       };
-      metrics.innerHTML = (data.metrics || []).map((item) => {
+      metrics.innerHTML = metricRows.map((item) => {
         const color = loanKpiColors[item.key] || 'blue';
         return `
           <article class="kpi-card">
@@ -4861,7 +4930,6 @@
       }).join('');
 
       const summary = el('fundLoanSummaryBody');
-      const loans = data.loans || [];
       // Lọc chỉ hiển thị các khoản vay đang còn nợ (outstanding > 0)
       const activeLoans = loans.filter(item => Number(item.outstanding || 0) > 0);
       summary.innerHTML = activeLoans.length ? activeLoans.map((item) => `
@@ -4891,6 +4959,34 @@
           </tr>
         `;
       }).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
+    }
+
+    function renderFundLoanPartnerFilter(loans) {
+      const select = el('fundLoanPartnerFilter');
+      if (!select) return;
+      const current = select.value || '';
+      const partners = Array.from(new Set((loans || [])
+        .map((item) => String(item.partner || '').trim())
+        .filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b, 'vi'));
+      select.innerHTML = '<option value="">Tất cả công ty</option>' + partners.map((partner) => (
+        `<option value="${escapeHtml(partner)}">${escapeHtml(partner)}</option>`
+      )).join('');
+      select.value = partners.includes(current) ? current : '';
+    }
+
+    function buildFundLoanMetrics(data, loans, selectedPartner) {
+      if (!selectedPartner) return data.metrics || [];
+      const borrowed = loans.reduce((sum, item) => sum + Number(item.borrowed || 0), 0);
+      const principalPaid = loans.reduce((sum, item) => sum + Number(item.principalPaid || 0), 0);
+      const interestPaid = loans.reduce((sum, item) => sum + Number(item.interestPaid || 0), 0);
+      const outstanding = loans.reduce((sum, item) => sum + Number(item.outstanding || 0), 0);
+      return [
+        { key: 'borrowed', label: 'Tổng khoản vay', value: borrowed },
+        { key: 'principalPaid', label: 'Đã trả nợ gốc', value: principalPaid },
+        { key: 'interestPaid', label: 'Đã trả lãi', value: interestPaid },
+        { key: 'outstanding', label: 'Dư nợ theo lọc', value: outstanding }
+      ];
     }
 
     function renderFundLoanMonthFilter(months, selectedMonth) {
@@ -7334,10 +7430,12 @@
         : renderReportLoadingCard('Bảng tổng hợp lương nhân sự', 'payroll')
       );
       
-      holder.appendChild(reportsByType.vehicles?.data
-        ? renderTableCard('Tổng hợp xe', reportsByType.vehicles.data, links.vehicles, 'vehicles')
-        : renderReportLoadingCard('Tổng hợp xe', 'vehicles')
-      );
+      if (reportsByType.vehicles?.data) {
+        holder.appendChild(renderTableCard('Tổng hợp xe', reportsByType.vehicles.data, links.vehicles, 'vehicles'));
+        holder.appendChild(renderVehicleVolumeDetailCard(reportsByType.vehicles.data));
+      } else {
+        holder.appendChild(renderReportLoadingCard('Tổng hợp xe', 'vehicles'));
+      }
       
       filterReportCards();
       
@@ -7576,6 +7674,138 @@
       return card;
     }
 
+    function renderVehicleVolumeDetailCard(matrix) {
+      const card = document.createElement('section');
+      card.className = 'table-card vehicle-volume-card';
+      card.dataset.reportType = 'vehicles';
+
+      const detail = buildVehicleVolumeDetailRows(matrix);
+      const plates = Array.from(new Set(detail.rows.map((row) => row.plate).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+      const companies = Array.from(new Set(detail.rows.map((row) => row.company).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+
+      card.innerHTML = `
+        <div class="table-card-head vehicle-volume-head">
+          <div>
+            <div class="table-title">Chi tiết khối lượng</div>
+            <div class="panel-note" id="vehicleVolumeNote">Tổng khối lượng: ${formatVolumeText(detail.totalVolume)}</div>
+          </div>
+          <div class="vehicle-volume-filters">
+            <label class="compact-filter">
+              <span>Biển số</span>
+              <select id="vehicleVolumePlateFilter" onchange="filterVehicleVolumeDetail()">
+                <option value="">Tất cả xe</option>
+                ${plates.map((plate) => `<option value="${escapeHtml(plate)}">${escapeHtml(plate)}</option>`).join('')}
+              </select>
+            </label>
+            <label class="compact-filter">
+              <span>Công ty</span>
+              <select id="vehicleVolumeCompanyFilter" onchange="filterVehicleVolumeDetail()">
+                <option value="">Tất cả công ty</option>
+                ${companies.map((company) => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('')}
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="report-table" style="min-width: 560px;">
+            <thead>
+              <tr>
+                <th>Biển số xe</th>
+                <th>Công ty/Chủ xe</th>
+                <th style="text-align:right;">Tổng khối lượng</th>
+                <th style="text-align:right;">Số dòng</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${detail.rows.length ? detail.rows.map((row) => `
+                <tr data-plate="${escapeHtml(row.plate)}" data-company="${escapeHtml(row.company)}" data-volume="${row.volume}" data-search-text="${escapeHtml(removeAccents([row.plate, row.company].join(' ').toLowerCase()))}">
+                  <td style="font-weight:800; color:var(--deep);">${escapeHtml(row.plate || '-')}</td>
+                  <td>${escapeHtml(row.company || '-')}</td>
+                  <td style="text-align:right; font-weight:900; color:var(--teal);">${formatVolumeText(row.volume)}</td>
+                  <td style="text-align:right;">${row.count.toLocaleString('vi-VN')}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Chưa có dữ liệu khối lượng.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+      setTimeout(filterVehicleVolumeDetail, 0);
+      return card;
+    }
+
+    function buildVehicleVolumeDetailRows(matrix) {
+      const rows = matrix || [];
+      let head = rows[0] || [];
+      let body = rows.slice(1);
+      if (head[0] && /tháng/i.test(String(head[0]).trim())) {
+        head = head.slice(1);
+        body = body.map((row) => row.slice(1));
+      }
+
+      const normalizedHead = head.map((cell) => removeAccents(String(cell || '').toLowerCase()));
+      const findIdx = (candidates, fallback) => {
+        for (let i = 0; i < normalizedHead.length; i++) {
+          if (candidates.some((candidate) => normalizedHead[i].includes(candidate))) return i;
+        }
+        return fallback;
+      };
+
+      const plateIdx = findIdx(['bien so', 'bks', 'bien', 'ma xe'], 0);
+      const companyIdx = findIdx(['cong ty', 'chu xe', 'nha xe', 'don vi'], 1);
+      const volumeIdx = findIdx(['khoi luong', 'san luong', 'tong khoi'], 2);
+      const grouped = {};
+
+      body.forEach((row) => {
+        const firstCell = removeAccents(String(row[0] || '').toLowerCase());
+        if (!row || !row.length || firstCell.includes('tong')) return;
+        const volume = parseCellValue(row[volumeIdx] || '');
+        if (volume === null || !Number.isFinite(volume)) return;
+        const plate = String(row[plateIdx] || '').trim();
+        const company = String(row[companyIdx] || '').trim();
+        const key = `${plate}||${company}`;
+        if (!grouped[key]) {
+          grouped[key] = { plate, company, volume: 0, count: 0 };
+        }
+        grouped[key].volume += volume;
+        grouped[key].count += 1;
+      });
+
+      const detailRows = Object.values(grouped).sort((a, b) => b.volume - a.volume);
+      return {
+        rows: detailRows,
+        totalVolume: detailRows.reduce((sum, row) => sum + row.volume, 0)
+      };
+    }
+
+    function formatVolumeText(value) {
+      return Number(value || 0).toLocaleString('vi-VN', {
+        maximumFractionDigits: 2
+      });
+    }
+
+    window.filterVehicleVolumeDetail = () => {
+      const card = document.querySelector('.vehicle-volume-card');
+      if (!card) return;
+      const plate = el('vehicleVolumePlateFilter')?.value || '';
+      const company = el('vehicleVolumeCompanyFilter')?.value || '';
+      let total = 0;
+      let count = 0;
+      card.querySelectorAll('tbody tr[data-volume]').forEach((row) => {
+        const matchPlate = !plate || row.dataset.plate === plate;
+        const matchCompany = !company || row.dataset.company === company;
+        const visible = matchPlate && matchCompany && !row.classList.contains('hidden-row');
+        row.style.display = visible ? '' : 'none';
+        if (visible) {
+          total += Number(row.dataset.volume || 0);
+          count += 1;
+        }
+      });
+      const note = el('vehicleVolumeNote');
+      if (note) {
+        note.textContent = `Tổng khối lượng: ${formatVolumeText(total)} (${count.toLocaleString('vi-VN')} dòng)`;
+      }
+    };
+
     // Helper functions for filtering and calculating subtotals
     function removeAccents(str) {
       if (!str) return '';
@@ -7682,6 +7912,9 @@
         
         updateTableSubtotals(card, type);
       });
+      if (typeof filterVehicleVolumeDetail === 'function') {
+        filterVehicleVolumeDetail();
+      }
     };
 
     function updateTableSubtotals(card, type) {

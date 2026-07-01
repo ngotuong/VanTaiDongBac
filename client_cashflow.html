@@ -576,7 +576,7 @@
     function loadFundCatalog(forceRefresh) {
       const group = activeFundCatalogGroup || 'incomeCategories';
       const tableBody = el('fundCatalogTableBody');
-      renderFundTableLoading(tableBody, 4, 'Đang tải danh mục quỹ...');
+      renderFundTableLoading(tableBody, 3, 'Đang tải danh mục quỹ...');
       return callApi('GET', 'getFundCatalog', {
         year: '2026',
         group: group,
@@ -586,7 +586,7 @@
         renderFundCatalog(data);
       }).catch((err) => {
         if (tableBody) {
-          tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--red); padding: 24px;">Lỗi tải danh mục: ${escapeHtml(err.message)}</td></tr>`;
+          tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--red); padding: 24px;">Lỗi tải danh mục: ${escapeHtml(err.message)}</td></tr>`;
         }
       });
     }
@@ -611,20 +611,20 @@
       if (!tableBody) return;
 
       if (!rows.length) {
-        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 24px;">Chưa có danh mục nào.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: var(--muted); padding: 24px;">Chưa có danh mục nào.</td></tr>';
         return;
       }
 
       tableBody.innerHTML = rows.map((row, index) => `
         <tr>
           <td>${index + 1}</td>
-          <td>${escapeHtml(row.value || '')}</td>
-          <td>${row.source === 'fallback'
-            ? '<span class="preview-badge info" style="margin-top:0;">Từ dữ liệu hiện có</span>'
-            : escapeHtml(row.note || '')}</td>
+          <td>
+            ${escapeHtml(row.value || '')}
+            ${row.source === 'fallback' ? '<span class="preview-badge info" style="margin:0 0 0 8px;">Từ dữ liệu hiện có</span>' : ''}
+          </td>
           <td style="text-align:right; white-space:nowrap;">
             ${row.source === 'fallback' ? '' : `
-            <button type="button" class="btn-table-action edit" title="Sửa" aria-label="Sửa dòng" style="margin-right: 4px;" onclick="openFundCatalogEdit(${row.rowIndex}, decodeURIComponent('${encodeURIComponent(row.value || '')}'), decodeURIComponent('${encodeURIComponent(row.note || '')}'))">
+            <button type="button" class="btn-table-action edit" title="Sửa" aria-label="Sửa dòng" style="margin-right: 4px;" onclick="openFundCatalogEdit(${row.rowIndex}, decodeURIComponent('${encodeURIComponent(row.value || '')}'))">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
             </button>
             <button type="button" class="btn-table-action delete" title="Xóa" aria-label="Xóa dòng" onclick="deleteFundCatalogItem(${row.rowIndex})">
@@ -647,12 +647,10 @@
       return labels[group] || group;
     }
 
-    function openFundCatalogEdit(rowIndex, value, note) {
+    function openFundCatalogEdit(rowIndex, value) {
       fundCatalogEditRowIndex = rowIndex;
       const valueInput = el('fundCatalogValueInput');
-      const noteInput = el('fundCatalogNoteInput');
       if (valueInput) valueInput.value = value || '';
-      if (noteInput) noteInput.value = note || '';
       const status = el('fundCatalogStatus');
       if (status) {
         status.style.display = 'none';
@@ -662,15 +660,12 @@
 
     function clearFundCatalogForm() {
       const valueInput = el('fundCatalogValueInput');
-      const noteInput = el('fundCatalogNoteInput');
       if (valueInput) valueInput.value = '';
-      if (noteInput) noteInput.value = '';
       fundCatalogEditRowIndex = null;
     }
 
     function saveFundCatalogItem() {
       const value = el('fundCatalogValueInput')?.value || '';
-      const note = el('fundCatalogNoteInput')?.value || '';
       const btn = el('fundCatalogSaveBtn');
       if (!value.trim()) {
         showFundCatalogStatus('error', 'Vui lòng nhập giá trị danh mục.');
@@ -684,7 +679,7 @@
           group: activeFundCatalogGroup,
           rowIndex: fundCatalogEditRowIndex || '',
           value: value,
-          note: note
+          note: ''
         }
       })
         .then(() => {
@@ -747,6 +742,12 @@
 
     function renderFundLoanOverview(data) {
       renderFundLoanMonthFilter(data.months || [], data.selectedMonth || '');
+      renderFundLoanPartnerFilter(data.loans || []);
+      const selectedPartner = el('fundLoanPartnerFilter')?.value || '';
+      const loans = (data.loans || []).filter((item) => {
+        return !selectedPartner || String(item.partner || '') === selectedPartner;
+      });
+      const metricRows = buildFundLoanMetrics(data, loans, selectedPartner);
       const metrics = el('fundLoanMetrics');
       const loanKpiColors = {
         borrowed: 'blue',
@@ -754,7 +755,7 @@
         interestPaid: 'amber',
         outstanding: 'red'
       };
-      metrics.innerHTML = (data.metrics || []).map((item) => {
+      metrics.innerHTML = metricRows.map((item) => {
         const color = loanKpiColors[item.key] || 'blue';
         return `
           <article class="kpi-card">
@@ -765,7 +766,6 @@
       }).join('');
 
       const summary = el('fundLoanSummaryBody');
-      const loans = data.loans || [];
       // Lọc chỉ hiển thị các khoản vay đang còn nợ (outstanding > 0)
       const activeLoans = loans.filter(item => Number(item.outstanding || 0) > 0);
       summary.innerHTML = activeLoans.length ? activeLoans.map((item) => `
@@ -795,6 +795,34 @@
           </tr>
         `;
       }).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
+    }
+
+    function renderFundLoanPartnerFilter(loans) {
+      const select = el('fundLoanPartnerFilter');
+      if (!select) return;
+      const current = select.value || '';
+      const partners = Array.from(new Set((loans || [])
+        .map((item) => String(item.partner || '').trim())
+        .filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b, 'vi'));
+      select.innerHTML = '<option value="">Tất cả công ty</option>' + partners.map((partner) => (
+        `<option value="${escapeHtml(partner)}">${escapeHtml(partner)}</option>`
+      )).join('');
+      select.value = partners.includes(current) ? current : '';
+    }
+
+    function buildFundLoanMetrics(data, loans, selectedPartner) {
+      if (!selectedPartner) return data.metrics || [];
+      const borrowed = loans.reduce((sum, item) => sum + Number(item.borrowed || 0), 0);
+      const principalPaid = loans.reduce((sum, item) => sum + Number(item.principalPaid || 0), 0);
+      const interestPaid = loans.reduce((sum, item) => sum + Number(item.interestPaid || 0), 0);
+      const outstanding = loans.reduce((sum, item) => sum + Number(item.outstanding || 0), 0);
+      return [
+        { key: 'borrowed', label: 'Tổng khoản vay', value: borrowed },
+        { key: 'principalPaid', label: 'Đã trả nợ gốc', value: principalPaid },
+        { key: 'interestPaid', label: 'Đã trả lãi', value: interestPaid },
+        { key: 'outstanding', label: 'Dư nợ theo lọc', value: outstanding }
+      ];
     }
 
     function renderFundLoanMonthFilter(months, selectedMonth) {

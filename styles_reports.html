@@ -70,6 +70,47 @@
       color: var(--deep);
       font-size: 15px;
     }
+
+    .compact-filter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .compact-filter select {
+      min-height: 38px;
+      min-width: 160px;
+      max-width: 220px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+      padding: 0 10px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .fund-loan-summary-head,
+    .vehicle-volume-head {
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .vehicle-volume-filters {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
     
     .table-wrap { 
       overflow-x: auto; 

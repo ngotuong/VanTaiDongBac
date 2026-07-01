@@ -454,6 +454,29 @@
       .fund-export-action button {
         min-height: 32px;
       }
+
+      .fund-loan-summary-head,
+      .vehicle-volume-head {
+        align-items: stretch !important;
+      }
+
+      .compact-filter,
+      .vehicle-volume-filters {
+        width: 100%;
+      }
+
+      .compact-filter {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr);
+      }
+
+      .compact-filter select {
+        min-width: 0;
+        max-width: none;
+        width: 100%;
+        min-height: 44px;
+        font-size: 16px;
+      }
       
       .action-grid { grid-template-columns: 1fr; }
       .form-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }

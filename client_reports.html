@@ -29,10 +29,12 @@
         : renderReportLoadingCard('Bảng tổng hợp lương nhân sự', 'payroll')
       );
       
-      holder.appendChild(reportsByType.vehicles?.data
-        ? renderTableCard('Tổng hợp xe', reportsByType.vehicles.data, links.vehicles, 'vehicles')
-        : renderReportLoadingCard('Tổng hợp xe', 'vehicles')
-      );
+      if (reportsByType.vehicles?.data) {
+        holder.appendChild(renderTableCard('Tổng hợp xe', reportsByType.vehicles.data, links.vehicles, 'vehicles'));
+        holder.appendChild(renderVehicleVolumeDetailCard(reportsByType.vehicles.data));
+      } else {
+        holder.appendChild(renderReportLoadingCard('Tổng hợp xe', 'vehicles'));
+      }
       
       filterReportCards();
       
@@ -271,6 +273,138 @@
       return card;
     }
 
+    function renderVehicleVolumeDetailCard(matrix) {
+      const card = document.createElement('section');
+      card.className = 'table-card vehicle-volume-card';
+      card.dataset.reportType = 'vehicles';
+
+      const detail = buildVehicleVolumeDetailRows(matrix);
+      const plates = Array.from(new Set(detail.rows.map((row) => row.plate).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+      const companies = Array.from(new Set(detail.rows.map((row) => row.company).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+
+      card.innerHTML = `
+        <div class="table-card-head vehicle-volume-head">
+          <div>
+            <div class="table-title">Chi tiết khối lượng</div>
+            <div class="panel-note" id="vehicleVolumeNote">Tổng khối lượng: ${formatVolumeText(detail.totalVolume)}</div>
+          </div>
+          <div class="vehicle-volume-filters">
+            <label class="compact-filter">
+              <span>Biển số</span>
+              <select id="vehicleVolumePlateFilter" onchange="filterVehicleVolumeDetail()">
+                <option value="">Tất cả xe</option>
+                ${plates.map((plate) => `<option value="${escapeHtml(plate)}">${escapeHtml(plate)}</option>`).join('')}
+              </select>
+            </label>
+            <label class="compact-filter">
+              <span>Công ty</span>
+              <select id="vehicleVolumeCompanyFilter" onchange="filterVehicleVolumeDetail()">
+                <option value="">Tất cả công ty</option>
+                ${companies.map((company) => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('')}
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="report-table" style="min-width: 560px;">
+            <thead>
+              <tr>
+                <th>Biển số xe</th>
+                <th>Công ty/Chủ xe</th>
+                <th style="text-align:right;">Tổng khối lượng</th>
+                <th style="text-align:right;">Số dòng</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${detail.rows.length ? detail.rows.map((row) => `
+                <tr data-plate="${escapeHtml(row.plate)}" data-company="${escapeHtml(row.company)}" data-volume="${row.volume}" data-search-text="${escapeHtml(removeAccents([row.plate, row.company].join(' ').toLowerCase()))}">
+                  <td style="font-weight:800; color:var(--deep);">${escapeHtml(row.plate || '-')}</td>
+                  <td>${escapeHtml(row.company || '-')}</td>
+                  <td style="text-align:right; font-weight:900; color:var(--teal);">${formatVolumeText(row.volume)}</td>
+                  <td style="text-align:right;">${row.count.toLocaleString('vi-VN')}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Chưa có dữ liệu khối lượng.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+      setTimeout(filterVehicleVolumeDetail, 0);
+      return card;
+    }
+
+    function buildVehicleVolumeDetailRows(matrix) {
+      const rows = matrix || [];
+      let head = rows[0] || [];
+      let body = rows.slice(1);
+      if (head[0] && /tháng/i.test(String(head[0]).trim())) {
+        head = head.slice(1);
+        body = body.map((row) => row.slice(1));
+      }
+
+      const normalizedHead = head.map((cell) => removeAccents(String(cell || '').toLowerCase()));
+      const findIdx = (candidates, fallback) => {
+        for (let i = 0; i < normalizedHead.length; i++) {
+          if (candidates.some((candidate) => normalizedHead[i].includes(candidate))) return i;
+        }
+        return fallback;
+      };
+
+      const plateIdx = findIdx(['bien so', 'bks', 'bien', 'ma xe'], 0);
+      const companyIdx = findIdx(['cong ty', 'chu xe', 'nha xe', 'don vi'], 1);
+      const volumeIdx = findIdx(['khoi luong', 'san luong', 'tong khoi'], 2);
+      const grouped = {};
+
+      body.forEach((row) => {
+        const firstCell = removeAccents(String(row[0] || '').toLowerCase());
+        if (!row || !row.length || firstCell.includes('tong')) return;
+        const volume = parseCellValue(row[volumeIdx] || '');
+        if (volume === null || !Number.isFinite(volume)) return;
+        const plate = String(row[plateIdx] || '').trim();
+        const company = String(row[companyIdx] || '').trim();
+        const key = `${plate}||${company}`;
+        if (!grouped[key]) {
+          grouped[key] = { plate, company, volume: 0, count: 0 };
+        }
+        grouped[key].volume += volume;
+        grouped[key].count += 1;
+      });
+
+      const detailRows = Object.values(grouped).sort((a, b) => b.volume - a.volume);
+      return {
+        rows: detailRows,
+        totalVolume: detailRows.reduce((sum, row) => sum + row.volume, 0)
+      };
+    }
+
+    function formatVolumeText(value) {
+      return Number(value || 0).toLocaleString('vi-VN', {
+        maximumFractionDigits: 2
+      });
+    }
+
+    window.filterVehicleVolumeDetail = () => {
+      const card = document.querySelector('.vehicle-volume-card');
+      if (!card) return;
+      const plate = el('vehicleVolumePlateFilter')?.value || '';
+      const company = el('vehicleVolumeCompanyFilter')?.value || '';
+      let total = 0;
+      let count = 0;
+      card.querySelectorAll('tbody tr[data-volume]').forEach((row) => {
+        const matchPlate = !plate || row.dataset.plate === plate;
+        const matchCompany = !company || row.dataset.company === company;
+        const visible = matchPlate && matchCompany && !row.classList.contains('hidden-row');
+        row.style.display = visible ? '' : 'none';
+        if (visible) {
+          total += Number(row.dataset.volume || 0);
+          count += 1;
+        }
+      });
+      const note = el('vehicleVolumeNote');
+      if (note) {
+        note.textContent = `Tổng khối lượng: ${formatVolumeText(total)} (${count.toLocaleString('vi-VN')} dòng)`;
+      }
+    };
+
     // Helper functions for filtering and calculating subtotals
     function removeAccents(str) {
       if (!str) return '';
@@ -377,6 +511,9 @@
         
         updateTableSubtotals(card, type);
       });
+      if (typeof filterVehicleVolumeDetail === 'function') {
+        filterVehicleVolumeDetail();
+      }
     };
 
     function updateTableSubtotals(card, type) {

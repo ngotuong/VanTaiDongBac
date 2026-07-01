@@ -582,7 +582,15 @@
             <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
           </div>
           <section class="table-card" style="margin-bottom: 20px;">
-            <div class="table-card-head"><div class="table-title">Tổng quan các khoản vay</div></div>
+            <div class="table-card-head fund-loan-summary-head">
+              <div class="table-title">Chi tiết các khoản vay</div>
+              <label class="compact-filter">
+                <span>Công ty</span>
+                <select id="fundLoanPartnerFilter" onchange="renderFundLoanOverview(fundLoanData || {})">
+                  <option value="">Tất cả công ty</option>
+                </select>
+              </label>
+            </div>
             <div class="table-wrap">
               <table class="report-table" style="min-width: auto !important; width: 100%;">
                 <thead><tr><th>Ngày vay</th><th>Đối tác</th><th style="text-align:right;">Số tiền còn nợ</th><th style="text-align:right;">Thao tác</th></tr></thead>
@@ -623,10 +631,6 @@
                 Giá trị
                 <input type="text" id="fundCatalogValueInput" placeholder="Nhập danh mục">
               </label>
-              <label class="full-width">
-                Ghi chú
-                <textarea id="fundCatalogNoteInput" rows="2" placeholder="Ghi chú (nếu có)"></textarea>
-              </label>
             </div>
             <div class="submit-bar" style="margin-bottom: 18px;">
               <button type="button" class="primary grow" id="fundCatalogSaveBtn" onclick="saveFundCatalogItem()">
@@ -637,8 +641,8 @@
             </div>
             <div class="table-wrap">
               <table class="report-table">
-                <thead><tr><th style="width:80px;">STT</th><th>Giá trị</th><th>Ghi chú</th><th style="text-align:right;">Thao tác</th></tr></thead>
-                <tbody id="fundCatalogTableBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Chọn một nhóm danh mục để tải dữ liệu.</td></tr></tbody>
+                <thead><tr><th style="width:80px;">STT</th><th>Giá trị</th><th style="text-align:right;">Thao tác</th></tr></thead>
+                <tbody id="fundCatalogTableBody"><tr><td colspan="3" style="text-align:center; color:var(--muted); padding:24px;">Chọn một nhóm danh mục để tải dữ liệu.</td></tr></tbody>
               </table>
             </div>
           </div>

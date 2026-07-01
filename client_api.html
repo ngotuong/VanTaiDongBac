@@ -150,9 +150,44 @@
       reportCacheEpoch += 1;
       reportBundlePrefetching = false;
       removeSessionKeysByPrefix('eb_report_bundle_');
+      removeSessionKeysByPrefix('eb_sheet_data_');
       if (options.catalogs) removeSessionKeysByPrefix('eb_catalogs_');
       sessionStorage.removeItem('eb_dashboard_v3');
       sessionStorage.removeItem('eb_startup_data');
+    }
+
+    function getSheetDataCacheKey(params) {
+      const safeParams = params || {};
+      return [
+        'eb_sheet_data_v2',
+        safeParams.sheetName || '',
+        safeParams.startDate || '',
+        safeParams.endDate || '',
+        safeParams.limit || ''
+      ].join('|');
+    }
+
+    function getCachedSheetData(params) {
+      try {
+        const raw = sessionStorage.getItem(getSheetDataCacheKey(params));
+        if (!raw) return null;
+        const cached = JSON.parse(raw);
+        if (!cached || !cached.savedAt || !cached.data) return null;
+        return cached;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function setCachedSheetData(params, data) {
+      try {
+        sessionStorage.setItem(getSheetDataCacheKey(params), JSON.stringify({
+          savedAt: Date.now(),
+          data: data
+        }));
+      } catch (err) {
+        removeSessionKeysByPrefix('eb_sheet_data_');
+      }
     }
 
     function invalidateServerCaches() {

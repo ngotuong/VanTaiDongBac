@@ -387,14 +387,16 @@
       invalidateReportSessionCache();
       setRefreshBusy(true);
       if (activeView === 'manage') {
-        loadManageSheetData()
+        invalidateServerCaches()
+          .then(() => loadManageSheetData(true))
           .then(() => showMessage && showSyncToast('Đã cập nhật Vận hành.'))
           .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
           .finally(() => setRefreshBusy(false));
         return;
       }
       if (activeView === 'catalog') {
-        loadCatalogSheetData()
+        invalidateServerCaches()
+          .then(() => loadCatalogSheetData(true))
           .then(() => showMessage && showSyncToast('Đã cập nhật Danh mục.'))
           .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
           .finally(() => setRefreshBusy(false));

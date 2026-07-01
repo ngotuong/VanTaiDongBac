@@ -2,11 +2,13 @@
     let catalogPage = 1;
     const catalogPageSize = 20;
     let lastCatalogQuery = '';
+    let catalogLoadSeq = 0;
 
     // Catalog CRUD Operations
-    function loadCatalogSheetData() {
+    function loadCatalogSheetData(forceRefresh) {
       catalogPage = 1;
       lastCatalogQuery = '';
+      const requestSeq = ++catalogLoadSeq;
       const displaySheetName = el('catalogSheetSelect').value;
       const sheetName = (displaySheetName === 'DM_ThamSo_TS' || displaySheetName === 'DM_ThamSo_GD') ? 'DM_ThamSo' : displaySheetName;
       
@@ -17,8 +19,19 @@
       renderTableLoading(tbody, 20, 'Đang tải danh mục từ Google Sheets...');
       el('catalogTableEmpty').style.display = 'none';
 
-      return callApi('GET', 'readSheetData', { sheetName: sheetName })
+      const requestParams = { sheetName: sheetName };
+      const cached = !forceRefresh && getCachedSheetData({ sheetName: displaySheetName });
+      if (cached) {
+        currentCatalogData = cached.data;
+        renderCatalogTable();
+      }
+
+      return callApi('GET', 'readSheetData', {
+          ...requestParams,
+          forceRefresh: forceRefresh ? 'true' : ''
+        })
         .then((res) => {
+          if (requestSeq !== catalogLoadSeq) return res;
           if (res.ok) {
             if (displaySheetName === 'DM_NhanSu') {
               const colIdx = res.headers.indexOf('DS_TaiXe_DangLam');
@@ -52,6 +65,7 @@
             }
             
             currentCatalogData = res;
+            setCachedSheetData({ sheetName: displaySheetName }, res);
             renderCatalogTable();
             return res;
           } else {
@@ -60,6 +74,7 @@
           }
         })
         .catch((err) => {
+          if (cached) return cached.data;
           showTableError(tbody, 20, err.message || String(err));
           throw err;
         });

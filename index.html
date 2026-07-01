@@ -3706,6 +3706,8 @@
       document.querySelectorAll('#catalogTabsBar .sub-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.sheet === sheetName);
       });
+      document.querySelector(`#catalogTabsBar .sub-tab[data-sheet="${sheetName}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       loadCatalogSheetData();
     }
 
@@ -4045,9 +4047,44 @@
       reportCacheEpoch += 1;
       reportBundlePrefetching = false;
       removeSessionKeysByPrefix('eb_report_bundle_');
+      removeSessionKeysByPrefix('eb_sheet_data_');
       if (options.catalogs) removeSessionKeysByPrefix('eb_catalogs_');
       sessionStorage.removeItem('eb_dashboard_v3');
       sessionStorage.removeItem('eb_startup_data');
+    }
+
+    function getSheetDataCacheKey(params) {
+      const safeParams = params || {};
+      return [
+        'eb_sheet_data_v2',
+        safeParams.sheetName || '',
+        safeParams.startDate || '',
+        safeParams.endDate || '',
+        safeParams.limit || ''
+      ].join('|');
+    }
+
+    function getCachedSheetData(params) {
+      try {
+        const raw = sessionStorage.getItem(getSheetDataCacheKey(params));
+        if (!raw) return null;
+        const cached = JSON.parse(raw);
+        if (!cached || !cached.savedAt || !cached.data) return null;
+        return cached;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function setCachedSheetData(params, data) {
+      try {
+        sessionStorage.setItem(getSheetDataCacheKey(params), JSON.stringify({
+          savedAt: Date.now(),
+          data: data
+        }));
+      } catch (err) {
+        removeSessionKeysByPrefix('eb_sheet_data_');
+      }
     }
 
     function invalidateServerCaches() {
@@ -5317,11 +5354,13 @@
     const managePageSize = 20;
     let lastManageQuery = '';
     let lastManageSheet = '';
+    let manageLoadSeq = 0;
 
     // CRUD Manager Operations
-    function loadManageSheetData() {
+    function loadManageSheetData(forceRefresh) {
       managePage = 1;
       lastManageQuery = '';
+      const requestSeq = ++manageLoadSeq;
       const sheetName = el('manageSheetSelect').value;
       const tbody = el('manageTableBody');
       const thead = el('manageTableHeader');
@@ -5344,16 +5383,31 @@
 
       const startDate = el('manageStartDate').value;
       const endDate = el('manageEndDate').value;
-
-      return callApi('GET', 'readSheetData', {
+      const requestParams = {
         sheetName: sheetName,
         startDate: startDate,
         endDate: endDate,
         limit: startDate || endDate ? 500 : 50
+      };
+
+      const cached = !forceRefresh && getCachedSheetData(requestParams);
+      if (cached) {
+        currentManageData = cached.data;
+        if (currentManageData.isLimited) {
+          el('manageLimitNotice').style.display = 'block';
+        }
+        renderManageTable();
+      }
+
+      return callApi('GET', 'readSheetData', {
+        ...requestParams,
+        forceRefresh: forceRefresh ? 'true' : ''
       })
         .then((res) => {
+          if (requestSeq !== manageLoadSeq) return res;
           if (res.ok) {
             currentManageData = res;
+            setCachedSheetData(requestParams, res);
             if (res.isLimited) {
               el('manageLimitNotice').style.display = 'block';
             } else {
@@ -5367,6 +5421,7 @@
           }
         })
         .catch((err) => {
+          if (cached) return cached.data;
           showTableError(tbody, 20, err.message || String(err));
           throw err;
         });
@@ -6017,11 +6072,13 @@
     let catalogPage = 1;
     const catalogPageSize = 20;
     let lastCatalogQuery = '';
+    let catalogLoadSeq = 0;
 
     // Catalog CRUD Operations
-    function loadCatalogSheetData() {
+    function loadCatalogSheetData(forceRefresh) {
       catalogPage = 1;
       lastCatalogQuery = '';
+      const requestSeq = ++catalogLoadSeq;
       const displaySheetName = el('catalogSheetSelect').value;
       const sheetName = (displaySheetName === 'DM_ThamSo_TS' || displaySheetName === 'DM_ThamSo_GD') ? 'DM_ThamSo' : displaySheetName;
       
@@ -6032,8 +6089,19 @@
       renderTableLoading(tbody, 20, 'Đang tải danh mục từ Google Sheets...');
       el('catalogTableEmpty').style.display = 'none';
 
-      return callApi('GET', 'readSheetData', { sheetName: sheetName })
+      const requestParams = { sheetName: sheetName };
+      const cached = !forceRefresh && getCachedSheetData({ sheetName: displaySheetName });
+      if (cached) {
+        currentCatalogData = cached.data;
+        renderCatalogTable();
+      }
+
+      return callApi('GET', 'readSheetData', {
+          ...requestParams,
+          forceRefresh: forceRefresh ? 'true' : ''
+        })
         .then((res) => {
+          if (requestSeq !== catalogLoadSeq) return res;
           if (res.ok) {
             if (displaySheetName === 'DM_NhanSu') {
               const colIdx = res.headers.indexOf('DS_TaiXe_DangLam');
@@ -6067,6 +6135,7 @@
             }
             
             currentCatalogData = res;
+            setCachedSheetData({ sheetName: displaySheetName }, res);
             renderCatalogTable();
             return res;
           } else {
@@ -6075,6 +6144,7 @@
           }
         })
         .catch((err) => {
+          if (cached) return cached.data;
           showTableError(tbody, 20, err.message || String(err));
           throw err;
         });
@@ -8386,14 +8456,16 @@
       invalidateReportSessionCache();
       setRefreshBusy(true);
       if (activeView === 'manage') {
-        loadManageSheetData()
+        invalidateServerCaches()
+          .then(() => loadManageSheetData(true))
           .then(() => showMessage && showSyncToast('Đã cập nhật Vận hành.'))
           .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
           .finally(() => setRefreshBusy(false));
         return;
       }
       if (activeView === 'catalog') {
-        loadCatalogSheetData()
+        invalidateServerCaches()
+          .then(() => loadCatalogSheetData(true))
           .then(() => showMessage && showSyncToast('Đã cập nhật Danh mục.'))
           .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
           .finally(() => setRefreshBusy(false));

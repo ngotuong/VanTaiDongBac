@@ -144,6 +144,8 @@
       document.querySelectorAll('#catalogTabsBar .sub-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.sheet === sheetName);
       });
+      document.querySelector(`#catalogTabsBar .sub-tab[data-sheet="${sheetName}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       loadCatalogSheetData();
     }
 

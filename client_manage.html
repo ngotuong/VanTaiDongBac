@@ -3,11 +3,13 @@
     const managePageSize = 20;
     let lastManageQuery = '';
     let lastManageSheet = '';
+    let manageLoadSeq = 0;
 
     // CRUD Manager Operations
-    function loadManageSheetData() {
+    function loadManageSheetData(forceRefresh) {
       managePage = 1;
       lastManageQuery = '';
+      const requestSeq = ++manageLoadSeq;
       const sheetName = el('manageSheetSelect').value;
       const tbody = el('manageTableBody');
       const thead = el('manageTableHeader');
@@ -30,16 +32,31 @@
 
       const startDate = el('manageStartDate').value;
       const endDate = el('manageEndDate').value;
-
-      return callApi('GET', 'readSheetData', {
+      const requestParams = {
         sheetName: sheetName,
         startDate: startDate,
         endDate: endDate,
         limit: startDate || endDate ? 500 : 50
+      };
+
+      const cached = !forceRefresh && getCachedSheetData(requestParams);
+      if (cached) {
+        currentManageData = cached.data;
+        if (currentManageData.isLimited) {
+          el('manageLimitNotice').style.display = 'block';
+        }
+        renderManageTable();
+      }
+
+      return callApi('GET', 'readSheetData', {
+        ...requestParams,
+        forceRefresh: forceRefresh ? 'true' : ''
       })
         .then((res) => {
+          if (requestSeq !== manageLoadSeq) return res;
           if (res.ok) {
             currentManageData = res;
+            setCachedSheetData(requestParams, res);
             if (res.isLimited) {
               el('manageLimitNotice').style.display = 'block';
             } else {
@@ -53,6 +70,7 @@
           }
         })
         .catch((err) => {
+          if (cached) return cached.data;
           showTableError(tbody, 20, err.message || String(err));
           throw err;
         });

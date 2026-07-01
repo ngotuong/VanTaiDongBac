@@ -458,7 +458,14 @@
       button.onclick = () => {
         activeForm = type;
         rows = [newBlankRow()];
-        setView('entry');
+        const sheetName = FORM_SHEET_MAP[type];
+        if (sheetName) {
+          el('manageSheetSelect').value = sheetName;
+          document.querySelectorAll('#manageTabsBar .sub-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.sheet === sheetName);
+          });
+        }
+        setView('manage');
         renderFormTabs();
         renderEntry();
         loadCatalogs(type);

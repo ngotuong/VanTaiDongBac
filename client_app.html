@@ -2,7 +2,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.7_kpi_submit_manage_fund';
+      const APP_VERSION = 'v3.8_operations_menu';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -100,20 +100,28 @@
     }
 
     function setView(view) {
+      if (view === 'entry') view = 'manage';
       activeView = view;
       closeDrawer();
       clearStatus();
       renderView();
-      if (view === 'entry') {
-        loadCatalogs(activeForm);
-      }
-      if (view === 'reports') {
-        loadReportBundle(false);
-      }
       if (view === 'manage') {
+        const sheetName = FORM_SHEET_MAP[activeForm] || 'NL_VanChuyen';
+        if (el('manageSheetSelect').value !== sheetName) {
+          el('manageSheetSelect').value = sheetName;
+          document.querySelectorAll('#manageTabsBar .sub-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.sheet === sheetName);
+          });
+        }
+        renderFormTabs();
+        renderEntry();
+        loadCatalogs(activeForm);
         loadAllCatalogsIfNeeded(() => {
           loadManageSheetData();
         });
+      }
+      if (view === 'reports') {
+        loadReportBundle(false);
       }
       if (view === 'catalog') {
         loadAllCatalogsIfNeeded(() => {
@@ -131,15 +139,15 @@
       document.querySelectorAll('[data-view]').forEach((button) => {
         button.classList.toggle('active', button.dataset.view === activeView);
       });
-      ['home', 'entry', 'reports', 'manage', 'catalog', 'cashflow', 'settings'].forEach((view) => {
-        el(`${view}View`).classList.toggle('active', view === activeView);
+      ['home', 'reports', 'manage', 'catalog', 'cashflow', 'settings'].forEach((view) => {
+        const viewEl = el(`${view}View`);
+        if (viewEl) viewEl.classList.toggle('active', view === activeView);
       });
       
       const meta = {
         home: ['Tổng quan', 'Kết quả kinh doanh', `Dữ liệu cập nhật: ${getDashboardData()?.updatedAt || 'Vui lòng chờ...'}`],
-        entry: ['Nhập liệu', 'Bảng kê nhập liệu', 'Thông tin tháng tự sinh theo ngày nhập dữ liệu.'],
         reports: ['Báo cáo', 'Tổng hợp chi tiết', 'Tổng hợp các hạng mục báo cáo.'],
-        manage: ['Quản lý nhật ký', 'Quản lý các giao dịch nhật ký', 'Xem, tìm kiếm lọc theo ngày, sửa hoặc xóa dòng nhật ký.'],
+        manage: ['Vận hành', 'Nhập & quản lý vận hành', 'Nhập nhanh, xem, lọc, sửa hoặc xóa nhật ký vận hành.'],
         catalog: ['Danh mục', 'Quản lý danh mục hệ thống', 'Xem, tìm kiếm, thêm mới, sửa hoặc xóa danh mục gốc.'],
         cashflow: ['Quỹ', 'Quản lý quỹ', 'Theo dõi thu chi, số dư và khoản vay.'],
         settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', 'Tối ưu hóa chạy webapp như ứng dụng thực tế.']

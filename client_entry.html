@@ -21,6 +21,16 @@
           renderFormTabs();
           renderEntry();
           loadCatalogs(type);
+          if (activeView === 'manage') {
+            const sheetName = FORM_SHEET_MAP[type];
+            if (sheetName) {
+              el('manageSheetSelect').value = sheetName;
+              document.querySelectorAll('#manageTabsBar .sub-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.sheet === sheetName);
+              });
+              loadManageSheetData();
+            }
+          }
         };
         holder.appendChild(button);
       });

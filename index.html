@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Đông Bắc">
   <title>Vận tải Đông Bắc - Hệ thống điều hành nội bộ</title>
-  
+
   <!-- Premium Typography & iOS Web App Integration -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,7 +19,7 @@
     window.__DEFAULT_APP_SERVICE_URL = 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
     window.__APP_SERVICE_URL = "https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec" || window.__DEFAULT_APP_SERVICE_URL;
   </script>
-  
+
   <style>
     :root {
       --ink: #0f172a;
@@ -2103,7 +2103,7 @@
           <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
           <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
         </div>
-        
+
         <!-- Profit Chart Panel -->
         <section class="panel" style="margin-bottom: 24px;">
           <div class="panel-head">
@@ -2190,11 +2190,41 @@
         </section>
       </section>
 
-      <!-- View: Data Entry Form -->
-      <section id="entryView" class="view">
-        <div class="entry-shell">
+      <!-- View: Detailed Reports -->
+      <section id="reportsView" class="view">
+        <section class="panel" style="margin-bottom: 20px;">
+          <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
+            <div>
+              <h2 class="panel-title">Tùy chọn hiển thị báo cáo</h2>
+              <div class="panel-note">Chọn tháng để hiển thị bảng báo cáo chi tiết</div>
+            </div>
+            <div class="filter-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 500px; box-sizing: border-box;">
+              <input type="text" id="reportSearchInput" placeholder="Tìm xe, tài xế..." style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s;" oninput="debounceReportSearch()"/>
+              <select id="reportMonthFilter" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s; cursor: pointer;"></select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Sub-tabs to switch report subcategories -->
+        <div class="sub-tabs-bar" id="reportTabsBar">
+          <button type="button" class="sub-tab active" data-report-tab="all" onclick="setReportTab('all')">Tất cả báo cáo</button>
+          <button type="button" class="sub-tab" data-report-tab="finance" onclick="setReportTab('finance')">Báo cáo tổng quan</button>
+          <button type="button" class="sub-tab" data-report-tab="details" onclick="setReportTab('details')">Báo cáo chi tiết</button>
+          <button type="button" class="sub-tab" data-report-tab="payroll" onclick="setReportTab('payroll')">Lương nhân sự</button>
+          <button type="button" class="sub-tab" data-report-tab="vehicles" onclick="setReportTab('vehicles')">Tổng hợp xe</button>
+        </div>
+
+        <div class="report-stack" id="reports">
+          <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
+          <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
+        </div>
+      </section>
+
+      <!-- View: Manage Sheet Data (Transaction Logs CRUD) -->
+      <section id="manageView" class="view">
+        <div class="entry-shell" style="margin-bottom: 16px;">
           <aside class="form-list" id="formTabs"></aside>
-          
+
           <section class="panel grow">
             <div class="panel-head" style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
               <div>
@@ -2213,11 +2243,11 @@
                 </a>
               </div>
             </div>
-            
+
             <div class="status" id="status"></div>
-            
+
             <div class="panel-body" id="rows" style="max-height: 65vh; overflow-y: auto;"></div>
-            
+
             <div class="submit-bar">
               <button type="button" class="primary grow" id="submitBtn">
                 <svg class="btn-svg" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
@@ -2226,50 +2256,17 @@
             </div>
           </section>
         </div>
-      </section>
 
-      <!-- View: Detailed Reports -->
-      <section id="reportsView" class="view">
-        <section class="panel" style="margin-bottom: 20px;">
-          <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
-            <div>
-              <h2 class="panel-title">Tùy chọn hiển thị báo cáo</h2>
-              <div class="panel-note">Chọn tháng để hiển thị bảng báo cáo chi tiết</div>
-            </div>
-            <div class="filter-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 500px; box-sizing: border-box;">
-              <input type="text" id="reportSearchInput" placeholder="Tìm xe, tài xế..." style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s;" oninput="debounceReportSearch()"/>
-              <select id="reportMonthFilter" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s; cursor: pointer;"></select>
-            </div>
-          </div>
-        </section>
-        
-        <!-- Sub-tabs to switch report subcategories -->
-        <div class="sub-tabs-bar" id="reportTabsBar">
-          <button type="button" class="sub-tab active" data-report-tab="all" onclick="setReportTab('all')">Tất cả báo cáo</button>
-          <button type="button" class="sub-tab" data-report-tab="finance" onclick="setReportTab('finance')">Báo cáo tổng quan</button>
-          <button type="button" class="sub-tab" data-report-tab="details" onclick="setReportTab('details')">Báo cáo chi tiết</button>
-          <button type="button" class="sub-tab" data-report-tab="payroll" onclick="setReportTab('payroll')">Lương nhân sự</button>
-          <button type="button" class="sub-tab" data-report-tab="vehicles" onclick="setReportTab('vehicles')">Tổng hợp xe</button>
-        </div>
-        
-        <div class="report-stack" id="reports">
-          <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
-          <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
-        </div>
-      </section>
-
-      <!-- View: Manage Sheet Data (Transaction Logs CRUD) -->
-      <section id="manageView" class="view">
         <!-- Nút trượt ngang chọn Nhật ký -->
         <div class="sub-tabs-bar" id="manageTabsBar" style="width: 100%; margin-bottom: 12px;">
-          <button type="button" class="sub-tab active" data-sheet="NL_Dau" onclick="setManageSheetTab('NL_Dau')">Xăng dầu</button>
-          <button type="button" class="sub-tab" data-sheet="NL_VanChuyen" onclick="setManageSheetTab('NL_VanChuyen')">Vận chuyển</button>
+          <button type="button" class="sub-tab active" data-sheet="NL_VanChuyen" onclick="setManageSheetTab('NL_VanChuyen')">Vận chuyển</button>
           <button type="button" class="sub-tab" data-sheet="NL_TaiXe" onclick="setManageSheetTab('NL_TaiXe')">Tài xế</button>
+          <button type="button" class="sub-tab" data-sheet="NL_Dau" onclick="setManageSheetTab('NL_Dau')">Xăng dầu</button>
           <button type="button" class="sub-tab" data-sheet="NL_ChamCong" onclick="setManageSheetTab('NL_ChamCong')">Chấm công</button>
           <button type="button" class="sub-tab" data-sheet="NL_Phat" onclick="setManageSheetTab('NL_Phat')">Phạt nội bộ</button>
           <button type="button" class="sub-tab" data-sheet="NL_NghiVanHanh" onclick="setManageSheetTab('NL_NghiVanHanh')">Nghỉ vận hành</button>
         </div>
-        <input type="hidden" id="manageSheetSelect" value="NL_Dau">
+        <input type="hidden" id="manageSheetSelect" value="NL_VanChuyen">
 
         <div class="filter-bar" style="margin-bottom: 16px;">
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
@@ -2676,7 +2673,7 @@
 
   <!-- Backdrop cho Drawer Chi tiết Quỹ (được đặt ở gốc để tránh transform container bug) -->
   <div class="drawer-backdrop" id="fundDetailBackdrop" onclick="closeFundDetailDrawer()"></div>
-  
+
   <section class="table-card fund-detail-drawer" id="fundCategoryDetailCard">
     <div class="table-card-head" style="position: sticky; top: 0; background: var(--paper); z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px;">
       <div style="flex: 1; min-width: 0;">
@@ -2821,9 +2818,8 @@
     // System Navigation Configuration
     const NAV = [
       ['home', 'Tổng quan', 'KPI & Biểu đồ', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`],
-      ['entry', 'Nhập liệu', 'Biểu mẫu NL', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>`],
       ['reports', 'Báo cáo', 'Bảng chi tiết', `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`],
-      ['manage', 'Quản lý', 'Nhật ký nhập liệu', `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>`],
+      ['manage', 'Vận hành', 'Nhập & quản lý', `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>`],
       ['catalog', 'Danh mục', 'Danh mục hệ thống', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`],
       ['cashflow', 'Quỹ', 'Quản lý dòng tiền', `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"></path></svg>`],
       ['settings', 'Hướng dẫn', 'Cài đặt App', `<svg class="btn-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.52 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`]
@@ -2855,6 +2851,20 @@
       phat: 'Khấu trừ vi phạm nội bộ',
       nghiVanHanh: 'Báo nghỉ mỏ & giảm KPI'
     };
+
+    const FORM_SHEET_MAP = {
+      vanChuyen: 'NL_VanChuyen',
+      taiXe: 'NL_TaiXe',
+      dau: 'NL_Dau',
+      chamCong: 'NL_ChamCong',
+      phat: 'NL_Phat',
+      nghiVanHanh: 'NL_NghiVanHanh'
+    };
+
+    const SHEET_FORM_MAP = Object.keys(FORM_SHEET_MAP).reduce((map, formType) => {
+      map[FORM_SHEET_MAP[formType]] = formType;
+      return map;
+    }, {});
     
     // Field structure for each entry form
     const FIELD_SETS = {
@@ -2929,6 +2939,15 @@
       document.querySelectorAll('#manageTabsBar .sub-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.sheet === sheetName);
       });
+      const formType = SHEET_FORM_MAP[sheetName];
+      if (formType && formType !== activeForm) {
+        activeForm = formType;
+        rows = [newBlankRow()];
+        clearStatus();
+        renderFormTabs();
+        renderEntry();
+        loadCatalogs(activeForm);
+      }
       loadManageSheetData();
     }
 
@@ -5391,7 +5410,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.7_kpi_submit_manage_fund';
+      const APP_VERSION = 'v3.8_operations_menu';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -5489,20 +5508,28 @@
     }
 
     function setView(view) {
+      if (view === 'entry') view = 'manage';
       activeView = view;
       closeDrawer();
       clearStatus();
       renderView();
-      if (view === 'entry') {
-        loadCatalogs(activeForm);
-      }
-      if (view === 'reports') {
-        loadReportBundle(false);
-      }
       if (view === 'manage') {
+        const sheetName = FORM_SHEET_MAP[activeForm] || 'NL_VanChuyen';
+        if (el('manageSheetSelect').value !== sheetName) {
+          el('manageSheetSelect').value = sheetName;
+          document.querySelectorAll('#manageTabsBar .sub-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.sheet === sheetName);
+          });
+        }
+        renderFormTabs();
+        renderEntry();
+        loadCatalogs(activeForm);
         loadAllCatalogsIfNeeded(() => {
           loadManageSheetData();
         });
+      }
+      if (view === 'reports') {
+        loadReportBundle(false);
       }
       if (view === 'catalog') {
         loadAllCatalogsIfNeeded(() => {
@@ -5520,15 +5547,15 @@
       document.querySelectorAll('[data-view]').forEach((button) => {
         button.classList.toggle('active', button.dataset.view === activeView);
       });
-      ['home', 'entry', 'reports', 'manage', 'catalog', 'cashflow', 'settings'].forEach((view) => {
-        el(`${view}View`).classList.toggle('active', view === activeView);
+      ['home', 'reports', 'manage', 'catalog', 'cashflow', 'settings'].forEach((view) => {
+        const viewEl = el(`${view}View`);
+        if (viewEl) viewEl.classList.toggle('active', view === activeView);
       });
       
       const meta = {
         home: ['Tổng quan', 'Kết quả kinh doanh', `Dữ liệu cập nhật: ${getDashboardData()?.updatedAt || 'Vui lòng chờ...'}`],
-        entry: ['Nhập liệu', 'Bảng kê nhập liệu', 'Thông tin tháng tự sinh theo ngày nhập dữ liệu.'],
         reports: ['Báo cáo', 'Tổng hợp chi tiết', 'Tổng hợp các hạng mục báo cáo.'],
-        manage: ['Quản lý nhật ký', 'Quản lý các giao dịch nhật ký', 'Xem, tìm kiếm lọc theo ngày, sửa hoặc xóa dòng nhật ký.'],
+        manage: ['Vận hành', 'Nhập & quản lý vận hành', 'Nhập nhanh, xem, lọc, sửa hoặc xóa nhật ký vận hành.'],
         catalog: ['Danh mục', 'Quản lý danh mục hệ thống', 'Xem, tìm kiếm, thêm mới, sửa hoặc xóa danh mục gốc.'],
         cashflow: ['Quỹ', 'Quản lý quỹ', 'Theo dõi thu chi, số dư và khoản vay.'],
         settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', 'Tối ưu hóa chạy webapp như ứng dụng thực tế.']
@@ -6103,7 +6130,14 @@
       button.onclick = () => {
         activeForm = type;
         rows = [newBlankRow()];
-        setView('entry');
+        const sheetName = FORM_SHEET_MAP[type];
+        if (sheetName) {
+          el('manageSheetSelect').value = sheetName;
+          document.querySelectorAll('#manageTabsBar .sub-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.sheet === sheetName);
+          });
+        }
+        setView('manage');
         renderFormTabs();
         renderEntry();
         loadCatalogs(type);
@@ -6135,6 +6169,16 @@
           renderFormTabs();
           renderEntry();
           loadCatalogs(type);
+          if (activeView === 'manage') {
+            const sheetName = FORM_SHEET_MAP[type];
+            if (sheetName) {
+              el('manageSheetSelect').value = sheetName;
+              document.querySelectorAll('#manageTabsBar .sub-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.sheet === sheetName);
+              });
+              loadManageSheetData();
+            }
+          }
         };
         holder.appendChild(button);
       });

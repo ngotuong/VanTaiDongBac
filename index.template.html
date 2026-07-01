@@ -451,9 +451,14 @@
                 <h2 class="panel-title">Tổng quan quỹ</h2>
                 <div class="panel-note" id="fundOverviewNote">Tháng gần nhất</div>
               </div>
-              <select id="fundOverviewMonthFilter" style="height: 38px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundOverview(false)">
-                <option value="">Tháng gần nhất</option>
-              </select>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <select id="fundOverviewMonthFilter" style="height: 38px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundOverview(false)">
+                  <option value="">Tháng gần nhất</option>
+                </select>
+                <button type="button" class="sub-tab" title="Xuất ảnh báo cáo thu chi" aria-label="Xuất ảnh báo cáo thu chi" style="min-height:38px !important; width:38px !important; padding:0 !important; border-radius:8px !important; display:inline-flex !important; align-items:center; justify-content:center;" onclick="exportFundFinancialReport(this)">
+                  <svg class="btn-svg" viewBox="0 0 24 24" style="width: 17px; height: 17px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                </button>
+              </div>
             </div>
           </section>
           <div class="fund-kpi-grid" id="fundOverviewMetrics">
@@ -484,6 +489,20 @@
               </div>
             </section>
           </div>
+          <section class="table-card fund-export-card" id="fundFinancialReportCard" style="margin-bottom: 20px;">
+            <div class="table-card-head">
+              <div>
+                <div class="table-title">Báo cáo thu chi</div>
+                <div class="panel-note" id="fundFinancialReportNote" style="margin-top: 4px; font-size: 13px;">Kỳ báo cáo</div>
+              </div>
+              <button type="button" class="sub-tab" data-fund-export-button title="Xuất ảnh" aria-label="Xuất ảnh báo cáo thu chi" style="min-height: 32px !important; width: 32px !important; padding: 0 !important; border-radius: 8px !important; display: inline-flex !important; align-items: center; justify-content: center;" onclick="exportCardAsImage(this, 'ThuChi')">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+              </button>
+            </div>
+            <div class="panel-body" id="fundFinancialReportBody">
+              <div class="shimmer shimmer-table"></div>
+            </div>
+          </section>
         </div>
 
         <div data-cashflow-panel="transactions" style="display: none;">

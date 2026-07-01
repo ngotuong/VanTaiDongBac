@@ -158,6 +158,7 @@
       
       renderFundCategoryRows('fundIncomeCategoryBody', data.incomeCategories || [], 'Thu');
       renderFundCategoryRows('fundExpenseCategoryBody', data.expenseCategories || [], 'Chi');
+      renderFundFinancialReportCard(data);
     }
 
     function renderFundOverviewMonthFilter(months, selectedMonth) {
@@ -188,6 +189,70 @@
           <td style="text-align:right;"><button type="button" class="sub-tab" style="min-height:28px;" onclick="showFundCategoryDetail('${type}', ${index})">Xem</button></td>
         </tr>
       `).join('');
+    }
+
+    function renderFundFinancialReportCard(data) {
+      const body = el('fundFinancialReportBody');
+      const note = el('fundFinancialReportNote');
+      if (!body) return;
+
+      const selectedLabel = el('fundOverviewMonthFilter')?.selectedOptions?.[0]?.text || 'Tháng gần nhất';
+      if (note) note.textContent = `Kỳ báo cáo: ${selectedLabel}`;
+
+      const metricMap = {};
+      (data.metrics || []).forEach((item) => {
+        metricMap[item.key] = item;
+      });
+
+      const summaryRows = [
+        ['Số dư đầu kỳ', metricMap.openingBalance?.value, 'normal'],
+        ['Thu trong kỳ', metricMap.periodIncome?.value, 'income'],
+        ['Chi trong kỳ', metricMap.periodExpense?.value, 'expense'],
+        ['Tổng thu-chi', metricMap.periodNet?.value, Number(metricMap.periodNet?.value || 0) >= 0 ? 'income' : 'expense'],
+        ['Số dư cuối kỳ', metricMap.closingBalance?.value, 'income'],
+        ['Số dư hiện tại', metricMap.currentBalance?.value, 'income']
+      ];
+
+      const summaryHtml = summaryRows.map(([label, value, tone]) => `
+        <tr>
+          <td>${escapeHtml(label)}</td>
+          <td class="fund-export-value ${tone}">${formatFundAmount(value || 0, '0')}</td>
+        </tr>
+      `).join('');
+
+      const categoryRowsHtml = (rows, tone) => rows.length ? rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.category || '-')}</td>
+          <td class="fund-export-value ${tone}">${formatFundAmount(row.amount || 0, '0')}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="2" class="fund-export-empty">Không có dữ liệu</td></tr>';
+
+      body.innerHTML = `
+        <div class="fund-export-grid">
+          <section class="fund-export-section">
+            <div class="fund-export-section-title teal">Tổng quan</div>
+            <table class="fund-export-table"><tbody>${summaryHtml}</tbody></table>
+          </section>
+          <section class="fund-export-section">
+            <div class="fund-export-section-title blue">Thu trong kỳ</div>
+            <table class="fund-export-table"><tbody>${categoryRowsHtml(data.incomeCategories || [], 'income')}</tbody></table>
+          </section>
+          <section class="fund-export-section">
+            <div class="fund-export-section-title amber">Tổng chi trong kỳ</div>
+            <table class="fund-export-table"><tbody>${categoryRowsHtml(data.expenseCategories || [], 'expense')}</tbody></table>
+          </section>
+        </div>
+      `;
+    }
+
+    function exportFundFinancialReport(btn) {
+      const card = el('fundFinancialReportCard');
+      const exportBtn = card?.querySelector('[data-fund-export-button]');
+      if (exportBtn) {
+        exportCardAsImage(exportBtn, 'ThuChi');
+      } else if (btn) {
+        exportCardAsImage(btn, 'ThuChi');
+      }
     }
 
     function renderFundDetailRows(details, type) {

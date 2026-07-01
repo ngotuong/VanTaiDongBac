@@ -24,19 +24,15 @@
       holder.appendChild(renderTableCard('Báo cáo tổng quan', filteredOverview, links.overview, 'finance'));
       holder.appendChild(renderTableCard('Báo cáo chi tiết', dashboard.overview.details || [], links.overview, 'details'));
       
-      holder.appendChild(renderTableCard(
-        'Bảng tổng hợp lương nhân sự',
-        reportsByType.payroll?.data || [['Đang tải báo cáo lương...'], ['Vui lòng đợi giây lát.']],
-        links.payroll,
-        'payroll'
-      ));
+      holder.appendChild(reportsByType.payroll?.data
+        ? renderTableCard('Bảng tổng hợp lương nhân sự', reportsByType.payroll.data, links.payroll, 'payroll')
+        : renderReportLoadingCard('Bảng tổng hợp lương nhân sự', 'payroll')
+      );
       
-      holder.appendChild(renderTableCard(
-        'Tổng hợp xe',
-        reportsByType.vehicles?.data || [['Đang tải báo cáo xe...'], ['Vui lòng đợi giây lát.']],
-        links.vehicles,
-        'vehicles'
-      ));
+      holder.appendChild(reportsByType.vehicles?.data
+        ? renderTableCard('Tổng hợp xe', reportsByType.vehicles.data, links.vehicles, 'vehicles')
+        : renderReportLoadingCard('Tổng hợp xe', 'vehicles')
+      );
       
       filterReportCards();
       
@@ -69,6 +65,24 @@
         filterReportRows();
       }
     };
+
+    function renderReportLoadingCard(title, type) {
+      const card = document.createElement('section');
+      card.className = 'table-card';
+      card.dataset.reportType = type;
+      card.innerHTML = `
+        <div class="table-card-head">
+          <div>
+            <div class="table-title">${escapeHtml(title)}</div>
+            <div class="panel-note" style="margin-top: 4px; font-size: 13px;">Đang đồng bộ báo cáo từ Google Sheets.</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="shimmer shimmer-table"></div>
+        </div>
+      `;
+      return card;
+    }
 
     function renderTableCard(title, matrix, href, type) {
       const card = document.createElement('section');

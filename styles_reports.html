@@ -142,6 +142,71 @@
     tr.grand-total-row td.sticky-col {
       background: rgba(13, 148, 136, 0.08) !important;
     }
+
+    .fund-export-card {
+      background: #ffffff;
+    }
+
+    .fund-export-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, 0.9fr) minmax(220px, 1fr) minmax(260px, 1.25fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .fund-export-section {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--paper);
+    }
+
+    .fund-export-section-title {
+      padding: 8px 10px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .fund-export-section-title.teal { background: var(--deep); }
+    .fund-export-section-title.blue { background: #155e75; }
+    .fund-export-section-title.amber { background: #b45309; }
+
+    .fund-export-table {
+      width: 100%;
+      min-width: 0;
+      border-collapse: collapse;
+    }
+
+    .fund-export-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--deep);
+      background: #fff;
+    }
+
+    .fund-export-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .fund-export-value {
+      text-align: right;
+      color: var(--ink) !important;
+      font-weight: 900 !important;
+      white-space: nowrap;
+    }
+
+    .fund-export-value.income { color: var(--green) !important; }
+    .fund-export-value.expense { color: var(--red) !important; }
+    .fund-export-empty {
+      text-align: center;
+      color: var(--muted) !important;
+      font-weight: 700 !important;
+    }
     
     /* Sticky Right Column (Actions) */
     .sticky-col-right {

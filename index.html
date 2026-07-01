@@ -1339,6 +1339,71 @@
     tr.grand-total-row td.sticky-col {
       background: rgba(13, 148, 136, 0.08) !important;
     }
+
+    .fund-export-card {
+      background: #ffffff;
+    }
+
+    .fund-export-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, 0.9fr) minmax(220px, 1fr) minmax(260px, 1.25fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .fund-export-section {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--paper);
+    }
+
+    .fund-export-section-title {
+      padding: 8px 10px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .fund-export-section-title.teal { background: var(--deep); }
+    .fund-export-section-title.blue { background: #155e75; }
+    .fund-export-section-title.amber { background: #b45309; }
+
+    .fund-export-table {
+      width: 100%;
+      min-width: 0;
+      border-collapse: collapse;
+    }
+
+    .fund-export-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--deep);
+      background: #fff;
+    }
+
+    .fund-export-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .fund-export-value {
+      text-align: right;
+      color: var(--ink) !important;
+      font-weight: 900 !important;
+      white-space: nowrap;
+    }
+
+    .fund-export-value.income { color: var(--green) !important; }
+    .fund-export-value.expense { color: var(--red) !important; }
+    .fund-export-empty {
+      text-align: center;
+      color: var(--muted) !important;
+      font-weight: 700 !important;
+    }
     
     /* Sticky Right Column (Actions) */
     .sticky-col-right {
@@ -2125,6 +2190,14 @@
       .fund-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
       .fund-kpi-card { min-height: 88px; padding: 10px; border-radius: var(--radius); }
       .fund-kpi-card .kpi-value { font-size: 16px; margin-bottom: 0; }
+      .fund-export-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .fund-export-table td {
+        font-size: 12.5px;
+        padding: 8px;
+      }
       
       .action-grid { grid-template-columns: 1fr; }
       .form-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -3032,9 +3105,14 @@
                 <h2 class="panel-title">Tổng quan quỹ</h2>
                 <div class="panel-note" id="fundOverviewNote">Tháng gần nhất</div>
               </div>
-              <select id="fundOverviewMonthFilter" style="height: 38px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundOverview(false)">
-                <option value="">Tháng gần nhất</option>
-              </select>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <select id="fundOverviewMonthFilter" style="height: 38px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundOverview(false)">
+                  <option value="">Tháng gần nhất</option>
+                </select>
+                <button type="button" class="sub-tab" title="Xuất ảnh báo cáo thu chi" aria-label="Xuất ảnh báo cáo thu chi" style="min-height:38px !important; width:38px !important; padding:0 !important; border-radius:8px !important; display:inline-flex !important; align-items:center; justify-content:center;" onclick="exportFundFinancialReport(this)">
+                  <svg class="btn-svg" viewBox="0 0 24 24" style="width: 17px; height: 17px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                </button>
+              </div>
             </div>
           </section>
           <div class="fund-kpi-grid" id="fundOverviewMetrics">
@@ -3065,6 +3143,20 @@
               </div>
             </section>
           </div>
+          <section class="table-card fund-export-card" id="fundFinancialReportCard" style="margin-bottom: 20px;">
+            <div class="table-card-head">
+              <div>
+                <div class="table-title">Báo cáo thu chi</div>
+                <div class="panel-note" id="fundFinancialReportNote" style="margin-top: 4px; font-size: 13px;">Kỳ báo cáo</div>
+              </div>
+              <button type="button" class="sub-tab" data-fund-export-button title="Xuất ảnh" aria-label="Xuất ảnh báo cáo thu chi" style="min-height: 32px !important; width: 32px !important; padding: 0 !important; border-radius: 8px !important; display: inline-flex !important; align-items: center; justify-content: center;" onclick="exportCardAsImage(this, 'ThuChi')">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+              </button>
+            </div>
+            <div class="panel-body" id="fundFinancialReportBody">
+              <div class="shimmer shimmer-table"></div>
+            </div>
+          </section>
         </div>
 
         <div data-cashflow-panel="transactions" style="display: none;">
@@ -4072,6 +4164,7 @@
       
       renderFundCategoryRows('fundIncomeCategoryBody', data.incomeCategories || [], 'Thu');
       renderFundCategoryRows('fundExpenseCategoryBody', data.expenseCategories || [], 'Chi');
+      renderFundFinancialReportCard(data);
     }
 
     function renderFundOverviewMonthFilter(months, selectedMonth) {
@@ -4102,6 +4195,70 @@
           <td style="text-align:right;"><button type="button" class="sub-tab" style="min-height:28px;" onclick="showFundCategoryDetail('${type}', ${index})">Xem</button></td>
         </tr>
       `).join('');
+    }
+
+    function renderFundFinancialReportCard(data) {
+      const body = el('fundFinancialReportBody');
+      const note = el('fundFinancialReportNote');
+      if (!body) return;
+
+      const selectedLabel = el('fundOverviewMonthFilter')?.selectedOptions?.[0]?.text || 'Tháng gần nhất';
+      if (note) note.textContent = `Kỳ báo cáo: ${selectedLabel}`;
+
+      const metricMap = {};
+      (data.metrics || []).forEach((item) => {
+        metricMap[item.key] = item;
+      });
+
+      const summaryRows = [
+        ['Số dư đầu kỳ', metricMap.openingBalance?.value, 'normal'],
+        ['Thu trong kỳ', metricMap.periodIncome?.value, 'income'],
+        ['Chi trong kỳ', metricMap.periodExpense?.value, 'expense'],
+        ['Tổng thu-chi', metricMap.periodNet?.value, Number(metricMap.periodNet?.value || 0) >= 0 ? 'income' : 'expense'],
+        ['Số dư cuối kỳ', metricMap.closingBalance?.value, 'income'],
+        ['Số dư hiện tại', metricMap.currentBalance?.value, 'income']
+      ];
+
+      const summaryHtml = summaryRows.map(([label, value, tone]) => `
+        <tr>
+          <td>${escapeHtml(label)}</td>
+          <td class="fund-export-value ${tone}">${formatFundAmount(value || 0, '0')}</td>
+        </tr>
+      `).join('');
+
+      const categoryRowsHtml = (rows, tone) => rows.length ? rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.category || '-')}</td>
+          <td class="fund-export-value ${tone}">${formatFundAmount(row.amount || 0, '0')}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="2" class="fund-export-empty">Không có dữ liệu</td></tr>';
+
+      body.innerHTML = `
+        <div class="fund-export-grid">
+          <section class="fund-export-section">
+            <div class="fund-export-section-title teal">Tổng quan</div>
+            <table class="fund-export-table"><tbody>${summaryHtml}</tbody></table>
+          </section>
+          <section class="fund-export-section">
+            <div class="fund-export-section-title blue">Thu trong kỳ</div>
+            <table class="fund-export-table"><tbody>${categoryRowsHtml(data.incomeCategories || [], 'income')}</tbody></table>
+          </section>
+          <section class="fund-export-section">
+            <div class="fund-export-section-title amber">Tổng chi trong kỳ</div>
+            <table class="fund-export-table"><tbody>${categoryRowsHtml(data.expenseCategories || [], 'expense')}</tbody></table>
+          </section>
+        </div>
+      `;
+    }
+
+    function exportFundFinancialReport(btn) {
+      const card = el('fundFinancialReportCard');
+      const exportBtn = card?.querySelector('[data-fund-export-button]');
+      if (exportBtn) {
+        exportCardAsImage(exportBtn, 'ThuChi');
+      } else if (btn) {
+        exportCardAsImage(btn, 'ThuChi');
+      }
     }
 
     function renderFundDetailRows(details, type) {
@@ -7030,19 +7187,15 @@
       holder.appendChild(renderTableCard('Báo cáo tổng quan', filteredOverview, links.overview, 'finance'));
       holder.appendChild(renderTableCard('Báo cáo chi tiết', dashboard.overview.details || [], links.overview, 'details'));
       
-      holder.appendChild(renderTableCard(
-        'Bảng tổng hợp lương nhân sự',
-        reportsByType.payroll?.data || [['Đang tải báo cáo lương...'], ['Vui lòng đợi giây lát.']],
-        links.payroll,
-        'payroll'
-      ));
+      holder.appendChild(reportsByType.payroll?.data
+        ? renderTableCard('Bảng tổng hợp lương nhân sự', reportsByType.payroll.data, links.payroll, 'payroll')
+        : renderReportLoadingCard('Bảng tổng hợp lương nhân sự', 'payroll')
+      );
       
-      holder.appendChild(renderTableCard(
-        'Tổng hợp xe',
-        reportsByType.vehicles?.data || [['Đang tải báo cáo xe...'], ['Vui lòng đợi giây lát.']],
-        links.vehicles,
-        'vehicles'
-      ));
+      holder.appendChild(reportsByType.vehicles?.data
+        ? renderTableCard('Tổng hợp xe', reportsByType.vehicles.data, links.vehicles, 'vehicles')
+        : renderReportLoadingCard('Tổng hợp xe', 'vehicles')
+      );
       
       filterReportCards();
       
@@ -7075,6 +7228,24 @@
         filterReportRows();
       }
     };
+
+    function renderReportLoadingCard(title, type) {
+      const card = document.createElement('section');
+      card.className = 'table-card';
+      card.dataset.reportType = type;
+      card.innerHTML = `
+        <div class="table-card-head">
+          <div>
+            <div class="table-title">${escapeHtml(title)}</div>
+            <div class="panel-note" style="margin-top: 4px; font-size: 13px;">Đang đồng bộ báo cáo từ Google Sheets.</div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="shimmer shimmer-table"></div>
+        </div>
+      `;
+      return card;
+    }
 
     function renderTableCard(title, matrix, href, type) {
       const card = document.createElement('section');

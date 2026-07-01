@@ -220,12 +220,16 @@
         </tr>
       `).join('');
 
-      const categoryRowsHtml = (rows, tone) => rows.length ? rows.map((row) => `
+      const categoryRowsHtml = (rows, tone, type) => rows.length ? rows.map((row, index) => `
         <tr>
           <td>${escapeHtml(row.category || '-')}</td>
           <td class="fund-export-value ${tone}">${formatFundAmount(row.amount || 0, '0')}</td>
+          <td class="fund-export-action no-export"><button type="button" class="sub-tab" onclick="showFundCategoryDetail('${type}', ${index})">Xem</button></td>
         </tr>
-      `).join('') : '<tr><td colspan="2" class="fund-export-empty">Không có dữ liệu</td></tr>';
+      `).join('') : '<tr><td colspan="3" class="fund-export-empty">Không có dữ liệu</td></tr>';
+
+      const incomeTotal = Number(metricMap.periodIncome?.value || 0);
+      const expenseTotal = Number(metricMap.periodExpense?.value || 0);
 
       body.innerHTML = `
         <div class="fund-export-grid">
@@ -234,12 +238,18 @@
             <table class="fund-export-table"><tbody>${summaryHtml}</tbody></table>
           </section>
           <section class="fund-export-section">
-            <div class="fund-export-section-title blue">Thu trong kỳ</div>
-            <table class="fund-export-table"><tbody>${categoryRowsHtml(data.incomeCategories || [], 'income')}</tbody></table>
+            <div class="fund-export-section-title blue">
+              <span>Thu trong kỳ</span>
+              <small>${formatFundAmount(incomeTotal, '0')}</small>
+            </div>
+            <table class="fund-export-table"><tbody>${categoryRowsHtml(data.incomeCategories || [], 'income', 'Thu')}</tbody></table>
           </section>
           <section class="fund-export-section">
-            <div class="fund-export-section-title amber">Tổng chi trong kỳ</div>
-            <table class="fund-export-table"><tbody>${categoryRowsHtml(data.expenseCategories || [], 'expense')}</tbody></table>
+            <div class="fund-export-section-title amber">
+              <span>Tổng chi trong kỳ</span>
+              <small>${formatFundAmount(expenseTotal, '0')}</small>
+            </div>
+            <table class="fund-export-table"><tbody>${categoryRowsHtml(data.expenseCategories || [], 'expense', 'Chi')}</tbody></table>
           </section>
         </div>
       `;

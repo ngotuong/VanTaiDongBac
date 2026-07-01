@@ -162,12 +162,24 @@
     }
 
     .fund-export-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
       padding: 8px 10px;
       color: #fff;
       font-size: 13px;
       font-weight: 900;
       text-transform: uppercase;
       text-align: center;
+    }
+
+    .fund-export-section-title small {
+      font-size: 12px;
+      font-weight: 900;
+      opacity: 0.95;
+      white-space: nowrap;
     }
 
     .fund-export-section-title.teal { background: var(--deep); }
@@ -202,6 +214,18 @@
 
     .fund-export-value.income { color: var(--green) !important; }
     .fund-export-value.expense { color: var(--red) !important; }
+    .fund-export-action {
+      width: 1%;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .fund-export-action button {
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
     .fund-export-empty {
       text-align: center;
       color: var(--muted) !important;

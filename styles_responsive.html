@@ -421,9 +421,38 @@
         grid-template-columns: 1fr;
         gap: 10px;
       }
+      .fund-export-table,
+      .fund-export-table tbody,
+      .fund-export-table tr {
+        display: table;
+        width: 100%;
+        min-width: 0 !important;
+        table-layout: auto;
+      }
+      .fund-export-table tbody {
+        display: table-row-group;
+      }
+      .fund-export-table tr {
+        display: table-row;
+      }
       .fund-export-table td {
+        display: table-cell !important;
         font-size: 12.5px;
         padding: 8px;
+        text-align: left;
+        vertical-align: middle;
+      }
+      .fund-export-table td::before {
+        content: none !important;
+      }
+      .fund-export-value {
+        text-align: right !important;
+      }
+      .fund-export-action {
+        text-align: right !important;
+      }
+      .fund-export-action button {
+        min-height: 32px;
       }
       
       .action-grid { grid-template-columns: 1fr; }

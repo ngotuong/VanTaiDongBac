@@ -1359,12 +1359,24 @@
     }
 
     .fund-export-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
       padding: 8px 10px;
       color: #fff;
       font-size: 13px;
       font-weight: 900;
       text-transform: uppercase;
       text-align: center;
+    }
+
+    .fund-export-section-title small {
+      font-size: 12px;
+      font-weight: 900;
+      opacity: 0.95;
+      white-space: nowrap;
     }
 
     .fund-export-section-title.teal { background: var(--deep); }
@@ -1399,6 +1411,18 @@
 
     .fund-export-value.income { color: var(--green) !important; }
     .fund-export-value.expense { color: var(--red) !important; }
+    .fund-export-action {
+      width: 1%;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .fund-export-action button {
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
     .fund-export-empty {
       text-align: center;
       color: var(--muted) !important;
@@ -2194,9 +2218,38 @@
         grid-template-columns: 1fr;
         gap: 10px;
       }
+      .fund-export-table,
+      .fund-export-table tbody,
+      .fund-export-table tr {
+        display: table;
+        width: 100%;
+        min-width: 0 !important;
+        table-layout: auto;
+      }
+      .fund-export-table tbody {
+        display: table-row-group;
+      }
+      .fund-export-table tr {
+        display: table-row;
+      }
       .fund-export-table td {
+        display: table-cell !important;
         font-size: 12.5px;
         padding: 8px;
+        text-align: left;
+        vertical-align: middle;
+      }
+      .fund-export-table td::before {
+        content: none !important;
+      }
+      .fund-export-value {
+        text-align: right !important;
+      }
+      .fund-export-action {
+        text-align: right !important;
+      }
+      .fund-export-action button {
+        min-height: 32px;
       }
       
       .action-grid { grid-template-columns: 1fr; }
@@ -3123,7 +3176,7 @@
             <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
             <article class="kpi-card"><div class="shimmer shimmer-text"></div><div class="shimmer shimmer-value"></div></article>
           </div>
-          <div class="grid-2" style="align-items: start; margin-bottom: 20px;">
+          <div class="grid-2 fund-category-source-grid" style="align-items: start; margin-bottom: 20px; display: none;">
             <section class="table-card">
               <div class="table-card-head"><div class="table-title">Hạng mục thu trong kỳ</div></div>
               <div class="table-wrap">
@@ -4226,12 +4279,16 @@
         </tr>
       `).join('');
 
-      const categoryRowsHtml = (rows, tone) => rows.length ? rows.map((row) => `
+      const categoryRowsHtml = (rows, tone, type) => rows.length ? rows.map((row, index) => `
         <tr>
           <td>${escapeHtml(row.category || '-')}</td>
           <td class="fund-export-value ${tone}">${formatFundAmount(row.amount || 0, '0')}</td>
+          <td class="fund-export-action no-export"><button type="button" class="sub-tab" onclick="showFundCategoryDetail('${type}', ${index})">Xem</button></td>
         </tr>
-      `).join('') : '<tr><td colspan="2" class="fund-export-empty">Không có dữ liệu</td></tr>';
+      `).join('') : '<tr><td colspan="3" class="fund-export-empty">Không có dữ liệu</td></tr>';
+
+      const incomeTotal = Number(metricMap.periodIncome?.value || 0);
+      const expenseTotal = Number(metricMap.periodExpense?.value || 0);
 
       body.innerHTML = `
         <div class="fund-export-grid">
@@ -4240,12 +4297,18 @@
             <table class="fund-export-table"><tbody>${summaryHtml}</tbody></table>
           </section>
           <section class="fund-export-section">
-            <div class="fund-export-section-title blue">Thu trong kỳ</div>
-            <table class="fund-export-table"><tbody>${categoryRowsHtml(data.incomeCategories || [], 'income')}</tbody></table>
+            <div class="fund-export-section-title blue">
+              <span>Thu trong kỳ</span>
+              <small>${formatFundAmount(incomeTotal, '0')}</small>
+            </div>
+            <table class="fund-export-table"><tbody>${categoryRowsHtml(data.incomeCategories || [], 'income', 'Thu')}</tbody></table>
           </section>
           <section class="fund-export-section">
-            <div class="fund-export-section-title amber">Tổng chi trong kỳ</div>
-            <table class="fund-export-table"><tbody>${categoryRowsHtml(data.expenseCategories || [], 'expense')}</tbody></table>
+            <div class="fund-export-section-title amber">
+              <span>Tổng chi trong kỳ</span>
+              <small>${formatFundAmount(expenseTotal, '0')}</small>
+            </div>
+            <table class="fund-export-table"><tbody>${categoryRowsHtml(data.expenseCategories || [], 'expense', 'Chi')}</tbody></table>
           </section>
         </div>
       `;
@@ -6388,8 +6451,11 @@
       return html2CanvasLoader;
     }
 
-    function restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions) {
+    function restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions, noExportEls, originalNoExportDisplays) {
       headActions.forEach(el => el.style.visibility = 'visible');
+      noExportEls.forEach((el, index) => {
+        el.style.display = originalNoExportDisplays[index] || '';
+      });
       card.style.width = originalCardStyleWidth;
       if (tableWrap) {
         if (originalWrapStyle !== null) {
@@ -6427,6 +6493,12 @@
       
       const headActions = card.querySelectorAll('.table-card-head a, .table-card-head button');
       headActions.forEach(el => el.style.visibility = 'hidden');
+      const noExportEls = card.querySelectorAll('.no-export');
+      const originalNoExportDisplays = [];
+      noExportEls.forEach(el => {
+        originalNoExportDisplays.push(el.style.display);
+        el.style.display = 'none';
+      });
       
       const tableWrap = card.querySelector('.table-wrap');
       const table = card.querySelector('table');
@@ -6462,7 +6534,7 @@
           logging: false
         }))
         .then((canvas) => {
-          restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions);
+          restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions, noExportEls, originalNoExportDisplays);
           const link = document.createElement('a');
           const filename = `BaoCao_${type}_${new Date().toISOString().slice(0, 10)}.png`;
           link.download = filename;
@@ -6472,7 +6544,7 @@
         .catch((err) => {
           console.error('Chụp ảnh thất bại:', err);
           alert('Lỗi xuất ảnh: ' + err.message);
-          restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions);
+          restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions, noExportEls, originalNoExportDisplays);
         });
     }
 </script>

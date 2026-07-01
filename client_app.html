@@ -179,8 +179,11 @@
       return html2CanvasLoader;
     }
 
-    function restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions) {
+    function restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions, noExportEls, originalNoExportDisplays) {
       headActions.forEach(el => el.style.visibility = 'visible');
+      noExportEls.forEach((el, index) => {
+        el.style.display = originalNoExportDisplays[index] || '';
+      });
       card.style.width = originalCardStyleWidth;
       if (tableWrap) {
         if (originalWrapStyle !== null) {
@@ -218,6 +221,12 @@
       
       const headActions = card.querySelectorAll('.table-card-head a, .table-card-head button');
       headActions.forEach(el => el.style.visibility = 'hidden');
+      const noExportEls = card.querySelectorAll('.no-export');
+      const originalNoExportDisplays = [];
+      noExportEls.forEach(el => {
+        originalNoExportDisplays.push(el.style.display);
+        el.style.display = 'none';
+      });
       
       const tableWrap = card.querySelector('.table-wrap');
       const table = card.querySelector('table');
@@ -253,7 +262,7 @@
           logging: false
         }))
         .then((canvas) => {
-          restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions);
+          restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions, noExportEls, originalNoExportDisplays);
           const link = document.createElement('a');
           const filename = `BaoCao_${type}_${new Date().toISOString().slice(0, 10)}.png`;
           link.download = filename;
@@ -263,7 +272,7 @@
         .catch((err) => {
           console.error('Chụp ảnh thất bại:', err);
           alert('Lỗi xuất ảnh: ' + err.message);
-          restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions);
+          restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions, noExportEls, originalNoExportDisplays);
         });
     }
 </script>

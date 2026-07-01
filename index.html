@@ -3537,11 +3537,12 @@
       });
     }
 
-    function invalidateReportSessionCache() {
+    function invalidateReportSessionCache(options) {
+      options = options || {};
       reportCacheEpoch += 1;
       reportBundlePrefetching = false;
       removeSessionKeysByPrefix('eb_report_bundle_');
-      removeSessionKeysByPrefix('eb_catalogs_');
+      if (options.catalogs) removeSessionKeysByPrefix('eb_catalogs_');
       sessionStorage.removeItem('eb_dashboard_v3');
       sessionStorage.removeItem('eb_startup_data');
     }
@@ -4092,14 +4093,18 @@
         <tr>
           <td>${index + 1}</td>
           <td>${escapeHtml(row.value || '')}</td>
-          <td>${escapeHtml(row.note || '')}</td>
+          <td>${row.source === 'fallback'
+            ? '<span class="preview-badge info" style="margin-top:0;">Từ dữ liệu hiện có</span>'
+            : escapeHtml(row.note || '')}</td>
           <td style="text-align:right; white-space:nowrap;">
-            <button type="button" class="btn-table-action edit" title="Sửa" style="margin-right: 4px;" onclick="openFundCatalogEdit(${row.rowIndex}, decodeURIComponent('${encodeURIComponent(row.value || '')}'), decodeURIComponent('${encodeURIComponent(row.note || '')}'))">
+            ${row.source === 'fallback' ? '' : `
+            <button type="button" class="btn-table-action edit" title="Sửa" aria-label="Sửa dòng" style="margin-right: 4px;" onclick="openFundCatalogEdit(${row.rowIndex}, decodeURIComponent('${encodeURIComponent(row.value || '')}'), decodeURIComponent('${encodeURIComponent(row.note || '')}'))">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
             </button>
-            <button type="button" class="btn-table-action delete" title="Xóa" onclick="deleteFundCatalogItem(${row.rowIndex})">
+            <button type="button" class="btn-table-action delete" title="Xóa" aria-label="Xóa dòng" onclick="deleteFundCatalogItem(${row.rowIndex})">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
             </button>
+            `}
           </td>
         </tr>
       `).join('');
@@ -4525,7 +4530,7 @@
       const notice = el('fundTransactionsNotice');
       const monthFilter = el('fundMonthFilter');
       const pager = el('fundTransactionsPager');
-      if (!tableBody || !empty || !notice || !monthFilter) return;
+      if (!tableBody || !empty || !notice || !monthFilter) return Promise.resolve();
 
       tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; color: var(--muted); padding: 24px;">Đang tải dữ liệu thu chi...</td></tr>';
       empty.style.display = 'none';
@@ -4534,7 +4539,7 @@
       notice.style.display = 'none';
 
       const selectedMonth = monthFilter.value || '';
-      callApi('GET', 'getFundTransactions', {
+      return callApi('GET', 'getFundTransactions', {
         year: '2026',
         month: selectedMonth,
         limit: 500,
@@ -4550,6 +4555,7 @@
           tableBody.innerHTML = '';
           empty.style.display = 'block';
           empty.textContent = 'Không thể tải dữ liệu thu chi: ' + err.message;
+          throw err;
         });
     }
 
@@ -5673,7 +5679,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.9_mobile_ux';
+      const APP_VERSION = 'v3.10_lazy_tables_fund_catalog';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -5790,16 +5796,18 @@
         renderFormTabs();
         renderEntry();
         loadCatalogs(activeForm);
+        loadManageSheetData();
         loadAllCatalogsIfNeeded(() => {
-          loadManageSheetData();
+          if (currentManageData && activeView === 'manage') renderManageTable();
         });
       }
       if (view === 'reports') {
         loadReportBundle(false);
       }
       if (view === 'catalog') {
+        loadCatalogSheetData();
         loadAllCatalogsIfNeeded(() => {
-          loadCatalogSheetData();
+          if (currentCatalogData && activeView === 'catalog') renderCatalogTable();
         });
       }
       if (view === 'cashflow') {
@@ -7750,35 +7758,34 @@
     function refreshReports(showMessage = true) {
       if (showMessage) showSyncToast('Đang cập nhật dữ liệu từ Google Sheets...', 'info', true);
       invalidateReportSessionCache();
-      catalogsByForm = {};
       setRefreshBusy(true);
+      if (activeView === 'manage') {
+        loadManageSheetData()
+          .then(() => showMessage && showSyncToast('Đã cập nhật Vận hành.'))
+          .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
+          .finally(() => setRefreshBusy(false));
+        return;
+      }
+      if (activeView === 'catalog') {
+        loadCatalogSheetData()
+          .then(() => showMessage && showSyncToast('Đã cập nhật Danh mục.'))
+          .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
+          .finally(() => setRefreshBusy(false));
+        return;
+      }
+      if (activeView === 'cashflow') {
+        const loaders = [];
+        if (activeCashflowTab === 'overview') loaders.push(loadFundOverview(true));
+        if (activeCashflowTab === 'transactions') loaders.push(loadFundTransactions(true));
+        if (activeCashflowTab === 'loans') loaders.push(loadFundLoanOverview(true));
+        if (activeCashflowTab === 'catalog') loaders.push(loadFundCatalog(true));
+        Promise.all(loaders.length ? loaders : [loadFundOverview(true)])
+          .then(() => showMessage && showSyncToast('Đã cập nhật Quỹ.'))
+          .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
+          .finally(() => setRefreshBusy(false));
+        return;
+      }
       invalidateServerCaches().then(() => {
-        if (activeView === 'manage') {
-          loadAllCatalogsIfNeeded(() => {
-            loadManageSheetData()
-              .then(() => showMessage && showSyncToast('Đã cập nhật Vận hành.'))
-              .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
-              .finally(() => setRefreshBusy(false));
-          });
-          return;
-        }
-        if (activeView === 'catalog') {
-          loadAllCatalogsIfNeeded(() => {
-            loadCatalogSheetData()
-              .then(() => showMessage && showSyncToast('Đã cập nhật Danh mục.'))
-              .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
-              .finally(() => setRefreshBusy(false));
-          });
-          return;
-        }
-        if (activeView === 'cashflow') {
-          if (activeCashflowTab === 'overview') loadFundOverview(true);
-          if (activeCashflowTab === 'transactions') loadFundTransactions(true);
-          if (activeCashflowTab === 'loans') loadFundLoanOverview(true);
-          setRefreshBusy(false);
-          showSyncToast('Đã gửi yêu cầu cập nhật Quỹ.');
-          return;
-        }
         if (activeView === 'reports') {
           loadReportBundle(true)
             .then(() => showMessage && showSyncToast('Đã cập nhật Báo cáo.'))

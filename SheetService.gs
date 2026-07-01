@@ -925,8 +925,19 @@ var SheetService = (function () {
   }
 
   function getLastNonEmptyRowInColumn_(sheet, column, minRow, useCache) {
+    var cacheKey = useCache ? cacheKey_('lastrow', sheet.getName(), column, minRow, getReportDataVersion_()) : '';
+    if (cacheKey) {
+      var cached = CacheService.getScriptCache().get(cacheKey);
+      if (cached !== null) {
+        var cachedRow = parseInt(cached, 10);
+        if (!isNaN(cachedRow)) return cachedRow;
+      }
+    }
     var lastRow = sheet.getLastRow();
-    if (lastRow < minRow) return minRow - 1;
+    if (lastRow < minRow) {
+      if (cacheKey) CacheService.getScriptCache().put(cacheKey, String(minRow - 1), 300);
+      return minRow - 1;
+    }
     var chunkSize = 1000;
     for (var endRow = lastRow; endRow >= minRow; endRow -= chunkSize) {
       var startRow = Math.max(minRow, endRow - chunkSize + 1);
@@ -934,10 +945,12 @@ var SheetService = (function () {
       for (var i = values.length - 1; i >= 0; i--) {
         var val = values[i][0];
         if (val !== '' && val !== null && val !== undefined) {
+          if (cacheKey) CacheService.getScriptCache().put(cacheKey, String(startRow + i), 300);
           return startRow + i;
         }
       }
     }
+    if (cacheKey) CacheService.getScriptCache().put(cacheKey, String(minRow - 1), 300);
     return minRow - 1;
   }
 
@@ -1262,6 +1275,9 @@ var SheetService = (function () {
       var headers = [];
       var rows = [];
       var rowLimit = Math.max(1, Math.min(parseInt(limit, 10) || 10, 500));
+      var responseCacheKey = cacheKey_('read_sheet', sheetName, startDateStr || '', endDateStr || '', rowLimit, getReportDataVersion_());
+      var responseCached = getChunkedCache_(responseCacheKey);
+      if (responseCached) return responseCached;
 
       if (lastCol > 0) {
         var rawHeaders = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0].map(function (h) {
@@ -1374,12 +1390,14 @@ var SheetService = (function () {
         rows.reverse();
       }
 
-      return {
+      var result = {
         ok: true,
         headers: headers,
         rows: rows,
         isLimited: isLimited
       };
+      putChunkedCache_(responseCacheKey, result, 60);
+      return result;
     } catch (e) {
       return { ok: false, error: e.message };
     }

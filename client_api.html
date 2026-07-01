@@ -145,11 +145,12 @@
       });
     }
 
-    function invalidateReportSessionCache() {
+    function invalidateReportSessionCache(options) {
+      options = options || {};
       reportCacheEpoch += 1;
       reportBundlePrefetching = false;
       removeSessionKeysByPrefix('eb_report_bundle_');
-      removeSessionKeysByPrefix('eb_catalogs_');
+      if (options.catalogs) removeSessionKeysByPrefix('eb_catalogs_');
       sessionStorage.removeItem('eb_dashboard_v3');
       sessionStorage.removeItem('eb_startup_data');
     }

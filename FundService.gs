@@ -1,5 +1,5 @@
 var FundService = (function () {
-  var FUND_CACHE_VERSION = 'fund_v1';
+  var FUND_CACHE_VERSION = 'fund_v2';
   var FUND_TTL_SECONDS = 300;
   var FUND_CATALOG_TTL_SECONDS = 21600;
   var FUND_DATA_VERSION_PROP = 'FUND_DATA_VERSION_V1';
@@ -306,13 +306,23 @@ var FundService = (function () {
     var catalogSheet = ensureFundCatalogSheet_(ss);
     var rows = readFundCatalogRows_(catalogSheet);
     var normalizedGroup = normalizeFundCatalogGroup_(group);
+    var fallbackRows = normalizedGroup ? getFallbackFundCatalogRows_(ss, normalizedGroup, rows) : [];
+    var displayRows = normalizedGroup
+      ? rows.filter(function (row) { return row.groupKey === normalizedGroup; }).concat(fallbackRows)
+      : rows.concat(fallbackRows);
     var groups = getFundCatalogGroupSummary_(rows);
+    groups = groups.map(function (item) {
+      if (item.key === normalizedGroup && fallbackRows.length) {
+        return Object.assign({}, item, { count: item.count + fallbackRows.length, fallbackCount: fallbackRows.length });
+      }
+      return item;
+    });
     var result = {
       ok: true,
       sheetName: CATALOG_SHEET_NAME,
       groups: groups,
       selectedGroup: normalizedGroup,
-      rows: normalizedGroup ? rows.filter(function (row) { return row.groupKey === normalizedGroup; }) : rows
+      rows: displayRows
     };
     putFundCache_(catalogCacheKey, result, FUND_CATALOG_TTL_SECONDS);
     return result;
@@ -672,6 +682,40 @@ var FundService = (function () {
       grouped[key] = uniqueValues_(grouped[key]);
     });
     return grouped;
+  }
+
+  function getFallbackFundCatalogRows_(ss, groupKey, existingRows) {
+    var existing = {};
+    (existingRows || []).forEach(function (row) {
+      if (row.groupKey === groupKey) existing[normalizeHeader_(row.value)] = true;
+    });
+    var values = [];
+    var settings = null;
+    if (groupKey === 'incomeCategories') {
+      settings = readFundSettings_(ss);
+      values = getFallbackFundIncomeCategories_(ss, settings);
+    } else if (groupKey === 'expenseCategories') {
+      values = getFallbackFundExpenseCategories_(ss);
+    } else if (groupKey === 'actors') {
+      values = getFallbackFundActors_(ss);
+    } else if (groupKey === 'partners') {
+      values = getFallbackFundPartners_(ss);
+    } else if (groupKey === 'loanPartners') {
+      values = getFallbackFundLoanPartners_(ss);
+    }
+    return uniqueValues_(values)
+      .filter(function (value) { return !existing[normalizeHeader_(value)]; })
+      .map(function (value, index) {
+        return {
+          rowIndex: '',
+          group: getFundCatalogGroupLabel_(groupKey),
+          groupKey: groupKey,
+          value: value,
+          note: 'Tự đọc từ dữ liệu hiện có',
+          source: 'fallback',
+          fallbackIndex: index + 1
+        };
+      });
   }
 
   function readFundSettings_(ss) {

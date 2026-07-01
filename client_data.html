@@ -378,35 +378,34 @@
     function refreshReports(showMessage = true) {
       if (showMessage) showSyncToast('Đang cập nhật dữ liệu từ Google Sheets...', 'info', true);
       invalidateReportSessionCache();
-      catalogsByForm = {};
       setRefreshBusy(true);
+      if (activeView === 'manage') {
+        loadManageSheetData()
+          .then(() => showMessage && showSyncToast('Đã cập nhật Vận hành.'))
+          .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
+          .finally(() => setRefreshBusy(false));
+        return;
+      }
+      if (activeView === 'catalog') {
+        loadCatalogSheetData()
+          .then(() => showMessage && showSyncToast('Đã cập nhật Danh mục.'))
+          .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
+          .finally(() => setRefreshBusy(false));
+        return;
+      }
+      if (activeView === 'cashflow') {
+        const loaders = [];
+        if (activeCashflowTab === 'overview') loaders.push(loadFundOverview(true));
+        if (activeCashflowTab === 'transactions') loaders.push(loadFundTransactions(true));
+        if (activeCashflowTab === 'loans') loaders.push(loadFundLoanOverview(true));
+        if (activeCashflowTab === 'catalog') loaders.push(loadFundCatalog(true));
+        Promise.all(loaders.length ? loaders : [loadFundOverview(true)])
+          .then(() => showMessage && showSyncToast('Đã cập nhật Quỹ.'))
+          .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
+          .finally(() => setRefreshBusy(false));
+        return;
+      }
       invalidateServerCaches().then(() => {
-        if (activeView === 'manage') {
-          loadAllCatalogsIfNeeded(() => {
-            loadManageSheetData()
-              .then(() => showMessage && showSyncToast('Đã cập nhật Vận hành.'))
-              .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
-              .finally(() => setRefreshBusy(false));
-          });
-          return;
-        }
-        if (activeView === 'catalog') {
-          loadAllCatalogsIfNeeded(() => {
-            loadCatalogSheetData()
-              .then(() => showMessage && showSyncToast('Đã cập nhật Danh mục.'))
-              .catch((err) => showMessage && showSyncToast(err.message || String(err), 'error'))
-              .finally(() => setRefreshBusy(false));
-          });
-          return;
-        }
-        if (activeView === 'cashflow') {
-          if (activeCashflowTab === 'overview') loadFundOverview(true);
-          if (activeCashflowTab === 'transactions') loadFundTransactions(true);
-          if (activeCashflowTab === 'loans') loadFundLoanOverview(true);
-          setRefreshBusy(false);
-          showSyncToast('Đã gửi yêu cầu cập nhật Quỹ.');
-          return;
-        }
         if (activeView === 'reports') {
           loadReportBundle(true)
             .then(() => showMessage && showSyncToast('Đã cập nhật Báo cáo.'))

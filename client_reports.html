@@ -165,7 +165,7 @@
       }
       
       card.innerHTML = `
-        <div class="table-card-head report-table-head" style="align-items: flex-start;">
+        <div class="table-card-head report-table-head">
           <div>
             <div class="table-title">${escapeHtml(displayTitle)}</div>
             ${displayMonth ? `<div class="panel-note" style="margin-top: 4px; font-weight: 500; font-size: 13px; color: var(--muted);">${escapeHtml(displayMonth)}</div>` : ''}
@@ -181,7 +181,7 @@
           </div>
         </div>
         <div class="table-wrap">
-          <table>
+          <table class="report-data-table report-data-table-${escapeHtml(type)}">
             <thead><tr>${head.map((cell, idx) => {
               const sticky = getStickyStyles(idx);
               const className = sticky.isSticky ? 'class="sticky-col"' : '';
@@ -225,9 +225,9 @@
                 // Color formatting based on content / headers
                 if (type === 'details') {
                   if (i === 0) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 700'); // Danh mục in đậm
+                    styleRules.push('color: var(--ink)', 'font-weight: 800', 'font-size: 13px !important', 'line-height: 1.25'); // Danh mục rõ hơn nhưng vẫn giữ dòng thấp
                   } else if (colLower.includes('giải thích') || colLower.includes('nội dung') || i === 4) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 400 !important', 'font-size: 12.5px !important', 'line-height: 1.35'); // Cột Giải thích gọn hơn trên mobile
+                    styleRules.push('color: var(--ink)', 'font-weight: 500 !important', 'font-size: 12px !important', 'line-height: 1.28', 'white-space: nowrap'); // Cột Giải thích gọn hơn trên mobile
                   } else {
                     const cat = String(row[0] || '').toLowerCase().trim();
                     const numVal = parseCellValue(val);
@@ -312,15 +312,13 @@
     function renderVehicleTableFilterControls(filters) {
       return `
         <div class="vehicle-volume-filters vehicle-summary-filters">
-          <label class="compact-filter">
-            <span>Công ty</span>
+          <label class="compact-filter compact-filter-inline">
             <select class="report-vehicle-filter" data-filter="company" onchange="filterReportRows()">
               <option value="">Tất cả công ty</option>
               ${filters.companies.map((company) => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('')}
             </select>
           </label>
-          <label class="compact-filter">
-            <span>Biển số</span>
+          <label class="compact-filter compact-filter-inline">
             <select class="report-vehicle-filter" data-filter="plate" onchange="filterReportRows()">
               <option value="">Tất cả xe</option>
               ${filters.plates.map((plate) => `<option value="${escapeHtml(plate)}">${escapeHtml(plate)}</option>`).join('')}

@@ -2,7 +2,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.14_report_filters_date_polish';
+      const APP_VERSION = 'v3.15_report_mobile_balance';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -141,6 +141,13 @@
       }
     }
 
+    function getLatestDataUpdateText() {
+      const dashboardUpdatedAt = getDashboardData()?.updatedAt;
+      const reportUpdatedAt = appData?.reports?.updatedAt;
+      const fallback = dashboardUpdatedAt || reportUpdatedAt || '';
+      return `Dữ liệu cập nhật: ${fallback || 'Vui lòng chờ...'}`;
+    }
+
     function renderView() {
       document.querySelectorAll('[data-view]').forEach((button) => {
         button.classList.toggle('active', button.dataset.view === activeView);
@@ -151,12 +158,12 @@
       });
       
       const meta = {
-        home: ['Tổng quan', 'Kết quả kinh doanh', `Dữ liệu cập nhật: ${getDashboardData()?.updatedAt || 'Vui lòng chờ...'}`],
-        reports: ['Báo cáo', 'Tổng hợp chi tiết', 'Tổng hợp các hạng mục báo cáo.'],
-        manage: ['Vận hành', 'Nhập & quản lý vận hành', 'Nhập nhanh, xem, lọc, sửa hoặc xóa nhật ký vận hành.'],
-        catalog: ['Danh mục', 'Quản lý danh mục hệ thống', 'Xem, tìm kiếm, thêm mới, sửa hoặc xóa danh mục gốc.'],
-        cashflow: ['Quỹ', 'Quản lý quỹ', 'Theo dõi thu chi, số dư và khoản vay.'],
-        settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', 'Tối ưu hóa chạy webapp như ứng dụng thực tế.']
+        home: ['Tổng quan', 'Kết quả kinh doanh', getLatestDataUpdateText()],
+        reports: ['Báo cáo', 'Tổng hợp chi tiết', getLatestDataUpdateText()],
+        manage: ['Vận hành', 'Nhập & quản lý vận hành', getLatestDataUpdateText()],
+        catalog: ['Danh mục', 'Quản lý danh mục hệ thống', getLatestDataUpdateText()],
+        cashflow: ['Quỹ', 'Quản lý quỹ', getLatestDataUpdateText()],
+        settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', getLatestDataUpdateText()]
       }[activeView];
       
       el('eyebrow').textContent = meta[0];

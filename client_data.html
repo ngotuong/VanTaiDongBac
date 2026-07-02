@@ -352,6 +352,7 @@
           appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt, loading: false };
           appData.reports = { ...appData.reports, ...appData.dashboard, loading: false };
           
+          renderView();
           renderReports();
           scheduleReportBundlePrefetch();
           return Promise.resolve(bundle);
@@ -371,6 +372,7 @@
           
           sessionStorage.setItem(cacheKey, JSON.stringify(bundle));
           
+          renderView();
           renderReports();
           scheduleReportBundlePrefetch();
           return bundle;

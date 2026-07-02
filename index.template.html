@@ -190,7 +190,7 @@
 
       <!-- View: Detailed Reports -->
       <section id="reportsView" class="view">
-        <section class="panel" style="margin-bottom: 20px;">
+        <section class="panel report-filter-panel app-sticky-toolbar" style="margin-bottom: 20px;">
           <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
             <div>
               <h2 class="panel-title">Tùy chọn hiển thị báo cáo</h2>
@@ -204,7 +204,7 @@
         </section>
 
         <!-- Sub-tabs to switch report subcategories -->
-        <div class="sub-tabs-bar" id="reportTabsBar">
+        <div class="sub-tabs-bar app-sticky-tabs sticky-after-toolbar" id="reportTabsBar">
           <button type="button" class="sub-tab active" data-report-tab="all" onclick="setReportTab('all')">Tất cả báo cáo</button>
           <button type="button" class="sub-tab" data-report-tab="finance" onclick="setReportTab('finance')">Báo cáo tổng quan</button>
           <button type="button" class="sub-tab" data-report-tab="details" onclick="setReportTab('details')">Báo cáo chi tiết</button>
@@ -260,7 +260,7 @@
         </div>
 
         <!-- Nút trượt ngang chọn Nhật ký -->
-        <div class="sub-tabs-bar" id="manageTabsBar" style="width: 100%; margin-bottom: 12px;">
+        <div class="sub-tabs-bar app-sticky-tabs" id="manageTabsBar" style="width: 100%; margin-bottom: 12px;">
           <button type="button" class="sub-tab active" data-sheet="NL_VanChuyen" onclick="setManageSheetTab('NL_VanChuyen')">Vận chuyển</button>
           <button type="button" class="sub-tab" data-sheet="NL_TaiXe" onclick="setManageSheetTab('NL_TaiXe')">Tài xế</button>
           <button type="button" class="sub-tab" data-sheet="NL_Dau" onclick="setManageSheetTab('NL_Dau')">Xăng dầu</button>
@@ -288,7 +288,7 @@
           </button>
         </div>
 
-        <div class="filter-bar" style="margin-bottom: 16px;">
+        <div class="filter-bar app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
               <label class="manage-period-filter" style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; min-width: 145px;">
@@ -384,7 +384,7 @@
       <!-- View: Catalog Management (System Category CRUD) -->
       <section id="catalogView" class="view">
         <!-- Nút trượt ngang chọn Danh mục -->
-        <div class="sub-tabs-bar" id="catalogTabsBar" style="width: 100%; margin-bottom: 12px;">
+        <div class="sub-tabs-bar app-sticky-tabs" id="catalogTabsBar" style="width: 100%; margin-bottom: 12px;">
           <button type="button" class="sub-tab active" data-sheet="DM_NhanSu" onclick="setCatalogSheetTab('DM_NhanSu')">Nhân sự</button>
           <button type="button" class="sub-tab" data-sheet="DM_Xe" onclick="setCatalogSheetTab('DM_Xe')">Danh sách xe</button>
           <button type="button" class="sub-tab" data-sheet="DM_DuAn" onclick="setCatalogSheetTab('DM_DuAn')">Dự án & Cự ly</button>
@@ -397,7 +397,7 @@
         </div>
         <input type="hidden" id="catalogSheetSelect" value="DM_NhanSu">
 
-        <div class="filter-bar catalog-sticky-toolbar" style="margin-bottom: 16px;">
+        <div class="filter-bar catalog-sticky-toolbar app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
               <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; max-width: 400px; width: 100%;">
@@ -437,7 +437,7 @@
 
       <!-- View: Cashflow Module Placeholder -->
       <section id="cashflowView" class="view">
-        <div class="sub-tabs-bar" style="width: 100%; margin-bottom: 12px;">
+        <div class="sub-tabs-bar app-sticky-tabs" style="width: 100%; margin-bottom: 12px;">
           <button type="button" class="sub-tab active" data-cashflow-tab="overview" onclick="setCashflowTab('overview')">Tổng quan</button>
           <button type="button" class="sub-tab" data-cashflow-tab="transactions" onclick="setCashflowTab('transactions')">Danh sách thu chi</button>
           <button type="button" class="sub-tab" data-cashflow-tab="loans" onclick="setCashflowTab('loans')">Khoản vay</button>
@@ -445,7 +445,7 @@
         </div>
 
         <div data-cashflow-panel="overview">
-          <section class="panel" style="margin-bottom: 16px;">
+          <section class="panel app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
             <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; gap: 12px; padding: 16px 20px;">
               <div>
                 <h2 class="panel-title">Tổng quan quỹ</h2>
@@ -506,7 +506,7 @@
         </div>
 
         <div data-cashflow-panel="transactions" style="display: none;">
-          <section class="panel" style="margin-bottom: 16px;">
+          <section class="panel app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
             <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; gap: 12px; padding: 16px 20px;">
               <div>
                 <h2 class="panel-title" style="margin: 0;">Danh sách thu chi</h2>
@@ -559,7 +559,7 @@
 
 
         <div data-cashflow-panel="loans" style="display: none;">
-          <section class="panel" style="margin-bottom: 16px;">
+          <section class="panel app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
             <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; gap: 12px; padding: 16px 20px;">
               <div>
                 <h2 class="panel-title">Khoản vay</h2>

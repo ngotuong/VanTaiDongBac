@@ -1323,6 +1323,38 @@
       cursor: pointer;
     }
 
+    .app-sticky-toolbar,
+    .app-sticky-tabs {
+      position: sticky;
+      top: calc(8px + env(safe-area-inset-top, 0px));
+      z-index: 30;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.10);
+      backdrop-filter: blur(16px);
+    }
+
+    .app-sticky-toolbar {
+      padding: 10px;
+      border-radius: 16px;
+    }
+
+    .app-sticky-tabs {
+      padding: 8px 6px;
+      border-radius: 16px;
+    }
+
+    .app-sticky-toolbar.sticky-after-tabs,
+    .catalog-sticky-toolbar.sticky-after-tabs {
+      top: calc(62px + env(safe-area-inset-top, 0px));
+      z-index: 29;
+    }
+
+    .app-sticky-tabs.sticky-after-toolbar {
+      top: calc(96px + env(safe-area-inset-top, 0px));
+      z-index: 29;
+    }
+
     .fund-loan-summary-head,
     .vehicle-volume-head {
       gap: 12px;
@@ -1340,16 +1372,25 @@
     .report-table-head {
       gap: 12px;
       flex-wrap: wrap;
+      align-items: center;
     }
 
     .report-card-actions {
+      margin-left: auto;
       flex-wrap: wrap;
       justify-content: flex-end;
     }
 
     .vehicle-summary-filters {
-      order: -1;
       width: auto;
+      margin-left: auto;
+      flex-wrap: nowrap;
+    }
+
+    .vehicle-summary-filters .compact-filter select {
+      min-width: 132px;
+      max-width: 160px;
+      font-size: 12.5px;
     }
 
     .fund-catalog-head {
@@ -1450,6 +1491,32 @@
       text-align: left;
       white-space: nowrap;
       font-size: 13px;
+    }
+
+    .report-data-table-details th,
+    .report-data-table-details td {
+      padding: 7px 10px;
+    }
+
+    .report-data-table-details th {
+      font-size: 11.5px;
+      letter-spacing: 0.2px;
+    }
+
+    .report-data-table-details td {
+      font-size: 12.5px;
+      line-height: 1.25;
+    }
+
+    .report-data-table-details td:nth-child(1) {
+      min-width: 148px;
+    }
+
+    .report-data-table-details td:nth-child(3),
+    .report-data-table-details th:nth-child(3) {
+      min-width: 220px;
+      max-width: 320px;
+      white-space: nowrap;
     }
     
     th { 
@@ -2474,8 +2541,88 @@
         max-width: none;
         width: 100%;
         min-height: 44px;
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 500;
+      }
+
+      .app-sticky-toolbar,
+      .app-sticky-tabs {
+        top: calc(8px + env(safe-area-inset-top, 0px));
+        z-index: 32;
+        margin-left: -2px !important;
+        margin-right: -2px !important;
+      }
+
+      .app-sticky-tabs {
+        margin-bottom: 12px !important;
+      }
+
+      .app-sticky-toolbar.sticky-after-tabs,
+      .catalog-sticky-toolbar.sticky-after-tabs {
+        top: calc(62px + env(safe-area-inset-top, 0px)) !important;
+      }
+
+      .app-sticky-tabs.sticky-after-toolbar {
+        top: calc(112px + env(safe-area-inset-top, 0px)) !important;
+      }
+
+      .report-table-head {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+      }
+
+      .report-card-actions {
+        width: auto !important;
+        flex: 1 1 auto;
+        margin-left: auto;
+        justify-content: flex-end;
+      }
+
+      .vehicle-summary-filters {
+        width: auto !important;
+        flex: 1 1 auto;
+        min-width: 0;
+        flex-wrap: nowrap;
+      }
+
+      .vehicle-summary-filters .compact-filter {
+        width: auto !important;
+        min-width: 0;
+        flex: 1 1 92px;
+        display: block;
+      }
+
+      .vehicle-summary-filters .compact-filter select {
+        min-height: 34px;
+        height: 34px;
+        min-width: 0;
+        max-width: none;
+        width: 100%;
+        padding: 0 8px;
+        font-size: 12.5px !important;
+        font-weight: 500 !important;
+        border-radius: 8px;
+      }
+
+      .report-data-table-details th,
+      .report-data-table-details td {
+        padding: 6px 8px !important;
+      }
+
+      .report-data-table-details td:nth-child(1) {
+        min-width: 138px;
+        font-size: 13px !important;
+        line-height: 1.22 !important;
+      }
+
+      .report-data-table-details td:nth-child(3) {
+        min-width: 210px;
+        max-width: 260px;
+        font-size: 12px !important;
+        line-height: 1.25 !important;
+        font-weight: 500 !important;
+        white-space: nowrap !important;
       }
 
       #catalogView .catalog-sticky-toolbar {
@@ -2523,6 +2670,10 @@
         min-width: 48px !important;
         min-height: 48px !important;
         border-radius: 14px !important;
+      }
+
+      #catalogView .catalog-sticky-toolbar.sticky-after-tabs {
+        top: calc(62px + env(safe-area-inset-top, 0px)) !important;
       }
 
       .fund-catalog-head {
@@ -3210,7 +3361,7 @@
 
       <!-- View: Detailed Reports -->
       <section id="reportsView" class="view">
-        <section class="panel" style="margin-bottom: 20px;">
+        <section class="panel report-filter-panel app-sticky-toolbar" style="margin-bottom: 20px;">
           <div class="panel-head" style="flex-wrap: wrap; gap: 12px;">
             <div>
               <h2 class="panel-title">Tùy chọn hiển thị báo cáo</h2>
@@ -3224,7 +3375,7 @@
         </section>
 
         <!-- Sub-tabs to switch report subcategories -->
-        <div class="sub-tabs-bar" id="reportTabsBar">
+        <div class="sub-tabs-bar app-sticky-tabs sticky-after-toolbar" id="reportTabsBar">
           <button type="button" class="sub-tab active" data-report-tab="all" onclick="setReportTab('all')">Tất cả báo cáo</button>
           <button type="button" class="sub-tab" data-report-tab="finance" onclick="setReportTab('finance')">Báo cáo tổng quan</button>
           <button type="button" class="sub-tab" data-report-tab="details" onclick="setReportTab('details')">Báo cáo chi tiết</button>
@@ -3280,7 +3431,7 @@
         </div>
 
         <!-- Nút trượt ngang chọn Nhật ký -->
-        <div class="sub-tabs-bar" id="manageTabsBar" style="width: 100%; margin-bottom: 12px;">
+        <div class="sub-tabs-bar app-sticky-tabs" id="manageTabsBar" style="width: 100%; margin-bottom: 12px;">
           <button type="button" class="sub-tab active" data-sheet="NL_VanChuyen" onclick="setManageSheetTab('NL_VanChuyen')">Vận chuyển</button>
           <button type="button" class="sub-tab" data-sheet="NL_TaiXe" onclick="setManageSheetTab('NL_TaiXe')">Tài xế</button>
           <button type="button" class="sub-tab" data-sheet="NL_Dau" onclick="setManageSheetTab('NL_Dau')">Xăng dầu</button>
@@ -3308,7 +3459,7 @@
           </button>
         </div>
 
-        <div class="filter-bar" style="margin-bottom: 16px;">
+        <div class="filter-bar app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
               <label class="manage-period-filter" style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; min-width: 145px;">
@@ -3404,7 +3555,7 @@
       <!-- View: Catalog Management (System Category CRUD) -->
       <section id="catalogView" class="view">
         <!-- Nút trượt ngang chọn Danh mục -->
-        <div class="sub-tabs-bar" id="catalogTabsBar" style="width: 100%; margin-bottom: 12px;">
+        <div class="sub-tabs-bar app-sticky-tabs" id="catalogTabsBar" style="width: 100%; margin-bottom: 12px;">
           <button type="button" class="sub-tab active" data-sheet="DM_NhanSu" onclick="setCatalogSheetTab('DM_NhanSu')">Nhân sự</button>
           <button type="button" class="sub-tab" data-sheet="DM_Xe" onclick="setCatalogSheetTab('DM_Xe')">Danh sách xe</button>
           <button type="button" class="sub-tab" data-sheet="DM_DuAn" onclick="setCatalogSheetTab('DM_DuAn')">Dự án & Cự ly</button>
@@ -3417,7 +3568,7 @@
         </div>
         <input type="hidden" id="catalogSheetSelect" value="DM_NhanSu">
 
-        <div class="filter-bar catalog-sticky-toolbar" style="margin-bottom: 16px;">
+        <div class="filter-bar catalog-sticky-toolbar app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
               <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; max-width: 400px; width: 100%;">
@@ -3457,7 +3608,7 @@
 
       <!-- View: Cashflow Module Placeholder -->
       <section id="cashflowView" class="view">
-        <div class="sub-tabs-bar" style="width: 100%; margin-bottom: 12px;">
+        <div class="sub-tabs-bar app-sticky-tabs" style="width: 100%; margin-bottom: 12px;">
           <button type="button" class="sub-tab active" data-cashflow-tab="overview" onclick="setCashflowTab('overview')">Tổng quan</button>
           <button type="button" class="sub-tab" data-cashflow-tab="transactions" onclick="setCashflowTab('transactions')">Danh sách thu chi</button>
           <button type="button" class="sub-tab" data-cashflow-tab="loans" onclick="setCashflowTab('loans')">Khoản vay</button>
@@ -3465,7 +3616,7 @@
         </div>
 
         <div data-cashflow-panel="overview">
-          <section class="panel" style="margin-bottom: 16px;">
+          <section class="panel app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
             <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; gap: 12px; padding: 16px 20px;">
               <div>
                 <h2 class="panel-title">Tổng quan quỹ</h2>
@@ -3526,7 +3677,7 @@
         </div>
 
         <div data-cashflow-panel="transactions" style="display: none;">
-          <section class="panel" style="margin-bottom: 16px;">
+          <section class="panel app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
             <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; gap: 12px; padding: 16px 20px;">
               <div>
                 <h2 class="panel-title" style="margin: 0;">Danh sách thu chi</h2>
@@ -3579,7 +3730,7 @@
 
 
         <div data-cashflow-panel="loans" style="display: none;">
-          <section class="panel" style="margin-bottom: 16px;">
+          <section class="panel app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
             <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; gap: 12px; padding: 16px 20px;">
               <div>
                 <h2 class="panel-title">Khoản vay</h2>
@@ -6747,7 +6898,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.14_report_filters_date_polish';
+      const APP_VERSION = 'v3.15_report_mobile_balance';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -6886,6 +7037,13 @@
       }
     }
 
+    function getLatestDataUpdateText() {
+      const dashboardUpdatedAt = getDashboardData()?.updatedAt;
+      const reportUpdatedAt = appData?.reports?.updatedAt;
+      const fallback = dashboardUpdatedAt || reportUpdatedAt || '';
+      return `Dữ liệu cập nhật: ${fallback || 'Vui lòng chờ...'}`;
+    }
+
     function renderView() {
       document.querySelectorAll('[data-view]').forEach((button) => {
         button.classList.toggle('active', button.dataset.view === activeView);
@@ -6896,12 +7054,12 @@
       });
       
       const meta = {
-        home: ['Tổng quan', 'Kết quả kinh doanh', `Dữ liệu cập nhật: ${getDashboardData()?.updatedAt || 'Vui lòng chờ...'}`],
-        reports: ['Báo cáo', 'Tổng hợp chi tiết', 'Tổng hợp các hạng mục báo cáo.'],
-        manage: ['Vận hành', 'Nhập & quản lý vận hành', 'Nhập nhanh, xem, lọc, sửa hoặc xóa nhật ký vận hành.'],
-        catalog: ['Danh mục', 'Quản lý danh mục hệ thống', 'Xem, tìm kiếm, thêm mới, sửa hoặc xóa danh mục gốc.'],
-        cashflow: ['Quỹ', 'Quản lý quỹ', 'Theo dõi thu chi, số dư và khoản vay.'],
-        settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', 'Tối ưu hóa chạy webapp như ứng dụng thực tế.']
+        home: ['Tổng quan', 'Kết quả kinh doanh', getLatestDataUpdateText()],
+        reports: ['Báo cáo', 'Tổng hợp chi tiết', getLatestDataUpdateText()],
+        manage: ['Vận hành', 'Nhập & quản lý vận hành', getLatestDataUpdateText()],
+        catalog: ['Danh mục', 'Quản lý danh mục hệ thống', getLatestDataUpdateText()],
+        cashflow: ['Quỹ', 'Quản lý quỹ', getLatestDataUpdateText()],
+        settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', getLatestDataUpdateText()]
       }[activeView];
       
       el('eyebrow').textContent = meta[0];
@@ -7883,7 +8041,7 @@
       }
       
       card.innerHTML = `
-        <div class="table-card-head report-table-head" style="align-items: flex-start;">
+        <div class="table-card-head report-table-head">
           <div>
             <div class="table-title">${escapeHtml(displayTitle)}</div>
             ${displayMonth ? `<div class="panel-note" style="margin-top: 4px; font-weight: 500; font-size: 13px; color: var(--muted);">${escapeHtml(displayMonth)}</div>` : ''}
@@ -7899,7 +8057,7 @@
           </div>
         </div>
         <div class="table-wrap">
-          <table>
+          <table class="report-data-table report-data-table-${escapeHtml(type)}">
             <thead><tr>${head.map((cell, idx) => {
               const sticky = getStickyStyles(idx);
               const className = sticky.isSticky ? 'class="sticky-col"' : '';
@@ -7943,9 +8101,9 @@
                 // Color formatting based on content / headers
                 if (type === 'details') {
                   if (i === 0) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 700'); // Danh mục in đậm
+                    styleRules.push('color: var(--ink)', 'font-weight: 800', 'font-size: 13px !important', 'line-height: 1.25'); // Danh mục rõ hơn nhưng vẫn giữ dòng thấp
                   } else if (colLower.includes('giải thích') || colLower.includes('nội dung') || i === 4) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 400 !important', 'font-size: 12.5px !important', 'line-height: 1.35'); // Cột Giải thích gọn hơn trên mobile
+                    styleRules.push('color: var(--ink)', 'font-weight: 500 !important', 'font-size: 12px !important', 'line-height: 1.28', 'white-space: nowrap'); // Cột Giải thích gọn hơn trên mobile
                   } else {
                     const cat = String(row[0] || '').toLowerCase().trim();
                     const numVal = parseCellValue(val);
@@ -8030,15 +8188,13 @@
     function renderVehicleTableFilterControls(filters) {
       return `
         <div class="vehicle-volume-filters vehicle-summary-filters">
-          <label class="compact-filter">
-            <span>Công ty</span>
+          <label class="compact-filter compact-filter-inline">
             <select class="report-vehicle-filter" data-filter="company" onchange="filterReportRows()">
               <option value="">Tất cả công ty</option>
               ${filters.companies.map((company) => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('')}
             </select>
           </label>
-          <label class="compact-filter">
-            <span>Biển số</span>
+          <label class="compact-filter compact-filter-inline">
             <select class="report-vehicle-filter" data-filter="plate" onchange="filterReportRows()">
               <option value="">Tất cả xe</option>
               ${filters.plates.map((plate) => `<option value="${escapeHtml(plate)}">${escapeHtml(plate)}</option>`).join('')}
@@ -8899,6 +9055,7 @@
           appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt, loading: false };
           appData.reports = { ...appData.reports, ...appData.dashboard, loading: false };
           
+          renderView();
           renderReports();
           scheduleReportBundlePrefetch();
           return Promise.resolve(bundle);
@@ -8918,6 +9075,7 @@
           
           sessionStorage.setItem(cacheKey, JSON.stringify(bundle));
           
+          renderView();
           renderReports();
           scheduleReportBundlePrefetch();
           return bundle;

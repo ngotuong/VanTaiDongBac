@@ -15,23 +15,23 @@ function getStartupData(formType) {
 }
 
 function getCatalogs(formType) {
-  return SheetService.getCatalogs(formType);
+  return CatalogService.getCatalogs(formType);
 }
 
 function getDashboard(month, forceRefresh) {
-  return SheetService.getDashboard(month, forceRefresh);
+  return ReportService.getDashboard(month, forceRefresh);
 }
 
 function getReports(forceRefresh) {
-  return SheetService.getReports(forceRefresh);
+  return ReportService.getReports(forceRefresh);
 }
 
 function getReport(type, month, forceRefresh) {
-  return SheetService.getReport(type, month, forceRefresh);
+  return ReportService.getReport(type, month, forceRefresh);
 }
 
 function getReportBundle(month, forceRefresh) {
-  return SheetService.getReportBundle(month, forceRefresh);
+  return ReportService.getReportBundle(month, forceRefresh);
 }
 
 function invalidateCaches() {
@@ -39,15 +39,15 @@ function invalidateCaches() {
 }
 
 function submitRows(formType, rows) {
-  return SheetService.submitRows(formType, rows);
+  return EntryService.submitRows(formType, rows);
 }
 
 function checkTripReconciliation(rows) {
-  return SheetService.checkTripReconciliation(rows);
+  return EntryService.checkTripReconciliation(rows);
 }
 
 function readSheetData(sheetName, startDate, endDate, limit) {
-  return SheetService.readSheetData(sheetName, startDate, endDate, limit);
+  return SheetReadService.readSheetData(sheetName, startDate, endDate, limit);
 }
 
 function readManageData(sheetName, startDate, endDate, limit) {
@@ -59,11 +59,11 @@ function readCatalogData(displaySheetName) {
 }
 
 function saveSheetRow(sheetName, rowIndex, rowData) {
-  return SheetService.saveSheetRow(sheetName, rowIndex, rowData);
+  return EntryService.saveSheetRow(sheetName, rowIndex, rowData);
 }
 
 function deleteSheetRow(sheetName, rowIndex, columnsToClear) {
-  return SheetService.deleteSheetRow(sheetName, rowIndex, columnsToClear);
+  return EntryService.deleteSheetRow(sheetName, rowIndex, columnsToClear);
 }
 
 function getFundTransactions(year, filter) {
@@ -120,13 +120,13 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'getBootstrap') return SheetService.getBootstrap();
     if (action === 'getStartupData') return SheetService.getStartupData(safeParams.formType);
     if (action === 'getInitialData') return SheetService.getInitialData();
-    if (action === 'getCatalogs') return SheetService.getCatalogs(safeParams.formType);
-    if (action === 'getDashboard') return SheetService.getDashboard(safeParams.month, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
-    if (action === 'getReports') return SheetService.getReports(safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
-    if (action === 'getReport') return SheetService.getReport(safeParams.type, safeParams.month, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
-    if (action === 'getReportBundle') return SheetService.getReportBundle(safeParams.month, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
+    if (action === 'getCatalogs') return CatalogService.getCatalogs(safeParams.formType);
+    if (action === 'getDashboard') return ReportService.getDashboard(safeParams.month, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
+    if (action === 'getReports') return ReportService.getReports(safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
+    if (action === 'getReport') return ReportService.getReport(safeParams.type, safeParams.month, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
+    if (action === 'getReportBundle') return ReportService.getReportBundle(safeParams.month, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
     if (action === 'invalidateCaches') return SheetService.invalidateCaches();
-    if (action === 'readSheetData') return SheetService.readSheetData(safeParams.sheetName, safeParams.startDate, safeParams.endDate, safeParams.limit);
+    if (action === 'readSheetData') return SheetReadService.readSheetData(safeParams.sheetName, safeParams.startDate, safeParams.endDate, safeParams.limit);
     if (action === 'readManageData') return ManageService.readManageData(safeParams.sheetName, safeParams.startDate, safeParams.endDate, safeParams.limit);
     if (action === 'readCatalogData') return CatalogService.readCatalogData(safeParams.displaySheetName || safeParams.sheetName);
     if (action === 'getFundTransactions') {
@@ -151,10 +151,10 @@ function invokeApi(method, action, params, bodyData) {
   }
 
   if (normalizedMethod === 'POST') {
-    if (action === 'submitRows') return SheetService.submitRows(safeBody.formType, safeBody.rows);
-    if (action === 'checkTripReconciliation') return SheetService.checkTripReconciliation(safeBody.rows);
-    if (action === 'saveSheetRow') return SheetService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData);
-    if (action === 'deleteSheetRow') return SheetService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear);
+    if (action === 'submitRows') return EntryService.submitRows(safeBody.formType, safeBody.rows);
+    if (action === 'checkTripReconciliation') return EntryService.checkTripReconciliation(safeBody.rows);
+    if (action === 'saveSheetRow') return EntryService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData);
+    if (action === 'deleteSheetRow') return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear);
     if (action === 'addFundTransaction') return FundService.addFundTransaction(safeBody.year, safeBody.transaction);
     if (action === 'addFundLoan') return FundService.addFundLoan(safeBody.year, safeBody.loan);
     if (action === 'addFundLoanPayment') return FundService.addFundLoanPayment(safeBody.year, safeBody.payment);

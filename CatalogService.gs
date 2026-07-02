@@ -1,8 +1,12 @@
 var CatalogService = (function () {
+  function getCatalogs(formType) {
+    return SheetService.getCatalogs(formType);
+  }
+
   function readCatalogData(displaySheetName) {
     var requestedName = String(displaySheetName || '').trim();
     var sheetName = (requestedName === 'DM_ThamSo_TS' || requestedName === 'DM_ThamSo_GD') ? 'DM_ThamSo' : requestedName;
-    var data = SheetService.readSheetData(sheetName, '', '', 500);
+    var data = SheetReadService.readSheetData(sheetName, '', '', 500);
     if (!data || data.ok === false) return data;
 
     var result = {
@@ -51,6 +55,7 @@ var CatalogService = (function () {
   }
 
   return {
+    getCatalogs: getCatalogs,
     readCatalogData: readCatalogData
   };
 })();

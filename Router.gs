@@ -18,13 +18,13 @@ function doGet(e) {
     if (action === 'getBootstrap') return timedJsonResponse_(action, startedAt, SheetService.getBootstrap());
     if (action === 'getStartupData') return timedJsonResponse_(action, startedAt, SheetService.getStartupData(e.parameter.formType));
     if (action === 'getInitialData') return timedJsonResponse_(action, startedAt, SheetService.getInitialData());
-    if (action === 'getCatalogs') return timedJsonResponse_(action, startedAt, SheetService.getCatalogs(e.parameter.formType));
-    if (action === 'getDashboard') return timedJsonResponse_(action, startedAt, SheetService.getDashboard(e.parameter.month, e.parameter.forceRefresh === 'true'));
-    if (action === 'getReports') return timedJsonResponse_(action, startedAt, SheetService.getReports(e.parameter.forceRefresh === 'true'));
-    if (action === 'getReport') return timedJsonResponse_(action, startedAt, SheetService.getReport(e.parameter.type, e.parameter.month, e.parameter.forceRefresh === 'true'));
-    if (action === 'getReportBundle') return timedJsonResponse_(action, startedAt, SheetService.getReportBundle(e.parameter.month, e.parameter.forceRefresh === 'true'));
+    if (action === 'getCatalogs') return timedJsonResponse_(action, startedAt, CatalogService.getCatalogs(e.parameter.formType));
+    if (action === 'getDashboard') return timedJsonResponse_(action, startedAt, ReportService.getDashboard(e.parameter.month, e.parameter.forceRefresh === 'true'));
+    if (action === 'getReports') return timedJsonResponse_(action, startedAt, ReportService.getReports(e.parameter.forceRefresh === 'true'));
+    if (action === 'getReport') return timedJsonResponse_(action, startedAt, ReportService.getReport(e.parameter.type, e.parameter.month, e.parameter.forceRefresh === 'true'));
+    if (action === 'getReportBundle') return timedJsonResponse_(action, startedAt, ReportService.getReportBundle(e.parameter.month, e.parameter.forceRefresh === 'true'));
     if (action === 'invalidateCaches') return timedJsonResponse_(action, startedAt, SheetService.invalidateCaches());
-    if (action === 'readSheetData') return timedJsonResponse_(action, startedAt, SheetService.readSheetData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate, e.parameter.limit));
+    if (action === 'readSheetData') return timedJsonResponse_(action, startedAt, SheetReadService.readSheetData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate, e.parameter.limit));
     if (action === 'readManageData') return timedJsonResponse_(action, startedAt, ManageService.readManageData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate, e.parameter.limit));
     if (action === 'readCatalogData') return timedJsonResponse_(action, startedAt, CatalogService.readCatalogData(e.parameter.displaySheetName || e.parameter.sheetName));
     if (action === 'submitRowsGet') {
@@ -33,7 +33,7 @@ function doGet(e) {
         spreadsheetId: submitPayload.spreadsheetId || submitPayload.ssId,
         year: submitPayload.year
       });
-      return timedJsonResponse_(action, startedAt, SheetService.submitRows(submitPayload.formType, submitPayload.rows));
+      return timedJsonResponse_(action, startedAt, EntryService.submitRows(submitPayload.formType, submitPayload.rows));
     }
     if (action === 'getFundTransactions') {
       return timedJsonResponse_(action, startedAt, FundService.getFundTransactions(e.parameter.year, {
@@ -78,19 +78,19 @@ function doPost(e) {
     action = payload.action;
 
     if (action === 'submitRows') {
-      var submitResult = SheetService.submitRows(payload.formType, payload.rows);
+      var submitResult = EntryService.submitRows(payload.formType, payload.rows);
       return timedJsonResponse_(action, startedAt, submitResult);
     }
     if (action === 'checkTripReconciliation') {
-      var checkResult = SheetService.checkTripReconciliation(payload.rows);
+      var checkResult = EntryService.checkTripReconciliation(payload.rows);
       return timedJsonResponse_(action, startedAt, checkResult);
     }
     if (action === 'saveSheetRow') {
-      var saveResult = SheetService.saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData);
+      var saveResult = EntryService.saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData);
       return timedJsonResponse_(action, startedAt, saveResult);
     }
     if (action === 'deleteSheetRow') {
-      var deleteResult = SheetService.deleteSheetRow(payload.sheetName, payload.rowIndex, payload.columnsToClear);
+      var deleteResult = EntryService.deleteSheetRow(payload.sheetName, payload.rowIndex, payload.columnsToClear);
       return timedJsonResponse_(action, startedAt, deleteResult);
     }
     if (action === 'addFundTransaction') {

@@ -523,7 +523,7 @@
               <button type="button" class="danger" onclick="removeFundTransactionRow(${index})" ${fundTransactionRows.length === 1 || isEdit ? 'disabled' : ''}>Xóa</button>
             </div>
             <div class="fields">
-              <label class="full">Ngày<input type="date" value="${escapeHtml(row.date || '')}" onchange="updateFundTransactionRow(${index}, 'date', this.value)" required></label>
+              <label class="full">Ngày<input type="text" class="vi-date-input" inputmode="numeric" placeholder="dd/mm/yyyy" data-iso="${escapeHtml(row.date || '')}" value="${escapeHtml(formatIsoDateForDisplay(row.date || ''))}" oninput="updateFundTransactionRow(${index}, 'date', getDateInputIso(this))" onchange="updateFundTransactionRow(${index}, 'date', getDateInputIso(this))" required></label>
               <label>Loại<select onchange="updateFundTransactionRow(${index}, 'type', this.value)"><option value="Chi"${row.type === 'Chi' ? ' selected' : ''}>Chi</option><option value="Thu"${row.type === 'Thu' ? ' selected' : ''}>Thu</option></select></label>
               <label>Mục thu/chi<select onchange="updateFundTransactionRow(${index}, 'category', this.value)" required>${categoryOptions}</select></label>
               <label class="full">Số tiền<input type="text" class="format-money-input" inputmode="numeric" value="${escapeHtml(row.amount || '')}" placeholder="0" oninput="updateFundTransactionRow(${index}, 'amount', this.value)" required></label>
@@ -957,7 +957,7 @@
       
       el('loanPaymentCodeInput').value = code || '';
       el('loanPaymentPartnerInput').value = partner || '';
-      el('loanPaymentDateInput').value = new Date().toISOString().split('T')[0];
+      setDateInputValue('loanPaymentDateInput', new Date().toISOString().split('T')[0]);
       
       const typeSelect = el('loanPaymentTypeInput');
       if (typeSelect) typeSelect.value = 'Trả nợ';
@@ -1019,6 +1019,7 @@
       if (!drawer || !backdrop) return;
       
       clearFundLoanForm();
+      setDateInputValue('loanDateInput', new Date().toISOString().split('T')[0]);
       
       drawer.classList.add('open');
       backdrop.classList.add('active');
@@ -1069,7 +1070,7 @@
       }
       
       const payment = {
-        date: el('loanPaymentDateInput')?.value || '',
+        date: getDateInputIso('loanPaymentDateInput'),
         code: el('loanPaymentCodeInput')?.value || '',
         type: submitType,
         partner: el('loanPaymentPartnerInput')?.value || '',
@@ -1126,7 +1127,10 @@
     function clearFundLoanPaymentForm() {
       ['loanPaymentDateInput', 'loanPaymentCodeInput', 'loanPaymentPartnerInput', 'loanPaymentAmountInput', 'loanPaymentContentInput'].forEach((id) => {
         const field = el(id);
-        if (field) field.value = '';
+        if (field) {
+          field.value = '';
+          if (field.classList.contains('vi-date-input')) field.dataset.iso = '';
+        }
       });
       const type = el('loanPaymentTypeInput');
       if (type) type.value = 'Trả nợ';
@@ -1140,14 +1144,14 @@
     function submitFundLoan() {
       const btn = el('loanSaveBtn');
       const loan = {
-        date: el('loanDateInput')?.value || '',
+        date: getDateInputIso('loanDateInput'),
         method: '',
         partner: el('loanPartnerInput')?.value || '',
         amount: el('loanAmountInput')?.value || '',
         termMonths: el('loanTermInput')?.value || '',
         annualRate: el('loanRateInput')?.value || '',
         interestPeriodMonths: el('loanInterestPeriodInput')?.value || '',
-        firstInterestDate: el('loanFirstInterestDateInput')?.value || '',
+        firstInterestDate: getDateInputIso('loanFirstInterestDateInput'),
         content: el('loanContentInput')?.value || ''
       };
       const error = validateFundLoan(loan);
@@ -1190,7 +1194,10 @@
     function clearFundLoanForm() {
       ['loanPartnerInput', 'loanAmountInput', 'loanTermInput', 'loanRateInput', 'loanInterestPeriodInput', 'loanFirstInterestDateInput', 'loanContentInput'].forEach((id) => {
         const field = el(id);
-        if (field) field.value = '';
+        if (field) {
+          field.value = '';
+          if (field.classList.contains('vi-date-input')) field.dataset.iso = '';
+        }
       });
     }
 

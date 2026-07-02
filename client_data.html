@@ -349,7 +349,7 @@
           
           reportsByType.payroll = { data: bundle.payroll };
           reportsByType.vehicles = { data: bundle.vehicles };
-          appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt };
+          appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt, loading: false };
           appData.reports = { ...appData.reports, ...appData.dashboard, loading: false };
           
           renderReports();
@@ -357,13 +357,16 @@
           return Promise.resolve(bundle);
         }
       }
+      appData.reports = { ...(appData.reports || {}), loading: true };
+      appData.dashboard = { ...(appData.dashboard || {}), loading: true };
+      renderReports();
       
       return callApi('GET', 'getReportBundle', { month: selectedMonth, forceRefresh: forceRefresh })
         .then((bundle) => {
           if (requestSeq !== reportBundleRequestSeq) return;
           reportsByType.payroll = { data: bundle.payroll };
           reportsByType.vehicles = { data: bundle.vehicles };
-          appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt };
+          appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt, loading: false };
           appData.reports = { ...appData.reports, ...appData.dashboard, loading: false };
           
           sessionStorage.setItem(cacheKey, JSON.stringify(bundle));
@@ -373,7 +376,12 @@
           return bundle;
         })
         .catch((err) => {
-          if (requestSeq === reportBundleRequestSeq) showStatus('err', err.message || String(err));
+          if (requestSeq === reportBundleRequestSeq) {
+            appData.dashboard = { ...(appData.dashboard || {}), loading: false };
+            appData.reports = { ...(appData.reports || {}), loading: false };
+            renderReports();
+            showStatus('err', err.message || String(err));
+          }
           throw err;
         })
         .finally(() => {

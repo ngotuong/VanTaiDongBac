@@ -104,6 +104,34 @@
     button, input, select, textarea { 
       font-family: inherit;
     }
+
+    input, select, textarea {
+      font-weight: 500;
+      line-height: 1.3;
+    }
+
+    select,
+    input[type="text"],
+    input[type="number"],
+    .vi-date-input {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .filter-row input,
+    .filter-row select,
+    .filter-container input,
+    .filter-container select,
+    .compact-filter select,
+    .modal-grid input,
+    .modal-grid select,
+    .fund-detail-drawer input,
+    .fund-detail-drawer select,
+    .fund-detail-drawer textarea {
+      font-weight: 500 !important;
+      line-height: 1.3 !important;
+      text-align: left;
+    }
     
     button {
       min-height: 46px;
@@ -1155,7 +1183,7 @@
       transition: all 0.2s;
     }
     
-    input[type="date"] {
+    .vi-date-input {
       display: block;
       width: 100% !important;
       max-width: 100% !important;
@@ -1275,7 +1303,7 @@
       margin: 0;
       color: var(--muted);
       font-size: 12px;
-      font-weight: 800;
+      font-weight: 600;
       text-transform: uppercase;
       white-space: nowrap;
     }
@@ -1289,7 +1317,7 @@
       background: var(--paper);
       color: var(--ink);
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 500;
       padding: 0 10px;
       outline: none;
       cursor: pointer;
@@ -1307,6 +1335,21 @@
       justify-content: flex-end;
       gap: 10px;
       flex-wrap: wrap;
+    }
+
+    .report-table-head {
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .report-card-actions {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .vehicle-summary-filters {
+      order: -1;
+      width: auto;
     }
 
     .fund-catalog-head {
@@ -2432,6 +2475,7 @@
         width: 100%;
         min-height: 44px;
         font-size: 16px;
+        font-weight: 500;
       }
 
       #catalogView .catalog-sticky-toolbar {
@@ -2836,9 +2880,10 @@
       #manageSearchInput {
         min-height: 44px !important;
         font-size: 16px !important;
+        font-weight: 500 !important;
       }
 
-      input[type="date"] {
+      .vi-date-input {
         display: block !important;
         inline-size: 100% !important;
         width: 100% !important;
@@ -2852,11 +2897,6 @@
         appearance: none;
       }
 
-      input[type="date"]::-webkit-date-and-time-value {
-        min-width: 0;
-        text-align: left;
-      }
-      
       .mobile-quick { display: block; }
       
       .panel-head { 
@@ -2896,7 +2936,7 @@
       .sticky-col-right {
         padding: 6px 4px !important;
       }
-      input, select, textarea, .ac-input { min-height: 48px; font-size: 16px; }
+      input, select, textarea, .ac-input { min-height: 48px; font-size: 16px; font-weight: 500; }
       button { min-height: 46px; }
 
       .mobile-record-table {
@@ -3285,11 +3325,11 @@
               <div id="manageDateFilterGroup" style="display: flex; gap: 8px; align-items: center; flex: 2; min-width: 260px;">
                 <label style="margin: 0; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; min-width: 120px;">
                   Từ:
-                  <input type="date" id="manageStartDate" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
+                  <input type="text" class="vi-date-input" id="manageStartDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
                 </label>
                 <label style="margin: 0; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; min-width: 120px;">
                   Đến:
-                  <input type="date" id="manageEndDate" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
+                  <input type="text" class="vi-date-input" id="manageEndDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
                 </label>
               </div>
               <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 2; min-width: 220px;">
@@ -3733,7 +3773,7 @@
       <div class="panel-body" style="padding: 20px; flex: 1; overflow-y: auto;">
         <div id="fundLoanPaymentStatus" class="status" style="display:none; margin-bottom: 12px; padding: 10px; border-radius: 8px;"></div>
         <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Ngày thanh toán<input type="date" id="loanPaymentDateInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" required></label>
+          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Ngày thanh toán<input type="text" class="vi-date-input" id="loanPaymentDateInput" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" required></label>
           <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Mã vay<input type="text" id="loanPaymentCodeInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--canvas); font-size:13px;" readonly></label>
           <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Đối tác<input type="text" id="loanPaymentPartnerInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--canvas); font-size:13px;" readonly></label>
           <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Loại thanh toán
@@ -3794,13 +3834,13 @@
       <div class="panel-body" style="padding: 20px; flex: 1; overflow-y: auto;">
         <div id="fundLoanEntryStatus" class="status" style="display:none; margin-bottom: 12px; padding: 10px; border-radius: 8px;"></div>
         <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Ngày vay<input type="date" id="loanDateInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" required></label>
+          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Ngày vay<input type="text" class="vi-date-input" id="loanDateInput" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" required></label>
           <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Đối tác<select id="loanPartnerInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;" required></select></label>
           <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền<input type="text" id="loanAmountInput" inputmode="numeric" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" required></label>
           <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Kỳ hạn vay (tháng)<input type="number" id="loanTermInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" min="0" step="1"></label>
           <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Lãi suất/năm<input type="number" id="loanRateInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" min="0" step="0.01" placeholder="VD: 12"></label>
           <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Kỳ hạn trả lãi (tháng)<input type="number" id="loanInterestPeriodInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" min="0" step="1"></label>
-          <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Ngày trả lãi lần đầu<input type="date" id="loanFirstInterestDateInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;"></label>
+          <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Ngày trả lãi lần đầu<input type="text" class="vi-date-input" id="loanFirstInterestDateInput" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;"></label>
           <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Nội dung<textarea id="loanContentInput" placeholder="Nội dung khoản vay" rows="2" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;"></textarea></label>
         </div>
       </div>
@@ -4874,7 +4914,7 @@
               <button type="button" class="danger" onclick="removeFundTransactionRow(${index})" ${fundTransactionRows.length === 1 || isEdit ? 'disabled' : ''}>Xóa</button>
             </div>
             <div class="fields">
-              <label class="full">Ngày<input type="date" value="${escapeHtml(row.date || '')}" onchange="updateFundTransactionRow(${index}, 'date', this.value)" required></label>
+              <label class="full">Ngày<input type="text" class="vi-date-input" inputmode="numeric" placeholder="dd/mm/yyyy" data-iso="${escapeHtml(row.date || '')}" value="${escapeHtml(formatIsoDateForDisplay(row.date || ''))}" oninput="updateFundTransactionRow(${index}, 'date', getDateInputIso(this))" onchange="updateFundTransactionRow(${index}, 'date', getDateInputIso(this))" required></label>
               <label>Loại<select onchange="updateFundTransactionRow(${index}, 'type', this.value)"><option value="Chi"${row.type === 'Chi' ? ' selected' : ''}>Chi</option><option value="Thu"${row.type === 'Thu' ? ' selected' : ''}>Thu</option></select></label>
               <label>Mục thu/chi<select onchange="updateFundTransactionRow(${index}, 'category', this.value)" required>${categoryOptions}</select></label>
               <label class="full">Số tiền<input type="text" class="format-money-input" inputmode="numeric" value="${escapeHtml(row.amount || '')}" placeholder="0" oninput="updateFundTransactionRow(${index}, 'amount', this.value)" required></label>
@@ -5308,7 +5348,7 @@
       
       el('loanPaymentCodeInput').value = code || '';
       el('loanPaymentPartnerInput').value = partner || '';
-      el('loanPaymentDateInput').value = new Date().toISOString().split('T')[0];
+      setDateInputValue('loanPaymentDateInput', new Date().toISOString().split('T')[0]);
       
       const typeSelect = el('loanPaymentTypeInput');
       if (typeSelect) typeSelect.value = 'Trả nợ';
@@ -5370,6 +5410,7 @@
       if (!drawer || !backdrop) return;
       
       clearFundLoanForm();
+      setDateInputValue('loanDateInput', new Date().toISOString().split('T')[0]);
       
       drawer.classList.add('open');
       backdrop.classList.add('active');
@@ -5420,7 +5461,7 @@
       }
       
       const payment = {
-        date: el('loanPaymentDateInput')?.value || '',
+        date: getDateInputIso('loanPaymentDateInput'),
         code: el('loanPaymentCodeInput')?.value || '',
         type: submitType,
         partner: el('loanPaymentPartnerInput')?.value || '',
@@ -5477,7 +5518,10 @@
     function clearFundLoanPaymentForm() {
       ['loanPaymentDateInput', 'loanPaymentCodeInput', 'loanPaymentPartnerInput', 'loanPaymentAmountInput', 'loanPaymentContentInput'].forEach((id) => {
         const field = el(id);
-        if (field) field.value = '';
+        if (field) {
+          field.value = '';
+          if (field.classList.contains('vi-date-input')) field.dataset.iso = '';
+        }
       });
       const type = el('loanPaymentTypeInput');
       if (type) type.value = 'Trả nợ';
@@ -5491,14 +5535,14 @@
     function submitFundLoan() {
       const btn = el('loanSaveBtn');
       const loan = {
-        date: el('loanDateInput')?.value || '',
+        date: getDateInputIso('loanDateInput'),
         method: '',
         partner: el('loanPartnerInput')?.value || '',
         amount: el('loanAmountInput')?.value || '',
         termMonths: el('loanTermInput')?.value || '',
         annualRate: el('loanRateInput')?.value || '',
         interestPeriodMonths: el('loanInterestPeriodInput')?.value || '',
-        firstInterestDate: el('loanFirstInterestDateInput')?.value || '',
+        firstInterestDate: getDateInputIso('loanFirstInterestDateInput'),
         content: el('loanContentInput')?.value || ''
       };
       const error = validateFundLoan(loan);
@@ -5541,7 +5585,10 @@
     function clearFundLoanForm() {
       ['loanPartnerInput', 'loanAmountInput', 'loanTermInput', 'loanRateInput', 'loanInterestPeriodInput', 'loanFirstInterestDateInput', 'loanContentInput'].forEach((id) => {
         const field = el(id);
-        if (field) field.value = '';
+        if (field) {
+          field.value = '';
+          if (field.classList.contains('vi-date-input')) field.dataset.iso = '';
+        }
       });
     }
 
@@ -5765,8 +5812,8 @@
       el('manageTableEmpty').style.display = 'none';
       el('manageLimitNotice').style.display = 'none';
 
-      const startDate = el('manageStartDate').value;
-      const endDate = el('manageEndDate').value;
+      const startDate = getDateInputIso('manageStartDate');
+      const endDate = getDateInputIso('manageEndDate');
       const requestParams = {
         sheetName: sheetName,
         startDate: startDate,
@@ -5905,22 +5952,22 @@
       };
 
       if (mode === 'recent') {
-        start.value = '';
-        end.value = '';
+        setDateInputValue(start, '');
+        setDateInputValue(end, '');
       } else if (mode === 'today') {
-        start.value = toIso(today);
-        end.value = toIso(today);
+        setDateInputValue(start, toIso(today));
+        setDateInputValue(end, toIso(today));
       } else if (mode === '7days') {
         const from = new Date(today);
         from.setDate(today.getDate() - 6);
-        start.value = toIso(from);
-        end.value = toIso(today);
+        setDateInputValue(start, toIso(from));
+        setDateInputValue(end, toIso(today));
       } else if (mode === 'thisMonth') {
-        start.value = toIso(new Date(today.getFullYear(), today.getMonth(), 1));
-        end.value = toIso(today);
+        setDateInputValue(start, toIso(new Date(today.getFullYear(), today.getMonth(), 1)));
+        setDateInputValue(end, toIso(today));
       } else if (mode === 'lastMonth') {
-        start.value = toIso(new Date(today.getFullYear(), today.getMonth() - 1, 1));
-        end.value = toIso(new Date(today.getFullYear(), today.getMonth(), 0));
+        setDateInputValue(start, toIso(new Date(today.getFullYear(), today.getMonth() - 1, 1)));
+        setDateInputValue(end, toIso(new Date(today.getFullYear(), today.getMonth(), 0)));
       }
 
       if (mode !== 'custom') loadManageSheetData();
@@ -6325,7 +6372,7 @@
           } else {
             input = document.createElement('input');
             if (headerClean.includes('ngày') || headerClean.includes('từ ngày') || headerClean.includes('đến ngày')) {
-              input.type = 'date';
+              setupViDateInput(input, rowData[header] || '');
             } else if (headerClean.includes('số lít') || headerClean.includes('số chuyến') || headerClean.includes('đơn giá') || headerClean.includes('tiền') || headerClean.includes('số ngày') || headerClean.includes('số giờ') || headerClean.includes('cự ly') || headerClean.includes('công')) {
               input.type = 'text';
               input.inputMode = 'decimal';
@@ -6337,7 +6384,9 @@
             }
           }
           
-          input.value = rowData[header] === undefined || rowData[header] === null ? '' : rowData[header];
+          if (!input.classList.contains('vi-date-input')) {
+            input.value = rowData[header] === undefined || rowData[header] === null ? '' : rowData[header];
+          }
           input.dataset.header = header;
           input.classList.add('manage-form-field');
           
@@ -6363,6 +6412,8 @@
         let val = '';
         if (f.classList.contains('ac-container')) {
           val = f.dataset.value || '';
+        } else if (f.classList.contains('vi-date-input')) {
+          val = getDateInputIso(f);
         } else {
           val = f.value || '';
         }
@@ -6696,7 +6747,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.13_mobile_entry_polish';
+      const APP_VERSION = 'v3.14_report_filters_date_polish';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -7640,14 +7691,24 @@
         wrap.appendChild(acWrap);
       } else {
         const input = document.createElement(kind === 'textarea' ? 'textarea' : 'input');
-        input.type = kind === 'number' ? 'text' : kind;
+        input.type = kind === 'number' || kind === 'date' ? 'text' : kind;
         if (kind === 'number') input.inputMode = 'decimal';
-        input.value = row[key] || '';
+        if (kind === 'date') {
+          setupViDateInput(input, row[key] || '');
+        } else {
+          input.value = row[key] || '';
+        }
         
         input.oninput = () => {
-          rows[index][key] = input.value;
+          rows[index][key] = kind === 'date' ? getDateInputIso(input) : input.value;
           handleFieldChange(index, key);
         };
+        if (kind === 'date') {
+          input.onchange = input.onblur = () => {
+            rows[index][key] = getDateInputIso(input);
+            handleFieldChange(index, key);
+          };
+        }
         wrap.appendChild(input);
       }
       
@@ -7663,10 +7724,7 @@
       holder.innerHTML = '';
       
       if (dashboard.loading || !dashboard.overview || !dashboard.overview.months) {
-        holder.innerHTML = `
-          <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
-          <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
-        `;
+        holder.innerHTML = renderReportLoadingMarkup();
         return;
       }
       
@@ -7688,7 +7746,6 @@
       
       if (reportsByType.vehicles?.data) {
         holder.appendChild(renderTableCard('Tổng hợp xe', reportsByType.vehicles.data, links.vehicles, 'vehicles'));
-        holder.appendChild(renderVehicleVolumeDetailCard(reportsByType.vehicles.data));
       } else {
         holder.appendChild(renderReportLoadingCard('Tổng hợp xe', 'vehicles'));
       }
@@ -7743,6 +7800,19 @@
       return card;
     }
 
+    function renderReportLoadingMarkup() {
+      const cards = [
+        ['Báo cáo tổng quan', 'finance'],
+        ['Báo cáo chi tiết', 'details'],
+        ['Bảng tổng hợp lương nhân sự', 'payroll'],
+        ['Tổng hợp xe', 'vehicles']
+      ];
+      return cards.map(([title, type]) => {
+        const card = renderReportLoadingCard(title, type);
+        return card.outerHTML;
+      }).join('');
+    }
+
     function renderTableCard(title, matrix, href, type) {
       const card = document.createElement('section');
       card.className = 'table-card';
@@ -7777,6 +7847,8 @@
         head = head.slice(1);
         body = body.map(row => row.slice(1));
       }
+
+      const vehicleFilters = type === 'vehicles' ? buildVehicleTableFilters(head, body) : null;
       
       // Calculate and append total row dynamically for finance/payroll/vehicles
       const shouldAppendTotalRow = type === 'finance'
@@ -7811,12 +7883,13 @@
       }
       
       card.innerHTML = `
-        <div class="table-card-head" style="align-items: flex-start;">
+        <div class="table-card-head report-table-head" style="align-items: flex-start;">
           <div>
             <div class="table-title">${escapeHtml(displayTitle)}</div>
             ${displayMonth ? `<div class="panel-note" style="margin-top: 4px; font-weight: 500; font-size: 13px; color: var(--muted);">${escapeHtml(displayMonth)}</div>` : ''}
           </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
+          <div class="report-card-actions" style="display: flex; gap: 8px; align-items: center;">
+            ${vehicleFilters ? renderVehicleTableFilterControls(vehicleFilters) : ''}
             <button type="button" class="sub-tab" title="Xuất ảnh" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;" onclick="exportCardAsImage(this, '${escapeHtml(type)}')">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
             </button>
@@ -7858,8 +7931,11 @@
               }
               
               const searchText = removeAccents(row.join(' ').toLowerCase());
+              const vehicleRowAttrs = type === 'vehicles'
+                ? ` data-vehicle-company="${escapeHtml(row[vehicleFilters?.companyIdx] || '')}" data-vehicle-plate="${escapeHtml(row[vehicleFilters?.plateIdx] || '')}"`
+                : '';
               
-              return `<tr ${rowClass} ${rowStyle} data-search-text="${escapeHtml(searchText)}">${head.map((colName, i) => {
+              return `<tr ${rowClass} ${rowStyle} data-search-text="${escapeHtml(searchText)}"${vehicleRowAttrs}>${head.map((colName, i) => {
                 let styleRules = [];
                 const val = row[i] || '';
                 const colLower = String(colName || '').toLowerCase().trim();
@@ -7869,24 +7945,26 @@
                   if (i === 0) {
                     styleRules.push('color: var(--ink)', 'font-weight: 700'); // Danh mục in đậm
                   } else if (colLower.includes('giải thích') || colLower.includes('nội dung') || i === 4) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 500 !important'); // Cột Giải thích (thứ 5) màu đen, không in đậm
+                    styleRules.push('color: var(--ink)', 'font-weight: 400 !important', 'font-size: 12.5px !important', 'line-height: 1.35'); // Cột Giải thích gọn hơn trên mobile
                   } else {
                     const cat = String(row[0] || '').toLowerCase().trim();
+                    const numVal = parseCellValue(val);
                     if (cat.includes('khối lượng')) {
-                      styleRules.push('color: var(--ink)', 'font-weight: 500');
+                      styleRules.push('color: #0D9488', 'font-weight: 600');
                     } else if (cat.includes('thuế') || cat.includes('phí đường bộ') || cat.includes('phí đi đường')) {
                       styleRules.push('color: var(--red)', 'font-weight: 600');
                     } else if (cat.includes('doanh thu') || cat.includes('lợi nhuận') || cat.includes('thu')) {
-                      styleRules.push('color: var(--green)', 'font-weight: 600');
+                      styleRules.push(`color: ${numVal < 0 ? 'var(--red)' : 'var(--green)'}`, 'font-weight: 600');
                     } else if (cat.includes('chi phí') || cat.includes('chi quỹ') || cat.includes('dầu') || cat.includes('chi')) {
                       styleRules.push('color: var(--red)', 'font-weight: 600');
                     }
                   }
                 } else if (type === 'finance') {
                   if (colLower.includes('khối lượng')) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 800');
+                    styleRules.push('color: #0D9488', 'font-weight: 800');
                   } else if (colLower.includes('doanh thu') || colLower.includes('lợi nhuận') || colLower.includes('gộp')) {
-                    styleRules.push('color: var(--green)', 'font-weight: 600');
+                    const numVal = parseCellValue(val);
+                    styleRules.push(`color: ${numVal < 0 ? 'var(--red)' : 'var(--green)'}`, 'font-weight: 600');
                   } else if (colLower.includes('chi') || colLower.includes('thuế') || colLower.includes('dầu') || colLower.includes('phí')) {
                     styleRules.push('color: var(--red)', 'font-weight: 600');
                   }
@@ -7930,137 +8008,45 @@
       return card;
     }
 
-    function renderVehicleVolumeDetailCard(matrix) {
-      const card = document.createElement('section');
-      card.className = 'table-card vehicle-volume-card';
-      card.dataset.reportType = 'vehicles';
-
-      const detail = buildVehicleVolumeDetailRows(matrix);
-      const plates = Array.from(new Set(detail.rows.map((row) => row.plate).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
-      const companies = Array.from(new Set(detail.rows.map((row) => row.company).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
-
-      card.innerHTML = `
-        <div class="table-card-head vehicle-volume-head">
-          <div>
-            <div class="table-title">Chi tiết khối lượng</div>
-            <div class="panel-note" id="vehicleVolumeNote">Tổng khối lượng: ${formatVolumeText(detail.totalVolume)}</div>
-          </div>
-          <div class="vehicle-volume-filters">
-            <label class="compact-filter">
-              <span>Biển số</span>
-              <select id="vehicleVolumePlateFilter" onchange="filterVehicleVolumeDetail()">
-                <option value="">Tất cả xe</option>
-                ${plates.map((plate) => `<option value="${escapeHtml(plate)}">${escapeHtml(plate)}</option>`).join('')}
-              </select>
-            </label>
-            <label class="compact-filter">
-              <span>Công ty</span>
-              <select id="vehicleVolumeCompanyFilter" onchange="filterVehicleVolumeDetail()">
-                <option value="">Tất cả công ty</option>
-                ${companies.map((company) => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('')}
-              </select>
-            </label>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table class="report-table" style="min-width: 560px;">
-            <thead>
-              <tr>
-                <th>Biển số xe</th>
-                <th>Công ty/Chủ xe</th>
-                <th style="text-align:right;">Tổng khối lượng</th>
-                <th style="text-align:right;">Số dòng</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${detail.rows.length ? detail.rows.map((row) => `
-                <tr data-plate="${escapeHtml(row.plate)}" data-company="${escapeHtml(row.company)}" data-volume="${row.volume}" data-search-text="${escapeHtml(removeAccents([row.plate, row.company].join(' ').toLowerCase()))}">
-                  <td style="font-weight:800; color:var(--deep);">${escapeHtml(row.plate || '-')}</td>
-                  <td>${escapeHtml(row.company || '-')}</td>
-                  <td style="text-align:right; font-weight:900; color:var(--teal);">${formatVolumeText(row.volume)}</td>
-                  <td style="text-align:right;">${row.count.toLocaleString('vi-VN')}</td>
-                </tr>
-              `).join('') : '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Chưa có dữ liệu khối lượng.</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-      `;
-      setTimeout(filterVehicleVolumeDetail, 0);
-      return card;
-    }
-
-    function buildVehicleVolumeDetailRows(matrix) {
-      const rows = matrix || [];
-      let head = rows[0] || [];
-      let body = rows.slice(1);
-      if (head[0] && /tháng/i.test(String(head[0]).trim())) {
-        head = head.slice(1);
-        body = body.map((row) => row.slice(1));
-      }
-
-      const normalizedHead = head.map((cell) => removeAccents(String(cell || '').toLowerCase()));
+    function buildVehicleTableFilters(head, body) {
+      const normalized = head.map((cell) => removeAccents(String(cell || '').toLowerCase()));
       const findIdx = (candidates, fallback) => {
-        for (let i = 0; i < normalizedHead.length; i++) {
-          if (candidates.some((candidate) => normalizedHead[i].includes(candidate))) return i;
+        for (let i = 0; i < normalized.length; i++) {
+          if (candidates.some((candidate) => normalized[i].includes(candidate))) return i;
         }
         return fallback;
       };
-
-      const plateIdx = findIdx(['bien so', 'bks', 'bien', 'ma xe'], 0);
-      const companyIdx = findIdx(['cong ty', 'chu xe', 'nha xe', 'don vi'], 1);
-      const volumeIdx = findIdx(['khoi luong', 'san luong', 'tong khoi'], 2);
-      const grouped = {};
-
-      body.forEach((row) => {
-        const firstCell = removeAccents(String(row[0] || '').toLowerCase());
-        if (!row || !row.length || firstCell.includes('tong')) return;
-        const volume = parseCellValue(row[volumeIdx] || '');
-        if (volume === null || !Number.isFinite(volume)) return;
-        const plate = String(row[plateIdx] || '').trim();
-        const company = String(row[companyIdx] || '').trim();
-        const key = `${plate}||${company}`;
-        if (!grouped[key]) {
-          grouped[key] = { plate, company, volume: 0, count: 0 };
-        }
-        grouped[key].volume += volume;
-        grouped[key].count += 1;
+      const companyIdx = findIdx(['cong ty', 'chu xe', 'nha xe', 'don vi'], 0);
+      const plateIdx = findIdx(['bien so', 'bien xe', 'xe'], 1);
+      const rows = body.filter((row) => {
+        const first = removeAccents(String(row[0] || '').toLowerCase());
+        return !first.includes('tong') && !first.includes('cong');
       });
-
-      const detailRows = Object.values(grouped).sort((a, b) => b.volume - a.volume);
-      return {
-        rows: detailRows,
-        totalVolume: detailRows.reduce((sum, row) => sum + row.volume, 0)
-      };
+      const companies = Array.from(new Set(rows.map((row) => String(row[companyIdx] || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+      const plates = Array.from(new Set(rows.map((row) => String(row[plateIdx] || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+      return { companyIdx, plateIdx, companies, plates };
     }
 
-    function formatVolumeText(value) {
-      return Number(value || 0).toLocaleString('vi-VN', {
-        maximumFractionDigits: 2
-      });
+    function renderVehicleTableFilterControls(filters) {
+      return `
+        <div class="vehicle-volume-filters vehicle-summary-filters">
+          <label class="compact-filter">
+            <span>Công ty</span>
+            <select class="report-vehicle-filter" data-filter="company" onchange="filterReportRows()">
+              <option value="">Tất cả công ty</option>
+              ${filters.companies.map((company) => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('')}
+            </select>
+          </label>
+          <label class="compact-filter">
+            <span>Biển số</span>
+            <select class="report-vehicle-filter" data-filter="plate" onchange="filterReportRows()">
+              <option value="">Tất cả xe</option>
+              ${filters.plates.map((plate) => `<option value="${escapeHtml(plate)}">${escapeHtml(plate)}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+      `;
     }
-
-    window.filterVehicleVolumeDetail = () => {
-      const card = document.querySelector('.vehicle-volume-card');
-      if (!card) return;
-      const plate = el('vehicleVolumePlateFilter')?.value || '';
-      const company = el('vehicleVolumeCompanyFilter')?.value || '';
-      let total = 0;
-      let count = 0;
-      card.querySelectorAll('tbody tr[data-volume]').forEach((row) => {
-        const matchPlate = !plate || row.dataset.plate === plate;
-        const matchCompany = !company || row.dataset.company === company;
-        const visible = matchPlate && matchCompany && !row.classList.contains('hidden-row');
-        row.style.display = visible ? '' : 'none';
-        if (visible) {
-          total += Number(row.dataset.volume || 0);
-          count += 1;
-        }
-      });
-      const note = el('vehicleVolumeNote');
-      if (note) {
-        note.textContent = `Tổng khối lượng: ${formatVolumeText(total)} (${count.toLocaleString('vi-VN')} dòng)`;
-      }
-    };
 
     // Helper functions for filtering and calculating subtotals
     function removeAccents(str) {
@@ -8141,6 +8127,8 @@
       tables.forEach((card) => {
         const type = card.dataset.reportType;
         if (type !== 'payroll' && type !== 'vehicles') return;
+        const companyFilter = type === 'vehicles' ? (card.querySelector('[data-filter="company"]')?.value || '') : '';
+        const plateFilter = type === 'vehicles' ? (card.querySelector('[data-filter="plate"]')?.value || '') : '';
         
         const rows = card.querySelectorAll('tbody tr');
         rows.forEach((row) => {
@@ -8156,8 +8144,12 @@
           } else {
             match = parts.some(part => text.includes(part));
           }
-          
-          if (match) {
+
+          const matchVehicleFilters = type !== 'vehicles'
+            || ((!companyFilter || row.dataset.vehicleCompany === companyFilter)
+              && (!plateFilter || row.dataset.vehiclePlate === plateFilter));
+
+          if (match && matchVehicleFilters) {
             row.classList.remove('hidden-row');
           } else {
             row.classList.add('hidden-row');
@@ -8166,9 +8158,6 @@
         
         updateTableSubtotals(card, type);
       });
-      if (typeof filterVehicleVolumeDetail === 'function') {
-        filterVehicleVolumeDetail();
-      }
     };
 
     function updateTableSubtotals(card, type) {
@@ -8238,7 +8227,9 @@
         }
       }
       
-      const isFiltered = document.getElementById('reportSearchInput')?.value.trim() !== '';
+      const hasVehicleFilter = type === 'vehicles'
+        && (card.querySelector('[data-filter="company"]')?.value || card.querySelector('[data-filter="plate"]')?.value);
+      const isFiltered = document.getElementById('reportSearchInput')?.value.trim() !== '' || Boolean(hasVehicleFilter);
       const cleanBase = baseText.replace(/\s*\(Lọc\)/i, '');
       if (firstCell) {
         if (isFiltered) {
@@ -8905,7 +8896,7 @@
           
           reportsByType.payroll = { data: bundle.payroll };
           reportsByType.vehicles = { data: bundle.vehicles };
-          appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt };
+          appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt, loading: false };
           appData.reports = { ...appData.reports, ...appData.dashboard, loading: false };
           
           renderReports();
@@ -8913,13 +8904,16 @@
           return Promise.resolve(bundle);
         }
       }
+      appData.reports = { ...(appData.reports || {}), loading: true };
+      appData.dashboard = { ...(appData.dashboard || {}), loading: true };
+      renderReports();
       
       return callApi('GET', 'getReportBundle', { month: selectedMonth, forceRefresh: forceRefresh })
         .then((bundle) => {
           if (requestSeq !== reportBundleRequestSeq) return;
           reportsByType.payroll = { data: bundle.payroll };
           reportsByType.vehicles = { data: bundle.vehicles };
-          appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt };
+          appData.dashboard = { ...(appData.dashboard || {}), overview: bundle.overview, updatedAt: bundle.updatedAt, loading: false };
           appData.reports = { ...appData.reports, ...appData.dashboard, loading: false };
           
           sessionStorage.setItem(cacheKey, JSON.stringify(bundle));
@@ -8929,7 +8923,12 @@
           return bundle;
         })
         .catch((err) => {
-          if (requestSeq === reportBundleRequestSeq) showStatus('err', err.message || String(err));
+          if (requestSeq === reportBundleRequestSeq) {
+            appData.dashboard = { ...(appData.dashboard || {}), loading: false };
+            appData.reports = { ...(appData.reports || {}), loading: false };
+            renderReports();
+            showStatus('err', err.message || String(err));
+          }
           throw err;
         })
         .finally(() => {
@@ -9256,6 +9255,67 @@
       }
     }
 
+    function formatIsoDateForDisplay(value) {
+      const text = String(value || '').trim();
+      const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+      const vn = text.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+      if (vn) {
+        const day = vn[1].padStart(2, '0');
+        const month = vn[2].padStart(2, '0');
+        const year = vn[3].length === 2 ? `20${vn[3]}` : vn[3];
+        return `${day}/${month}/${year}`;
+      }
+      return text;
+    }
+
+    function parseDisplayDateToIso(value) {
+      const text = String(value || '').trim();
+      if (!text) return '';
+      const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (iso) return text;
+      const digits = text.replace(/\D/g, '');
+      if (digits.length !== 8) return '';
+      const day = digits.slice(0, 2);
+      const month = digits.slice(2, 4);
+      const year = digits.slice(4, 8);
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+      if (date.getFullYear() !== Number(year) || date.getMonth() !== Number(month) - 1 || date.getDate() !== Number(day)) return '';
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatDateInputText(inputElement) {
+      const digits = String(inputElement.value || '').replace(/\D/g, '').slice(0, 8);
+      const parts = [];
+      if (digits.length > 0) parts.push(digits.slice(0, 2));
+      if (digits.length > 2) parts.push(digits.slice(2, 4));
+      if (digits.length > 4) parts.push(digits.slice(4, 8));
+      inputElement.value = parts.filter(Boolean).join('/');
+    }
+
+    function getDateInputIso(idOrElement) {
+      const input = typeof idOrElement === 'string' ? el(idOrElement) : idOrElement;
+      if (!input) return '';
+      return input.dataset.iso || parseDisplayDateToIso(input.value) || '';
+    }
+
+    function setDateInputValue(idOrElement, isoValue) {
+      const input = typeof idOrElement === 'string' ? el(idOrElement) : idOrElement;
+      if (!input) return;
+      const iso = parseDisplayDateToIso(isoValue) || String(isoValue || '').slice(0, 10);
+      input.dataset.iso = iso;
+      input.value = formatIsoDateForDisplay(iso);
+    }
+
+    function setupViDateInput(inputElement, isoValue) {
+      inputElement.type = 'text';
+      inputElement.inputMode = 'numeric';
+      inputElement.placeholder = 'dd/mm/yyyy';
+      inputElement.autocomplete = 'off';
+      inputElement.classList.add('vi-date-input');
+      setDateInputValue(inputElement, isoValue || inputElement.value || '');
+    }
+
     document.addEventListener('input', function(e) {
       const target = e.target;
       const isStaticMoney = ['fundAmountInput', 'loanAmountInput', 'loanPaymentAmountInput'].includes(target.id);
@@ -9263,6 +9323,25 @@
       
       if (isStaticMoney || isDynamicMoney) {
         formatMoneyInput(target);
+      }
+      if (target.classList.contains('vi-date-input')) {
+        formatDateInputText(target);
+        target.dataset.iso = parseDisplayDateToIso(target.value);
+      }
+    }, true);
+
+    document.addEventListener('blur', function(e) {
+      const target = e.target;
+      if (target.classList?.contains('vi-date-input')) {
+        const iso = parseDisplayDateToIso(target.value);
+        if (iso) setDateInputValue(target, iso);
+      }
+    }, true);
+
+    document.addEventListener('change', function(e) {
+      const target = e.target;
+      if (target.classList?.contains('vi-date-input')) {
+        target.dataset.iso = parseDisplayDateToIso(target.value);
       }
     });
     

@@ -191,14 +191,24 @@
         wrap.appendChild(acWrap);
       } else {
         const input = document.createElement(kind === 'textarea' ? 'textarea' : 'input');
-        input.type = kind === 'number' ? 'text' : kind;
+        input.type = kind === 'number' || kind === 'date' ? 'text' : kind;
         if (kind === 'number') input.inputMode = 'decimal';
-        input.value = row[key] || '';
+        if (kind === 'date') {
+          setupViDateInput(input, row[key] || '');
+        } else {
+          input.value = row[key] || '';
+        }
         
         input.oninput = () => {
-          rows[index][key] = input.value;
+          rows[index][key] = kind === 'date' ? getDateInputIso(input) : input.value;
           handleFieldChange(index, key);
         };
+        if (kind === 'date') {
+          input.onchange = input.onblur = () => {
+            rows[index][key] = getDateInputIso(input);
+            handleFieldChange(index, key);
+          };
+        }
         wrap.appendChild(input);
       }
       

@@ -30,8 +30,8 @@
       el('manageTableEmpty').style.display = 'none';
       el('manageLimitNotice').style.display = 'none';
 
-      const startDate = el('manageStartDate').value;
-      const endDate = el('manageEndDate').value;
+      const startDate = getDateInputIso('manageStartDate');
+      const endDate = getDateInputIso('manageEndDate');
       const requestParams = {
         sheetName: sheetName,
         startDate: startDate,
@@ -170,22 +170,22 @@
       };
 
       if (mode === 'recent') {
-        start.value = '';
-        end.value = '';
+        setDateInputValue(start, '');
+        setDateInputValue(end, '');
       } else if (mode === 'today') {
-        start.value = toIso(today);
-        end.value = toIso(today);
+        setDateInputValue(start, toIso(today));
+        setDateInputValue(end, toIso(today));
       } else if (mode === '7days') {
         const from = new Date(today);
         from.setDate(today.getDate() - 6);
-        start.value = toIso(from);
-        end.value = toIso(today);
+        setDateInputValue(start, toIso(from));
+        setDateInputValue(end, toIso(today));
       } else if (mode === 'thisMonth') {
-        start.value = toIso(new Date(today.getFullYear(), today.getMonth(), 1));
-        end.value = toIso(today);
+        setDateInputValue(start, toIso(new Date(today.getFullYear(), today.getMonth(), 1)));
+        setDateInputValue(end, toIso(today));
       } else if (mode === 'lastMonth') {
-        start.value = toIso(new Date(today.getFullYear(), today.getMonth() - 1, 1));
-        end.value = toIso(new Date(today.getFullYear(), today.getMonth(), 0));
+        setDateInputValue(start, toIso(new Date(today.getFullYear(), today.getMonth() - 1, 1)));
+        setDateInputValue(end, toIso(new Date(today.getFullYear(), today.getMonth(), 0)));
       }
 
       if (mode !== 'custom') loadManageSheetData();
@@ -590,7 +590,7 @@
           } else {
             input = document.createElement('input');
             if (headerClean.includes('ngày') || headerClean.includes('từ ngày') || headerClean.includes('đến ngày')) {
-              input.type = 'date';
+              setupViDateInput(input, rowData[header] || '');
             } else if (headerClean.includes('số lít') || headerClean.includes('số chuyến') || headerClean.includes('đơn giá') || headerClean.includes('tiền') || headerClean.includes('số ngày') || headerClean.includes('số giờ') || headerClean.includes('cự ly') || headerClean.includes('công')) {
               input.type = 'text';
               input.inputMode = 'decimal';
@@ -602,7 +602,9 @@
             }
           }
           
-          input.value = rowData[header] === undefined || rowData[header] === null ? '' : rowData[header];
+          if (!input.classList.contains('vi-date-input')) {
+            input.value = rowData[header] === undefined || rowData[header] === null ? '' : rowData[header];
+          }
           input.dataset.header = header;
           input.classList.add('manage-form-field');
           
@@ -628,6 +630,8 @@
         let val = '';
         if (f.classList.contains('ac-container')) {
           val = f.dataset.value || '';
+        } else if (f.classList.contains('vi-date-input')) {
+          val = getDateInputIso(f);
         } else {
           val = f.value || '';
         }

@@ -265,6 +265,67 @@
       }
     }
 
+    function formatIsoDateForDisplay(value) {
+      const text = String(value || '').trim();
+      const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+      const vn = text.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+      if (vn) {
+        const day = vn[1].padStart(2, '0');
+        const month = vn[2].padStart(2, '0');
+        const year = vn[3].length === 2 ? `20${vn[3]}` : vn[3];
+        return `${day}/${month}/${year}`;
+      }
+      return text;
+    }
+
+    function parseDisplayDateToIso(value) {
+      const text = String(value || '').trim();
+      if (!text) return '';
+      const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (iso) return text;
+      const digits = text.replace(/\D/g, '');
+      if (digits.length !== 8) return '';
+      const day = digits.slice(0, 2);
+      const month = digits.slice(2, 4);
+      const year = digits.slice(4, 8);
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+      if (date.getFullYear() !== Number(year) || date.getMonth() !== Number(month) - 1 || date.getDate() !== Number(day)) return '';
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatDateInputText(inputElement) {
+      const digits = String(inputElement.value || '').replace(/\D/g, '').slice(0, 8);
+      const parts = [];
+      if (digits.length > 0) parts.push(digits.slice(0, 2));
+      if (digits.length > 2) parts.push(digits.slice(2, 4));
+      if (digits.length > 4) parts.push(digits.slice(4, 8));
+      inputElement.value = parts.filter(Boolean).join('/');
+    }
+
+    function getDateInputIso(idOrElement) {
+      const input = typeof idOrElement === 'string' ? el(idOrElement) : idOrElement;
+      if (!input) return '';
+      return input.dataset.iso || parseDisplayDateToIso(input.value) || '';
+    }
+
+    function setDateInputValue(idOrElement, isoValue) {
+      const input = typeof idOrElement === 'string' ? el(idOrElement) : idOrElement;
+      if (!input) return;
+      const iso = parseDisplayDateToIso(isoValue) || String(isoValue || '').slice(0, 10);
+      input.dataset.iso = iso;
+      input.value = formatIsoDateForDisplay(iso);
+    }
+
+    function setupViDateInput(inputElement, isoValue) {
+      inputElement.type = 'text';
+      inputElement.inputMode = 'numeric';
+      inputElement.placeholder = 'dd/mm/yyyy';
+      inputElement.autocomplete = 'off';
+      inputElement.classList.add('vi-date-input');
+      setDateInputValue(inputElement, isoValue || inputElement.value || '');
+    }
+
     document.addEventListener('input', function(e) {
       const target = e.target;
       const isStaticMoney = ['fundAmountInput', 'loanAmountInput', 'loanPaymentAmountInput'].includes(target.id);
@@ -272,6 +333,25 @@
       
       if (isStaticMoney || isDynamicMoney) {
         formatMoneyInput(target);
+      }
+      if (target.classList.contains('vi-date-input')) {
+        formatDateInputText(target);
+        target.dataset.iso = parseDisplayDateToIso(target.value);
+      }
+    }, true);
+
+    document.addEventListener('blur', function(e) {
+      const target = e.target;
+      if (target.classList?.contains('vi-date-input')) {
+        const iso = parseDisplayDateToIso(target.value);
+        if (iso) setDateInputValue(target, iso);
+      }
+    }, true);
+
+    document.addEventListener('change', function(e) {
+      const target = e.target;
+      if (target.classList?.contains('vi-date-input')) {
+        target.dataset.iso = parseDisplayDateToIso(target.value);
       }
     });
     

@@ -9568,6 +9568,7 @@
 
     function attachNativeDatePicker(inputElement) {
       if (!inputElement || inputElement.dataset.datePickerAttached === 'true') return;
+      if (!inputElement.parentNode) return;
       inputElement.dataset.datePickerAttached = 'true';
       inputElement.readOnly = true;
       inputElement.setAttribute('aria-label', inputElement.getAttribute('aria-label') || inputElement.placeholder || 'Chọn ngày');

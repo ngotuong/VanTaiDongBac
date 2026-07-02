@@ -14,7 +14,8 @@
       ensureSelectedMonth(parsed.rows);
       renderMonthFilters(parsed.rows);
       
-      const filteredOverview = filterOverviewMatrix(dashboard.overview.months, selectedMonth);
+      const overviewMatrix = reconcileOverviewSummaryMatrix_(dashboard.overview.months);
+      const filteredOverview = filterOverviewMatrix(overviewMatrix, selectedMonth);
       const selected = getSelectedOverviewRow(parsed.rows);
       
       const links = getLinks();
@@ -38,6 +39,26 @@
       if (typeof filterReportRows === 'function') {
         filterReportRows();
       }
+    }
+
+    function reconcileOverviewSummaryMatrix_(matrix) {
+      if (!matrix || !matrix.length) return [];
+      const kpisByMonth = buildOverviewKpiMap_();
+      if (!Object.keys(kpisByMonth).length) return matrix;
+      const headerIndex = matrix.findIndex(row => row && String(row[0] || '').trim().toLowerCase() === 'tháng');
+      const headers = (matrix[headerIndex >= 0 ? headerIndex : 0] || []).map(h => String(h || '').trim().toLowerCase());
+      const finalColIdx = headers.findIndex((h) => h.includes('lợi nhuận thực tế') || h.includes('lợi nhuận thực nhận') || h.includes('lợi nhuận thực'));
+      if (finalColIdx < 0) return matrix;
+
+      return matrix.map((row, index) => {
+        if (index <= headerIndex || !row || !row.length) return row;
+        const monthKey = normalizeMonthLabel_(row[0]);
+        const kpi = kpisByMonth[monthKey];
+        if (!kpi) return row;
+        const nextRow = row.slice();
+        nextRow[finalColIdx] = formatCurrencyText(kpi.final);
+        return nextRow;
+      });
     }
 
     function filterReportCards() {

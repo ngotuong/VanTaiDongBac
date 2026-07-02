@@ -132,6 +132,71 @@
       line-height: 1.3 !important;
       text-align: left;
     }
+
+    .filter-row input,
+    .filter-row select,
+    .filter-container input,
+    .filter-container select,
+    .compact-filter select {
+      height: 38px !important;
+      min-height: 38px !important;
+      box-sizing: border-box;
+      font-size: 13px !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+    }
+
+    .filter-row input,
+    .filter-container input {
+      display: block;
+    }
+
+    .vi-date-field {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .vi-date-field .vi-date-input {
+      width: 100%;
+      padding-right: 34px !important;
+      cursor: pointer;
+      background-image: linear-gradient(transparent, transparent);
+    }
+
+    .vi-date-native {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      opacity: 0.01;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .vi-date-field::after {
+      content: "";
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      width: 15px;
+      height: 15px;
+      transform: translateY(-50%);
+      pointer-events: none;
+      opacity: 0.68;
+      background:
+        linear-gradient(var(--muted), var(--muted)) 3px 1px / 2px 4px no-repeat,
+        linear-gradient(var(--muted), var(--muted)) 10px 1px / 2px 4px no-repeat,
+        linear-gradient(var(--muted), var(--muted)) 2px 5px / 11px 1.5px no-repeat;
+      border: 1.5px solid var(--muted);
+      border-radius: 3px;
+      box-sizing: border-box;
+    }
     
     button {
       min-height: 46px;
@@ -3030,7 +3095,19 @@
       #manageEndDate,
       #manageSearchInput {
         min-height: 44px !important;
+        height: 44px !important;
         font-size: 16px !important;
+        font-weight: 500 !important;
+      }
+
+      .filter-row input,
+      .filter-row select,
+      .filter-container input,
+      .filter-container select,
+      .compact-filter select {
+        height: 44px !important;
+        min-height: 44px !important;
+        font-size: 15px !important;
         font-weight: 500 !important;
       }
 
@@ -6898,7 +6975,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.15_report_mobile_balance';
+      const APP_VERSION = 'v3.16_report_profit_date_controls';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -7890,7 +7967,8 @@
       ensureSelectedMonth(parsed.rows);
       renderMonthFilters(parsed.rows);
       
-      const filteredOverview = filterOverviewMatrix(dashboard.overview.months, selectedMonth);
+      const overviewMatrix = reconcileOverviewSummaryMatrix_(dashboard.overview.months);
+      const filteredOverview = filterOverviewMatrix(overviewMatrix, selectedMonth);
       const selected = getSelectedOverviewRow(parsed.rows);
       
       const links = getLinks();
@@ -7914,6 +7992,26 @@
       if (typeof filterReportRows === 'function') {
         filterReportRows();
       }
+    }
+
+    function reconcileOverviewSummaryMatrix_(matrix) {
+      if (!matrix || !matrix.length) return [];
+      const kpisByMonth = buildOverviewKpiMap_();
+      if (!Object.keys(kpisByMonth).length) return matrix;
+      const headerIndex = matrix.findIndex(row => row && String(row[0] || '').trim().toLowerCase() === 'tháng');
+      const headers = (matrix[headerIndex >= 0 ? headerIndex : 0] || []).map(h => String(h || '').trim().toLowerCase());
+      const finalColIdx = headers.findIndex((h) => h.includes('lợi nhuận thực tế') || h.includes('lợi nhuận thực nhận') || h.includes('lợi nhuận thực'));
+      if (finalColIdx < 0) return matrix;
+
+      return matrix.map((row, index) => {
+        if (index <= headerIndex || !row || !row.length) return row;
+        const monthKey = normalizeMonthLabel_(row[0]);
+        const kpi = kpisByMonth[monthKey];
+        if (!kpi) return row;
+        const nextRow = row.slice();
+        nextRow[finalColIdx] = formatCurrencyText(kpi.final);
+        return nextRow;
+      });
     }
 
     function filterReportCards() {
@@ -9460,9 +9558,57 @@
     function setDateInputValue(idOrElement, isoValue) {
       const input = typeof idOrElement === 'string' ? el(idOrElement) : idOrElement;
       if (!input) return;
+      attachNativeDatePicker(input);
       const iso = parseDisplayDateToIso(isoValue) || String(isoValue || '').slice(0, 10);
       input.dataset.iso = iso;
       input.value = formatIsoDateForDisplay(iso);
+      const nativeInput = input.parentElement?.querySelector?.('.vi-date-native');
+      if (nativeInput) nativeInput.value = iso;
+    }
+
+    function attachNativeDatePicker(inputElement) {
+      if (!inputElement || inputElement.dataset.datePickerAttached === 'true') return;
+      inputElement.dataset.datePickerAttached = 'true';
+      inputElement.readOnly = true;
+      inputElement.setAttribute('aria-label', inputElement.getAttribute('aria-label') || inputElement.placeholder || 'Chọn ngày');
+
+      let wrapper = inputElement.parentElement;
+      if (!wrapper || !wrapper.classList.contains('vi-date-field')) {
+        wrapper = document.createElement('span');
+        wrapper.className = 'vi-date-field';
+        inputElement.parentNode.insertBefore(wrapper, inputElement);
+        wrapper.appendChild(inputElement);
+      }
+
+      const nativeInput = document.createElement('input');
+      nativeInput.type = 'date';
+      nativeInput.className = 'vi-date-native';
+      nativeInput.tabIndex = -1;
+      nativeInput.setAttribute('aria-hidden', 'true');
+      nativeInput.value = inputElement.dataset.iso || parseDisplayDateToIso(inputElement.value) || '';
+      nativeInput.addEventListener('change', function() {
+        setDateInputValue(inputElement, nativeInput.value);
+        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+        inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      wrapper.appendChild(nativeInput);
+    }
+
+    function openNativeDatePicker(inputElement) {
+      attachNativeDatePicker(inputElement);
+      const nativeInput = inputElement.parentElement?.querySelector?.('.vi-date-native');
+      if (!nativeInput) return;
+      nativeInput.value = inputElement.dataset.iso || parseDisplayDateToIso(inputElement.value) || '';
+      try {
+        if (typeof nativeInput.showPicker === 'function') {
+          nativeInput.showPicker();
+          return;
+        }
+      } catch (err) {
+        // iOS Safari có thể chặn showPicker nếu không phải gesture trực tiếp.
+      }
+      nativeInput.focus();
+      nativeInput.click();
     }
 
     function setupViDateInput(inputElement, isoValue) {
@@ -9483,14 +9629,18 @@
         formatMoneyInput(target);
       }
       if (target.classList.contains('vi-date-input')) {
+        attachNativeDatePicker(target);
         formatDateInputText(target);
         target.dataset.iso = parseDisplayDateToIso(target.value);
+        const nativeInput = target.parentElement?.querySelector?.('.vi-date-native');
+        if (nativeInput) nativeInput.value = target.dataset.iso || '';
       }
     }, true);
 
     document.addEventListener('blur', function(e) {
       const target = e.target;
       if (target.classList?.contains('vi-date-input')) {
+        attachNativeDatePicker(target);
         const iso = parseDisplayDateToIso(target.value);
         if (iso) setDateInputValue(target, iso);
       }
@@ -9499,9 +9649,24 @@
     document.addEventListener('change', function(e) {
       const target = e.target;
       if (target.classList?.contains('vi-date-input')) {
+        attachNativeDatePicker(target);
         target.dataset.iso = parseDisplayDateToIso(target.value);
+        const nativeInput = target.parentElement?.querySelector?.('.vi-date-native');
+        if (nativeInput) nativeInput.value = target.dataset.iso || '';
       }
     });
+
+    document.addEventListener('focusin', function(e) {
+      const target = e.target;
+      if (target.classList?.contains('vi-date-input')) attachNativeDatePicker(target);
+    });
+
+    document.addEventListener('pointerdown', function(e) {
+      const target = e.target;
+      if (!target.classList?.contains('vi-date-input')) return;
+      e.preventDefault();
+      openNativeDatePicker(target);
+    }, true);
     
     // Run initial boot
     init();

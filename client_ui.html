@@ -312,9 +312,57 @@
     function setDateInputValue(idOrElement, isoValue) {
       const input = typeof idOrElement === 'string' ? el(idOrElement) : idOrElement;
       if (!input) return;
+      attachNativeDatePicker(input);
       const iso = parseDisplayDateToIso(isoValue) || String(isoValue || '').slice(0, 10);
       input.dataset.iso = iso;
       input.value = formatIsoDateForDisplay(iso);
+      const nativeInput = input.parentElement?.querySelector?.('.vi-date-native');
+      if (nativeInput) nativeInput.value = iso;
+    }
+
+    function attachNativeDatePicker(inputElement) {
+      if (!inputElement || inputElement.dataset.datePickerAttached === 'true') return;
+      inputElement.dataset.datePickerAttached = 'true';
+      inputElement.readOnly = true;
+      inputElement.setAttribute('aria-label', inputElement.getAttribute('aria-label') || inputElement.placeholder || 'Chọn ngày');
+
+      let wrapper = inputElement.parentElement;
+      if (!wrapper || !wrapper.classList.contains('vi-date-field')) {
+        wrapper = document.createElement('span');
+        wrapper.className = 'vi-date-field';
+        inputElement.parentNode.insertBefore(wrapper, inputElement);
+        wrapper.appendChild(inputElement);
+      }
+
+      const nativeInput = document.createElement('input');
+      nativeInput.type = 'date';
+      nativeInput.className = 'vi-date-native';
+      nativeInput.tabIndex = -1;
+      nativeInput.setAttribute('aria-hidden', 'true');
+      nativeInput.value = inputElement.dataset.iso || parseDisplayDateToIso(inputElement.value) || '';
+      nativeInput.addEventListener('change', function() {
+        setDateInputValue(inputElement, nativeInput.value);
+        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+        inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      wrapper.appendChild(nativeInput);
+    }
+
+    function openNativeDatePicker(inputElement) {
+      attachNativeDatePicker(inputElement);
+      const nativeInput = inputElement.parentElement?.querySelector?.('.vi-date-native');
+      if (!nativeInput) return;
+      nativeInput.value = inputElement.dataset.iso || parseDisplayDateToIso(inputElement.value) || '';
+      try {
+        if (typeof nativeInput.showPicker === 'function') {
+          nativeInput.showPicker();
+          return;
+        }
+      } catch (err) {
+        // iOS Safari có thể chặn showPicker nếu không phải gesture trực tiếp.
+      }
+      nativeInput.focus();
+      nativeInput.click();
     }
 
     function setupViDateInput(inputElement, isoValue) {
@@ -335,14 +383,18 @@
         formatMoneyInput(target);
       }
       if (target.classList.contains('vi-date-input')) {
+        attachNativeDatePicker(target);
         formatDateInputText(target);
         target.dataset.iso = parseDisplayDateToIso(target.value);
+        const nativeInput = target.parentElement?.querySelector?.('.vi-date-native');
+        if (nativeInput) nativeInput.value = target.dataset.iso || '';
       }
     }, true);
 
     document.addEventListener('blur', function(e) {
       const target = e.target;
       if (target.classList?.contains('vi-date-input')) {
+        attachNativeDatePicker(target);
         const iso = parseDisplayDateToIso(target.value);
         if (iso) setDateInputValue(target, iso);
       }
@@ -351,9 +403,24 @@
     document.addEventListener('change', function(e) {
       const target = e.target;
       if (target.classList?.contains('vi-date-input')) {
+        attachNativeDatePicker(target);
         target.dataset.iso = parseDisplayDateToIso(target.value);
+        const nativeInput = target.parentElement?.querySelector?.('.vi-date-native');
+        if (nativeInput) nativeInput.value = target.dataset.iso || '';
       }
     });
+
+    document.addEventListener('focusin', function(e) {
+      const target = e.target;
+      if (target.classList?.contains('vi-date-input')) attachNativeDatePicker(target);
+    });
+
+    document.addEventListener('pointerdown', function(e) {
+      const target = e.target;
+      if (!target.classList?.contains('vi-date-input')) return;
+      e.preventDefault();
+      openNativeDatePicker(target);
+    }, true);
     
     // Run initial boot
     init();

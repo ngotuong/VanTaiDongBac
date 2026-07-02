@@ -1,5 +1,5 @@
 var SheetService = (function () {
-  var CACHE_VERSION = 'v12';
+  var CACHE_VERSION = 'v13';
   var CATALOG_TTL_SECONDS = 21600;
   var REPORT_TTL_SECONDS = 600;
   var REPORT_CACHE_SHEET_NAME = 'SYS_ReportCache';
@@ -428,7 +428,7 @@ var SheetService = (function () {
 
     var months = readOverviewMonths_(sheet);
     var details = readOverviewDetailsWithCache_(ss, sheet, months, month);
-    return { months: months, details: details };
+    return { months: months, details: details, kpis: readOverviewKpis_(ss, sheet, months) };
   }
 
   function readOverviewDashboard_(ss) {

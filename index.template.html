@@ -352,7 +352,7 @@
           </div>
           <div style="display: flex; gap: 16px; font-size: 13.5px; font-weight: 700; color: var(--deep); flex-wrap: wrap;">
             <span>Tổng số lít: <span id="manageDauTotalLiters" style="color: var(--teal); font-size: 14.5px;">0</span> lít</span>
-            <span>Tổng thành tiền: <span id="manageDauTotalAmount" style="color: var(--red); font-size: 14.5px;">0 ₫</span></span>
+            <span>Tổng thành tiền: <span id="manageDauTotalAmount" style="color: var(--red); font-size: 14.5px;">0</span></span>
           </div>
         </div>
 
@@ -584,10 +584,9 @@
           <section class="table-card" style="margin-bottom: 20px;">
             <div class="table-card-head fund-loan-summary-head">
               <div class="table-title">Chi tiết các khoản vay</div>
-              <label class="compact-filter">
-                <span>Công ty</span>
+              <label class="compact-filter compact-filter-inline">
                 <select id="fundLoanPartnerFilter" onchange="renderFundLoanOverview(fundLoanData || {})">
-                  <option value="">Tất cả công ty</option>
+                  <option value="">Tất cả</option>
                 </select>
               </label>
             </div>
@@ -764,7 +763,7 @@
               <option value="Trả lãi">Trả lãi</option>
             </select>
           </label>
-          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền (đ)<input type="text" id="loanPaymentAmountInput" inputmode="numeric" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" required></label>
+          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền<input type="text" id="loanPaymentAmountInput" inputmode="numeric" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" required></label>
           <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Nội dung<textarea id="loanPaymentContentInput" rows="2" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" placeholder="Nội dung thanh toán"></textarea></label>
         </div>
       </div>
@@ -789,31 +788,11 @@
     <form id="fundTransactionDrawerForm" onsubmit="event.preventDefault(); submitFundTransaction();" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
       <div class="panel-body" style="padding: 20px; flex: 1; overflow-y: auto;">
         <div id="fundEntryStatus" class="status" style="display:none; margin-bottom: 12px; padding: 10px; border-radius: 8px;"></div>
-        <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Ngày<input type="date" id="fundDateInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" required></label>
-          <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Loại
-            <select id="fundTypeInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;" onchange="handleFundTypeChange()">
-              <option value="Chi">Chi</option>
-              <option value="Thu">Thu</option>
-            </select>
-          </label>
-          <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Mục thu/chi
-            <select id="fundCategoryInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;" required></select>
-          </label>
-          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền (đ)<input type="text" id="fundAmountInput" inputmode="numeric" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" placeholder="0" required></label>
-          <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Người Thu/Chi
-            <select id="fundActorInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;" required></select>
-          </label>
-          <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Đối tác
-            <select id="fundPartnerInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;"></select>
-          </label>
-          <label style="grid-column: 1 / -1; display:flex; align-items:center; gap:10px; min-height:46px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">
-            <input type="checkbox" id="fundDebtInput" style="width: 18px; height: 18px; cursor:pointer;"> Đánh dấu là công nợ
-          </label>
-          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Nội dung<textarea id="fundContentInput" placeholder="Nội dung thu/chi" rows="2" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;"></textarea></label>
-        </div>
+        <div id="fundTransactionRows" class="fund-transaction-rows"></div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 16px)) 20px; border-top: 1px solid var(--line); background: var(--canvas); flex-shrink: 0;">
+        <button type="button" class="ghost" style="min-height:38px;" onclick="cloneFundTransactionRow()">Nhân bản</button>
+        <button type="button" class="secondary" style="min-height:38px;" onclick="addFundTransactionRow()">Thêm mới</button>
         <button type="button" class="outline" style="min-height:38px;" onclick="closeFundTransactionAddDrawer()">Hủy bỏ</button>
         <button type="submit" class="primary" style="min-height:38px;" id="fundSaveBtn">Lưu vào Thu chi</button>
       </div>
@@ -837,7 +816,7 @@
         <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Ngày vay<input type="date" id="loanDateInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" required></label>
           <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Đối tác<select id="loanPartnerInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;" required></select></label>
-          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền (đ)<input type="text" id="loanAmountInput" inputmode="numeric" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" required></label>
+          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền<input type="text" id="loanAmountInput" inputmode="numeric" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" required></label>
           <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Kỳ hạn vay (tháng)<input type="number" id="loanTermInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" min="0" step="1"></label>
           <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Lãi suất/năm<input type="number" id="loanRateInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" min="0" step="0.01" placeholder="VD: 12"></label>
           <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Kỳ hạn trả lãi (tháng)<input type="number" id="loanInterestPeriodInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" min="0" step="1"></label>

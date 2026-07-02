@@ -324,7 +324,7 @@
           }
         });
         el('manageDauTotalLiters').textContent = Math.round(totalLiters).toLocaleString('vi-VN');
-        el('manageDauTotalAmount').textContent = Math.round(totalAmount).toLocaleString('vi-VN') + ' ₫';
+        el('manageDauTotalAmount').textContent = Math.round(totalAmount).toLocaleString('vi-VN');
       }
 
       if (currentManageData && isTaiXeSheet) {
@@ -382,7 +382,7 @@
             td.textContent = formatTableDate(val, false);
           } else if (typeof val === 'number') {
             if (headerLower.includes('giá') || headerLower.includes('tiền') || headerLower.includes('phạt') || headerLower.includes('lương')) {
-              td.textContent = Math.round(val).toLocaleString('vi-VN') + ' ₫';
+              td.textContent = Math.round(val).toLocaleString('vi-VN');
               td.style.fontWeight = '600';
             } else {
               td.textContent = val.toLocaleString('vi-VN');

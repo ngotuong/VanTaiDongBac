@@ -1485,14 +1485,14 @@
       flex-wrap: wrap;
       padding: 8px 10px;
       color: #fff;
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 900;
       text-transform: uppercase;
       text-align: center;
     }
 
     .fund-export-section-title small {
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 900;
       opacity: 0.95;
       white-space: nowrap;
@@ -1511,7 +1511,8 @@
     .fund-export-table td {
       padding: 8px 10px;
       border-bottom: 1px solid #e5e7eb;
-      font-size: 13px;
+      font-size: 15px;
+      line-height: 1.15;
       font-weight: 700;
       color: var(--deep);
       background: #fff;
@@ -1541,6 +1542,42 @@
       border-radius: 8px;
       font-size: 12px;
       font-weight: 800;
+    }
+    .fund-transaction-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .fund-transaction-row .fields select,
+    .fund-transaction-row .fields input,
+    .fund-transaction-row .fields textarea {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 9px 12px;
+      outline: none;
+    }
+    .fund-transaction-row .fields textarea {
+      min-height: 64px;
+      resize: vertical;
+    }
+    .fund-debt-toggle {
+      flex-direction: row !important;
+      align-items: center !important;
+      min-height: 44px;
+    }
+    .fund-debt-toggle input {
+      width: 18px !important;
+      min-height: 18px !important;
+      padding: 0 !important;
+    }
+    .compact-filter-inline {
+      margin-left: auto;
     }
     .fund-export-empty {
       text-align: center;
@@ -2384,6 +2421,9 @@
       .compact-filter {
         display: grid;
         grid-template-columns: 74px minmax(0, 1fr);
+      }
+      .compact-filter-inline {
+        grid-template-columns: minmax(0, 1fr);
       }
 
       .compact-filter select {
@@ -3292,7 +3332,7 @@
           </div>
           <div style="display: flex; gap: 16px; font-size: 13.5px; font-weight: 700; color: var(--deep); flex-wrap: wrap;">
             <span>Tổng số lít: <span id="manageDauTotalLiters" style="color: var(--teal); font-size: 14.5px;">0</span> lít</span>
-            <span>Tổng thành tiền: <span id="manageDauTotalAmount" style="color: var(--red); font-size: 14.5px;">0 ₫</span></span>
+            <span>Tổng thành tiền: <span id="manageDauTotalAmount" style="color: var(--red); font-size: 14.5px;">0</span></span>
           </div>
         </div>
 
@@ -3524,10 +3564,9 @@
           <section class="table-card" style="margin-bottom: 20px;">
             <div class="table-card-head fund-loan-summary-head">
               <div class="table-title">Chi tiết các khoản vay</div>
-              <label class="compact-filter">
-                <span>Công ty</span>
+              <label class="compact-filter compact-filter-inline">
                 <select id="fundLoanPartnerFilter" onchange="renderFundLoanOverview(fundLoanData || {})">
-                  <option value="">Tất cả công ty</option>
+                  <option value="">Tất cả</option>
                 </select>
               </label>
             </div>
@@ -3704,7 +3743,7 @@
               <option value="Trả lãi">Trả lãi</option>
             </select>
           </label>
-          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền (đ)<input type="text" id="loanPaymentAmountInput" inputmode="numeric" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" required></label>
+          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền<input type="text" id="loanPaymentAmountInput" inputmode="numeric" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" required></label>
           <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Nội dung<textarea id="loanPaymentContentInput" rows="2" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" placeholder="Nội dung thanh toán"></textarea></label>
         </div>
       </div>
@@ -3729,31 +3768,11 @@
     <form id="fundTransactionDrawerForm" onsubmit="event.preventDefault(); submitFundTransaction();" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
       <div class="panel-body" style="padding: 20px; flex: 1; overflow-y: auto;">
         <div id="fundEntryStatus" class="status" style="display:none; margin-bottom: 12px; padding: 10px; border-radius: 8px;"></div>
-        <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Ngày<input type="date" id="fundDateInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" required></label>
-          <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Loại
-            <select id="fundTypeInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;" onchange="handleFundTypeChange()">
-              <option value="Chi">Chi</option>
-              <option value="Thu">Thu</option>
-            </select>
-          </label>
-          <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Mục thu/chi
-            <select id="fundCategoryInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;" required></select>
-          </label>
-          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền (đ)<input type="text" id="fundAmountInput" inputmode="numeric" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" placeholder="0" required></label>
-          <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Người Thu/Chi
-            <select id="fundActorInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;" required></select>
-          </label>
-          <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Đối tác
-            <select id="fundPartnerInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;"></select>
-          </label>
-          <label style="grid-column: 1 / -1; display:flex; align-items:center; gap:10px; min-height:46px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">
-            <input type="checkbox" id="fundDebtInput" style="width: 18px; height: 18px; cursor:pointer;"> Đánh dấu là công nợ
-          </label>
-          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Nội dung<textarea id="fundContentInput" placeholder="Nội dung thu/chi" rows="2" style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;"></textarea></label>
-        </div>
+        <div id="fundTransactionRows" class="fund-transaction-rows"></div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 16px)) 20px; border-top: 1px solid var(--line); background: var(--canvas); flex-shrink: 0;">
+        <button type="button" class="ghost" style="min-height:38px;" onclick="cloneFundTransactionRow()">Nhân bản</button>
+        <button type="button" class="secondary" style="min-height:38px;" onclick="addFundTransactionRow()">Thêm mới</button>
         <button type="button" class="outline" style="min-height:38px;" onclick="closeFundTransactionAddDrawer()">Hủy bỏ</button>
         <button type="submit" class="primary" style="min-height:38px;" id="fundSaveBtn">Lưu vào Thu chi</button>
       </div>
@@ -3777,7 +3796,7 @@
         <div class="modal-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Ngày vay<input type="date" id="loanDateInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" required></label>
           <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Đối tác<select id="loanPartnerInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:600; cursor:pointer;" required></select></label>
-          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền (đ)<input type="text" id="loanAmountInput" inputmode="numeric" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" required></label>
+          <label style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Số tiền<input type="text" id="loanAmountInput" inputmode="numeric" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px; font-weight:700;" required></label>
           <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Kỳ hạn vay (tháng)<input type="number" id="loanTermInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" min="0" step="1"></label>
           <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Lãi suất/năm<input type="number" id="loanRateInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" min="0" step="0.01" placeholder="VD: 12"></label>
           <label style="display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase;">Kỳ hạn trả lãi (tháng)<input type="number" id="loanInterestPeriodInput" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size:13px;" min="0" step="1"></label>
@@ -3909,6 +3928,7 @@
     let fundCatalogEditRowIndex = null;
     let currentDetailItem = null;
     let currentDetailType = '';
+    let fundTransactionRows = [];
     let fundTransactionEditRowIndex = null;
     let currentEditingTransaction = null;
     let reportBundleRequestSeq = 0;
@@ -4447,9 +4467,7 @@
 
       metrics.innerHTML = (data.metrics || []).map((item) => {
         const conf = config[item.key] || { badge: 'blue', icon: '' };
-        const formatted = formatFundAmount(item.value, '0');
-        const numPart = formatted.replace(' đ', '');
-        const unitPart = 'đ';
+        const numPart = formatFundAmount(item.value, '0');
         
         let badgeColor = conf.badge;
         if (item.key === 'periodNet') {
@@ -4478,7 +4496,7 @@
               <div class="kpi-label">${escapeHtml(item.label)}</div>
               <div class="kpi-icon-badge ${badgeColor}">${conf.icon}</div>
             </div>
-            <div class="kpi-value ${badgeColor}">${escapeHtml(numPart)} <span class="unit">${escapeHtml(unitPart)}</span></div>
+            <div class="kpi-value ${badgeColor}">${escapeHtml(numPart)}</div>
             <div class="kpi-card-footer" style="border-top:none; padding-top:0; margin-top:4px;">
               <div class="kpi-status ${growthClass}"><span>${escapeHtml(growthText)}</span></div>
               <div class="kpi-time">${escapeHtml(timeStr)}</div>
@@ -4537,7 +4555,7 @@
 
       const summaryRows = [
         ['Số dư đầu kỳ', metricMap.openingBalance?.value, 'normal'],
-        ['Thu trong kỳ', metricMap.periodIncome?.value, 'income'],
+        ['TỔNG THU TRONG KỲ', metricMap.periodIncome?.value, 'income'],
         ['Chi trong kỳ', metricMap.periodExpense?.value, 'expense'],
         ['Tổng thu-chi', metricMap.periodNet?.value, Number(metricMap.periodNet?.value || 0) >= 0 ? 'income' : 'expense'],
         ['Số dư cuối kỳ', metricMap.closingBalance?.value, 'income'],
@@ -4546,7 +4564,7 @@
 
       const summaryHtml = summaryRows.map(([label, value, tone]) => `
         <tr>
-          <td>${escapeHtml(label)}</td>
+          <td>${escapeHtml(label)}:</td>
           <td class="fund-export-value ${tone}">${formatFundAmount(value || 0, '0')}</td>
         </tr>
       `).join('');
@@ -4570,14 +4588,14 @@
           </section>
           <section class="fund-export-section">
             <div class="fund-export-section-title blue">
-              <span>Thu trong kỳ</span>
+              <span>TỔNG THU TRONG KỲ:</span>
               <small>${formatFundAmount(incomeTotal, '0')}</small>
             </div>
             <table class="fund-export-table"><tbody>${categoryRowsHtml(data.incomeCategories || [], 'income', 'Thu')}</tbody></table>
           </section>
           <section class="fund-export-section">
             <div class="fund-export-section-title amber">
-              <span>Tổng chi trong kỳ</span>
+              <span>Tổng chi trong kỳ:</span>
               <small>${formatFundAmount(expenseTotal, '0')}</small>
             </div>
             <table class="fund-export-table"><tbody>${categoryRowsHtml(data.expenseCategories || [], 'expense', 'Chi')}</tbody></table>
@@ -4799,20 +4817,109 @@
       renderFundCategoryOptions();
     }
 
-    function submitFundTransaction() {
-      const status = el('fundEntryStatus');
-      const btn = el('fundSaveBtn');
-      const transaction = {
-        date: el('fundDateInput')?.value || '',
-        type: el('fundTypeInput')?.value || '',
-        category: el('fundCategoryInput')?.value || '',
-        amount: el('fundAmountInput')?.value || '',
-        actor: el('fundActorInput')?.value || '',
-        partner: el('fundPartnerInput')?.value || '',
-        content: el('fundContentInput')?.value || '',
-        debt: el('fundDebtInput')?.checked || false
+    function newBlankFundTransaction(seed = {}) {
+      return {
+        date: seed.date || appData?.today || new Date().toISOString().slice(0, 10),
+        type: seed.type || 'Chi',
+        category: seed.category || '',
+        amount: stripCurrencySymbolText(seed.amountText || seed.amount || ''),
+        actor: seed.actor || '',
+        partner: seed.partner || '',
+        content: seed.content || '',
+        debt: seed.debt === true || seed.debt === 'Có'
       };
-      const error = validateFundTransaction(transaction);
+    }
+
+    function getFundCategoryValues(type) {
+      const options = fundFormOptions || {};
+      return type === 'Thu' ? (options.incomeCategories || []) : (options.expenseCategories || []);
+    }
+
+    function buildFundOptionHtml(values, currentValue, placeholder) {
+      const unique = [];
+      const seen = new Set();
+      (values || []).forEach((value) => {
+        const text = String(value || '').trim();
+        const key = text.toLowerCase();
+        if (!text || seen.has(key)) return;
+        seen.add(key);
+        unique.push(text);
+      });
+      if (currentValue && !unique.includes(currentValue)) unique.push(currentValue);
+      return [`<option value="">${escapeHtml(placeholder || 'Chọn')}</option>`].concat(unique.map((value) => {
+        const selected = value === currentValue ? ' selected' : '';
+        return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(value)}</option>`;
+      })).join('');
+    }
+
+    function renderFundTransactionRows() {
+      const holder = el('fundTransactionRows');
+      if (!holder) return;
+      if (!fundTransactionRows.length) {
+        fundTransactionRows = [newBlankFundTransaction()];
+      }
+      const isEdit = Boolean(fundTransactionEditRowIndex);
+      holder.innerHTML = fundTransactionRows.map((row, index) => {
+        const categories = getFundCategoryValues(row.type);
+        const categoryOptions = ['<option value="">Chọn mục thu/chi</option>'].concat(categories.map((value) => {
+          const selected = value === row.category ? ' selected' : '';
+          return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(value)}</option>`;
+        })).join('');
+        const actorOptions = buildFundOptionHtml(fundFormOptions?.actors || [], row.actor, 'Chọn người thu/chi');
+        const partnerOptions = buildFundOptionHtml(fundFormOptions?.partners || [], row.partner, 'Chọn đối tác');
+        return `
+          <article class="entry-row fund-transaction-row" data-fund-row="${index}">
+            <div class="entry-row-head">
+              <div class="entry-row-title"><span class="row-number">${index + 1}</span><span>Dòng thu chi</span></div>
+              <button type="button" class="danger" onclick="removeFundTransactionRow(${index})" ${fundTransactionRows.length === 1 || isEdit ? 'disabled' : ''}>Xóa</button>
+            </div>
+            <div class="fields">
+              <label class="full">Ngày<input type="date" value="${escapeHtml(row.date || '')}" onchange="updateFundTransactionRow(${index}, 'date', this.value)" required></label>
+              <label>Loại<select onchange="updateFundTransactionRow(${index}, 'type', this.value)"><option value="Chi"${row.type === 'Chi' ? ' selected' : ''}>Chi</option><option value="Thu"${row.type === 'Thu' ? ' selected' : ''}>Thu</option></select></label>
+              <label>Mục thu/chi<select onchange="updateFundTransactionRow(${index}, 'category', this.value)" required>${categoryOptions}</select></label>
+              <label class="full">Số tiền<input type="text" class="format-money-input" inputmode="numeric" value="${escapeHtml(row.amount || '')}" placeholder="0" oninput="updateFundTransactionRow(${index}, 'amount', this.value)" required></label>
+              <label>Người Thu/Chi<select onchange="updateFundTransactionRow(${index}, 'actor', this.value)" required>${actorOptions}</select></label>
+              <label>Đối tác<select onchange="updateFundTransactionRow(${index}, 'partner', this.value)">${partnerOptions}</select></label>
+              <label class="full fund-debt-toggle"><input type="checkbox" ${row.debt ? 'checked' : ''} onchange="updateFundTransactionRow(${index}, 'debt', this.checked)"> Đánh dấu là công nợ</label>
+              <label class="full">Nội dung<textarea rows="2" placeholder="Nội dung thu/chi" oninput="updateFundTransactionRow(${index}, 'content', this.value)">${escapeHtml(row.content || '')}</textarea></label>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    window.updateFundTransactionRow = function(index, key, value) {
+      if (!fundTransactionRows[index]) return;
+      fundTransactionRows[index][key] = value;
+      if (key === 'type') {
+        fundTransactionRows[index].category = '';
+        renderFundTransactionRows();
+      }
+    };
+
+    window.addFundTransactionRow = function() {
+      if (fundTransactionEditRowIndex) return;
+      fundTransactionRows.push(newBlankFundTransaction());
+      renderFundTransactionRows();
+    };
+
+    window.cloneFundTransactionRow = function() {
+      if (fundTransactionEditRowIndex) return;
+      const last = fundTransactionRows[fundTransactionRows.length - 1] || newBlankFundTransaction();
+      fundTransactionRows.push(newBlankFundTransaction({ ...last }));
+      renderFundTransactionRows();
+    };
+
+    window.removeFundTransactionRow = function(index) {
+      if (fundTransactionEditRowIndex || fundTransactionRows.length === 1) return;
+      fundTransactionRows.splice(index, 1);
+      renderFundTransactionRows();
+    };
+
+    function submitFundTransaction() {
+      const btn = el('fundSaveBtn');
+      const transactions = fundTransactionRows.map((row) => ({ ...row }));
+      const error = validateFundTransactions(transactions);
       if (error) {
         showFundEntryStatus('error', error);
         return;
@@ -4823,6 +4930,7 @@
       if (fundTransactionEditRowIndex) {
         showFundEntryStatus('info', 'Đang cập nhật khoản thu/chi...');
         const oldItem = currentEditingTransaction || {};
+        const transaction = transactions[0];
         const rowData = [
           oldItem.voucher || '', // Số phiếu
           transaction.date, // Ngày
@@ -4855,11 +4963,14 @@
             if (btn) btn.disabled = false;
           });
       } else {
-        showFundEntryStatus('info', 'Đang lưu khoản thu/chi...');
-        callApi('POST', 'addFundTransaction', {}, { year: '2026', transaction })
+        showFundEntryStatus('info', `Đang lưu ${transactions.length} khoản thu/chi...`);
+        const jobs = transactions.map((transaction) => (
+          callApi('POST', 'addFundTransaction', {}, { year: '2026', transaction })
+        ));
+        Promise.all(jobs)
           .then(() => {
             clearFundEntryForm();
-            showFundEntryStatus('success', 'Đã lưu khoản thu/chi vào file Thu chi.');
+            showFundEntryStatus('success', `Đã lưu ${transactions.length} khoản thu/chi vào file Thu chi.`);
             loadFundTransactions(true);
             loadFundOverview(true);
             setTimeout(closeFundTransactionAddDrawer, 1000);
@@ -4871,6 +4982,14 @@
             if (btn) btn.disabled = false;
           });
       }
+    }
+
+    function validateFundTransactions(transactions) {
+      for (let i = 0; i < transactions.length; i++) {
+        const error = validateFundTransaction(transactions[i]);
+        if (error) return `Dòng ${i + 1}: ${error}`;
+      }
+      return '';
     }
 
     function validateFundTransaction(transaction) {
@@ -4892,16 +5011,8 @@
     }
 
     function clearFundEntryForm() {
-      ['fundAmountInput', 'fundActorInput', 'fundPartnerInput', 'fundContentInput'].forEach((id) => {
-        const field = el(id);
-        if (field) field.value = '';
-      });
-      const category = el('fundCategoryInput');
-      if (category) {
-        category.value = '';
-      }
-      const debt = el('fundDebtInput');
-      if (debt) debt.checked = false;
+      fundTransactionRows = [newBlankFundTransaction()];
+      renderFundTransactionRows();
     }
 
     function loadFundCatalog(forceRefresh) {
@@ -5098,7 +5209,9 @@
 
       const summary = el('fundLoanSummaryBody');
       // Lọc chỉ hiển thị các khoản vay đang còn nợ (outstanding > 0)
-      const activeLoans = loans.filter(item => Number(item.outstanding || 0) > 0);
+      const activeLoans = loans
+        .filter(item => Number(item.outstanding || 0) > 0)
+        .sort((a, b) => parseFundDateValue(b.loanDate || b.loanDateText) - parseFundDateValue(a.loanDate || a.loanDateText));
       summary.innerHTML = activeLoans.length ? activeLoans.map((item) => `
         <tr>
           <td>${escapeHtml(item.loanDateText || item.loanDate || '')}</td>
@@ -5111,7 +5224,9 @@
       `).join('') : '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>';
 
       const history = el('fundLoanHistoryBody');
-      const rows = data.recentRows || [];
+      const rows = (data.recentRows || [])
+        .slice()
+        .sort((a, b) => parseFundDateValue(b.date || b.dateText) - parseFundDateValue(a.date || a.dateText));
       history.innerHTML = rows.length ? rows.map((row) => {
         const amountColor = row.type === 'Vay' ? 'var(--green)' : 'var(--red)';
         const amountSign = row.type === 'Vay' ? '+' : '-';
@@ -5136,10 +5251,25 @@
         .map((item) => String(item.partner || '').trim())
         .filter(Boolean)))
         .sort((a, b) => a.localeCompare(b, 'vi'));
-      select.innerHTML = '<option value="">Tất cả công ty</option>' + partners.map((partner) => (
+      select.innerHTML = '<option value="">Tất cả</option>' + partners.map((partner) => (
         `<option value="${escapeHtml(partner)}">${escapeHtml(partner)}</option>`
       )).join('');
       select.value = partners.includes(current) ? current : '';
+    }
+
+    function parseFundDateValue(value) {
+      if (!value) return 0;
+      if (value instanceof Date && !isNaN(value.getTime())) return value.getTime();
+      const text = String(value).trim();
+      const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])).getTime();
+      const vn = text.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+      if (vn) {
+        const year = Number(vn[3].length === 2 ? '20' + vn[3] : vn[3]);
+        return new Date(year, Number(vn[2]) - 1, Number(vn[1])).getTime();
+      }
+      const parsed = new Date(text);
+      return isNaN(parsed.getTime()) ? 0 : parsed.getTime();
     }
 
     function buildFundLoanMetrics(data, loans, selectedPartner) {
@@ -5200,7 +5330,6 @@
     }
 
     function openFundTransactionAddDrawer(isEdit = false) {
-      loadFundFormOptions();
       const drawer = el('fundTransactionAddDrawer');
       const backdrop = el('fundTransactionAddBackdrop');
       if (!drawer || !backdrop) return;
@@ -5209,12 +5338,16 @@
       const saveBtn = el('fundSaveBtn');
       
       if (!isEdit) {
-        clearFundEntryForm();
+        fundTransactionRows = [newBlankFundTransaction()];
         fundTransactionEditRowIndex = null;
         currentEditingTransaction = null;
         if (title) title.textContent = 'Thêm khoản thu/chi';
         if (saveBtn) saveBtn.textContent = 'Lưu vào Thu chi';
+      } else if (saveBtn) {
+        saveBtn.textContent = 'Cập nhật khoản thu/chi';
       }
+      renderFundTransactionRows();
+      loadFundFormOptions().then(renderFundTransactionRows);
       
       drawer.classList.add('open');
       backdrop.classList.add('active');
@@ -5544,8 +5677,14 @@
 
     function formatFundAmount(amount, fallbackText) {
       const number = Number(amount || 0);
-      if (number) return Math.round(number).toLocaleString('vi-VN') + ' ₫';
-      return escapeHtml(fallbackText || '');
+      if (number) return Math.round(number).toLocaleString('vi-VN');
+      return escapeHtml(stripCurrencySymbolText(fallbackText || ''));
+    }
+
+    function stripCurrencySymbolText(value) {
+      return String(value === undefined || value === null ? '' : value)
+        .replace(/[₫đĐ]/g, '')
+        .trim();
     }
 
     window.editFundTransaction = function(rowIndex) {
@@ -5555,25 +5694,7 @@
       fundTransactionEditRowIndex = rowIndex;
       currentEditingTransaction = item;
 
-      // Điền dữ liệu cũ vào form Thêm khoản thu/chi
-      if (el('fundDateInput')) el('fundDateInput').value = item.date || '';
-      if (el('fundTypeInput')) el('fundTypeInput').value = item.type || 'Chi';
-      
-      // Kích hoạt thay đổi loại để cập nhật danh sách hạng mục dropdown
-      el('fundCategoryInput').dataset.selected = item.category || '';
-      handleFundTypeChange();
-      
-      if (el('fundAmountInput')) {
-        el('fundAmountInput').value = item.amountText || item.amount || '';
-        el('fundAmountInput').dispatchEvent(new Event('input'));
-      }
-      if (el('fundActorInput')) el('fundActorInput').value = item.actor || '';
-      if (el('fundPartnerInput')) el('fundPartnerInput').value = item.partner || '';
-      if (el('fundContentInput')) el('fundContentInput').value = item.content || '';
-      if (el('fundDebtInput')) el('fundDebtInput').checked = (item.debt === 'Có');
-
-      const btn = el('fundSaveBtn');
-      if (btn) btn.textContent = 'Cập nhật khoản thu/chi';
+      fundTransactionRows = [newBlankFundTransaction(item)];
 
       openFundTransactionAddDrawer(true);
     };
@@ -5938,7 +6059,7 @@
           }
         });
         el('manageDauTotalLiters').textContent = Math.round(totalLiters).toLocaleString('vi-VN');
-        el('manageDauTotalAmount').textContent = Math.round(totalAmount).toLocaleString('vi-VN') + ' ₫';
+        el('manageDauTotalAmount').textContent = Math.round(totalAmount).toLocaleString('vi-VN');
       }
 
       if (currentManageData && isTaiXeSheet) {
@@ -5996,7 +6117,7 @@
             td.textContent = formatTableDate(val, false);
           } else if (typeof val === 'number') {
             if (headerLower.includes('giá') || headerLower.includes('tiền') || headerLower.includes('phạt') || headerLower.includes('lương')) {
-              td.textContent = Math.round(val).toLocaleString('vi-VN') + ' ₫';
+              td.textContent = Math.round(val).toLocaleString('vi-VN');
               td.style.fontWeight = '600';
             } else {
               td.textContent = val.toLocaleString('vi-VN');
@@ -6504,7 +6625,7 @@
             td.textContent = formatTableDate(val, false);
           } else if (typeof val === 'number') {
             if (headerLower.includes('giá') || headerLower.includes('tiền') || headerLower.includes('phạt') || headerLower.includes('lương')) {
-              td.textContent = Math.round(val).toLocaleString('vi-VN') + ' ₫';
+              td.textContent = Math.round(val).toLocaleString('vi-VN');
               td.style.fontWeight = '600';
             } else {
               td.textContent = val.toLocaleString('vi-VN');
@@ -7149,7 +7270,7 @@
         if (absVal >= 1e3) {
           return (val / 1e3).toFixed(0) + ' k';
         }
-        return val + ' đ';
+        return String(val);
       };
       
       const wrapper = document.createElement('div');
@@ -7411,7 +7532,7 @@
         const price = parseLocaleNumber(row.price) || 0;
         const total = liters * price;
         if (total > 0) {
-          badges.push(`<span class="preview-badge success">Thành tiền: ${Math.round(total).toLocaleString('vi-VN')} ₫</span>`);
+          badges.push(`<span class="preview-badge success">Thành tiền: ${Math.round(total).toLocaleString('vi-VN')}</span>`);
         }
       }
 
@@ -7442,7 +7563,7 @@
         const penObj = c.penalties.find(p => p.code === row.penaltyCode);
         if (penObj) {
           badges.push(`<span class="preview-badge warning">${penObj.content}</span>`);
-          badges.push(`<span class="preview-badge success">Phạt: ${Math.round(penObj.amount).toLocaleString('vi-VN')} ₫</span>`);
+              badges.push(`<span class="preview-badge success">Phạt: ${Math.round(penObj.amount).toLocaleString('vi-VN')}</span>`);
         }
       }
 
@@ -7983,11 +8104,9 @@
 
     function formatValueLike(value, sampleText) {
       if (value === 0) {
-        if (sampleText.includes('đ') || sampleText.includes('₫')) return '0 đ';
         return '0';
       }
       const isCurrency = sampleText.includes('đ') || sampleText.includes('₫');
-      const currencySymbol = sampleText.includes('₫') ? '₫' : 'đ';
       
       let decimals = 0;
       if (sampleText.includes(',')) {
@@ -8004,7 +8123,7 @@
       
       let formatted = '';
       if (isCurrency) {
-        formatted = Math.round(value).toLocaleString('vi-VN') + ' ' + currencySymbol;
+        formatted = Math.round(value).toLocaleString('vi-VN');
       } else {
         formatted = value.toLocaleString('vi-VN', {
           minimumFractionDigits: decimals,
@@ -8308,15 +8427,15 @@
         if (headers.length) {
           totalSource[monthColIdx] = 'Tất cả';
           totalSource[volumeColIdx] = volume.toLocaleString('vi-VN');
-          totalSource[revenueColIdx] = Math.round(revenue).toLocaleString('vi-VN') + ' ₫';
-          totalSource[taxTndnColIdx] = Math.round(taxTndn).toLocaleString('vi-VN') + ' ₫';
-          totalSource[taxVatColIdx] = Math.round(taxVat).toLocaleString('vi-VN') + ' ₫';
-          totalSource[fuelQMColIdx] = Math.round(fuelQM).toLocaleString('vi-VN') + ' ₫';
-          totalSource[fuelOutColIdx] = Math.round(fuelOut).toLocaleString('vi-VN') + ' ₫';
-          totalSource[tollColIdx] = Math.round(toll).toLocaleString('vi-VN') + ' ₫';
-          if (payrollColIdx >= 0 && payrollColIdx < headers.length) totalSource[payrollColIdx] = Math.round(payroll).toLocaleString('vi-VN') + ' ₫';
-          if (fundColIdx < headers.length) totalSource[fundColIdx] = Math.round(fund).toLocaleString('vi-VN') + ' ₫';
-          if (finalColIdx < headers.length) totalSource[finalColIdx] = Math.round(final).toLocaleString('vi-VN') + ' ₫';
+          totalSource[revenueColIdx] = Math.round(revenue).toLocaleString('vi-VN');
+          totalSource[taxTndnColIdx] = Math.round(taxTndn).toLocaleString('vi-VN');
+          totalSource[taxVatColIdx] = Math.round(taxVat).toLocaleString('vi-VN');
+          totalSource[fuelQMColIdx] = Math.round(fuelQM).toLocaleString('vi-VN');
+          totalSource[fuelOutColIdx] = Math.round(fuelOut).toLocaleString('vi-VN');
+          totalSource[tollColIdx] = Math.round(toll).toLocaleString('vi-VN');
+          if (payrollColIdx >= 0 && payrollColIdx < headers.length) totalSource[payrollColIdx] = Math.round(payroll).toLocaleString('vi-VN');
+          if (fundColIdx < headers.length) totalSource[fundColIdx] = Math.round(fund).toLocaleString('vi-VN');
+          if (finalColIdx < headers.length) totalSource[finalColIdx] = Math.round(final).toLocaleString('vi-VN');
         }
 
         return {
@@ -8407,7 +8526,7 @@
         ['Tổng chi phí dầu', row.fuelText || ''],
         ['Chi phí phí cầu đường', row.tollText || ''],
         ['Doanh thu gộp (Sau VAT & cầu đường/dầu)', row.grossText || ''],
-        ['Chi phí lương', row.payrollText || '0 đ'],
+        ['Chi phí lương', row.payrollText || '0'],
         ['Chi quỹ thực tế (Ngân quỹ)', row.fundText || ''],
         ['Lợi nhuận thực nhận (Tổng cuối)', row.finalText || '']
       ];
@@ -8425,13 +8544,13 @@
       const rounded = Math.round(Number(value || 0));
       return {
         value: rounded.toLocaleString('vi-VN'),
-        unit: 'đ'
+        unit: ''
       };
     }
 
     function formatCurrencyText(value) {
       const money = formatCurrencyParts(value);
-      return `${money.value} ${money.unit}`;
+      return money.value;
     }
 </script>
 

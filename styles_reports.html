@@ -288,14 +288,14 @@
       flex-wrap: wrap;
       padding: 8px 10px;
       color: #fff;
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 900;
       text-transform: uppercase;
       text-align: center;
     }
 
     .fund-export-section-title small {
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 900;
       opacity: 0.95;
       white-space: nowrap;
@@ -314,7 +314,8 @@
     .fund-export-table td {
       padding: 8px 10px;
       border-bottom: 1px solid #e5e7eb;
-      font-size: 13px;
+      font-size: 15px;
+      line-height: 1.15;
       font-weight: 700;
       color: var(--deep);
       background: #fff;
@@ -344,6 +345,42 @@
       border-radius: 8px;
       font-size: 12px;
       font-weight: 800;
+    }
+    .fund-transaction-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .fund-transaction-row .fields select,
+    .fund-transaction-row .fields input,
+    .fund-transaction-row .fields textarea {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 9px 12px;
+      outline: none;
+    }
+    .fund-transaction-row .fields textarea {
+      min-height: 64px;
+      resize: vertical;
+    }
+    .fund-debt-toggle {
+      flex-direction: row !important;
+      align-items: center !important;
+      min-height: 44px;
+    }
+    .fund-debt-toggle input {
+      width: 18px !important;
+      min-height: 18px !important;
+      padding: 0 !important;
+    }
+    .compact-filter-inline {
+      margin-left: auto;
     }
     .fund-export-empty {
       text-align: center;

@@ -447,11 +447,9 @@
 
     function formatValueLike(value, sampleText) {
       if (value === 0) {
-        if (sampleText.includes('đ') || sampleText.includes('₫')) return '0 đ';
         return '0';
       }
       const isCurrency = sampleText.includes('đ') || sampleText.includes('₫');
-      const currencySymbol = sampleText.includes('₫') ? '₫' : 'đ';
       
       let decimals = 0;
       if (sampleText.includes(',')) {
@@ -468,7 +466,7 @@
       
       let formatted = '';
       if (isCurrency) {
-        formatted = Math.round(value).toLocaleString('vi-VN') + ' ' + currencySymbol;
+        formatted = Math.round(value).toLocaleString('vi-VN');
       } else {
         formatted = value.toLocaleString('vi-VN', {
           minimumFractionDigits: decimals,
@@ -772,15 +770,15 @@
         if (headers.length) {
           totalSource[monthColIdx] = 'Tất cả';
           totalSource[volumeColIdx] = volume.toLocaleString('vi-VN');
-          totalSource[revenueColIdx] = Math.round(revenue).toLocaleString('vi-VN') + ' ₫';
-          totalSource[taxTndnColIdx] = Math.round(taxTndn).toLocaleString('vi-VN') + ' ₫';
-          totalSource[taxVatColIdx] = Math.round(taxVat).toLocaleString('vi-VN') + ' ₫';
-          totalSource[fuelQMColIdx] = Math.round(fuelQM).toLocaleString('vi-VN') + ' ₫';
-          totalSource[fuelOutColIdx] = Math.round(fuelOut).toLocaleString('vi-VN') + ' ₫';
-          totalSource[tollColIdx] = Math.round(toll).toLocaleString('vi-VN') + ' ₫';
-          if (payrollColIdx >= 0 && payrollColIdx < headers.length) totalSource[payrollColIdx] = Math.round(payroll).toLocaleString('vi-VN') + ' ₫';
-          if (fundColIdx < headers.length) totalSource[fundColIdx] = Math.round(fund).toLocaleString('vi-VN') + ' ₫';
-          if (finalColIdx < headers.length) totalSource[finalColIdx] = Math.round(final).toLocaleString('vi-VN') + ' ₫';
+          totalSource[revenueColIdx] = Math.round(revenue).toLocaleString('vi-VN');
+          totalSource[taxTndnColIdx] = Math.round(taxTndn).toLocaleString('vi-VN');
+          totalSource[taxVatColIdx] = Math.round(taxVat).toLocaleString('vi-VN');
+          totalSource[fuelQMColIdx] = Math.round(fuelQM).toLocaleString('vi-VN');
+          totalSource[fuelOutColIdx] = Math.round(fuelOut).toLocaleString('vi-VN');
+          totalSource[tollColIdx] = Math.round(toll).toLocaleString('vi-VN');
+          if (payrollColIdx >= 0 && payrollColIdx < headers.length) totalSource[payrollColIdx] = Math.round(payroll).toLocaleString('vi-VN');
+          if (fundColIdx < headers.length) totalSource[fundColIdx] = Math.round(fund).toLocaleString('vi-VN');
+          if (finalColIdx < headers.length) totalSource[finalColIdx] = Math.round(final).toLocaleString('vi-VN');
         }
 
         return {
@@ -871,7 +869,7 @@
         ['Tổng chi phí dầu', row.fuelText || ''],
         ['Chi phí phí cầu đường', row.tollText || ''],
         ['Doanh thu gộp (Sau VAT & cầu đường/dầu)', row.grossText || ''],
-        ['Chi phí lương', row.payrollText || '0 đ'],
+        ['Chi phí lương', row.payrollText || '0'],
         ['Chi quỹ thực tế (Ngân quỹ)', row.fundText || ''],
         ['Lợi nhuận thực nhận (Tổng cuối)', row.finalText || '']
       ];
@@ -889,12 +887,12 @@
       const rounded = Math.round(Number(value || 0));
       return {
         value: rounded.toLocaleString('vi-VN'),
-        unit: 'đ'
+        unit: ''
       };
     }
 
     function formatCurrencyText(value) {
       const money = formatCurrencyParts(value);
-      return `${money.value} ${money.unit}`;
+      return money.value;
     }
 </script>

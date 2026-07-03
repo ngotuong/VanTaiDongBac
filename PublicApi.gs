@@ -154,6 +154,10 @@ function syncFundLoanOverviewToSupabase(year, month) {
   return SupabaseService.syncFundLoanOverview(year, month);
 }
 
+function syncAllFundBundlesToSupabase(year) {
+  return SupabaseService.syncAllFundBundles(year || '2026');
+}
+
 function syncRealtimeCache() {
   return SupabaseService.syncRealtimeCache();
 }

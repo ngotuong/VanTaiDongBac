@@ -2,7 +2,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.20_supabase_startup_catalog_cache';
+      const APP_VERSION = 'v3.21_supabase_rest_startup_cache';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.setItem('eb_version', APP_VERSION);
         sessionStorage.clear();
@@ -31,7 +31,11 @@
         const supabaseStatus = getSupabaseReportStatus();
         const loadStartupFromAppsScript = () => callApi('GET', 'getStartupData', { formType: 'vanChuyen' });
         const startupLoader = supabaseStatus.ok
-          ? readStartupFromSupabase('vanChuyen').catch((err) => {
+          ? withTimeout(
+              readStartupFromSupabase('vanChuyen'),
+              2500,
+              'Supabase startup cache quá 2.5 giây, quay về Apps Script.'
+            ).catch((err) => {
               startupFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
               console.warn('Không đọc được dữ liệu khởi động từ Supabase, quay về Apps Script:', err);
               return loadStartupFromAppsScript();
@@ -47,11 +51,14 @@
             sessionStorage.setItem('eb_startup_data', JSON.stringify(data));
             finishStartupRender_();
             setTimeout(() => {
-              showSyncToast(data && data.supabaseCached
-                ? 'Màn hình đầu đang đọc từ Supabase cache.'
-                : 'Màn hình đầu đã quay về Apps Script. ' + (startupFallbackReason || ''));
-            }, 300);
-            setTimeout(() => loadDashboard(false), 100);
+              loadDashboard(false).finally(() => {
+                setTimeout(() => {
+                  showSyncToast(data && data.supabaseCached
+                    ? 'Màn hình đầu đang đọc từ Supabase cache.'
+                    : 'Màn hình đầu đã quay về Apps Script. ' + (startupFallbackReason || ''));
+                }, 250);
+              });
+            }, 100);
           })
           .catch((err) => {
             el('loader').querySelector('.loader-title').textContent = 'Lỗi kết nối API';

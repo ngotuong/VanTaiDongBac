@@ -135,7 +135,6 @@
       if (!cfg.reportsEnabled) return { ok: false, reason: 'VITE_SUPABASE_REPORTS_ENABLED chưa bật hoặc chưa được build vào frontend.' };
       if (!cfg.url) return { ok: false, reason: 'Thiếu VITE_SUPABASE_URL trên frontend.' };
       if (!cfg.anonKey) return { ok: false, reason: 'Thiếu VITE_SUPABASE_ANON_KEY trên frontend.' };
-      if (!window.supabase || !window.supabase.createClient) return { ok: false, reason: 'Chưa tải được thư viện Supabase JS.' };
       return { ok: true, reason: '' };
     }
 
@@ -146,6 +145,7 @@
     let supabaseClientInstance = null;
     function getSupabaseClient() {
       if (!canUseSupabaseReports()) return null;
+      if (!window.supabase || !window.supabase.createClient) return null;
       if (!supabaseClientInstance) {
         const cfg = getSupabaseConfig();
         supabaseClientInstance = window.supabase.createClient(cfg.url, cfg.anonKey, {
@@ -155,22 +155,43 @@
       return supabaseClientInstance;
     }
 
+    function readSupabaseRows(tableName, filters, selectColumns) {
+      const status = getSupabaseReportStatus();
+      if (!status.ok) return Promise.reject(new Error(status.reason || 'Supabase chưa được bật.'));
+      const cfg = getSupabaseConfig();
+      const baseUrl = cfg.url.replace(/\/+$/, '');
+      const url = new URL(`${baseUrl}/rest/v1/${encodeURIComponent(tableName)}`);
+      url.searchParams.set('select', selectColumns || 'payload,synced_at');
+      Object.keys(filters || {}).forEach((key) => {
+        url.searchParams.set(key, 'eq.' + String(filters[key]));
+      });
+      url.searchParams.set('order', 'synced_at.desc');
+      url.searchParams.set('limit', '1');
+      return fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          apikey: cfg.anonKey,
+          Authorization: 'Bearer ' + cfg.anonKey,
+          Accept: 'application/json'
+        }
+      }).then((res) => {
+        if (!res.ok) {
+          return res.text().then((text) => {
+            throw new Error(`Supabase đọc cache thất bại, status: ${res.status}. ${text || ''}`);
+          });
+        }
+        return res.json();
+      });
+    }
+
     function readReportBundleFromSupabase(month) {
-      const client = getSupabaseClient();
-      if (!client) return Promise.reject(new Error('Supabase reports chưa được bật.'));
       const reportMonth = String(month || '').trim() || 'latest';
-      let query = client
-        .from('report_bundles')
-        .select('report_month,payload,synced_at')
-        .eq('report_month', reportMonth);
+      const filters = { report_month: reportMonth };
       const spreadsheetId = getCurrentSpreadsheetIdForSupabase();
-      if (spreadsheetId) query = query.eq('spreadsheet_id', spreadsheetId);
-      return query
-        .order('synced_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-        .then(({ data, error }) => {
-          if (error) throw error;
+      if (spreadsheetId) filters.spreadsheet_id = spreadsheetId;
+      return readSupabaseRows('report_bundles', filters, 'report_month,payload,synced_at')
+        .then((rows) => {
+          const data = rows && rows[0];
           if (!data || !data.payload) {
             throw new Error('Chưa có report bundle trong Supabase cho tháng ' + reportMonth + '.');
           }
@@ -184,6 +205,14 @@
 
     function readDashboardFromSupabase() {
       return readReportBundleFromSupabase('__dashboard_latest__');
+    }
+
+    function withTimeout(promise, timeoutMs, message) {
+      let timer = null;
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message || 'Yêu cầu quá thời gian chờ.')), timeoutMs);
+      });
+      return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
     }
 
     function readStartupFromSupabase(formType) {
@@ -238,18 +267,9 @@
     }
 
     function readSupabasePayload(tableName, filters, missingMessage) {
-      const client = getSupabaseClient();
-      if (!client) return Promise.reject(new Error('Supabase chưa được bật.'));
-      let query = client.from(tableName).select('payload,synced_at');
-      Object.keys(filters || {}).forEach((key) => {
-        query = query.eq(key, filters[key]);
-      });
-      return query
-        .order('synced_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-        .then(({ data, error }) => {
-          if (error) throw error;
+      return readSupabaseRows(tableName, filters, 'payload,synced_at')
+        .then((rows) => {
+          const data = rows && rows[0];
           if (!data || !data.payload) throw new Error(missingMessage || 'Chưa có dữ liệu Supabase cache.');
           return {
             ...data.payload,

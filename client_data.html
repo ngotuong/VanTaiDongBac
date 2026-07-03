@@ -359,6 +359,9 @@
           
           renderView();
           renderReports();
+          if (activeView === 'reports') {
+            showSyncToast(bundle.supabaseCached ? 'Báo cáo đang đọc từ Supabase cache.' : 'Báo cáo đang đọc từ bộ nhớ trình duyệt.');
+          }
           scheduleReportBundlePrefetch();
           return Promise.resolve(bundle);
         }
@@ -387,6 +390,9 @@
           
           renderView();
           renderReports();
+          if (activeView === 'reports') {
+            showSyncToast(bundle.supabaseCached ? 'Báo cáo đang đọc từ Supabase cache.' : 'Báo cáo đã quay về Apps Script.');
+          }
           scheduleReportBundlePrefetch();
           return bundle;
         })

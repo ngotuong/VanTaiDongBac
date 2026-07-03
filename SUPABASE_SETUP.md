@@ -37,13 +37,15 @@ Trong Vercel:
 4. Thêm các biến:
 
 ```text
+VITE_APP_SERVICE_URL=URL Web App Apps Script hiện đang chạy
 VITE_SUPABASE_URL=Project URL lấy từ Supabase
 VITE_SUPABASE_ANON_KEY=anon/public/publishable key lấy từ Supabase
 VITE_SUPABASE_REPORTS_ENABLED=true
 ```
 
-5. Chọn môi trường cần dùng, thường là **Production**, **Preview**, và **Development** nếu anh deploy đủ các môi trường.
-6. Redeploy Vercel sau khi thêm biến.
+5. `VITE_APP_SERVICE_URL` lấy trong Apps Script: **Deploy** → **Manage deployments** → copy **Web app URL** của deployment đang dùng.
+6. Chọn môi trường cần dùng, thường là **Production**, **Preview**, và **Development** nếu anh deploy đủ các môi trường.
+7. Redeploy Vercel sau khi thêm biến.
 
 Muốn rollback nhanh trên frontend:
 

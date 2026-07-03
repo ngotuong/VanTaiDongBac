@@ -2,9 +2,8 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.18_report_fund_catalog_hotfix';
+      const APP_VERSION = 'v3.19_supabase_report_cache_status';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
-        localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
         sessionStorage.clear();
       }

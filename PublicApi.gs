@@ -122,6 +122,10 @@ function testSupabaseReportSync() {
   return SupabaseService.testReportSync();
 }
 
+function syncAllReportBundlesToSupabase() {
+  return SupabaseService.syncAllReportBundles();
+}
+
 function invokeApi(method, action, params, bodyData) {
   var normalizedMethod = String(method || '').toUpperCase();
   var safeParams = params || {};

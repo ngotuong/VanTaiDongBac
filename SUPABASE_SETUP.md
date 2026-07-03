@@ -96,11 +96,11 @@ Giải thích:
 Sau khi `clasp push` code mới lên Apps Script:
 
 1. Mở Apps Script editor.
-2. Chọn function `testSupabaseReportSync`.
+2. Chọn function `syncAllReportBundlesToSupabase`.
 3. Bấm **Run**.
 4. Lần đầu Google sẽ hỏi quyền, bấm review và cấp quyền.
 5. Nếu chạy thành công, kết quả trả về có `ok: true`.
-6. Vào Supabase **Table Editor** → `report_bundles` để kiểm tra có row mới.
+6. Vào Supabase **Table Editor** → `report_bundles` để kiểm tra có nhiều row, mỗi row là một tháng báo cáo.
 
 Sync tháng cụ thể:
 
@@ -109,6 +109,12 @@ syncReportBundleToSupabase('6')
 ```
 
 Tên tháng phải khớp giá trị mà app đang dùng trong báo cáo.
+
+Sync toàn bộ các tháng:
+
+```javascript
+syncAllReportBundlesToSupabase()
+```
 
 ## 6. Kiểm tra frontend
 

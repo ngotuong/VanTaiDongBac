@@ -27,6 +27,38 @@ var SupabaseService = (function () {
     return syncReportBundle('latest');
   }
 
+  function syncAllReportBundles() {
+    var months = getReportMonths_();
+    if (!months.length) {
+      throw new Error('Không tìm thấy tháng báo cáo trong BC_TongQuan.');
+    }
+
+    var targets = months.slice();
+    targets.push('Tất cả');
+
+    var results = [];
+    var errors = [];
+    targets.forEach(function (month) {
+      try {
+        results.push(syncReportBundle(month));
+      } catch (err) {
+        errors.push({
+          reportMonth: month,
+          error: err && err.message ? err.message : String(err)
+        });
+      }
+    });
+
+    return {
+      ok: errors.length === 0,
+      spreadsheetId: APP_CONFIG.spreadsheetId,
+      synced: results.length,
+      failed: errors.length,
+      months: results.map(function (item) { return item.reportMonth; }),
+      errors: errors
+    };
+  }
+
   function upsertRows_(tableName, rows, onConflict) {
     if (!rows || !rows.length) return;
     var config = getConfig_();
@@ -67,6 +99,18 @@ var SupabaseService = (function () {
     return rows.length ? rows[rows.length - 1] : 'latest';
   }
 
+  function getReportMonths_() {
+    var ss = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
+    var sheet = ss.getSheetByName('BC_TongQuan');
+    if (!sheet) return [];
+    var rowCount = Math.min(sheet.getLastRow(), 24);
+    if (rowCount < 2) return [];
+    var lastColumn = sheet.getLastColumn();
+    var numColumns = Math.max(11, lastColumn - 7 + 1);
+    var matrix = sheet.getRange(1, 7, rowCount, numColumns).getDisplayValues();
+    return parseOverviewRows_(matrix);
+  }
+
   function parseOverviewRows_(matrix) {
     if (!matrix || matrix.length < 2) return [];
     return matrix.slice(1).map(function (row) {
@@ -82,6 +126,7 @@ var SupabaseService = (function () {
 
   return {
     syncReportBundle: syncReportBundle,
+    syncAllReportBundles: syncAllReportBundles,
     testReportSync: testReportSync
   };
 })();

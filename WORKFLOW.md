@@ -49,10 +49,10 @@ clasp push
 3. Chạy Apps Script function:
 
 ```javascript
-testSupabaseReportSync()
+syncAllReportBundlesToSupabase()
 ```
 
-Hoặc sync tháng cụ thể:
+Hoặc chỉ sync tháng cụ thể:
 
 ```javascript
 syncReportBundleToSupabase('6')

@@ -2,7 +2,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.19_supabase_report_cache_status';
+      const APP_VERSION = 'v3.20_supabase_startup_catalog_cache';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.setItem('eb_version', APP_VERSION);
         sessionStorage.clear();
@@ -24,20 +24,33 @@
       const cachedStartup = sessionStorage.getItem('eb_startup_data');
       if (cachedStartup) {
         hydrateStartupData(JSON.parse(cachedStartup));
-        rows = [newBlankRow()];
-        document.body.classList.remove('locked');
-        el('loader').classList.add('hidden');
-        renderAll();
+        finishStartupRender_();
         setTimeout(() => loadDashboard(false), 100);
       } else {
-        callApi('GET', 'getStartupData', { formType: 'vanChuyen' })
+        let startupFallbackReason = '';
+        const supabaseStatus = getSupabaseReportStatus();
+        const loadStartupFromAppsScript = () => callApi('GET', 'getStartupData', { formType: 'vanChuyen' });
+        const startupLoader = supabaseStatus.ok
+          ? readStartupFromSupabase('vanChuyen').catch((err) => {
+              startupFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+              console.warn('Không đọc được dữ liệu khởi động từ Supabase, quay về Apps Script:', err);
+              return loadStartupFromAppsScript();
+            })
+          : (() => {
+              startupFallbackReason = supabaseStatus.reason;
+              return loadStartupFromAppsScript();
+            })();
+
+        startupLoader
           .then((data) => {
             hydrateStartupData(data);
             sessionStorage.setItem('eb_startup_data', JSON.stringify(data));
-            rows = [newBlankRow()];
-            document.body.classList.remove('locked');
-            el('loader').classList.add('hidden');
-            renderAll();
+            finishStartupRender_();
+            setTimeout(() => {
+              showSyncToast(data && data.supabaseCached
+                ? 'Màn hình đầu đang đọc từ Supabase cache.'
+                : 'Màn hình đầu đã quay về Apps Script. ' + (startupFallbackReason || ''));
+            }, 300);
             setTimeout(() => loadDashboard(false), 100);
           })
           .catch((err) => {
@@ -48,6 +61,13 @@
             document.body.classList.remove('locked');
           });
       }
+    }
+
+    function finishStartupRender_() {
+      rows = [newBlankRow()];
+      document.body.classList.remove('locked');
+      el('loader').classList.add('hidden');
+      renderAll();
     }
 
     function hydrateStartupData(data) {

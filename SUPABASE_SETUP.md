@@ -116,13 +116,20 @@ Sync toàn bộ các tháng:
 syncAllReportBundlesToSupabase()
 ```
 
+Sync dữ liệu màn hình đầu và Danh mục:
+
+```javascript
+syncAllStartupAndCatalogsToSupabase()
+```
+
 ## 6. Kiểm tra frontend
 
 1. Redeploy Vercel với `VITE_SUPABASE_REPORTS_ENABLED=true`.
 2. Mở web app.
-3. Vào màn hình **Báo cáo**.
-4. Nếu Supabase có dữ liệu tháng đang chọn, app đọc nhanh từ Supabase.
-5. Nếu Supabase chưa có dữ liệu, app tự fallback về Apps Script cũ.
+3. Refresh lại từ đầu. Nếu cache đã có, màn hình loading đầu sẽ hiện nhanh hơn và có toast “Màn hình đầu đang đọc từ Supabase cache.”
+4. Vào màn hình **Báo cáo**, **Tổng quan**, **Quỹ** và **Danh mục**.
+5. Nếu Supabase có dữ liệu, app đọc nhanh từ Supabase.
+6. Nếu Supabase chưa có dữ liệu, app tự fallback về Apps Script cũ.
 
 ## 7. Bật cập nhật gần realtime
 
@@ -144,6 +151,11 @@ installSupabaseSyncTriggers()
 4. Vào mục **Triggers** trong Apps Script để kiểm tra có trigger `syncRealtimeCache` chạy mỗi 5 phút.
 
 Trigger này giúp dữ liệu sửa tay trong Google Sheet được đẩy sang Supabase trong khoảng 1-5 phút.
+
+Sau migration giai đoạn 3, `syncRealtimeCache()` đồng bộ thêm:
+
+- `startup_bundles`: dữ liệu khởi động ban đầu.
+- `catalog_bundles`: danh mục nhập liệu và bảng Danh mục.
 
 Nguồn tham khảo chính thức:
 

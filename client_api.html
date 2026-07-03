@@ -186,6 +186,34 @@
       return readReportBundleFromSupabase('__dashboard_latest__');
     }
 
+    function readStartupFromSupabase(formType) {
+      const safeFormType = String(formType || 'vanChuyen').trim() || 'vanChuyen';
+      return readSupabasePayload('startup_bundles', {
+        form_type: safeFormType
+      }, 'Chưa có startup cache trong Supabase.');
+    }
+
+    function buildCatalogsKeyForSupabase(formType) {
+      const safeFormType = String(formType || '').trim();
+      return 'catalogs:' + (safeFormType || 'all');
+    }
+
+    function buildCatalogDataKeyForSupabase(displaySheetName) {
+      return 'catalog_data:' + String(displaySheetName || '').trim();
+    }
+
+    function readCatalogsFromSupabase(formType) {
+      return readSupabasePayload('catalog_bundles', {
+        catalog_key: buildCatalogsKeyForSupabase(formType)
+      }, 'Chưa có catalog cache trong Supabase.');
+    }
+
+    function readCatalogDataFromSupabase(displaySheetName) {
+      return readSupabasePayload('catalog_bundles', {
+        catalog_key: buildCatalogDataKeyForSupabase(displaySheetName)
+      }, 'Chưa có catalog data cache trong Supabase.');
+    }
+
     function normalizeFundMonthKeyForSupabase(month) {
       const text = String(month || '').trim();
       if (!text || text === 'latest' || text === 'all' || text === 'Tất cả') return '';

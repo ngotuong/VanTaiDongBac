@@ -77,6 +77,12 @@ installSupabaseSyncTriggers()
 
 Trigger này không tự bật nếu chưa chạy hàm cài đặt. Khi đã cài, Apps Script sẽ cập nhật cache Supabase cho Tổng quan, Báo cáo và Quỹ khoảng mỗi 5 phút.
 
+Sau giai đoạn 3, trigger này cũng cập nhật cache màn hình khởi động và Danh mục. Nếu chỉ muốn sync riêng phần này, chạy:
+
+```javascript
+syncAllStartupAndCatalogsToSupabase()
+```
+
 ## Khi deploy
 
 Frontend Vercel:
@@ -102,6 +108,7 @@ Supabase:
 1. Chạy SQL migration bằng SQL Editor.
 2. Không commit secret key.
 3. Chạy sync test thủ công hoặc `syncRealtimeCache()`.
+4. Kiểm tra Table Editor có row mới trong các bảng cache vừa thêm.
 
 ## Khi rollback
 

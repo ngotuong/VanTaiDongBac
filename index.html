@@ -4982,6 +4982,34 @@
       return readReportBundleFromSupabase('__dashboard_latest__');
     }
 
+    function readStartupFromSupabase(formType) {
+      const safeFormType = String(formType || 'vanChuyen').trim() || 'vanChuyen';
+      return readSupabasePayload('startup_bundles', {
+        form_type: safeFormType
+      }, 'Chưa có startup cache trong Supabase.');
+    }
+
+    function buildCatalogsKeyForSupabase(formType) {
+      const safeFormType = String(formType || '').trim();
+      return 'catalogs:' + (safeFormType || 'all');
+    }
+
+    function buildCatalogDataKeyForSupabase(displaySheetName) {
+      return 'catalog_data:' + String(displaySheetName || '').trim();
+    }
+
+    function readCatalogsFromSupabase(formType) {
+      return readSupabasePayload('catalog_bundles', {
+        catalog_key: buildCatalogsKeyForSupabase(formType)
+      }, 'Chưa có catalog cache trong Supabase.');
+    }
+
+    function readCatalogDataFromSupabase(displaySheetName) {
+      return readSupabasePayload('catalog_bundles', {
+        catalog_key: buildCatalogDataKeyForSupabase(displaySheetName)
+      }, 'Chưa có catalog data cache trong Supabase.');
+    }
+
     function normalizeFundMonthKeyForSupabase(month) {
       const text = String(month || '').trim();
       if (!text || text === 'latest' || text === 'all' || text === 'Tất cả') return '';
@@ -7413,7 +7441,7 @@
       const thead = el('catalogTableHeader');
       
       thead.innerHTML = '';
-      renderTableLoading(tbody, 20, 'Đang tải danh mục từ Google Sheets...');
+      renderTableLoading(tbody, 20, 'Đang tải danh mục...');
       el('catalogTableEmpty').style.display = 'none';
 
       const requestParams = { displaySheetName: displaySheetName };
@@ -7423,16 +7451,35 @@
         renderCatalogTable();
       }
 
-      return callApi('GET', 'readCatalogData', {
-          ...requestParams,
-          forceRefresh: forceRefresh ? 'true' : ''
-        })
+      let catalogFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadCatalogDataFromAppsScript = () => callApi('GET', 'readCatalogData', {
+        ...requestParams,
+        forceRefresh: forceRefresh ? 'true' : ''
+      });
+      const catalogLoader = (!forceRefresh && supabaseStatus.ok)
+        ? readCatalogDataFromSupabase(displaySheetName).catch((err) => {
+            catalogFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được bảng danh mục từ Supabase, quay về Apps Script:', err);
+            return loadCatalogDataFromAppsScript();
+          })
+        : (() => {
+            catalogFallbackReason = supabaseStatus.reason;
+            return loadCatalogDataFromAppsScript();
+          })();
+
+      return catalogLoader
         .then((res) => {
           if (requestSeq !== catalogLoadSeq) return res;
           if (res.ok) {
             currentCatalogData = res;
             setCachedSheetData({ sheetName: displaySheetName }, res);
             renderCatalogTable();
+            if (res.supabaseCached) {
+              showSyncToast('Bảng danh mục đang đọc từ Supabase cache.');
+            } else if (catalogFallbackReason) {
+              showSyncToast('Bảng danh mục đã quay về Apps Script. ' + catalogFallbackReason);
+            }
             return res;
           } else {
             showTableError(tbody, 20, res.error || 'Google Sheets trả về lỗi không xác định.');
@@ -7640,7 +7687,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.19_supabase_report_cache_status';
+      const APP_VERSION = 'v3.20_supabase_startup_catalog_cache';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.setItem('eb_version', APP_VERSION);
         sessionStorage.clear();
@@ -7662,20 +7709,33 @@
       const cachedStartup = sessionStorage.getItem('eb_startup_data');
       if (cachedStartup) {
         hydrateStartupData(JSON.parse(cachedStartup));
-        rows = [newBlankRow()];
-        document.body.classList.remove('locked');
-        el('loader').classList.add('hidden');
-        renderAll();
+        finishStartupRender_();
         setTimeout(() => loadDashboard(false), 100);
       } else {
-        callApi('GET', 'getStartupData', { formType: 'vanChuyen' })
+        let startupFallbackReason = '';
+        const supabaseStatus = getSupabaseReportStatus();
+        const loadStartupFromAppsScript = () => callApi('GET', 'getStartupData', { formType: 'vanChuyen' });
+        const startupLoader = supabaseStatus.ok
+          ? readStartupFromSupabase('vanChuyen').catch((err) => {
+              startupFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+              console.warn('Không đọc được dữ liệu khởi động từ Supabase, quay về Apps Script:', err);
+              return loadStartupFromAppsScript();
+            })
+          : (() => {
+              startupFallbackReason = supabaseStatus.reason;
+              return loadStartupFromAppsScript();
+            })();
+
+        startupLoader
           .then((data) => {
             hydrateStartupData(data);
             sessionStorage.setItem('eb_startup_data', JSON.stringify(data));
-            rows = [newBlankRow()];
-            document.body.classList.remove('locked');
-            el('loader').classList.add('hidden');
-            renderAll();
+            finishStartupRender_();
+            setTimeout(() => {
+              showSyncToast(data && data.supabaseCached
+                ? 'Màn hình đầu đang đọc từ Supabase cache.'
+                : 'Màn hình đầu đã quay về Apps Script. ' + (startupFallbackReason || ''));
+            }, 300);
             setTimeout(() => loadDashboard(false), 100);
           })
           .catch((err) => {
@@ -7686,6 +7746,13 @@
             document.body.classList.remove('locked');
           });
       }
+    }
+
+    function finishStartupRender_() {
+      rows = [newBlankRow()];
+      document.body.classList.remove('locked');
+      el('loader').classList.add('hidden');
+      renderAll();
     }
 
     function hydrateStartupData(data) {
@@ -9623,10 +9690,29 @@
         if (callback) callback();
         return;
       }
-      callApi('GET', 'getCatalogs', { formType: '' })
+      let catalogsFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadCatalogsFromAppsScript = () => callApi('GET', 'getCatalogs', { formType: '' });
+      const catalogsLoader = supabaseStatus.ok
+        ? readCatalogsFromSupabase('').catch((err) => {
+            catalogsFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được toàn bộ danh mục từ Supabase, quay về Apps Script:', err);
+            return loadCatalogsFromAppsScript();
+          })
+        : (() => {
+            catalogsFallbackReason = supabaseStatus.reason;
+            return loadCatalogsFromAppsScript();
+          })();
+
+      catalogsLoader
         .then(res => {
           catalogsByForm['all'] = res;
           sessionStorage.setItem('eb_catalogs_all', JSON.stringify(res));
+          if (res && res.supabaseCached && activeView === 'catalog') {
+            showSyncToast('Danh mục đang đọc từ Supabase cache.');
+          } else if (catalogsFallbackReason && activeView === 'catalog') {
+            showSyncToast('Danh mục đã quay về Apps Script. ' + catalogsFallbackReason);
+          }
           if (callback) callback();
         })
         .catch(err => {
@@ -9755,7 +9841,21 @@
         return;
       }
       
-      callApi('GET', 'getCatalogs', { formType: formType })
+      let catalogsFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadCatalogsFromAppsScript = () => callApi('GET', 'getCatalogs', { formType: formType });
+      const catalogsLoader = supabaseStatus.ok
+        ? readCatalogsFromSupabase(formType).catch((err) => {
+            catalogsFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được danh mục form từ Supabase, quay về Apps Script:', err);
+            return loadCatalogsFromAppsScript();
+          })
+        : (() => {
+            catalogsFallbackReason = supabaseStatus.reason;
+            return loadCatalogsFromAppsScript();
+          })();
+
+      catalogsLoader
         .then((catalogs) => {
           catalogsByForm[formType] = catalogs;
           sessionStorage.setItem('eb_catalogs_' + formType, JSON.stringify(catalogs));
@@ -9763,6 +9863,11 @@
           if (formType === activeForm) {
             renderEntry();
             renderFormTabs();
+            if (catalogs && catalogs.supabaseCached && (activeView === 'manage' || activeView === 'home')) {
+              showSyncToast('Danh mục nhập liệu đang đọc từ Supabase cache.');
+            } else if (catalogsFallbackReason && activeView === 'manage') {
+              showSyncToast('Danh mục nhập liệu đã quay về Apps Script. ' + catalogsFallbackReason);
+            }
           }
         })
         .catch((err) => showStatus('err', err.message || String(err)));

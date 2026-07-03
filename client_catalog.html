@@ -15,7 +15,7 @@
       const thead = el('catalogTableHeader');
       
       thead.innerHTML = '';
-      renderTableLoading(tbody, 20, 'Đang tải danh mục từ Google Sheets...');
+      renderTableLoading(tbody, 20, 'Đang tải danh mục...');
       el('catalogTableEmpty').style.display = 'none';
 
       const requestParams = { displaySheetName: displaySheetName };
@@ -25,16 +25,35 @@
         renderCatalogTable();
       }
 
-      return callApi('GET', 'readCatalogData', {
-          ...requestParams,
-          forceRefresh: forceRefresh ? 'true' : ''
-        })
+      let catalogFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadCatalogDataFromAppsScript = () => callApi('GET', 'readCatalogData', {
+        ...requestParams,
+        forceRefresh: forceRefresh ? 'true' : ''
+      });
+      const catalogLoader = (!forceRefresh && supabaseStatus.ok)
+        ? readCatalogDataFromSupabase(displaySheetName).catch((err) => {
+            catalogFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được bảng danh mục từ Supabase, quay về Apps Script:', err);
+            return loadCatalogDataFromAppsScript();
+          })
+        : (() => {
+            catalogFallbackReason = supabaseStatus.reason;
+            return loadCatalogDataFromAppsScript();
+          })();
+
+      return catalogLoader
         .then((res) => {
           if (requestSeq !== catalogLoadSeq) return res;
           if (res.ok) {
             currentCatalogData = res;
             setCachedSheetData({ sheetName: displaySheetName }, res);
             renderCatalogTable();
+            if (res.supabaseCached) {
+              showSyncToast('Bảng danh mục đang đọc từ Supabase cache.');
+            } else if (catalogFallbackReason) {
+              showSyncToast('Bảng danh mục đã quay về Apps Script. ' + catalogFallbackReason);
+            }
             return res;
           } else {
             showTableError(tbody, 20, res.error || 'Google Sheets trả về lỗi không xác định.');

@@ -100,3 +100,69 @@ RLS của các bảng giai đoạn 2:
 
 - `anon` và `authenticated` chỉ được `select`.
 - Apps Script dùng service role key để ghi.
+
+## Bảng cache giai đoạn 3
+
+### `public.startup_bundles`
+
+Cache dữ liệu màn hình khởi động từ `SheetService.getStartupData(formType)`.
+
+| Cột | Kiểu | Bắt buộc | Ghi chú |
+| --- | --- | --- | --- |
+| `form_type` | `text` | Có | Khóa chính. Hiện dùng chính là `vanChuyen`. |
+| `payload` | `jsonb` | Có | Dữ liệu startup gồm bootstrap, danh mục form đầu, dashboard nhẹ và links. |
+| `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
+| `created_at` | `timestamptz` | Có | Thời điểm tạo row. |
+| `updated_at` | `timestamptz` | Có | Thời điểm cập nhật row gần nhất. |
+
+Nguồn Google Sheet tương ứng:
+
+- Các sheet danh mục mà `getCatalogs('vanChuyen')` đang đọc.
+- Các sheet báo cáo nhẹ dùng cho dashboard khởi động, ví dụ `BC_TongQuan`.
+
+Frontend đọc:
+
+- `client_app.html` gọi `readStartupFromSupabase('vanChuyen')` trước.
+- Nếu thiếu cache/lỗi, frontend fallback về Apps Script `getStartupData`.
+
+### `public.catalog_bundles`
+
+Cache dữ liệu danh mục dùng cho nhập liệu và màn hình Danh mục.
+
+| Cột | Kiểu | Bắt buộc | Ghi chú |
+| --- | --- | --- | --- |
+| `catalog_key` | `text` | Có | Khóa chính. Ví dụ `catalogs:vanChuyen`, `catalogs:all`, `catalog_data:DM_Xe`. |
+| `payload` | `jsonb` | Có | Dữ liệu trả về từ `CatalogService.getCatalogs` hoặc `CatalogService.readCatalogData`. |
+| `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
+| `created_at` | `timestamptz` | Có | Thời điểm tạo row. |
+| `updated_at` | `timestamptz` | Có | Thời điểm cập nhật row gần nhất. |
+
+Nguồn Google Sheet tương ứng:
+
+- `DM_NhanSu`
+- `DM_Xe`
+- `DM_DuAn`
+- `DM_LuongChuyen`
+- `DM_ThamSo`
+- `DM_DonGiaVanChuyen`
+- `DM_ThuongQuanLy`
+- `DM_PhatNoiBo`
+
+Frontend đọc:
+
+- `client_data.html` đọc danh mục nhập liệu bằng `readCatalogsFromSupabase(formType)`.
+- `client_catalog.html` đọc bảng Danh mục bằng `readCatalogDataFromSupabase(displaySheetName)`.
+- Nếu cache thiếu/lỗi, frontend fallback về Apps Script `getCatalogs` hoặc `readCatalogData`.
+
+Luồng đồng bộ:
+
+1. Google Sheet vẫn là nguồn chuẩn.
+2. Apps Script chạy `syncAllStartupAndCatalogsToSupabase()` hoặc trigger `syncRealtimeCache()`.
+3. Apps Script upsert vào `startup_bundles` và `catalog_bundles` bằng service role key.
+4. Frontend Vercel đọc bằng anon key.
+5. Khi sửa/xóa danh mục qua web app, Apps Script ghi Google Sheet trước rồi sync lại cache liên quan.
+
+RLS:
+
+- `anon` và `authenticated` chỉ được `select`.
+- Apps Script dùng service role key để ghi.

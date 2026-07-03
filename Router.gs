@@ -93,11 +93,11 @@ function doPost(e) {
       return timedJsonResponse_(action, startedAt, checkResult);
     }
     if (action === 'saveSheetRow') {
-      var saveResult = EntryService.saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData);
+      var saveResult = saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData);
       return timedJsonResponse_(action, startedAt, saveResult);
     }
     if (action === 'deleteSheetRow') {
-      var deleteResult = EntryService.deleteSheetRow(payload.sheetName, payload.rowIndex, payload.columnsToClear);
+      var deleteResult = deleteSheetRow(payload.sheetName, payload.rowIndex, payload.columnsToClear);
       return timedJsonResponse_(action, startedAt, deleteResult);
     }
     if (action === 'addFundTransaction') {

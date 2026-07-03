@@ -61,11 +61,15 @@ function readCatalogData(displaySheetName) {
 }
 
 function saveSheetRow(sheetName, rowIndex, rowData) {
-  return EntryService.saveSheetRow(sheetName, rowIndex, rowData);
+  return withSheetRowSync_(sheetName, function () {
+    return EntryService.saveSheetRow(sheetName, rowIndex, rowData);
+  });
 }
 
 function deleteSheetRow(sheetName, rowIndex, columnsToClear) {
-  return EntryService.deleteSheetRow(sheetName, rowIndex, columnsToClear);
+  return withSheetRowSync_(sheetName, function () {
+    return EntryService.deleteSheetRow(sheetName, rowIndex, columnsToClear);
+  });
 }
 
 function getFundTransactions(year, filter) {
@@ -142,6 +146,22 @@ function syncDashboardToSupabase() {
   return SupabaseService.syncDashboard();
 }
 
+function syncStartupToSupabase(formType) {
+  return SupabaseService.syncStartupBundle(formType || 'vanChuyen');
+}
+
+function syncCatalogsToSupabase(formType) {
+  return SupabaseService.syncCatalogsBundle(formType);
+}
+
+function syncCatalogDataToSupabase(displaySheetName) {
+  return SupabaseService.syncCatalogDataBundle(displaySheetName);
+}
+
+function syncAllStartupAndCatalogsToSupabase() {
+  return SupabaseService.syncAllStartupAndCatalogs();
+}
+
 function syncFundOverviewToSupabase(year, month) {
   return SupabaseService.syncFundOverview(year, month);
 }
@@ -213,8 +233,8 @@ function invokeApi(method, action, params, bodyData) {
   if (normalizedMethod === 'POST') {
     if (action === 'submitRows') return withTransportSync_(function () { return EntryService.submitRows(safeBody.formType, safeBody.rows); });
     if (action === 'checkTripReconciliation') return EntryService.checkTripReconciliation(safeBody.rows);
-    if (action === 'saveSheetRow') return EntryService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData);
-    if (action === 'deleteSheetRow') return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear);
+    if (action === 'saveSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData); });
+    if (action === 'deleteSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear); });
     if (action === 'updateFundTransaction') return withFundSync_(safeBody.year, function () { return FundService.updateFundTransaction(safeBody.year, safeBody.rowIndex, safeBody.transaction); });
     if (action === 'deleteFundTransaction') return withFundSync_(safeBody.year, function () { return FundService.deleteFundTransaction(safeBody.year, safeBody.rowIndex); });
     if (action === 'addFundTransaction') return withFundSync_(safeBody.year, function () { return FundService.addFundTransaction(safeBody.year, safeBody.transaction); });
@@ -246,6 +266,26 @@ function withTransportSync_(fn) {
     } catch (err) {
       console.log('transport_supabase_sync_after_write_failed: ' + (err && err.message ? err.message : err));
     }
+  }
+  return result;
+}
+
+function withSheetRowSync_(sheetName, fn) {
+  var result = fn();
+  if (!result || result.ok === false) return result;
+  var safeSheetName = String(sheetName || '').trim();
+  try {
+    if (safeSheetName.indexOf('DM_') === 0) {
+      SupabaseService.syncCatalogAfterWrite(safeSheetName);
+      if (safeSheetName === 'DM_ThamSo') {
+        SupabaseService.syncCatalogDataBundle('DM_ThamSo_TS');
+        SupabaseService.syncCatalogDataBundle('DM_ThamSo_GD');
+      }
+    } else if (safeSheetName.indexOf('NL_') === 0) {
+      SupabaseService.syncTransportAfterWrite();
+    }
+  } catch (err) {
+    console.log('supabase_sync_after_sheet_row_write_failed: ' + (err && err.message ? err.message : err));
   }
   return result;
 }

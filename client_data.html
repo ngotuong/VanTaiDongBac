@@ -119,10 +119,29 @@
         if (callback) callback();
         return;
       }
-      callApi('GET', 'getCatalogs', { formType: '' })
+      let catalogsFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadCatalogsFromAppsScript = () => callApi('GET', 'getCatalogs', { formType: '' });
+      const catalogsLoader = supabaseStatus.ok
+        ? readCatalogsFromSupabase('').catch((err) => {
+            catalogsFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được toàn bộ danh mục từ Supabase, quay về Apps Script:', err);
+            return loadCatalogsFromAppsScript();
+          })
+        : (() => {
+            catalogsFallbackReason = supabaseStatus.reason;
+            return loadCatalogsFromAppsScript();
+          })();
+
+      catalogsLoader
         .then(res => {
           catalogsByForm['all'] = res;
           sessionStorage.setItem('eb_catalogs_all', JSON.stringify(res));
+          if (res && res.supabaseCached && activeView === 'catalog') {
+            showSyncToast('Danh mục đang đọc từ Supabase cache.');
+          } else if (catalogsFallbackReason && activeView === 'catalog') {
+            showSyncToast('Danh mục đã quay về Apps Script. ' + catalogsFallbackReason);
+          }
           if (callback) callback();
         })
         .catch(err => {
@@ -251,7 +270,21 @@
         return;
       }
       
-      callApi('GET', 'getCatalogs', { formType: formType })
+      let catalogsFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadCatalogsFromAppsScript = () => callApi('GET', 'getCatalogs', { formType: formType });
+      const catalogsLoader = supabaseStatus.ok
+        ? readCatalogsFromSupabase(formType).catch((err) => {
+            catalogsFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được danh mục form từ Supabase, quay về Apps Script:', err);
+            return loadCatalogsFromAppsScript();
+          })
+        : (() => {
+            catalogsFallbackReason = supabaseStatus.reason;
+            return loadCatalogsFromAppsScript();
+          })();
+
+      catalogsLoader
         .then((catalogs) => {
           catalogsByForm[formType] = catalogs;
           sessionStorage.setItem('eb_catalogs_' + formType, JSON.stringify(catalogs));
@@ -259,6 +292,11 @@
           if (formType === activeForm) {
             renderEntry();
             renderFormTabs();
+            if (catalogs && catalogs.supabaseCached && (activeView === 'manage' || activeView === 'home')) {
+              showSyncToast('Danh mục nhập liệu đang đọc từ Supabase cache.');
+            } else if (catalogsFallbackReason && activeView === 'manage') {
+              showSyncToast('Danh mục nhập liệu đã quay về Apps Script. ' + catalogsFallbackReason);
+            }
           }
         })
         .catch((err) => showStatus('err', err.message || String(err)));

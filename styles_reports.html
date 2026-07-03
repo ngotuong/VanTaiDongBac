@@ -250,6 +250,48 @@
       min-height: 42px;
       white-space: nowrap;
     }
+
+    .fund-catalog-card .table-wrap {
+      overflow-x: visible;
+      max-height: 560px;
+    }
+
+    .fund-catalog-table {
+      width: 100% !important;
+      min-width: 0 !important;
+      table-layout: fixed;
+    }
+
+    .fund-catalog-table th,
+    .fund-catalog-table td {
+      white-space: normal;
+      vertical-align: middle;
+    }
+
+    .fund-catalog-table th:nth-child(1),
+    .fund-catalog-table td:nth-child(1) {
+      width: 54px;
+      min-width: 54px;
+      max-width: 54px;
+      text-align: center;
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+
+    .fund-catalog-table th:nth-child(2),
+    .fund-catalog-table td:nth-child(2) {
+      width: auto;
+      overflow-wrap: anywhere;
+    }
+
+    .fund-catalog-table th:nth-child(3),
+    .fund-catalog-table td:nth-child(3) {
+      width: 96px;
+      min-width: 96px;
+      max-width: 96px;
+      text-align: right;
+      white-space: nowrap;
+    }
     
     .table-wrap { 
       overflow-x: auto; 
@@ -295,27 +337,44 @@
     }
 
     .report-data-table-details .report-detail-explanation-cell {
-      width: 260px;
-      max-width: 260px;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      width: 300px;
+      max-width: 300px;
+      overflow: visible;
+      text-overflow: clip;
       font-size: 12px !important;
       line-height: 1.25 !important;
       font-weight: 500 !important;
-      white-space: nowrap !important;
+      white-space: normal !important;
+      word-break: normal;
+      overflow-wrap: anywhere;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
     }
 
+    .report-data-table-details th:nth-child(1),
     .report-data-table-details td:nth-child(1) {
-      min-width: 148px;
+      width: 156px;
+      min-width: 156px;
+      max-width: 156px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .report-data-table-details td:nth-child(3),
-    .report-data-table-details td:nth-child(5),
-    .report-data-table-details th:nth-child(3) {
-      min-width: 220px;
-      max-width: 320px;
+    .report-data-table-details th:not(:first-child):not(.report-detail-explanation-head),
+    .report-data-table-details td:not(:first-child):not(.report-detail-explanation-cell) {
+      width: 142px;
+      min-width: 142px;
+      max-width: 142px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .report-data-table-details .report-detail-explanation-head {
+      width: 300px;
+      min-width: 300px;
+      max-width: 300px;
       white-space: nowrap;
     }
     

@@ -806,33 +806,23 @@ var FundService = (function () {
     if (!sheet) return [];
     var rows = [];
     CATALOG_GROUPS.forEach(function (group) {
-      var spec = getNativeFundCatalogSpec_(group.key);
+      var spec = resolveNativeFundCatalogSpec_(ss, group.key);
       if (!spec) return;
-      var range = spec.rangeName ? ss.getRangeByName(spec.rangeName) : null;
-      var values;
-      var startRow;
-      var column;
-      if (range) {
-        values = range.getDisplayValues();
-        startRow = range.getRow();
-        column = range.getColumn();
-      } else {
-        startRow = spec.startRow;
-        column = spec.column;
-        if (sheet.getLastRow() < startRow) return;
-        values = sheet.getRange(startRow, column, sheet.getLastRow() - startRow + 1, 1).getDisplayValues();
-      }
+      if (sheet.getLastRow() < spec.startRow) return;
+      var endRow = spec.endRow || sheet.getLastRow();
+      if (endRow < spec.startRow) return;
+      var values = sheet.getRange(spec.startRow, spec.column, endRow - spec.startRow + 1, 1).getDisplayValues();
       values.forEach(function (row, index) {
         var value = clean_(row[0]);
         if (!value) return;
         rows.push({
-          rowIndex: 'native:' + group.key + ':' + (startRow + index),
+          rowIndex: 'native:' + group.key + ':' + (spec.startRow + index),
           group: group.label,
           groupKey: group.key,
           value: value,
           note: '',
           source: 'native',
-          nativeColumn: column
+          nativeColumn: spec.column
         });
       });
     });
@@ -840,11 +830,12 @@ var FundService = (function () {
   }
 
   function saveNativeFundCatalogValue_(ss, groupKey, rowIndex, value) {
-    var spec = getNativeFundCatalogSpec_(groupKey);
+    var spec = resolveNativeFundCatalogSpec_(ss, groupKey);
     var sheet = ss.getSheetByName(CATALOG_SHEET_NAME);
     if (!spec || !sheet) return null;
     var targetRow = parseNativeCatalogRowIndex_(rowIndex, groupKey);
-    if (!targetRow) targetRow = getAppendRowInColumn_(sheet, spec.column, spec.startRow);
+    if (targetRow) assertNativeCatalogRowInBounds_(spec, targetRow, groupKey);
+    if (!targetRow) targetRow = getAppendRowInColumn_(sheet, spec.column, spec.startRow, spec.endRow, getFundCatalogGroupLabel_(groupKey));
     if (sheet.getMaxRows() < targetRow) {
       sheet.insertRowsAfter(sheet.getMaxRows(), targetRow - sheet.getMaxRows());
     }
@@ -855,11 +846,40 @@ var FundService = (function () {
   function deleteNativeFundCatalogValue_(ss, rowIndex) {
     var parsed = parseNativeCatalogRowIndexParts_(rowIndex);
     if (!parsed) return false;
-    var spec = getNativeFundCatalogSpec_(parsed.groupKey);
+    var spec = resolveNativeFundCatalogSpec_(ss, parsed.groupKey);
     var sheet = ss.getSheetByName(CATALOG_SHEET_NAME);
     if (!spec || !sheet) return false;
+    assertNativeCatalogRowInBounds_(spec, parsed.row, parsed.groupKey);
     sheet.getRange(parsed.row, spec.column).clearContent();
     return true;
+  }
+
+  function resolveNativeFundCatalogSpec_(ss, groupKey) {
+    var spec = getNativeFundCatalogSpec_(groupKey);
+    if (!spec) return null;
+    var resolved = {
+      rangeName: spec.rangeName || '',
+      column: spec.column,
+      startRow: spec.startRow,
+      endRow: spec.endRow || 0
+    };
+    if (spec.rangeName) {
+      var range = ss.getRangeByName(spec.rangeName);
+      if (range) {
+        resolved.column = range.getColumn();
+        resolved.startRow = range.getRow();
+        resolved.endRow = range.getRow() + range.getNumRows() - 1;
+      }
+    }
+    return resolved;
+  }
+
+  function assertNativeCatalogRowInBounds_(spec, row, groupKey) {
+    if (row < spec.startRow || (spec.endRow && row > spec.endRow)) {
+      var label = getFundCatalogGroupLabel_(groupKey);
+      var rangeText = spec.endRow ? ('dòng ' + spec.startRow + '-' + spec.endRow) : ('từ dòng ' + spec.startRow);
+      throw new Error(label + ' chỉ được chỉnh trong vùng ' + rangeText + ' của sheet ' + CATALOG_SHEET_NAME + '.');
+    }
   }
 
   function parseNativeCatalogRowIndex_(rowIndex, expectedGroupKey) {
@@ -874,14 +894,17 @@ var FundService = (function () {
     return { groupKey: match[1], row: Number(match[2]) };
   }
 
-  function getAppendRowInColumn_(sheet, column, startRow) {
-    var maxRow = Math.max(sheet.getLastRow(), startRow);
+  function getAppendRowInColumn_(sheet, column, startRow, endRow, label) {
+    var maxRow = endRow || Math.max(sheet.getLastRow(), startRow);
     var values = sheet.getRange(startRow, column, Math.max(maxRow - startRow + 1, 1), 1).getValues();
-    for (var i = values.length - 1; i >= 0; i--) {
+    for (var i = 0; i < values.length; i++) {
       var value = values[i][0];
-      if (value !== '' && value !== null && value !== undefined) return startRow + i + 1;
+      if (value === '' || value === null || value === undefined) return startRow + i;
     }
-    return startRow;
+    if (endRow) {
+      throw new Error((label || 'Danh mục') + ' đã hết dòng trống trong vùng cấu hình ' + CATALOG_SHEET_NAME + '!' + columnToLetter_(column) + startRow + ':' + columnToLetter_(column) + endRow + '.');
+    }
+    return maxRow + 1;
   }
 
   function readFundSettings_(ss) {
@@ -1267,6 +1290,17 @@ var FundService = (function () {
       });
     });
     return result;
+  }
+
+  function columnToLetter_(column) {
+    var letters = '';
+    var current = Number(column) || 0;
+    while (current > 0) {
+      var remainder = (current - 1) % 26;
+      letters = String.fromCharCode(65 + remainder) + letters;
+      current = Math.floor((current - remainder - 1) / 26);
+    }
+    return letters || 'A';
   }
 
   function ensureOption_(values, option) {

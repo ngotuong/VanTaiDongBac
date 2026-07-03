@@ -1555,6 +1555,48 @@
       min-height: 42px;
       white-space: nowrap;
     }
+
+    .fund-catalog-card .table-wrap {
+      overflow-x: visible;
+      max-height: 560px;
+    }
+
+    .fund-catalog-table {
+      width: 100% !important;
+      min-width: 0 !important;
+      table-layout: fixed;
+    }
+
+    .fund-catalog-table th,
+    .fund-catalog-table td {
+      white-space: normal;
+      vertical-align: middle;
+    }
+
+    .fund-catalog-table th:nth-child(1),
+    .fund-catalog-table td:nth-child(1) {
+      width: 54px;
+      min-width: 54px;
+      max-width: 54px;
+      text-align: center;
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+
+    .fund-catalog-table th:nth-child(2),
+    .fund-catalog-table td:nth-child(2) {
+      width: auto;
+      overflow-wrap: anywhere;
+    }
+
+    .fund-catalog-table th:nth-child(3),
+    .fund-catalog-table td:nth-child(3) {
+      width: 96px;
+      min-width: 96px;
+      max-width: 96px;
+      text-align: right;
+      white-space: nowrap;
+    }
     
     .table-wrap { 
       overflow-x: auto; 
@@ -1600,27 +1642,44 @@
     }
 
     .report-data-table-details .report-detail-explanation-cell {
-      width: 260px;
-      max-width: 260px;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      width: 300px;
+      max-width: 300px;
+      overflow: visible;
+      text-overflow: clip;
       font-size: 12px !important;
       line-height: 1.25 !important;
       font-weight: 500 !important;
-      white-space: nowrap !important;
+      white-space: normal !important;
+      word-break: normal;
+      overflow-wrap: anywhere;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
     }
 
+    .report-data-table-details th:nth-child(1),
     .report-data-table-details td:nth-child(1) {
-      min-width: 148px;
+      width: 156px;
+      min-width: 156px;
+      max-width: 156px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .report-data-table-details td:nth-child(3),
-    .report-data-table-details td:nth-child(5),
-    .report-data-table-details th:nth-child(3) {
-      min-width: 220px;
-      max-width: 320px;
+    .report-data-table-details th:not(:first-child):not(.report-detail-explanation-head),
+    .report-data-table-details td:not(:first-child):not(.report-detail-explanation-cell) {
+      width: 142px;
+      min-width: 142px;
+      max-width: 142px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .report-data-table-details .report-detail-explanation-head {
+      width: 300px;
+      min-width: 300px;
+      max-width: 300px;
       white-space: nowrap;
     }
     
@@ -3962,8 +4021,8 @@
               <button type="button" class="ghost" onclick="clearFundCatalogForm()">Xóa nhập</button>
             </div>
             <div class="table-wrap">
-              <table class="report-table">
-                <thead><tr><th style="width:80px;">STT</th><th>Giá trị</th><th style="text-align:right;">Thao tác</th></tr></thead>
+              <table class="report-table fund-catalog-table">
+                <thead><tr><th>STT</th><th>Giá trị</th><th>Thao tác</th></tr></thead>
                 <tbody id="fundCatalogTableBody"><tr><td colspan="3" style="text-align:center; color:var(--muted); padding:24px;">Chọn một nhóm danh mục để tải dữ liệu.</td></tr></tbody>
               </table>
             </div>
@@ -5400,7 +5459,10 @@
         return;
       }
 
-      tableBody.innerHTML = rows.map((row, index) => `
+      tableBody.innerHTML = rows.map((row, index) => {
+        const rowToken = encodeURIComponent(row.rowIndex || '');
+        const valueToken = encodeURIComponent(row.value || '');
+        return `
         <tr>
           <td>${index + 1}</td>
           <td>
@@ -5409,16 +5471,17 @@
           </td>
           <td style="text-align:right; white-space:nowrap;">
             ${row.source === 'fallback' ? '' : `
-            <button type="button" class="btn-table-action edit" title="Sửa" aria-label="Sửa dòng" style="margin-right: 4px;" onclick="openFundCatalogEdit(${row.rowIndex}, decodeURIComponent('${encodeURIComponent(row.value || '')}'))">
+            <button type="button" class="btn-table-action edit" title="Sửa" aria-label="Sửa dòng" style="margin-right: 4px;" onclick="openFundCatalogEdit(decodeURIComponent('${rowToken}'), decodeURIComponent('${valueToken}'))">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
             </button>
-            <button type="button" class="btn-table-action delete" title="Xóa" aria-label="Xóa dòng" onclick="deleteFundCatalogItem(${row.rowIndex})">
+            <button type="button" class="btn-table-action delete" title="Xóa" aria-label="Xóa dòng" onclick="deleteFundCatalogItem(decodeURIComponent('${rowToken}'))">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
             </button>
             `}
           </td>
         </tr>
-      `).join('');
+        `;
+      }).join('');
     }
 
     function getFundCatalogGroupLabel(group) {
@@ -8197,6 +8260,14 @@
       }
 
       const vehicleFilters = type === 'vehicles' ? buildVehicleTableFilters(head, body) : null;
+      const detailColgroup = type === 'details'
+        ? `<colgroup>${head.map((cell, idx) => {
+            const lower = removeAccents(String(cell || '').toLowerCase());
+            if (idx === 0) return '<col style="width: 156px; min-width: 156px;">';
+            if (lower.includes('giai thich') || lower.includes('noi dung')) return '<col style="width: 300px; min-width: 300px;">';
+            return '<col style="width: 142px; min-width: 142px;">';
+          }).join('')}</colgroup>`
+        : '';
       
       // Calculate and append total row dynamically for finance/payroll/vehicles
       const shouldAppendTotalRow = type === 'finance'
@@ -8248,9 +8319,16 @@
         </div>
         <div class="table-wrap">
           <table class="report-data-table report-data-table-${escapeHtml(type)}">
+            ${detailColgroup}
             <thead><tr>${head.map((cell, idx) => {
               const sticky = getStickyStyles(idx);
-              const className = sticky.isSticky ? 'class="sticky-col"' : '';
+              const headerClasses = [];
+              const headerLower = String(cell || '').toLowerCase().trim();
+              if (sticky.isSticky) headerClasses.push('sticky-col');
+              if (type === 'details' && (headerLower.includes('giải thích') || headerLower.includes('nội dung'))) {
+                headerClasses.push('report-detail-explanation-head');
+              }
+              const className = headerClasses.length ? `class="${headerClasses.join(' ')}"` : '';
               const styleAttr = sticky.isSticky ? `style="left: ${sticky.left};"` : '';
               return `<th ${className} ${styleAttr}>${escapeHtml(cell)}</th>`;
             }).join('')}</tr></thead>
@@ -8291,9 +8369,9 @@
                 // Color formatting based on content / headers
                 if (type === 'details') {
                   if (i === 0) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 800', 'font-size: 13px !important', 'line-height: 1.25'); // Danh mục rõ hơn nhưng vẫn giữ dòng thấp
-                  } else if (colLower.includes('giải thích') || colLower.includes('nội dung') || i === 4) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 500 !important', 'font-size: 12px !important', 'line-height: 1.28', 'white-space: nowrap'); // Cột Giải thích gọn hơn trên mobile
+                    styleRules.push('color: var(--ink)', 'font-weight: 800', 'font-size: 12.5px !important', 'line-height: 1.22', 'max-width: 156px', 'overflow: hidden', 'text-overflow: ellipsis', 'white-space: nowrap');
+                  } else if (colLower.includes('giải thích') || colLower.includes('nội dung')) {
+                    styleRules.push('color: var(--ink)', 'font-weight: 500 !important', 'font-size: 12px !important', 'line-height: 1.28', 'white-space: normal', 'overflow: visible', 'text-overflow: clip');
                   } else {
                     const cat = String(row[0] || '').toLowerCase().trim();
                     const numVal = parseCellValue(val);
@@ -8346,7 +8424,7 @@
                 
                 const tdClasses = [];
                 if (sticky.isSticky) tdClasses.push('sticky-col');
-                if (type === 'details' && (colLower.includes('giải thích') || colLower.includes('nội dung') || i === 4)) {
+                if (type === 'details' && (colLower.includes('giải thích') || colLower.includes('nội dung'))) {
                   tdClasses.push('report-detail-explanation-cell');
                 }
                 const className = tdClasses.length ? `class="${tdClasses.join(' ')}"` : '';

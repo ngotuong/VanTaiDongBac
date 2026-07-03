@@ -169,6 +169,14 @@
       }
 
       const vehicleFilters = type === 'vehicles' ? buildVehicleTableFilters(head, body) : null;
+      const detailColgroup = type === 'details'
+        ? `<colgroup>${head.map((cell, idx) => {
+            const lower = removeAccents(String(cell || '').toLowerCase());
+            if (idx === 0) return '<col style="width: 156px; min-width: 156px;">';
+            if (lower.includes('giai thich') || lower.includes('noi dung')) return '<col style="width: 300px; min-width: 300px;">';
+            return '<col style="width: 142px; min-width: 142px;">';
+          }).join('')}</colgroup>`
+        : '';
       
       // Calculate and append total row dynamically for finance/payroll/vehicles
       const shouldAppendTotalRow = type === 'finance'
@@ -220,9 +228,16 @@
         </div>
         <div class="table-wrap">
           <table class="report-data-table report-data-table-${escapeHtml(type)}">
+            ${detailColgroup}
             <thead><tr>${head.map((cell, idx) => {
               const sticky = getStickyStyles(idx);
-              const className = sticky.isSticky ? 'class="sticky-col"' : '';
+              const headerClasses = [];
+              const headerLower = String(cell || '').toLowerCase().trim();
+              if (sticky.isSticky) headerClasses.push('sticky-col');
+              if (type === 'details' && (headerLower.includes('giải thích') || headerLower.includes('nội dung'))) {
+                headerClasses.push('report-detail-explanation-head');
+              }
+              const className = headerClasses.length ? `class="${headerClasses.join(' ')}"` : '';
               const styleAttr = sticky.isSticky ? `style="left: ${sticky.left};"` : '';
               return `<th ${className} ${styleAttr}>${escapeHtml(cell)}</th>`;
             }).join('')}</tr></thead>
@@ -263,9 +278,9 @@
                 // Color formatting based on content / headers
                 if (type === 'details') {
                   if (i === 0) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 800', 'font-size: 13px !important', 'line-height: 1.25'); // Danh mục rõ hơn nhưng vẫn giữ dòng thấp
-                  } else if (colLower.includes('giải thích') || colLower.includes('nội dung') || i === 4) {
-                    styleRules.push('color: var(--ink)', 'font-weight: 500 !important', 'font-size: 12px !important', 'line-height: 1.28', 'white-space: nowrap'); // Cột Giải thích gọn hơn trên mobile
+                    styleRules.push('color: var(--ink)', 'font-weight: 800', 'font-size: 12.5px !important', 'line-height: 1.22', 'max-width: 156px', 'overflow: hidden', 'text-overflow: ellipsis', 'white-space: nowrap');
+                  } else if (colLower.includes('giải thích') || colLower.includes('nội dung')) {
+                    styleRules.push('color: var(--ink)', 'font-weight: 500 !important', 'font-size: 12px !important', 'line-height: 1.28', 'white-space: normal', 'overflow: visible', 'text-overflow: clip');
                   } else {
                     const cat = String(row[0] || '').toLowerCase().trim();
                     const numVal = parseCellValue(val);
@@ -318,7 +333,7 @@
                 
                 const tdClasses = [];
                 if (sticky.isSticky) tdClasses.push('sticky-col');
-                if (type === 'details' && (colLower.includes('giải thích') || colLower.includes('nội dung') || i === 4)) {
+                if (type === 'details' && (colLower.includes('giải thích') || colLower.includes('nội dung'))) {
                   tdClasses.push('report-detail-explanation-cell');
                 }
                 const className = tdClasses.length ? `class="${tdClasses.join(' ')}"` : '';

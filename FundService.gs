@@ -503,34 +503,57 @@ var FundService = (function () {
   }
 
   function addFundTransaction(year, payload) {
+    var result = addFundTransactions(year, [payload || {}]);
+    return result.rows[0];
+  }
+
+  function addFundTransactions(year, payloads) {
+    var safePayloads = Array.isArray(payloads) ? payloads : [];
+    if (!safePayloads.length) {
+      throw new Error('Chưa có giao dịch thu chi nào để ghi.');
+    }
     var ss = getFundSpreadsheet_(year);
     var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
     if (!sheet) {
       throw new Error('Không tìm thấy sheet Thu chi: ' + TRANSACTION_SHEET_NAME);
     }
 
-    var row = buildTransactionRow_(payload || {});
+    var rows = safePayloads.map(function (payload) {
+      return buildTransactionRow_(payload || {});
+    });
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
       var appendRow = getAppendRow_(sheet);
-      if (sheet.getMaxRows() < appendRow) {
-        sheet.insertRowsAfter(sheet.getMaxRows(), appendRow - sheet.getMaxRows());
+      var lastNeededRow = appendRow + rows.length - 1;
+      if (sheet.getMaxRows() < lastNeededRow) {
+        sheet.insertRowsAfter(sheet.getMaxRows(), lastNeededRow - sheet.getMaxRows());
       }
 
-      sheet.getRange(appendRow, 1, 1, row.length).setValues([row]);
-      sheet.getRange(appendRow, 2).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(appendRow, 6).setNumberFormat('#,##0');
-      if (row[9] === 'Có') {
-        sheet.getRange(appendRow, 13).setFormula(buildDebtFormula_(appendRow));
-      }
-      sheet.getRange(appendRow, 14).setFormula(buildFilterFormula_(appendRow));
+      sheet.getRange(appendRow, 1, rows.length, rows[0].length).setValues(rows);
+      sheet.getRange(appendRow, 2, rows.length, 1).setNumberFormat('dd/MM/yyyy');
+      sheet.getRange(appendRow, 6, rows.length, 1).setNumberFormat('#,##0');
+      rows.forEach(function (row, index) {
+        var rowNumber = appendRow + index;
+        if (row[9] === 'Có') {
+          sheet.getRange(rowNumber, 13).setFormula(buildDebtFormula_(rowNumber));
+        }
+        sheet.getRange(rowNumber, 14).setFormula(buildFilterFormula_(rowNumber));
+      });
+      SpreadsheetApp.flush();
       bumpFundDataVersion_();
 
       return {
         ok: true,
-        rowIndex: appendRow,
-        voucher: row[0],
+        inserted: rows.length,
+        rows: rows.map(function (row, index) {
+          return {
+            ok: true,
+            rowIndex: appendRow + index,
+            voucher: row[0],
+            sheetName: TRANSACTION_SHEET_NAME
+          };
+        }),
         sheetName: TRANSACTION_SHEET_NAME
       };
     } finally {
@@ -1448,6 +1471,7 @@ var FundService = (function () {
 
   return {
     addFundTransaction: addFundTransaction,
+    addFundTransactions: addFundTransactions,
     addFundLoan: addFundLoan,
     addFundLoanPayment: addFundLoanPayment,
     updateFundTransaction: updateFundTransaction,
@@ -1473,6 +1497,10 @@ function getFundFormOptions(year) {
 
 function addFundTransaction(year, payload) {
   return FundService.addFundTransaction(year, payload);
+}
+
+function addFundTransactions(year, payloads) {
+  return FundService.addFundTransactions(year, payloads);
 }
 
 function updateFundTransaction(year, rowIndex, payload) {

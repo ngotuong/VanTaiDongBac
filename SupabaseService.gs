@@ -31,7 +31,7 @@ var SupabaseService = (function () {
     'NL_Phat',
     'NL_NghiVanHanh'
   ];
-  var DEFAULT_MANAGE_FILTER_KEY = 'recent_50';
+  var DEFAULT_MANAGE_FILTER_KEY = 'recent_500';
 
   function syncReportBundle(month) {
     var targetMonth = clean_(month) || 'latest';
@@ -268,7 +268,7 @@ var SupabaseService = (function () {
   function syncManageDataBundle(sheetName) {
     var safeSheetName = clean_(sheetName);
     if (!safeSheetName) throw new Error('Thiếu tên sheet vận hành cần sync.');
-    var payload = ManageService.readManageData(safeSheetName, '', '', 50);
+    var payload = ManageService.readManageData(safeSheetName, '', '', 500);
     var syncedAt = new Date().toISOString();
     upsertRows_(TABLE_MANAGE_DATA_BUNDLES, [{
       sheet_name: safeSheetName,

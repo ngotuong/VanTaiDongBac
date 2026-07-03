@@ -102,6 +102,12 @@ function addFundTransaction(year, transaction) {
   });
 }
 
+function addFundTransactions(year, transactions) {
+  return withFundSync_(year, function () {
+    return FundService.addFundTransactions(year, transactions);
+  });
+}
+
 function getFundOverview(year, filter) {
   return FundService.getFundOverview(year, filter);
 }
@@ -246,6 +252,7 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'updateFundTransaction') return withFundSync_(safeBody.year, function () { return FundService.updateFundTransaction(safeBody.year, safeBody.rowIndex, safeBody.transaction); });
     if (action === 'deleteFundTransaction') return withFundSync_(safeBody.year, function () { return FundService.deleteFundTransaction(safeBody.year, safeBody.rowIndex); });
     if (action === 'addFundTransaction') return withFundSync_(safeBody.year, function () { return FundService.addFundTransaction(safeBody.year, safeBody.transaction); });
+    if (action === 'addFundTransactions') return withFundSync_(safeBody.year, function () { return FundService.addFundTransactions(safeBody.year, safeBody.transactions || []); });
     if (action === 'addFundLoan') return withFundSync_(safeBody.year, function () { return FundService.addFundLoan(safeBody.year, safeBody.loan); });
     if (action === 'addFundLoanPayment') return withFundSync_(safeBody.year, function () { return FundService.addFundLoanPayment(safeBody.year, safeBody.payment); });
     if (action === 'saveFundCatalogItem') return FundService.saveFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody);

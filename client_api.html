@@ -246,7 +246,7 @@
     function readManageDataFromSupabase(sheetName) {
       return readSupabasePayload('manage_data_bundles', {
         sheet_name: String(sheetName || '').trim(),
-        filter_key: 'recent_50'
+        filter_key: 'recent_500'
       }, 'Chưa có cache Supabase cho dữ liệu Vận hành.');
     }
 

@@ -38,7 +38,7 @@
         endDate: endDate,
         limit: startDate || endDate ? 500 : 50
       };
-      const canUseManageSupabaseCache = !forceRefresh && !startDate && !endDate && requestParams.limit === 50;
+      const canUseManageSupabaseCache = !forceRefresh;
 
       const cached = !forceRefresh && getCachedSheetData(requestParams);
       if (cached) {
@@ -56,7 +56,9 @@
         forceRefresh: forceRefresh ? 'true' : ''
       });
       const manageLoader = (canUseManageSupabaseCache && supabaseStatus.ok)
-        ? readManageDataFromSupabase(sheetName).catch((err) => {
+        ? readManageDataFromSupabase(sheetName)
+          .then((res) => filterManageSupabasePayload(res, startDate, endDate, requestParams.limit))
+          .catch((err) => {
             manageFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
             console.warn('Không đọc được Vận hành từ Supabase, quay về Apps Script:', err);
             return loadManageFromAppsScript();
@@ -79,7 +81,9 @@
             }
             renderManageTable();
             if (res.supabaseCached) {
-              showSyncToast('Vận hành đang đọc từ Supabase cache.');
+              showSyncToast(startDate || endDate
+                ? 'Vận hành đang lọc từ Supabase cache.'
+                : 'Vận hành đang đọc từ Supabase cache.');
             } else if (manageFallbackReason && canUseManageSupabaseCache) {
               showSyncToast('Vận hành đã quay về Apps Script. ' + manageFallbackReason);
             }
@@ -94,6 +98,40 @@
           showTableError(tbody, 20, err.message || String(err));
           throw err;
         });
+    }
+
+    function filterManageSupabasePayload(data, startDate, endDate, limit) {
+      if (!data || (!startDate && !endDate)) return data;
+      const start = startDate ? new Date(startDate + 'T00:00:00') : null;
+      const end = endDate ? new Date(endDate + 'T23:59:59') : null;
+      const rowLimit = Math.max(1, Math.min(parseInt(limit, 10) || 500, 500));
+      const rows = (data.rows || []).filter((row) => {
+        const value = row && row.values ? row.values[0] : '';
+        const parsed = parseManageRowDate(value);
+        if (!parsed) return false;
+        if (start && parsed < start) return false;
+        if (end && parsed > end) return false;
+        return true;
+      }).slice(0, rowLimit);
+      return {
+        ...data,
+        rows: rows,
+        isLimited: Boolean(data.isLimited || (data.rows || []).length >= 500),
+        supabaseFiltered: true
+      };
+    }
+
+    function parseManageRowDate(value) {
+      if (!value) return null;
+      const text = String(value).trim();
+      let match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+      if (match) {
+        const year = Number(match[3].length === 2 ? '20' + match[3] : match[3]);
+        return new Date(year, Number(match[2]) - 1, Number(match[1]));
+      }
+      return null;
     }
 
     function renderManageTable() {

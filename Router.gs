@@ -105,6 +105,11 @@ function doPost(e) {
       try { SupabaseService.syncFundAfterWrite(payload.year || '2026'); } catch (syncErr1) { console.log('fund_supabase_sync_after_write_failed: ' + syncErr1.message); }
       return timedJsonResponse_(action, startedAt, fundResult);
     }
+    if (action === 'addFundTransactions') {
+      var fundBatchResult = FundService.addFundTransactions(payload.year, payload.transactions || []);
+      try { SupabaseService.syncFundAfterWrite(payload.year || '2026'); } catch (syncErr1b) { console.log('fund_supabase_sync_after_write_failed: ' + syncErr1b.message); }
+      return timedJsonResponse_(action, startedAt, fundBatchResult);
+    }
     if (action === 'updateFundTransaction') {
       var updateFundResult = FundService.updateFundTransaction(payload.year, payload.rowIndex, payload.transaction);
       try { SupabaseService.syncFundAfterWrite(payload.year || '2026'); } catch (syncErr2) { console.log('fund_supabase_sync_after_write_failed: ' + syncErr2.message); }

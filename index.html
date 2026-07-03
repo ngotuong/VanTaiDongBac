@@ -5042,7 +5042,7 @@
     function readManageDataFromSupabase(sheetName) {
       return readSupabasePayload('manage_data_bundles', {
         sheet_name: String(sheetName || '').trim(),
-        filter_key: 'recent_50'
+        filter_key: 'recent_500'
       }, 'Chưa có cache Supabase cho dữ liệu Vận hành.');
     }
 
@@ -5735,7 +5735,7 @@
           <article class="entry-row fund-transaction-row" data-fund-row="${index}">
             <div class="entry-row-head">
               <div class="entry-row-title"><span class="row-number">${index + 1}</span><span>Dòng thu chi</span></div>
-              <button type="button" class="danger" onclick="removeFundTransactionRow(${index})" ${fundTransactionRows.length === 1 || isEdit ? 'disabled' : ''}>Xóa</button>
+              <button type="button" class="danger" onclick="removeFundTransactionRow(${index})" ${fundTransactionRows.length === 1 || (isEdit && index === 0) ? 'disabled' : ''}>Xóa</button>
             </div>
             <div class="fields">
               <label class="full">Ngày<input type="text" class="vi-date-input" inputmode="numeric" placeholder="dd/mm/yyyy" data-iso="${escapeHtml(row.date || '')}" value="${escapeHtml(formatIsoDateForDisplay(row.date || ''))}" oninput="updateFundTransactionRow(${index}, 'date', getDateInputIso(this))" onchange="updateFundTransactionRow(${index}, 'date', getDateInputIso(this))" required></label>
@@ -5762,20 +5762,19 @@
     };
 
     window.addFundTransactionRow = function() {
-      if (fundTransactionEditRowIndex) return;
       fundTransactionRows.push(newBlankFundTransaction());
       renderFundTransactionRows();
     };
 
     window.cloneFundTransactionRow = function() {
-      if (fundTransactionEditRowIndex) return;
       const last = fundTransactionRows[fundTransactionRows.length - 1] || newBlankFundTransaction();
       fundTransactionRows.push(newBlankFundTransaction({ ...last }));
       renderFundTransactionRows();
     };
 
     window.removeFundTransactionRow = function(index) {
-      if (fundTransactionEditRowIndex || fundTransactionRows.length === 1) return;
+      if (fundTransactionRows.length === 1) return;
+      if (fundTransactionEditRowIndex && index === 0) return;
       fundTransactionRows.splice(index, 1);
       renderFundTransactionRows();
     };
@@ -5792,7 +5791,7 @@
       if (btn) btn.disabled = true;
 
       if (fundTransactionEditRowIndex) {
-        showFundEntryStatus('info', 'Đang cập nhật khoản thu/chi...');
+        showFundEntryStatus('info', transactions.length > 1 ? `Đang cập nhật 1 khoản và lưu thêm ${transactions.length - 1} khoản mới...` : 'Đang cập nhật khoản thu/chi...');
         const oldItem = currentEditingTransaction || {};
         const transaction = transactions[0];
 
@@ -5806,8 +5805,18 @@
           }
         })
           .then(() => {
+            const extraTransactions = transactions.slice(1);
+            if (!extraTransactions.length) return null;
+            return callApi('POST', 'addFundTransactions', {}, {
+              year: '2026',
+              transactions: extraTransactions
+            });
+          })
+          .then(() => {
             clearFundEntryForm();
-            showFundEntryStatus('success', 'Đã cập nhật khoản thu/chi thành công.');
+            showFundEntryStatus('success', transactions.length > 1
+              ? `Đã cập nhật 1 khoản và lưu thêm ${transactions.length - 1} khoản mới.`
+              : 'Đã cập nhật khoản thu/chi thành công.');
             loadFundTransactions(true);
             loadFundOverview(true);
             setTimeout(closeFundTransactionAddDrawer, 1000);
@@ -5820,10 +5829,10 @@
           });
       } else {
         showFundEntryStatus('info', `Đang lưu ${transactions.length} khoản thu/chi...`);
-        const jobs = transactions.map((transaction) => (
-          callApi('POST', 'addFundTransaction', {}, { year: '2026', transaction })
-        ));
-        Promise.all(jobs)
+        callApi('POST', 'addFundTransactions', {}, {
+          year: '2026',
+          transactions: transactions
+        })
           .then(() => {
             clearFundEntryForm();
             showFundEntryStatus('success', `Đã lưu ${transactions.length} khoản thu/chi vào file Thu chi.`);
@@ -6768,7 +6777,7 @@
         endDate: endDate,
         limit: startDate || endDate ? 500 : 50
       };
-      const canUseManageSupabaseCache = !forceRefresh && !startDate && !endDate && requestParams.limit === 50;
+      const canUseManageSupabaseCache = !forceRefresh;
 
       const cached = !forceRefresh && getCachedSheetData(requestParams);
       if (cached) {
@@ -6786,7 +6795,9 @@
         forceRefresh: forceRefresh ? 'true' : ''
       });
       const manageLoader = (canUseManageSupabaseCache && supabaseStatus.ok)
-        ? readManageDataFromSupabase(sheetName).catch((err) => {
+        ? readManageDataFromSupabase(sheetName)
+          .then((res) => filterManageSupabasePayload(res, startDate, endDate, requestParams.limit))
+          .catch((err) => {
             manageFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
             console.warn('Không đọc được Vận hành từ Supabase, quay về Apps Script:', err);
             return loadManageFromAppsScript();
@@ -6809,7 +6820,9 @@
             }
             renderManageTable();
             if (res.supabaseCached) {
-              showSyncToast('Vận hành đang đọc từ Supabase cache.');
+              showSyncToast(startDate || endDate
+                ? 'Vận hành đang lọc từ Supabase cache.'
+                : 'Vận hành đang đọc từ Supabase cache.');
             } else if (manageFallbackReason && canUseManageSupabaseCache) {
               showSyncToast('Vận hành đã quay về Apps Script. ' + manageFallbackReason);
             }
@@ -6824,6 +6837,40 @@
           showTableError(tbody, 20, err.message || String(err));
           throw err;
         });
+    }
+
+    function filterManageSupabasePayload(data, startDate, endDate, limit) {
+      if (!data || (!startDate && !endDate)) return data;
+      const start = startDate ? new Date(startDate + 'T00:00:00') : null;
+      const end = endDate ? new Date(endDate + 'T23:59:59') : null;
+      const rowLimit = Math.max(1, Math.min(parseInt(limit, 10) || 500, 500));
+      const rows = (data.rows || []).filter((row) => {
+        const value = row && row.values ? row.values[0] : '';
+        const parsed = parseManageRowDate(value);
+        if (!parsed) return false;
+        if (start && parsed < start) return false;
+        if (end && parsed > end) return false;
+        return true;
+      }).slice(0, rowLimit);
+      return {
+        ...data,
+        rows: rows,
+        isLimited: Boolean(data.isLimited || (data.rows || []).length >= 500),
+        supabaseFiltered: true
+      };
+    }
+
+    function parseManageRowDate(value) {
+      if (!value) return null;
+      const text = String(value).trim();
+      let match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+      if (match) {
+        const year = Number(match[3].length === 2 ? '20' + match[3] : match[3]);
+        return new Date(year, Number(match[2]) - 1, Number(match[1]));
+      }
+      return null;
     }
 
     function renderManageTable() {

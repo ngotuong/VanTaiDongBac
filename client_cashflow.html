@@ -540,7 +540,7 @@
           <article class="entry-row fund-transaction-row" data-fund-row="${index}">
             <div class="entry-row-head">
               <div class="entry-row-title"><span class="row-number">${index + 1}</span><span>Dòng thu chi</span></div>
-              <button type="button" class="danger" onclick="removeFundTransactionRow(${index})" ${fundTransactionRows.length === 1 || isEdit ? 'disabled' : ''}>Xóa</button>
+              <button type="button" class="danger" onclick="removeFundTransactionRow(${index})" ${fundTransactionRows.length === 1 || (isEdit && index === 0) ? 'disabled' : ''}>Xóa</button>
             </div>
             <div class="fields">
               <label class="full">Ngày<input type="text" class="vi-date-input" inputmode="numeric" placeholder="dd/mm/yyyy" data-iso="${escapeHtml(row.date || '')}" value="${escapeHtml(formatIsoDateForDisplay(row.date || ''))}" oninput="updateFundTransactionRow(${index}, 'date', getDateInputIso(this))" onchange="updateFundTransactionRow(${index}, 'date', getDateInputIso(this))" required></label>
@@ -567,20 +567,19 @@
     };
 
     window.addFundTransactionRow = function() {
-      if (fundTransactionEditRowIndex) return;
       fundTransactionRows.push(newBlankFundTransaction());
       renderFundTransactionRows();
     };
 
     window.cloneFundTransactionRow = function() {
-      if (fundTransactionEditRowIndex) return;
       const last = fundTransactionRows[fundTransactionRows.length - 1] || newBlankFundTransaction();
       fundTransactionRows.push(newBlankFundTransaction({ ...last }));
       renderFundTransactionRows();
     };
 
     window.removeFundTransactionRow = function(index) {
-      if (fundTransactionEditRowIndex || fundTransactionRows.length === 1) return;
+      if (fundTransactionRows.length === 1) return;
+      if (fundTransactionEditRowIndex && index === 0) return;
       fundTransactionRows.splice(index, 1);
       renderFundTransactionRows();
     };
@@ -597,7 +596,7 @@
       if (btn) btn.disabled = true;
 
       if (fundTransactionEditRowIndex) {
-        showFundEntryStatus('info', 'Đang cập nhật khoản thu/chi...');
+        showFundEntryStatus('info', transactions.length > 1 ? `Đang cập nhật 1 khoản và lưu thêm ${transactions.length - 1} khoản mới...` : 'Đang cập nhật khoản thu/chi...');
         const oldItem = currentEditingTransaction || {};
         const transaction = transactions[0];
 
@@ -611,8 +610,18 @@
           }
         })
           .then(() => {
+            const extraTransactions = transactions.slice(1);
+            if (!extraTransactions.length) return null;
+            return callApi('POST', 'addFundTransactions', {}, {
+              year: '2026',
+              transactions: extraTransactions
+            });
+          })
+          .then(() => {
             clearFundEntryForm();
-            showFundEntryStatus('success', 'Đã cập nhật khoản thu/chi thành công.');
+            showFundEntryStatus('success', transactions.length > 1
+              ? `Đã cập nhật 1 khoản và lưu thêm ${transactions.length - 1} khoản mới.`
+              : 'Đã cập nhật khoản thu/chi thành công.');
             loadFundTransactions(true);
             loadFundOverview(true);
             setTimeout(closeFundTransactionAddDrawer, 1000);
@@ -625,10 +634,10 @@
           });
       } else {
         showFundEntryStatus('info', `Đang lưu ${transactions.length} khoản thu/chi...`);
-        const jobs = transactions.map((transaction) => (
-          callApi('POST', 'addFundTransaction', {}, { year: '2026', transaction })
-        ));
-        Promise.all(jobs)
+        callApi('POST', 'addFundTransactions', {}, {
+          year: '2026',
+          transactions: transactions
+        })
           .then(() => {
             clearFundEntryForm();
             showFundEntryStatus('success', `Đã lưu ${transactions.length} khoản thu/chi vào file Thu chi.`);

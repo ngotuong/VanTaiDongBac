@@ -12,3 +12,5 @@
 
 # Supabase CLI local metadata
 supabase/.temp/
+.vercel
+.env*

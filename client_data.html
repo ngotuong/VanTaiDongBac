@@ -132,6 +132,9 @@
     }
 
     function getDashboardData() {
+      if (activeView === 'reports' && appData?.reports?.overview?.details?.length) {
+        return appData.reports;
+      }
       return appData?.dashboard || appData?.reports || { overview: { months: [], details: [] }, inputs: [], links: getLinks(), loading: true };
     }
 
@@ -271,9 +274,10 @@
         if (cachedDashboard) {
           const dashboard = JSON.parse(cachedDashboard);
           appData.dashboard = dashboard;
-          appData.reports = { ...appData.reports, ...dashboard, loading: false };
+          const reportOverview = appData.reports?.overview?.details?.length ? appData.reports.overview : dashboard.overview;
+          appData.reports = { ...appData.reports, ...dashboard, overview: reportOverview, loading: false };
           renderDashboard();
-          renderReports();
+          if (activeView !== 'reports') renderReports();
           renderView();
           setRefreshBusy(false);
           return Promise.resolve(dashboard);
@@ -283,11 +287,12 @@
       return callApi('GET', 'getDashboard', { forceRefresh: forceRefresh })
         .then((dashboard) => {
           appData.dashboard = dashboard;
-          appData.reports = { ...appData.reports, ...dashboard, loading: false };
+          const reportOverview = appData.reports?.overview?.details?.length ? appData.reports.overview : dashboard.overview;
+          appData.reports = { ...appData.reports, ...dashboard, overview: reportOverview, loading: false };
           sessionStorage.setItem(cacheKey, JSON.stringify(dashboard));
           
           renderDashboard();
-          renderReports();
+          if (activeView !== 'reports') renderReports();
           renderView();
           setRefreshBusy(false);
           return dashboard;

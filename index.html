@@ -1569,6 +1569,12 @@
       border-collapse: separate; 
       border-spacing: 0;
     }
+
+    .report-data-table-details {
+      table-layout: fixed;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
     
     th, td {
       padding: 8px 12px;
@@ -1593,11 +1599,25 @@
       line-height: 1.25;
     }
 
+    .report-data-table-details .report-detail-explanation-cell {
+      width: 260px;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px !important;
+      line-height: 1.25 !important;
+      font-weight: 500 !important;
+      white-space: nowrap !important;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
     .report-data-table-details td:nth-child(1) {
       min-width: 148px;
     }
 
     .report-data-table-details td:nth-child(3),
+    .report-data-table-details td:nth-child(5),
     .report-data-table-details th:nth-child(3) {
       min-width: 220px;
       max-width: 320px;
@@ -2724,6 +2744,20 @@
         line-height: 1.25 !important;
         font-weight: 500 !important;
         white-space: nowrap !important;
+      }
+
+      .report-data-table-details .report-detail-explanation-cell {
+        width: 220px !important;
+        min-width: 220px !important;
+        max-width: 220px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        font-size: 11px !important;
+        line-height: 1.22 !important;
+        font-weight: 500 !important;
+        white-space: nowrap !important;
+        -webkit-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
       }
 
       #catalogView .catalog-sticky-toolbar {
@@ -7016,7 +7050,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.17_report_cashflow_manage_ui';
+      const APP_VERSION = 'v3.18_report_fund_catalog_hotfix';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -8310,7 +8344,12 @@
                   styleRules.push(`left: ${sticky.left}`);
                 }
                 
-                const className = sticky.isSticky ? 'class="sticky-col"' : '';
+                const tdClasses = [];
+                if (sticky.isSticky) tdClasses.push('sticky-col');
+                if (type === 'details' && (colLower.includes('giải thích') || colLower.includes('nội dung') || i === 4)) {
+                  tdClasses.push('report-detail-explanation-cell');
+                }
+                const className = tdClasses.length ? `class="${tdClasses.join(' ')}"` : '';
                 const styleAttr = styleRules.length ? `style="${styleRules.join('; ')};"` : '';
                 
                 return `<td ${className} ${styleAttr}>${escapeHtml(val)}</td>`;
@@ -8991,6 +9030,9 @@
     }
 
     function getDashboardData() {
+      if (activeView === 'reports' && appData?.reports?.overview?.details?.length) {
+        return appData.reports;
+      }
       return appData?.dashboard || appData?.reports || { overview: { months: [], details: [] }, inputs: [], links: getLinks(), loading: true };
     }
 
@@ -9130,9 +9172,10 @@
         if (cachedDashboard) {
           const dashboard = JSON.parse(cachedDashboard);
           appData.dashboard = dashboard;
-          appData.reports = { ...appData.reports, ...dashboard, loading: false };
+          const reportOverview = appData.reports?.overview?.details?.length ? appData.reports.overview : dashboard.overview;
+          appData.reports = { ...appData.reports, ...dashboard, overview: reportOverview, loading: false };
           renderDashboard();
-          renderReports();
+          if (activeView !== 'reports') renderReports();
           renderView();
           setRefreshBusy(false);
           return Promise.resolve(dashboard);
@@ -9142,11 +9185,12 @@
       return callApi('GET', 'getDashboard', { forceRefresh: forceRefresh })
         .then((dashboard) => {
           appData.dashboard = dashboard;
-          appData.reports = { ...appData.reports, ...dashboard, loading: false };
+          const reportOverview = appData.reports?.overview?.details?.length ? appData.reports.overview : dashboard.overview;
+          appData.reports = { ...appData.reports, ...dashboard, overview: reportOverview, loading: false };
           sessionStorage.setItem(cacheKey, JSON.stringify(dashboard));
           
           renderDashboard();
-          renderReports();
+          if (activeView !== 'reports') renderReports();
           renderView();
           setRefreshBusy(false);
           return dashboard;

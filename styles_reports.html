@@ -264,6 +264,12 @@
       border-collapse: separate; 
       border-spacing: 0;
     }
+
+    .report-data-table-details {
+      table-layout: fixed;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
     
     th, td {
       padding: 8px 12px;
@@ -288,11 +294,25 @@
       line-height: 1.25;
     }
 
+    .report-data-table-details .report-detail-explanation-cell {
+      width: 260px;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px !important;
+      line-height: 1.25 !important;
+      font-weight: 500 !important;
+      white-space: nowrap !important;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
     .report-data-table-details td:nth-child(1) {
       min-width: 148px;
     }
 
     .report-data-table-details td:nth-child(3),
+    .report-data-table-details td:nth-child(5),
     .report-data-table-details th:nth-child(3) {
       min-width: 220px;
       max-width: 320px;

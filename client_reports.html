@@ -316,7 +316,12 @@
                   styleRules.push(`left: ${sticky.left}`);
                 }
                 
-                const className = sticky.isSticky ? 'class="sticky-col"' : '';
+                const tdClasses = [];
+                if (sticky.isSticky) tdClasses.push('sticky-col');
+                if (type === 'details' && (colLower.includes('giải thích') || colLower.includes('nội dung') || i === 4)) {
+                  tdClasses.push('report-detail-explanation-cell');
+                }
+                const className = tdClasses.length ? `class="${tdClasses.join(' ')}"` : '';
                 const styleAttr = styleRules.length ? `style="${styleRules.join('; ')};"` : '';
                 
                 return `<td ${className} ${styleAttr}>${escapeHtml(val)}</td>`;

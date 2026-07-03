@@ -505,14 +505,35 @@
 
         <div data-cashflow-panel="transactions" style="display: none;">
           <section class="panel app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
-            <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; gap: 12px; padding: 16px 20px;">
-              <div>
-                <h2 class="panel-title" style="margin: 0;">Danh sách thu chi</h2>
+            <div class="fund-transaction-toolbar">
+              <div class="fund-transaction-filters">
+                <label class="manage-period-filter">
+                  Kỳ:
+                  <select id="fundQuickDateFilter" onchange="setFundQuickDate(this.value)">
+                    <option value="recent">Mới nhất</option>
+                    <option value="today">Hôm nay</option>
+                    <option value="7days">7 ngày</option>
+                    <option value="thisMonth">Tháng này</option>
+                    <option value="lastMonth">Tháng trước</option>
+                    <option value="custom">Tùy chọn</option>
+                  </select>
+                </label>
+                <div id="fundDateFilterGroup">
+                  <label>
+                    Từ:
+                    <input type="text" class="vi-date-input" id="fundStartDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" onchange="setFundCustomDate()">
+                  </label>
+                  <label>
+                    Đến:
+                    <input type="text" class="vi-date-input" id="fundEndDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" onchange="setFundCustomDate()">
+                  </label>
+                </div>
+                <label class="fund-transaction-search">
+                  Tìm kiếm:
+                  <input type="text" id="fundSearchInput" placeholder="Tìm mục, người, đối tác..." oninput="debounceFundTransactionSearch()">
+                </label>
               </div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <select id="fundMonthFilter" style="height: 36px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundTransactions(false)">
-                  <option value="">Tất cả tháng</option>
-                </select>
+              <div class="fund-transaction-toolbar-actions">
                 <button type="button" class="ghost" style="height: 36px; min-height: 36px; width: 36px; padding: 0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;" title="Tải lại" onclick="loadFundTransactions(true)">
                   <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin: 0;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
                 </button>
@@ -597,13 +618,28 @@
           </section>
 
           <section class="table-card">
-            <div class="table-card-head"><div class="table-title">Lịch sử vay/trả</div></div>
+            <div class="table-card-head fund-loan-history-head">
+              <div class="table-title">Lịch sử vay/trả</div>
+              <div class="fund-loan-history-filters">
+                <label class="compact-filter compact-filter-inline">
+                  <select id="fundLoanHistoryTypeFilter" onchange="filterFundLoanHistory()">
+                    <option value="">Tất cả loại</option>
+                  </select>
+                </label>
+                <label class="compact-filter compact-filter-inline">
+                  <select id="fundLoanHistoryPartnerFilter" onchange="filterFundLoanHistory()">
+                    <option value="">Tất cả đối tác</option>
+                  </select>
+                </label>
+              </div>
+            </div>
             <div class="table-wrap">
               <table class="report-table table-wide">
-                <thead><tr><th>Ngày</th><th>Trạng thái</th><th>Loại</th><th>Đối tác</th><th style="text-align:right;">Số tiền</th><th>Nội dung</th></tr></thead>
-                <tbody id="fundLoanHistoryBody"><tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                <thead><tr><th>Ngày</th><th>Loại</th><th>Đối tác</th><th style="text-align:right;">Số tiền</th><th>Nội dung</th></tr></thead>
+                <tbody id="fundLoanHistoryBody"><tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
             </div>
+            <div id="fundLoanHistoryPager" style="display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding: 12px 16px; border-top: 1px solid var(--line);"></div>
           </section>
         </div>
 

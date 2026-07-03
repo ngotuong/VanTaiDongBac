@@ -1478,6 +1478,106 @@
       font-size: 12.5px;
     }
 
+    .fund-transaction-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+    }
+
+    .fund-transaction-filters {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1 1 auto;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+
+    .fund-transaction-filters label,
+    #fundDateFilterGroup label {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12.5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .fund-transaction-filters select,
+    .fund-transaction-filters input {
+      height: 38px;
+      min-height: 38px;
+      box-sizing: border-box;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 500;
+      outline: none;
+      padding: 0 10px;
+    }
+
+    .fund-transaction-filters select {
+      width: 128px;
+      cursor: pointer;
+    }
+
+    #fundDateFilterGroup {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex: 1 1 260px;
+      min-width: 260px;
+    }
+
+    #fundDateFilterGroup label {
+      flex: 1 1 120px;
+    }
+
+    #fundDateFilterGroup input {
+      width: 100%;
+    }
+
+    .fund-transaction-search {
+      flex: 1 1 230px;
+      min-width: 220px;
+    }
+
+    .fund-transaction-search input {
+      width: 100%;
+    }
+
+    .fund-transaction-toolbar-actions,
+    .fund-loan-history-filters {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .fund-loan-history-head {
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .fund-loan-history-filters {
+      margin-left: auto;
+      flex-wrap: wrap;
+    }
+
+    .fund-loan-history-filters .compact-filter select {
+      min-width: 132px;
+      max-width: 180px;
+      font-size: 12.5px;
+      font-weight: 500;
+    }
+
     .fund-catalog-head {
       display: flex;
       justify-content: space-between;
@@ -1722,6 +1822,58 @@
     tr.total-row td {
       background: var(--mint-soft) !important;
       font-weight: 700;
+    }
+
+    .table-card.is-exporting {
+      box-shadow: none !important;
+      border-color: #d7e3ea !important;
+      border-radius: 12px !important;
+    }
+
+    .table-card.is-exporting .table-card-head {
+      padding: 18px 22px !important;
+      background: #ffffff !important;
+    }
+
+    .table-card.is-exporting .table-title {
+      font-size: 20px !important;
+      line-height: 1.25 !important;
+    }
+
+    .table-card.is-exporting .panel-note {
+      font-size: 15px !important;
+      line-height: 1.35 !important;
+    }
+
+    .table-card.is-exporting table {
+      min-width: max-content !important;
+    }
+
+    .table-card.is-exporting th {
+      font-size: 14px !important;
+      line-height: 1.25 !important;
+      padding: 10px 14px !important;
+      letter-spacing: 0 !important;
+    }
+
+    .table-card.is-exporting td {
+      font-size: 15px !important;
+      line-height: 1.35 !important;
+      padding: 10px 14px !important;
+    }
+
+    .table-card.is-exporting .report-data-table-details td,
+    .table-card.is-exporting .report-data-table-details .report-detail-explanation-cell {
+      font-size: 14px !important;
+      line-height: 1.32 !important;
+    }
+
+    .table-card.is-exporting .fund-export-section-title {
+      font-size: 17px !important;
+    }
+
+    .table-card.is-exporting .fund-export-table td {
+      font-size: 16px !important;
     }
 
     tr.total-row td.sticky-col {
@@ -3231,11 +3383,70 @@
       #manageQuickDateFilterMobile,
       #manageStartDate,
       #manageEndDate,
-      #manageSearchInput {
+      #manageSearchInput,
+      #fundQuickDateFilter,
+      #fundStartDate,
+      #fundEndDate,
+      #fundSearchInput {
         min-height: 44px !important;
         height: 44px !important;
         font-size: 16px !important;
         font-weight: 500 !important;
+      }
+
+      .fund-transaction-toolbar,
+      .fund-transaction-filters {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        width: 100% !important;
+        gap: 10px !important;
+      }
+
+      .fund-transaction-toolbar {
+        padding: 12px !important;
+      }
+
+      .fund-transaction-filters label,
+      #fundDateFilterGroup label {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        gap: 6px !important;
+      }
+
+      #fundDateFilterGroup {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        gap: 8px !important;
+      }
+
+      .fund-transaction-filters select,
+      .fund-transaction-filters input,
+      .fund-transaction-search {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+
+      .fund-transaction-toolbar-actions {
+        justify-content: flex-end !important;
+        width: 100% !important;
+      }
+
+      .fund-loan-history-filters {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+      }
+
+      .fund-loan-history-filters .compact-filter,
+      .fund-loan-history-filters .compact-filter select {
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
       }
 
       .filter-row input,
@@ -3891,14 +4102,35 @@
 
         <div data-cashflow-panel="transactions" style="display: none;">
           <section class="panel app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
-            <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; gap: 12px; padding: 16px 20px;">
-              <div>
-                <h2 class="panel-title" style="margin: 0;">Danh sách thu chi</h2>
+            <div class="fund-transaction-toolbar">
+              <div class="fund-transaction-filters">
+                <label class="manage-period-filter">
+                  Kỳ:
+                  <select id="fundQuickDateFilter" onchange="setFundQuickDate(this.value)">
+                    <option value="recent">Mới nhất</option>
+                    <option value="today">Hôm nay</option>
+                    <option value="7days">7 ngày</option>
+                    <option value="thisMonth">Tháng này</option>
+                    <option value="lastMonth">Tháng trước</option>
+                    <option value="custom">Tùy chọn</option>
+                  </select>
+                </label>
+                <div id="fundDateFilterGroup">
+                  <label>
+                    Từ:
+                    <input type="text" class="vi-date-input" id="fundStartDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" onchange="setFundCustomDate()">
+                  </label>
+                  <label>
+                    Đến:
+                    <input type="text" class="vi-date-input" id="fundEndDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" onchange="setFundCustomDate()">
+                  </label>
+                </div>
+                <label class="fund-transaction-search">
+                  Tìm kiếm:
+                  <input type="text" id="fundSearchInput" placeholder="Tìm mục, người, đối tác..." oninput="debounceFundTransactionSearch()">
+                </label>
               </div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <select id="fundMonthFilter" style="height: 36px; width: 130px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundTransactions(false)">
-                  <option value="">Tất cả tháng</option>
-                </select>
+              <div class="fund-transaction-toolbar-actions">
                 <button type="button" class="ghost" style="height: 36px; min-height: 36px; width: 36px; padding: 0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;" title="Tải lại" onclick="loadFundTransactions(true)">
                   <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin: 0;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
                 </button>
@@ -3983,13 +4215,28 @@
           </section>
 
           <section class="table-card">
-            <div class="table-card-head"><div class="table-title">Lịch sử vay/trả</div></div>
+            <div class="table-card-head fund-loan-history-head">
+              <div class="table-title">Lịch sử vay/trả</div>
+              <div class="fund-loan-history-filters">
+                <label class="compact-filter compact-filter-inline">
+                  <select id="fundLoanHistoryTypeFilter" onchange="filterFundLoanHistory()">
+                    <option value="">Tất cả loại</option>
+                  </select>
+                </label>
+                <label class="compact-filter compact-filter-inline">
+                  <select id="fundLoanHistoryPartnerFilter" onchange="filterFundLoanHistory()">
+                    <option value="">Tất cả đối tác</option>
+                  </select>
+                </label>
+              </div>
+            </div>
             <div class="table-wrap">
               <table class="report-table table-wide">
-                <thead><tr><th>Ngày</th><th>Trạng thái</th><th>Loại</th><th>Đối tác</th><th style="text-align:right;">Số tiền</th><th>Nội dung</th></tr></thead>
-                <tbody id="fundLoanHistoryBody"><tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                <thead><tr><th>Ngày</th><th>Loại</th><th>Đối tác</th><th style="text-align:right;">Số tiền</th><th>Nội dung</th></tr></thead>
+                <tbody id="fundLoanHistoryBody"><tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
             </div>
+            <div id="fundLoanHistoryPager" style="display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding: 12px 16px; border-top: 1px solid var(--line);"></div>
           </section>
         </div>
 
@@ -4330,6 +4577,8 @@
     let fundTransactionsData = null;
     let fundTransactionsPage = 1;
     const FUND_TRANSACTIONS_PAGE_SIZE = 20;
+    let fundLoanHistoryPage = 1;
+    const FUND_LOAN_HISTORY_PAGE_SIZE = 20;
     let fundFormOptions = null;
     let fundOverviewData = null;
     let fundLoanData = null;
@@ -4769,6 +5018,9 @@
         panel.style.display = panel.dataset.cashflowPanel === tab ? '' : 'none';
       });
       if (tab === 'transactions') {
+        if (!getDateInputIso('fundStartDate') && !getDateInputIso('fundEndDate')) {
+          setFundQuickDate(el('fundQuickDateFilter')?.value || 'recent', true);
+        }
         loadFundTransactions(false);
       }
       if (tab === 'entry') {
@@ -5451,7 +5703,12 @@
       const title = el('fundCatalogTitle');
       const note = el('fundCatalogNote');
       if (title) title.textContent = getFundCatalogGroupLabel(activeFundCatalogGroup);
-      if (note) note.textContent = `Có ${rows.length} mục trong nhóm này.`;
+      if (note) {
+        const fallbackCount = rows.filter((row) => row.source === 'fallback').length;
+        note.textContent = fallbackCount
+          ? `Có ${rows.length} mục. ${fallbackCount} mục đang được quét từ dữ liệu đã nhập, chưa nằm trong danh mục cấu hình.`
+          : `Có ${rows.length} mục trong danh mục cấu hình.`;
+      }
       if (!tableBody) return;
 
       if (!rows.length) {
@@ -5467,7 +5724,7 @@
           <td>${index + 1}</td>
           <td>
             ${escapeHtml(row.value || '')}
-            ${row.source === 'fallback' ? '<span class="preview-badge info" style="margin:0 0 0 8px;">Từ dữ liệu hiện có</span>' : ''}
+            ${row.source === 'fallback' ? '<span class="preview-badge info" title="Giá trị này được quét từ các phiếu đã nhập, không phải ô danh mục cấu hình." style="margin:0 0 0 8px;">Từ dữ liệu hiện có</span>' : ''}
           </td>
           <td style="text-align:right; white-space:nowrap;">
             ${row.source === 'fallback' ? '' : `
@@ -5575,10 +5832,13 @@
       const month = el('fundLoanMonthFilter')?.value || '';
       renderFundKpiLoading(el('fundLoanMetrics'), 4);
       renderFundTableLoading(el('fundLoanSummaryBody'), 4, 'Đang tải khoản vay...');
-      renderFundTableLoading(el('fundLoanHistoryBody'), 6, 'Đang tải lịch sử vay/trả...');
+      renderFundTableLoading(el('fundLoanHistoryBody'), 5, 'Đang tải lịch sử vay/trả...');
+      const historyPager = el('fundLoanHistoryPager');
+      if (historyPager) historyPager.style.display = 'none';
       return callApi('GET', 'getFundLoanOverview', { year: '2026', month: month, forceRefresh: forceRefresh ? 'true' : '' })
         .then((data) => {
           fundLoanData = data;
+          fundLoanHistoryPage = 1;
           renderFundLoanOverview(data);
         })
         .catch((err) => {
@@ -5591,6 +5851,7 @@
     function renderFundLoanOverview(data) {
       renderFundLoanMonthFilter(data.months || [], data.selectedMonth || '');
       renderFundLoanPartnerFilter(data.loans || []);
+      renderFundLoanHistoryFilters(data.recentRows || []);
       const selectedPartner = el('fundLoanPartnerFilter')?.value || '';
       const loans = (data.loans || []).filter((item) => {
         return !selectedPartner || String(item.partner || '') === selectedPartner;
@@ -5629,24 +5890,32 @@
         </tr>
       `).join('') : '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>';
 
+      const historyType = el('fundLoanHistoryTypeFilter')?.value || '';
+      const historyPartner = el('fundLoanHistoryPartnerFilter')?.value || '';
       const history = el('fundLoanHistoryBody');
       const rows = (data.recentRows || [])
         .slice()
+        .filter((row) => !historyType || String(row.type || '') === historyType)
+        .filter((row) => !historyPartner || String(row.partner || '') === historyPartner)
         .sort((a, b) => parseFundDateValue(b.date || b.dateText) - parseFundDateValue(a.date || a.dateText));
-      history.innerHTML = rows.length ? rows.map((row) => {
+      const totalHistoryPages = Math.max(1, Math.ceil(rows.length / FUND_LOAN_HISTORY_PAGE_SIZE));
+      fundLoanHistoryPage = Math.min(Math.max(1, fundLoanHistoryPage), totalHistoryPages);
+      const historyStart = (fundLoanHistoryPage - 1) * FUND_LOAN_HISTORY_PAGE_SIZE;
+      const pageRows = rows.slice(historyStart, historyStart + FUND_LOAN_HISTORY_PAGE_SIZE);
+      history.innerHTML = pageRows.length ? pageRows.map((row) => {
         const amountColor = row.type === 'Vay' ? 'var(--green)' : 'var(--red)';
         const amountSign = row.type === 'Vay' ? '+' : '-';
         return `
           <tr>
             <td>${escapeHtml(row.dateText || row.date || '')}</td>
-            <td>${row.isSettled ? '<span class="preview-badge success" style="white-space:nowrap;">Đã trả gốc</span>' : ''}</td>
             <td>${escapeHtml(row.type || '')}</td>
             <td>${escapeHtml(row.partner || '')}</td>
             <td style="text-align:right; font-weight:800; color: ${amountColor};">${amountSign}${formatFundAmount(row.amount, row.amountText)}</td>
             <td>${escapeHtml(row.content || '')}</td>
           </tr>
         `;
-      }).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
+      }).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
+      renderFundLoanHistoryPager(rows.length, totalHistoryPages, historyStart + 1, historyStart + pageRows.length);
     }
 
     function renderFundLoanPartnerFilter(loans) {
@@ -5661,6 +5930,50 @@
         `<option value="${escapeHtml(partner)}">${escapeHtml(partner)}</option>`
       )).join('');
       select.value = partners.includes(current) ? current : '';
+    }
+
+    function renderFundLoanHistoryFilters(rows) {
+      const typeSelect = el('fundLoanHistoryTypeFilter');
+      const partnerSelect = el('fundLoanHistoryPartnerFilter');
+      if (!typeSelect || !partnerSelect) return;
+      const currentType = typeSelect.value || '';
+      const currentPartner = partnerSelect.value || '';
+      const types = Array.from(new Set((rows || []).map((row) => String(row.type || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+      const partners = Array.from(new Set((rows || []).map((row) => String(row.partner || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+      typeSelect.innerHTML = '<option value="">Tất cả loại</option>' + types.map((type) => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join('');
+      partnerSelect.innerHTML = '<option value="">Tất cả đối tác</option>' + partners.map((partner) => `<option value="${escapeHtml(partner)}">${escapeHtml(partner)}</option>`).join('');
+      typeSelect.value = types.includes(currentType) ? currentType : '';
+      partnerSelect.value = partners.includes(currentPartner) ? currentPartner : '';
+    }
+
+    function renderFundLoanHistoryPager(totalRows, totalPages, startRow, endRow) {
+      const pager = el('fundLoanHistoryPager');
+      if (!pager) return;
+      if (totalRows <= FUND_LOAN_HISTORY_PAGE_SIZE) {
+        pager.style.display = 'none';
+        return;
+      }
+      pager.style.display = 'flex';
+      pager.innerHTML = `
+        <div style="font-size:12.5px; font-weight:700; color:var(--muted);">Dòng ${startRow}-${endRow}/${totalRows}</div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="ghost" style="min-height:34px; height:34px; padding:0 12px;" onclick="setFundLoanHistoryPage(${fundLoanHistoryPage - 1})" ${fundLoanHistoryPage <= 1 ? 'disabled' : ''}>Trước</button>
+          <span style="font-size:12.5px; font-weight:800; color:var(--deep);">Trang ${fundLoanHistoryPage}/${totalPages}</span>
+          <button type="button" class="ghost" style="min-height:34px; height:34px; padding:0 12px;" onclick="setFundLoanHistoryPage(${fundLoanHistoryPage + 1})" ${fundLoanHistoryPage >= totalPages ? 'disabled' : ''}>Sau</button>
+        </div>
+      `;
+    }
+
+    function setFundLoanHistoryPage(page) {
+      if (!fundLoanData) return;
+      fundLoanHistoryPage = page;
+      renderFundLoanOverview(fundLoanData);
+      el('fundLoanHistoryBody')?.closest('.table-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function filterFundLoanHistory() {
+      fundLoanHistoryPage = 1;
+      renderFundLoanOverview(fundLoanData || {});
     }
 
     function parseFundDateValue(value) {
@@ -5962,9 +6275,8 @@
       const tableBody = el('fundTransactionsTableBody');
       const empty = el('fundTransactionsEmpty');
       const notice = el('fundTransactionsNotice');
-      const monthFilter = el('fundMonthFilter');
       const pager = el('fundTransactionsPager');
-      if (!tableBody || !empty || !notice || !monthFilter) return Promise.resolve();
+      if (!tableBody || !empty || !notice) return Promise.resolve();
 
       renderFundTableLoading(tableBody, 8, 'Đang tải dữ liệu thu chi...');
       empty.style.display = 'none';
@@ -5972,17 +6284,20 @@
       notice.textContent = '';
       notice.style.display = 'none';
 
-      const selectedMonth = monthFilter.value || '';
+      const startDate = getDateInputIso('fundStartDate');
+      const endDate = getDateInputIso('fundEndDate');
+      const search = el('fundSearchInput')?.value || '';
       return callApi('GET', 'getFundTransactions', {
         year: '2026',
-        month: selectedMonth,
+        startDate: startDate,
+        endDate: endDate,
+        search: search,
         limit: 500,
         forceRefresh: forceRefresh ? 'true' : ''
       })
         .then((data) => {
           fundTransactionsData = data;
           fundTransactionsPage = 1;
-          renderFundMonthFilter(data.months || [], data.selectedMonth || selectedMonth);
           renderFundTransactions(data);
         })
         .catch((err) => {
@@ -5993,18 +6308,50 @@
         });
     }
 
-    function renderFundMonthFilter(months, selectedMonth) {
-      const select = el('fundMonthFilter');
-      if (!select) return;
-      const current = selectedMonth || select.value || '';
-      select.innerHTML = '<option value="">Tất cả tháng</option>';
-      months.forEach((month) => {
-        const option = document.createElement('option');
-        option.value = month.key;
-        option.textContent = month.label;
-        select.appendChild(option);
-      });
-      select.value = current;
+    function toFundIsoDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function setFundQuickDate(mode, skipLoad) {
+      const start = el('fundStartDate');
+      const end = el('fundEndDate');
+      const quick = el('fundQuickDateFilter');
+      if (quick && quick.value !== mode) quick.value = mode;
+      const today = new Date();
+      if (mode === 'recent') {
+        setDateInputValue(start, '');
+        setDateInputValue(end, '');
+      } else if (mode === 'today') {
+        setDateInputValue(start, toFundIsoDate(today));
+        setDateInputValue(end, toFundIsoDate(today));
+      } else if (mode === '7days') {
+        const from = new Date(today);
+        from.setDate(today.getDate() - 6);
+        setDateInputValue(start, toFundIsoDate(from));
+        setDateInputValue(end, toFundIsoDate(today));
+      } else if (mode === 'thisMonth') {
+        setDateInputValue(start, toFundIsoDate(new Date(today.getFullYear(), today.getMonth(), 1)));
+        setDateInputValue(end, toFundIsoDate(today));
+      } else if (mode === 'lastMonth') {
+        setDateInputValue(start, toFundIsoDate(new Date(today.getFullYear(), today.getMonth() - 1, 1)));
+        setDateInputValue(end, toFundIsoDate(new Date(today.getFullYear(), today.getMonth(), 0)));
+      }
+      if (!skipLoad && mode !== 'custom') loadFundTransactions(false);
+    }
+
+    function setFundCustomDate() {
+      const quick = el('fundQuickDateFilter');
+      if (quick) quick.value = 'custom';
+      loadFundTransactions(false);
+    }
+
+    let fundTransactionSearchTimeout = null;
+    function debounceFundTransactionSearch() {
+      clearTimeout(fundTransactionSearchTimeout);
+      fundTransactionSearchTimeout = setTimeout(() => loadFundTransactions(false), 180);
     }
 
     function renderFundTransactions(data) {
@@ -7298,6 +7645,7 @@
     }
 
     function restoreExportCardState(btn, originalText, card, originalCardStyleWidth, tableWrap, originalWrapStyle, table, originalTableStyle, stickyEls, originalStickyStyles, headActions, noExportEls, originalNoExportDisplays) {
+      card.classList.remove('is-exporting');
       headActions.forEach(el => el.style.visibility = 'visible');
       noExportEls.forEach((el, index) => {
         el.style.display = originalNoExportDisplays[index] || '';
@@ -7333,6 +7681,7 @@
       
       const originalText = btn.innerHTML;
       btn.disabled = true;
+      card.classList.add('is-exporting');
       btn.innerHTML = `
         <svg class="btn-svg" style="width: 16px; height: 16px; animation: spin 0.8s linear infinite;" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
       `;
@@ -7374,7 +7723,7 @@
 
       loadHtml2Canvas()
         .then(() => window.html2canvas(card, {
-          scale: 2,
+          scale: 3,
           useCORS: true,
           backgroundColor: '#ffffff',
           logging: false

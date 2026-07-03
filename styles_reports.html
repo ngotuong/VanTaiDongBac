@@ -173,6 +173,106 @@
       font-size: 12.5px;
     }
 
+    .fund-transaction-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+    }
+
+    .fund-transaction-filters {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1 1 auto;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+
+    .fund-transaction-filters label,
+    #fundDateFilterGroup label {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12.5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .fund-transaction-filters select,
+    .fund-transaction-filters input {
+      height: 38px;
+      min-height: 38px;
+      box-sizing: border-box;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 500;
+      outline: none;
+      padding: 0 10px;
+    }
+
+    .fund-transaction-filters select {
+      width: 128px;
+      cursor: pointer;
+    }
+
+    #fundDateFilterGroup {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex: 1 1 260px;
+      min-width: 260px;
+    }
+
+    #fundDateFilterGroup label {
+      flex: 1 1 120px;
+    }
+
+    #fundDateFilterGroup input {
+      width: 100%;
+    }
+
+    .fund-transaction-search {
+      flex: 1 1 230px;
+      min-width: 220px;
+    }
+
+    .fund-transaction-search input {
+      width: 100%;
+    }
+
+    .fund-transaction-toolbar-actions,
+    .fund-loan-history-filters {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .fund-loan-history-head {
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .fund-loan-history-filters {
+      margin-left: auto;
+      flex-wrap: wrap;
+    }
+
+    .fund-loan-history-filters .compact-filter select {
+      min-width: 132px;
+      max-width: 180px;
+      font-size: 12.5px;
+      font-weight: 500;
+    }
+
     .fund-catalog-head {
       display: flex;
       justify-content: space-between;
@@ -417,6 +517,58 @@
     tr.total-row td {
       background: var(--mint-soft) !important;
       font-weight: 700;
+    }
+
+    .table-card.is-exporting {
+      box-shadow: none !important;
+      border-color: #d7e3ea !important;
+      border-radius: 12px !important;
+    }
+
+    .table-card.is-exporting .table-card-head {
+      padding: 18px 22px !important;
+      background: #ffffff !important;
+    }
+
+    .table-card.is-exporting .table-title {
+      font-size: 20px !important;
+      line-height: 1.25 !important;
+    }
+
+    .table-card.is-exporting .panel-note {
+      font-size: 15px !important;
+      line-height: 1.35 !important;
+    }
+
+    .table-card.is-exporting table {
+      min-width: max-content !important;
+    }
+
+    .table-card.is-exporting th {
+      font-size: 14px !important;
+      line-height: 1.25 !important;
+      padding: 10px 14px !important;
+      letter-spacing: 0 !important;
+    }
+
+    .table-card.is-exporting td {
+      font-size: 15px !important;
+      line-height: 1.35 !important;
+      padding: 10px 14px !important;
+    }
+
+    .table-card.is-exporting .report-data-table-details td,
+    .table-card.is-exporting .report-data-table-details .report-detail-explanation-cell {
+      font-size: 14px !important;
+      line-height: 1.32 !important;
+    }
+
+    .table-card.is-exporting .fund-export-section-title {
+      font-size: 17px !important;
+    }
+
+    .table-card.is-exporting .fund-export-table td {
+      font-size: 16px !important;
     }
 
     tr.total-row td.sticky-col {

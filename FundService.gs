@@ -1,5 +1,5 @@
 var FundService = (function () {
-  var FUND_CACHE_VERSION = 'fund_v3';
+  var FUND_CACHE_VERSION = 'fund_v4';
   var FUND_TTL_SECONDS = 300;
   var FUND_CATALOG_TTL_SECONDS = 21600;
   var FUND_DATA_VERSION_PROP = 'FUND_DATA_VERSION_V1';
@@ -386,7 +386,12 @@ var FundService = (function () {
   }
 
   function getFundTransactions(year, filter) {
-    var transactionsCacheKey = fundCacheKey_(year, 'transactions', normalizeMonthKey_((filter || {}).month) || 'all', String((filter || {}).limit || ''));
+    var options = filter || {};
+    var selectedMonth = normalizeMonthKey_(options.month);
+    var startFilter = parseDate_(options.startDate, options.startDate);
+    var endFilter = parseDate_(options.endDate, options.endDate);
+    var searchFilter = normalizeHeader_(options.search || options.query || '');
+    var transactionsCacheKey = fundCacheKey_(year, 'transactions', selectedMonth || 'all', formatDateKey_(startFilter) || 'all', formatDateKey_(endFilter) || 'all', searchFilter || 'all', String(options.limit || ''));
     var transactionsCached = getFundCache_(transactionsCacheKey);
     if (transactionsCached) return transactionsCached;
     var ss = getFundSpreadsheet_(year);
@@ -395,8 +400,6 @@ var FundService = (function () {
       throw new Error('Không tìm thấy sheet Thu chi: ' + TRANSACTION_SHEET_NAME);
     }
 
-    var options = filter || {};
-    var selectedMonth = normalizeMonthKey_(options.month);
     var limit = Math.max(1, Math.min(parseInt(options.limit, 10) || 300, 1000));
     var lastRow = sheet.getLastRow();
     var lastCol = Math.max(sheet.getLastColumn(), TRANSACTION_HEADERS.length);
@@ -434,10 +437,12 @@ var FundService = (function () {
       var monthLabel = parsedDate ? Utilities.formatDate(parsedDate, APP_CONFIG.timezone, 'MM/yyyy') : '';
       if (monthKey) monthMap[monthKey] = monthLabel;
       if (selectedMonth && monthKey !== selectedMonth) continue;
+      if (startFilter && (!parsedDate || parsedDate < startFilter)) continue;
+      if (endFilter && (!parsedDate || parsedDate > endFilter)) continue;
 
       var incomeCategory = clean_(row[columns.income]);
       var expenseCategory = clean_(row[columns.expense]);
-      transactions.push({
+      var transaction = {
         rowIndex: i + 2,
         voucher: columns.voucher >= 0 ? clean_(row[columns.voucher]) : '',
         date: parsedDate ? Utilities.formatDate(parsedDate, APP_CONFIG.timezone, 'yyyy-MM-dd') : clean_(row[columns.date]),
@@ -455,7 +460,22 @@ var FundService = (function () {
         partner: clean_(row[columns.partner]),
         content: clean_(row[columns.content]),
         debt: clean_(row[columns.debt])
-      });
+      };
+      if (searchFilter) {
+        var searchable = normalizeHeader_([
+          transaction.voucher,
+          transaction.dateText,
+          transaction.type,
+          transaction.category,
+          transaction.amountText,
+          transaction.actor,
+          transaction.partner,
+          transaction.content,
+          transaction.debt
+        ].join(' '));
+        if (searchable.indexOf(searchFilter) < 0) continue;
+      }
+      transactions.push(transaction);
     }
 
     transactions.sort(function (a, b) {
@@ -794,8 +814,8 @@ var FundService = (function () {
     var specs = {
       incomeCategories: { rangeName: 'MUCTHU', column: 5, startRow: 3 },
       expenseCategories: { rangeName: 'MUCCHI', column: 8, startRow: 3 },
-      actors: { column: 20, startRow: 3 },
-      partners: { column: 22, startRow: 3 },
+      actors: { column: 15, startRow: 3 },
+      partners: { column: 13, startRow: 3 },
       loanPartners: { column: 11, startRow: 3 }
     };
     return specs[groupKey] || null;
@@ -1389,6 +1409,10 @@ var FundService = (function () {
     var vn = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (vn) return new Date(Number(vn[3]), Number(vn[2]) - 1, Number(vn[1]));
     return null;
+  }
+
+  function formatDateKey_(date) {
+    return date ? Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM-dd') : '';
   }
 
   function parseNumber_(value) {

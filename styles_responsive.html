@@ -988,11 +988,70 @@
       #manageQuickDateFilterMobile,
       #manageStartDate,
       #manageEndDate,
-      #manageSearchInput {
+      #manageSearchInput,
+      #fundQuickDateFilter,
+      #fundStartDate,
+      #fundEndDate,
+      #fundSearchInput {
         min-height: 44px !important;
         height: 44px !important;
         font-size: 16px !important;
         font-weight: 500 !important;
+      }
+
+      .fund-transaction-toolbar,
+      .fund-transaction-filters {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        width: 100% !important;
+        gap: 10px !important;
+      }
+
+      .fund-transaction-toolbar {
+        padding: 12px !important;
+      }
+
+      .fund-transaction-filters label,
+      #fundDateFilterGroup label {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        gap: 6px !important;
+      }
+
+      #fundDateFilterGroup {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        gap: 8px !important;
+      }
+
+      .fund-transaction-filters select,
+      .fund-transaction-filters input,
+      .fund-transaction-search {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+
+      .fund-transaction-toolbar-actions {
+        justify-content: flex-end !important;
+        width: 100% !important;
+      }
+
+      .fund-loan-history-filters {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+      }
+
+      .fund-loan-history-filters .compact-filter,
+      .fund-loan-history-filters .compact-filter select {
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
       }
 
       .filter-row input,

@@ -4291,31 +4291,6 @@
             <p id="urlStatusText" style="margin-top: 8px; font-size: 12px; font-weight: bold;"></p>
           </article>
 
-          <article class="info-card">
-            <h2>📱 Lưu Web App ra Điện thoại</h2>
-            <p>Sử dụng Web App như một ứng dụng native trên điện thoại cực kỳ tiện lợi thông qua trình duyệt Chrome hoặc Safari:</p>
-            <ol class="steps">
-              <li><strong>iOS (Safari):</strong> Bấm nút Share (Chia sẻ) và chọn "Add to Home Screen" (Thêm vào MH chính).</li>
-              <li><strong>Android (Chrome):</strong> Bấm nút 3 chấm và chọn "Add to Home screen" (Thêm vào MH chính).</li>
-              <li>Mở app thông qua biểu tượng ngoài màn hình nền để trải nghiệm giao diện tràn viền tối ưu nhất.</li>
-            </ol>
-          </article>
-          <article class="info-card">
-            <h2>✏️ Hướng dẫn Sửa hoặc Xóa Dữ Liệu</h2>
-            <p>Vì dữ liệu được lưu trực tiếp trên Google Sheets làm cơ sở dữ liệu gốc, để sửa đổi các dòng đã nhập sai hoặc xóa dòng thừa, bạn vui lòng nhấp vào biểu tượng <strong>Google Sheet</strong> ở thanh tiêu đề trên cùng để mở bảng tính gốc. Sau đó, chuyển sang các tab nhập liệu tương ứng như <code>NL_VanChuyen</code>, <code>NL_Dau</code>, <code>NL_ChamCong</code> và tiến hành sửa/xóa trực tiếp trên đó.</p>
-          </article>
-          <article class="info-card">
-            <h2>🗂️ Quản lý Danh mục (Xe, Tài xế, Dự án)</h2>
-            <p>Các thông tin danh mục bao gồm Danh sách xe (<code>DM_Xe</code>), Danh sách tài xế & nhân viên (<code>DM_NhanSu</code>), Dự án (<code>DM_DuAn</code>), và Mã phạt (<code>DM_PhatNoiBo</code>) cũng được quản lý trực tiếp trên Google Sheet. Bạn chỉ cần mở Google Sheet, chuyển sang tab danh mục tương ứng và tiến hành thêm/sửa/xóa dòng. Sau đó, quay lại Web App bấm nút <strong>Làm mới</strong> ở góc trên bên phải để app cập nhật danh sách đề xuất gợi ý ngay lập tức.</p>
-          </article>
-          <article class="info-card">
-            <h2>🔒 Phạm vi & An toàn dữ liệu</h2>
-            <p>Hệ thống Web App chỉ ghi dữ liệu dạng Append (thêm mới dòng) vào các sheet nhập liệu NL_*. Web App không có quyền chỉnh sửa công thức, không ghi đè dữ liệu cũ, không làm gián đoạn việc tính toán báo cáo tự động của Google Sheets.</p>
-          </article>
-          <article class="info-card">
-            <h2>👥 Phân quyền & Chế độ xem</h2>
-            <p>Web App hiện đang hỗ trợ tài khoản quản lý nhập liệu chính. Các cổ đông có nhu cầu theo dõi lợi nhuận có thể được mở chế độ hiển thị báo cáo (Read-only) bằng cách ẩn các chức năng thêm/sửa/nhập liệu dựa trên Email đăng nhập.</p>
-          </article>
         </div>
       </section>
     </main>
@@ -4479,7 +4454,7 @@
       ['manage', 'Vận hành', 'Nhập & quản lý', `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>`],
       ['catalog', 'Danh mục', 'Danh mục hệ thống', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`],
       ['cashflow', 'Quỹ', 'Quản lý dòng tiền', `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"></path></svg>`],
-      ['settings', 'Hướng dẫn', 'Cài đặt App', `<svg class="btn-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.52 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`]
+      ['settings', 'Cài đặt', 'Cấu hình App', `<svg class="btn-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.52 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`]
     ];
 
     const BOTTOM_NAV_KEYS = ['home', 'reports', 'manage', 'catalog', 'cashflow'];
@@ -7621,7 +7596,7 @@
         manage: ['Vận hành', 'Quản lý vận hành', getLatestDataUpdateText()],
         catalog: ['Danh mục', 'Quản lý danh mục hệ thống', getLatestDataUpdateText()],
         cashflow: ['Quỹ', 'Quản lý quỹ', getLatestDataUpdateText()],
-        settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', getLatestDataUpdateText()]
+        settings: ['Cài đặt', 'Cấu hình App', getLatestDataUpdateText()]
       }[activeView];
       
       el('eyebrow').textContent = meta[0];

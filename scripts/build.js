@@ -5,6 +5,9 @@ const TEMPLATE_FILE = path.join(__dirname, '..', 'index.template.html');
 const OUTPUT_FILE = path.join(__dirname, '..', 'index.html');
 const WORKSPACE_DIR = path.join(__dirname, '..');
 const DEFAULT_SERVICE_URL = 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+const SUPABASE_REPORTS_ENABLED = process.env.VITE_SUPABASE_REPORTS_ENABLED || process.env.SUPABASE_REPORTS_ENABLED || '';
 
 console.log('🔄 Bắt đầu quá trình build index.html...');
 
@@ -18,6 +21,18 @@ try {
   templateContent = templateContent.replace(
     /<\?!=\s*JSON\.stringify\(serviceUrl\s*\|\|\s*''\)\s*\?>/g,
     JSON.stringify(DEFAULT_SERVICE_URL)
+  );
+  templateContent = templateContent.replace(
+    /<\?!=\s*JSON\.stringify\(supabaseUrl\s*\|\|\s*''\)\s*\?>/g,
+    JSON.stringify(SUPABASE_URL)
+  );
+  templateContent = templateContent.replace(
+    /<\?!=\s*JSON\.stringify\(supabaseAnonKey\s*\|\|\s*''\)\s*\?>/g,
+    JSON.stringify(SUPABASE_ANON_KEY)
+  );
+  templateContent = templateContent.replace(
+    /<\?!=\s*JSON\.stringify\(supabaseReportsEnabled\s*\|\|\s*''\)\s*\?>/g,
+    JSON.stringify(SUPABASE_REPORTS_ENABLED)
   );
 
   // Regex tìm kiếm tag Apps Script: <?!= include('filename'); ?>

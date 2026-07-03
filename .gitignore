@@ -4,3 +4,8 @@
 # IDE and temporary files
 .gemini/
 *.log
+
+# Local environment files - never commit secrets
+.env
+.env.*
+!.env.example

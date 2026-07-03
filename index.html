@@ -22,7 +22,13 @@
   <script>
     window.__DEFAULT_APP_SERVICE_URL = 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
     window.__APP_SERVICE_URL = "https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec" || window.__DEFAULT_APP_SERVICE_URL;
+    window.__SUPABASE_CONFIG = {
+      url: "",
+      anonKey: "",
+      reportsEnabled: ""
+    };
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
   <style>
     :root {
@@ -4906,6 +4912,70 @@
       return callFetchApi(normalizedMethod, action, params, bodyData);
     }
 
+    function normalizeSupabaseEnabledFlag(value) {
+      const text = String(value || '').trim().toLowerCase();
+      return ['1', 'true', 'yes', 'on'].includes(text);
+    }
+
+    function getSupabaseConfig() {
+      const cfg = window.__SUPABASE_CONFIG || {};
+      return {
+        url: String(cfg.url || '').trim(),
+        anonKey: String(cfg.anonKey || '').trim(),
+        reportsEnabled: normalizeSupabaseEnabledFlag(cfg.reportsEnabled)
+      };
+    }
+
+    function canUseSupabaseReports() {
+      const cfg = getSupabaseConfig();
+      return Boolean(cfg.reportsEnabled && cfg.url && cfg.anonKey && window.supabase && window.supabase.createClient);
+    }
+
+    let supabaseClientInstance = null;
+    function getSupabaseClient() {
+      if (!canUseSupabaseReports()) return null;
+      if (!supabaseClientInstance) {
+        const cfg = getSupabaseConfig();
+        supabaseClientInstance = window.supabase.createClient(cfg.url, cfg.anonKey, {
+          auth: { persistSession: false, autoRefreshToken: false }
+        });
+      }
+      return supabaseClientInstance;
+    }
+
+    function readReportBundleFromSupabase(month) {
+      const client = getSupabaseClient();
+      if (!client) return Promise.reject(new Error('Supabase reports chưa được bật.'));
+      const reportMonth = String(month || '').trim() || 'latest';
+      let query = client
+        .from('report_bundles')
+        .select('report_month,payload,synced_at')
+        .eq('report_month', reportMonth);
+      const spreadsheetId = getCurrentSpreadsheetIdForSupabase();
+      if (spreadsheetId) query = query.eq('spreadsheet_id', spreadsheetId);
+      return query
+        .order('synced_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(({ data, error }) => {
+          if (error) throw error;
+          if (!data || !data.payload) {
+            throw new Error('Chưa có report bundle trong Supabase cho tháng ' + reportMonth + '.');
+          }
+          return {
+            ...data.payload,
+            supabaseCached: true,
+            supabaseSyncedAt: data.synced_at
+          };
+        });
+    }
+
+    function getCurrentSpreadsheetIdForSupabase() {
+      const link = getLinks()?.spreadsheet || '';
+      const match = String(link).match(/\/spreadsheets\/d\/([^/]+)/);
+      return match ? match[1] : '';
+    }
+
     function buildFetchPostFallbackResult_(method, action, bodyData, backendUrl, err) {
       if (String(method || '').toUpperCase() !== 'POST') return null;
       if (!/script\.google\.com$/i.test((new URL(backendUrl)).hostname)) return null;
@@ -9671,7 +9741,15 @@
       appData.dashboard = { ...(appData.dashboard || {}), loading: true };
       renderReports();
       
-      return callApi('GET', 'getReportBundle', { month: selectedMonth, forceRefresh: forceRefresh })
+      const loadFromAppsScript = () => callApi('GET', 'getReportBundle', { month: selectedMonth, forceRefresh: forceRefresh });
+      const loader = (!forceRefresh && canUseSupabaseReports())
+        ? readReportBundleFromSupabase(selectedMonth).catch((err) => {
+            console.warn('Không đọc được báo cáo từ Supabase, quay về Apps Script:', err);
+            return loadFromAppsScript();
+          })
+        : loadFromAppsScript();
+
+      return loader
         .then((bundle) => {
           if (requestSeq !== reportBundleRequestSeq) return;
           reportsByType.payroll = { data: bundle.payroll };

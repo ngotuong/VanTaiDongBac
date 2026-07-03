@@ -155,6 +155,10 @@ function logApiTiming_(action, startedAt, data) {
 function renderIndex_() {
   var template = HtmlService.createTemplateFromFile('index');
   template.serviceUrl = ScriptApp.getService().getUrl() || '';
+  var props = PropertiesService.getScriptProperties();
+  template.supabaseUrl = props.getProperty('SUPABASE_URL') || '';
+  template.supabaseAnonKey = props.getProperty('SUPABASE_ANON_KEY') || '';
+  template.supabaseReportsEnabled = props.getProperty('SUPABASE_REPORTS_ENABLED') || '';
   return template
     .evaluate()
     .setTitle('Vận tải Đông Bắc - Hệ thống điều hành nội bộ')

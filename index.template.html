@@ -22,7 +22,13 @@
   <script>
     window.__DEFAULT_APP_SERVICE_URL = 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
     window.__APP_SERVICE_URL = <?!= JSON.stringify(serviceUrl || '') ?> || window.__DEFAULT_APP_SERVICE_URL;
+    window.__SUPABASE_CONFIG = {
+      url: <?!= JSON.stringify(supabaseUrl || '') ?>,
+      anonKey: <?!= JSON.stringify(supabaseAnonKey || '') ?>,
+      reportsEnabled: <?!= JSON.stringify(supabaseReportsEnabled || '') ?>
+    };
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
   <?!= include('styles_base'); ?>
   <?!= include('styles_layout'); ?>

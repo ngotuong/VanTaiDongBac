@@ -367,7 +367,15 @@
       appData.dashboard = { ...(appData.dashboard || {}), loading: true };
       renderReports();
       
-      return callApi('GET', 'getReportBundle', { month: selectedMonth, forceRefresh: forceRefresh })
+      const loadFromAppsScript = () => callApi('GET', 'getReportBundle', { month: selectedMonth, forceRefresh: forceRefresh });
+      const loader = (!forceRefresh && canUseSupabaseReports())
+        ? readReportBundleFromSupabase(selectedMonth).catch((err) => {
+            console.warn('Không đọc được báo cáo từ Supabase, quay về Apps Script:', err);
+            return loadFromAppsScript();
+          })
+        : loadFromAppsScript();
+
+      return loader
         .then((bundle) => {
           if (requestSeq !== reportBundleRequestSeq) return;
           reportsByType.payroll = { data: bundle.payroll };

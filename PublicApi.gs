@@ -114,6 +114,14 @@ function deleteFundCatalogItem(year, item) {
   return FundService.deleteFundCatalogItem(year, item);
 }
 
+function syncReportBundleToSupabase(month) {
+  return SupabaseService.syncReportBundle(month);
+}
+
+function testSupabaseReportSync() {
+  return SupabaseService.testReportSync();
+}
+
 function invokeApi(method, action, params, bodyData) {
   var normalizedMethod = String(method || '').toUpperCase();
   var safeParams = params || {};

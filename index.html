@@ -4978,6 +4978,79 @@
         });
     }
 
+    function readDashboardFromSupabase() {
+      return readReportBundleFromSupabase('__dashboard_latest__');
+    }
+
+    function normalizeFundMonthKeyForSupabase(month) {
+      const text = String(month || '').trim();
+      if (!text || text === 'latest' || text === 'all' || text === 'Tất cả') return '';
+      const iso = text.match(/^(\d{4})-(\d{1,2})/);
+      if (iso) return `${iso[1]}-${String(Number(iso[2])).padStart(2, '0')}`;
+      const vn = text.match(/^(\d{1,2})\/(\d{4})$/);
+      if (vn) return `${vn[2]}-${String(Number(vn[1])).padStart(2, '0')}`;
+      return text;
+    }
+
+    function buildFundTransactionFilterKeyForSupabase(params) {
+      const safe = params || {};
+      const startDate = String(safe.startDate || '').trim();
+      const endDate = String(safe.endDate || '').trim();
+      const search = String(safe.search || safe.query || '').trim();
+      const limit = String(safe.limit || 500);
+      if (!startDate && !endDate && !search && limit === '500') return 'recent_500';
+      const encodedSearch = search
+        ? btoa(unescape(encodeURIComponent(search))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+        : 'all';
+      return [startDate || 'all', endDate || 'all', encodedSearch, limit].join('|');
+    }
+
+    function readSupabasePayload(tableName, filters, missingMessage) {
+      const client = getSupabaseClient();
+      if (!client) return Promise.reject(new Error('Supabase chưa được bật.'));
+      let query = client.from(tableName).select('payload,synced_at');
+      Object.keys(filters || {}).forEach((key) => {
+        query = query.eq(key, filters[key]);
+      });
+      return query
+        .order('synced_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(({ data, error }) => {
+          if (error) throw error;
+          if (!data || !data.payload) throw new Error(missingMessage || 'Chưa có dữ liệu Supabase cache.');
+          return {
+            ...data.payload,
+            supabaseCached: true,
+            supabaseSyncedAt: data.synced_at
+          };
+        });
+    }
+
+    function readFundOverviewFromSupabase(year, month) {
+      const monthKey = normalizeFundMonthKeyForSupabase(month);
+      return readSupabasePayload('fund_overview_bundles', {
+        year: String(year || '2026'),
+        month_key: monthKey
+      }, 'Chưa có cache Supabase cho tổng quan quỹ.');
+    }
+
+    function readFundTransactionsFromSupabase(year, params) {
+      const filterKey = buildFundTransactionFilterKeyForSupabase(params || {});
+      return readSupabasePayload('fund_transaction_bundles', {
+        year: String(year || '2026'),
+        filter_key: filterKey
+      }, 'Chưa có cache Supabase cho giao dịch quỹ.');
+    }
+
+    function readFundLoanOverviewFromSupabase(year, month) {
+      const monthKey = normalizeFundMonthKeyForSupabase(month);
+      return readSupabasePayload('fund_loan_bundles', {
+        year: String(year || '2026'),
+        month_key: monthKey
+      }, 'Chưa có cache Supabase cho vay nợ.');
+    }
+
     function getCurrentSpreadsheetIdForSupabase() {
       const link = getLinks()?.spreadsheet || '';
       const match = String(link).match(/\/spreadsheets\/d\/([^/]+)/);
@@ -5121,13 +5194,30 @@
       renderFundTableLoading(el('fundExpenseCategoryBody'), 3, 'Đang tải hạng mục chi...');
       
       const month = el('fundOverviewMonthFilter')?.value || '';
-      return callApi('GET', 'getFundOverview', {
+      let fundOverviewFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadFundOverviewFromAppsScript = () => callApi('GET', 'getFundOverview', {
         year: '2026',
         month: month,
         forceRefresh: forceRefresh ? 'true' : ''
-      }).then((data) => {
+      });
+      const loader = (!forceRefresh && supabaseStatus.ok)
+        ? readFundOverviewFromSupabase('2026', month).catch((err) => {
+            fundOverviewFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được Tổng quan Quỹ từ Supabase, quay về Apps Script:', err);
+            return loadFundOverviewFromAppsScript();
+          })
+        : (() => {
+            fundOverviewFallbackReason = supabaseStatus.reason;
+            return loadFundOverviewFromAppsScript();
+          })();
+
+      return loader.then((data) => {
         fundOverviewData = data;
         renderFundOverview(data, null);
+        showSyncToast(data.supabaseCached
+          ? 'Quỹ tổng quan đang đọc từ Supabase cache.'
+          : 'Quỹ tổng quan đã quay về Apps Script. ' + (fundOverviewFallbackReason || ''));
         
         const months = data.months || [];
         const selectedIndex = months.findIndex(m => m.key === data.selectedMonth);
@@ -5892,11 +5982,27 @@
       renderFundTableLoading(el('fundLoanHistoryBody'), 5, 'Đang tải lịch sử vay/trả...');
       const historyPager = el('fundLoanHistoryPager');
       if (historyPager) historyPager.style.display = 'none';
-      return callApi('GET', 'getFundLoanOverview', { year: '2026', month: month, forceRefresh: forceRefresh ? 'true' : '' })
+      let fundLoanFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadFundLoanFromAppsScript = () => callApi('GET', 'getFundLoanOverview', { year: '2026', month: month, forceRefresh: forceRefresh ? 'true' : '' });
+      const loader = (!forceRefresh && supabaseStatus.ok)
+        ? readFundLoanOverviewFromSupabase('2026', month).catch((err) => {
+            fundLoanFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được Vay nợ từ Supabase, quay về Apps Script:', err);
+            return loadFundLoanFromAppsScript();
+          })
+        : (() => {
+            fundLoanFallbackReason = supabaseStatus.reason;
+            return loadFundLoanFromAppsScript();
+          })();
+      return loader
         .then((data) => {
           fundLoanData = data;
           fundLoanHistoryPage = 1;
           renderFundLoanOverview(data);
+          showSyncToast(data.supabaseCached
+            ? 'Vay nợ đang đọc từ Supabase cache.'
+            : 'Vay nợ đã quay về Apps Script. ' + (fundLoanFallbackReason || ''));
         })
         .catch((err) => {
           el('fundLoanMetrics').innerHTML = `<article class="kpi-card"><div class="kpi-label">Lỗi tải khoản vay</div><div class="kpi-value" style="font-size:18px;">${escapeHtml(err.message)}</div></article>`;
@@ -6344,18 +6450,35 @@
       const startDate = getDateInputIso('fundStartDate');
       const endDate = getDateInputIso('fundEndDate');
       const search = el('fundSearchInput')?.value || '';
-      return callApi('GET', 'getFundTransactions', {
+      const requestParams = {
         year: '2026',
         startDate: startDate,
         endDate: endDate,
         search: search,
         limit: 500,
         forceRefresh: forceRefresh ? 'true' : ''
-      })
+      };
+      let fundTransactionsFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadFundTransactionsFromAppsScript = () => callApi('GET', 'getFundTransactions', requestParams);
+      const loader = (!forceRefresh && supabaseStatus.ok)
+        ? readFundTransactionsFromSupabase('2026', requestParams).catch((err) => {
+            fundTransactionsFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được giao dịch Quỹ từ Supabase, quay về Apps Script:', err);
+            return loadFundTransactionsFromAppsScript();
+          })
+        : (() => {
+            fundTransactionsFallbackReason = supabaseStatus.reason;
+            return loadFundTransactionsFromAppsScript();
+          })();
+      return loader
         .then((data) => {
           fundTransactionsData = data;
           fundTransactionsPage = 1;
           renderFundTransactions(data);
+          showSyncToast(data.supabaseCached
+            ? 'Giao dịch Quỹ đang đọc từ Supabase cache.'
+            : 'Giao dịch Quỹ đã quay về Apps Script. ' + (fundTransactionsFallbackReason || ''));
         })
         .catch((err) => {
           tableBody.innerHTML = '';
@@ -9665,7 +9788,21 @@
         }
       }
       
-      return callApi('GET', 'getDashboard', { forceRefresh: forceRefresh })
+      let dashboardFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadDashboardFromAppsScript = () => callApi('GET', 'getDashboard', { forceRefresh: forceRefresh });
+      const dashboardLoader = (!forceRefresh && supabaseStatus.ok)
+        ? readDashboardFromSupabase().catch((err) => {
+            dashboardFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được Tổng quan từ Supabase, quay về Apps Script:', err);
+            return loadDashboardFromAppsScript();
+          })
+        : (() => {
+            dashboardFallbackReason = supabaseStatus.reason;
+            return loadDashboardFromAppsScript();
+          })();
+
+      return dashboardLoader
         .then((dashboard) => {
           appData.dashboard = dashboard;
           const reportOverview = appData.reports?.overview?.details?.length ? appData.reports.overview : dashboard.overview;
@@ -9675,6 +9812,11 @@
           renderDashboard();
           if (activeView !== 'reports') renderReports();
           renderView();
+          if (activeView === 'home') {
+            showSyncToast(dashboard.supabaseCached
+              ? 'Tổng quan đang đọc từ Supabase cache.'
+              : 'Tổng quan đã quay về Apps Script. ' + (dashboardFallbackReason || ''));
+          }
           setRefreshBusy(false);
           return dashboard;
         })

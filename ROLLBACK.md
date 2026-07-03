@@ -24,6 +24,8 @@ VITE_SUPABASE_REPORTS_ENABLED=false
 
 Sau bước này, `loadReportBundle()` sẽ không đọc Supabase nữa và quay về Apps Script.
 
+Các màn hình Tổng quan và Quỹ cũng dùng cùng flag này. Khi tắt `VITE_SUPABASE_REPORTS_ENABLED`, toàn bộ cache Supabase ở frontend sẽ dừng đọc.
+
 ## Cách rollback trong Apps Script-hosted UI
 
 Trong Apps Script **Script Properties**, đặt:
@@ -39,6 +41,12 @@ SUPABASE_SERVICE_ROLE_KEY
 ```
 
 Không cần xóa code ngay.
+
+Nếu đã cài trigger 5 phút, có thể vào Apps Script **Triggers** và xóa trigger của function:
+
+```text
+syncRealtimeCache
+```
 
 ## Nếu Supabase có dữ liệu sai
 

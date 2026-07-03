@@ -124,6 +124,27 @@ syncAllReportBundlesToSupabase()
 4. Nếu Supabase có dữ liệu tháng đang chọn, app đọc nhanh từ Supabase.
 5. Nếu Supabase chưa có dữ liệu, app tự fallback về Apps Script cũ.
 
+## 7. Bật cập nhật gần realtime
+
+Sau khi đã chạy migration `002_realtime_cache.sql` và deploy Apps Script mới:
+
+1. Mở Apps Script editor.
+2. Chạy function:
+
+```javascript
+syncRealtimeCache()
+```
+
+3. Nếu thành công, chạy function:
+
+```javascript
+installSupabaseSyncTriggers()
+```
+
+4. Vào mục **Triggers** trong Apps Script để kiểm tra có trigger `syncRealtimeCache` chạy mỗi 5 phút.
+
+Trigger này giúp dữ liệu sửa tay trong Google Sheet được đẩy sang Supabase trong khoảng 1-5 phút.
+
 Nguồn tham khảo chính thức:
 
 - [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys)

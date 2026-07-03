@@ -284,7 +284,21 @@
         }
       }
       
-      return callApi('GET', 'getDashboard', { forceRefresh: forceRefresh })
+      let dashboardFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadDashboardFromAppsScript = () => callApi('GET', 'getDashboard', { forceRefresh: forceRefresh });
+      const dashboardLoader = (!forceRefresh && supabaseStatus.ok)
+        ? readDashboardFromSupabase().catch((err) => {
+            dashboardFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được Tổng quan từ Supabase, quay về Apps Script:', err);
+            return loadDashboardFromAppsScript();
+          })
+        : (() => {
+            dashboardFallbackReason = supabaseStatus.reason;
+            return loadDashboardFromAppsScript();
+          })();
+
+      return dashboardLoader
         .then((dashboard) => {
           appData.dashboard = dashboard;
           const reportOverview = appData.reports?.overview?.details?.length ? appData.reports.overview : dashboard.overview;
@@ -294,6 +308,11 @@
           renderDashboard();
           if (activeView !== 'reports') renderReports();
           renderView();
+          if (activeView === 'home') {
+            showSyncToast(dashboard.supabaseCached
+              ? 'Tổng quan đang đọc từ Supabase cache.'
+              : 'Tổng quan đã quay về Apps Script. ' + (dashboardFallbackReason || ''));
+          }
           setRefreshBusy(false);
           return dashboard;
         })

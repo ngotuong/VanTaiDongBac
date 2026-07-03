@@ -56,7 +56,47 @@ RLS:
 ## File liên quan
 
 - SQL migration: `supabase/migrations/001_report_bundles.sql`
+- SQL migration realtime cache: `supabase/migrations/002_realtime_cache.sql`
 - Apps Script sync: `SupabaseService.gs`
 - API expose thủ công: `PublicApi.gs`, `Router.gs`
 - Frontend Supabase client: `client_api.html`
 - Frontend đọc báo cáo thử nghiệm: `client_data.html`
+
+## Bảng cache giai đoạn 2
+
+### `public.fund_overview_bundles`
+
+Cache dữ liệu `FundService.getFundOverview(year, { month })`.
+
+Khóa chính:
+
+- `(year, month_key)`
+
+### `public.fund_transaction_bundles`
+
+Cache dữ liệu `FundService.getFundTransactions(year, filter)`.
+
+Khóa chính:
+
+- `(year, filter_key)`
+
+Filter mặc định đang dùng cho menu giao dịch Quỹ:
+
+- `recent_500`
+
+### `public.fund_loan_bundles`
+
+Cache dữ liệu `FundService.getFundLoanOverview(year, { month })`.
+
+Khóa chính:
+
+- `(year, month_key)`
+
+### `public.sync_status`
+
+Ghi trạng thái sync gần nhất theo `sync_key`, gồm module, status, message và thời điểm sync.
+
+RLS của các bảng giai đoạn 2:
+
+- `anon` và `authenticated` chỉ được `select`.
+- Apps Script dùng service role key để ghi.

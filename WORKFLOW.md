@@ -61,6 +61,22 @@ syncReportBundleToSupabase('6')
 4. Kiểm tra bảng `report_bundles` trong Supabase.
 5. Mở Vercel frontend và vào màn hình **Báo cáo**.
 
+## Khi đồng bộ cache gần realtime
+
+Chạy thủ công toàn bộ cache chính:
+
+```javascript
+syncRealtimeCache()
+```
+
+Cài trigger tự động 5 phút:
+
+```javascript
+installSupabaseSyncTriggers()
+```
+
+Trigger này không tự bật nếu chưa chạy hàm cài đặt. Khi đã cài, Apps Script sẽ cập nhật cache Supabase cho Tổng quan, Báo cáo và Quỹ khoảng mỗi 5 phút.
+
 ## Khi deploy
 
 Frontend Vercel:
@@ -85,7 +101,7 @@ Supabase:
 
 1. Chạy SQL migration bằng SQL Editor.
 2. Không commit secret key.
-3. Chạy sync test thủ công.
+3. Chạy sync test thủ công hoặc `syncRealtimeCache()`.
 
 ## Khi rollback
 

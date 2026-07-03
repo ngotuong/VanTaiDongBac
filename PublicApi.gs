@@ -162,6 +162,14 @@ function syncAllStartupAndCatalogsToSupabase() {
   return SupabaseService.syncAllStartupAndCatalogs();
 }
 
+function syncManageDataToSupabase(sheetName) {
+  return SupabaseService.syncManageDataBundle(sheetName);
+}
+
+function syncAllManageDataToSupabase() {
+  return SupabaseService.syncAllManageDataBundles();
+}
+
 function syncFundOverviewToSupabase(year, month) {
   return SupabaseService.syncFundOverview(year, month);
 }
@@ -262,7 +270,7 @@ function withTransportSync_(fn) {
   var result = fn();
   if (result && result.inserted) {
     try {
-      SupabaseService.syncTransportAfterWrite();
+      SupabaseService.syncTransportAfterWrite(result.sheetName);
     } catch (err) {
       console.log('transport_supabase_sync_after_write_failed: ' + (err && err.message ? err.message : err));
     }
@@ -282,7 +290,7 @@ function withSheetRowSync_(sheetName, fn) {
         SupabaseService.syncCatalogDataBundle('DM_ThamSo_GD');
       }
     } else if (safeSheetName.indexOf('NL_') === 0) {
-      SupabaseService.syncTransportAfterWrite();
+      SupabaseService.syncTransportAfterWrite(safeSheetName);
     }
   } catch (err) {
     console.log('supabase_sync_after_sheet_row_write_failed: ' + (err && err.message ? err.message : err));

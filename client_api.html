@@ -243,6 +243,13 @@
       }, 'Chưa có catalog data cache trong Supabase.');
     }
 
+    function readManageDataFromSupabase(sheetName) {
+      return readSupabasePayload('manage_data_bundles', {
+        sheet_name: String(sheetName || '').trim(),
+        filter_key: 'recent_50'
+      }, 'Chưa có cache Supabase cho dữ liệu Vận hành.');
+    }
+
     function normalizeFundMonthKeyForSupabase(month) {
       const text = String(month || '').trim();
       if (!text || text === 'latest' || text === 'all' || text === 'Tất cả') return '';

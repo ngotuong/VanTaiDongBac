@@ -83,6 +83,12 @@ Sau giai đoạn 3, trigger này cũng cập nhật cache màn hình khởi đ�
 syncAllStartupAndCatalogsToSupabase()
 ```
 
+Sau giai đoạn 4, trigger này cũng cập nhật cache danh sách mặc định của menu Vận hành. Nếu chỉ muốn sync riêng phần này, chạy:
+
+```javascript
+syncAllManageDataToSupabase()
+```
+
 ## Khi deploy
 
 Frontend Vercel:

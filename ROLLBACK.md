@@ -24,7 +24,7 @@ VITE_SUPABASE_REPORTS_ENABLED=false
 
 Sau bước này, `loadReportBundle()` sẽ không đọc Supabase nữa và quay về Apps Script.
 
-Các màn hình Tổng quan, Báo cáo, Quỹ, màn hình loading đầu và Danh mục cũng dùng cùng flag này. Khi tắt `VITE_SUPABASE_REPORTS_ENABLED`, toàn bộ cache Supabase ở frontend sẽ dừng đọc.
+Các màn hình Tổng quan, Báo cáo, Quỹ, Vận hành, màn hình loading đầu và Danh mục cũng dùng cùng flag này. Khi tắt `VITE_SUPABASE_REPORTS_ENABLED`, toàn bộ cache Supabase ở frontend sẽ dừng đọc.
 
 ## Cách rollback trong Apps Script-hosted UI
 
@@ -66,6 +66,12 @@ truncate table public.startup_bundles;
 truncate table public.catalog_bundles;
 ```
 
+Xóa cache Vận hành nếu cần:
+
+```sql
+truncate table public.manage_data_bundles;
+```
+
 Sau đó app sẽ fallback về Apps Script nếu không tìm thấy dữ liệu Supabase.
 
 ## Nếu cần rollback code
@@ -84,6 +90,7 @@ clasp push
 
 - Màn hình **Báo cáo** vẫn mở được.
 - Màn hình loading đầu vẫn vào được dù không có Supabase.
+- Màn hình **Vận hành** vẫn đọc được qua Apps Script.
 - Màn hình **Danh mục** vẫn đọc được qua Apps Script.
 - Không cần bảng `report_bundles`.
 - Không cần Supabase URL/key.

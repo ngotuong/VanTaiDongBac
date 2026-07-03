@@ -5039,6 +5039,13 @@
       }, 'Chưa có catalog data cache trong Supabase.');
     }
 
+    function readManageDataFromSupabase(sheetName) {
+      return readSupabasePayload('manage_data_bundles', {
+        sheet_name: String(sheetName || '').trim(),
+        filter_key: 'recent_50'
+      }, 'Chưa có cache Supabase cho dữ liệu Vận hành.');
+    }
+
     function normalizeFundMonthKeyForSupabase(month) {
       const text = String(month || '').trim();
       if (!text || text === 'latest' || text === 'all' || text === 'Tất cả') return '';
@@ -6761,6 +6768,7 @@
         endDate: endDate,
         limit: startDate || endDate ? 500 : 50
       };
+      const canUseManageSupabaseCache = !forceRefresh && !startDate && !endDate && requestParams.limit === 50;
 
       const cached = !forceRefresh && getCachedSheetData(requestParams);
       if (cached) {
@@ -6771,10 +6779,24 @@
         renderManageTable();
       }
 
-      return callApi('GET', 'readManageData', {
+      let manageFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadManageFromAppsScript = () => callApi('GET', 'readManageData', {
         ...requestParams,
         forceRefresh: forceRefresh ? 'true' : ''
-      })
+      });
+      const manageLoader = (canUseManageSupabaseCache && supabaseStatus.ok)
+        ? readManageDataFromSupabase(sheetName).catch((err) => {
+            manageFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được Vận hành từ Supabase, quay về Apps Script:', err);
+            return loadManageFromAppsScript();
+          })
+        : (() => {
+            manageFallbackReason = supabaseStatus.reason;
+            return loadManageFromAppsScript();
+          })();
+
+      return manageLoader
         .then((res) => {
           if (requestSeq !== manageLoadSeq) return res;
           if (res.ok) {
@@ -6786,6 +6808,11 @@
               el('manageLimitNotice').style.display = 'none';
             }
             renderManageTable();
+            if (res.supabaseCached) {
+              showSyncToast('Vận hành đang đọc từ Supabase cache.');
+            } else if (manageFallbackReason && canUseManageSupabaseCache) {
+              showSyncToast('Vận hành đã quay về Apps Script. ' + manageFallbackReason);
+            }
             return res;
           } else {
             showTableError(tbody, 20, res.error || 'Google Sheets trả về lỗi không xác định.');

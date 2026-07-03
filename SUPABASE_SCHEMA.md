@@ -166,3 +166,47 @@ RLS:
 
 - `anon` và `authenticated` chỉ được `select`.
 - Apps Script dùng service role key để ghi.
+
+## Bảng cache giai đoạn 4
+
+### `public.manage_data_bundles`
+
+Cache dữ liệu đọc danh sách mặc định của menu **Vận hành**.
+
+| Cột | Kiểu | Bắt buộc | Ghi chú |
+| --- | --- | --- | --- |
+| `sheet_name` | `text` | Có | Tên sheet vận hành, ví dụ `NL_VanChuyen`, `NL_TaiXe`. |
+| `filter_key` | `text` | Có | Hiện dùng `recent_50` cho trạng thái mặc định. |
+| `payload` | `jsonb` | Có | Dữ liệu trả về từ `ManageService.readManageData(sheetName, '', '', 50)`. |
+| `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
+| `created_at` | `timestamptz` | Có | Thời điểm tạo row. |
+| `updated_at` | `timestamptz` | Có | Thời điểm cập nhật row gần nhất. |
+
+Khóa chính:
+
+- `(sheet_name, filter_key)`
+
+Nguồn Google Sheet tương ứng:
+
+- `NL_VanChuyen`
+- `NL_TaiXe`
+- `NL_Dau`
+- `NL_ChamCong`
+- `NL_Phat`
+- `NL_NghiVanHanh`
+
+Frontend đọc:
+
+- `client_manage.html` đọc `manage_data_bundles` khi người dùng vào Vận hành ở trạng thái mặc định, không filter ngày và không bấm refresh.
+- Nếu chọn khoảng ngày, bấm làm mới, cache thiếu hoặc Supabase lỗi, frontend fallback về Apps Script `readManageData`.
+
+Luồng đồng bộ:
+
+1. Google Sheet vẫn là nguồn chuẩn.
+2. Apps Script chạy `syncAllManageDataToSupabase()` hoặc trigger `syncRealtimeCache()`.
+3. Khi nhập/sửa/xóa dữ liệu vận hành qua web app, Apps Script ghi Google Sheet trước rồi sync lại cache sheet liên quan.
+
+RLS:
+
+- `anon` và `authenticated` chỉ được `select`.
+- Apps Script dùng service role key để ghi.

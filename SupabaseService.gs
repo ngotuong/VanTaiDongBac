@@ -5,6 +5,7 @@ var SupabaseService = (function () {
   var TABLE_FUND_LOAN_BUNDLES = 'fund_loan_bundles';
   var TABLE_STARTUP_BUNDLES = 'startup_bundles';
   var TABLE_CATALOG_BUNDLES = 'catalog_bundles';
+  var TABLE_MANAGE_DATA_BUNDLES = 'manage_data_bundles';
   var TABLE_SYNC_STATUS = 'sync_status';
   var DASHBOARD_REPORT_MONTH = '__dashboard_latest__';
   var DEFAULT_FUND_YEAR = '2026';
@@ -22,6 +23,15 @@ var SupabaseService = (function () {
     'DM_ThuongQuanLy',
     'DM_PhatNoiBo'
   ];
+  var MANAGE_SHEET_NAMES = [
+    'NL_VanChuyen',
+    'NL_TaiXe',
+    'NL_Dau',
+    'NL_ChamCong',
+    'NL_Phat',
+    'NL_NghiVanHanh'
+  ];
+  var DEFAULT_MANAGE_FILTER_KEY = 'recent_50';
 
   function syncReportBundle(month) {
     var targetMonth = clean_(month) || 'latest';
@@ -255,6 +265,38 @@ var SupabaseService = (function () {
     };
   }
 
+  function syncManageDataBundle(sheetName) {
+    var safeSheetName = clean_(sheetName);
+    if (!safeSheetName) throw new Error('Thiếu tên sheet vận hành cần sync.');
+    var payload = ManageService.readManageData(safeSheetName, '', '', 50);
+    var syncedAt = new Date().toISOString();
+    upsertRows_(TABLE_MANAGE_DATA_BUNDLES, [{
+      sheet_name: safeSheetName,
+      filter_key: DEFAULT_MANAGE_FILTER_KEY,
+      payload: payload,
+      synced_at: syncedAt
+    }], 'sheet_name,filter_key');
+    writeSyncStatus_('manage_data:' + safeSheetName + ':' + DEFAULT_MANAGE_FILTER_KEY, 'manage', 'ok', 'Manage list cache synced.', syncedAt);
+    return { ok: true, table: TABLE_MANAGE_DATA_BUNDLES, sheetName: safeSheetName, filterKey: DEFAULT_MANAGE_FILTER_KEY, syncedAt: syncedAt };
+  }
+
+  function syncAllManageDataBundles() {
+    var results = [];
+    var errors = [];
+    MANAGE_SHEET_NAMES.forEach(function (sheetName) {
+      runSyncStep_(results, errors, 'manageData:' + sheetName, function () {
+        return syncManageDataBundle(sheetName);
+      });
+    });
+    return {
+      ok: errors.length === 0,
+      synced: results.length,
+      failed: errors.length,
+      results: results,
+      errors: errors
+    };
+  }
+
   function syncRealtimeCache() {
     var results = [];
     var errors = [];
@@ -262,6 +304,7 @@ var SupabaseService = (function () {
     runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
     runSyncStep_(results, errors, 'reports', function () { return syncAllReportBundles(); });
     runSyncStep_(results, errors, 'fund', function () { return syncAllFundBundles(DEFAULT_FUND_YEAR); });
+    runSyncStep_(results, errors, 'manageData', function () { return syncAllManageDataBundles(); });
     var syncedAt = new Date().toISOString();
     writeSyncStatus_('realtime_cache', 'system', errors.length ? 'error' : 'ok', errors.length ? JSON.stringify(errors) : 'Realtime cache synced.', syncedAt);
     return {
@@ -273,12 +316,16 @@ var SupabaseService = (function () {
     };
   }
 
-  function syncTransportAfterWrite() {
+  function syncTransportAfterWrite(sheetName) {
     var results = [];
     var errors = [];
+    var safeSheetName = clean_(sheetName);
     runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
     runSyncStep_(results, errors, 'latestReport', function () { return syncReportBundle('latest'); });
     runSyncStep_(results, errors, 'startup', function () { return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE); });
+    if (safeSheetName && safeSheetName.indexOf('NL_') === 0) {
+      runSyncStep_(results, errors, 'manageData:' + safeSheetName, function () { return syncManageDataBundle(safeSheetName); });
+    }
     return { ok: errors.length === 0, synced: results.length, failed: errors.length, errors: errors };
   }
 
@@ -470,6 +517,8 @@ var SupabaseService = (function () {
     syncCatalogDataBundle: syncCatalogDataBundle,
     syncAllStartupAndCatalogs: syncAllStartupAndCatalogs,
     syncCatalogAfterWrite: syncCatalogAfterWrite,
+    syncManageDataBundle: syncManageDataBundle,
+    syncAllManageDataBundles: syncAllManageDataBundles,
     syncRealtimeCache: syncRealtimeCache,
     syncReportBundle: syncReportBundle,
     syncAllReportBundles: syncAllReportBundles,

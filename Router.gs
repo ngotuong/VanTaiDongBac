@@ -81,7 +81,7 @@ function doPost(e) {
       var submitResult = EntryService.submitRows(payload.formType, payload.rows);
       if (submitResult && submitResult.inserted) {
         try {
-          SupabaseService.syncTransportAfterWrite();
+          SupabaseService.syncTransportAfterWrite(submitResult.sheetName);
         } catch (syncErr) {
           console.log('transport_supabase_sync_after_write_failed: ' + syncErr.message);
         }

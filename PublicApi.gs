@@ -78,6 +78,14 @@ function getFundCatalog(year, group) {
   return FundService.getFundCatalog(year, group);
 }
 
+function updateFundTransaction(year, rowIndex, transaction) {
+  return FundService.updateFundTransaction(year, rowIndex, transaction);
+}
+
+function deleteFundTransaction(year, rowIndex) {
+  return FundService.deleteFundTransaction(year, rowIndex);
+}
+
 function addFundTransaction(year, transaction) {
   return FundService.addFundTransaction(year, transaction);
 }
@@ -155,6 +163,8 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'checkTripReconciliation') return EntryService.checkTripReconciliation(safeBody.rows);
     if (action === 'saveSheetRow') return EntryService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData);
     if (action === 'deleteSheetRow') return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear);
+    if (action === 'updateFundTransaction') return FundService.updateFundTransaction(safeBody.year, safeBody.rowIndex, safeBody.transaction);
+    if (action === 'deleteFundTransaction') return FundService.deleteFundTransaction(safeBody.year, safeBody.rowIndex);
     if (action === 'addFundTransaction') return FundService.addFundTransaction(safeBody.year, safeBody.transaction);
     if (action === 'addFundLoan') return FundService.addFundLoan(safeBody.year, safeBody.loan);
     if (action === 'addFundLoanPayment') return FundService.addFundLoanPayment(safeBody.year, safeBody.payment);

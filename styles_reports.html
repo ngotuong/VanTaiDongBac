@@ -8,12 +8,17 @@
     
     .sub-tabs-bar {
       display: flex;
+      align-items: center;
       gap: 8px;
       margin-bottom: 20px;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       padding: 4px 2px;
       scrollbar-width: none; /* Firefox */
+    }
+
+    #manageTabsBar {
+      justify-content: center;
     }
     .sub-tabs-bar::-webkit-scrollbar {
       display: none; /* Safari & Chrome */
@@ -450,6 +455,22 @@
     .fund-transaction-row .fields textarea {
       min-height: 64px;
       resize: vertical;
+    }
+    .fund-transaction-actions {
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+    .fund-transaction-actions .icon-button {
+      width: 40px !important;
+      height: 40px !important;
+      min-width: 40px !important;
+      min-height: 40px !important;
+      padding: 0 !important;
+      border-radius: 10px !important;
+      flex: 0 0 40px;
+    }
+    .fund-transaction-actions .primary {
+      min-height: 40px !important;
     }
     .fund-debt-toggle {
       flex-direction: row !important;

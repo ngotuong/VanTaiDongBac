@@ -2,7 +2,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.16_report_profit_date_controls';
+      const APP_VERSION = 'v3.17_report_cashflow_manage_ui';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -160,7 +160,7 @@
       const meta = {
         home: ['Tổng quan', 'Kết quả kinh doanh', getLatestDataUpdateText()],
         reports: ['Báo cáo', 'Tổng hợp chi tiết', getLatestDataUpdateText()],
-        manage: ['Vận hành', 'Nhập & quản lý vận hành', getLatestDataUpdateText()],
+        manage: ['Vận hành', 'Quản lý vận hành', getLatestDataUpdateText()],
         catalog: ['Danh mục', 'Quản lý danh mục hệ thống', getLatestDataUpdateText()],
         cashflow: ['Quỹ', 'Quản lý quỹ', getLatestDataUpdateText()],
         settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', getLatestDataUpdateText()]

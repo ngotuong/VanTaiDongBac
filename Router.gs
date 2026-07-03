@@ -97,6 +97,14 @@ function doPost(e) {
       var fundResult = FundService.addFundTransaction(payload.year, payload.transaction);
       return timedJsonResponse_(action, startedAt, fundResult);
     }
+    if (action === 'updateFundTransaction') {
+      var updateFundResult = FundService.updateFundTransaction(payload.year, payload.rowIndex, payload.transaction);
+      return timedJsonResponse_(action, startedAt, updateFundResult);
+    }
+    if (action === 'deleteFundTransaction') {
+      var deleteFundResult = FundService.deleteFundTransaction(payload.year, payload.rowIndex);
+      return timedJsonResponse_(action, startedAt, deleteFundResult);
+    }
     if (action === 'addFundLoan') {
       var loanResult = FundService.addFundLoan(payload.year, payload.loan);
       return timedJsonResponse_(action, startedAt, loanResult);

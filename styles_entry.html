@@ -313,6 +313,7 @@
       display: flex;
       gap: 12px;
       align-items: center;
+      justify-content: flex-end;
       padding: 16px 24px;
       border-top: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.9);
@@ -321,5 +322,19 @@
     }
     
     .grow { flex: 1; }
+
+    .submit-bar .icon-button,
+    .submit-bar .sheets-icon-link {
+      width: 44px !important;
+      height: 44px !important;
+      min-width: 44px !important;
+      min-height: 44px !important;
+      padding: 0 !important;
+      border-radius: 10px !important;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 44px;
+    }
     
 </style>

@@ -1277,6 +1277,7 @@
       display: flex;
       gap: 12px;
       align-items: center;
+      justify-content: flex-end;
       padding: 16px 24px;
       border-top: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.9);
@@ -1285,6 +1286,20 @@
     }
     
     .grow { flex: 1; }
+
+    .submit-bar .icon-button,
+    .submit-bar .sheets-icon-link {
+      width: 44px !important;
+      height: 44px !important;
+      min-width: 44px !important;
+      min-height: 44px !important;
+      padding: 0 !important;
+      border-radius: 10px !important;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 44px;
+    }
     
 </style>
 
@@ -1298,12 +1313,17 @@
     
     .sub-tabs-bar {
       display: flex;
+      align-items: center;
       gap: 8px;
       margin-bottom: 20px;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       padding: 4px 2px;
       scrollbar-width: none; /* Firefox */
+    }
+
+    #manageTabsBar {
+      justify-content: center;
     }
     .sub-tabs-bar::-webkit-scrollbar {
       display: none; /* Safari & Chrome */
@@ -1740,6 +1760,22 @@
     .fund-transaction-row .fields textarea {
       min-height: 64px;
       resize: vertical;
+    }
+    .fund-transaction-actions {
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+    .fund-transaction-actions .icon-button {
+      width: 40px !important;
+      height: 40px !important;
+      min-width: 40px !important;
+      min-height: 40px !important;
+      padding: 0 !important;
+      border-radius: 10px !important;
+      flex: 0 0 40px;
+    }
+    .fund-transaction-actions .primary {
+      min-height: 40px !important;
     }
     .fund-debt-toggle {
       flex-direction: row !important;
@@ -2790,6 +2826,8 @@
       #manageTabsBar {
         display: flex !important;
         flex-wrap: nowrap !important;
+        align-items: center;
+        justify-content: flex-start;
         gap: 8px;
         margin: 0 -12px 12px !important;
         padding: 2px 12px 10px;
@@ -3066,13 +3104,20 @@
       }
 
       #manageView .filter-container,
-      #manageView .filter-container > div:first-child,
-      #manageDateFilterGroup {
+      #manageView .filter-container > div:first-child {
         display: grid !important;
         grid-template-columns: 1fr !important;
         width: 100% !important;
         min-width: 0 !important;
         gap: 10px !important;
+      }
+
+      #manageDateFilterGroup {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        gap: 8px !important;
       }
 
       #manageView .filter-container label,
@@ -3148,8 +3193,8 @@
         transition: none !important;
       }
       
-      .submit-bar button { flex: 1 1 30%; }
-      .submit-bar .primary { flex-basis: 100%; order: -1; }
+      .submit-bar button { flex: 0 0 auto; }
+      .submit-bar .primary { flex: 1 1 auto; order: 0; }
       
       .settings-grid { grid-template-columns: 1fr; }
       .bar-row { grid-template-columns: 70px minmax(0, 1fr); }
@@ -3478,20 +3523,6 @@
                 <h2 class="panel-title" id="formTitle">Nhập liệu nghiệp vụ</h2>
                 <div class="panel-note" id="formSummary">Chọn một nghiệp vụ để tiến hành điền biểu mẫu.</div>
               </div>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <button type="button" id="closeMobileEntryBtn" class="ghost icon-button mobile-entry-close" title="Đóng nhập liệu" aria-label="Đóng nhập liệu" onclick="closeMobileEntrySheet()">
-                  <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-                <button type="button" id="addBtn" title="Thêm dòng" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;">
-                  <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </button>
-                <button type="button" id="cloneBtn" title="Nhân bản dòng cuối" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;">
-                  <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-                <a id="sheetLink" href="#" target="_blank" class="sheets-icon-link" title="Xem dữ liệu gốc" style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); color: var(--green); transition: all 0.2s;" onmouseover="this.style.borderColor='var(--green)'; this.style.backgroundColor='var(--green-soft)'" onmouseout="this.style.borderColor='var(--line)'; this.style.backgroundColor='var(--paper)'">
-                  <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM6 7h5v2H6V7zm0 4h5v2H6v-2zm0 4h5v2H6v-2zm12 2h-5v-2h5v2zm0-4h-5v-2h5v2zm0-4h-5V7h5v2z"/></svg>
-                </a>
-              </div>
             </div>
 
             <div class="status" id="status"></div>
@@ -3501,8 +3532,20 @@
             <div class="submit-bar">
               <button type="button" class="primary grow" id="submitBtn">
                 <svg class="btn-svg" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
-                Gửi dữ liệu lên Sheets
+                Cập nhật
               </button>
+              <button type="button" id="cloneBtn" class="ghost icon-button" title="Nhân bản dòng cuối" aria-label="Nhân bản dòng cuối">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+              <button type="button" id="addBtn" class="secondary icon-button" title="Thêm dòng" aria-label="Thêm dòng">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <button type="button" id="closeMobileEntryBtn" class="outline icon-button mobile-entry-close" title="Hủy bỏ" aria-label="Hủy bỏ" onclick="closeMobileEntrySheet()">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+              <a id="sheetLink" href="#" target="_blank" class="sheets-icon-link" title="Xem dữ liệu gốc" aria-label="Xem dữ liệu gốc" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; min-width: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); color: var(--green); transition: all 0.2s;" onmouseover="this.style.borderColor='var(--green)'; this.style.backgroundColor='var(--green-soft)'" onmouseout="this.style.borderColor='var(--line)'; this.style.backgroundColor='var(--paper)'">
+                <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM6 7h5v2H6V7zm0 4h5v2H6v-2zm0 4h5v2H6v-2zm12 2h-5v-2h5v2zm0-4h-5v-2h5v2zm0-4h-5V7h5v2z"/></svg>
+              </a>
             </div>
           </section>
         </div>
@@ -4038,11 +4081,17 @@
         <div id="fundEntryStatus" class="status" style="display:none; margin-bottom: 12px; padding: 10px; border-radius: 8px;"></div>
         <div id="fundTransactionRows" class="fund-transaction-rows"></div>
       </div>
-      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 16px)) 20px; border-top: 1px solid var(--line); background: var(--canvas); flex-shrink: 0;">
-        <button type="button" class="ghost" style="min-height:38px;" onclick="cloneFundTransactionRow()">Nhân bản</button>
-        <button type="button" class="secondary" style="min-height:38px;" onclick="addFundTransactionRow()">Thêm mới</button>
-        <button type="button" class="outline" style="min-height:38px;" onclick="closeFundTransactionAddDrawer()">Hủy bỏ</button>
-        <button type="submit" class="primary" style="min-height:38px;" id="fundSaveBtn">Lưu vào Thu chi</button>
+      <div class="modal-footer fund-transaction-actions" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 16px)) 20px; border-top: 1px solid var(--line); background: var(--canvas); flex-shrink: 0;">
+        <button type="submit" class="primary grow" style="min-height:38px;" id="fundSaveBtn">Lưu vào Thu chi</button>
+        <button type="button" class="ghost icon-button" title="Nhân bản dòng cuối" aria-label="Nhân bản dòng cuối" onclick="cloneFundTransactionRow()">
+          <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+        <button type="button" class="secondary icon-button" title="Thêm mới" aria-label="Thêm mới" onclick="addFundTransactionRow()">
+          <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <button type="button" class="outline icon-button" title="Hủy bỏ" aria-label="Hủy bỏ" onclick="closeFundTransactionAddDrawer()">
+          <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
     </form>
   </section>
@@ -5199,23 +5248,15 @@
         showFundEntryStatus('info', 'Đang cập nhật khoản thu/chi...');
         const oldItem = currentEditingTransaction || {};
         const transaction = transactions[0];
-        const rowData = [
-          oldItem.voucher || '', // Số phiếu
-          transaction.date, // Ngày
-          transaction.type === 'Thu' ? transaction.category : '', // MỤC THU
-          transaction.type === 'Chi' ? transaction.category : '', // MỤC CHI
-          oldItem.method || '', // Hình thức
-          parseLocaleNumber(transaction.amount), // Số tiền
-          transaction.actor, // Người Thu/Chi
-          transaction.partner, // Đối tác
-          transaction.content, // Nội dung
-          transaction.debt ? 'Có' : '' // Công nợ
-        ];
 
-        callApi('POST', 'saveSheetRow', {}, {
-          sheetName: 'NHAP_THUCHI',
+        callApi('POST', 'updateFundTransaction', {}, {
+          year: '2026',
           rowIndex: fundTransactionEditRowIndex,
-          rowData: rowData
+          transaction: {
+            ...transaction,
+            voucher: oldItem.voucher || '',
+            method: oldItem.method || ''
+          }
         })
           .then(() => {
             clearFundEntryForm();
@@ -5612,7 +5653,7 @@
         if (title) title.textContent = 'Thêm khoản thu/chi';
         if (saveBtn) saveBtn.textContent = 'Lưu vào Thu chi';
       } else if (saveBtn) {
-        saveBtn.textContent = 'Cập nhật khoản thu/chi';
+        saveBtn.textContent = 'Cập nhật';
       }
       renderFundTransactionRows();
       loadFundFormOptions().then(renderFundTransactionRows);
@@ -5978,8 +6019,8 @@
       if (!confirm('Bạn có chắc chắn muốn xóa giao dịch thu chi này?')) return;
 
       showGlobalLoader('Đang xóa giao dịch...', 'Hệ thống đang tiến hành xóa dòng trên Google Sheets...');
-      callApi('POST', 'deleteSheetRow', {}, {
-        sheetName: 'NHAP_THUCHI',
+      callApi('POST', 'deleteFundTransaction', {}, {
+        year: '2026',
         rowIndex: rowIndex
       })
         .then(() => {
@@ -6975,7 +7016,7 @@
     // App Initializer
     function init() {
       // Auto-clear old local/session cache on version updates to prevent old URL conflicts
-      const APP_VERSION = 'v3.16_report_profit_date_controls';
+      const APP_VERSION = 'v3.17_report_cashflow_manage_ui';
       if (localStorage.getItem('eb_version') !== APP_VERSION) {
         localStorage.removeItem('eb_backend_url');
         localStorage.setItem('eb_version', APP_VERSION);
@@ -7133,7 +7174,7 @@
       const meta = {
         home: ['Tổng quan', 'Kết quả kinh doanh', getLatestDataUpdateText()],
         reports: ['Báo cáo', 'Tổng hợp chi tiết', getLatestDataUpdateText()],
-        manage: ['Vận hành', 'Nhập & quản lý vận hành', getLatestDataUpdateText()],
+        manage: ['Vận hành', 'Quản lý vận hành', getLatestDataUpdateText()],
         catalog: ['Danh mục', 'Quản lý danh mục hệ thống', getLatestDataUpdateText()],
         cashflow: ['Quỹ', 'Quản lý quỹ', getLatestDataUpdateText()],
         settings: ['Cài đặt', 'Cấu hình & Hướng dẫn', getLatestDataUpdateText()]
@@ -7967,7 +8008,7 @@
       ensureSelectedMonth(parsed.rows);
       renderMonthFilters(parsed.rows);
       
-      const overviewMatrix = reconcileOverviewSummaryMatrix_(dashboard.overview.months);
+      const overviewMatrix = buildOverviewSummaryMatrix_(parsed.rows);
       const filteredOverview = filterOverviewMatrix(overviewMatrix, selectedMonth);
       const selected = getSelectedOverviewRow(parsed.rows);
       
@@ -7994,24 +8035,41 @@
       }
     }
 
-    function reconcileOverviewSummaryMatrix_(matrix) {
-      if (!matrix || !matrix.length) return [];
-      const kpisByMonth = buildOverviewKpiMap_();
-      if (!Object.keys(kpisByMonth).length) return matrix;
-      const headerIndex = matrix.findIndex(row => row && String(row[0] || '').trim().toLowerCase() === 'tháng');
-      const headers = (matrix[headerIndex >= 0 ? headerIndex : 0] || []).map(h => String(h || '').trim().toLowerCase());
-      const finalColIdx = headers.findIndex((h) => h.includes('lợi nhuận thực tế') || h.includes('lợi nhuận thực nhận') || h.includes('lợi nhuận thực'));
-      if (finalColIdx < 0) return matrix;
-
-      return matrix.map((row, index) => {
-        if (index <= headerIndex || !row || !row.length) return row;
-        const monthKey = normalizeMonthLabel_(row[0]);
-        const kpi = kpisByMonth[monthKey];
-        if (!kpi) return row;
-        const nextRow = row.slice();
-        nextRow[finalColIdx] = formatCurrencyText(kpi.final);
-        return nextRow;
+    function buildOverviewSummaryMatrix_(rows) {
+      const header = [
+        'Tháng',
+        'Tổng khối lượng',
+        'Tổng doanh thu',
+        'Doanh thu chưa VAT',
+        'Thuế TNDN',
+        'Thuế VAT',
+        'Chi phí dầu Quang Minh',
+        'Phí đi đường',
+        'Lợi nhuận gộp',
+        'Chi phí dầu đổ ngoài',
+        'Chi phí lương',
+        'Chi quỹ thực tế',
+        'Lợi nhuận thực'
+      ];
+      const body = (rows || []).map((row) => {
+        const revenueNoVat = Number(row.revenue || 0) / 1.08;
+        return [
+          row.month || '',
+          row.volumeText || '',
+          row.revenueText || '',
+          formatCurrencyText(revenueNoVat),
+          row.taxTndnText || '',
+          row.taxVatText || '',
+          formatCurrencyText(row.fuelQM || 0),
+          row.tollText || '',
+          row.grossText || '',
+          formatCurrencyText(row.fuelOut || 0),
+          row.payrollText || '',
+          row.fundText || '',
+          row.finalText || ''
+        ];
       });
+      return [header].concat(body);
     }
 
     function filterReportCards() {

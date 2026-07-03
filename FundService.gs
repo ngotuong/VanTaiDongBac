@@ -504,6 +504,63 @@ var FundService = (function () {
     }
   }
 
+  function updateFundTransaction(year, rowIndex, payload) {
+    var ss = getFundSpreadsheet_(year);
+    var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
+    if (!sheet) {
+      throw new Error('Không tìm thấy sheet Thu chi: ' + TRANSACTION_SHEET_NAME);
+    }
+
+    var rowNum = parseInt(rowIndex, 10);
+    if (!(rowNum > 1)) throw new Error('Số dòng thu chi không hợp lệ: ' + rowIndex);
+    var existing = rowNum <= sheet.getLastRow()
+      ? sheet.getRange(rowNum, 1, 1, Math.max(sheet.getLastColumn(), TRANSACTION_HEADERS.length)).getValues()[0]
+      : [];
+    var row = buildTransactionRow_(payload || {});
+    row[0] = clean_((payload || {}).voucher) || clean_(existing[0]) || row[0];
+    row[4] = clean_((payload || {}).method) || clean_(existing[4]) || row[4];
+
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      sheet.getRange(rowNum, 1, 1, row.length).setValues([row]);
+      sheet.getRange(rowNum, 2).setNumberFormat('dd/MM/yyyy');
+      sheet.getRange(rowNum, 6).setNumberFormat('#,##0');
+      if (row[9] === 'Có') {
+        sheet.getRange(rowNum, 13).setFormula(buildDebtFormula_(rowNum));
+      } else {
+        sheet.getRange(rowNum, 13).clearContent();
+      }
+      sheet.getRange(rowNum, 14).setFormula(buildFilterFormula_(rowNum));
+      SpreadsheetApp.flush();
+      bumpFundDataVersion_();
+      return { ok: true, rowIndex: rowNum, voucher: row[0], sheetName: TRANSACTION_SHEET_NAME };
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
+  function deleteFundTransaction(year, rowIndex) {
+    var ss = getFundSpreadsheet_(year);
+    var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
+    if (!sheet) {
+      throw new Error('Không tìm thấy sheet Thu chi: ' + TRANSACTION_SHEET_NAME);
+    }
+
+    var rowNum = parseInt(rowIndex, 10);
+    if (!(rowNum > 1)) throw new Error('Số dòng thu chi không hợp lệ: ' + rowIndex);
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      sheet.deleteRow(rowNum);
+      SpreadsheetApp.flush();
+      bumpFundDataVersion_();
+      return { ok: true, rowIndex: rowNum, sheetName: TRANSACTION_SHEET_NAME };
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
   function readFundTransactions_(ss) {
     var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
     if (!sheet) return [];
@@ -1226,6 +1283,8 @@ var FundService = (function () {
     addFundTransaction: addFundTransaction,
     addFundLoan: addFundLoan,
     addFundLoanPayment: addFundLoanPayment,
+    updateFundTransaction: updateFundTransaction,
+    deleteFundTransaction: deleteFundTransaction,
     deleteFundCatalogItem: deleteFundCatalogItem,
     getFundFormOptions: getFundFormOptions,
     getFundCatalog: getFundCatalog,
@@ -1247,6 +1306,14 @@ function getFundFormOptions(year) {
 
 function addFundTransaction(year, payload) {
   return FundService.addFundTransaction(year, payload);
+}
+
+function updateFundTransaction(year, rowIndex, payload) {
+  return FundService.updateFundTransaction(year, rowIndex, payload);
+}
+
+function deleteFundTransaction(year, rowIndex) {
+  return FundService.deleteFundTransaction(year, rowIndex);
 }
 
 function getFundOverview(year, filter) {

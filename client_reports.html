@@ -14,7 +14,7 @@
       ensureSelectedMonth(parsed.rows);
       renderMonthFilters(parsed.rows);
       
-      const overviewMatrix = reconcileOverviewSummaryMatrix_(dashboard.overview.months);
+      const overviewMatrix = buildOverviewSummaryMatrix_(parsed.rows);
       const filteredOverview = filterOverviewMatrix(overviewMatrix, selectedMonth);
       const selected = getSelectedOverviewRow(parsed.rows);
       
@@ -41,24 +41,41 @@
       }
     }
 
-    function reconcileOverviewSummaryMatrix_(matrix) {
-      if (!matrix || !matrix.length) return [];
-      const kpisByMonth = buildOverviewKpiMap_();
-      if (!Object.keys(kpisByMonth).length) return matrix;
-      const headerIndex = matrix.findIndex(row => row && String(row[0] || '').trim().toLowerCase() === 'tháng');
-      const headers = (matrix[headerIndex >= 0 ? headerIndex : 0] || []).map(h => String(h || '').trim().toLowerCase());
-      const finalColIdx = headers.findIndex((h) => h.includes('lợi nhuận thực tế') || h.includes('lợi nhuận thực nhận') || h.includes('lợi nhuận thực'));
-      if (finalColIdx < 0) return matrix;
-
-      return matrix.map((row, index) => {
-        if (index <= headerIndex || !row || !row.length) return row;
-        const monthKey = normalizeMonthLabel_(row[0]);
-        const kpi = kpisByMonth[monthKey];
-        if (!kpi) return row;
-        const nextRow = row.slice();
-        nextRow[finalColIdx] = formatCurrencyText(kpi.final);
-        return nextRow;
+    function buildOverviewSummaryMatrix_(rows) {
+      const header = [
+        'Tháng',
+        'Tổng khối lượng',
+        'Tổng doanh thu',
+        'Doanh thu chưa VAT',
+        'Thuế TNDN',
+        'Thuế VAT',
+        'Chi phí dầu Quang Minh',
+        'Phí đi đường',
+        'Lợi nhuận gộp',
+        'Chi phí dầu đổ ngoài',
+        'Chi phí lương',
+        'Chi quỹ thực tế',
+        'Lợi nhuận thực'
+      ];
+      const body = (rows || []).map((row) => {
+        const revenueNoVat = Number(row.revenue || 0) / 1.08;
+        return [
+          row.month || '',
+          row.volumeText || '',
+          row.revenueText || '',
+          formatCurrencyText(revenueNoVat),
+          row.taxTndnText || '',
+          row.taxVatText || '',
+          formatCurrencyText(row.fuelQM || 0),
+          row.tollText || '',
+          row.grossText || '',
+          formatCurrencyText(row.fuelOut || 0),
+          row.payrollText || '',
+          row.fundText || '',
+          row.finalText || ''
+        ];
       });
+      return [header].concat(body);
     }
 
     function filterReportCards() {

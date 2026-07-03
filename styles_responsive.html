@@ -662,6 +662,8 @@
       #manageTabsBar {
         display: flex !important;
         flex-wrap: nowrap !important;
+        align-items: center;
+        justify-content: flex-start;
         gap: 8px;
         margin: 0 -12px 12px !important;
         padding: 2px 12px 10px;
@@ -938,13 +940,20 @@
       }
 
       #manageView .filter-container,
-      #manageView .filter-container > div:first-child,
-      #manageDateFilterGroup {
+      #manageView .filter-container > div:first-child {
         display: grid !important;
         grid-template-columns: 1fr !important;
         width: 100% !important;
         min-width: 0 !important;
         gap: 10px !important;
+      }
+
+      #manageDateFilterGroup {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        gap: 8px !important;
       }
 
       #manageView .filter-container label,
@@ -1020,8 +1029,8 @@
         transition: none !important;
       }
       
-      .submit-bar button { flex: 1 1 30%; }
-      .submit-bar .primary { flex-basis: 100%; order: -1; }
+      .submit-bar button { flex: 0 0 auto; }
+      .submit-bar .primary { flex: 1 1 auto; order: 0; }
       
       .settings-grid { grid-template-columns: 1fr; }
       .bar-row { grid-template-columns: 70px minmax(0, 1fr); }

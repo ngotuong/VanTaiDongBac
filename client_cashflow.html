@@ -580,23 +580,15 @@
         showFundEntryStatus('info', 'Đang cập nhật khoản thu/chi...');
         const oldItem = currentEditingTransaction || {};
         const transaction = transactions[0];
-        const rowData = [
-          oldItem.voucher || '', // Số phiếu
-          transaction.date, // Ngày
-          transaction.type === 'Thu' ? transaction.category : '', // MỤC THU
-          transaction.type === 'Chi' ? transaction.category : '', // MỤC CHI
-          oldItem.method || '', // Hình thức
-          parseLocaleNumber(transaction.amount), // Số tiền
-          transaction.actor, // Người Thu/Chi
-          transaction.partner, // Đối tác
-          transaction.content, // Nội dung
-          transaction.debt ? 'Có' : '' // Công nợ
-        ];
 
-        callApi('POST', 'saveSheetRow', {}, {
-          sheetName: 'NHAP_THUCHI',
+        callApi('POST', 'updateFundTransaction', {}, {
+          year: '2026',
           rowIndex: fundTransactionEditRowIndex,
-          rowData: rowData
+          transaction: {
+            ...transaction,
+            voucher: oldItem.voucher || '',
+            method: oldItem.method || ''
+          }
         })
           .then(() => {
             clearFundEntryForm();
@@ -993,7 +985,7 @@
         if (title) title.textContent = 'Thêm khoản thu/chi';
         if (saveBtn) saveBtn.textContent = 'Lưu vào Thu chi';
       } else if (saveBtn) {
-        saveBtn.textContent = 'Cập nhật khoản thu/chi';
+        saveBtn.textContent = 'Cập nhật';
       }
       renderFundTransactionRows();
       loadFundFormOptions().then(renderFundTransactionRows);
@@ -1359,8 +1351,8 @@
       if (!confirm('Bạn có chắc chắn muốn xóa giao dịch thu chi này?')) return;
 
       showGlobalLoader('Đang xóa giao dịch...', 'Hệ thống đang tiến hành xóa dòng trên Google Sheets...');
-      callApi('POST', 'deleteSheetRow', {}, {
-        sheetName: 'NHAP_THUCHI',
+      callApi('POST', 'deleteFundTransaction', {}, {
+        year: '2026',
         rowIndex: rowIndex
       })
         .then(() => {

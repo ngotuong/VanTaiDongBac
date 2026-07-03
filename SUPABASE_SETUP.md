@@ -47,6 +47,19 @@ VITE_SUPABASE_REPORTS_ENABLED=true
 6. Chọn môi trường cần dùng, thường là **Production**, **Preview**, và **Development** nếu anh deploy đủ các môi trường.
 7. Redeploy Vercel sau khi thêm biến.
 
+Repo đã có `package.json` và `vercel.json` để Vercel chạy build:
+
+```bash
+node scripts/build.js
+```
+
+Nếu Vercel Project Settings đang override build command, hãy đặt:
+
+```text
+Build Command: node scripts/build.js
+Output Directory: .
+```
+
 Muốn rollback nhanh trên frontend:
 
 ```text

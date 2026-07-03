@@ -370,13 +370,19 @@
       appData.dashboard = { ...(appData.dashboard || {}), loading: true };
       renderReports();
       
+      let supabaseFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
       const loadFromAppsScript = () => callApi('GET', 'getReportBundle', { month: selectedMonth, forceRefresh: forceRefresh });
-      const loader = (!forceRefresh && canUseSupabaseReports())
+      const loader = (!forceRefresh && supabaseStatus.ok)
         ? readReportBundleFromSupabase(selectedMonth).catch((err) => {
+            supabaseFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
             console.warn('Không đọc được báo cáo từ Supabase, quay về Apps Script:', err);
             return loadFromAppsScript();
           })
-        : loadFromAppsScript();
+        : (() => {
+            supabaseFallbackReason = supabaseStatus.reason;
+            return loadFromAppsScript();
+          })();
 
       return loader
         .then((bundle) => {
@@ -391,7 +397,9 @@
           renderView();
           renderReports();
           if (activeView === 'reports') {
-            showSyncToast(bundle.supabaseCached ? 'Báo cáo đang đọc từ Supabase cache.' : 'Báo cáo đã quay về Apps Script.');
+            showSyncToast(bundle.supabaseCached
+              ? 'Báo cáo đang đọc từ Supabase cache.'
+              : 'Báo cáo đã quay về Apps Script. ' + (supabaseFallbackReason || ''));
           }
           scheduleReportBundlePrefetch();
           return bundle;

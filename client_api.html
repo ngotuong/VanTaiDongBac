@@ -130,9 +130,17 @@
       };
     }
 
-    function canUseSupabaseReports() {
+    function getSupabaseReportStatus() {
       const cfg = getSupabaseConfig();
-      return Boolean(cfg.reportsEnabled && cfg.url && cfg.anonKey && window.supabase && window.supabase.createClient);
+      if (!cfg.reportsEnabled) return { ok: false, reason: 'VITE_SUPABASE_REPORTS_ENABLED chưa bật hoặc chưa được build vào frontend.' };
+      if (!cfg.url) return { ok: false, reason: 'Thiếu VITE_SUPABASE_URL trên frontend.' };
+      if (!cfg.anonKey) return { ok: false, reason: 'Thiếu VITE_SUPABASE_ANON_KEY trên frontend.' };
+      if (!window.supabase || !window.supabase.createClient) return { ok: false, reason: 'Chưa tải được thư viện Supabase JS.' };
+      return { ok: true, reason: '' };
+    }
+
+    function canUseSupabaseReports() {
+      return getSupabaseReportStatus().ok;
     }
 
     let supabaseClientInstance = null;

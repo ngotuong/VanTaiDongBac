@@ -4926,9 +4926,17 @@
       };
     }
 
-    function canUseSupabaseReports() {
+    function getSupabaseReportStatus() {
       const cfg = getSupabaseConfig();
-      return Boolean(cfg.reportsEnabled && cfg.url && cfg.anonKey && window.supabase && window.supabase.createClient);
+      if (!cfg.reportsEnabled) return { ok: false, reason: 'VITE_SUPABASE_REPORTS_ENABLED chưa bật hoặc chưa được build vào frontend.' };
+      if (!cfg.url) return { ok: false, reason: 'Thiếu VITE_SUPABASE_URL trên frontend.' };
+      if (!cfg.anonKey) return { ok: false, reason: 'Thiếu VITE_SUPABASE_ANON_KEY trên frontend.' };
+      if (!window.supabase || !window.supabase.createClient) return { ok: false, reason: 'Chưa tải được thư viện Supabase JS.' };
+      return { ok: true, reason: '' };
+    }
+
+    function canUseSupabaseReports() {
+      return getSupabaseReportStatus().ok;
     }
 
     let supabaseClientInstance = null;
@@ -9743,13 +9751,19 @@
       appData.dashboard = { ...(appData.dashboard || {}), loading: true };
       renderReports();
       
+      let supabaseFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
       const loadFromAppsScript = () => callApi('GET', 'getReportBundle', { month: selectedMonth, forceRefresh: forceRefresh });
-      const loader = (!forceRefresh && canUseSupabaseReports())
+      const loader = (!forceRefresh && supabaseStatus.ok)
         ? readReportBundleFromSupabase(selectedMonth).catch((err) => {
+            supabaseFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
             console.warn('Không đọc được báo cáo từ Supabase, quay về Apps Script:', err);
             return loadFromAppsScript();
           })
-        : loadFromAppsScript();
+        : (() => {
+            supabaseFallbackReason = supabaseStatus.reason;
+            return loadFromAppsScript();
+          })();
 
       return loader
         .then((bundle) => {
@@ -9764,7 +9778,9 @@
           renderView();
           renderReports();
           if (activeView === 'reports') {
-            showSyncToast(bundle.supabaseCached ? 'Báo cáo đang đọc từ Supabase cache.' : 'Báo cáo đã quay về Apps Script.');
+            showSyncToast(bundle.supabaseCached
+              ? 'Báo cáo đang đọc từ Supabase cache.'
+              : 'Báo cáo đã quay về Apps Script. ' + (supabaseFallbackReason || ''));
           }
           scheduleReportBundlePrefetch();
           return bundle;

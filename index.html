@@ -2618,6 +2618,40 @@
       }
       .fund-detail-drawer {
         height: 100dvh !important;
+        max-height: 100dvh !important;
+      }
+
+      #fundTransactionAddDrawer {
+        height: 100svh !important;
+        max-height: 100dvh !important;
+        contain: layout paint;
+      }
+
+      #fundTransactionDrawerForm {
+        height: 100%;
+        min-height: 0;
+      }
+
+      #fundTransactionDrawerForm > .panel-body {
+        min-height: 0;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        scroll-padding-top: 96px;
+        scroll-padding-bottom: 144px;
+        padding-bottom: 112px !important;
+      }
+
+      #fundTransactionAddDrawer .fund-transaction-row {
+        scroll-margin-top: 96px;
+        scroll-margin-bottom: 144px;
+      }
+
+      #fundTransactionAddDrawer .fund-transaction-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 12;
+        box-shadow: 0 -10px 24px rgba(15, 23, 42, 0.08);
       }
     }
     
@@ -6296,7 +6330,7 @@
       })).join('');
     }
 
-    function renderFundTransactionRows() {
+    function renderFundTransactionRows(options = {}) {
       const holder = el('fundTransactionRows');
       if (!holder) return;
       if (!fundTransactionRows.length) {
@@ -6330,6 +6364,32 @@
           </article>
         `;
       }).join('');
+      if (Number.isInteger(options.scrollIndex)) {
+        requestAnimationFrame(() => scrollFundTransactionRowIntoView(options.scrollIndex, options.focusFirst));
+      }
+      if (!holder.dataset.focusBound) {
+        holder.dataset.focusBound = '1';
+        holder.addEventListener('focusin', (event) => {
+          const rowEl = event.target.closest('[data-fund-row]');
+          if (!rowEl) return;
+          const index = Number(rowEl.dataset.fundRow);
+          if (Number.isInteger(index)) {
+            setTimeout(() => scrollFundTransactionRowIntoView(index, false), 80);
+          }
+        });
+      }
+    }
+
+    function scrollFundTransactionRowIntoView(index, focusFirst) {
+      const row = document.querySelector(`[data-fund-row="${index}"]`);
+      if (!row) return;
+      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (focusFirst) {
+        const input = row.querySelector('input, select, textarea');
+        if (input) {
+          setTimeout(() => input.focus({ preventScroll: true }), 120);
+        }
+      }
     }
 
     window.updateFundTransactionRow = function(index, key, value) {
@@ -6343,20 +6403,20 @@
 
     window.addFundTransactionRow = function() {
       fundTransactionRows.push(newBlankFundTransaction());
-      renderFundTransactionRows();
+      renderFundTransactionRows({ scrollIndex: fundTransactionRows.length - 1, focusFirst: true });
     };
 
     window.cloneFundTransactionRow = function() {
       const last = fundTransactionRows[fundTransactionRows.length - 1] || newBlankFundTransaction();
       fundTransactionRows.push(newBlankFundTransaction({ ...last }));
-      renderFundTransactionRows();
+      renderFundTransactionRows({ scrollIndex: fundTransactionRows.length - 1, focusFirst: false });
     };
 
     window.removeFundTransactionRow = function(index) {
       if (fundTransactionRows.length === 1) return;
       if (fundTransactionEditRowIndex && index === 0) return;
       fundTransactionRows.splice(index, 1);
-      renderFundTransactionRows();
+      renderFundTransactionRows({ scrollIndex: Math.max(0, index - 1), focusFirst: false });
     };
 
     function submitFundTransaction() {

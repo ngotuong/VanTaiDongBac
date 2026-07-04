@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec`
-- Apps Script deployment moi nhat da xac nhan: `@202 - Report tabs and iPhone input zoom fix`
+- Apps Script deployment moi nhat da xac nhan: `@203 - Fund transaction clone and rollback fix`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co
@@ -102,6 +102,8 @@ Commit lien quan:
 - Sua hien tuong iPhone auto zoom khi focus input/select bang cach dam bao controls mobile co computed font-size 16px.
 - Bao cao doi thu tu sticky thanh tab len tren card bo loc, giong cac menu khac; filter nam duoi tab voi offset sticky-after-tabs.
 - Bao cao can lai font body: cot danh muc dau dong cung co chu voi so lieu, rieng cot dien giai giu nho hon de khong vo bang.
+- Quy > Nhap thu/chi: them rollback vung vua ghi neu Google Sheets/data validation bao loi giua batch, tranh tinh trang luu 3/4 dong roi bao loi.
+- Quy > Nhap thu/chi mobile: sau khi them/nhan ban/xoa dong se tu cuon den dong lien quan; drawer co vung scroll rieng va padding day de tranh man hinh trang khi iPhone keyboard/focus.
 
 ## File tài liệu hiện hành
 

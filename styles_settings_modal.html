@@ -335,6 +335,40 @@
       }
       .fund-detail-drawer {
         height: 100dvh !important;
+        max-height: 100dvh !important;
+      }
+
+      #fundTransactionAddDrawer {
+        height: 100svh !important;
+        max-height: 100dvh !important;
+        contain: layout paint;
+      }
+
+      #fundTransactionDrawerForm {
+        height: 100%;
+        min-height: 0;
+      }
+
+      #fundTransactionDrawerForm > .panel-body {
+        min-height: 0;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        scroll-padding-top: 96px;
+        scroll-padding-bottom: 144px;
+        padding-bottom: 112px !important;
+      }
+
+      #fundTransactionAddDrawer .fund-transaction-row {
+        scroll-margin-top: 96px;
+        scroll-margin-bottom: 144px;
+      }
+
+      #fundTransactionAddDrawer .fund-transaction-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 12;
+        box-shadow: 0 -10px 24px rgba(15, 23, 42, 0.08);
       }
     }
     

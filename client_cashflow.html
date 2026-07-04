@@ -521,7 +521,7 @@
       })).join('');
     }
 
-    function renderFundTransactionRows() {
+    function renderFundTransactionRows(options = {}) {
       const holder = el('fundTransactionRows');
       if (!holder) return;
       if (!fundTransactionRows.length) {
@@ -555,6 +555,32 @@
           </article>
         `;
       }).join('');
+      if (Number.isInteger(options.scrollIndex)) {
+        requestAnimationFrame(() => scrollFundTransactionRowIntoView(options.scrollIndex, options.focusFirst));
+      }
+      if (!holder.dataset.focusBound) {
+        holder.dataset.focusBound = '1';
+        holder.addEventListener('focusin', (event) => {
+          const rowEl = event.target.closest('[data-fund-row]');
+          if (!rowEl) return;
+          const index = Number(rowEl.dataset.fundRow);
+          if (Number.isInteger(index)) {
+            setTimeout(() => scrollFundTransactionRowIntoView(index, false), 80);
+          }
+        });
+      }
+    }
+
+    function scrollFundTransactionRowIntoView(index, focusFirst) {
+      const row = document.querySelector(`[data-fund-row="${index}"]`);
+      if (!row) return;
+      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (focusFirst) {
+        const input = row.querySelector('input, select, textarea');
+        if (input) {
+          setTimeout(() => input.focus({ preventScroll: true }), 120);
+        }
+      }
     }
 
     window.updateFundTransactionRow = function(index, key, value) {
@@ -568,20 +594,20 @@
 
     window.addFundTransactionRow = function() {
       fundTransactionRows.push(newBlankFundTransaction());
-      renderFundTransactionRows();
+      renderFundTransactionRows({ scrollIndex: fundTransactionRows.length - 1, focusFirst: true });
     };
 
     window.cloneFundTransactionRow = function() {
       const last = fundTransactionRows[fundTransactionRows.length - 1] || newBlankFundTransaction();
       fundTransactionRows.push(newBlankFundTransaction({ ...last }));
-      renderFundTransactionRows();
+      renderFundTransactionRows({ scrollIndex: fundTransactionRows.length - 1, focusFirst: false });
     };
 
     window.removeFundTransactionRow = function(index) {
       if (fundTransactionRows.length === 1) return;
       if (fundTransactionEditRowIndex && index === 0) return;
       fundTransactionRows.splice(index, 1);
-      renderFundTransactionRows();
+      renderFundTransactionRows({ scrollIndex: Math.max(0, index - 1), focusFirst: false });
     };
 
     function submitFundTransaction() {

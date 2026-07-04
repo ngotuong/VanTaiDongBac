@@ -539,17 +539,22 @@ var FundService = (function () {
         sheet.insertRowsAfter(sheet.getMaxRows(), lastNeededRow - sheet.getMaxRows());
       }
 
-      sheet.getRange(appendRow, 1, rows.length, rows[0].length).setValues(rows);
-      sheet.getRange(appendRow, 2, rows.length, 1).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(appendRow, 6, rows.length, 1).setNumberFormat('#,##0');
-      rows.forEach(function (row, index) {
-        var rowNumber = appendRow + index;
-        if (row[9] === 'Có') {
-          sheet.getRange(rowNumber, 13).setFormula(buildDebtFormula_(rowNumber));
-        }
-        sheet.getRange(rowNumber, 14).setFormula(buildFilterFormula_(rowNumber));
-      });
-      SpreadsheetApp.flush();
+      try {
+        sheet.getRange(appendRow, 1, rows.length, rows[0].length).setValues(rows);
+        sheet.getRange(appendRow, 2, rows.length, 1).setNumberFormat('dd/MM/yyyy');
+        sheet.getRange(appendRow, 6, rows.length, 1).setNumberFormat('#,##0');
+        rows.forEach(function (row, index) {
+          var rowNumber = appendRow + index;
+          if (row[9] === 'Có') {
+            sheet.getRange(rowNumber, 13).setFormula(buildDebtFormula_(rowNumber));
+          }
+          sheet.getRange(rowNumber, 14).setFormula(buildFilterFormula_(rowNumber));
+        });
+        SpreadsheetApp.flush();
+      } catch (writeErr) {
+        rollbackInsertedFundTransactionRows_(sheet, appendRow, rows.length);
+        throw writeErr;
+      }
       bumpFundDataVersion_();
 
       return {
@@ -573,6 +578,17 @@ var FundService = (function () {
       };
     } finally {
       lock.releaseLock();
+    }
+  }
+
+  function rollbackInsertedFundTransactionRows_(sheet, startRow, rowCount) {
+    if (!(startRow > 1) || !(rowCount > 0)) return;
+    try {
+      var colCount = Math.max(sheet.getLastColumn(), 14);
+      sheet.getRange(startRow, 1, rowCount, colCount).clearContent();
+      SpreadsheetApp.flush();
+    } catch (rollbackErr) {
+      console.warn('Không thể rollback vùng Thu chi ghi lỗi:', rollbackErr);
     }
   }
 

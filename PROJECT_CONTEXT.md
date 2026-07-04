@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec`
-- Apps Script deployment moi nhat da xac nhan: `@197 - Fix catalog render and compact filters`
+- Apps Script deployment moi nhat da xac nhan: `@199 - Fix cloned fund writes and loan filters`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co
@@ -90,6 +90,9 @@ Commit lien quan:
 - Sua loi `displaySheetName is not defined` lam Danh muc khong render duoc.
 - Van hanh bo chu "Ky" tren bo loc ky va can lai kich thuoc o ky mobile bang nhom ngay.
 - Bao cao bo dong tieu de/ghi chu trong panel loc de tiet kiem chieu cao.
+- Sua loi nhan ban Thu chi bang cach tao ma phieu co millisecond va hau to theo thu tu dong trong batch, tranh trung ma khi luu nhieu dong cung luc.
+- Quy > Khoan vay doc truc tiep Apps Script va khi loc thang chi tinh KPI/chi tiet tren cac khoan vay phat sinh trong thang do.
+- Van hanh > Xang dau tren mobile quay lai bang ngang co horizontal scroll/sticky cot, khong render thanh card.
 
 ## File tài liệu hiện hành
 

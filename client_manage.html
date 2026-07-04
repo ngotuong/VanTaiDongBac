@@ -191,6 +191,11 @@
       const headers = [...currentManageData.headers];
       const rawRows = currentManageData.rows || [];
       const visibleColumns = getManageVisibleColumns(headers, sheetName);
+      const isDauSheet = sheetName === 'NL_Dau';
+      const manageTable = el('manageTable');
+      if (manageTable) manageTable.classList.toggle('manage-horizontal-table', isDauSheet);
+      const manageScroll = manageTable ? manageTable.closest('.table-scroll') : null;
+      if (manageScroll) manageScroll.classList.toggle('manage-horizontal-scroll', isDauSheet);
       
       let vehicleColIdx = -1;
       for (let i = 0; i < headers.length; i++) {
@@ -380,7 +385,6 @@
         });
       }
       const showOwnerCol = shouldShowManageOwnerColumn(sheetName, vehicleColIdx);
-      const isDauSheet = sheetName === 'NL_Dau';
       const isTaiXeSheet = sheetName === 'NL_TaiXe';
 
       const matched = filteredManageRowsData.filter(row => {

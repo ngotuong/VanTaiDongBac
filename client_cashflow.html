@@ -873,27 +873,13 @@
       renderFundTableLoading(el('fundLoanHistoryBody'), 5, 'Đang tải lịch sử vay/trả...');
       const historyPager = el('fundLoanHistoryPager');
       if (historyPager) historyPager.style.display = 'none';
-      let fundLoanFallbackReason = '';
-      const supabaseStatus = getSupabaseReportStatus();
       const loadFundLoanFromAppsScript = () => callApi('GET', 'getFundLoanOverview', { year: '2026', month: month, forceRefresh: forceRefresh ? 'true' : '' });
-      const loader = (!forceRefresh && supabaseStatus.ok)
-        ? readFundLoanOverviewFromSupabase('2026', month).catch((err) => {
-            fundLoanFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
-            console.warn('Không đọc được Vay nợ từ Supabase, quay về Apps Script:', err);
-            return loadFundLoanFromAppsScript();
-          })
-        : (() => {
-            fundLoanFallbackReason = supabaseStatus.reason;
-            return loadFundLoanFromAppsScript();
-          })();
-      return loader
+      return loadFundLoanFromAppsScript()
         .then((data) => {
           fundLoanData = data;
           fundLoanHistoryPage = 1;
           renderFundLoanOverview(data);
-          showSyncToast(data.supabaseCached
-            ? 'Vay nợ đang đọc từ Supabase cache.'
-            : 'Vay nợ đã quay về Apps Script. ' + (fundLoanFallbackReason || ''));
+          showSyncToast('Vay nợ đang đọc trực tiếp từ Apps Script để bảo đảm bộ lọc tháng mới nhất.');
         })
         .catch((err) => {
           el('fundLoanMetrics').innerHTML = `<article class="kpi-card"><div class="kpi-label">Lỗi tải khoản vay</div><div class="kpi-value" style="font-size:18px;">${escapeHtml(err.message)}</div></article>`;

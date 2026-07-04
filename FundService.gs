@@ -146,8 +146,15 @@ var FundService = (function () {
     var filteredRows = period ? rows.filter(function (row) {
       return row.dateObj && row.dateObj >= period.start && row.dateObj <= period.end;
     }) : rows;
+    var periodLoanCodes = {};
+    if (period) {
+      filteredRows.forEach(function (row) {
+        if (row.type === 'Vay') periodLoanCodes[row.code || ('row-' + row.rowIndex)] = true;
+      });
+    }
     var summaryRows = period ? rows.filter(function (row) {
-      return row.dateObj && row.dateObj <= period.end;
+      var key = row.code || ('row-' + row.rowIndex);
+      return periodLoanCodes[key] && row.dateObj && row.dateObj <= period.end;
     }) : rows;
     var totalBorrowed = 0;
     var totalPrincipalPaid = 0;
@@ -156,7 +163,8 @@ var FundService = (function () {
     var totalOutstandingPrincipalPaid = 0;
     var loanMap = {};
 
-    filteredRows.forEach(function (row) {
+    var metricSourceRows = period ? summaryRows : filteredRows;
+    metricSourceRows.forEach(function (row) {
       if (row.type === 'Vay') totalBorrowed += row.amount;
       if (row.type === 'Trả nợ') totalPrincipalPaid += row.amount;
       if (row.type === 'Trả lãi') totalInterestPaid += row.amount;
@@ -518,8 +526,9 @@ var FundService = (function () {
       throw new Error('Không tìm thấy sheet Thu chi: ' + TRANSACTION_SHEET_NAME);
     }
 
-    var rows = safePayloads.map(function (payload) {
-      return buildTransactionRow_(payload || {});
+    var voucherSeed = buildVoucherSeed_();
+    var rows = safePayloads.map(function (payload, index) {
+      return buildTransactionRow_(payload || {}, voucherSeed, index);
     });
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
@@ -1186,7 +1195,7 @@ var FundService = (function () {
     return SpreadsheetApp.openById(spreadsheetId);
   }
 
-  function buildTransactionRow_(payload) {
+  function buildTransactionRow_(payload, voucherSeed, voucherIndex) {
     var type = clean_(payload.type);
     var date = parseDate_(payload.date, payload.date);
     var category = clean_(payload.category);
@@ -1205,7 +1214,7 @@ var FundService = (function () {
     if (debt && !partner) throw new Error('Khoản công nợ cần có Đối tác.');
 
     return [
-      buildVoucher_(),
+      buildVoucher_(voucherSeed, voucherIndex),
       date,
       type === 'Thu' ? category : '',
       type === 'Chi' ? category : '',
@@ -1284,8 +1293,15 @@ var FundService = (function () {
     return 2;
   }
 
-  function buildVoucher_() {
-    return Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'yyMMddHHmmss');
+  function buildVoucherSeed_() {
+    var now = new Date();
+    return Utilities.formatDate(now, APP_CONFIG.timezone, 'yyMMddHHmmss') + String(now.getMilliseconds()).padStart(3, '0');
+  }
+
+  function buildVoucher_(seed, index) {
+    var base = seed || buildVoucherSeed_();
+    var suffix = index === undefined || index === null ? '' : '-' + String(index + 1).padStart(2, '0');
+    return base + suffix;
   }
 
   function buildDebtFormula_(rowNumber) {

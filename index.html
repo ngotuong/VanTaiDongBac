@@ -3810,6 +3810,73 @@
         background: var(--paper) !important;
         border-radius: 10px !important;
       }
+
+      .manage-horizontal-scroll {
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        padding: 8px !important;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+        touch-action: pan-x pan-y;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .mobile-record-table.manage-horizontal-table {
+        display: table !important;
+        width: 100% !important;
+        min-width: 760px !important;
+        border-collapse: separate !important;
+      }
+
+      .mobile-record-table.manage-horizontal-table thead {
+        display: table-header-group !important;
+      }
+
+      .mobile-record-table.manage-horizontal-table tbody {
+        display: table-row-group !important;
+        padding: 0 !important;
+      }
+
+      .mobile-record-table.manage-horizontal-table tr {
+        display: table-row !important;
+        margin-bottom: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+
+      .mobile-record-table.manage-horizontal-table th,
+      .mobile-record-table.manage-horizontal-table td {
+        display: table-cell !important;
+        width: auto !important;
+        padding: 8px 10px !important;
+        border-bottom: 1px solid var(--line) !important;
+        white-space: nowrap !important;
+        text-align: left;
+        font-size: 12px !important;
+      }
+
+      .mobile-record-table.manage-horizontal-table td::before {
+        content: none !important;
+        display: none !important;
+      }
+
+      .mobile-record-table.manage-horizontal-table .sticky-col {
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 2 !important;
+        background: var(--paper) !important;
+      }
+
+      .mobile-record-table.manage-horizontal-table .sticky-col-right {
+        position: sticky !important;
+        right: 0 !important;
+        z-index: 2 !important;
+        background: var(--paper) !important;
+        text-align: center !important;
+      }
     }
     
     @media (max-width: 768px) {
@@ -4383,11 +4450,7 @@
 
         <div data-cashflow-panel="loans" style="display: none;">
           <section class="panel app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
-            <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; gap: 12px; padding: 16px 20px;">
-              <div>
-                <h2 class="panel-title">Khoản vay</h2>
-                <div class="panel-note">Theo dõi phát sinh vay, trả nợ và trả lãi trong file Thu chi.</div>
-              </div>
+            <div class="panel-head" style="display: flex; flex-direction: row !important; align-items: center !important; justify-content: flex-end !important; gap: 12px; padding: 12px 16px;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <select id="fundLoanMonthFilter" style="height: 38px; width: 150px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundLoanOverview(false)">
                   <option value="">Tất cả tháng</option>
@@ -6281,27 +6344,13 @@
       renderFundTableLoading(el('fundLoanHistoryBody'), 5, 'Đang tải lịch sử vay/trả...');
       const historyPager = el('fundLoanHistoryPager');
       if (historyPager) historyPager.style.display = 'none';
-      let fundLoanFallbackReason = '';
-      const supabaseStatus = getSupabaseReportStatus();
       const loadFundLoanFromAppsScript = () => callApi('GET', 'getFundLoanOverview', { year: '2026', month: month, forceRefresh: forceRefresh ? 'true' : '' });
-      const loader = (!forceRefresh && supabaseStatus.ok)
-        ? readFundLoanOverviewFromSupabase('2026', month).catch((err) => {
-            fundLoanFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
-            console.warn('Không đọc được Vay nợ từ Supabase, quay về Apps Script:', err);
-            return loadFundLoanFromAppsScript();
-          })
-        : (() => {
-            fundLoanFallbackReason = supabaseStatus.reason;
-            return loadFundLoanFromAppsScript();
-          })();
-      return loader
+      return loadFundLoanFromAppsScript()
         .then((data) => {
           fundLoanData = data;
           fundLoanHistoryPage = 1;
           renderFundLoanOverview(data);
-          showSyncToast(data.supabaseCached
-            ? 'Vay nợ đang đọc từ Supabase cache.'
-            : 'Vay nợ đã quay về Apps Script. ' + (fundLoanFallbackReason || ''));
+          showSyncToast('Vay nợ đang đọc trực tiếp từ Apps Script để bảo đảm bộ lọc tháng mới nhất.');
         })
         .catch((err) => {
           el('fundLoanMetrics').innerHTML = `<article class="kpi-card"><div class="kpi-label">Lỗi tải khoản vay</div><div class="kpi-value" style="font-size:18px;">${escapeHtml(err.message)}</div></article>`;
@@ -7262,6 +7311,11 @@
       const headers = [...currentManageData.headers];
       const rawRows = currentManageData.rows || [];
       const visibleColumns = getManageVisibleColumns(headers, sheetName);
+      const isDauSheet = sheetName === 'NL_Dau';
+      const manageTable = el('manageTable');
+      if (manageTable) manageTable.classList.toggle('manage-horizontal-table', isDauSheet);
+      const manageScroll = manageTable ? manageTable.closest('.table-scroll') : null;
+      if (manageScroll) manageScroll.classList.toggle('manage-horizontal-scroll', isDauSheet);
       
       let vehicleColIdx = -1;
       for (let i = 0; i < headers.length; i++) {
@@ -7451,7 +7505,6 @@
         });
       }
       const showOwnerCol = shouldShowManageOwnerColumn(sheetName, vehicleColIdx);
-      const isDauSheet = sheetName === 'NL_Dau';
       const isTaiXeSheet = sheetName === 'NL_TaiXe';
 
       const matched = filteredManageRowsData.filter(row => {

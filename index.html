@@ -9008,13 +9008,12 @@
       ensureSelectedMonth(parsed.rows);
       renderMonthFilters(parsed.rows);
       
-      const overviewMatrix = buildOverviewSummaryMatrix_(parsed.rows);
-      const filteredOverview = filterOverviewMatrix(overviewMatrix, selectedMonth);
+      const filteredOverview = filterOverviewMatrix(dashboard.overview.months, selectedMonth);
       const selected = getSelectedOverviewRow(parsed.rows);
       
       const links = getLinks();
       holder.appendChild(renderTableCard('Báo cáo tổng quan', filteredOverview, links.overview, 'finance'));
-      holder.appendChild(renderTableCard('Báo cáo chi tiết', buildSelectedDetails(selected), links.overview, 'details'));
+      holder.appendChild(renderTableCard('Báo cáo chi tiết', dashboard.overview.details || [], links.overview, 'details'));
       
       holder.appendChild(reportsByType.payroll?.data
         ? renderTableCard('Bảng tổng hợp lương nhân sự', reportsByType.payroll.data, links.payroll, 'payroll')
@@ -9594,13 +9593,12 @@
       const fuelOutColIdx = getColIdx(['dầu ngoài', 'đổ ngoài'], 6);
       const tollColIdx = getColIdx(['cầu đường', 'phí cầu đường'], 7);
       const grossColIdx = getColIdx(['lợi nhuận gộp'], 8);
-      const payrollColIdx = getColIdx(['lương', 'chi phí lương'], -1);
+      const payrollColIdx = getColIdx(['chi phí lương', 'tổng lương'], -1);
       const fundColIdx = getColIdx(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 9);
       const finalColIdx = getColIdx(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận thực'], 10);
 
       const dataRows = headerIndex >= 0 ? matrix.slice(headerIndex + 1) : matrix.slice(1);
       const readMoney = (row, idx) => idx >= 0 && idx < row.length ? parseMoney(row[idx]) : 0;
-      const kpisByMonth = buildOverviewKpiMap_();
 
       const rows = dataRows
         .filter((row) => row[monthColIdx] && String(row[monthColIdx]).trim() !== '' && String(row[monthColIdx]).trim() !== 'Tháng')
@@ -9614,18 +9612,15 @@
           const fuelOut = readMoney(row, fuelOutColIdx);
           const toll = readMoney(row, tollColIdx);
           const fund = readMoney(row, fundColIdx);
-          const finalFromSummary = readMoney(row, finalColIdx);
-          const monthKey = normalizeMonthLabel_(monthVal);
-          const kpi = kpisByMonth[monthKey] || null;
+          const final = readMoney(row, finalColIdx);
           
           const calculatedGross = rev - taxTndn - taxVat - fuelQM - toll;
-          const gross = kpi ? kpi.gross : (grossColIdx >= 0 ? readMoney(row, grossColIdx) : calculatedGross);
-          const final = kpi ? kpi.final : finalFromSummary;
+          const gross = grossColIdx >= 0 ? readMoney(row, grossColIdx) : calculatedGross;
           const grossText = formatCurrencyText(gross);
           
           const operatingCost = taxTndn + taxVat + fuelQM + toll;
-          const cashCost = kpi ? kpi.cashCost : gross - final;
-          const payroll = kpi ? kpi.payroll : (payrollColIdx >= 0 ? readMoney(row, payrollColIdx) : cashCost - fuelOut - fund);
+          const cashCost = gross - final;
+          const payroll = payrollColIdx >= 0 ? readMoney(row, payrollColIdx) : 0;
           const totalCost = operatingCost + cashCost;
           const totalCostText = formatCurrencyText(totalCost);
           

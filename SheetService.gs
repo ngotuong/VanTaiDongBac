@@ -526,7 +526,7 @@ var SheetService = (function () {
     var fuelOutCol = colIndex(['dầu ngoài', 'đổ ngoài'], 6);
     var tollCol = colIndex(['cầu đường', 'phí cầu đường'], 7);
     var grossCol = colIndex(['lợi nhuận gộp'], 8);
-    var payrollCol = colIndex(['lương', 'chi phí lương'], -1);
+    var payrollCol = colIndex(['chi phí lương', 'tổng lương'], -1);
     var fundCol = colIndex(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 9);
     var finalCol = colIndex(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận thực'], 10);
 
@@ -690,7 +690,50 @@ var SheetService = (function () {
   }
 
   function computeAndCacheOverviewDetails_(ss, sheet, months, dataVersion) {
-    return {};
+    var detailsByMonth = {};
+    var lock = LockService.getScriptLock();
+    var locked = false;
+    var tempSheet = null;
+    try {
+      lock.waitLock(15000);
+      locked = true;
+      cleanupOverviewTempSheets_(ss);
+      tempSheet = sheet.copyTo(ss);
+      tempSheet.setName('_TMP_BC_TongQuan_' + Utilities.getUuid().slice(0, 8));
+      tempSheet.hideSheet();
+
+      months.forEach(function (month) {
+        var monthLabel = clean_(month);
+        if (!monthLabel) return;
+        var dateValue = parseMonthLabelToDate_(monthLabel);
+        tempSheet.getRange('B1').setValue(dateValue);
+        SpreadsheetApp.flush();
+        var monthKey = normalizeDisplayMonth_(monthLabel) || normalizeMonthKey_(monthLabel);
+        detailsByMonth[monthKey] = readCurrentOverviewDetails_(tempSheet);
+      });
+    } catch (e) {
+      console.error('Lỗi tính toán/cache báo cáo chi tiết trên sheet tạm:', e);
+    } finally {
+      if (tempSheet) {
+        try {
+          ss.deleteSheet(tempSheet);
+        } catch (deleteErr) {
+          console.error('Không xóa được sheet tạm báo cáo:', deleteErr);
+        }
+      }
+      if (locked) lock.releaseLock();
+    }
+
+    writeReportDetailsCache_(ss, dataVersion, detailsByMonth);
+    return detailsByMonth;
+  }
+
+  function cleanupOverviewTempSheets_(ss) {
+    ss.getSheets().forEach(function (candidate) {
+      if (candidate.getName().indexOf('_TMP_BC_TongQuan_') === 0) {
+        ss.deleteSheet(candidate);
+      }
+    });
   }
 
   function parseMonthLabelToDate_(monthLabel) {

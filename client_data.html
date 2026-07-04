@@ -210,6 +210,7 @@
             recentSubmissions = submitted.filter(Boolean).concat(recentSubmissions).slice(0, 8);
             invalidateReportSessionCache();
             rows = [newBlankRow()];
+            loadDashboard(false).catch((err) => console.warn('Không thể tải lại Tổng quan sau khi ghi:', err));
           }
           
           renderEntry();

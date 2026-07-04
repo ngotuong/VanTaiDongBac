@@ -491,27 +491,72 @@ var SheetService = (function () {
   function readOverviewKpis_(ss, sheet, months) {
     var activeMonths = getActiveReportMonths_(months);
     if (!activeMonths.length) return [];
-    var dataVersion = getReportDataVersion_();
-    var cached = readReportDetailsCacheMap_(ss, dataVersion);
-    var missing = activeMonths.filter(function (month) {
-      var key = normalizeDisplayMonth_(month) || normalizeMonthKey_(month);
-      return !cached[key];
+    return readOverviewKpisFromMonthTable_(months);
+  }
+
+  function readOverviewKpisFromMonthTable_(months) {
+    if (!months || !months.length) return [];
+    var headerIndex = -1;
+    for (var i = 0; i < months.length; i++) {
+      if (normalizeText_(months[i] && months[i][0]) === 'thang') {
+        headerIndex = i;
+        break;
+      }
+    }
+    var headers = (months[headerIndex >= 0 ? headerIndex : 0] || []).map(function (header) {
+      return normalizeText_(header);
     });
-    if (missing.length) {
-      var computed = computeAndCacheOverviewDetails_(ss, sheet, missing, dataVersion);
-      Object.keys(computed).forEach(function (key) {
-        cached[key] = computed[key];
-      });
+    var dataRows = headerIndex >= 0 ? months.slice(headerIndex + 1) : months.slice(1);
+
+    function colIndex(names, fallback) {
+      for (var col = 0; col < headers.length; col++) {
+        var header = headers[col];
+        for (var idx = 0; idx < names.length; idx++) {
+          if (header.indexOf(normalizeText_(names[idx])) !== -1) return col;
+        }
+      }
+      return fallback;
     }
 
-    return activeMonths.map(function (month) {
-      var monthKey = normalizeDisplayMonth_(month) || normalizeMonthKey_(month);
-      var details = cached[monthKey] || [];
-      var kpi = parseOverviewKpiDetails_(details);
-      kpi.month = month;
-      kpi.monthKey = monthKey;
-      return kpi;
-    });
+    var monthCol = colIndex(['tháng'], 0);
+    var revenueCol = colIndex(['doanh thu'], 2);
+    var taxTndnCol = colIndex(['thuế tndn', 'tndn'], 3);
+    var taxVatCol = colIndex(['thuế vat', 'vat'], 4);
+    var fuelQmCol = colIndex(['dầu qm', 'quang minh'], 5);
+    var fuelOutCol = colIndex(['dầu ngoài', 'đổ ngoài'], 6);
+    var tollCol = colIndex(['cầu đường', 'phí cầu đường'], 7);
+    var grossCol = colIndex(['lợi nhuận gộp'], 8);
+    var payrollCol = colIndex(['lương', 'chi phí lương'], -1);
+    var fundCol = colIndex(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 9);
+    var finalCol = colIndex(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận thực'], 10);
+
+    return dataRows.map(function (row) {
+      var month = clean_(row && row[monthCol]);
+      if (!month || month === 'Tháng') return null;
+      var revenue = parseNumberLoose_(row[revenueCol]);
+      var taxTndn = parseNumberLoose_(row[taxTndnCol]);
+      var taxVat = parseNumberLoose_(row[taxVatCol]);
+      var fuelQm = parseNumberLoose_(row[fuelQmCol]);
+      var fuelOut = parseNumberLoose_(row[fuelOutCol]);
+      var toll = parseNumberLoose_(row[tollCol]);
+      var fund = parseNumberLoose_(row[fundCol]);
+      var finalProfit = parseNumberLoose_(row[finalCol]);
+      var calculatedGross = revenue - taxTndn - taxVat - fuelQm - toll;
+      var gross = grossCol >= 0 ? parseNumberLoose_(row[grossCol]) : calculatedGross;
+      var cashCost = gross - finalProfit;
+      var payroll = payrollCol >= 0 ? parseNumberLoose_(row[payrollCol]) : cashCost - fuelOut - fund;
+      return {
+        month: month,
+        monthKey: normalizeDisplayMonth_(month) || normalizeMonthKey_(month),
+        gross: gross,
+        final: finalProfit,
+        cashCost: cashCost,
+        fuelOut: fuelOut,
+        payroll: payroll,
+        fund: fund,
+        totalCost: cashCost
+      };
+    }).filter(function (item) { return item; });
   }
 
   function parseOverviewKpiDetails_(details) {
@@ -645,9 +690,7 @@ var SheetService = (function () {
   }
 
   function computeAndCacheOverviewDetails_(ss, sheet, months, dataVersion) {
-    var detailsByMonth = {};
-    console.log('Bỏ qua tính cache chi tiết báo cáo bằng BC_TongQuan!B1 để không làm thay đổi ô chọn tháng.');
-    return detailsByMonth;
+    return {};
   }
 
   function parseMonthLabelToDate_(monthLabel) {

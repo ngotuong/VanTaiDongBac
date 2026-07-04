@@ -9670,6 +9670,9 @@
       (dashboard?.overview?.kpis || []).forEach((item) => {
         const key = normalizeMonthLabel_(item.month || item.monthKey || '');
         if (!key) return;
+        const values = [item.gross, item.final, item.cashCost, item.fuelOut, item.payroll, item.fund]
+          .map((value) => Number(value || 0));
+        if (!values.some((value) => Math.abs(value) > 0)) return;
         result[key] = {
           gross: Number(item.gross || 0),
           final: Number(item.final || 0),
@@ -10089,6 +10092,7 @@
             recentSubmissions = submitted.filter(Boolean).concat(recentSubmissions).slice(0, 8);
             invalidateReportSessionCache();
             rows = [newBlankRow()];
+            loadDashboard(false).catch((err) => console.warn('Không thể tải lại Tổng quan sau khi ghi:', err));
           }
           
           renderEntry();

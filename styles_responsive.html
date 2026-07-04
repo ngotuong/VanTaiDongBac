@@ -503,11 +503,17 @@
         top: calc(112px + env(safe-area-inset-top, 0px)) !important;
       }
 
-      #reportsView #reportTabsBar.sticky-after-toolbar {
-        top: calc(108px + env(safe-area-inset-top, 0px)) !important;
-        z-index: 33 !important;
+      #reportsView #reportTabsBar {
+        top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+        z-index: 34 !important;
         background: rgba(255, 255, 255, 0.96);
         backdrop-filter: blur(16px);
+      }
+
+      #reportsView .report-filter-panel.sticky-after-tabs {
+        top: calc(56px + env(safe-area-inset-top, 0px)) !important;
+        z-index: 33 !important;
+        margin-bottom: 12px !important;
       }
 
       .report-table-head {
@@ -565,8 +571,9 @@
         line-height: 1.32 !important;
       }
 
+      #reportsView .report-data-table tbody td:first-child,
       #reportsView .report-data-table-details tbody td:nth-child(1) {
-        font-size: 14px !important;
+        font-size: 13px !important;
         line-height: 1.26 !important;
       }
 
@@ -1291,7 +1298,27 @@
       .sticky-col-right {
         padding: 6px 4px !important;
       }
-      input, select, textarea, .ac-input { min-height: 48px; font-size: 16px; font-weight: 500; }
+      input, select, textarea, .ac-input {
+        min-height: 48px;
+        font-size: 16px !important;
+        font-weight: 500;
+      }
+
+      .filter-row input,
+      .filter-row select,
+      .filter-container input,
+      .filter-container select,
+      .compact-filter select,
+      .vehicle-summary-filters .compact-filter select,
+      .modal-grid input,
+      .modal-grid select,
+      .modal-grid textarea,
+      .fund-detail-drawer input,
+      .fund-detail-drawer select,
+      .fund-detail-drawer textarea {
+        font-size: 16px !important;
+      }
+
       button { min-height: 46px; }
 
       .mobile-record-table {
@@ -1474,7 +1501,7 @@
     }
 
     @media (max-width: 900px) {
-      :root[data-theme="dark"] #reportsView #reportTabsBar.sticky-after-toolbar,
+      :root[data-theme="dark"] #reportsView #reportTabsBar,
       :root[data-theme="dark"] .app-sticky-toolbar,
       :root[data-theme="dark"] .app-sticky-tabs,
       :root[data-theme="dark"] .bottom-nav,

@@ -207,7 +207,16 @@
 
       <!-- View: Detailed Reports -->
       <section id="reportsView" class="view">
-        <section class="panel report-filter-panel app-sticky-toolbar" style="margin-bottom: 20px;">
+        <!-- Sub-tabs to switch report subcategories -->
+        <div class="sub-tabs-bar app-sticky-tabs" id="reportTabsBar">
+          <button type="button" class="sub-tab active" data-report-tab="all" onclick="setReportTab('all')">Tất Cả</button>
+          <button type="button" class="sub-tab" data-report-tab="finance" onclick="setReportTab('finance')">Tổng Quan</button>
+          <button type="button" class="sub-tab" data-report-tab="details" onclick="setReportTab('details')">Chi Tiết</button>
+          <button type="button" class="sub-tab" data-report-tab="payroll" onclick="setReportTab('payroll')">Bảng Lương</button>
+          <button type="button" class="sub-tab" data-report-tab="vehicles" onclick="setReportTab('vehicles')">Tổng Hợp Xe</button>
+        </div>
+
+        <section class="panel report-filter-panel app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
           <div class="panel-head" style="flex-wrap: wrap; gap: 12px; justify-content: flex-end;">
             <div class="filter-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 500px; box-sizing: border-box;">
               <input type="text" id="reportSearchInput" placeholder="Tìm xe, tài xế..." style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s;" oninput="debounceReportSearch()"/>
@@ -215,15 +224,6 @@
             </div>
           </div>
         </section>
-
-        <!-- Sub-tabs to switch report subcategories -->
-        <div class="sub-tabs-bar app-sticky-tabs sticky-after-toolbar" id="reportTabsBar">
-          <button type="button" class="sub-tab active" data-report-tab="all" onclick="setReportTab('all')">Tất Cả</button>
-          <button type="button" class="sub-tab" data-report-tab="finance" onclick="setReportTab('finance')">Tổng Quan</button>
-          <button type="button" class="sub-tab" data-report-tab="details" onclick="setReportTab('details')">Chi Tiết</button>
-          <button type="button" class="sub-tab" data-report-tab="payroll" onclick="setReportTab('payroll')">Bảng Lương</button>
-          <button type="button" class="sub-tab" data-report-tab="vehicles" onclick="setReportTab('vehicles')">Tổng Hợp Xe</button>
-        </div>
 
         <div class="report-stack" id="reports">
           <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>

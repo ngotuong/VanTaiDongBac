@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec`
-- Apps Script deployment moi nhat da xac nhan: `@201 - Mobile sticky dark mode refinements`
+- Apps Script deployment moi nhat da xac nhan: `@202 - Report tabs and iPhone input zoom fix`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co
@@ -99,6 +99,9 @@ Commit lien quan:
 - Bao cao mobile tang offset sticky cua thanh tab duoi panel loc de khong bi che khi cuon; tang nhe font chu trong than bang bao cao, giu nguyen header/tab/tieu de.
 - Them Dark mode trong menu Cai dat, luu localStorage `dongbac_theme`, doi theme-color va token mau theo `data-theme`.
 - Van hanh mobile gop hang Ky + Nhap moi vao cung card sticky voi bo loc ngay/tim kiem de tiet kiem chieu cao.
+- Sua hien tuong iPhone auto zoom khi focus input/select bang cach dam bao controls mobile co computed font-size 16px.
+- Bao cao doi thu tu sticky thanh tab len tren card bo loc, giong cac menu khac; filter nam duoi tab voi offset sticky-after-tabs.
+- Bao cao can lai font body: cot danh muc dau dong cung co chu voi so lieu, rieng cot dien giai giu nho hon de khong vo bang.
 
 ## File tài liệu hiện hành
 

@@ -1371,9 +1371,11 @@
     }
 
     function getFundMonthKeysForRange(startDate, endDate) {
-      const start = parseFundDateValue(startDate);
-      const end = parseFundDateValue(endDate);
-      if (!start || !end || start > end) return [];
+      const startTime = parseFundDateValue(startDate);
+      const endTime = parseFundDateValue(endDate);
+      if (!startTime || !endTime || startTime > endTime) return [];
+      const start = new Date(startTime);
+      const end = new Date(endTime);
       const keys = [];
       const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
       const endCursor = new Date(end.getFullYear(), end.getMonth(), 1);

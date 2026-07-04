@@ -145,6 +145,10 @@
 
     function setCatalogSheetTab(sheetName) {
       el('catalogSheetSelect').value = sheetName;
+      if (sheetName === 'DM_NhanSu') {
+        const statusFilter = el('catalogPersonnelStatusFilter');
+        if (statusFilter && !statusFilter.value) statusFilter.value = 'active';
+      }
       document.querySelectorAll('#catalogTabsBar .sub-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.sheet === sheetName);
       });

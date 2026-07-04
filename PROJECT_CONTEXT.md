@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec`
-- Apps Script deployment moi nhat da xac nhan: `@193 - Update mobile UI and app icon`
+- Apps Script deployment moi nhat da xac nhan: `@194 - Refine mobile filters and personnel catalog`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co

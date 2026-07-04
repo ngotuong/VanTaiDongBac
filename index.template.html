@@ -412,6 +412,14 @@
                 Tìm kiếm:
                 <input type="text" id="catalogSearchInput" placeholder="Tìm kiếm trong danh mục..." style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="debounceCatalogSearch()">
               </label>
+              <label id="catalogPersonnelStatusFilterWrap" style="margin: 0; display: none; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 0 0 190px;">
+                Trạng thái:
+                <select id="catalogPersonnelStatusFilter" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="filterCatalogRows()">
+                  <option value="active" selected>Đang làm</option>
+                  <option value="inactive">Đã nghỉ</option>
+                  <option value="all">Tất cả</option>
+                </select>
+              </label>
             </div>
             <div>
               <button type="button" class="primary icon-button" title="Thêm dòng mới" aria-label="Thêm dòng mới" style="padding: 0 !important; border-radius: 8px;" onclick="openCatalogAddModal()">

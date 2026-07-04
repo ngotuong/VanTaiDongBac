@@ -2,6 +2,7 @@
     let catalogPage = 1;
     const catalogPageSize = 20;
     let lastCatalogQuery = '';
+    let lastCatalogPersonnelStatus = 'active';
     let catalogLoadSeq = 0;
 
     // Catalog CRUD Operations
@@ -10,6 +11,7 @@
       lastCatalogQuery = '';
       const requestSeq = ++catalogLoadSeq;
       const displaySheetName = el('catalogSheetSelect').value;
+      syncCatalogPersonnelStatusFilter(displaySheetName);
       
       const tbody = el('catalogTableBody');
       const thead = el('catalogTableHeader');
@@ -121,11 +123,35 @@
       filterCatalogRows();
     }
 
+    function syncCatalogPersonnelStatusFilter(sheetName) {
+      const wrap = el('catalogPersonnelStatusFilterWrap');
+      const select = el('catalogPersonnelStatusFilter');
+      const isPersonnel = sheetName === 'DM_NhanSu';
+      if (wrap) wrap.style.display = isPersonnel ? 'flex' : 'none';
+      if (select && isPersonnel && !select.value) select.value = 'active';
+    }
+
+    function getCatalogStatusColumnIndex() {
+      const headers = currentCatalogData?.headers || [];
+      return headers.findIndex((header) => {
+        const normalized = removeAccents(String(header || '').trim().toLowerCase());
+        return normalized === 'trang thai' || normalized === 'status';
+      });
+    }
+
+    function isInactivePersonnelStatus(value) {
+      const normalized = removeAccents(String(value || '').trim().toLowerCase());
+      return normalized.includes('nghi') || normalized.includes('da nghi') || normalized.includes('khong lam');
+    }
+
     function filterCatalogRows() {
       const query = el('catalogSearchInput').value.toLowerCase().trim();
-      if (query !== lastCatalogQuery) {
+      const sheetName = el('catalogSheetSelect')?.value || '';
+      const personnelStatus = sheetName === 'DM_NhanSu' ? (el('catalogPersonnelStatusFilter')?.value || 'active') : 'all';
+      if (query !== lastCatalogQuery || personnelStatus !== lastCatalogPersonnelStatus) {
         catalogPage = 1;
         lastCatalogQuery = query;
+        lastCatalogPersonnelStatus = personnelStatus;
       }
       
       const tbody = el('catalogTableBody');
@@ -143,7 +169,13 @@
       }
       const showOwnerCol = (vehicleColIdx !== -1);
 
+      const statusColIdx = sheetName === 'DM_NhanSu' ? getCatalogStatusColumnIndex() : -1;
       const matched = filteredCatalogRowsData.filter(row => {
+        if (sheetName === 'DM_NhanSu' && personnelStatus !== 'all' && statusColIdx >= 0) {
+          const inactive = isInactivePersonnelStatus(row.values[statusColIdx]);
+          if (personnelStatus === 'active' && inactive) return false;
+          if (personnelStatus === 'inactive' && !inactive) return false;
+        }
         if (!query) return true;
         return row.searchText.includes(removeAccents(query));
       });

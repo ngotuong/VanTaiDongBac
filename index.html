@@ -3036,9 +3036,29 @@
 
       #catalogView .catalog-sticky-toolbar .filter-container {
         display: grid !important;
-        grid-template-columns: minmax(0, 1fr) 48px;
-        gap: 10px !important;
+        grid-template-columns: minmax(0, 1fr) 44px;
+        gap: 8px !important;
         align-items: end !important;
+      }
+
+      #catalogView .catalog-sticky-toolbar .filter-container > div:first-child {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px !important;
+        width: 100% !important;
+      }
+
+      #catalogView #catalogPersonnelStatusFilterWrap {
+        display: grid !important;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center !important;
+        gap: 6px !important;
+        flex: 1 1 auto !important;
+        width: 100% !important;
+      }
+
+      #catalogView #catalogPersonnelStatusFilterWrap[style*="none"] {
+        display: none !important;
       }
 
       #catalogView .catalog-sticky-toolbar label {
@@ -3060,12 +3080,19 @@
         border-radius: 12px !important;
       }
 
+      #catalogView .catalog-sticky-toolbar select {
+        min-height: 40px;
+        height: 40px;
+        font-size: 15px !important;
+        border-radius: 10px !important;
+      }
+
       #catalogView .catalog-sticky-toolbar .icon-button {
-        width: 48px !important;
-        height: 48px !important;
-        min-width: 48px !important;
-        min-height: 48px !important;
-        border-radius: 14px !important;
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
+        border-radius: 12px !important;
       }
 
       #catalogView .catalog-sticky-toolbar.sticky-after-tabs {
@@ -3123,13 +3150,17 @@
         flex-wrap: nowrap !important;
         align-items: center;
         justify-content: flex-start;
-        gap: 8px;
-        margin: 0 -12px 12px !important;
-        padding: 2px 12px 10px;
+        gap: 6px;
+        margin: 0 0 10px !important;
+        padding: 6px;
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.94);
         overflow-x: auto;
         overflow-y: hidden;
         overscroll-behavior-x: contain;
         scroll-snap-type: x proximity;
+        scroll-padding-inline: 12px;
         scrollbar-width: none;
         -webkit-overflow-scrolling: touch;
       }
@@ -3140,8 +3171,8 @@
 
       #manageTabsBar .sub-tab {
         flex: 0 0 auto;
-        min-height: 44px;
-        padding: 0 16px;
+        min-height: 38px;
+        padding: 0 14px !important;
         scroll-snap-align: start;
         white-space: nowrap;
       }
@@ -3158,9 +3189,9 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 12px;
-        padding: 12px;
+        gap: 8px;
+        margin-bottom: 10px;
+        padding: 8px;
         border: 1px solid var(--line);
         border-radius: var(--radius-lg);
         background: var(--paper);
@@ -3171,7 +3202,7 @@
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         min-width: 0;
         flex: 1 1 auto;
       }
@@ -3185,22 +3216,25 @@
 
       .mobile-period-control select {
         min-width: 0;
-        min-height: 44px;
+        min-height: 40px;
+        height: 40px;
         width: 100%;
+        max-width: 190px;
         border: 1px solid var(--line);
-        border-radius: 12px;
+        border-radius: 10px;
         background: var(--paper);
         color: var(--ink);
         font-size: 16px;
-        font-weight: 800;
+        font-weight: 700;
         padding: 0 10px;
       }
 
       .mobile-operation-bar button {
         flex: 0 0 auto;
-        min-height: 44px;
-        padding: 0 14px;
-        border-radius: 12px;
+        min-height: 40px;
+        height: 40px;
+        padding: 0 13px;
+        border-radius: 10px;
       }
 
       .manage-add-shortcut {
@@ -3470,13 +3504,18 @@
       .fund-transaction-toolbar,
       .fund-transaction-filters {
         display: grid !important;
-        grid-template-columns: 1fr !important;
         width: 100% !important;
-        gap: 10px !important;
+        gap: 8px !important;
       }
 
       .fund-transaction-toolbar {
-        padding: 12px !important;
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        align-items: center !important;
+        padding: 8px !important;
+      }
+
+      .fund-transaction-filters {
+        display: contents !important;
       }
 
       .fund-transaction-filters label,
@@ -3488,12 +3527,41 @@
         gap: 6px !important;
       }
 
+      .fund-transaction-filters .manage-period-filter {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        display: grid !important;
+        grid-template-columns: auto minmax(0, 1fr) !important;
+        align-items: center !important;
+        gap: 6px !important;
+        width: 100% !important;
+        font-size: 10.5px !important;
+        line-height: 1.1 !important;
+      }
+
+      .fund-transaction-filters .manage-period-filter select {
+        min-height: 40px !important;
+        height: 40px !important;
+        width: 100% !important;
+        max-width: 170px !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
+      }
+
       #fundDateFilterGroup {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        grid-column: 1 / -1 !important;
+        grid-row: 2 !important;
         min-width: 0 !important;
         width: 100% !important;
-        gap: 8px !important;
+        gap: 6px !important;
+      }
+
+      #fundDateFilterGroup label,
+      .fund-transaction-search {
+        font-size: 10.5px !important;
+        line-height: 1.1 !important;
       }
 
       .fund-transaction-filters select,
@@ -3503,9 +3571,34 @@
         min-width: 0 !important;
       }
 
+      #fundStartDate,
+      #fundEndDate,
+      #fundSearchInput {
+        min-height: 40px !important;
+        height: 40px !important;
+        font-size: 15px !important;
+      }
+
+      .fund-transaction-search {
+        grid-column: 1 / -1 !important;
+        grid-row: 3 !important;
+      }
+
       .fund-transaction-toolbar-actions {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
         justify-content: flex-end !important;
-        width: 100% !important;
+        width: auto !important;
+        gap: 6px !important;
+      }
+
+      .fund-transaction-toolbar-actions .ghost,
+      .fund-transaction-toolbar-actions .primary {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        min-height: 40px !important;
+        border-radius: 10px !important;
       }
 
       .fund-loan-history-filters {
@@ -4093,6 +4186,14 @@
               <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; max-width: 400px; width: 100%;">
                 Tìm kiếm:
                 <input type="text" id="catalogSearchInput" placeholder="Tìm kiếm trong danh mục..." style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="debounceCatalogSearch()">
+              </label>
+              <label id="catalogPersonnelStatusFilterWrap" style="margin: 0; display: none; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 0 0 190px;">
+                Trạng thái:
+                <select id="catalogPersonnelStatusFilter" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="filterCatalogRows()">
+                  <option value="active" selected>Đang làm</option>
+                  <option value="inactive">Đã nghỉ</option>
+                  <option value="all">Tất cả</option>
+                </select>
               </label>
             </div>
             <div>
@@ -4688,6 +4789,10 @@
 
     function setCatalogSheetTab(sheetName) {
       el('catalogSheetSelect').value = sheetName;
+      if (sheetName === 'DM_NhanSu') {
+        const statusFilter = el('catalogPersonnelStatusFilter');
+        if (statusFilter && !statusFilter.value) statusFilter.value = 'active';
+      }
       document.querySelectorAll('#catalogTabsBar .sub-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.sheet === sheetName);
       });
@@ -7767,6 +7872,7 @@
     let catalogPage = 1;
     const catalogPageSize = 20;
     let lastCatalogQuery = '';
+    let lastCatalogPersonnelStatus = 'active';
     let catalogLoadSeq = 0;
 
     // Catalog CRUD Operations
@@ -7775,6 +7881,7 @@
       lastCatalogQuery = '';
       const requestSeq = ++catalogLoadSeq;
       const displaySheetName = el('catalogSheetSelect').value;
+      syncCatalogPersonnelStatusFilter(displaySheetName);
       
       const tbody = el('catalogTableBody');
       const thead = el('catalogTableHeader');
@@ -7886,11 +7993,35 @@
       filterCatalogRows();
     }
 
+    function syncCatalogPersonnelStatusFilter(sheetName) {
+      const wrap = el('catalogPersonnelStatusFilterWrap');
+      const select = el('catalogPersonnelStatusFilter');
+      const isPersonnel = sheetName === 'DM_NhanSu';
+      if (wrap) wrap.style.display = isPersonnel ? 'flex' : 'none';
+      if (select && isPersonnel && !select.value) select.value = 'active';
+    }
+
+    function getCatalogStatusColumnIndex() {
+      const headers = currentCatalogData?.headers || [];
+      return headers.findIndex((header) => {
+        const normalized = removeAccents(String(header || '').trim().toLowerCase());
+        return normalized === 'trang thai' || normalized === 'status';
+      });
+    }
+
+    function isInactivePersonnelStatus(value) {
+      const normalized = removeAccents(String(value || '').trim().toLowerCase());
+      return normalized.includes('nghi') || normalized.includes('da nghi') || normalized.includes('khong lam');
+    }
+
     function filterCatalogRows() {
       const query = el('catalogSearchInput').value.toLowerCase().trim();
-      if (query !== lastCatalogQuery) {
+      const sheetName = el('catalogSheetSelect')?.value || '';
+      const personnelStatus = sheetName === 'DM_NhanSu' ? (el('catalogPersonnelStatusFilter')?.value || 'active') : 'all';
+      if (query !== lastCatalogQuery || personnelStatus !== lastCatalogPersonnelStatus) {
         catalogPage = 1;
         lastCatalogQuery = query;
+        lastCatalogPersonnelStatus = personnelStatus;
       }
       
       const tbody = el('catalogTableBody');
@@ -7908,7 +8039,13 @@
       }
       const showOwnerCol = (vehicleColIdx !== -1);
 
+      const statusColIdx = sheetName === 'DM_NhanSu' ? getCatalogStatusColumnIndex() : -1;
       const matched = filteredCatalogRowsData.filter(row => {
+        if (sheetName === 'DM_NhanSu' && personnelStatus !== 'all' && statusColIdx >= 0) {
+          const inactive = isInactivePersonnelStatus(row.values[statusColIdx]);
+          if (personnelStatus === 'active' && inactive) return false;
+          if (personnelStatus === 'inactive' && !inactive) return false;
+        }
         if (!query) return true;
         return row.searchText.includes(removeAccents(query));
       });

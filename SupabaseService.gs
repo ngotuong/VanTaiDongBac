@@ -280,12 +280,36 @@ var SupabaseService = (function () {
     return { ok: true, table: TABLE_MANAGE_DATA_BUNDLES, sheetName: safeSheetName, filterKey: DEFAULT_MANAGE_FILTER_KEY, syncedAt: syncedAt };
   }
 
+  function syncManageMonthBundle(sheetName, monthKey) {
+    var safeSheetName = clean_(sheetName);
+    var safeMonthKey = normalizeYearMonthKey_(monthKey);
+    if (!safeSheetName) throw new Error('Thiếu tên sheet vận hành cần sync.');
+    if (!safeMonthKey) throw new Error('Thiếu tháng vận hành cần sync.');
+    var period = monthPeriod_(safeMonthKey);
+    var filterKey = buildManageMonthFilterKey_(safeMonthKey);
+    var payload = ManageService.readManageData(safeSheetName, period.startDate, period.endDate, 500);
+    var syncedAt = new Date().toISOString();
+    upsertRows_(TABLE_MANAGE_DATA_BUNDLES, [{
+      sheet_name: safeSheetName,
+      filter_key: filterKey,
+      payload: payload,
+      synced_at: syncedAt
+    }], 'sheet_name,filter_key');
+    writeSyncStatus_('manage_data:' + safeSheetName + ':' + filterKey, 'manage', 'ok', 'Manage month cache synced.', syncedAt);
+    return { ok: true, table: TABLE_MANAGE_DATA_BUNDLES, sheetName: safeSheetName, filterKey: filterKey, monthKey: safeMonthKey, syncedAt: syncedAt };
+  }
+
   function syncAllManageDataBundles() {
     var results = [];
     var errors = [];
     MANAGE_SHEET_NAMES.forEach(function (sheetName) {
       runSyncStep_(results, errors, 'manageData:' + sheetName, function () {
         return syncManageDataBundle(sheetName);
+      });
+      getManageMonthKeys_(sheetName).forEach(function (monthKey) {
+        runSyncStep_(results, errors, 'manageData:' + sheetName + ':' + monthKey, function () {
+          return syncManageMonthBundle(sheetName, monthKey);
+        });
       });
     });
     return {
@@ -325,6 +349,11 @@ var SupabaseService = (function () {
     runSyncStep_(results, errors, 'startup', function () { return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE); });
     if (safeSheetName && safeSheetName.indexOf('NL_') === 0) {
       runSyncStep_(results, errors, 'manageData:' + safeSheetName, function () { return syncManageDataBundle(safeSheetName); });
+      getRecentManageMonthKeys_(safeSheetName, 2).forEach(function (monthKey) {
+        runSyncStep_(results, errors, 'manageData:' + safeSheetName + ':' + monthKey, function () {
+          return syncManageMonthBundle(safeSheetName, monthKey);
+        });
+      });
     }
     return { ok: errors.length === 0, synced: results.length, failed: errors.length, errors: errors };
   }
@@ -500,6 +529,73 @@ var SupabaseService = (function () {
     return 'catalog_data:' + clean_(displaySheetName);
   }
 
+  function buildManageMonthFilterKey_(monthKey) {
+    return 'month:' + normalizeYearMonthKey_(monthKey);
+  }
+
+  function getManageMonthKeys_(sheetName) {
+    var safeSheetName = clean_(sheetName);
+    var headerRow = getHeaderRowForSheet_(safeSheetName);
+    var ss = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
+    var sheet = ss.getSheetByName(safeSheetName);
+    if (!sheet) return [];
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= headerRow) return [];
+    var values = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, 1).getValues();
+    var seen = {};
+    values.forEach(function (row) {
+      var date = parseDateValue_(row[0]);
+      if (!date) return;
+      seen[Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM')] = true;
+    });
+    return Object.keys(seen).sort().reverse();
+  }
+
+  function getRecentManageMonthKeys_(sheetName, maxCount) {
+    return getManageMonthKeys_(sheetName).slice(0, Math.max(1, maxCount || 1));
+  }
+
+  function getHeaderRowForSheet_(sheetName) {
+    for (var key in APP_CONFIG.sheets) {
+      if (APP_CONFIG.sheets[key].name === sheetName) return APP_CONFIG.sheets[key].headerRow;
+    }
+    return 1;
+  }
+
+  function monthPeriod_(monthKey) {
+    var normalized = normalizeYearMonthKey_(monthKey);
+    var parts = normalized.split('-');
+    var year = Number(parts[0]);
+    var month = Number(parts[1]);
+    var end = new Date(year, month, 0);
+    return {
+      startDate: normalized + '-01',
+      endDate: Utilities.formatDate(end, APP_CONFIG.timezone, 'yyyy-MM-dd')
+    };
+  }
+
+  function normalizeYearMonthKey_(monthKey) {
+    var text = clean_(monthKey);
+    var iso = text.match(/^(\d{4})-(\d{1,2})/);
+    if (iso) return iso[1] + '-' + ('0' + Number(iso[2])).slice(-2);
+    var vn = text.match(/^(\d{1,2})\/(\d{4})$/);
+    if (vn) return vn[2] + '-' + ('0' + Number(vn[1])).slice(-2);
+    return '';
+  }
+
+  function parseDateValue_(value) {
+    if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) return value;
+    var text = clean_(value);
+    var iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    var vn = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (vn) {
+      var year = Number(vn[3].length === 2 ? '20' + vn[3] : vn[3]);
+      return new Date(year, Number(vn[2]) - 1, Number(vn[1]));
+    }
+    return null;
+  }
+
   function clean_(value) {
     return value === null || value === undefined ? '' : String(value).trim();
   }
@@ -518,6 +614,7 @@ var SupabaseService = (function () {
     syncAllStartupAndCatalogs: syncAllStartupAndCatalogs,
     syncCatalogAfterWrite: syncCatalogAfterWrite,
     syncManageDataBundle: syncManageDataBundle,
+    syncManageMonthBundle: syncManageMonthBundle,
     syncAllManageDataBundles: syncAllManageDataBundles,
     syncRealtimeCache: syncRealtimeCache,
     syncReportBundle: syncReportBundle,

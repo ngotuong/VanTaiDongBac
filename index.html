@@ -5039,11 +5039,15 @@
       }, 'Chưa có catalog data cache trong Supabase.');
     }
 
-    function readManageDataFromSupabase(sheetName) {
+    function readManageDataFromSupabase(sheetName, filterKey = 'recent_500') {
       return readSupabasePayload('manage_data_bundles', {
         sheet_name: String(sheetName || '').trim(),
-        filter_key: 'recent_500'
+        filter_key: String(filterKey || 'recent_500').trim()
       }, 'Chưa có cache Supabase cho dữ liệu Vận hành.');
+    }
+
+    function readManageMonthDataFromSupabase(sheetName, monthKey) {
+      return readManageDataFromSupabase(sheetName, 'month:' + String(monthKey || '').trim());
     }
 
     function normalizeFundMonthKeyForSupabase(month) {
@@ -6795,7 +6799,7 @@
         forceRefresh: forceRefresh ? 'true' : ''
       });
       const manageLoader = (canUseManageSupabaseCache && supabaseStatus.ok)
-        ? readManageDataFromSupabase(sheetName)
+        ? readManageDataRangeFromSupabase(sheetName, startDate, endDate)
           .then((res) => filterManageSupabasePayload(res, startDate, endDate, requestParams.limit))
           .catch((err) => {
             manageFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
@@ -6820,9 +6824,11 @@
             }
             renderManageTable();
             if (res.supabaseCached) {
-              showSyncToast(startDate || endDate
-                ? 'Vận hành đang lọc từ Supabase cache.'
-                : 'Vận hành đang đọc từ Supabase cache.');
+              showSyncToast(res.supabaseMonthlyCached
+                ? 'Vận hành đang đọc cache tháng từ Supabase.'
+                : (startDate || endDate
+                  ? 'Vận hành đang lọc từ Supabase cache.'
+                  : 'Vận hành đang đọc từ Supabase cache.'));
             } else if (manageFallbackReason && canUseManageSupabaseCache) {
               showSyncToast('Vận hành đã quay về Apps Script. ' + manageFallbackReason);
             }
@@ -6837,6 +6843,55 @@
           showTableError(tbody, 20, err.message || String(err));
           throw err;
         });
+    }
+
+    function readManageDataRangeFromSupabase(sheetName, startDate, endDate) {
+      if (startDate && endDate) {
+        const monthKeys = getManageMonthKeysForRange(startDate, endDate);
+        if (monthKeys.length) {
+          return Promise.all(monthKeys.map((monthKey) => readManageMonthDataFromSupabase(sheetName, monthKey)))
+            .then((payloads) => combineManageSupabasePayloads(payloads));
+        }
+      }
+      return readManageDataFromSupabase(sheetName);
+    }
+
+    function getManageMonthKeysForRange(startDate, endDate) {
+      const start = parseManageRowDate(startDate);
+      const end = parseManageRowDate(endDate);
+      if (!start || !end || start > end) return [];
+      const keys = [];
+      const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+      const endCursor = new Date(end.getFullYear(), end.getMonth(), 1);
+      while (cursor <= endCursor && keys.length < 24) {
+        keys.push(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`);
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+      return keys;
+    }
+
+    function combineManageSupabasePayloads(payloads) {
+      const validPayloads = (payloads || []).filter(Boolean);
+      const first = validPayloads[0] || { ok: true, headers: [], rows: [] };
+      const seen = new Set();
+      const rows = [];
+      validPayloads.forEach((payload) => {
+        (payload.rows || []).forEach((row) => {
+          const key = String(row.rowIndex || '') + '|' + JSON.stringify(row.values || []);
+          if (seen.has(key)) return;
+          seen.add(key);
+          rows.push(row);
+        });
+      });
+      rows.sort((a, b) => Number(b.rowIndex || 0) - Number(a.rowIndex || 0));
+      return {
+        ...first,
+        rows: rows,
+        isLimited: validPayloads.some((payload) => payload.isLimited),
+        supabaseCached: true,
+        supabaseMonthlyCached: true,
+        supabaseSyncedAt: validPayloads.map((payload) => payload.supabaseSyncedAt).filter(Boolean).sort().pop() || first.supabaseSyncedAt
+      };
     }
 
     function filterManageSupabasePayload(data, startDate, endDate, limit) {

@@ -172,6 +172,10 @@ function syncManageDataToSupabase(sheetName) {
   return SupabaseService.syncManageDataBundle(sheetName);
 }
 
+function syncManageMonthToSupabase(sheetName, monthKey) {
+  return SupabaseService.syncManageMonthBundle(sheetName, monthKey);
+}
+
 function syncAllManageDataToSupabase() {
   return SupabaseService.syncAllManageDataBundles();
 }

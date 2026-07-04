@@ -243,11 +243,15 @@
       }, 'Chưa có catalog data cache trong Supabase.');
     }
 
-    function readManageDataFromSupabase(sheetName) {
+    function readManageDataFromSupabase(sheetName, filterKey = 'recent_500') {
       return readSupabasePayload('manage_data_bundles', {
         sheet_name: String(sheetName || '').trim(),
-        filter_key: 'recent_500'
+        filter_key: String(filterKey || 'recent_500').trim()
       }, 'Chưa có cache Supabase cho dữ liệu Vận hành.');
+    }
+
+    function readManageMonthDataFromSupabase(sheetName, monthKey) {
+      return readManageDataFromSupabase(sheetName, 'month:' + String(monthKey || '').trim());
     }
 
     function normalizeFundMonthKeyForSupabase(month) {

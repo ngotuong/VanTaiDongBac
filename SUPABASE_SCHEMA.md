@@ -176,8 +176,8 @@ Cache dữ liệu đọc danh sách mặc định của menu **Vận hành**.
 | Cột | Kiểu | Bắt buộc | Ghi chú |
 | --- | --- | --- | --- |
 | `sheet_name` | `text` | Có | Tên sheet vận hành, ví dụ `NL_VanChuyen`, `NL_TaiXe`. |
-| `filter_key` | `text` | Có | Hiện dùng `recent_50` cho trạng thái mặc định. |
-| `payload` | `jsonb` | Có | Dữ liệu trả về từ `ManageService.readManageData(sheetName, '', '', 50)`. |
+| `filter_key` | `text` | Có | `recent_500` cho dữ liệu gần nhất, hoặc `month:YYYY-MM` cho cache theo tháng. |
+| `payload` | `jsonb` | Có | Dữ liệu trả về từ `ManageService.readManageData`. |
 | `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
 | `created_at` | `timestamptz` | Có | Thời điểm tạo row. |
 | `updated_at` | `timestamptz` | Có | Thời điểm cập nhật row gần nhất. |
@@ -197,16 +197,30 @@ Nguồn Google Sheet tương ứng:
 
 Frontend đọc:
 
-- `client_manage.html` đọc `manage_data_bundles` khi người dùng vào Vận hành ở trạng thái mặc định, không filter ngày và không bấm refresh.
-- Nếu chọn khoảng ngày, bấm làm mới, cache thiếu hoặc Supabase lỗi, frontend fallback về Apps Script `readManageData`.
+- `client_manage.html` đọc `recent_500` khi người dùng vào Vận hành ở trạng thái mặc định.
+- Khi chọn đủ khoảng ngày, frontend đọc các cache `month:YYYY-MM` tương ứng rồi ghép và lọc ngay trên trình duyệt.
+- Nếu bấm làm mới, cache thiếu hoặc Supabase lỗi, frontend fallback về Apps Script `readManageData`.
 
 Luồng đồng bộ:
 
 1. Google Sheet vẫn là nguồn chuẩn.
 2. Apps Script chạy `syncAllManageDataToSupabase()` hoặc trigger `syncRealtimeCache()`.
-3. Khi nhập/sửa/xóa dữ liệu vận hành qua web app, Apps Script ghi Google Sheet trước rồi sync lại cache sheet liên quan.
+3. Apps Script upsert `recent_500` và các cache tháng đang có dữ liệu.
+4. Khi nhập/sửa/xóa dữ liệu vận hành qua web app, Apps Script ghi Google Sheet trước rồi sync lại cache sheet liên quan và các tháng gần nhất.
 
 RLS:
 
 - `anon` và `authenticated` chỉ được `select`.
 - Apps Script dùng service role key để ghi.
+
+## Định hướng thông báo in-app
+
+Không đọc trực tiếp `XL_DoiSoatChuyen` mỗi lần mở app vì sẽ chậm.
+
+Luồng đúng cho thông báo:
+
+1. Google Sheet vẫn tính đối soát/thưởng nóng trong `XL_DoiSoatChuyen`.
+2. Apps Script trigger đọc sheet này theo chu kỳ 1-5 phút.
+3. Apps Script ghi các sự kiện mới vào Supabase, ví dụ bảng `notification_events`.
+4. Frontend chỉ đọc Supabase để hiển thị chuông thông báo, trạng thái đã đọc/chưa đọc.
+5. Sau đó có thể mở rộng sang web push/PWA hoặc Telegram nếu cần thông báo ngoài app.

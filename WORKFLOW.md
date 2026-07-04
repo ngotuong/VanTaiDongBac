@@ -89,6 +89,14 @@ Sau giai đoạn 4, trigger này cũng cập nhật cache danh sách mặc đị
 syncAllManageDataToSupabase()
 ```
 
+Nếu chỉ cần sync lại một tháng cụ thể của một sheet Vận hành:
+
+```javascript
+syncManageMonthToSupabase('NL_VanChuyen', '2026-07')
+```
+
+Frontend dùng cache `month:YYYY-MM` khi người dùng chọn đủ khoảng ngày trong menu Vận hành.
+
 ## Khi deploy
 
 Frontend Vercel:

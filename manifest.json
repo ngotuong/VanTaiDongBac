@@ -3,6 +3,7 @@
   "short_name": "Đông Bắc",
   "description": "Hệ thống điều hành nội bộ Vận tải Đông Bắc",
   "start_url": "/",
+  "id": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

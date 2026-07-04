@@ -74,7 +74,13 @@ Commit lien quan:
 - `d623753 Render overview details without B1 cache`
 - `f7c6ae6 Restore overview KPI without mutating month selector`
 
-## File tai lieu hien hanh
+### PWA / App Icon (Ngày 2026-07-04)
+
+- Tạo file SVG nguồn mới `assets/app-icon/app-icon-pwa-source.svg` loại bỏ chữ, scale 1.45x và căn giữa biểu tượng để tối ưu hiển thị trên di động.
+- Thêm script `scripts/generate-icons.js` dùng `sharp` để tự động tạo bộ icon PNG (`apple-touch-icon.png` 180x180, `icon-192.png` 192x192, `icon-512.png` 512x512, `favicon.png` 32x32) và backup các file cũ vào `public/static/assets/backup/`.
+- Thêm `"id": "/"` vào `manifest.json` để định danh PWA duy nhất theo chuẩn hiện đại.
+
+## File tài liệu hiện hành
 
 - `AGENTS.md`: quy tac lam viec bat buoc cho Codex.
 - `PROJECT_CONTEXT.md`: file nay, dung de tiep tuc boi canh/lộ trình giua cac cuoc tro chuyen.

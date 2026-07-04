@@ -135,6 +135,17 @@
       z-index: 29;
     }
 
+    #reportsView .report-filter-panel {
+      z-index: 34;
+    }
+
+    #reportsView #reportTabsBar.sticky-after-toolbar {
+      top: calc(84px + env(safe-area-inset-top, 0px));
+      z-index: 33;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(16px);
+    }
+
     .fund-loan-summary-head,
     .vehicle-volume-head {
       gap: 12px;

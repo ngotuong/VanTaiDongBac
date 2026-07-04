@@ -504,7 +504,10 @@
       }
 
       #reportsView #reportTabsBar.sticky-after-toolbar {
-        top: calc(74px + env(safe-area-inset-top, 0px)) !important;
+        top: calc(76px + env(safe-area-inset-top, 0px)) !important;
+        z-index: 31 !important;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(16px);
       }
 
       .report-table-head {
@@ -979,8 +982,7 @@
       }
 
       body.mobile-entry-open #entryShell #addBtn,
-      body.mobile-entry-open #entryShell #cloneBtn,
-      body.mobile-entry-open #entryShell #sheetLink {
+      body.mobile-entry-open #entryShell #cloneBtn {
         width: 44px !important;
         height: 44px !important;
         min-width: 44px !important;

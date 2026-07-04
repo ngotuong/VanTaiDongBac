@@ -385,6 +385,7 @@
         });
       }
       const showOwnerCol = shouldShowManageOwnerColumn(sheetName, vehicleColIdx);
+      const isDauSheet = sheetName === 'NL_Dau';
       const isTaiXeSheet = sheetName === 'NL_TaiXe';
 
       const matched = filteredManageRowsData.filter(row => {

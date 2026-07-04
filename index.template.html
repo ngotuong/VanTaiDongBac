@@ -211,11 +211,11 @@
 
         <!-- Sub-tabs to switch report subcategories -->
         <div class="sub-tabs-bar app-sticky-tabs sticky-after-toolbar" id="reportTabsBar">
-          <button type="button" class="sub-tab active" data-report-tab="all" onclick="setReportTab('all')">Tất cả báo cáo</button>
-          <button type="button" class="sub-tab" data-report-tab="finance" onclick="setReportTab('finance')">Báo cáo tổng quan</button>
-          <button type="button" class="sub-tab" data-report-tab="details" onclick="setReportTab('details')">Báo cáo chi tiết</button>
-          <button type="button" class="sub-tab" data-report-tab="payroll" onclick="setReportTab('payroll')">Lương nhân sự</button>
-          <button type="button" class="sub-tab" data-report-tab="vehicles" onclick="setReportTab('vehicles')">Tổng hợp xe</button>
+          <button type="button" class="sub-tab active" data-report-tab="all" onclick="setReportTab('all')">Tất Cả</button>
+          <button type="button" class="sub-tab" data-report-tab="finance" onclick="setReportTab('finance')">Tổng Quan</button>
+          <button type="button" class="sub-tab" data-report-tab="details" onclick="setReportTab('details')">Chi Tiết</button>
+          <button type="button" class="sub-tab" data-report-tab="payroll" onclick="setReportTab('payroll')">Bảng Lương</button>
+          <button type="button" class="sub-tab" data-report-tab="vehicles" onclick="setReportTab('vehicles')">Tổng Hợp Xe</button>
         </div>
 
         <div class="report-stack" id="reports">
@@ -256,9 +256,6 @@
               <button type="button" id="closeMobileEntryBtn" class="outline icon-button mobile-entry-close" title="Hủy bỏ" aria-label="Hủy bỏ" onclick="closeMobileEntrySheet()">
                 <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
-              <a id="sheetLink" href="#" target="_blank" class="sheets-icon-link" title="Xem dữ liệu gốc" aria-label="Xem dữ liệu gốc" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; min-width: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); color: var(--green); transition: all 0.2s;" onmouseover="this.style.borderColor='var(--green)'; this.style.backgroundColor='var(--green-soft)'" onmouseout="this.style.borderColor='var(--line)'; this.style.backgroundColor='var(--paper)'">
-                <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM6 7h5v2H6V7zm0 4h5v2H6v-2zm0 4h5v2H6v-2zm12 2h-5v-2h5v2zm0-4h-5v-2h5v2zm0-4h-5V7h5v2z"/></svg>
-              </a>
             </div>
           </section>
         </div>

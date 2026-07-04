@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec`
-- Apps Script deployment moi nhat da xac nhan: `@199 - Fix cloned fund writes and loan filters`
+- Apps Script deployment moi nhat da xac nhan: `@200 - Fix manage fuel filter and report actions`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co
@@ -93,6 +93,9 @@ Commit lien quan:
 - Sua loi nhan ban Thu chi bang cach tao ma phieu co millisecond va hau to theo thu tu dong trong batch, tranh trung ma khi luu nhieu dong cung luc.
 - Quy > Khoan vay doc truc tiep Apps Script va khi loc thang chi tinh KPI/chi tiet tren cac khoan vay phat sinh trong thang do.
 - Van hanh > Xang dau tren mobile quay lai bang ngang co horizontal scroll/sticky cot, khong render thanh card.
+- Sua loi `isDauSheet` o ham loc Van hanh lam man hinh Xang dau khong tai duoc.
+- Bao cao doi nhan tab thanh `Tat Ca`, `Tong Quan`, `Chi Tiet`, `Bang Luong`, `Tong Hop Xe` va tang sticky/z-index cho thanh tab de khong bi toolbar de len.
+- Bo icon Google Sheet trong tung bang bao cao, thay bang nut xuat CSV/Excel; chi giu icon mo Google Sheet tren topbar.
 
 ## File tài liệu hiện hành
 

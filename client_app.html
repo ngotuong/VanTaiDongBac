@@ -97,8 +97,7 @@
       renderDashboard();
       renderReports();
       const links = getLinks();
-      el('openSheetTop').href = links.spreadsheet || '#';
-      el('sheetLink').href = links.spreadsheet || '#';
+      if (el('openSheetTop')) el('openSheetTop').href = links.spreadsheet || '#';
     }
 
     function renderNav() {

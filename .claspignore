@@ -5,3 +5,8 @@ assets/**
 .git/**
 .gitignore
 .claspignore
+public/**
+manifest.json
+*.bak
+node_modules/**
+

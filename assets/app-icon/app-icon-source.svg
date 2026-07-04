@@ -1,44 +1,142 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Dong Bac Transport app icon">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Van Tai Dong Bac App Icon">
   <defs>
-    <linearGradient id="bg" x1="164" y1="56" x2="850" y2="944" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0b4f49"/>
-      <stop offset="0.55" stop-color="#063833"/>
-      <stop offset="1" stop-color="#031d1b"/>
+    <!-- Background Gradient (Premium Dark Teal) -->
+    <radialGradient id="bg" cx="30%" cy="30%" r="90%">
+      <stop offset="0%" stop-color="#0b4c45"/>
+      <stop offset="50%" stop-color="#042623"/>
+      <stop offset="100%" stop-color="#010c0b"/>
+    </radialGradient>
+
+    <!-- Con đường Gradient (Cyan/Teal Neon) -->
+    <linearGradient id="roadGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#2dd4bf"/>
     </linearGradient>
-    <linearGradient id="teal" x1="242" y1="806" x2="770" y2="246" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#14b8a6"/>
-      <stop offset="1" stop-color="#6ee7da"/>
+
+    <!-- Chữ D & B Gradient -->
+    <linearGradient id="dbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#ccfbf1"/>
     </linearGradient>
+
+    <!-- GPS Signal Pulse Gradient -->
+    <linearGradient id="pulseGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="1"/>
+    </linearGradient>
+
+    <!-- Phát sáng (Neon Glow) -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <!-- Bóng đổ sâu (Deep Shadow) -->
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
-      <feDropShadow dx="0" dy="28" stdDeviation="30" flood-color="#001311" flood-opacity="0.36"/>
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000605" flood-opacity="0.6"/>
+    </filter>
+    
+    <!-- Bóng đổ nhẹ (Soft Shadow) -->
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.3"/>
     </filter>
   </defs>
 
-  <rect width="1024" height="1024" rx="214" fill="url(#bg)"/>
-  <circle cx="512" cy="512" r="390" fill="#0c4741" opacity="0.26"/>
+  <!-- Background Base -->
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
 
-  <path d="M165 754c146-68 256-158 334-273 74-108 154-181 278-226" fill="none" stroke="#0f766e" stroke-width="82" stroke-linecap="round" opacity="0.28"/>
-  <path d="M198 788c148-70 260-163 341-284 72-106 146-174 258-218" fill="none" stroke="url(#teal)" stroke-width="34" stroke-linecap="round"/>
-  <path d="M292 725c68-44 128-96 180-156" fill="none" stroke="#ecfeff" stroke-width="15" stroke-linecap="round" opacity="0.94"/>
-  <path d="M572 426c33-35 70-64 114-86" fill="none" stroke="#ecfeff" stroke-width="15" stroke-linecap="round" opacity="0.94"/>
-
-  <g filter="url(#shadow)">
-    <path d="M194 305h274c64 0 115 16 153 48 39 32 58 75 58 130 0 45-16 82-48 111 48 29 72 73 72 131 0 65-23 116-70 153-46 37-110 56-191 56H194V305zm238 245c40 0 71-9 91-26 20-17 31-42 31-72 0-31-11-55-31-72-20-17-51-25-91-25h-92v195h92zm23 332c44 0 78-11 101-31 23-20 35-49 35-86 0-36-12-64-35-84-23-20-57-30-101-30H340v231h115z" fill="#eafffb"/>
-    <path d="M576 305h116c92 0 167 29 224 86 58 57 87 132 87 225s-29 168-87 225c-57 57-132 86-224 86H576V305zm114 520c58 0 104-19 139-57 35-39 53-89 53-152s-18-113-53-151c-35-39-81-58-139-58h-6v418h6z" fill="#5eead4"/>
+  <!-- Decorative Tech Gridlines (Subtle Lines for High-tech Look) -->
+  <g opacity="0.05" stroke="#ffffff" stroke-width="2">
+    <line x1="128" y1="0" x2="128" y2="1024" />
+    <line x1="256" y1="0" x2="256" y2="1024" />
+    <line x1="384" y1="0" x2="384" y2="1024" />
+    <line x1="512" y1="0" x2="512" y2="1024" />
+    <line x1="640" y1="0" x2="640" y2="1024" />
+    <line x1="768" y1="0" x2="768" y2="1024" />
+    <line x1="896" y1="0" x2="896" y2="1024" />
+    <line x1="0" y1="128" x2="1024" y2="128" />
+    <line x1="0" y1="256" x2="1024" y2="256" />
+    <line x1="0" y1="384" x2="1024" y2="384" />
+    <line x1="0" y1="512" x2="1024" y2="512" />
+    <line x1="0" y1="640" x2="1024" y2="640" />
+    <line x1="0" y1="768" x2="1024" y2="768" />
+    <line x1="0" y1="896" x2="1024" y2="896" />
   </g>
 
-  <g transform="translate(194 604)">
-    <rect x="0" y="0" width="476" height="102" rx="24" fill="#dffcf7"/>
-    <rect x="38" y="29" width="62" height="17" rx="8" fill="#0f766e" opacity="0.58"/>
-    <rect x="128" y="29" width="62" height="17" rx="8" fill="#0f766e" opacity="0.58"/>
-    <rect x="218" y="29" width="62" height="17" rx="8" fill="#0f766e" opacity="0.58"/>
-    <rect x="308" y="29" width="62" height="17" rx="8" fill="#0f766e" opacity="0.58"/>
-    <path d="M476 31h94c21 0 40 13 48 32l18 43H476V31z" fill="#2dd4bf"/>
-    <path d="M532 50h31c9 0 17 5 21 13l8 19h-60V50z" fill="#eafffb" opacity="0.9"/>
-    <rect x="24" y="91" width="598" height="18" rx="9" fill="#021917" opacity="0.55"/>
-    <circle cx="106" cy="118" r="34" fill="#021917"/>
-    <circle cx="106" cy="118" r="14" fill="#5eead4"/>
-    <circle cx="502" cy="118" r="34" fill="#021917"/>
-    <circle cx="502" cy="118" r="14" fill="#5eead4"/>
+  <!-- The Road / Light Trails (Movement Symbol) -->
+  <g filter="url(#glow)">
+    <path d="M 120,830 Q 320,780 512,680 T 904,420" fill="none" stroke="url(#roadGrad)" stroke-width="48" stroke-linecap="round" opacity="0.25"/>
+    <path d="M 120,830 Q 320,780 512,680 T 904,420" fill="none" stroke="#2dd4bf" stroke-width="16" stroke-linecap="round" opacity="0.8"/>
+    <path d="M 120,830 Q 320,780 512,680 T 904,420" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.95"/>
+  </g>
+
+  <!-- GPS / Wireless Signal Waves (Smart Logistics Indicator) -->
+  <g filter="url(#glow)">
+    <!-- Base Wave 1 -->
+    <path d="M 680,630 A 40,40 0 0,1 760,630" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" opacity="0.4"/>
+    <!-- Base Wave 2 -->
+    <path d="M 650,600 A 75,75 0 0,1 790,600" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
+    <!-- Base Wave 3 -->
+    <path d="M 620,570 A 110,110 0 0,1 820,570" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" opacity="0.95"/>
+    <!-- GPS Location Marker (Pulsing Dot) -->
+    <circle cx="720" cy="650" r="10" fill="#f59e0b"/>
+  </g>
+
+  <!-- Monogram DB (Modern Tech Font Style) -->
+  <g filter="url(#shadow)">
+    <!-- Vertical Backbone (Shared Spine for D & B) -->
+    <rect x="360" y="180" width="60" height="420" rx="30" fill="url(#dbGrad)"/>
+
+    <!-- Left Wing: Letter D -->
+    <path d="M 390,180 C 210,180 210,600 390,600" fill="none" stroke="url(#dbGrad)" stroke-width="60" stroke-linecap="round"/>
+    
+    <!-- Right Wing: Letter B (Top Loop) -->
+    <path d="M 390,180 C 530,180 530,390 390,390" fill="none" stroke="#2dd4bf" stroke-width="60" stroke-linecap="round"/>
+
+    <!-- Right Wing: Letter B (Bottom Loop) -->
+    <path d="M 390,380 C 550,380 550,600 390,600" fill="none" stroke="#2dd4bf" stroke-width="60" stroke-linecap="round"/>
+    
+    <!-- Accent Dots or Inner Spark (Symbolizes Connection) -->
+    <circle cx="390" cy="390" r="12" fill="#042623" />
+  </g>
+
+  <!-- Minimalist Container Truck (Operations / Logistics Symbol) -->
+  <g filter="url(#softShadow)">
+    <!-- Container Body -->
+    <rect x="250" y="660" width="360" height="150" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="4"/>
+    
+    <!-- Container Ridges (Vertical Details) -->
+    <g stroke="#e2e8f0" stroke-width="10" stroke-linecap="round">
+      <line x1="300" y1="685" x2="300" y2="785" />
+      <line x1="340" y1="685" x2="340" y2="785" />
+      <line x1="380" y1="685" x2="380" y2="785" />
+      <line x1="420" y1="685" x2="420" y2="785" />
+      <line x1="460" y1="685" x2="460" y2="785" />
+      <line x1="500" y1="685" x2="500" y2="785" />
+      <line x1="540" y1="685" x2="540" y2="785" />
+      <line x1="580" y1="685" x2="580" y2="785" />
+    </g>
+
+    <!-- Cabin Cab (Truck Head) -->
+    <path d="M 610,690 L 710,690 C 735,690 745,700 752,720 L 768,760 C 775,775 770,795 750,810 L 610,810 Z" fill="url(#roadGrad)"/>
+    
+    <!-- Cabin Windshield (Glass Window) -->
+    <path d="M 655,705 L 705,705 C 720,705 725,710 730,725 L 742,755 L 655,755 Z" fill="#e0f2fe" opacity="0.9"/>
+    
+    <!-- Wheel Arch Back -->
+    <path d="M 280,810 A 50,50 0 0,1 380,810" fill="none" stroke="#042623" stroke-width="12"/>
+    <path d="M 440,810 A 50,50 0 0,1 540,810" fill="none" stroke="#042623" stroke-width="12"/>
+    <!-- Wheel Arch Front -->
+    <path d="M 640,810 A 50,50 0 0,1 740,810" fill="none" stroke="#042623" stroke-width="12"/>
+
+    <!-- Black Wheels -->
+    <circle cx="330" cy="815" r="32" fill="#0f172a" stroke="#334155" stroke-width="4"/>
+    <circle cx="330" cy="815" r="12" fill="#94a3b8"/>
+    
+    <circle cx="490" cy="815" r="32" fill="#0f172a" stroke="#334155" stroke-width="4"/>
+    <circle cx="490" cy="815" r="12" fill="#94a3b8"/>
+    
+    <circle cx="690" cy="815" r="32" fill="#0f172a" stroke="#334155" stroke-width="4"/>
+    <circle cx="690" cy="815" r="12" fill="#94a3b8"/>
   </g>
 </svg>

@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec`
-- Apps Script deployment moi nhat da xac nhan: `@200 - Fix manage fuel filter and report actions`
+- Apps Script deployment moi nhat da xac nhan: `@201 - Mobile sticky dark mode refinements`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co
@@ -96,6 +96,9 @@ Commit lien quan:
 - Sua loi `isDauSheet` o ham loc Van hanh lam man hinh Xang dau khong tai duoc.
 - Bao cao doi nhan tab thanh `Tat Ca`, `Tong Quan`, `Chi Tiet`, `Bang Luong`, `Tong Hop Xe` va tang sticky/z-index cho thanh tab de khong bi toolbar de len.
 - Bo icon Google Sheet trong tung bang bao cao, thay bang nut xuat CSV/Excel; chi giu icon mo Google Sheet tren topbar.
+- Bao cao mobile tang offset sticky cua thanh tab duoi panel loc de khong bi che khi cuon; tang nhe font chu trong than bang bao cao, giu nguyen header/tab/tieu de.
+- Them Dark mode trong menu Cai dat, luu localStorage `dongbac_theme`, doi theme-color va token mau theo `data-theme`.
+- Van hanh mobile gop hang Ky + Nhap moi vao cung card sticky voi bo loc ngay/tim kiem de tiet kiem chieu cao.
 
 ## File tài liệu hiện hành
 

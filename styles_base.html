@@ -76,6 +76,129 @@
         var(--canvas);
       overflow-x: hidden;
     }
+
+    :root[data-theme="dark"] {
+      --ink: #e5f3f1;
+      --muted: #9fb2bc;
+      --paper: #111827;
+      --canvas: #07111f;
+      --line: rgba(148, 163, 184, 0.24);
+      --deep: #d8fffb;
+      --deep-2: #7dd3c7;
+      --teal: #2dd4bf;
+      --mint: rgba(45, 212, 191, 0.24);
+      --mint-soft: rgba(20, 184, 166, 0.12);
+      --blue: #38bdf8;
+      --blue-soft: rgba(56, 189, 248, 0.12);
+      --amber: #fbbf24;
+      --amber-soft: rgba(251, 191, 36, 0.14);
+      --red: #fb7185;
+      --red-soft: rgba(251, 113, 133, 0.14);
+      --green: #34d399;
+      --green-soft: rgba(52, 211, 153, 0.12);
+      --fund-income-bg: rgba(52, 211, 153, 0.12);
+      --fund-income-border: rgba(52, 211, 153, 0.24);
+      --fund-income-text: #86efac;
+      --fund-expense-bg: rgba(251, 113, 133, 0.12);
+      --fund-expense-border: rgba(251, 113, 133, 0.24);
+      --fund-expense-text: #fda4af;
+      --fund-loan-bg: rgba(251, 191, 36, 0.12);
+      --fund-loan-border: rgba(251, 191, 36, 0.24);
+      --fund-loan-text: #fcd34d;
+      --fund-balance-bg: rgba(45, 212, 191, 0.12);
+      --fund-balance-border: rgba(45, 212, 191, 0.24);
+      --fund-balance-text: #5eead4;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.34);
+      --shadow-md: 0 10px 22px rgba(0, 0, 0, 0.26);
+      --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.28);
+      --shadow-premium: 0 24px 44px rgba(0, 0, 0, 0.32);
+      --glass-bg: rgba(17, 24, 39, 0.74);
+      --glass-border: 1px solid rgba(148, 163, 184, 0.22);
+      color-scheme: dark;
+    }
+
+    :root[data-theme="dark"] body {
+      background:
+        radial-gradient(at 0% 0%, rgba(20, 184, 166, 0.13) 0px, transparent 42%),
+        radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.08) 0px, transparent 46%),
+        var(--canvas);
+      color: var(--ink);
+    }
+
+    :root[data-theme="dark"] .panel,
+    :root[data-theme="dark"] .table-card,
+    :root[data-theme="dark"] .info-card,
+    :root[data-theme="dark"] .form-list,
+    :root[data-theme="dark"] .filter-bar,
+    :root[data-theme="dark"] .app-sticky-toolbar,
+    :root[data-theme="dark"] .app-sticky-tabs,
+    :root[data-theme="dark"] .bottom-nav,
+    :root[data-theme="dark"] .topbar,
+    :root[data-theme="dark"] .modal-container,
+    :root[data-theme="dark"] .fund-detail-drawer,
+    :root[data-theme="dark"] .entry-row,
+    :root[data-theme="dark"] .mobile-record-table tr {
+      background: rgba(17, 24, 39, 0.94) !important;
+      border-color: var(--line) !important;
+      color: var(--ink);
+    }
+
+    :root[data-theme="dark"] .sidebar {
+      background: rgba(8, 15, 29, 0.84);
+      border-color: var(--line);
+    }
+
+    :root[data-theme="dark"] input,
+    :root[data-theme="dark"] select,
+    :root[data-theme="dark"] textarea,
+    :root[data-theme="dark"] .ac-input {
+      background: #0b1220 !important;
+      border-color: var(--line) !important;
+      color: var(--ink) !important;
+    }
+
+    :root[data-theme="dark"] input::placeholder,
+    :root[data-theme="dark"] textarea::placeholder {
+      color: #788b9b;
+    }
+
+    :root[data-theme="dark"] th,
+    :root[data-theme="dark"] .table-card-head,
+    :root[data-theme="dark"] .modal-footer,
+    :root[data-theme="dark"] .fund-detail-drawer .table-card-head {
+      background: rgba(15, 23, 42, 0.96) !important;
+      border-color: var(--line) !important;
+      color: #cbd5e1;
+    }
+
+    :root[data-theme="dark"] td,
+    :root[data-theme="dark"] .mobile-record-table td {
+      border-color: rgba(148, 163, 184, 0.16) !important;
+    }
+
+    :root[data-theme="dark"] button:not(.primary):not(.sub-tab.active):not(.nav-btn.active) {
+      background: rgba(15, 23, 42, 0.82);
+      border-color: var(--line);
+      color: var(--ink);
+    }
+
+    :root[data-theme="dark"] button:not(.primary):not(.sub-tab.active):not(.nav-btn.active):hover {
+      background: var(--mint-soft);
+      color: var(--teal);
+    }
+
+    :root[data-theme="dark"] .sub-tab.active,
+    :root[data-theme="dark"] .nav-btn.active,
+    :root[data-theme="dark"] .bottom-nav button.active {
+      background: var(--teal) !important;
+      border-color: var(--teal) !important;
+      color: #05201d !important;
+    }
+
+    :root[data-theme="dark"] .brand-mark {
+      background: linear-gradient(135deg, #0f766e, #2dd4bf);
+      color: #05201d;
+    }
     
     body.locked { overflow: hidden; }
     

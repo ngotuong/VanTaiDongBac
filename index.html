@@ -9014,7 +9014,7 @@
       
       const links = getLinks();
       holder.appendChild(renderTableCard('Báo cáo tổng quan', filteredOverview, links.overview, 'finance'));
-      holder.appendChild(renderTableCard('Báo cáo chi tiết', dashboard.overview.details || [], links.overview, 'details'));
+      holder.appendChild(renderTableCard('Báo cáo chi tiết', buildSelectedDetails(selected), links.overview, 'details'));
       
       holder.appendChild(reportsByType.payroll?.data
         ? renderTableCard('Bảng tổng hợp lương nhân sự', reportsByType.payroll.data, links.payroll, 'payroll')

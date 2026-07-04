@@ -1,124 +1,105 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Van Tai Dong Bac App Icon">
   <defs>
-    <!-- Background Gradient (Elegant Deep Navy Teal) -->
-    <radialGradient id="bg" cx="50%" cy="30%" r="85%">
-      <stop offset="0%" stop-color="#0a3934"/>
-      <stop offset="60%" stop-color="#021715"/>
-      <stop offset="100%" stop-color="#000706"/>
+    <!-- Background Gradient (Petroleum Blue / Deep Teal) -->
+    <radialGradient id="bg" cx="50%" cy="35%" r="85%">
+      <stop offset="0%" stop-color="#0a535e"/>
+      <stop offset="60%" stop-color="#032a30"/>
+      <stop offset="100%" stop-color="#011518"/>
     </radialGradient>
-
-    <!-- Container Body Gradient -->
-    <linearGradient id="containerGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-      <stop offset="0%" stop-color="#0d9488"/>
-      <stop offset="100%" stop-color="#14b8a6"/>
-    </linearGradient>
-
-    <!-- Cabin Head Gradient (Silver Metallic) -->
-    <linearGradient id="cabinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#cbd5e1"/>
-    </linearGradient>
-
-    <!-- Orange Glow Gradient -->
-    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fb923c"/>
-      <stop offset="100%" stop-color="#ea580c"/>
-    </linearGradient>
-
-    <!-- Glow Effect Filter -->
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="12" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
 
     <!-- Deep Shadow Filter -->
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
-      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#000706" flood-opacity="0.85"/>
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#011518" flood-opacity="0.8"/>
+    </filter>
+
+    <!-- Glow Effect Filter -->
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
   </defs>
 
   <!-- Background Base -->
   <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
 
-  <!-- Tech Grid Background Lines (Clean Digital Touch) -->
-  <g opacity="0.03" stroke="#2dd4bf" stroke-width="2">
-    <circle cx="512" cy="380" r="390" fill="none"/>
-    <line x1="512" y1="0" x2="512" y2="1024"/>
-    <line x1="0" y1="380" x2="1024" y2="380"/>
+  <!-- Glass Highlight Overlay (Frosty top reflex) -->
+  <path d="M 0,0 H 1024 V 160 C 1024,160 768,230 512,230 C 256,230 0,160 0,160 Z" fill="#ffffff" opacity="0.05"/>
+
+  <!-- Tech Matrix Circles (Subtle background detailing) -->
+  <g opacity="0.02" stroke="#ffffff" stroke-width="2">
+    <circle cx="512" cy="460" r="420" fill="none"/>
+    <circle cx="512" cy="460" r="280" fill="none"/>
   </g>
 
-  <!-- Dynamic Under-Truck Neon Trail (Con đường ánh sáng phát quang chạy thẳng dưới gầm xe) -->
-  <g opacity="0.15" filter="url(#glow)">
-    <rect x="100" y="445" width="824" height="120" rx="60" fill="#2dd4bf"/>
+  <!-- 1. GPS / Radar Wireless Waves (All White) -->
+  <g stroke="#ffffff" stroke-width="22" stroke-linecap="round" fill="none" opacity="0.9" filter="url(#glow)">
+    <path d="M 580,310 A 150,150 0 0,1 730,410"/>
+    <path d="M 605,255 A 210,210 0 0,1 815,395"/>
+    <path d="M 630,200 A 270,270 0 0,1 900,380"/>
   </g>
 
-  <!-- MODERN CONTAINER TRUCK (Flat Side-View / Profile Art - Extremely Clean & Proportional) -->
+  <!-- 2. Perspective Road with Arrow (All White) -->
   <g filter="url(#shadow)">
-    <!-- 1. The Chassis/Gầm xe và sườn chắn bùn (Dark slate gray) -->
-    <rect x="180" y="435" width="370" height="20" rx="6" fill="#1e293b"/>
-    <rect x="580" y="435" width="150" height="20" rx="6" fill="#1e293b"/>
-    
-    <!-- Khớp nối xe (Coupler) -->
-    <rect x="550" y="420" width="30" height="12" fill="#0f172a"/>
+    <!-- Road boundary line (Upper) -->
+    <path d="M 240,550 Q 480,560 670,490 L 720,460" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round"/>
+    <!-- Road boundary line (Lower) -->
+    <path d="M 370,580 Q 530,580 650,520 L 700,500" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+    <!-- Directional Arrow Head (East-North / Up-Right) -->
+    <polygon points="700,430 745,455 710,485" fill="#ffffff" filter="url(#glow)"/>
+  </g>
 
-    <!-- 2. Container Body (Perfect flat rectangle) -->
-    <rect x="160" y="270" width="410" height="175" rx="8" fill="url(#containerGrad)" stroke="#115e59" stroke-width="4"/>
+  <!-- 3. Redesigned Container Truck (White Silhouette & Lines) -->
+  <g filter="url(#shadow)">
+    <!-- Container Body Back Shadow (for 3D pop) -->
+    <polygon points="410,350 635,290 635,460 410,520" fill="#011518" opacity="0.5"/>
+
+    <!-- Container Body -->
+    <polygon points="410,350 635,290 635,460 410,520" fill="#ffffff" stroke="#032a30" stroke-width="4"/>
     
-    <!-- Vertical Ridges on the Container (Equal spacing, precise alignment) -->
-    <g stroke="#115e59" stroke-width="6" stroke-linecap="round">
-      <line x1="210" y1="282" x2="210" y2="433" />
-      <line x1="260" y1="282" x2="260" y2="433" />
-      <line x1="310" y1="282" x2="310" y2="433" />
-      <line x1="360" y1="282" x2="360" y2="433" />
-      <line x1="410" y1="282" x2="410" y2="433" />
-      <line x1="460" y1="282" x2="460" y2="433" />
-      <line x1="510" y1="282" x2="510" y2="433" />
-      <line x1="560" y1="282" x2="560" y2="433" />
+    <!-- Vertical Container Sọc -->
+    <g stroke="#032a30" stroke-width="6" stroke-linecap="round">
+      <line x1="450" y1="340" x2="450" y2="510" />
+      <line x1="490" y1="330" x2="490" y2="500" />
+      <line x1="530" y1="320" x2="530" y2="490" />
+      <line x1="570" y1="310" x2="570" y2="480" />
+      <line x1="610" y1="300" x2="610" y2="470" />
     </g>
 
-    <!-- 3. Cabin Head (Tesla Semi inspired aerodynamic shape) -->
-    <!-- Cabin Base Path -->
-    <path d="M 580,290 H 650 L 735,370 L 745,410 C 745,430 735,445 715,445 H 580 Z" fill="url(#cabinGrad)" stroke="#cbd5e1" stroke-width="2"/>
+    <!-- Cabin Head (Left Side pointing Left) -->
+    <path d="M 410,370 L 320,400 C 300,407 285,425 282,445 L 280,480 C 280,500 295,520 320,520 H 410 Z" fill="#ffffff" stroke="#032a30" stroke-width="4"/>
     
-    <!-- Sleek Window Glass (Blackout style) -->
-    <path d="M 600,305 H 645 L 690,360 H 600 Z" fill="#0f172a"/>
-    <line x1="645" y1="305" x2="645" y2="360" stroke="#cbd5e1" stroke-width="2"/>
-
-    <!-- LED Headlight (Thin neon teal line) -->
-    <polygon points="725,405 743,410 740,420 725,415" fill="#2dd4bf" filter="url(#glow)"/>
-
-    <!-- Front Bumper -->
-    <path d="M 700,445 L 740,445 L 735,455 C 730,460 710,460 700,455 Z" fill="#1e293b"/>
-
-    <!-- 4. Wheels (Perfect Circles, no distortion) -->
-    <!-- Rear Wheels (Container) -->
-    <circle cx="230" cy="460" r="32" fill="#0f172a" stroke="#475569" stroke-width="4"/>
-    <circle cx="230" cy="460" r="12" fill="#94a3b8"/>
+    <!-- Cabin Window Glass (Petroleum dark fill) -->
+    <polygon points="335,425 400,405 400,455 345,465" fill="#032a30"/>
     
-    <circle cx="310" cy="460" r="32" fill="#0f172a" stroke="#475569" stroke-width="4"/>
-    <circle cx="310" cy="460" r="12" fill="#94a3b8"/>
+    <!-- Heavy Wheels -->
+    <circle cx="330" cy="525" r="28" fill="#0f172a" stroke="#ffffff" stroke-width="5"/>
+    <circle cx="330" cy="525" r="10" fill="#94a3b8"/>
     
-    <circle cx="510" cy="460" r="32" fill="#0f172a" stroke="#475569" stroke-width="4"/>
-    <circle cx="510" cy="460" r="12" fill="#94a3b8"/>
-
-    <!-- Front Wheel (Cabin) -->
-    <circle cx="660" cy="460" r="32" fill="#0f172a" stroke="#475569" stroke-width="4"/>
-    <circle cx="660" cy="460" r="12" fill="#94a3b8"/>
+    <circle cx="470" cy="510" r="28" fill="#0f172a" stroke="#ffffff" stroke-width="5"/>
+    <circle cx="470" cy="510" r="10" fill="#94a3b8"/>
+    
+    <circle cx="590" cy="480" r="28" fill="#0f172a" stroke="#ffffff" stroke-width="5"/>
+    <circle cx="590" cy="480" r="10" fill="#94a3b8"/>
   </g>
 
-  <!-- GPS Node Beacon / Wireless Signal (IoT Management Accent) -->
-  <g filter="url(#glow)">
-    <circle cx="700" cy="280" r="8" fill="#f59e0b"/>
-    <path d="M 680,260 A 30,30 0 0,1 720,260" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
-    <path d="M 660,240 A 60,60 0 0,1 740,240" fill="none" stroke="#f59e0b" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
-  </g>
-
-  <!-- Separator Line (Modern Tech Bar - Clean spacing) -->
-  <line x1="150" y1="580" x2="874" y2="580" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" filter="url(#glow)"/>
-
-  <!-- TYPOGRAPHY: Maximum Size for "ĐÔNG BẮC" (Clean, massive, highly readable) -->
+  <!-- 4. Monogram DB (Overlaid on Truck, All White with Dark Outline to Pop) -->
   <g filter="url(#shadow)">
-    <text x="512" y="780" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="96" font-weight="900" fill="#ffffff" letter-spacing="14" text-anchor="middle">ĐÔNG BẮC</text>
-    <text x="512" y="850" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="24" font-weight="700" fill="#2dd4bf" letter-spacing="12" text-anchor="middle">LOGISTICS &amp; TRANSPORT</text>
+    <!-- Letter D (Overlapping cabin area) -->
+    <!-- D Outline (Dark mask to separate from white truck background) -->
+    <path d="M 330,340 H 430 C 510,340 510,490 430,490 H 330 Z" fill="none" stroke="#032a30" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- D Main Fill (White) -->
+    <path d="M 330,340 H 430 C 510,340 510,490 430,490 H 330 Z" fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Letter B (Overlapping container area) -->
+    <!-- B Outline (Dark mask to separate from white container background) -->
+    <path d="M 470,300 H 555 C 610,300 610,395 555,395 H 470 H 565 C 620,395 620,490 565,490 H 470 Z" fill="none" stroke="#032a30" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- B Main Fill (White) -->
+    <path d="M 470,300 H 555 C 610,300 610,395 555,395 H 470 H 565 C 620,395 620,490 565,490 H 470 Z" fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- 5. Brand Typography (Clean, All White, massive readable font) -->
+  <g filter="url(#shadow)">
+    <text x="512" y="690" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="74" font-weight="900" fill="#ffffff" letter-spacing="8" text-anchor="middle">ĐÔNG BẮC</text>
+    <text x="512" y="765" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="28" font-weight="600" fill="#ffffff" letter-spacing="14" text-anchor="middle">TRANSPORT</text>
   </g>
 </svg>

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 
-const SVG_SOURCE = path.join(__dirname, '..', 'assets', 'app-icon', 'app-icon-pwa-source.svg');
+const PNG_SOURCE = path.join(__dirname, '..', 'assets', 'app-icon', 'app-icon-source.png');
 const ASSETS_DIR = path.join(__dirname, '..', 'public', 'static', 'assets');
 const BACKUP_DIR = path.join(ASSETS_DIR, 'backup');
 
@@ -17,9 +17,9 @@ const TARGET_ICONS = [
 console.log('🔄 Bắt đầu quá trình tạo bộ icon PWA/App Icon...');
 
 try {
-  // 1. Kiểm tra sự tồn tại của file SVG nguồn
-  if (!fs.existsSync(SVG_SOURCE)) {
-    console.error(`❌ Không tìm thấy file SVG nguồn tại: ${SVG_SOURCE}`);
+  // 1. Kiểm tra sự tồn tại của file PNG nguồn
+  if (!fs.existsSync(PNG_SOURCE)) {
+    console.error(`❌ Không tìm thấy file PNG nguồn tại: ${PNG_SOURCE}`);
     process.exit(1);
   }
 
@@ -39,12 +39,12 @@ try {
     }
   });
 
-  // 4. Sử dụng sharp để render SVG thành PNG chất lượng cao
+  // 4. Sử dụng sharp để render PNG thành các kích thước đích
   const promises = TARGET_ICONS.map(async (icon) => {
     const outputPath = path.join(ASSETS_DIR, icon.name);
     
-    // sharp đọc file SVG và tự động scale vector sắc nét tương ứng với resize()
-    await sharp(SVG_SOURCE)
+    // sharp đọc file PNG nguồn và resize chất lượng cao
+    await sharp(PNG_SOURCE)
       .resize(icon.size, icon.size)
       .png()
       .toFile(outputPath);

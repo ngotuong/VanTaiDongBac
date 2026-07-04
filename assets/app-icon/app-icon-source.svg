@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Van Tai Dong Bac App Icon">
   <defs>
-    <!-- Background Gradient (Petroleum Blue / Deep Teal) -->
+    <!-- Background Gradient (Elegant Deep Navy Teal) -->
     <radialGradient id="bg" cx="50%" cy="35%" r="85%">
       <stop offset="0%" stop-color="#0a535e"/>
       <stop offset="60%" stop-color="#032a30"/>
@@ -31,75 +31,78 @@
     <circle cx="512" cy="460" r="280" fill="none"/>
   </g>
 
-  <!-- 1. GPS / Radar Wireless Waves (All White) -->
+  <!-- 1. GPS / Radar Wireless Waves (All White - Perfect Curve alignment with container) -->
   <g stroke="#ffffff" stroke-width="22" stroke-linecap="round" fill="none" opacity="0.9" filter="url(#glow)">
-    <path d="M 610,310 A 150,150 0 0,1 760,410"/>
-    <path d="M 635,255 A 210,210 0 0,1 845,395"/>
-    <path d="M 660,200 A 270,270 0 0,1 930,380"/>
+    <path d="M 590,330 A 140,140 0 0,1 730,420"/>
+    <path d="M 610,280 A 200,200 0 0,1 810,400"/>
+    <path d="M 630,230 A 260,260 0 0,1 890,380"/>
   </g>
 
-  <!-- 2. Perspective Road with Arrow (All White) -->
+  <!-- 2. Perspective Road with Arrow (All White - Classic S-Curve from Left to Right Up) -->
   <g filter="url(#shadow)">
-    <!-- Road boundary line (Upper) -->
-    <path d="M 200,560 Q 480,570 690,490 L 750,460" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round"/>
-    <!-- Road boundary line (Lower) -->
-    <path d="M 320,590 Q 530,595 670,520 L 730,495" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
-    <!-- Directional Arrow Head (East-North / Up-Right) -->
-    <polygon points="730,430 775,455 740,485" fill="#ffffff" filter="url(#glow)"/>
+    <!-- Upper Road Boundary -->
+    <path d="M 280,560 Q 500,560 670,490 L 720,460" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round"/>
+    <!-- Lower Road Boundary -->
+    <path d="M 390,580 Q 530,580 650,520 L 700,500" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+    <!-- Arrow Head at the end pointing North-East -->
+    <polygon points="700,430 745,455 710,485" fill="#ffffff" filter="url(#glow)"/>
   </g>
 
-  <!-- 3. Redesigned Container Truck (White Silhouette & Lines - Positioned to show cabin/rear clearly) -->
+  <!-- 3. Redesigned Container Truck (White Silhouette & Lines - Perfectly nested under letters) -->
   <g filter="url(#shadow)">
-    <!-- Container Body Back Shadow (for 3D pop) -->
-    <polygon points="360,360 680,275 680,455 360,520" fill="#011518" opacity="0.5"/>
+    <!-- Container Body Back Shadow -->
+    <polygon points="410,350 635,290 635,460 410,520" fill="#011518" opacity="0.5"/>
 
-    <!-- Container Body (Positioned from x=360 to x=680 to show rear end) -->
-    <polygon points="360,360 680,275 680,455 360,520" fill="#ffffff" stroke="#032a30" stroke-width="4"/>
+    <!-- Container Body -->
+    <polygon points="410,350 635,290 635,460 410,520" fill="#ffffff" stroke="#032a30" stroke-width="4"/>
     
     <!-- Vertical Container Ridges -->
     <g stroke="#032a30" stroke-width="5" stroke-linecap="round">
-      <line x1="400" y1="350" x2="400" y2="510" />
-      <line x1="440" y1="340" x2="440" y2="500" />
-      <line x1="480" y1="330" x2="480" y2="490" />
-      <line x1="520" y1="320" x2="520" y2="480" />
-      <line x1="560" y1="310" x2="560" y2="470" />
-      <line x1="600" y1="300" x2="600" y2="460" />
-      <line x1="640" y1="290" x2="640" y2="450" />
+      <line x1="450" y1="340" x2="450" y2="510" />
+      <line x1="490" y1="330" x2="490" y2="500" />
+      <line x1="530" y1="320" x2="530" y2="490" />
+      <line x1="570" y1="310" x2="570" y2="480" />
+      <line x1="610" y1="300" x2="610" y2="470" />
     </g>
 
-    <!-- Cabin Head (Shifted left from x=210 to x=360 to make head fully visible) -->
-    <path d="M 360,380 L 250,410 C 230,417 215,435 212,455 L 210,490 C 210,510 225,520 250,520 H 360 Z" fill="#ffffff" stroke="#032a30" stroke-width="4"/>
+    <!-- Cabin Head (Left Side pointing Left) -->
+    <path d="M 410,370 L 320,400 C 300,407 285,425 282,445 L 280,490 C 280,510 295,520 320,520 H 410 Z" fill="#ffffff" stroke="#032a30" stroke-width="4"/>
     
     <!-- Cabin Window Glass (Petroleum dark fill) -->
-    <polygon points="275,432 345,412 345,462 285,472" fill="#032a30"/>
+    <polygon points="335,425 400,405 400,455 345,465" fill="#032a30"/>
     
-    <!-- Heavy Wheels (Positioned to match chassis) -->
-    <circle cx="280" cy="525" r="28" fill="#0f172a" stroke="#ffffff" stroke-width="5"/>
-    <circle cx="280" cy="525" r="10" fill="#94a3b8"/>
+    <!-- Wheels -->
+    <circle cx="330" cy="525" r="28" fill="#0f172a" stroke="#ffffff" stroke-width="5"/>
+    <circle cx="330" cy="525" r="10" fill="#94a3b8"/>
     
-    <circle cx="420" cy="510" r="28" fill="#0f172a" stroke="#ffffff" stroke-width="5"/>
-    <circle cx="420" cy="510" r="10" fill="#94a3b8"/>
+    <circle cx="470" cy="510" r="28" fill="#0f172a" stroke="#ffffff" stroke-width="5"/>
+    <circle cx="470" cy="510" r="10" fill="#94a3b8"/>
     
-    <circle cx="530" cy="480" r="28" fill="#0f172a" stroke="#ffffff" stroke-width="5"/>
-    <circle cx="530" cy="480" r="10" fill="#94a3b8"/>
-
-    <circle cx="630" cy="455" r="28" fill="#0f172a" stroke="#ffffff" stroke-width="5"/>
-    <circle cx="630" cy="455" r="10" fill="#94a3b8"/>
+    <circle cx="590" cy="480" r="28" fill="#0f172a" stroke="#ffffff" stroke-width="5"/>
+    <circle cx="590" cy="480" r="10" fill="#94a3b8"/>
   </g>
 
-  <!-- 4. Monogram DB (Overlaid on Truck, Cleaner/Thinner with Dark Outline to Pop) -->
+  <!-- 4. Monogram DB (Perfect Nesting Overlay as reference image - White with Dark Outline) -->
   <g filter="url(#shadow)">
-    <!-- Letter D (Overlapping cabin area - Spine at 370) -->
-    <!-- D Outline (Dark mask to separate from white truck background) -->
-    <path d="M 350,335 H 430 C 490,335 490,475 430,475 H 350 Z" fill="none" stroke="#032a30" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
-    <!-- D Main Fill (White) -->
-    <path d="M 350,335 H 430 C 490,335 490,475 430,475 H 350 Z" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Vertical Backbone (Shared Spine for D & B) -->
+    <rect x="430" y="280" width="40" height="230" rx="20" fill="#ffffff" stroke="#032a30" stroke-width="12"/>
 
-    <!-- Letter B (Overlapping container area - Spine at 470) -->
-    <!-- B Outline (Dark mask to separate from white container background) -->
-    <path d="M 470,295 H 550 C 600,295 600,380 550,380 H 470 H 555 C 605,380 605,475 555,475 H 470 Z" fill="none" stroke="#032a30" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
-    <!-- B Main Fill (White) -->
-    <path d="M 470,295 H 550 C 600,295 600,380 550,380 H 470 H 555 C 605,380 605,475 555,475 H 470 Z" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Letter D (Overlapping cabin area - Spine at 450) -->
+    <!-- D Outline (Dark mask to separate from white truck background) -->
+    <path d="M 450,280 C 310,280 310,510 450,510" fill="none" stroke="#032a30" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- D Main Fill (White) -->
+    <path d="M 450,280 C 310,280 310,510 450,510" fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Letter B (Overlapping container area - Spine at 450) -->
+    <!-- B Top Loop Outline -->
+    <path d="M 450,280 C 560,280 560,395 450,395" fill="none" stroke="#032a30" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- B Top Loop Fill (White) -->
+    <path d="M 450,280 C 560,280 560,395 450,395" fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- B Bottom Loop Outline -->
+    <path d="M 450,395 C 570,395 570,510 450,510" fill="none" stroke="#032a30" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- B Bottom Loop Fill (White) -->
+    <path d="M 450,395 C 570,395 570,510 450,510" fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 
   <!-- 5. Brand Typography (Clean, All White, massive readable font) -->

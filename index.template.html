@@ -408,16 +408,20 @@
         <div class="filter-bar catalog-sticky-toolbar app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
-              <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; max-width: 400px; width: 100%;">
+              <label class="catalog-search-control" style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; max-width: 400px; width: 100%;">
                 Tìm kiếm:
                 <input type="text" id="catalogSearchInput" placeholder="Tìm kiếm trong danh mục..." style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="debounceCatalogSearch()">
               </label>
-              <label id="catalogPersonnelStatusFilterWrap" style="margin: 0; display: none; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 0 0 190px;">
-                Trạng thái:
+              <label id="catalogPersonnelStatusFilterWrap" style="margin: 0; display: none; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 0 0 128px;">
                 <select id="catalogPersonnelStatusFilter" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="filterCatalogRows()">
                   <option value="active" selected>Đang làm</option>
                   <option value="inactive">Đã nghỉ</option>
                   <option value="all">Tất cả</option>
+                </select>
+              </label>
+              <label id="catalogVehicleOwnerFilterWrap" style="margin: 0; display: none; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 0 0 142px;">
+                <select id="catalogVehicleOwnerFilter" aria-label="Lọc công ty xe" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="filterCatalogRows()">
+                  <option value="">Tất cả công ty</option>
                 </select>
               </label>
             </div>

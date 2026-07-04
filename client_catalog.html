@@ -3,6 +3,7 @@
     const catalogPageSize = 20;
     let lastCatalogQuery = '';
     let lastCatalogPersonnelStatus = 'active';
+    let lastCatalogVehicleOwner = '';
     let catalogLoadSeq = 0;
 
     // Catalog CRUD Operations
@@ -12,6 +13,7 @@
       const requestSeq = ++catalogLoadSeq;
       const displaySheetName = el('catalogSheetSelect').value;
       syncCatalogPersonnelStatusFilter(displaySheetName);
+      syncCatalogVehicleOwnerFilter(displaySheetName);
       
       const tbody = el('catalogTableBody');
       const thead = el('catalogTableHeader');
@@ -111,7 +113,7 @@
         let owner = '';
         if (showOwnerCol) {
           const plate = String(row.values[vehicleColIdx] || '').trim();
-          owner = vehiclesByPlate[plate.toLowerCase()] || '';
+          owner = getCatalogVehicleOwner(row, headers, vehicleColIdx, vehiclesByPlate);
         }
         return {
           ...row,
@@ -119,6 +121,7 @@
           searchText: removeAccents(row.values.concat(owner).join(' ').toLowerCase())
         };
       });
+      populateCatalogVehicleOwnerFilter(displaySheetName, filteredCatalogRowsData);
 
       filterCatalogRows();
     }
@@ -129,6 +132,52 @@
       const isPersonnel = sheetName === 'DM_NhanSu';
       if (wrap) wrap.style.display = isPersonnel ? 'flex' : 'none';
       if (select && isPersonnel && !select.value) select.value = 'active';
+    }
+
+    function syncCatalogVehicleOwnerFilter(sheetName) {
+      const wrap = el('catalogVehicleOwnerFilterWrap');
+      if (wrap) wrap.style.display = sheetName === 'DM_Xe' ? 'flex' : 'none';
+    }
+
+    function getCatalogOwnerColumnIndex(headers) {
+      return (headers || []).findIndex((header) => {
+        const normalized = removeAccents(String(header || '').trim().toLowerCase());
+        return normalized === 'cong ty so huu'
+          || normalized === 'cong ty chu xe'
+          || normalized === 'cong ty/chu xe'
+          || normalized === 'chu xe'
+          || normalized === 'don vi so huu';
+      });
+    }
+
+    function getCatalogVehicleOwner(row, headers, vehicleColIdx, vehiclesByPlate) {
+      const ownerColIdx = getCatalogOwnerColumnIndex(headers);
+      const directOwner = ownerColIdx >= 0 ? String(row.values[ownerColIdx] || '').trim() : '';
+      if (directOwner) return directOwner;
+      const plate = String(row.values[vehicleColIdx] || '').trim().toLowerCase();
+      return vehiclesByPlate[plate] || '';
+    }
+
+    function populateCatalogVehicleOwnerFilter(sheetName, rows) {
+      const select = el('catalogVehicleOwnerFilter');
+      if (!select) return;
+      if (sheetName !== 'DM_Xe') {
+        select.value = '';
+        return;
+      }
+      const currentValue = select.value || '';
+      const owners = Array.from(new Set((rows || [])
+        .map((row) => String(row.owner || '').trim())
+        .filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b, 'vi'));
+      select.innerHTML = '<option value="">Tất cả công ty</option>';
+      owners.forEach((owner) => {
+        const option = document.createElement('option');
+        option.value = owner;
+        option.textContent = owner;
+        select.appendChild(option);
+      });
+      select.value = owners.includes(currentValue) ? currentValue : '';
     }
 
     function getCatalogStatusColumnIndex() {
@@ -148,10 +197,12 @@
       const query = el('catalogSearchInput').value.toLowerCase().trim();
       const sheetName = el('catalogSheetSelect')?.value || '';
       const personnelStatus = sheetName === 'DM_NhanSu' ? (el('catalogPersonnelStatusFilter')?.value || 'active') : 'all';
-      if (query !== lastCatalogQuery || personnelStatus !== lastCatalogPersonnelStatus) {
+      const vehicleOwner = sheetName === 'DM_Xe' ? (el('catalogVehicleOwnerFilter')?.value || '') : '';
+      if (query !== lastCatalogQuery || personnelStatus !== lastCatalogPersonnelStatus || vehicleOwner !== lastCatalogVehicleOwner) {
         catalogPage = 1;
         lastCatalogQuery = query;
         lastCatalogPersonnelStatus = personnelStatus;
+        lastCatalogVehicleOwner = vehicleOwner;
       }
       
       const tbody = el('catalogTableBody');
@@ -176,6 +227,7 @@
           if (personnelStatus === 'active' && inactive) return false;
           if (personnelStatus === 'inactive' && !inactive) return false;
         }
+        if (sheetName === 'DM_Xe' && vehicleOwner && row.owner !== vehicleOwner) return false;
         if (!query) return true;
         return row.searchText.includes(removeAccents(query));
       });
@@ -249,7 +301,7 @@
 
         const tdActions = document.createElement('td');
         tdActions.className = 'sticky-col-right';
-        tdActions.dataset.label = 'Thao tác';
+        tdActions.dataset.label = '';
         tdActions.style.textAlign = 'center';
         tdActions.style.whiteSpace = 'nowrap';
         

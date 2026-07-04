@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec`
-- Apps Script deployment moi nhat da xac nhan: `@194 - Refine mobile filters and personnel catalog`
+- Apps Script deployment moi nhat da xac nhan: `@196 - Fix cashflow write confirmation and catalog mobile filters`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co
@@ -79,6 +79,14 @@ Commit lien quan:
 - Tạo file SVG nguồn mới `assets/app-icon/app-icon-pwa-source.svg` loại bỏ chữ, scale 1.45x và căn giữa biểu tượng để tối ưu hiển thị trên di động.
 - Thêm script `scripts/generate-icons.js` dùng `sharp` để tự động tạo bộ icon PNG (`apple-touch-icon.png` 180x180, `icon-192.png` 192x192, `icon-512.png` 512x512, `favicon.png` 32x32) và backup các file cũ vào `public/static/assets/backup/`.
 - Thêm `"id": "/"` vào `manifest.json` để định danh PWA duy nhất theo chuẩn hiện đại.
+
+### UI mobile / Thu chi (Ngày 2026-07-04)
+
+- `FundService.addFundTransactions()` tra ve them `spreadsheetId`, `spreadsheetName`, `firstRow`, `lastRow` de truy vet dung file/sheet/dong vua ghi.
+- Frontend Quy chi bao thanh cong khi backend xac nhan so dong chen khop so giao dich da gui; thong bao thanh cong co kem sheet va khoang dong.
+- Danh muc > Nhan su: bo chu "Trang thai" tren bo loc mobile, gom tim kiem + trang thai + nut them moi tren cung mot hang gon hon.
+- Danh muc > Danh sach xe: them bo loc cong ty/chu xe tren cung hang voi tim kiem va nut them moi.
+- Card danh sach mobile bo nhan "Thao tac", chi giu icon sua/xoa.
 
 ## File tài liệu hiện hành
 

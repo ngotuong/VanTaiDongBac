@@ -598,21 +598,22 @@
 
       #catalogView .catalog-sticky-toolbar .filter-container > div:first-child {
         display: grid !important;
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: minmax(132px, 1fr) minmax(104px, 0.46fr);
         gap: 8px !important;
         width: 100% !important;
       }
 
-      #catalogView #catalogPersonnelStatusFilterWrap {
-        display: grid !important;
-        grid-template-columns: auto minmax(0, 1fr);
+      #catalogView #catalogPersonnelStatusFilterWrap,
+      #catalogView #catalogVehicleOwnerFilterWrap {
+        display: flex !important;
         align-items: center !important;
-        gap: 6px !important;
         flex: 1 1 auto !important;
         width: 100% !important;
+        min-width: 0 !important;
       }
 
-      #catalogView #catalogPersonnelStatusFilterWrap[style*="none"] {
+      #catalogView #catalogPersonnelStatusFilterWrap[style*="none"],
+      #catalogView #catalogVehicleOwnerFilterWrap[style*="none"] {
         display: none !important;
       }
 
@@ -630,9 +631,10 @@
       }
 
       #catalogView .catalog-sticky-toolbar input {
-        min-height: 44px;
-        font-size: 16px !important;
-        border-radius: 12px !important;
+        min-height: 40px;
+        height: 40px;
+        font-size: 15px !important;
+        border-radius: 10px !important;
       }
 
       #catalogView .catalog-sticky-toolbar select {
@@ -1341,6 +1343,11 @@
       .mobile-record-table .sticky-col-right {
         justify-content: flex-end;
         gap: 8px;
+      }
+
+      .mobile-record-table .sticky-col-right::before {
+        content: "" !important;
+        display: none !important;
       }
 
       .mobile-record-table .btn-table-action {

@@ -546,11 +546,17 @@ var FundService = (function () {
       return {
         ok: true,
         inserted: rows.length,
+        spreadsheetId: ss.getId(),
+        spreadsheetName: ss.getName(),
+        firstRow: appendRow,
+        lastRow: lastNeededRow,
         rows: rows.map(function (row, index) {
           return {
             ok: true,
             rowIndex: appendRow + index,
             voucher: row[0],
+            spreadsheetId: ss.getId(),
+            spreadsheetName: ss.getName(),
             sheetName: TRANSACTION_SHEET_NAME
           };
         }),

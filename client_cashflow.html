@@ -599,6 +599,7 @@
         showFundEntryStatus('info', transactions.length > 1 ? `Đang cập nhật 1 khoản và lưu thêm ${transactions.length - 1} khoản mới...` : 'Đang cập nhật khoản thu/chi...');
         const oldItem = currentEditingTransaction || {};
         const transaction = transactions[0];
+        const extraTransactions = transactions.slice(1);
 
         callApi('POST', 'updateFundTransaction', {}, {
           year: '2026',
@@ -610,17 +611,25 @@
           }
         })
           .then(() => {
-            const extraTransactions = transactions.slice(1);
             if (!extraTransactions.length) return null;
             return callApi('POST', 'addFundTransactions', {}, {
               year: '2026',
               transactions: extraTransactions
             });
           })
-          .then(() => {
+          .then((res) => {
+            const addResult = res || {};
+            const inserted = Number(addResult.inserted ?? addResult.rows?.length ?? 0);
+            if (extraTransactions.length && inserted < extraTransactions.length) {
+              throw new Error(`Google Sheets chỉ xác nhận ghi ${inserted}/${extraTransactions.length} khoản mới.`);
+            }
+            return addResult;
+          })
+          .then((addResult) => {
             clearFundEntryForm();
+            const rowRange = formatFundWriteRowRange(addResult);
             showFundEntryStatus('success', transactions.length > 1
-              ? `Đã cập nhật 1 khoản và lưu thêm ${transactions.length - 1} khoản mới.`
+              ? `Đã cập nhật 1 khoản và lưu thêm ${transactions.length - 1} khoản mới${rowRange}.`
               : 'Đã cập nhật khoản thu/chi thành công.');
             loadFundTransactions(true);
             loadFundOverview(true);
@@ -638,9 +647,14 @@
           year: '2026',
           transactions: transactions
         })
-          .then(() => {
+          .then((res) => {
+            const addResult = res || {};
+            const inserted = Number(addResult.inserted ?? addResult.rows?.length ?? 0);
+            if (inserted < transactions.length) {
+              throw new Error(`Google Sheets chỉ xác nhận ghi ${inserted}/${transactions.length} khoản.`);
+            }
             clearFundEntryForm();
-            showFundEntryStatus('success', `Đã lưu ${transactions.length} khoản thu/chi vào file Thu chi.`);
+            showFundEntryStatus('success', `Đã lưu ${inserted} khoản thu/chi vào ${addResult.sheetName || 'file Thu chi'}${formatFundWriteRowRange(addResult)}.`);
             loadFundTransactions(true);
             loadFundOverview(true);
             setTimeout(closeFundTransactionAddDrawer, 1000);
@@ -652,6 +666,14 @@
             if (btn) btn.disabled = false;
           });
       }
+    }
+
+    function formatFundWriteRowRange(result) {
+      const data = result || {};
+      const first = Number(data.firstRow || data.rows?.[0]?.rowIndex || 0);
+      const last = Number(data.lastRow || data.rows?.[data.rows.length - 1]?.rowIndex || first || 0);
+      if (!first) return '';
+      return first === last ? `, dòng ${first}` : `, dòng ${first}-${last}`;
     }
 
     function validateFundTransactions(transactions) {

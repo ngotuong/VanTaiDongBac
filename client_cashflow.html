@@ -1549,10 +1549,10 @@
 
       if (data.limited) {
         notice.textContent = `Đang tải ${rows.length}/${data.totalRows} dòng mới nhất. Bảng đang chia ${FUND_TRANSACTIONS_PAGE_SIZE} dòng/trang.`;
-        notice.style.display = 'block';
+        notice.style.display = 'none';
       } else {
         notice.textContent = `Có ${rows.length} dòng, đang chia ${FUND_TRANSACTIONS_PAGE_SIZE} dòng/trang.`;
-        notice.style.display = 'block';
+        notice.style.display = 'none';
       }
     }
 

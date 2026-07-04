@@ -496,7 +496,7 @@
 
       .app-sticky-toolbar.sticky-after-tabs,
       .catalog-sticky-toolbar.sticky-after-tabs {
-        top: calc(62px + env(safe-area-inset-top, 0px)) !important;
+        top: calc(56px + env(safe-area-inset-top, 0px)) !important;
       }
 
       .app-sticky-tabs.sticky-after-toolbar {
@@ -959,7 +959,12 @@
         grid-template-columns: 1fr !important;
         width: 100% !important;
         min-width: 0 !important;
-        gap: 10px !important;
+        gap: 6px !important;
+      }
+
+      #manageView .filter-bar {
+        margin-bottom: 10px !important;
+        padding: 8px !important;
       }
 
       #manageDateFilterGroup {
@@ -967,7 +972,7 @@
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         width: 100% !important;
         min-width: 0 !important;
-        gap: 8px !important;
+        gap: 6px !important;
       }
 
       #manageView .filter-container label,
@@ -977,7 +982,9 @@
         align-items: stretch !important;
         width: 100% !important;
         min-width: 0 !important;
-        gap: 6px !important;
+        gap: 3px !important;
+        font-size: 10.5px !important;
+        line-height: 1.1 !important;
       }
 
       #manageView .filter-container .manage-period-filter {
@@ -997,6 +1004,22 @@
         height: 44px !important;
         font-size: 16px !important;
         font-weight: 500 !important;
+      }
+
+      #manageStartDate,
+      #manageEndDate,
+      #manageSearchInput {
+        min-height: 40px !important;
+        height: 40px !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+      }
+
+      #manageView .manage-add-shortcut {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        min-height: 40px !important;
       }
 
       .fund-transaction-toolbar,
@@ -1090,6 +1113,28 @@
       .panel-body { padding: 16px; }
       
       .table-wrap { max-height: none !important; }
+      .fund-transactions-scroll {
+        max-height: none !important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        padding: 8px !important;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+        touch-action: pan-x pan-y;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .manage-table-scroll {
+        max-height: none !important;
+        overflow-y: visible !important;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      #manageLimitNotice,
+      #fundTransactionsNotice {
+        display: none !important;
+      }
       #rows { max-height: none !important; overflow-y: visible !important; }
       
       .submit-bar {

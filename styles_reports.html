@@ -398,6 +398,15 @@
       max-height: 580px; 
       position: relative;
       scrollbar-width: thin;
+      overscroll-behavior-x: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .fund-transactions-scroll {
+      max-height: calc(100vh - 300px);
+      overflow: auto;
+      padding: 12px;
+      overscroll-behavior: contain;
     }
     
     table { 

@@ -1,17 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Van Tai Dong Bac App Icon">
   <defs>
-    <!-- Background Gradient (Premium Dark Teal with Radial Core Light) -->
+    <!-- Background Gradient (Elegant Deep Navy Teal) -->
     <radialGradient id="bg" cx="50%" cy="40%" r="85%">
-      <stop offset="0%" stop-color="#0e544d"/>
-      <stop offset="45%" stop-color="#042320"/>
-      <stop offset="100%" stop-color="#000908"/>
+      <stop offset="0%" stop-color="#072d29"/>
+      <stop offset="60%" stop-color="#021412"/>
+      <stop offset="100%" stop-color="#000504"/>
     </radialGradient>
-
-    <!-- Neon Underglow Teal Gradient -->
-    <linearGradient id="neonGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.6"/>
-      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
-    </linearGradient>
 
     <!-- Con đường Gradient (Perspective Path) -->
     <linearGradient id="roadGrad" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -19,15 +13,15 @@
       <stop offset="100%" stop-color="#2dd4bf"/>
     </linearGradient>
 
-    <!-- Monogram DB Gradients (Metallic Gold/Teal Overlay) -->
+    <!-- Monogram DB Gradients (Clean Metal & Neon Teal) -->
     <linearGradient id="dbSpineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#99f6e4"/>
+      <stop offset="100%" stop-color="#ccfbf1"/>
     </linearGradient>
 
     <linearGradient id="dbLoopGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#2dd4bf"/>
-      <stop offset="100%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0d9488"/>
     </linearGradient>
 
     <!-- Neon Glow Filter -->
@@ -38,134 +32,74 @@
 
     <!-- Deep Shadow Filter -->
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
-      <feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#000807" flood-opacity="0.75"/>
-    </filter>
-
-    <!-- Soft Truck Shadow -->
-    <filter id="truckShadow" x="-15%" y="-15%" width="130%" height="130%">
-      <feDropShadow dx="-8" dy="16" stdDeviation="16" flood-color="#000000" flood-opacity="0.5"/>
+      <feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#000807" flood-opacity="0.7"/>
     </filter>
   </defs>
 
   <!-- Background Base -->
   <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
 
-  <!-- High-Tech Circuit Matrix Gridlines (Subtle Accent) -->
-  <g opacity="0.03" stroke="#ffffff" stroke-width="3">
-    <circle cx="512" cy="512" r="450" fill="none"/>
-    <circle cx="512" cy="512" r="300" fill="none"/>
+  <!-- High-Tech Circuit Matrix Gridlines (Subtle Digital Accent) -->
+  <g opacity="0.04" stroke="#ffffff" stroke-width="2">
+    <circle cx="512" cy="480" r="420" fill="none"/>
+    <circle cx="512" cy="480" r="280" fill="none"/>
     <line x1="512" y1="0" x2="512" y2="1024"/>
-    <line x1="0" y1="512" x2="1024" y2="512"/>
-    <line x1="150" y1="150" x2="874" y2="874"/>
-    <line x1="874" y1="150" x2="150" y2="874"/>
+    <line x1="0" y1="480" x2="1024" y2="480"/>
   </g>
 
-  <!-- Perspective Road/Light Trails (Dynamic 3D Path) -->
+  <!-- Perspective Road/Light Trails (Dynamic Path under the Letters) -->
   <g filter="url(#glow)">
-    <!-- Road Base (Dark Polygon) -->
-    <polygon points="100,920 924,920 600,560 424,560" fill="#021412" opacity="0.8"/>
-    
-    <!-- Left Boundary Trail -->
-    <path d="M 120,910 Q 360,780 440,565" fill="none" stroke="url(#roadGrad)" stroke-width="36" stroke-linecap="round" opacity="0.3"/>
-    <!-- Right Boundary Trail -->
-    <path d="M 904,910 Q 660,780 580,565" fill="none" stroke="url(#roadGrad)" stroke-width="36" stroke-linecap="round" opacity="0.3"/>
-    
-    <!-- Neon Center Light Trail (Perspective Line) -->
-    <path d="M 512,920 L 512,560" fill="none" stroke="#2dd4bf" stroke-width="12" stroke-dasharray="35, 25" stroke-linecap="round"/>
-    <path d="M 512,920 L 512,560" fill="none" stroke="#ffffff" stroke-width="6" stroke-dasharray="35, 25" stroke-linecap="round" opacity="0.9"/>
+    <path d="M 150,780 Q 512,680 874,780" fill="none" stroke="url(#roadGrad)" stroke-width="32" stroke-linecap="round" opacity="0.25"/>
+    <path d="M 150,780 Q 512,680 874,780" fill="none" stroke="#2dd4bf" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+    <path d="M 150,810 Q 512,730 874,810" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
   </g>
 
-  <!-- Neon Underglow for the Truck (Adds 3D Grounding) -->
-  <ellipse cx="512" cy="815" rx="300" ry="30" fill="url(#neonGlowGrad)" filter="url(#glow)"/>
-
-  <!-- GPS Node Network / IoT Connection Grid -->
-  <g filter="url(#glow)">
-    <!-- Connection Lines -->
-    <line x1="720" y1="640" x2="810" y2="540" stroke="#f59e0b" stroke-width="3" opacity="0.4" stroke-dasharray="8,8"/>
-    <line x1="720" y1="640" x2="620" y2="510" stroke="#f59e0b" stroke-width="3" opacity="0.4" stroke-dasharray="8,8"/>
-    
-    <!-- Dynamic GPS Signal Pulses -->
-    <circle cx="720" cy="640" r="65" fill="none" stroke="#f59e0b" stroke-width="2.5" opacity="0.4" stroke-dasharray="15, 20"/>
-    <circle cx="720" cy="640" r="120" fill="none" stroke="#f59e0b" stroke-width="2.5" opacity="0.2" stroke-dasharray="25, 30"/>
-    
-    <!-- Network Hub Nodes -->
-    <circle cx="810" cy="540" r="12" fill="#f59e0b" opacity="0.8"/>
-    <circle cx="810" cy="540" r="6" fill="#ffffff"/>
-    <circle cx="620" cy="510" r="12" fill="#f59e0b" opacity="0.8"/>
-    <circle cx="620" cy="510" r="6" fill="#ffffff"/>
-    
-    <!-- Main Location Marker Pin -->
-    <circle cx="720" cy="640" r="16" fill="#f59e0b"/>
-    <circle cx="720" cy="640" r="8" fill="#ffffff"/>
-  </g>
-
-  <!-- 3D Isometric Container Truck (Operations Core) -->
-  <g filter="url(#truckShadow)">
-    <!-- Container Body: Side Facet (Shadowed/Teal Steel) -->
-    <polygon points="260,670 540,590 540,730 260,810" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="3"/>
-    
-    <!-- Container Body: Top Facet (Highlighted Facet) -->
-    <polygon points="260,670 540,590 590,600 310,680" fill="#ffffff" opacity="0.95"/>
-
-    <!-- Container Vertices/Ridges (3D Container Effect) -->
-    <g stroke="#e2e8f0" stroke-width="8" stroke-linecap="round">
-      <line x1="310" y1="695" x2="310" y2="785" />
-      <line x1="350" y1="683" x2="350" y2="773" />
-      <line x1="390" y1="671" x2="390" y2="761" />
-      <line x1="430" y1="659" x2="430" y2="749" />
-      <line x1="470" y1="647" x2="470" y2="737" />
-      <line x1="510" y1="635" x2="510" y2="725" />
-    </g>
-
-    <!-- Cabin/Truck Head: Side Facet -->
-    <polygon points="540,650 650,680 650,770 540,730" fill="url(#dbLoopGrad)"/>
-    
-    <!-- Cabin/Truck Head: Front Facet (Facing viewer chéo) -->
-    <polygon points="650,680 720,705 720,790 650,770" fill="#0369a1" stroke="#0284c7" stroke-width="2"/>
-    
-    <!-- Front Windshield Glass -->
-    <polygon points="660,695 710,712 710,745 660,735" fill="#bae6fd" opacity="0.9"/>
-    
-    <!-- Side Door Glass -->
-    <polygon points="575,670 635,690 635,720 575,705" fill="#bae6fd" opacity="0.75"/>
-
-    <!-- Front Bumper -->
-    <polygon points="640,775 725,800 725,815 640,790" fill="#0f172a"/>
-
-    <!-- 3D Wheels (Isometric Ellipses) -->
-    <!-- Wheel Back 1 -->
-    <g transform="translate(340, 810) rotate(-15)">
-      <ellipse cx="0" cy="0" rx="34" ry="20" fill="#0f172a" stroke="#334155" stroke-width="4"/>
-      <ellipse cx="0" cy="0" rx="14" ry="8" fill="#94a3b8"/>
-    </g>
-    <!-- Wheel Back 2 -->
-    <g transform="translate(470, 770) rotate(-15)">
-      <ellipse cx="0" cy="0" rx="34" ry="20" fill="#0f172a" stroke="#334155" stroke-width="4"/>
-      <ellipse cx="0" cy="0" rx="14" ry="8" fill="#94a3b8"/>
-    </g>
-    <!-- Wheel Front -->
-    <g transform="translate(660, 790) rotate(-15)">
-      <ellipse cx="0" cy="0" rx="34" ry="20" fill="#0f172a" stroke="#334155" stroke-width="4"/>
-      <ellipse cx="0" cy="0" rx="14" ry="8" fill="#94a3b8"/>
-    </g>
-  </g>
-
-  <!-- Premium Monogram DB (3D Neon Overlay Style) -->
+  <!-- Monogram ĐB (Geometric Bold Tech Style) -->
   <g filter="url(#shadow)">
-    <!-- Spine Line (Shared Back) -->
-    <rect x="360" y="160" width="60" height="420" rx="30" fill="url(#dbSpineGrad)"/>
+    <!-- 1. LETTER Đ (Left Side) -->
+    <!-- Spine of Đ -->
+    <rect x="320" y="160" width="50" height="380" rx="10" fill="url(#dbSpineGrad)"/>
+    <!-- Arc of Đ (Curving to the Left) -->
+    <path d="M 345,160 C 160,160 160,540 345,540" fill="none" stroke="url(#dbSpineGrad)" stroke-width="50" stroke-linecap="round"/>
 
-    <!-- Letter D (Ribbon Arc left) -->
-    <path d="M 390,160 C 190,160 190,580 390,580" fill="none" stroke="url(#dbSpineGrad)" stroke-width="64" stroke-linecap="round"/>
-    
-    <!-- Letter B (Ribbon Arc Top Right) -->
-    <path d="M 390,160 C 540,160 540,370 390,370" fill="none" stroke="url(#dbLoopGrad)" stroke-width="64" stroke-linecap="round"/>
+    <!-- 2. THE CONTAINER TRUCK AS THE "Đ" STROKE (Clever Integration) -->
+    <!-- Container Body (Running across the Đ spine) -->
+    <rect x="180" y="325" width="150" height="50" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-width="3"/>
+    <g stroke="#cbd5e1" stroke-width="5" stroke-linecap="round">
+      <line x1="220" y1="335" x2="220" y2="365" />
+      <line x1="250" y1="335" x2="250" y2="365" />
+      <line x1="280" y1="335" x2="280" y2="365" />
+      <line x1="310" y1="335" x2="310" y2="365" />
+    </g>
+    <!-- Wheels of the Container -->
+    <circle cx="220" cy="380" r="10" fill="#0f172a" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="290" cy="380" r="10" fill="#0f172a" stroke="#94a3b8" stroke-width="2"/>
 
-    <!-- Letter B (Ribbon Arc Bottom Right) -->
-    <path d="M 390,370 C 560,370 560,580 390,580" fill="none" stroke="url(#dbLoopGrad)" stroke-width="64" stroke-linecap="round"/>
+    <!-- Cabin (Truck Head pointing East-North / Up-Right as Arrow) -->
+    <path d="M 340,325 L 410,325 L 445,350 L 410,375 L 340,375 Z" fill="url(#dbLoopGrad)"/>
+    <!-- Windshield Glass -->
+    <polygon points="380,335 405,335 422,350 405,365 380,365" fill="#e0f2fe" opacity="0.9"/>
     
-    <!-- Inner Core Core Accent Dot -->
-    <circle cx="390" cy="370" r="14" fill="#042320" />
-    <circle cx="390" cy="370" r="6" fill="#2dd4bf" />
+    <!-- GPS Signal Pulse (Pointing North-East from Cabin) -->
+    <g filter="url(#glow)">
+      <!-- Sóng định hướng GPS màu cam neon nổi bật -->
+      <path d="M 440,320 A 35,35 0 0,1 475,355" fill="none" stroke="#f59e0b" stroke-width="6" stroke-linecap="round"/>
+      <path d="M 465,295 A 65,65 0 0,1 510,355" fill="none" stroke="#f59e0b" stroke-width="4" stroke-linecap="round" opacity="0.75"/>
+      <circle cx="430" cy="340" r="6" fill="#f59e0b"/>
+    </g>
+
+    <!-- 3. LETTER B (Right Side) -->
+    <!-- Spine of B -->
+    <rect x="520" y="160" width="50" height="380" rx="10" fill="url(#dbLoopGrad)"/>
+    <!-- Top Loop of B -->
+    <path d="M 545,160 C 670,160 670,350 545,350" fill="none" stroke="url(#dbLoopGrad)" stroke-width="50" stroke-linecap="round"/>
+    <!-- Bottom Loop of B -->
+    <path d="M 545,350 C 685,350 685,540 545,540" fill="none" stroke="url(#dbLoopGrad)" stroke-width="50" stroke-linecap="round"/>
+    <!-- Inner Core Connection -->
+    <circle cx="545" cy="350" r="10" fill="#021412" />
   </g>
+
+  <!-- Subtext "ĐÔNG BẮC" in Modern Clean Font (Optional Visual Weight) -->
+  <text x="512" y="650" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="52" font-weight="800" fill="#ffffff" letter-spacing="12" text-anchor="middle" opacity="0.95" filter="url(#shadow)">ĐÔNG BẮC</text>
+  <text x="512" y="700" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="22" font-weight="600" fill="#2dd4bf" letter-spacing="6" text-anchor="middle" opacity="0.8">LOGISTICS</text>
 </svg>

@@ -39,7 +39,7 @@ function invalidateCaches() {
 }
 
 function submitRows(formType, rows) {
-  return withTransportSync_(function () {
+  return withTransportSync_(rows, function () {
     return EntryService.submitRows(formType, rows);
   });
 }
@@ -253,7 +253,7 @@ function invokeApi(method, action, params, bodyData) {
   }
 
   if (normalizedMethod === 'POST') {
-    if (action === 'submitRows') return withTransportSync_(function () { return EntryService.submitRows(safeBody.formType, safeBody.rows); });
+    if (action === 'submitRows') return withTransportSync_(safeBody.rows, function () { return EntryService.submitRows(safeBody.formType, safeBody.rows); });
     if (action === 'checkTripReconciliation') return EntryService.checkTripReconciliation(safeBody.rows);
     if (action === 'saveSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData); });
     if (action === 'deleteSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear); });
@@ -281,11 +281,11 @@ function withFundSync_(year, fn) {
   return result;
 }
 
-function withTransportSync_(fn) {
+function withTransportSync_(rows, fn) {
   var result = fn();
   if (result && result.inserted) {
     try {
-      SupabaseService.syncTransportAfterWrite(result.sheetName);
+      SupabaseService.syncTransportAfterWrite(result.sheetName, rows);
     } catch (err) {
       console.log('transport_supabase_sync_after_write_failed: ' + (err && err.message ? err.message : err));
     }

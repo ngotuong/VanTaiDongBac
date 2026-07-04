@@ -18,6 +18,7 @@
 
     let syncToastTimer = null;
     function showSyncToast(message, type = 'info', persistent = false) {
+      if (handleDataSourceToast(message)) return;
       const toast = el('syncToast');
       if (!toast) return;
       clearTimeout(syncToastTimer);
@@ -33,6 +34,19 @@
       if (!persistent) {
         syncToastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
       }
+    }
+
+    function handleDataSourceToast(message) {
+      const text = String(message || '');
+      const isSourceMessage = /đang đọc|đang lọc|đã quay về Apps Script/i.test(text)
+        && /Supabase|Apps Script|cache/i.test(text);
+      if (!isSourceMessage) return false;
+      if (/Supabase/i.test(text)) {
+        setDataSourceStatus('supabase');
+      } else if (/Apps Script/i.test(text)) {
+        setDataSourceStatus('apps-script');
+      }
+      return true;
     }
 
     function hideSyncToast() {

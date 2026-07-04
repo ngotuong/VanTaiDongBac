@@ -646,41 +646,7 @@ var SheetService = (function () {
 
   function computeAndCacheOverviewDetails_(ss, sheet, months, dataVersion) {
     var detailsByMonth = {};
-    var originalMonthVal = sheet.getRange('B1').getValue();
-    var lock = LockService.getScriptLock();
-    var locked = false;
-    try {
-      lock.waitLock(15000);
-      locked = true;
-      months.forEach(function (month) {
-        var monthLabel = clean_(month);
-        if (!monthLabel) return;
-        var dateValue = parseMonthLabelToDate_(monthLabel);
-        sheet.getRange('B1').setValue(dateValue);
-        SpreadsheetApp.flush();
-        var monthKey = normalizeDisplayMonth_(monthLabel) || normalizeMonthKey_(monthLabel);
-        detailsByMonth[monthKey] = readCurrentOverviewDetails_(sheet);
-      });
-      
-      // So sánh giá trị hiển thị hoặc thời gian để khôi phục nếu cần
-      var currentVal = sheet.getRange('B1').getValue();
-      var isSame = false;
-      if (originalMonthVal instanceof Date && currentVal instanceof Date) {
-        isSame = originalMonthVal.getTime() === currentVal.getTime();
-      } else {
-        isSame = originalMonthVal === currentVal;
-      }
-      if (!isSame) {
-        sheet.getRange('B1').setValue(originalMonthVal);
-        SpreadsheetApp.flush();
-      }
-    } catch (e) {
-      console.error('Lỗi tính toán/cache báo cáo chi tiết:', e);
-    } finally {
-      if (locked) lock.releaseLock();
-    }
-
-    writeReportDetailsCache_(ss, dataVersion, detailsByMonth);
+    console.log('Bỏ qua tính cache chi tiết báo cáo bằng BC_TongQuan!B1 để không làm thay đổi ô chọn tháng.');
     return detailsByMonth;
   }
 
@@ -704,8 +670,7 @@ var SheetService = (function () {
 
   function getReportDataVersion_() {
     var baseVersion = PropertiesService.getScriptProperties().getProperty(REPORT_DATA_VERSION_PROP) || '0';
-    var hourBucket = Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'yyyyMMddHH');
-    return baseVersion + ':' + hourBucket;
+    return baseVersion;
   }
 
   function bumpReportDataVersion_() {

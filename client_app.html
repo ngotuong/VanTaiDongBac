@@ -171,7 +171,23 @@
       const dashboardUpdatedAt = getDashboardData()?.updatedAt;
       const reportUpdatedAt = appData?.reports?.updatedAt;
       const fallback = dashboardUpdatedAt || reportUpdatedAt || '';
-      return `Dữ liệu cập nhật: ${fallback || 'Vui lòng chờ...'}`;
+      return `Cập nhật: ${fallback || 'Vui lòng chờ...'}`;
+    }
+
+    function getDataSourceBadgeHtml() {
+      if (currentDataSource === 'supabase') {
+        return '<span class="source-badge source-supabase" title="Đang đọc từ Supabase cache">S</span>';
+      }
+      if (currentDataSource === 'apps-script') {
+        return '<span class="source-badge source-appscript" title="Đang đọc fallback từ Apps Script">AS</span>';
+      }
+      return '';
+    }
+
+    function setDataSourceStatus(source) {
+      currentDataSource = source || '';
+      const subtitle = el('subtitle');
+      if (subtitle) subtitle.innerHTML = `${getLatestDataUpdateText()} ${getDataSourceBadgeHtml()}`;
     }
 
     function renderView() {
@@ -194,7 +210,7 @@
       
       el('eyebrow').textContent = meta[0];
       el('pageTitle').textContent = meta[1];
-      el('subtitle').textContent = meta[2];
+      el('subtitle').innerHTML = `${meta[2]} ${getDataSourceBadgeHtml()}`;
     }
 
     let html2CanvasLoader = null;

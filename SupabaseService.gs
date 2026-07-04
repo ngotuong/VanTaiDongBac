@@ -350,7 +350,7 @@ var SupabaseService = (function () {
     };
   }
 
-  function syncTransportAfterWrite(sheetName) {
+  function syncTransportAfterWrite(sheetName, rows) {
     var results = [];
     var errors = [];
     var safeSheetName = clean_(sheetName);
@@ -359,8 +359,16 @@ var SupabaseService = (function () {
     runSyncStep_(results, errors, 'startup', function () { return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE); });
     if (safeSheetName && safeSheetName.indexOf('NL_') === 0) {
       runSyncStep_(results, errors, 'manageData:' + safeSheetName, function () { return syncManageDataBundle(safeSheetName); });
-      getRecentManageMonthKeys_(safeSheetName, 2).forEach(function (monthKey) {
+      getTransportRowsMonthKeys_(rows).forEach(function (monthKey) {
         runSyncStep_(results, errors, 'manageData:' + safeSheetName + ':' + monthKey, function () {
+          return syncManageMonthBundle(safeSheetName, monthKey);
+        });
+        runSyncStep_(results, errors, 'report:' + monthKey, function () {
+          return syncReportBundle(formatMonthKeyForReport_(monthKey));
+        });
+      });
+      getRecentManageMonthKeys_(safeSheetName, 2).forEach(function (monthKey) {
+        runSyncStep_(results, errors, 'manageDataRecent:' + safeSheetName + ':' + monthKey, function () {
           return syncManageMonthBundle(safeSheetName, monthKey);
         });
       });
@@ -606,6 +614,23 @@ var SupabaseService = (function () {
       return new Date(year, Number(vn[2]) - 1, Number(vn[1]));
     }
     return null;
+  }
+
+  function getTransportRowsMonthKeys_(rows) {
+    var seen = {};
+    (Array.isArray(rows) ? rows : []).forEach(function (row) {
+      var date = parseDateValue_(row && (row.date || row.fromDate || row.toDate));
+      if (!date) return;
+      seen[Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM')] = true;
+    });
+    return Object.keys(seen).sort().reverse();
+  }
+
+  function formatMonthKeyForReport_(monthKey) {
+    var normalized = normalizeYearMonthKey_(monthKey);
+    if (!normalized) return monthKey;
+    var parts = normalized.split('-');
+    return parts[1] + '/' + parts[0];
   }
 
   function clean_(value) {

@@ -492,6 +492,37 @@
       margin-top: 6px; 
       color: var(--muted); 
       font-size: 14px; 
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .source-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 900;
+      line-height: 1;
+      border: 1px solid var(--line);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+
+    .source-supabase {
+      color: #0b6b5d;
+      background: #d9fff4;
+      border-color: #8debd2;
+    }
+
+    .source-appscript {
+      color: #8a4b00;
+      background: #fff4dc;
+      border-color: #ffd48a;
     }
     
     .top-actions { 
@@ -4575,6 +4606,7 @@
     let fundTransactionRows = [];
     let fundTransactionEditRowIndex = null;
     let currentEditingTransaction = null;
+    let currentDataSource = '';
     let reportBundleRequestSeq = 0;
     let reportBundlePrefetching = false;
     let reportCacheEpoch = 0;
@@ -8109,7 +8141,23 @@
       const dashboardUpdatedAt = getDashboardData()?.updatedAt;
       const reportUpdatedAt = appData?.reports?.updatedAt;
       const fallback = dashboardUpdatedAt || reportUpdatedAt || '';
-      return `Dữ liệu cập nhật: ${fallback || 'Vui lòng chờ...'}`;
+      return `Cập nhật: ${fallback || 'Vui lòng chờ...'}`;
+    }
+
+    function getDataSourceBadgeHtml() {
+      if (currentDataSource === 'supabase') {
+        return '<span class="source-badge source-supabase" title="Đang đọc từ Supabase cache">S</span>';
+      }
+      if (currentDataSource === 'apps-script') {
+        return '<span class="source-badge source-appscript" title="Đang đọc fallback từ Apps Script">AS</span>';
+      }
+      return '';
+    }
+
+    function setDataSourceStatus(source) {
+      currentDataSource = source || '';
+      const subtitle = el('subtitle');
+      if (subtitle) subtitle.innerHTML = `${getLatestDataUpdateText()} ${getDataSourceBadgeHtml()}`;
     }
 
     function renderView() {
@@ -8132,7 +8180,7 @@
       
       el('eyebrow').textContent = meta[0];
       el('pageTitle').textContent = meta[1];
-      el('subtitle').textContent = meta[2];
+      el('subtitle').innerHTML = `${meta[2]} ${getDataSourceBadgeHtml()}`;
     }
 
     let html2CanvasLoader = null;
@@ -10378,6 +10426,7 @@
 
     let syncToastTimer = null;
     function showSyncToast(message, type = 'info', persistent = false) {
+      if (handleDataSourceToast(message)) return;
       const toast = el('syncToast');
       if (!toast) return;
       clearTimeout(syncToastTimer);
@@ -10393,6 +10442,19 @@
       if (!persistent) {
         syncToastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
       }
+    }
+
+    function handleDataSourceToast(message) {
+      const text = String(message || '');
+      const isSourceMessage = /đang đọc|đang lọc|đã quay về Apps Script/i.test(text)
+        && /Supabase|Apps Script|cache/i.test(text);
+      if (!isSourceMessage) return false;
+      if (/Supabase/i.test(text)) {
+        setDataSourceStatus('supabase');
+      } else if (/Apps Script/i.test(text)) {
+        setDataSourceStatus('apps-script');
+      }
+      return true;
     }
 
     function hideSyncToast() {

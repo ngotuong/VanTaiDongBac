@@ -503,6 +503,10 @@
         top: calc(112px + env(safe-area-inset-top, 0px)) !important;
       }
 
+      #reportsView #reportTabsBar.sticky-after-toolbar {
+        top: calc(74px + env(safe-area-inset-top, 0px)) !important;
+      }
+
       .report-table-head {
         flex-direction: row !important;
         align-items: center !important;
@@ -601,12 +605,14 @@
         grid-template-columns: minmax(132px, 1fr) minmax(104px, 0.46fr);
         gap: 8px !important;
         width: 100% !important;
+        align-items: end !important;
       }
 
       #catalogView #catalogPersonnelStatusFilterWrap,
       #catalogView #catalogVehicleOwnerFilterWrap {
         display: flex !important;
         align-items: center !important;
+        align-self: end !important;
         flex: 1 1 auto !important;
         width: 100% !important;
         min-width: 0 !important;
@@ -619,15 +625,24 @@
 
       #catalogView .catalog-sticky-toolbar label {
         display: flex !important;
-        flex-direction: column;
         align-items: stretch !important;
-        gap: 6px !important;
         max-width: none !important;
         min-width: 0 !important;
         width: 100% !important;
         font-size: 11px !important;
         text-transform: uppercase;
         font-weight: 800 !important;
+      }
+
+      #catalogView .catalog-sticky-toolbar .catalog-search-control {
+        flex-direction: column !important;
+        gap: 4px !important;
+      }
+
+      #catalogView #catalogPersonnelStatusFilterWrap,
+      #catalogView #catalogVehicleOwnerFilterWrap {
+        flex-direction: row !important;
+        gap: 0 !important;
       }
 
       #catalogView .catalog-sticky-toolbar input {
@@ -756,19 +771,10 @@
       }
 
       .mobile-period-control {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
+        display: block;
         align-items: center;
-        gap: 6px;
         min-width: 0;
-        flex: 1 1 auto;
-      }
-
-      .mobile-period-control label {
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 800;
-        text-transform: uppercase;
+        flex: 0 1 132px;
       }
 
       .mobile-period-control select {
@@ -776,7 +782,7 @@
         min-height: 40px;
         height: 40px;
         width: 100%;
-        max-width: 190px;
+        max-width: none;
         border: 1px solid var(--line);
         border-radius: 10px;
         background: var(--paper);

@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec`
-- Apps Script deployment moi nhat da xac nhan: `@196 - Fix cashflow write confirmation and catalog mobile filters`
+- Apps Script deployment moi nhat da xac nhan: `@197 - Fix catalog render and compact filters`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co
@@ -87,6 +87,9 @@ Commit lien quan:
 - Danh muc > Nhan su: bo chu "Trang thai" tren bo loc mobile, gom tim kiem + trang thai + nut them moi tren cung mot hang gon hon.
 - Danh muc > Danh sach xe: them bo loc cong ty/chu xe tren cung hang voi tim kiem va nut them moi.
 - Card danh sach mobile bo nhan "Thao tac", chi giu icon sua/xoa.
+- Sua loi `displaySheetName is not defined` lam Danh muc khong render duoc.
+- Van hanh bo chu "Ky" tren bo loc ky va can lai kich thuoc o ky mobile bang nhom ngay.
+- Bao cao bo dong tieu de/ghi chu trong panel loc de tiet kiem chieu cao.
 
 ## File tài liệu hiện hành
 

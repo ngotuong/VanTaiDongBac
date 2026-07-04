@@ -75,6 +75,7 @@
       if (!currentCatalogData) return;
       const headers = [...currentCatalogData.headers];
       const rawRows = currentCatalogData.rows || [];
+      const sheetName = el('catalogSheetSelect')?.value || '';
       
       let vehicleColIdx = -1;
       for (let i = 0; i < headers.length; i++) {
@@ -121,7 +122,7 @@
           searchText: removeAccents(row.values.concat(owner).join(' ').toLowerCase())
         };
       });
-      populateCatalogVehicleOwnerFilter(displaySheetName, filteredCatalogRowsData);
+      populateCatalogVehicleOwnerFilter(sheetName, filteredCatalogRowsData);
 
       filterCatalogRows();
     }

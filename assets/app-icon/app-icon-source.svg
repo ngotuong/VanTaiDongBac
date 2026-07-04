@@ -1,25 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Van Tai Dong Bac App Icon">
   <defs>
-    <!-- Background Gradient (Ultra Premium Dark Teal-Green) -->
-    <radialGradient id="bg" cx="50%" cy="35%" r="90%">
-      <stop offset="0%" stop-color="#0a3c38"/>
-      <stop offset="60%" stop-color="#031a18"/>
+    <!-- Background Gradient (Elegant Deep Dark Teal) -->
+    <radialGradient id="bg" cx="50%" cy="30%" r="85%">
+      <stop offset="0%" stop-color="#0a3934"/>
+      <stop offset="60%" stop-color="#021715"/>
       <stop offset="100%" stop-color="#000706"/>
     </radialGradient>
 
-    <!-- Metallic Gold/Silver Gradient for Top Facet -->
-    <linearGradient id="topFacetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Container Body Gradient -->
+    <linearGradient id="containerGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0d9488"/>
+      <stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+
+    <!-- Cabin Head Gradient -->
+    <linearGradient id="cabinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#99f6e4"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
     </linearGradient>
 
-    <!-- Neon Teal Gradient for Loops -->
-    <linearGradient id="neonTealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2dd4bf"/>
-      <stop offset="100%" stop-color="#0d9488"/>
-    </linearGradient>
-
-    <!-- Bright Orange Accent Gradient for Cabin/GPS -->
+    <!-- Orange Accent Glow Gradient -->
     <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#fb923c"/>
       <stop offset="100%" stop-color="#ea580c"/>
@@ -27,84 +27,96 @@
 
     <!-- Glow Effect Filter -->
     <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feGaussianBlur stdDeviation="12" result="blur"/>
       <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
 
     <!-- Deep Shadow Filter -->
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
-      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000807" flood-opacity="0.8"/>
+      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#000706" flood-opacity="0.85"/>
     </filter>
   </defs>
 
   <!-- Background Base -->
   <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
 
-  <!-- High-Tech Tech Grid Matrix (Subtle Digital Nodes) -->
-  <g opacity="0.04" stroke="#2dd4bf" stroke-width="2">
-    <circle cx="512" cy="460" r="400" fill="none"/>
-    <line x1="512" y1="0" x2="512" y2="1024"/>
-    <line x1="0" y1="460" x2="1024" y2="460"/>
-    <line x1="150" y1="150" x2="874" y2="874"/>
-    <line x1="874" y1="150" x2="150" y2="874"/>
+  <!-- High-Tech Hexagonal Grid Lines (Subtle Tech Accent) -->
+  <g opacity="0.03" stroke="#2dd4bf" stroke-width="2">
+    <polygon points="512,120 850,315 850,705 512,900 174,705 174,315" fill="none"/>
+    <line x1="512" y1="120" x2="512" y2="900"/>
+    <line x1="174" y1="315" x2="850" y2="705"/>
+    <line x1="174" y1="705" x2="850" y2="315"/>
   </g>
 
-  <!-- 3D Perspective Light Trails (Con đường ánh sáng dưới chân) -->
-  <g filter="url(#glow)">
-    <path d="M 100,820 Q 512,700 924,820" fill="none" stroke="url(#neonTealGrad)" stroke-width="36" stroke-linecap="round" opacity="0.3"/>
-    <path d="M 100,820 Q 512,700 924,820" fill="none" stroke="#2dd4bf" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
-    <path d="M 120,845 Q 512,735 904,845" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.95"/>
+  <!-- Dynamic Under-Truck Neon Trail (Con đường ánh sáng phát sáng nhẹ dưới gầm xe) -->
+  <g opacity="0.15" filter="url(#glow)">
+    <polygon points="120,530 904,430 750,560 250,600" fill="#2dd4bf"/>
   </g>
 
-  <!-- Isometric 3D Container Logo Mark (Integrated ĐB + Truck + Container) -->
-  <g filter="url(#shadow)" transform="translate(0, -20)">
-    <!-- Back Projection Shadow of the Cube -->
-    <polygon points="262,320 512,460 762,320 762,600 512,740 262,600" fill="#000000" opacity="0.25"/>
-
-    <!-- 1. TOP FACET: Represents the top of the container -->
-    <polygon points="512,180 762,320 512,460 262,320" fill="url(#topFacetGrad)"/>
-    <polygon points="512,180 762,320 512,460 262,320" fill="none" stroke="#ffffff" stroke-width="4"/>
-
-    <!-- 2. LEFT FACET: Represents the Letter 'Đ' + Rear of Container -->
-    <!-- Base Left Face Polygon -->
-    <polygon points="262,320 512,460 512,740 262,600" fill="#e2e8f0"/>
-    <!-- Outer Arc for 'Đ' -->
-    <path d="M 512,460 C 320,460 320,740 512,740" fill="none" stroke="url(#topFacetGrad)" stroke-width="50" stroke-linecap="round"/>
+  <!-- 3D PERSPECTIVE CONTAINER TRUCK (Operations Core - Highly Visible) -->
+  <g filter="url(#shadow)">
+    <!-- 1. Container Body -->
+    <!-- Side of Container (Teal Metal sheet) -->
+    <polygon points="180,310 520,240 520,430 180,500" fill="url(#containerGrad)" stroke="#115e59" stroke-width="2"/>
+    <!-- Top of Container -->
+    <polygon points="180,310 520,240 570,255 230,325" fill="#2dd4bf" opacity="0.9"/>
     
-    <!-- 3. CABIN OF THE TRUCK (Nét gạch của chữ Đ) -->
-    <!-- Đầu cabin xe tải 3D nhô ra chéo về góc dưới bên trái -->
-    <polygon points="210,500 290,460 290,560 210,600" fill="url(#orangeGrad)" filter="url(#glow)"/>
-    <polygon points="210,500 170,520 170,620 210,600" fill="#c2410c"/>
-    <!-- Windshield of the Cabin -->
-    <polygon points="175,530 205,515 205,550 175,565" fill="#bae6fd" opacity="0.9"/>
-    <!-- Wheels of the Truck -->
-    <ellipse cx="280" cy="740" rx="20" ry="12" fill="#0f172a" stroke="#cbd5e1" stroke-width="3"/>
-    <ellipse cx="440" cy="790" rx="20" ry="12" fill="#0f172a" stroke="#cbd5e1" stroke-width="3"/>
+    <!-- Container Ridges/Ribs (Highly visible vertical details) -->
+    <g stroke="#115e59" stroke-width="6" stroke-linecap="round">
+      <line x1="230" y1="300" x2="230" y2="490" />
+      <line x1="280" y1="290" x2="280" y2="480" />
+      <line x1="330" y1="280" x2="330" y2="470" />
+      <line x1="380" y1="270" x2="380" y2="460" />
+      <line x1="430" y1="260" x2="430" y2="450" />
+      <line x1="480" y1="250" x2="480" y2="440" />
+    </g>
 
-    <!-- 4. RIGHT FACET: Represents the Letter 'B' + Side of Container -->
-    <!-- Base Right Face Polygon -->
-    <polygon points="512,460 762,320 762,600 512,740" fill="#0f766e"/>
-    <!-- Arc Loops for 'B' (Top Loop) -->
-    <path d="M 512,460 C 670,460 670,600 512,600" fill="none" stroke="url(#neonTealGrad)" stroke-width="50" stroke-linecap="round"/>
-    <!-- Arc Loops for 'B' (Bottom Loop) -->
-    <path d="M 512,600 C 670,600 670,740 512,740" fill="none" stroke="url(#neonTealGrad)" stroke-width="50" stroke-linecap="round"/>
+    <!-- 2. Cabin/Truck Head -->
+    <!-- Side of Cabin -->
+    <polygon points="520,320 640,345 640,460 520,430" fill="url(#cabinGrad)"/>
+    <!-- Front of Cabin -->
+    <polygon points="640,345 720,365 720,480 640,460" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+    
+    <!-- Windshield Front Glass -->
+    <polygon points="650,355 710,370 710,410 650,400" fill="#0f172a"/>
+    <!-- Side Door Window Glass -->
+    <polygon points="545,335 625,355 625,395 545,375" fill="#0f172a"/>
 
-    <!-- Container Rib Detail lines on the top face to reinforce the container theme -->
-    <line x1="330" y1="280" x2="380" y2="310" stroke="#cbd5e1" stroke-width="5" opacity="0.7"/>
-    <line x1="380" y1="250" x2="430" y2="280" stroke="#cbd5e1" stroke-width="5" opacity="0.7"/>
-    <line x1="430" y1="220" x2="480" y2="250" stroke="#cbd5e1" stroke-width="5" opacity="0.7"/>
+    <!-- Front Bumper -->
+    <polygon points="630,465 725,485 725,505 630,485" fill="#1e293b"/>
 
-    <!-- GPS Pulse Signal radiating from the Truck Cabin -->
-    <g filter="url(#glow)" opacity="0.95">
-      <path d="M 150,500 A 40,40 0 0,0 120,550" fill="none" stroke="#fb923c" stroke-width="6" stroke-linecap="round"/>
-      <path d="M 130,470 A 70,70 0 0,0 90,550" fill="none" stroke="#fb923c" stroke-width="4" stroke-linecap="round" opacity="0.75"/>
-      <circle cx="170" cy="520" r="8" fill="#fb923c"/>
+    <!-- 3. Heavy Duty Black Wheels -->
+    <!-- Wheel Back 1 -->
+    <g transform="translate(240, 500) rotate(-12)">
+      <ellipse cx="0" cy="0" rx="34" ry="20" fill="#0f172a" stroke="#475569" stroke-width="4"/>
+      <ellipse cx="0" cy="0" rx="14" ry="8" fill="#94a3b8"/>
+    </g>
+    <!-- Wheel Back 2 -->
+    <g transform="translate(420, 460) rotate(-12)">
+      <ellipse cx="0" cy="0" rx="34" ry="20" fill="#0f172a" stroke="#475569" stroke-width="4"/>
+      <ellipse cx="0" cy="0" rx="14" ry="8" fill="#94a3b8"/>
+    </g>
+    <!-- Wheel Front -->
+    <g transform="translate(650, 485) rotate(-12)">
+      <ellipse cx="0" cy="0" rx="32" ry="18" fill="#0f172a" stroke="#475569" stroke-width="4"/>
+      <ellipse cx="0" cy="0" rx="12" ry="6" fill="#94a3b8"/>
     </g>
   </g>
 
-  <!-- Typography: Clean Modern Brand Name -->
+  <!-- GPS Signal Waves (IoT Management Accent) -->
+  <g filter="url(#glow)">
+    <circle cx="680" cy="330" r="8" fill="#f59e0b"/>
+    <path d="M 660,310 A 30,30 0 0,1 700,310" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+    <path d="M 640,290 A 60,60 0 0,1 720,290" fill="none" stroke="#f59e0b" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  </g>
+
+  <!-- Separator Line (Modern Tech Bar - Clean spacing) -->
+  <line x1="200" y1="580" x2="824" y2="580" stroke="#f59e0b" stroke-width="6" stroke-linecap="round" filter="url(#glow)"/>
+
+  <!-- TYPOGRAPHY: Extremely Clean and Solid Bold Text (No overlapping elements) -->
   <g filter="url(#shadow)">
-    <text x="512" y="790" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="48" font-weight="900" fill="#ffffff" letter-spacing="10" text-anchor="middle">VẬN TẢI ĐÔNG BẮC</text>
-    <text x="512" y="840" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="20" font-weight="700" fill="#2dd4bf" letter-spacing="8" text-anchor="middle" opacity="0.9">DONG BAC LOGISTICS</text>
+    <text x="512" y="700" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="76" font-weight="900" fill="#ffffff" letter-spacing="14" text-anchor="middle">ĐÔNG BẮC</text>
+    <text x="512" y="780" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="38" font-weight="700" fill="#2dd4bf" letter-spacing="18" text-anchor="middle">VẬN TẢI</text>
+    <text x="512" y="830" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="18" font-weight="500" fill="#94a3b8" letter-spacing="8" text-anchor="middle" opacity="0.8">LOGISTICS &amp; TRANSPORT</text>
   </g>
 </svg>

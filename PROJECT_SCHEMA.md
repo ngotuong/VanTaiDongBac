@@ -327,8 +327,8 @@ Chuc nang chinh:
 | `getDashboard` | `BC_TongQuan`, `NL_VanChuyen`, co the doc cache | Khong | Doc KPI, bieu do, chuyen gan day. |
 | `getReports` | `BC_TongQuan`, `BC_BangLuong`, `BC_TongHopXe`, `NL_VanChuyen`, co the doc cache | Khong | Doc cac report tong hop. |
 | `getReport` | Tuy type: `BC_TongQuan`, `BC_BangLuong`, `BC_TongHopXe` | Khong | Doc tung report. |
-| `getReportBundle` | `BC_TongQuan`, `BC_BangLuong`, `BC_TongHopXe`, `SYS_ReportCache` | Co the ghi `SYS_ReportCache`, co the cap nhat tam `BC_TongQuan!B1` | Dung de gom report theo thang va cache. |
-| `readOverviewDetailsWithCache_` | `BC_TongQuan`, `SYS_ReportCache` | `SYS_ReportCache`, co the cap nhat tam `BC_TongQuan!B1` | Dung B1 lam controller thang cho report chi tiet. |
+| `getReportBundle` | `BC_TongQuan`, `BC_BangLuong`, `BC_TongHopXe`, `SYS_ReportCache` | Co the ghi `SYS_ReportCache`; khi can tinh chi tiet thang thi tao sheet tam copy tu `BC_TongQuan`, set `B1` tren sheet tam, doc ket qua, roi xoa sheet tam | Dung de gom report theo thang va cache, khong duoc lam thay doi `BC_TongQuan!B1` goc. |
+| `readOverviewDetailsWithCache_` | `BC_TongQuan`, `SYS_ReportCache` | `SYS_ReportCache`; co the goi tinh chi tiet qua sheet tam | Dung `B1` tren sheet tam lam controller thang cho report chi tiet, khong ghi vao `BC_TongQuan!B1` goc. |
 | `submitRows` | Co the doc metadata/cau hinh sheet | `NL_VanChuyen`, `NL_TaiXe`, `NL_Dau`, `NL_ChamCong`, `NL_Phat`, `NL_NghiVanHanh` | Ghi theo `formType`. |
 | `checkTripReconciliation` | `NL_VanChuyen`, `NL_TaiXe` | Khong | Doi soat so chuyen. |
 | `readSheetData` | Sheet duoc yeu cau, gom `NL_*`, `DM_*`; `DM_ThamSo_TS/GD` la tab ao | Khong | Dung cho Quan ly/Danh muc. |
@@ -941,7 +941,7 @@ Cong thuc quan trong:
 - `NL_ChamCong` tinh so ngay, tinh luong cung, nhom xu ly.
 - `NL_NghiVanHanh` tinh KPI/giam KPI.
 - `XL_*` la cac sheet xu ly cong thuc, khong nen ghi truc tiep neu khong co migration/logic rieng.
-- `BC_TongQuan!B1` la o dieu khien thang bao cao.
+- `BC_TongQuan!B1` la o dieu khien thang bao cao trong Google Sheet goc; web app khong duoc thay doi truc tiep o nay. Khi can tinh cache chi tiet theo thang, code tao sheet tam copy tu `BC_TongQuan`, set `B1` tren sheet tam, doc ket qua, roi xoa sheet tam.
 - `IMP_ThuChi` dung `IMPORTRANGE` sang file Thu chi.
 - `SYS_ReportCache` la cache do web app ghi.
 
@@ -1045,4 +1045,3 @@ Phan nay chi la goi y tai lieu, chua sua code.
   - `getCashflowCatalogs`
   - `saveCashflowRow`
   - `deleteCashflowRow`
-

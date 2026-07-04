@@ -12,7 +12,9 @@ Apps Script web app độc lập dùng chung cho các Google Sheet theo năm.
 - `index.html`: bản self-contained để Vercel/static hosting chạy trực tiếp.
 - `styles.html`: include các CSS module.
 - `client.html`: include các frontend JS module.
-- `ARCHITECTURE_REFACTOR.md`: lộ trình refactor và module map chi tiết.
+- `PROJECT_CONTEXT.md`: handoff/lộ trình sống để tiếp tục dự án giữa các cuộc trò chuyện.
+- `PROJECT_SCHEMA.md`: bản đồ schema và kiến trúc chi tiết.
+- `WORKFLOW.md`: quy trình sửa code, deploy, sync và rollback hằng ngày.
 
 ## Cấu hình file Google Sheet theo năm
 
@@ -32,3 +34,7 @@ clasp deploy --deploymentId AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitr
 ```
 
 Lưu ý: vì Vercel đang phục vụ repo như static site, `index.html` không được để lại Apps Script template tag `<?!= include(...) ?>`.
+
+## Tiếp tục dự án với Codex
+
+Khi mở cuộc trò chuyện mới, yêu cầu Codex đọc `AGENTS.md` và `PROJECT_CONTEXT.md` trước. Hai file này chứa quy tắc làm việc, trạng thái hiện tại và lộ trình tiếp theo.

@@ -1,5 +1,15 @@
 # Workflow làm việc hằng ngày
 
+## Khi bắt đầu một cuộc trò chuyện mới với Codex
+
+1. Yêu cầu Codex đọc `AGENTS.md`.
+2. Yêu cầu Codex đọc `PROJECT_CONTEXT.md`.
+3. Nếu công việc liên quan schema hoặc Supabase, đọc thêm `PROJECT_SCHEMA.md` và `SUPABASE_SCHEMA.md`.
+4. Nếu công việc liên quan deploy/rollback, đọc thêm `WORKFLOW.md` và `ROLLBACK.md`.
+5. Trước khi sửa code, luôn kiểm tra `git status --short`.
+
+`PROJECT_CONTEXT.md` là nơi ghi trạng thái/lộ trình sống của dự án. Khi có quyết định mới, cập nhật file đó.
+
 ## Khi sửa frontend
 
 1. Sửa các file source nhỏ như `client_*.html`, `styles_*.html`, `index.template.html`.

@@ -129,6 +129,7 @@ var SupabaseService = (function () {
     var safeYear = clean_(year) || DEFAULT_FUND_YEAR;
     var filter = options || {};
     var normalized = {
+      month: normalizeFundMonthKey_(filter.month),
       startDate: clean_(filter.startDate),
       endDate: clean_(filter.endDate),
       search: clean_(filter.search || filter.query),
@@ -145,6 +146,12 @@ var SupabaseService = (function () {
     }], 'year,filter_key');
     writeSyncStatus_('fund_transactions:' + safeYear + ':' + filterKey, 'fund', 'ok', 'Fund transaction cache synced.', syncedAt);
     return { ok: true, table: TABLE_FUND_TRANSACTION_BUNDLES, year: safeYear, filterKey: filterKey, syncedAt: syncedAt };
+  }
+
+  function syncFundTransactionMonth(year, month) {
+    var monthKey = normalizeFundMonthKey_(month);
+    if (!monthKey) throw new Error('Thiếu tháng giao dịch quỹ cần sync.');
+    return syncFundTransactions(year || DEFAULT_FUND_YEAR, { month: monthKey, limit: 1000 });
   }
 
   function syncFundLoanOverview(year, month) {
@@ -176,6 +183,9 @@ var SupabaseService = (function () {
     months.forEach(function (monthKey) {
       runSyncStep_(results, errors, 'fundOverview:' + monthKey, function () {
         return syncFundOverview(safeYear, monthKey);
+      });
+      runSyncStep_(results, errors, 'fundTransactions:' + monthKey, function () {
+        return syncFundTransactionMonth(safeYear, monthKey);
       });
       runSyncStep_(results, errors, 'fundLoans:' + monthKey, function () {
         return syncFundLoanOverview(safeYear, monthKey);
@@ -508,6 +518,8 @@ var SupabaseService = (function () {
   }
 
   function buildFundTransactionFilterKey_(filter) {
+    var month = normalizeFundMonthKey_(filter.month);
+    if (month) return 'month:' + month;
     var startDate = clean_(filter.startDate);
     var endDate = clean_(filter.endDate);
     var search = clean_(filter.search);
@@ -606,6 +618,7 @@ var SupabaseService = (function () {
     syncFundAfterWrite: syncFundAfterWrite,
     syncFundLoanOverview: syncFundLoanOverview,
     syncFundOverview: syncFundOverview,
+    syncFundTransactionMonth: syncFundTransactionMonth,
     syncFundTransactions: syncFundTransactions,
     syncAllFundBundles: syncAllFundBundles,
     syncStartupBundle: syncStartupBundle,

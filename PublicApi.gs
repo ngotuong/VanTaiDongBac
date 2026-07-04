@@ -188,6 +188,10 @@ function syncFundTransactionsToSupabase(year) {
   return SupabaseService.syncFundTransactions(year, { limit: 500 });
 }
 
+function syncFundTransactionMonthToSupabase(year, month) {
+  return SupabaseService.syncFundTransactionMonth(year || '2026', month);
+}
+
 function syncFundLoanOverviewToSupabase(year, month) {
   return SupabaseService.syncFundLoanOverview(year, month);
 }

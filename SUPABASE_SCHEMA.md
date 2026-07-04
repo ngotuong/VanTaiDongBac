@@ -80,9 +80,16 @@ Khóa chính:
 
 - `(year, filter_key)`
 
-Filter mặc định đang dùng cho menu giao dịch Quỹ:
+Filter đang dùng cho menu giao dịch Quỹ:
 
 - `recent_500`
+- `month:YYYY-MM`, ví dụ `month:2026-07`
+
+Frontend đọc:
+
+- Nếu không chọn đủ khoảng ngày, menu Giao dịch Quỹ đọc `recent_500`.
+- Nếu chọn đủ khoảng ngày, frontend đọc các cache `month:YYYY-MM` tương ứng rồi ghép, lọc ngày và lọc tìm kiếm ngay trên trình duyệt.
+- Nếu cache thiếu/lỗi hoặc bấm làm mới, frontend fallback về Apps Script `getFundTransactions`.
 
 ### `public.fund_loan_bundles`
 

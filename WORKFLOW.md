@@ -97,6 +97,14 @@ syncManageMonthToSupabase('NL_VanChuyen', '2026-07')
 
 Frontend dùng cache `month:YYYY-MM` khi người dùng chọn đủ khoảng ngày trong menu Vận hành.
 
+Nếu chỉ cần sync lại một tháng giao dịch Quỹ/Thu chi:
+
+```javascript
+syncFundTransactionMonthToSupabase('2026', '2026-07')
+```
+
+Frontend dùng cache `fund_transaction_bundles.filter_key = month:YYYY-MM` khi người dùng chọn đủ khoảng ngày trong tab Giao dịch Quỹ.
+
 ## Khi deploy
 
 Frontend Vercel:

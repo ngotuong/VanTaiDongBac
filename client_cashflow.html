@@ -1331,7 +1331,7 @@
       const supabaseStatus = getSupabaseReportStatus();
       const loadFundTransactionsFromAppsScript = () => callApi('GET', 'getFundTransactions', requestParams);
       const loader = (!forceRefresh && supabaseStatus.ok)
-        ? readFundTransactionsFromSupabase('2026', requestParams).catch((err) => {
+        ? readFundTransactionsRangeFromSupabase('2026', requestParams).catch((err) => {
             fundTransactionsFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
             console.warn('Không đọc được giao dịch Quỹ từ Supabase, quay về Apps Script:', err);
             return loadFundTransactionsFromAppsScript();
@@ -1346,7 +1346,7 @@
           fundTransactionsPage = 1;
           renderFundTransactions(data);
           showSyncToast(data.supabaseCached
-            ? 'Giao dịch Quỹ đang đọc từ Supabase cache.'
+            ? (data.supabaseMonthlyCached ? 'Giao dịch Quỹ đang đọc cache tháng từ Supabase.' : 'Giao dịch Quỹ đang đọc từ Supabase cache.')
             : 'Giao dịch Quỹ đã quay về Apps Script. ' + (fundTransactionsFallbackReason || ''));
         })
         .catch((err) => {
@@ -1355,6 +1355,101 @@
           empty.textContent = 'Không thể tải dữ liệu thu chi: ' + err.message;
           throw err;
         });
+    }
+
+    function readFundTransactionsRangeFromSupabase(year, params) {
+      const startDate = String(params.startDate || '').trim();
+      const endDate = String(params.endDate || '').trim();
+      if (startDate && endDate) {
+        const monthKeys = getFundMonthKeysForRange(startDate, endDate);
+        if (monthKeys.length) {
+          return Promise.all(monthKeys.map((monthKey) => readFundTransactionMonthFromSupabase(year, monthKey)))
+            .then((payloads) => filterFundTransactionsPayload(combineFundTransactionPayloads(payloads), params));
+        }
+      }
+      return readFundTransactionsFromSupabase(year, params);
+    }
+
+    function getFundMonthKeysForRange(startDate, endDate) {
+      const start = parseFundDateValue(startDate);
+      const end = parseFundDateValue(endDate);
+      if (!start || !end || start > end) return [];
+      const keys = [];
+      const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+      const endCursor = new Date(end.getFullYear(), end.getMonth(), 1);
+      while (cursor <= endCursor && keys.length < 24) {
+        keys.push(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`);
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+      return keys;
+    }
+
+    function combineFundTransactionPayloads(payloads) {
+      const validPayloads = (payloads || []).filter(Boolean);
+      const first = validPayloads[0] || { ok: true, year: '2026', sheetName: '', headers: [], months: [], transactions: [] };
+      const seen = new Set();
+      const transactions = [];
+      const monthMap = {};
+      validPayloads.forEach((payload) => {
+        (payload.months || []).forEach((month) => {
+          if (month && month.key) monthMap[month.key] = month.label || month.key;
+        });
+        (payload.transactions || []).forEach((item) => {
+          const key = String(item.rowIndex || '') + '|' + String(item.voucher || '') + '|' + String(item.date || '');
+          if (seen.has(key)) return;
+          seen.add(key);
+          transactions.push(item);
+        });
+      });
+      transactions.sort((a, b) => {
+        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+        return Number(b.rowIndex || 0) - Number(a.rowIndex || 0);
+      });
+      return {
+        ...first,
+        months: Object.keys(monthMap).sort().reverse().map((key) => ({ key, label: monthMap[key] })),
+        transactions,
+        totalRows: transactions.length,
+        limited: validPayloads.some((payload) => payload.limited),
+        supabaseCached: true,
+        supabaseMonthlyCached: true,
+        supabaseSyncedAt: validPayloads.map((payload) => payload.supabaseSyncedAt).filter(Boolean).sort().pop() || first.supabaseSyncedAt
+      };
+    }
+
+    function filterFundTransactionsPayload(data, params) {
+      const startDate = String(params.startDate || '').trim();
+      const endDate = String(params.endDate || '').trim();
+      const search = removeAccents(String(params.search || params.query || '').trim().toLowerCase());
+      const start = startDate ? parseFundDateValue(startDate) : null;
+      const end = endDate ? parseFundDateValue(endDate) : null;
+      const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 500, 1000));
+      const transactions = (data.transactions || []).filter((item) => {
+        const date = parseFundDateValue(item.date || item.dateText || '');
+        if (start && (!date || date < start)) return false;
+        if (end && (!date || date > end)) return false;
+        if (search) {
+          const haystack = removeAccents([
+            item.voucher,
+            item.dateText || item.date,
+            item.type,
+            item.category,
+            item.amountText,
+            item.actor,
+            item.partner,
+            item.content,
+            item.debt
+          ].join(' ').toLowerCase());
+          if (!haystack.includes(search)) return false;
+        }
+        return true;
+      });
+      return {
+        ...data,
+        transactions: transactions.slice(0, limit),
+        totalRows: transactions.length,
+        limited: transactions.length > limit
+      };
     }
 
     function toFundIsoDate(date) {

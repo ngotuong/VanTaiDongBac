@@ -306,6 +306,13 @@
       }, 'Chưa có cache Supabase cho giao dịch quỹ.');
     }
 
+    function readFundTransactionMonthFromSupabase(year, monthKey) {
+      return readSupabasePayload('fund_transaction_bundles', {
+        year: String(year || '2026'),
+        filter_key: 'month:' + normalizeFundMonthKeyForSupabase(monthKey)
+      }, 'Chưa có cache Supabase theo tháng cho giao dịch quỹ.');
+    }
+
     function readFundLoanOverviewFromSupabase(year, month) {
       const monthKey = normalizeFundMonthKeyForSupabase(month);
       return readSupabasePayload('fund_loan_bundles', {

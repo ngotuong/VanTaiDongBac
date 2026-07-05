@@ -114,6 +114,7 @@ Commit lien quan:
 - Sửa/xóa dòng `NL_*` qua web app giờ sync hẹp sau ghi: dashboard/latest report, `manage_data_bundles.recent_500`, cache thang lien quan neu co payload ngay, hoac 2 thang gan nhat neu khong xac dinh duoc ngay.
 - Cac thao tac Quy/Thu chi truyen context giao dich/khoan vay vao `syncFundAfterWrite()`, sync them `fund_transaction_bundles.month:YYYY-MM`, `fund_overview_bundles.month_key`, va `fund_loan_bundles.month_key` theo thang lien quan; neu khong xac dinh duoc thang thi fallback 2 thang gan nhat.
 - `syncRealtimeCache()` van giu vai tro backfill/trigger dinh ky, khong con la co che chinh de lam tuoi cache sau ghi tu web app.
+- Sau khi test nhap Van Chuyen tu frontend static, phat hien route toi uu `submitRowsGet` ghi duoc Google Sheet nhung bo qua wrapper sync. Da sua `submitRowsGet` dung `invokeApi('POST', 'submitRows', ...)` va frontend sau khi nhap thanh cong goi `loadManageSheetData(true)` de doc Apps Script truc tiep mot lan, tranh hien bang cu tu Supabase/session cache.
 
 ## File tài liệu hiện hành
 

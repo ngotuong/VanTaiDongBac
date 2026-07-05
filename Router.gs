@@ -33,7 +33,7 @@ function doGet(e) {
         spreadsheetId: submitPayload.spreadsheetId || submitPayload.ssId,
         year: submitPayload.year
       });
-      return timedJsonResponse_(action, startedAt, EntryService.submitRows(submitPayload.formType, submitPayload.rows));
+      return timedJsonResponse_(action, startedAt, invokeApi('POST', 'submitRows', {}, submitPayload));
     }
     if (action === 'getFundTransactions') {
       return timedJsonResponse_(action, startedAt, FundService.getFundTransactions(e.parameter.year, {

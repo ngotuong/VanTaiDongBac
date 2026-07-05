@@ -350,29 +350,34 @@ var SupabaseService = (function () {
     };
   }
 
-  function syncTransportAfterWrite(sheetName, rows) {
+  function syncTransportAfterWrite(sheetName, rows, options) {
     var results = [];
     var errors = [];
+    var fastMode = options && options.fast === true;
     var safeSheetName = clean_(sheetName);
     var touchedMonthKeys = getTransportRowsMonthKeys_(rows);
-    runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
-    runSyncStep_(results, errors, 'latestReport', function () { return syncReportBundle('latest'); });
-    runSyncStep_(results, errors, 'startup', function () { return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE); });
+    if (!fastMode) {
+      runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
+      runSyncStep_(results, errors, 'latestReport', function () { return syncReportBundle('latest'); });
+      runSyncStep_(results, errors, 'startup', function () { return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE); });
+    }
     if (safeSheetName && safeSheetName.indexOf('NL_') === 0) {
       runSyncStep_(results, errors, 'manageData:' + safeSheetName, function () { return syncManageDataBundle(safeSheetName); });
       touchedMonthKeys.forEach(function (monthKey) {
         runSyncStep_(results, errors, 'manageData:' + safeSheetName + ':' + monthKey, function () {
           return syncManageMonthBundle(safeSheetName, monthKey);
         });
-        runSyncStep_(results, errors, 'report:' + monthKey, function () {
-          return syncReportBundle(formatMonthKeyForReport_(monthKey));
-        });
+        if (!fastMode) {
+          runSyncStep_(results, errors, 'report:' + monthKey, function () {
+            return syncReportBundle(formatMonthKeyForReport_(monthKey));
+          });
+        }
       });
-      getRecentManageMonthKeys_(safeSheetName, 2).forEach(function (monthKey) {
+      getRecentManageMonthKeys_(safeSheetName, fastMode ? 1 : 2).forEach(function (monthKey) {
         runSyncStep_(results, errors, 'manageDataRecent:' + safeSheetName + ':' + monthKey, function () {
           return syncManageMonthBundle(safeSheetName, monthKey);
         });
-        if (!touchedMonthKeys.length) {
+        if (!fastMode && !touchedMonthKeys.length) {
           runSyncStep_(results, errors, 'reportRecent:' + monthKey, function () {
             return syncReportBundle(formatMonthKeyForReport_(monthKey));
           });

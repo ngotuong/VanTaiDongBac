@@ -239,12 +239,13 @@ var SheetService = (function () {
         var ownerColIdx = dauHeaders.indexOf('Công ty sở hữu');
         if (ownerColIdx === -1) ownerColIdx = 8;
         var skipped = [totalColIdx, ownerColIdx];
-        for (var i = 0; i < result.values.length; i++) {
-          writeRowSkippingColumns_(sheet, appendRow + i, result.values[i], skipped);
-        }
+        writeRowsPreservingSheetState_(sheet, appendRow, result.values, skipped);
       } else {
-        var range = sheet.getRange(appendRow, 1, result.values.length, cfg.columns);
-        range.setValues(result.values);
+        writeRowsPreservingSheetState_(sheet, appendRow, result.values, []);
+      }
+      var formatWarnings = applyFormatsSafely_(sheet, formType, appendRow, result.values.length);
+      if (formatWarnings.length) {
+        result.warnings = (result.warnings || []).concat(formatWarnings);
       }
       clearAfterSubmitCache_();
       return {
@@ -914,12 +915,64 @@ var SheetService = (function () {
       skipMap[colIdx] = true;
     });
 
+    writeRowSegments_(sheet, rowNum, values, skipMap, function (range, segment) {
+      range.setValues([segment]);
+    });
+  }
+
+  function writeRowsPreservingSheetState_(sheet, startRow, rows, skippedColumns) {
+    if (!rows || !rows.length) return;
+    var columnCount = rows[0].length;
+    var skipMap = {};
+    (skippedColumns || []).forEach(function (colIdx) {
+      skipMap[colIdx] = true;
+    });
+
+    copyRowFormatSafely_(sheet, startRow, rows.length, columnCount);
+    var existingFormulas = sheet.getRange(startRow, 1, rows.length, columnCount).getFormulasR1C1();
+    var sourceFormulas = startRow > 1
+      ? sheet.getRange(startRow - 1, 1, 1, columnCount).getFormulasR1C1()[0]
+      : [];
+
+    rows.forEach(function (values, rowOffset) {
+      var rowNum = startRow + rowOffset;
+      var rowSkipMap = {};
+      for (var colIdx = 0; colIdx < columnCount; colIdx++) {
+        if (skipMap[colIdx]) rowSkipMap[colIdx] = true;
+        if (existingFormulas[rowOffset] && existingFormulas[rowOffset][colIdx]) rowSkipMap[colIdx] = true;
+        if (!rowSkipMap[colIdx] && isBlankCell_(values[colIdx]) && sourceFormulas[colIdx]) {
+          rowSkipMap[colIdx] = true;
+          sheet.getRange(rowNum, colIdx + 1).setFormulaR1C1(sourceFormulas[colIdx]);
+        }
+      }
+      writeRowSegments_(sheet, rowNum, values, rowSkipMap, function (range, segment) {
+        range.setValues([segment]);
+      });
+    });
+  }
+
+  function copyRowFormatSafely_(sheet, targetStartRow, rowCount, columnCount) {
+    if (!(targetStartRow > 1) || !(rowCount > 0) || !(columnCount > 0)) return;
+    try {
+      var source = sheet.getRange(targetStartRow - 1, 1, 1, columnCount);
+      var target = sheet.getRange(targetStartRow, 1, rowCount, columnCount);
+      source.copyTo(target, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+    } catch (e) {
+      console.log('copy_row_format_failed: ' + e.message);
+    }
+  }
+
+  function isBlankCell_(value) {
+    return value === null || value === undefined || String(value).trim() === '';
+  }
+
+  function writeRowSegments_(sheet, rowNum, values, skipMap, writeFn) {
     var startCol = null;
     var segment = [];
     for (var colIdx = 0; colIdx < values.length; colIdx++) {
       if (skipMap[colIdx]) {
         if (segment.length) {
-          sheet.getRange(rowNum, startCol + 1, 1, segment.length).setValues([segment]);
+          writeFn(sheet.getRange(rowNum, startCol + 1, 1, segment.length), segment);
           segment = [];
           startCol = null;
         }
@@ -931,7 +984,7 @@ var SheetService = (function () {
     }
 
     if (segment.length) {
-      sheet.getRange(rowNum, startCol + 1, 1, segment.length).setValues([segment]);
+      writeFn(sheet.getRange(rowNum, startCol + 1, 1, segment.length), segment);
     }
   }
 

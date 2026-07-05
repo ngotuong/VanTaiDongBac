@@ -291,8 +291,9 @@ function withTransportSync_(rows, fn) {
   var result = fn();
   if (result && result.inserted) {
     try {
-      SupabaseService.syncTransportAfterWrite(result.sheetName, rows);
+      result.supabaseSync = SupabaseService.syncTransportAfterWrite(result.sheetName, rows, { fast: true });
     } catch (err) {
+      result.supabaseSync = { ok: false, error: err && err.message ? err.message : String(err) };
       console.log('transport_supabase_sync_after_write_failed: ' + (err && err.message ? err.message : err));
     }
   }

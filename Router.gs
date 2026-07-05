@@ -28,12 +28,7 @@ function doGet(e) {
     if (action === 'readManageData') return timedJsonResponse_(action, startedAt, ManageService.readManageData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate, e.parameter.limit));
     if (action === 'readCatalogData') return timedJsonResponse_(action, startedAt, CatalogService.readCatalogData(e.parameter.displaySheetName || e.parameter.sheetName));
     if (action === 'submitRowsGet') {
-      var submitPayload = JSON.parse(e.parameter.payload || '{}');
-      AppConfig.activate({
-        spreadsheetId: submitPayload.spreadsheetId || submitPayload.ssId,
-        year: submitPayload.year
-      });
-      return timedJsonResponse_(action, startedAt, invokeApi('POST', 'submitRows', {}, submitPayload));
+      throw new Error('submitRowsGet đã tắt để tránh ghi trùng dữ liệu. Vui lòng tải lại frontend mới và gửi bằng POST.');
     }
     if (action === 'getFundTransactions') {
       return timedJsonResponse_(action, startedAt, FundService.getFundTransactions(e.parameter.year, {

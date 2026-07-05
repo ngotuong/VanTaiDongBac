@@ -107,12 +107,6 @@
       if (hasAppsScriptRuntime()) {
         return callAppsScriptAction(normalizedMethod, action, params, bodyData);
       }
-      if (normalizedMethod === 'POST' && action === 'submitRows') {
-        const payload = JSON.stringify({ action: action, ...(bodyData || {}) });
-        if (payload.length < 7000) {
-          return callFetchApi('GET', 'submitRowsGet', { payload: payload }, null);
-        }
-      }
       return callFetchApi(normalizedMethod, action, params, bodyData);
     }
 

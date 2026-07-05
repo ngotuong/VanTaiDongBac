@@ -27,8 +27,8 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - GitHub remote: `origin https://github.com/ngotuong/VanTaiDongBac.git`
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
-  `https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec`
-- Apps Script deployment moi nhat da xac nhan: `@212 - Disable async write queue in production`
+  `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
+- Apps Script deployment moi nhat da xac nhan: `@216 - Fix dashboard operating cost KPI endpoint`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co
@@ -129,6 +129,7 @@ Commit lien quan:
 - Sau test thuc te, them co che frontend goi `processWriteJobs` nen sau enqueue de kick worker ngay nhung khong cho nguoi dung cho response. Them trigger nhe `syncRecentManageDataCache` moi phut de lam tuoi `recent_500` cac sheet Van hanh khi co sua/xoa tay trong Google Sheet.
 - Menu Van hanh neu doc Supabase cache mac dinh qua 90 giay se tu fallback Apps Script mot luot de tranh hien du lieu cu qua lau sau thao tac sua/xoa truc tiep tren Sheet.
 - Rollback ngay sau test: async write v1 lam he thong kho debug, co `Load failed`, mo bang cham hon va cache Supabase van stale khi xoa tay trong Sheet. Hien tai `submitRows` da quay ve ghi Apps Script truc tiep; frontend khong poll/kick worker; `ASYNC_WRITE_ENABLED=false` trong `SupabaseService.gs` de cac trigger queue/sync recent neu con ton tai chi no-op. `write_jobs`/`write_job_logs` giu lai tren Supabase lam nen tang thu nghiem, chua dung cho nut Luu production.
+- Sua card Tong quan `Chi phí vận hành`: loi den tu frontend tu cong cac cot chi phi theo fallback index cu, co the nham cot `Doanh thu chưa VAT` khi header khong match chinh xac. Tu 2026-07-05, card nay dung cong thuc `Tổng doanh thu - Lợi nhuận gộp` theo bang `BC_TongQuan`; backend `overview.kpis` tra them `operatingCost` de frontend uu tien nguon KPI chuan khi cache moi da sync.
 
 ## File tài liệu hiện hành
 

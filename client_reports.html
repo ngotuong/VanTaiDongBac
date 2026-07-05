@@ -647,7 +647,7 @@
           const gross = grossColIdx >= 0 ? readMoney(row, grossColIdx) : calculatedGross;
           const grossText = formatCurrencyText(gross);
           
-          const operatingCost = taxTndn + taxVat + fuelQM + toll;
+          const operatingCost = rev - gross;
           const cashCost = gross - final;
           const payroll = payrollColIdx >= 0 ? readMoney(row, payrollColIdx) : 0;
           const totalCost = operatingCost + cashCost;
@@ -694,11 +694,13 @@
       (dashboard?.overview?.kpis || []).forEach((item) => {
         const key = normalizeMonthLabel_(item.month || item.monthKey || '');
         if (!key) return;
-        const values = [item.gross, item.final, item.cashCost, item.fuelOut, item.payroll, item.fund]
+        const values = [item.gross, item.final, item.operatingCost, item.cashCost, item.fuelOut, item.payroll, item.fund]
           .map((value) => Number(value || 0));
         if (!values.some((value) => Math.abs(value) > 0)) return;
         result[key] = {
+          revenue: Number(item.revenue || 0),
           gross: Number(item.gross || 0),
+          operatingCost: Number(item.operatingCost || 0),
           final: Number(item.final || 0),
           cashCost: Number(item.cashCost || 0),
           fuelOut: Number(item.fuelOut || 0),

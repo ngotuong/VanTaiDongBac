@@ -159,6 +159,9 @@
       const parsed = parseOverview(dashboard.overview.months);
       const selectedIndex = parsed.rows.findIndex((row) => row.month === latest.month);
       const previous = selectedIndex > 0 ? parsed.rows[selectedIndex - 1] : null;
+      const kpiMap = typeof buildOverviewKpiMap_ === 'function' ? buildOverviewKpiMap_() : {};
+      const latestKpi = kpiMap[normalizeMonthLabel_(latest.month || '')] || {};
+      const previousKpi = previous ? (kpiMap[normalizeMonthLabel_(previous.month || '')] || {}) : {};
       
       // Helper function to build a shortened growth comparison
       const getGrowth = (current, previousValue, invertGood = false) => {
@@ -180,12 +183,12 @@
         };
       };
 
-      const operatingCost = latest.operatingCost || 0;
+      const operatingCost = latestKpi.operatingCost ?? latest.operatingCost ?? 0;
       const cashCost = latest.cashCost || 0;
       const isPositive = (latest.final || 0) >= 0;
       
       const revenueGrowth = getGrowth(latest.revenue || 0, previous?.revenue || 0);
-      const operatingCostGrowth = getGrowth(operatingCost, previous?.operatingCost || 0, true);
+      const operatingCostGrowth = getGrowth(operatingCost, previousKpi.operatingCost ?? previous?.operatingCost ?? 0, true);
       const grossGrowth = getGrowth(latest.gross || 0, previous?.gross || 0);
       const cashCostGrowth = getGrowth(cashCost, previous?.cashCost || 0, true);
       const finalGrowth = getGrowth(latest.final || 0, previous?.final || 0);

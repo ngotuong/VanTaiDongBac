@@ -27,8 +27,8 @@
         }
       } catch (err) {}
     })();
-    window.__DEFAULT_APP_SERVICE_URL = 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
-    window.__APP_SERVICE_URL = "https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec" || window.__DEFAULT_APP_SERVICE_URL;
+    window.__DEFAULT_APP_SERVICE_URL = 'https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec';
+    window.__APP_SERVICE_URL = "https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec" || window.__DEFAULT_APP_SERVICE_URL;
     window.__SUPABASE_CONFIG = {
       url: "",
       anonKey: "",
@@ -9147,6 +9147,9 @@
       const parsed = parseOverview(dashboard.overview.months);
       const selectedIndex = parsed.rows.findIndex((row) => row.month === latest.month);
       const previous = selectedIndex > 0 ? parsed.rows[selectedIndex - 1] : null;
+      const kpiMap = typeof buildOverviewKpiMap_ === 'function' ? buildOverviewKpiMap_() : {};
+      const latestKpi = kpiMap[normalizeMonthLabel_(latest.month || '')] || {};
+      const previousKpi = previous ? (kpiMap[normalizeMonthLabel_(previous.month || '')] || {}) : {};
       
       // Helper function to build a shortened growth comparison
       const getGrowth = (current, previousValue, invertGood = false) => {
@@ -9168,12 +9171,12 @@
         };
       };
 
-      const operatingCost = latest.operatingCost || 0;
+      const operatingCost = latestKpi.operatingCost ?? latest.operatingCost ?? 0;
       const cashCost = latest.cashCost || 0;
       const isPositive = (latest.final || 0) >= 0;
       
       const revenueGrowth = getGrowth(latest.revenue || 0, previous?.revenue || 0);
-      const operatingCostGrowth = getGrowth(operatingCost, previous?.operatingCost || 0, true);
+      const operatingCostGrowth = getGrowth(operatingCost, previousKpi.operatingCost ?? previous?.operatingCost ?? 0, true);
       const grossGrowth = getGrowth(latest.gross || 0, previous?.gross || 0);
       const cashCostGrowth = getGrowth(cashCost, previous?.cashCost || 0, true);
       const finalGrowth = getGrowth(latest.final || 0, previous?.final || 0);
@@ -10329,7 +10332,7 @@
           const gross = grossColIdx >= 0 ? readMoney(row, grossColIdx) : calculatedGross;
           const grossText = formatCurrencyText(gross);
           
-          const operatingCost = taxTndn + taxVat + fuelQM + toll;
+          const operatingCost = rev - gross;
           const cashCost = gross - final;
           const payroll = payrollColIdx >= 0 ? readMoney(row, payrollColIdx) : 0;
           const totalCost = operatingCost + cashCost;
@@ -10376,11 +10379,13 @@
       (dashboard?.overview?.kpis || []).forEach((item) => {
         const key = normalizeMonthLabel_(item.month || item.monthKey || '');
         if (!key) return;
-        const values = [item.gross, item.final, item.cashCost, item.fuelOut, item.payroll, item.fund]
+        const values = [item.gross, item.final, item.operatingCost, item.cashCost, item.fuelOut, item.payroll, item.fund]
           .map((value) => Number(value || 0));
         if (!values.some((value) => Math.abs(value) > 0)) return;
         result[key] = {
+          revenue: Number(item.revenue || 0),
           gross: Number(item.gross || 0),
+          operatingCost: Number(item.operatingCost || 0),
           final: Number(item.final || 0),
           cashCost: Number(item.cashCost || 0),
           fuelOut: Number(item.fuelOut || 0),

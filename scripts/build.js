@@ -6,7 +6,7 @@ const OUTPUT_FILE = path.join(__dirname, '..', 'index.html');
 const WORKSPACE_DIR = path.join(__dirname, '..');
 const DEFAULT_SERVICE_URL = process.env.VITE_APP_SERVICE_URL
   || process.env.APP_SERVICE_URL
-  || 'https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec';
+  || 'https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec';
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 const SUPABASE_REPORTS_ENABLED = process.env.VITE_SUPABASE_REPORTS_ENABLED || process.env.SUPABASE_REPORTS_ENABLED || '';

@@ -540,18 +540,25 @@ var SheetService = (function () {
       var finalProfit = parseNumberLoose_(row[finalCol]);
       var calculatedGross = revenue - taxTndn - taxVat - fuelQm - toll;
       var gross = grossCol >= 0 ? parseNumberLoose_(row[grossCol]) : calculatedGross;
+      var operatingCost = revenue - gross;
       var cashCost = gross - finalProfit;
       var payroll = payrollCol >= 0 ? parseNumberLoose_(row[payrollCol]) : cashCost - fuelOut - fund;
       return {
         month: month,
         monthKey: normalizeDisplayMonth_(month) || normalizeMonthKey_(month),
+        revenue: revenue,
+        taxTndn: taxTndn,
+        taxVat: taxVat,
+        fuelQm: fuelQm,
+        toll: toll,
         gross: gross,
+        operatingCost: operatingCost,
         final: finalProfit,
         cashCost: cashCost,
         fuelOut: fuelOut,
         payroll: payroll,
         fund: fund,
-        totalCost: cashCost
+        totalCost: operatingCost + cashCost
       };
     }).filter(function (item) { return item; });
   }

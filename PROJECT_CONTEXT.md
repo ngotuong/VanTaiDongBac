@@ -74,11 +74,13 @@ Commit lien quan:
 - `d623753 Render overview details without B1 cache`
 - `f7c6ae6 Restore overview KPI without mutating month selector`
 
-### PWA / App Icon (Ngày 2026-07-04)
+### PWA / App Icon (Ngày 2026-07-04 & 2026-07-05)
 
-- Tạo file SVG nguồn mới `assets/app-icon/app-icon-pwa-source.svg` loại bỏ chữ, scale 1.45x và căn giữa biểu tượng để tối ưu hiển thị trên di động.
-- Thêm script `scripts/generate-icons.js` dùng `sharp` để tự động tạo bộ icon PNG (`apple-touch-icon.png` 180x180, `icon-192.png` 192x192, `icon-512.png` 512x512, `favicon.png` 32x32) và backup các file cũ vào `public/static/assets/backup/`.
-- Thêm `"id": "/"` vào `manifest.json` để định danh PWA duy nhất theo chuẩn hiện đại.
+- Thiết kế ảnh nguồn mới dựa trên ảnh mẫu của user, giữ chữ "ĐÔNG BẮC TRANSPORT" sắc nét, loại bỏ "VAN TAI DB" và lấp đầy khung 1024x1024.
+- Cập nhật script `scripts/generate-icons.js` dùng `sharp` để đọc trực tiếp file PNG nguồn `assets/app-icon/app-icon-source.png` nhằm bảo toàn hiệu ứng phát sáng neon và gradient 3D mượt mà của ảnh mẫu.
+- Thêm thuộc tính `"id": "/"` vào `manifest.json` để định danh PWA.
+- Thêm query parameter `?v=2` vào các link icon ở `<head>` và `manifest.json` để ép trình duyệt (như Chrome trên máy tính/điện thoại) xóa cache và cập nhật ngay favicon mới.
+- Thay thế logo text "ĐB" dạng tĩnh tại sidebar của web app bằng logo ảnh thực tế `apple-touch-icon.png?v=2` (kế thừa class `.brand-mark` để tự động bo góc tròn đồng bộ).
 
 ### UI mobile / Thu chi (Ngày 2026-07-04)
 

@@ -460,6 +460,15 @@ var SupabaseService = (function () {
         message: 'Không cài được trigger worker tự động: ' + (triggerErr && triggerErr.message ? triggerErr.message : triggerErr)
       }]);
     }
+    try {
+      installManageDataSyncTrigger();
+    } catch (manageTriggerErr) {
+      insertRows_(TABLE_WRITE_JOB_LOGS, [{
+        job_id: jobId,
+        status: 'pending',
+        message: 'Không cài được trigger sync Vận hành tự động: ' + (manageTriggerErr && manageTriggerErr.message ? manageTriggerErr.message : manageTriggerErr)
+      }]);
+    }
     return {
       ok: true,
       queued: true,
@@ -541,6 +550,39 @@ var SupabaseService = (function () {
       ok: true,
       installed: !exists,
       handler: 'processWriteJobs',
+      intervalMinutes: 1
+    };
+  }
+
+  function syncRecentManageDataCache() {
+    var results = [];
+    var errors = [];
+    MANAGE_SHEET_NAMES.forEach(function (sheetName) {
+      runSyncStep_(results, errors, 'manageData:' + sheetName, function () {
+        return syncManageDataBundle(sheetName);
+      });
+    });
+    return {
+      ok: errors.length === 0,
+      synced: results.length,
+      failed: errors.length,
+      results: results,
+      errors: errors
+    };
+  }
+
+  function installManageDataSyncTrigger() {
+    var triggers = ScriptApp.getProjectTriggers();
+    var exists = triggers.some(function (trigger) {
+      return trigger.getHandlerFunction && trigger.getHandlerFunction() === 'syncRecentManageDataCache';
+    });
+    if (!exists) {
+      ScriptApp.newTrigger('syncRecentManageDataCache').timeBased().everyMinutes(1).create();
+    }
+    return {
+      ok: true,
+      installed: !exists,
+      handler: 'syncRecentManageDataCache',
       intervalMinutes: 1
     };
   }
@@ -1022,9 +1064,11 @@ var SupabaseService = (function () {
     syncTransportAfterWrite: syncTransportAfterWrite,
     enqueueWriteJob: enqueueWriteJob,
     getWriteJobStatus: getWriteJobStatus,
+    installManageDataSyncTrigger: installManageDataSyncTrigger,
     installWriteJobTrigger: installWriteJobTrigger,
     processWriteJobs: processWriteJobs,
     retryWriteJob: retryWriteJob,
+    syncRecentManageDataCache: syncRecentManageDataCache,
     testReportSync: testReportSync
   };
 })();

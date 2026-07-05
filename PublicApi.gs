@@ -222,6 +222,14 @@ function processWriteJobs(maxJobs) {
   return SupabaseService.processWriteJobs(maxJobs);
 }
 
+function installManageDataSyncTrigger() {
+  return SupabaseService.installManageDataSyncTrigger();
+}
+
+function syncRecentManageDataCache() {
+  return SupabaseService.syncRecentManageDataCache();
+}
+
 function getWriteJobStatus(jobId) {
   return SupabaseService.getWriteJobStatus(jobId);
 }
@@ -289,6 +297,7 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'saveFundCatalogItem') return FundService.saveFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody);
     if (action === 'deleteFundCatalogItem') return FundService.deleteFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody);
     if (action === 'retryWriteJob') return SupabaseService.retryWriteJob(safeBody.jobId);
+    if (action === 'processWriteJobs') return SupabaseService.processWriteJobs(safeBody.maxJobs || 3);
     throw new Error('Hành động POST không hợp lệ: ' + action);
   }
 

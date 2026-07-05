@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec`
-- Apps Script deployment moi nhat da xac nhan: `@210 - Async write job queue with worker trigger`
+- Apps Script deployment moi nhat da xac nhan: `@211 - Kick async write worker and refresh manage cache`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co
@@ -126,6 +126,8 @@ Commit lien quan:
 - Frontend sau khi bam Luu nhan `jobId`, hien trang thai dang dong bo, poll `getWriteJobStatus`, va reload bang Van hanh khi job `synced`.
 - Retry thu cong co function `retryWriteJob(jobId)`. Worker trigger `processWriteJobs` duoc cai bang `installWriteJobTrigger()`; do `clasp run` co the bi tu choi quyen, `enqueueWriteJob()` cung tu goi `installWriteJobTrigger()` khi nhan lenh luu.
 - Migration lien quan: `supabase/migrations/005_write_jobs.sql`.
+- Sau test thuc te, them co che frontend goi `processWriteJobs` nen sau enqueue de kick worker ngay nhung khong cho nguoi dung cho response. Them trigger nhe `syncRecentManageDataCache` moi phut de lam tuoi `recent_500` cac sheet Van hanh khi co sua/xoa tay trong Google Sheet.
+- Menu Van hanh neu doc Supabase cache mac dinh qua 90 giay se tu fallback Apps Script mot luot de tranh hien du lieu cu qua lau sau thao tac sua/xoa truc tiep tren Sheet.
 
 ## File tài liệu hiện hành
 

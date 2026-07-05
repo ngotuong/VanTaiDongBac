@@ -120,9 +120,10 @@ Frontend dùng cache `fund_transaction_bundles.filter_key = month:YYYY-MM` khi n
 1. Schema queue nằm trong `supabase/migrations/005_write_jobs.sql`.
 2. Worker Apps Script là `processWriteJobs()`, trigger 1 phút cài bằng `installWriteJobTrigger()`.
 3. Nếu `clasp run` không đủ quyền cài trigger, lần enqueue đầu tiên sẽ tự thử cài trigger.
-4. Kiểm tra trạng thái job bằng `getWriteJobStatus(jobId)`.
-5. Retry job lỗi bằng `retryWriteJob(jobId)`.
-6. Log chi tiết nằm trong Supabase bảng `write_job_logs`.
+4. Trigger nhẹ `syncRecentManageDataCache()` làm tươi `recent_500` các sheet Vận hành mỗi phút để bắt các sửa/xóa tay trong Google Sheet.
+5. Kiểm tra trạng thái job bằng `getWriteJobStatus(jobId)`.
+6. Retry job lỗi bằng `retryWriteJob(jobId)`.
+7. Log chi tiết nằm trong Supabase bảng `write_job_logs`.
 
 ## Khi deploy
 

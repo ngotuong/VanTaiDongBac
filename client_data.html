@@ -192,6 +192,7 @@
               closeMobileEntrySheet();
               showSyncToast('Đã đưa vào hàng chờ đồng bộ Google Sheet.');
             }
+            kickWriteJobWorker();
             pollWriteJobStatus(result.jobId, submittedForm, activeView);
             setBusy(false);
             return result;
@@ -246,6 +247,11 @@
           showStatus('err', err.message || String(err));
           setBusy(false);
         });
+    }
+
+    function kickWriteJobWorker() {
+      callApi('POST', 'processWriteJobs', {}, { maxJobs: 3 })
+        .catch((err) => console.warn('Không kích hoạt được worker đồng bộ ngay:', err));
     }
 
     function pollWriteJobStatus(jobId, submittedForm, submittedView, attempt = 0) {

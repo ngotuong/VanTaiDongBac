@@ -43,10 +43,8 @@ function cleanupOverviewTempSheets() {
 }
 
 function submitRows(formType, rows) {
-  return SupabaseService.enqueueWriteJob('transport', 'submitRows', {
-    formType: formType,
-    rows: rows || [],
-    spreadsheetId: APP_CONFIG.spreadsheetId
+  return withTransportSync_(rows, function () {
+    return EntryService.submitRows(formType, rows);
   });
 }
 
@@ -284,7 +282,7 @@ function invokeApi(method, action, params, bodyData) {
   }
 
   if (normalizedMethod === 'POST') {
-    if (action === 'submitRows') return SupabaseService.enqueueWriteJob('transport', 'submitRows', { formType: safeBody.formType, rows: safeBody.rows || [], spreadsheetId: APP_CONFIG.spreadsheetId });
+    if (action === 'submitRows') return withTransportSync_(safeBody.rows, function () { return EntryService.submitRows(safeBody.formType, safeBody.rows); });
     if (action === 'checkTripReconciliation') return EntryService.checkTripReconciliation(safeBody.rows);
     if (action === 'saveSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData); });
     if (action === 'deleteSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear); });

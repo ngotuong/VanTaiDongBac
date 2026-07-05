@@ -35,6 +35,7 @@ var SupabaseService = (function () {
   ];
   var DEFAULT_MANAGE_FILTER_KEY = 'recent_500';
   var DEFAULT_WRITE_JOB_LIMIT = 5;
+  var ASYNC_WRITE_ENABLED = false;
 
   function syncReportBundle(month) {
     var targetMonth = clean_(month) || 'latest';
@@ -431,6 +432,9 @@ var SupabaseService = (function () {
   }
 
   function enqueueWriteJob(moduleName, actionName, payload) {
+    if (!ASYNC_WRITE_ENABLED) {
+      throw new Error('Async write queue đang tắt. Dùng luồng ghi Apps Script trực tiếp.');
+    }
     var jobId = Utilities.getUuid();
     var row = {
       id: jobId,
@@ -512,6 +516,9 @@ var SupabaseService = (function () {
   }
 
   function processWriteJobs(maxJobs) {
+    if (!ASYNC_WRITE_ENABLED) {
+      return { ok: true, disabled: true, processed: 0, message: 'Async write queue is disabled.' };
+    }
     var lock = LockService.getScriptLock();
     lock.waitLock(5000);
     try {
@@ -539,6 +546,9 @@ var SupabaseService = (function () {
   }
 
   function installWriteJobTrigger() {
+    if (!ASYNC_WRITE_ENABLED) {
+      return { ok: true, disabled: true, installed: false, handler: 'processWriteJobs' };
+    }
     var triggers = ScriptApp.getProjectTriggers();
     var exists = triggers.some(function (trigger) {
       return trigger.getHandlerFunction && trigger.getHandlerFunction() === 'processWriteJobs';
@@ -555,6 +565,9 @@ var SupabaseService = (function () {
   }
 
   function syncRecentManageDataCache() {
+    if (!ASYNC_WRITE_ENABLED) {
+      return { ok: true, disabled: true, synced: 0, message: 'Automatic manage cache trigger is disabled.' };
+    }
     var results = [];
     var errors = [];
     MANAGE_SHEET_NAMES.forEach(function (sheetName) {
@@ -572,6 +585,9 @@ var SupabaseService = (function () {
   }
 
   function installManageDataSyncTrigger() {
+    if (!ASYNC_WRITE_ENABLED) {
+      return { ok: true, disabled: true, installed: false, handler: 'syncRecentManageDataCache' };
+    }
     var triggers = ScriptApp.getProjectTriggers();
     var exists = triggers.some(function (trigger) {
       return trigger.getHandlerFunction && trigger.getHandlerFunction() === 'syncRecentManageDataCache';

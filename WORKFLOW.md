@@ -117,6 +117,8 @@ Frontend dùng cache `fund_transaction_bundles.filter_key = month:YYYY-MM` khi n
 
 ## Khi vận hành ghi bất đồng bộ
 
+Trang thai hien tai: async write queue dang tat trong production (`ASYNC_WRITE_ENABLED=false`). Khong bat lai neu chua co ke hoach test rieng va rollback ro.
+
 1. Schema queue nằm trong `supabase/migrations/005_write_jobs.sql`.
 2. Worker Apps Script là `processWriteJobs()`, trigger 1 phút cài bằng `installWriteJobTrigger()`.
 3. Nếu `clasp run` không đủ quyền cài trigger, lần enqueue đầu tiên sẽ tự thử cài trigger.

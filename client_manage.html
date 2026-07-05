@@ -70,13 +70,6 @@
 
       return manageLoader
         .then((res) => {
-          if (!forceRefresh && res && res.supabaseCached && !startDate && !endDate && isManageSupabaseCacheStale(res)) {
-            manageFallbackReason = 'Cache Supabase đã cũ, đang đọc trực tiếp Google Sheet.';
-            return loadManageFromAppsScript();
-          }
-          return res;
-        })
-        .then((res) => {
           if (requestSeq !== manageLoadSeq) return res;
           if (res.ok) {
             currentManageData = res;
@@ -107,14 +100,6 @@
           showTableError(tbody, 20, err.message || String(err));
           throw err;
         });
-    }
-
-    function isManageSupabaseCacheStale(data) {
-      const syncedAt = data && (data.supabaseSyncedAt || data.synced_at || data.syncedAt);
-      if (!syncedAt) return false;
-      const time = new Date(syncedAt).getTime();
-      if (!time) return false;
-      return Date.now() - time > 90000;
     }
 
     function readManageDataRangeFromSupabase(sheetName, startDate, endDate) {

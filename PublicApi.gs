@@ -85,25 +85,25 @@ function getFundCatalog(year, group) {
 }
 
 function updateFundTransaction(year, rowIndex, transaction) {
-  return withFundSync_(year, function () {
+  return withFundSync_(year, { transaction: transaction }, function () {
     return FundService.updateFundTransaction(year, rowIndex, transaction);
   });
 }
 
 function deleteFundTransaction(year, rowIndex) {
-  return withFundSync_(year, function () {
+  return withFundSync_(year, {}, function () {
     return FundService.deleteFundTransaction(year, rowIndex);
   });
 }
 
 function addFundTransaction(year, transaction) {
-  return withFundSync_(year, function () {
+  return withFundSync_(year, { transaction: transaction }, function () {
     return FundService.addFundTransaction(year, transaction);
   });
 }
 
 function addFundTransactions(year, transactions) {
-  return withFundSync_(year, function () {
+  return withFundSync_(year, { transactions: transactions }, function () {
     return FundService.addFundTransactions(year, transactions);
   });
 }
@@ -117,13 +117,13 @@ function getFundLoanOverview(year, filter) {
 }
 
 function addFundLoan(year, loan) {
-  return withFundSync_(year, function () {
+  return withFundSync_(year, { loan: loan }, function () {
     return FundService.addFundLoan(year, loan);
   });
 }
 
 function addFundLoanPayment(year, payment) {
-  return withFundSync_(year, function () {
+  return withFundSync_(year, { payment: payment }, function () {
     return FundService.addFundLoanPayment(year, payment);
   });
 }
@@ -257,12 +257,12 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'checkTripReconciliation') return EntryService.checkTripReconciliation(safeBody.rows);
     if (action === 'saveSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData); });
     if (action === 'deleteSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear); });
-    if (action === 'updateFundTransaction') return withFundSync_(safeBody.year, function () { return FundService.updateFundTransaction(safeBody.year, safeBody.rowIndex, safeBody.transaction); });
-    if (action === 'deleteFundTransaction') return withFundSync_(safeBody.year, function () { return FundService.deleteFundTransaction(safeBody.year, safeBody.rowIndex); });
-    if (action === 'addFundTransaction') return withFundSync_(safeBody.year, function () { return FundService.addFundTransaction(safeBody.year, safeBody.transaction); });
-    if (action === 'addFundTransactions') return withFundSync_(safeBody.year, function () { return FundService.addFundTransactions(safeBody.year, safeBody.transactions || []); });
-    if (action === 'addFundLoan') return withFundSync_(safeBody.year, function () { return FundService.addFundLoan(safeBody.year, safeBody.loan); });
-    if (action === 'addFundLoanPayment') return withFundSync_(safeBody.year, function () { return FundService.addFundLoanPayment(safeBody.year, safeBody.payment); });
+    if (action === 'updateFundTransaction') return withFundSync_(safeBody.year, { transaction: safeBody.transaction }, function () { return FundService.updateFundTransaction(safeBody.year, safeBody.rowIndex, safeBody.transaction); });
+    if (action === 'deleteFundTransaction') return withFundSync_(safeBody.year, {}, function () { return FundService.deleteFundTransaction(safeBody.year, safeBody.rowIndex); });
+    if (action === 'addFundTransaction') return withFundSync_(safeBody.year, { transaction: safeBody.transaction }, function () { return FundService.addFundTransaction(safeBody.year, safeBody.transaction); });
+    if (action === 'addFundTransactions') return withFundSync_(safeBody.year, { transactions: safeBody.transactions || [] }, function () { return FundService.addFundTransactions(safeBody.year, safeBody.transactions || []); });
+    if (action === 'addFundLoan') return withFundSync_(safeBody.year, { loan: safeBody.loan }, function () { return FundService.addFundLoan(safeBody.year, safeBody.loan); });
+    if (action === 'addFundLoanPayment') return withFundSync_(safeBody.year, { payment: safeBody.payment }, function () { return FundService.addFundLoanPayment(safeBody.year, safeBody.payment); });
     if (action === 'saveFundCatalogItem') return FundService.saveFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody);
     if (action === 'deleteFundCatalogItem') return FundService.deleteFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody);
     throw new Error('Hành động POST không hợp lệ: ' + action);
@@ -271,10 +271,16 @@ function invokeApi(method, action, params, bodyData) {
   throw new Error('Phương thức không hợp lệ: ' + normalizedMethod);
 }
 
-function withFundSync_(year, fn) {
+function withFundSync_(year, syncContext, fn) {
+  if (typeof syncContext === 'function') {
+    fn = syncContext;
+    syncContext = {};
+  }
   var result = fn();
   try {
-    SupabaseService.syncFundAfterWrite(year || '2026');
+    syncContext = syncContext || {};
+    syncContext.result = result;
+    SupabaseService.syncFundAfterWrite(year || '2026', syncContext);
   } catch (err) {
     console.log('fund_supabase_sync_after_write_failed: ' + (err && err.message ? err.message : err));
   }

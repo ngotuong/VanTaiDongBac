@@ -107,6 +107,14 @@ Commit lien quan:
 - Quy > Nhap thu/chi: them rollback vung vua ghi neu Google Sheets/data validation bao loi giua batch, tranh tinh trang luu 3/4 dong roi bao loi.
 - Quy > Nhap thu/chi mobile: sau khi them/nhan ban/xoa dong se tu cuon den dong lien quan; drawer co vung scroll rieng va padding day de tranh man hinh trang khi iPhone keyboard/focus.
 
+### Supabase cache after-write (Ngày 2026-07-05)
+
+- `Router.doPost()` da duoc rut ve dung chung `invokeApi('POST', ...)`, tranh viec duong HTTP bo qua wrapper sync trong `PublicApi.gs`.
+- Sửa/xóa dòng `DM_*` qua web app giờ đi qua `withSheetRowSync_()`, sync lai `startup_bundles`, cac `catalog_bundles`, va rieng `DM_ThamSo` sync them `DM_ThamSo_TS`/`DM_ThamSo_GD`.
+- Sửa/xóa dòng `NL_*` qua web app giờ sync hẹp sau ghi: dashboard/latest report, `manage_data_bundles.recent_500`, cache thang lien quan neu co payload ngay, hoac 2 thang gan nhat neu khong xac dinh duoc ngay.
+- Cac thao tac Quy/Thu chi truyen context giao dich/khoan vay vao `syncFundAfterWrite()`, sync them `fund_transaction_bundles.month:YYYY-MM`, `fund_overview_bundles.month_key`, va `fund_loan_bundles.month_key` theo thang lien quan; neu khong xac dinh duoc thang thi fallback 2 thang gan nhat.
+- `syncRealtimeCache()` van giu vai tro backfill/trigger dinh ky, khong con la co che chinh de lam tuoi cache sau ghi tu web app.
+
 ## File tài liệu hiện hành
 
 - `AGENTS.md`: quy tac lam viec bat buoc cho Codex.
@@ -129,12 +137,12 @@ Commit lien quan:
 ### 2. Tach sync theo module/thang
 
 - Giam `syncRealtimeCache()` toan cuc vi chay lau.
-- Uu tien cac ham sync nho:
+- Da bat dau dua duong ghi web app ve cac ham sync nho:
   - report/dashboard thang vua thay doi
   - manage month vua ghi
   - fund transaction month vua ghi
   - startup/catalog chi sync khi danh muc doi
-- Sau ghi tu web app, chi sync module/thang lien quan.
+- Tiep tuc uu tien kiem thu thuc te cac thao tac ghi/sua/xoa de xac nhan Supabase cache tuoi dung sau ghi.
 
 ### 3. Gan realtime nhung van giu Google Sheet la source of truth
 

@@ -354,12 +354,13 @@ var SupabaseService = (function () {
     var results = [];
     var errors = [];
     var safeSheetName = clean_(sheetName);
+    var touchedMonthKeys = getTransportRowsMonthKeys_(rows);
     runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
     runSyncStep_(results, errors, 'latestReport', function () { return syncReportBundle('latest'); });
     runSyncStep_(results, errors, 'startup', function () { return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE); });
     if (safeSheetName && safeSheetName.indexOf('NL_') === 0) {
       runSyncStep_(results, errors, 'manageData:' + safeSheetName, function () { return syncManageDataBundle(safeSheetName); });
-      getTransportRowsMonthKeys_(rows).forEach(function (monthKey) {
+      touchedMonthKeys.forEach(function (monthKey) {
         runSyncStep_(results, errors, 'manageData:' + safeSheetName + ':' + monthKey, function () {
           return syncManageMonthBundle(safeSheetName, monthKey);
         });
@@ -371,6 +372,11 @@ var SupabaseService = (function () {
         runSyncStep_(results, errors, 'manageDataRecent:' + safeSheetName + ':' + monthKey, function () {
           return syncManageMonthBundle(safeSheetName, monthKey);
         });
+        if (!touchedMonthKeys.length) {
+          runSyncStep_(results, errors, 'reportRecent:' + monthKey, function () {
+            return syncReportBundle(formatMonthKeyForReport_(monthKey));
+          });
+        }
       });
     }
     return { ok: errors.length === 0, synced: results.length, failed: errors.length, errors: errors };
@@ -394,13 +400,26 @@ var SupabaseService = (function () {
     return { ok: errors.length === 0, synced: results.length, failed: errors.length, errors: errors };
   }
 
-  function syncFundAfterWrite(year) {
+  function syncFundAfterWrite(year, options) {
+    var safeYear = clean_(year) || DEFAULT_FUND_YEAR;
+    var monthKeys = getFundWriteMonthKeys_(safeYear, options || {});
     var results = [];
     var errors = [];
-    runSyncStep_(results, errors, 'fundOverview', function () { return syncFundOverview(year || DEFAULT_FUND_YEAR, ''); });
-    runSyncStep_(results, errors, 'fundTransactions', function () { return syncFundTransactions(year || DEFAULT_FUND_YEAR, { limit: 500 }); });
-    runSyncStep_(results, errors, 'fundLoans', function () { return syncFundLoanOverview(year || DEFAULT_FUND_YEAR, ''); });
-    return { ok: errors.length === 0, synced: results.length, failed: errors.length, errors: errors };
+    runSyncStep_(results, errors, 'fundOverview', function () { return syncFundOverview(safeYear, ''); });
+    runSyncStep_(results, errors, 'fundTransactions', function () { return syncFundTransactions(safeYear, { limit: 500 }); });
+    runSyncStep_(results, errors, 'fundLoans', function () { return syncFundLoanOverview(safeYear, ''); });
+    monthKeys.forEach(function (monthKey) {
+      runSyncStep_(results, errors, 'fundOverview:' + monthKey, function () {
+        return syncFundOverview(safeYear, monthKey);
+      });
+      runSyncStep_(results, errors, 'fundTransactions:' + monthKey, function () {
+        return syncFundTransactionMonth(safeYear, monthKey);
+      });
+      runSyncStep_(results, errors, 'fundLoans:' + monthKey, function () {
+        return syncFundLoanOverview(safeYear, monthKey);
+      });
+    });
+    return { ok: errors.length === 0, synced: results.length, failed: errors.length, months: monthKeys, errors: errors };
   }
 
   function getFundMonthsFromOverview_(year) {
@@ -575,6 +594,15 @@ var SupabaseService = (function () {
     return getManageMonthKeys_(sheetName).slice(0, Math.max(1, maxCount || 1));
   }
 
+  function getRecentFundMonthKeys_(year, maxCount) {
+    var seen = {};
+    getFundMonthsFromOverview_(year).forEach(function (monthKey) {
+      var normalized = normalizeFundWriteMonthKey_(monthKey);
+      if (normalized) seen[normalized] = true;
+    });
+    return Object.keys(seen).sort().reverse().slice(0, Math.max(1, maxCount || 1));
+  }
+
   function getHeaderRowForSheet_(sheetName) {
     for (var key in APP_CONFIG.sheets) {
       if (APP_CONFIG.sheets[key].name === sheetName) return APP_CONFIG.sheets[key].headerRow;
@@ -624,6 +652,52 @@ var SupabaseService = (function () {
       seen[Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM')] = true;
     });
     return Object.keys(seen).sort().reverse();
+  }
+
+  function getFundWriteMonthKeys_(year, options) {
+    var seen = {};
+    var explicitMonths = options.months || options.monthKeys;
+    (Array.isArray(explicitMonths) ? explicitMonths : []).forEach(function (monthKey) {
+      addFundMonthKey_(seen, monthKey);
+    });
+    addFundPayloadMonthKey_(seen, options.transaction);
+    (Array.isArray(options.transactions) ? options.transactions : []).forEach(function (transaction) {
+      addFundPayloadMonthKey_(seen, transaction);
+    });
+    addFundPayloadMonthKey_(seen, options.loan);
+    addFundPayloadMonthKey_(seen, options.payment);
+    addFundPayloadMonthKey_(seen, options.result);
+    (Array.isArray(options.result && options.result.rows) ? options.result.rows : []).forEach(function (row) {
+      addFundPayloadMonthKey_(seen, row);
+    });
+
+    var monthKeys = Object.keys(seen).sort().reverse();
+    return monthKeys.length ? monthKeys : getRecentFundMonthKeys_(year, 2);
+  }
+
+  function addFundPayloadMonthKey_(seen, payload) {
+    if (!payload) return;
+    addFundMonthKey_(seen, payload.month || payload.monthKey || payload.selectedMonth);
+    addFundMonthKey_(seen, payload.date || payload.dateText || payload.loanDate || payload.paymentDate);
+  }
+
+  function addFundMonthKey_(seen, value) {
+    var monthKey = normalizeFundWriteMonthKey_(value);
+    if (monthKey) seen[monthKey] = true;
+  }
+
+  function normalizeFundWriteMonthKey_(value) {
+    if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+      return Utilities.formatDate(value, APP_CONFIG.timezone, 'yyyy-MM');
+    }
+    var text = clean_(value);
+    if (!text || text === 'latest' || text === 'all' || text === 'Tất cả') return '';
+    var isoMonth = text.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/);
+    if (isoMonth) return isoMonth[1] + '-' + ('0' + Number(isoMonth[2])).slice(-2);
+    var vnMonth = text.match(/^(\d{1,2})\/(\d{4})$/);
+    if (vnMonth) return vnMonth[2] + '-' + ('0' + Number(vnMonth[1])).slice(-2);
+    var date = parseDateValue_(text);
+    return date ? Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM') : '';
   }
 
   function formatMonthKeyForReport_(monthKey) {

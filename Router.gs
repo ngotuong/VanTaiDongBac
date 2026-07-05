@@ -76,70 +76,7 @@ function doPost(e) {
       year: payload.year
     });
     action = payload.action;
-
-    if (action === 'submitRows') {
-      var submitResult = EntryService.submitRows(payload.formType, payload.rows);
-      if (submitResult && submitResult.inserted) {
-        try {
-          SupabaseService.syncTransportAfterWrite(submitResult.sheetName, payload.rows);
-        } catch (syncErr) {
-          console.log('transport_supabase_sync_after_write_failed: ' + syncErr.message);
-        }
-      }
-      return timedJsonResponse_(action, startedAt, submitResult);
-    }
-    if (action === 'checkTripReconciliation') {
-      var checkResult = EntryService.checkTripReconciliation(payload.rows);
-      return timedJsonResponse_(action, startedAt, checkResult);
-    }
-    if (action === 'saveSheetRow') {
-      var saveResult = saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData);
-      return timedJsonResponse_(action, startedAt, saveResult);
-    }
-    if (action === 'deleteSheetRow') {
-      var deleteResult = deleteSheetRow(payload.sheetName, payload.rowIndex, payload.columnsToClear);
-      return timedJsonResponse_(action, startedAt, deleteResult);
-    }
-    if (action === 'addFundTransaction') {
-      var fundResult = FundService.addFundTransaction(payload.year, payload.transaction);
-      try { SupabaseService.syncFundAfterWrite(payload.year || '2026'); } catch (syncErr1) { console.log('fund_supabase_sync_after_write_failed: ' + syncErr1.message); }
-      return timedJsonResponse_(action, startedAt, fundResult);
-    }
-    if (action === 'addFundTransactions') {
-      var fundBatchResult = FundService.addFundTransactions(payload.year, payload.transactions || []);
-      try { SupabaseService.syncFundAfterWrite(payload.year || '2026'); } catch (syncErr1b) { console.log('fund_supabase_sync_after_write_failed: ' + syncErr1b.message); }
-      return timedJsonResponse_(action, startedAt, fundBatchResult);
-    }
-    if (action === 'updateFundTransaction') {
-      var updateFundResult = FundService.updateFundTransaction(payload.year, payload.rowIndex, payload.transaction);
-      try { SupabaseService.syncFundAfterWrite(payload.year || '2026'); } catch (syncErr2) { console.log('fund_supabase_sync_after_write_failed: ' + syncErr2.message); }
-      return timedJsonResponse_(action, startedAt, updateFundResult);
-    }
-    if (action === 'deleteFundTransaction') {
-      var deleteFundResult = FundService.deleteFundTransaction(payload.year, payload.rowIndex);
-      try { SupabaseService.syncFundAfterWrite(payload.year || '2026'); } catch (syncErr3) { console.log('fund_supabase_sync_after_write_failed: ' + syncErr3.message); }
-      return timedJsonResponse_(action, startedAt, deleteFundResult);
-    }
-    if (action === 'addFundLoan') {
-      var loanResult = FundService.addFundLoan(payload.year, payload.loan);
-      try { SupabaseService.syncFundAfterWrite(payload.year || '2026'); } catch (syncErr4) { console.log('fund_supabase_sync_after_write_failed: ' + syncErr4.message); }
-      return timedJsonResponse_(action, startedAt, loanResult);
-    }
-    if (action === 'addFundLoanPayment') {
-      var loanPaymentResult = FundService.addFundLoanPayment(payload.year, payload.payment);
-      try { SupabaseService.syncFundAfterWrite(payload.year || '2026'); } catch (syncErr5) { console.log('fund_supabase_sync_after_write_failed: ' + syncErr5.message); }
-      return timedJsonResponse_(action, startedAt, loanPaymentResult);
-    }
-    if (action === 'saveFundCatalogItem') {
-      var saveFundCatalogResult = FundService.saveFundCatalogItem(payload.year, payload.item || payload.payload || payload);
-      return timedJsonResponse_(action, startedAt, saveFundCatalogResult);
-    }
-    if (action === 'deleteFundCatalogItem') {
-      var deleteFundCatalogResult = FundService.deleteFundCatalogItem(payload.year, payload.item || payload.payload || payload);
-      return timedJsonResponse_(action, startedAt, deleteFundCatalogResult);
-    }
-
-    throw new Error('Hành động POST không hợp lệ: ' + action);
+    return timedJsonResponse_(action, startedAt, invokeApi('POST', action, {}, payload));
   } catch (err) {
     return timedJsonResponse_(action || 'unknown', startedAt, { ok: false, error: err.message });
   }

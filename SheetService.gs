@@ -243,10 +243,6 @@ var SheetService = (function () {
       } else {
         writeRowsPreservingSheetState_(sheet, appendRow, result.values, []);
       }
-      var formatWarnings = applyFormatsSafely_(sheet, formType, appendRow, result.values.length);
-      if (formatWarnings.length) {
-        result.warnings = (result.warnings || []).concat(formatWarnings);
-      }
       clearAfterSubmitCache_();
       return {
         ok: result.errors.length === 0,

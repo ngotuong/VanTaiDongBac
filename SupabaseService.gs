@@ -363,26 +363,26 @@ var SupabaseService = (function () {
     }
     if (safeSheetName && safeSheetName.indexOf('NL_') === 0) {
       runSyncStep_(results, errors, 'manageData:' + safeSheetName, function () { return syncManageDataBundle(safeSheetName); });
-      touchedMonthKeys.forEach(function (monthKey) {
-        runSyncStep_(results, errors, 'manageData:' + safeSheetName + ':' + monthKey, function () {
-          return syncManageMonthBundle(safeSheetName, monthKey);
-        });
-        if (!fastMode) {
+      if (!fastMode) {
+        touchedMonthKeys.forEach(function (monthKey) {
+          runSyncStep_(results, errors, 'manageData:' + safeSheetName + ':' + monthKey, function () {
+            return syncManageMonthBundle(safeSheetName, monthKey);
+          });
           runSyncStep_(results, errors, 'report:' + monthKey, function () {
             return syncReportBundle(formatMonthKeyForReport_(monthKey));
           });
-        }
-      });
-      getRecentManageMonthKeys_(safeSheetName, fastMode ? 1 : 2).forEach(function (monthKey) {
-        runSyncStep_(results, errors, 'manageDataRecent:' + safeSheetName + ':' + monthKey, function () {
-          return syncManageMonthBundle(safeSheetName, monthKey);
         });
-        if (!fastMode && !touchedMonthKeys.length) {
+        getRecentManageMonthKeys_(safeSheetName, 2).forEach(function (monthKey) {
+          runSyncStep_(results, errors, 'manageDataRecent:' + safeSheetName + ':' + monthKey, function () {
+            return syncManageMonthBundle(safeSheetName, monthKey);
+          });
+          if (!touchedMonthKeys.length) {
           runSyncStep_(results, errors, 'reportRecent:' + monthKey, function () {
             return syncReportBundle(formatMonthKeyForReport_(monthKey));
           });
-        }
-      });
+          }
+        });
+      }
     }
     return { ok: errors.length === 0, synced: results.length, failed: errors.length, errors: errors };
   }

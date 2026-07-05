@@ -117,6 +117,13 @@ Frontend dùng cache `fund_transaction_bundles.filter_key = month:YYYY-MM` khi n
 
 ## Khi deploy
 
+Nguyen tac sau khi sua code thanh cong theo yeu cau cua user:
+
+- Neu co sua Apps Script/backend: chay build neu can, `clasp push`, va deploy Apps Script.
+- Neu co sua frontend/static: build lai `index.html`, commit + push GitHub de Vercel tu deploy; neu can thi chay redeploy Vercel thu cong.
+- Neu co sua Supabase schema/cache contract: chay migration/sync can thiet va ghi lai tai lieu schema.
+- Luon bao ro da deploy/push thanh cong hay buoc nao bi loi.
+
 Frontend Vercel:
 
 1. Commit code lên GitHub.

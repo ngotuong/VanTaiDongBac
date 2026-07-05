@@ -38,6 +38,10 @@ function invalidateCaches() {
   return SheetService.invalidateCaches();
 }
 
+function cleanupOverviewTempSheets() {
+  return SheetService.cleanupOverviewTempSheets();
+}
+
 function submitRows(formType, rows) {
   return withTransportSync_(rows, function () {
     return EntryService.submitRows(formType, rows);

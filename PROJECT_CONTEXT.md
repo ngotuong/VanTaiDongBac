@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec`
-- Apps Script deployment moi nhat da xac nhan: `@207 - Fix transport entry refresh and safe formatting`
+- Apps Script deployment moi nhat da xac nhan: `@208 - Cleanup overview temp report sheets`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co
@@ -117,6 +117,7 @@ Commit lien quan:
 - Sau khi test nhap Van Chuyen tu frontend static, phat hien route toi uu `submitRowsGet` ghi duoc Google Sheet nhung bo qua wrapper sync. Da sua `submitRowsGet` dung `invokeApi('POST', 'submitRows', ...)` va frontend sau khi nhap thanh cong goi `loadManageSheetData(true)` de doc Apps Script truc tiep mot lan, tranh hien bang cu tu Supabase/session cache.
 - Sau do phat hien `submitRowsGet` van nguy hiem vi GET co the bi retry/nguoi dung bam lai khi sync Supabase keo dai, gay ghi trung 4-5 dong. Da tat route ghi GET, frontend quay ve POST that, va `submitRows` chi sync Supabase o che do nhanh cho cache Van hanh lien quan. `submitRows` cung copy format dong truoc va giu cong thuc o cot trong de tranh mat dinh dang/cong thuc khi ghi vao dong moi.
 - Sau khi test lai, Google Sheets bao loi set number format voi cot co kieu du lieu dac biet. Da bo buoc `applyFormatsSafely_()` sau submit, chi giu copy format/cong thuc tu dong truoc; sync nhanh sau nhap chi cap nhat `manage_data_bundles.recent_500` cua sheet lien quan de request tra ve nhanh hon.
+- Phat hien nhieu sheet rac `Bản sao của BC_TongQuan...` do ham tinh chi tiet bao cao copy `BC_TongQuan` lam sheet tam; neu Apps Script timeout/loi giua `copyTo()` va rename/delete thi ban copy mac dinh bi de lai. Da mo rong cleanup tu dong de xoa ca `_TMP_BC_TongQuan_*`, `Bản sao của BC_TongQuan...`, `Copy of BC_TongQuan...`; co the chay function `cleanupOverviewTempSheets()` trong Apps Script editor de don thu cong.
 
 ## File tài liệu hiện hành
 

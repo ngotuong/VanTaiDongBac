@@ -727,10 +727,32 @@ var SheetService = (function () {
 
   function cleanupOverviewTempSheets_(ss) {
     ss.getSheets().forEach(function (candidate) {
-      if (candidate.getName().indexOf('_TMP_BC_TongQuan_') === 0) {
+      if (isOverviewTempSheet_(candidate.getName())) {
         ss.deleteSheet(candidate);
       }
     });
+  }
+
+  function isOverviewTempSheet_(sheetName) {
+    var name = clean_(sheetName);
+    return name.indexOf('_TMP_BC_TongQuan_') === 0
+      || /^Bản sao của BC_TongQuan(?: \d+)?$/.test(name)
+      || /^Copy of BC_TongQuan(?: \d+)?$/.test(name);
+  }
+
+  function cleanupOverviewTempSheets() {
+    var ss = getSpreadsheet_();
+    var deleted = [];
+    ss.getSheets().forEach(function (candidate) {
+      if (!isOverviewTempSheet_(candidate.getName())) return;
+      deleted.push(candidate.getName());
+      ss.deleteSheet(candidate);
+    });
+    return {
+      ok: true,
+      deleted: deleted,
+      count: deleted.length
+    };
   }
 
   function parseMonthLabelToDate_(monthLabel) {
@@ -1695,6 +1717,7 @@ var SheetService = (function () {
     getReport: getReport,
     getReportBundle: getReportBundle,
     invalidateCaches: invalidateCaches,
+    cleanupOverviewTempSheets: cleanupOverviewTempSheets,
     submitRows: submitRows,
     checkTripReconciliation: checkTripReconciliation,
     readSheetData: readSheetData,

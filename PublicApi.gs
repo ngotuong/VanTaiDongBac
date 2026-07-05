@@ -43,8 +43,10 @@ function cleanupOverviewTempSheets() {
 }
 
 function submitRows(formType, rows) {
-  return withTransportSync_(rows, function () {
-    return EntryService.submitRows(formType, rows);
+  return SupabaseService.enqueueWriteJob('transport', 'submitRows', {
+    formType: formType,
+    rows: rows || [],
+    spreadsheetId: APP_CONFIG.spreadsheetId
   });
 }
 
@@ -212,6 +214,22 @@ function installSupabaseSyncTriggers() {
   return SupabaseService.installSupabaseSyncTriggers();
 }
 
+function installWriteJobTrigger() {
+  return SupabaseService.installWriteJobTrigger();
+}
+
+function processWriteJobs(maxJobs) {
+  return SupabaseService.processWriteJobs(maxJobs);
+}
+
+function getWriteJobStatus(jobId) {
+  return SupabaseService.getWriteJobStatus(jobId);
+}
+
+function retryWriteJob(jobId) {
+  return SupabaseService.retryWriteJob(jobId);
+}
+
 function invokeApi(method, action, params, bodyData) {
   var normalizedMethod = String(method || '').toUpperCase();
   var safeParams = params || {};
@@ -253,11 +271,12 @@ function invokeApi(method, action, params, bodyData) {
     }
     if (action === 'getFundFormOptions') return FundService.getFundFormOptions(safeParams.year);
     if (action === 'getFundCatalog') return FundService.getFundCatalog(safeParams.year, safeParams.group);
+    if (action === 'getWriteJobStatus') return SupabaseService.getWriteJobStatus(safeParams.jobId);
     throw new Error('Hành động GET không hợp lệ: ' + action);
   }
 
   if (normalizedMethod === 'POST') {
-    if (action === 'submitRows') return withTransportSync_(safeBody.rows, function () { return EntryService.submitRows(safeBody.formType, safeBody.rows); });
+    if (action === 'submitRows') return SupabaseService.enqueueWriteJob('transport', 'submitRows', { formType: safeBody.formType, rows: safeBody.rows || [], spreadsheetId: APP_CONFIG.spreadsheetId });
     if (action === 'checkTripReconciliation') return EntryService.checkTripReconciliation(safeBody.rows);
     if (action === 'saveSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData); });
     if (action === 'deleteSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear); });
@@ -269,6 +288,7 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'addFundLoanPayment') return withFundSync_(safeBody.year, { payment: safeBody.payment }, function () { return FundService.addFundLoanPayment(safeBody.year, safeBody.payment); });
     if (action === 'saveFundCatalogItem') return FundService.saveFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody);
     if (action === 'deleteFundCatalogItem') return FundService.deleteFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody);
+    if (action === 'retryWriteJob') return SupabaseService.retryWriteJob(safeBody.jobId);
     throw new Error('Hành động POST không hợp lệ: ' + action);
   }
 

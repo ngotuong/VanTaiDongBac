@@ -6,6 +6,8 @@ var SupabaseService = (function () {
   var TABLE_STARTUP_BUNDLES = 'startup_bundles';
   var TABLE_CATALOG_BUNDLES = 'catalog_bundles';
   var TABLE_MANAGE_DATA_BUNDLES = 'manage_data_bundles';
+  var TABLE_WRITE_JOBS = 'write_jobs';
+  var TABLE_WRITE_JOB_LOGS = 'write_job_logs';
   var TABLE_SYNC_STATUS = 'sync_status';
   var DASHBOARD_REPORT_MONTH = '__dashboard_latest__';
   var DEFAULT_FUND_YEAR = '2026';
@@ -32,6 +34,7 @@ var SupabaseService = (function () {
     'NL_NghiVanHanh'
   ];
   var DEFAULT_MANAGE_FILTER_KEY = 'recent_500';
+  var DEFAULT_WRITE_JOB_LIMIT = 5;
 
   function syncReportBundle(month) {
     var targetMonth = clean_(month) || 'latest';
@@ -427,6 +430,206 @@ var SupabaseService = (function () {
     return { ok: errors.length === 0, synced: results.length, failed: errors.length, months: monthKeys, errors: errors };
   }
 
+  function enqueueWriteJob(moduleName, actionName, payload) {
+    var jobId = Utilities.getUuid();
+    var row = {
+      id: jobId,
+      module: clean_(moduleName) || 'transport',
+      action: clean_(actionName),
+      status: 'pending',
+      payload: payload || {},
+      attempts: 0,
+      max_attempts: 3,
+      last_error: '',
+      next_run_at: new Date().toISOString()
+    };
+    upsertRows_(TABLE_WRITE_JOBS, [row], 'id');
+    insertRows_(TABLE_WRITE_JOB_LOGS, [{
+      job_id: jobId,
+      status: 'pending',
+      message: 'Write job queued.',
+      details: { action: row.action, module: row.module }
+    }]);
+    var triggerResult = null;
+    try {
+      triggerResult = installWriteJobTrigger();
+    } catch (triggerErr) {
+      insertRows_(TABLE_WRITE_JOB_LOGS, [{
+        job_id: jobId,
+        status: 'pending',
+        message: 'Không cài được trigger worker tự động: ' + (triggerErr && triggerErr.message ? triggerErr.message : triggerErr)
+      }]);
+    }
+    return {
+      ok: true,
+      queued: true,
+      jobId: jobId,
+      status: 'pending',
+      module: row.module,
+      action: row.action,
+      trigger: triggerResult
+    };
+  }
+
+  function getWriteJobStatus(jobId) {
+    var safeJobId = clean_(jobId);
+    if (!safeJobId) throw new Error('Thiếu mã job cần kiểm tra.');
+    var rows = readRows_(TABLE_WRITE_JOBS, {
+      id: 'eq.' + safeJobId,
+      select: 'id,module,action,status,result,attempts,max_attempts,last_error,created_at,updated_at,synced_at',
+      limit: '1'
+    });
+    if (!rows.length) {
+      return { ok: false, error: 'Không tìm thấy job: ' + safeJobId };
+    }
+    return normalizeWriteJobRow_(rows[0]);
+  }
+
+  function retryWriteJob(jobId) {
+    var safeJobId = clean_(jobId);
+    if (!safeJobId) throw new Error('Thiếu mã job cần retry.');
+    updateRows_(TABLE_WRITE_JOBS, {
+      status: 'pending',
+      last_error: '',
+      next_run_at: new Date().toISOString(),
+      locked_at: null
+    }, { id: 'eq.' + safeJobId });
+    insertRows_(TABLE_WRITE_JOB_LOGS, [{
+      job_id: safeJobId,
+      status: 'pending',
+      message: 'Write job manually retried.'
+    }]);
+    return getWriteJobStatus(safeJobId);
+  }
+
+  function processWriteJobs(maxJobs) {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(5000);
+    try {
+      var limit = Math.max(1, Math.min(parseInt(maxJobs, 10) || DEFAULT_WRITE_JOB_LIMIT, 20));
+      var nowIso = new Date().toISOString();
+      var jobs = readRows_(TABLE_WRITE_JOBS, {
+        status: 'in.(pending,processing)',
+        next_run_at: 'lte.' + nowIso,
+        order: 'created_at.asc',
+        limit: String(limit),
+        select: 'id,module,action,status,payload,attempts,max_attempts,last_error,created_at'
+      });
+      var results = [];
+      jobs.forEach(function (job) {
+        results.push(processWriteJob_(job));
+      });
+      return {
+        ok: results.every(function (item) { return item && item.ok !== false; }),
+        processed: results.length,
+        results: results
+      };
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
+  function installWriteJobTrigger() {
+    var triggers = ScriptApp.getProjectTriggers();
+    var exists = triggers.some(function (trigger) {
+      return trigger.getHandlerFunction && trigger.getHandlerFunction() === 'processWriteJobs';
+    });
+    if (!exists) {
+      ScriptApp.newTrigger('processWriteJobs').timeBased().everyMinutes(1).create();
+    }
+    return {
+      ok: true,
+      installed: !exists,
+      handler: 'processWriteJobs',
+      intervalMinutes: 1
+    };
+  }
+
+  function processWriteJob_(job) {
+    var attempts = Number(job.attempts || 0) + 1;
+    var jobId = clean_(job.id);
+    updateRows_(TABLE_WRITE_JOBS, {
+      status: 'processing',
+      attempts: attempts,
+      locked_at: new Date().toISOString(),
+      last_error: ''
+    }, { id: 'eq.' + jobId });
+    insertRows_(TABLE_WRITE_JOB_LOGS, [{
+      job_id: jobId,
+      status: 'processing',
+      message: 'Write job processing started.',
+      details: { attempt: attempts }
+    }]);
+
+    try {
+      var result = executeWriteJob_(job);
+      updateRows_(TABLE_WRITE_JOBS, {
+        status: 'synced',
+        result: result,
+        synced_at: new Date().toISOString(),
+        locked_at: null,
+        last_error: ''
+      }, { id: 'eq.' + jobId });
+      insertRows_(TABLE_WRITE_JOB_LOGS, [{
+        job_id: jobId,
+        status: 'synced',
+        message: 'Write job synced to Google Sheet.',
+        details: result
+      }]);
+      return { ok: true, jobId: jobId, status: 'synced', result: result };
+    } catch (err) {
+      var errorMessage = err && err.message ? err.message : String(err);
+      var failedPermanently = attempts >= Number(job.max_attempts || 3);
+      updateRows_(TABLE_WRITE_JOBS, {
+        status: failedPermanently ? 'failed' : 'pending',
+        last_error: errorMessage,
+        locked_at: null,
+        next_run_at: new Date(new Date().getTime() + attempts * 60000).toISOString()
+      }, { id: 'eq.' + jobId });
+      insertRows_(TABLE_WRITE_JOB_LOGS, [{
+        job_id: jobId,
+        status: failedPermanently ? 'failed' : 'pending',
+        message: errorMessage,
+        details: { attempt: attempts, retryable: !failedPermanently }
+      }]);
+      return { ok: false, jobId: jobId, status: failedPermanently ? 'failed' : 'pending', error: errorMessage };
+    }
+  }
+
+  function executeWriteJob_(job) {
+    var actionName = clean_(job.action);
+    var payload = job.payload || {};
+    if (actionName === 'submitRows') {
+      var result = EntryService.submitRows(payload.formType, payload.rows || []);
+      if (result && result.inserted) {
+        try {
+          result.supabaseSync = syncTransportAfterWrite(result.sheetName, payload.rows || [], { fast: true });
+        } catch (syncErr) {
+          result.supabaseSync = { ok: false, error: syncErr && syncErr.message ? syncErr.message : String(syncErr) };
+        }
+      }
+      return result;
+    }
+    throw new Error('Write job action chưa được hỗ trợ: ' + actionName);
+  }
+
+  function normalizeWriteJobRow_(row) {
+    return {
+      ok: true,
+      jobId: row.id,
+      module: row.module,
+      action: row.action,
+      status: row.status,
+      result: row.result || null,
+      attempts: row.attempts || 0,
+      maxAttempts: row.max_attempts || 0,
+      lastError: row.last_error || '',
+      createdAt: row.created_at || '',
+      updatedAt: row.updated_at || '',
+      syncedAt: row.synced_at || ''
+    };
+  }
+
   function getFundMonthsFromOverview_(year) {
     try {
       var overview = FundService.getFundOverview(year, { month: '' });
@@ -475,6 +678,86 @@ var SupabaseService = (function () {
     var code = response.getResponseCode();
     if (code < 200 || code >= 300) {
       throw new Error('Supabase upsert thất bại (' + code + '): ' + response.getContentText());
+    }
+  }
+
+  function insertRows_(tableName, rows) {
+    if (!rows || !rows.length) return;
+    var config = getConfig_();
+    var endpoint = config.url.replace(/\/+$/, '') + '/rest/v1/' + encodeURIComponent(tableName);
+    var response = UrlFetchApp.fetch(endpoint, {
+      method: 'post',
+      muteHttpExceptions: true,
+      contentType: 'application/json',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: 'Bearer ' + config.serviceRoleKey,
+        Prefer: 'return=minimal'
+      },
+      payload: JSON.stringify(rows)
+    });
+
+    var code = response.getResponseCode();
+    if (code < 200 || code >= 300) {
+      throw new Error('Supabase insert thất bại (' + code + '): ' + response.getContentText());
+    }
+  }
+
+  function readRows_(tableName, query) {
+    var config = getConfig_();
+    var endpoint = config.url.replace(/\/+$/, '') + '/rest/v1/' + encodeURIComponent(tableName);
+    var params = query || {};
+    var first = true;
+    Object.keys(params).forEach(function (key) {
+      var value = params[key];
+      if (value === null || value === undefined || value === '') return;
+      endpoint += first ? '?' : '&';
+      first = false;
+      endpoint += encodeURIComponent(key) + '=' + encodeURIComponent(String(value));
+    });
+    var response = UrlFetchApp.fetch(endpoint, {
+      method: 'get',
+      muteHttpExceptions: true,
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: 'Bearer ' + config.serviceRoleKey
+      }
+    });
+
+    var code = response.getResponseCode();
+    if (code < 200 || code >= 300) {
+      throw new Error('Supabase select thất bại (' + code + '): ' + response.getContentText());
+    }
+    return JSON.parse(response.getContentText() || '[]');
+  }
+
+  function updateRows_(tableName, patch, filters) {
+    var config = getConfig_();
+    var endpoint = config.url.replace(/\/+$/, '') + '/rest/v1/' + encodeURIComponent(tableName);
+    var params = filters || {};
+    var first = true;
+    Object.keys(params).forEach(function (key) {
+      var value = params[key];
+      if (value === null || value === undefined || value === '') return;
+      endpoint += first ? '?' : '&';
+      first = false;
+      endpoint += encodeURIComponent(key) + '=' + encodeURIComponent(String(value));
+    });
+    var response = UrlFetchApp.fetch(endpoint, {
+      method: 'patch',
+      muteHttpExceptions: true,
+      contentType: 'application/json',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: 'Bearer ' + config.serviceRoleKey,
+        Prefer: 'return=minimal'
+      },
+      payload: JSON.stringify(patch || {})
+    });
+
+    var code = response.getResponseCode();
+    if (code < 200 || code >= 300) {
+      throw new Error('Supabase update thất bại (' + code + '): ' + response.getContentText());
     }
   }
 
@@ -737,6 +1020,11 @@ var SupabaseService = (function () {
     syncReportBundle: syncReportBundle,
     syncAllReportBundles: syncAllReportBundles,
     syncTransportAfterWrite: syncTransportAfterWrite,
+    enqueueWriteJob: enqueueWriteJob,
+    getWriteJobStatus: getWriteJobStatus,
+    installWriteJobTrigger: installWriteJobTrigger,
+    processWriteJobs: processWriteJobs,
+    retryWriteJob: retryWriteJob,
     testReportSync: testReportSync
   };
 })();

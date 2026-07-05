@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycbzTp7g9JdYsP4x1kgL5iymJc67Sq7q1qjjLP-bPH2MBBitrAt-xv2W0qJSR9b6di6KAUA/exec`
-- Apps Script deployment moi nhat da xac nhan: `@208 - Cleanup overview temp report sheets`
+- Apps Script deployment moi nhat da xac nhan: `@210 - Async write job queue with worker trigger`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co
@@ -118,6 +118,14 @@ Commit lien quan:
 - Sau do phat hien `submitRowsGet` van nguy hiem vi GET co the bi retry/nguoi dung bam lai khi sync Supabase keo dai, gay ghi trung 4-5 dong. Da tat route ghi GET, frontend quay ve POST that, va `submitRows` chi sync Supabase o che do nhanh cho cache Van hanh lien quan. `submitRows` cung copy format dong truoc va giu cong thuc o cot trong de tranh mat dinh dang/cong thuc khi ghi vao dong moi.
 - Sau khi test lai, Google Sheets bao loi set number format voi cot co kieu du lieu dac biet. Da bo buoc `applyFormatsSafely_()` sau submit, chi giu copy format/cong thuc tu dong truoc; sync nhanh sau nhap chi cap nhat `manage_data_bundles.recent_500` cua sheet lien quan de request tra ve nhanh hon.
 - Phat hien nhieu sheet rac `Bản sao của BC_TongQuan...` do ham tinh chi tiet bao cao copy `BC_TongQuan` lam sheet tam; neu Apps Script timeout/loi giua `copyTo()` va rename/delete thi ban copy mac dinh bi de lai. Da mo rong cleanup tu dong de xoa ca `_TMP_BC_TongQuan_*`, `Bản sao của BC_TongQuan...`, `Copy of BC_TongQuan...`; co the chay function `cleanupOverviewTempSheets()` trong Apps Script editor de don thu cong.
+
+### Async write queue (Ngày 2026-07-05)
+
+- Bat dau giai doan toi uu toc do ghi: `submitRows` cua module Van hanh khong ghi Google Sheet truc tiep trong request nua, ma enqueue vao Supabase `write_jobs` voi status `pending`.
+- Apps Script worker `processWriteJobs()` doc job pending, ghi Google Sheet bang `EntryService.submitRows()`, cap nhat status `synced`/`failed`, ghi log vao `write_job_logs`, va sync nhanh cache Van hanh lien quan.
+- Frontend sau khi bam Luu nhan `jobId`, hien trang thai dang dong bo, poll `getWriteJobStatus`, va reload bang Van hanh khi job `synced`.
+- Retry thu cong co function `retryWriteJob(jobId)`. Worker trigger `processWriteJobs` duoc cai bang `installWriteJobTrigger()`; do `clasp run` co the bi tu choi quyen, `enqueueWriteJob()` cung tu goi `installWriteJobTrigger()` khi nhan lenh luu.
+- Migration lien quan: `supabase/migrations/005_write_jobs.sql`.
 
 ## File tài liệu hiện hành
 

@@ -231,3 +231,31 @@ Luồng đúng cho thông báo:
 3. Apps Script ghi các sự kiện mới vào Supabase, ví dụ bảng `notification_events`.
 4. Frontend chỉ đọc Supabase để hiển thị chuông thông báo, trạng thái đã đọc/chưa đọc.
 5. Sau đó có thể mở rộng sang web push/PWA hoặc Telegram nếu cần thông báo ngoài app.
+
+## Bảng ghi bất đồng bộ giai đoạn 5
+
+### `public.write_jobs`
+
+Queue ghi dữ liệu từ web app về Google Sheet. Frontend không chờ Google Sheet ghi xong; Apps Script enqueue job vào Supabase rồi worker trigger xử lý sau.
+
+Trạng thái:
+
+- `pending`: đã nhận lệnh, chờ worker.
+- `processing`: worker đang ghi Google Sheet.
+- `synced`: đã ghi Google Sheet thành công.
+- `failed`: ghi thất bại quá số lần thử.
+
+Các cột chính:
+
+- `id`: mã job do Apps Script sinh.
+- `module`: module nghiệp vụ, v1 dùng `transport`.
+- `action`: hành động cần xử lý, v1 dùng `submitRows`.
+- `payload`: dữ liệu cần ghi.
+- `result`: kết quả ghi Google Sheet khi thành công.
+- `attempts`, `max_attempts`, `last_error`, `next_run_at`, `locked_at`, `synced_at`.
+
+### `public.write_job_logs`
+
+Log từng lần xử lý job, dùng để debug lỗi và làm nền cho retry/notification sau này.
+
+Frontend hiện poll trạng thái qua Apps Script action `getWriteJobStatus`. Retry thủ công dùng `retryWriteJob(jobId)`. Worker Apps Script chạy `processWriteJobs()` bằng trigger 1 phút, cài bằng `installWriteJobTrigger()`.

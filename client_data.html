@@ -182,6 +182,21 @@
       
       callApi('POST', 'submitRows', {}, { formType: submittedForm, rows: rows })
         .then((result) => {
+          if (result && result.queued && result.jobId) {
+            recentSubmissions = submitted.filter(Boolean).concat(recentSubmissions).slice(0, 8);
+            invalidateReportSessionCache();
+            rows = [newBlankRow()];
+            renderEntry();
+            showStatus('ok', `Đã nhận lệnh lưu. Mã đồng bộ: ${result.jobId}. Dữ liệu sẽ được ghi vào Google Sheet trong nền.`);
+            if (isMobileViewport()) {
+              closeMobileEntrySheet();
+              showSyncToast('Đã đưa vào hàng chờ đồng bộ Google Sheet.');
+            }
+            pollWriteJobStatus(result.jobId, submittedForm, activeView);
+            setBusy(false);
+            return result;
+          }
+
           const details = [];
           if (result.errors?.length) details.push(result.errors.join('\n'));
           if (result.warnings?.length) details.push(result.warnings.join('\n'));
@@ -231,6 +246,64 @@
           showStatus('err', err.message || String(err));
           setBusy(false);
         });
+    }
+
+    function pollWriteJobStatus(jobId, submittedForm, submittedView, attempt = 0) {
+      const maxAttempts = 45;
+      const delayMs = attempt < 5 ? 1500 : 3000;
+      window.setTimeout(() => {
+        callApi('GET', 'getWriteJobStatus', { jobId: jobId, _ts: Date.now() })
+          .then((job) => {
+            if (!job || job.ok === false) {
+              throw new Error((job && job.error) || 'Không đọc được trạng thái đồng bộ.');
+            }
+            if (job.status === 'synced') {
+              handleWriteJobSynced(job, submittedForm, submittedView);
+              return;
+            }
+            if (job.status === 'failed') {
+              showStatus('err', `Đồng bộ Google Sheet thất bại. Mã: ${jobId}\n${job.lastError || 'Không rõ lỗi.'}`);
+              showSyncToast('Đồng bộ Google Sheet thất bại. Có thể retry từ hệ thống.');
+              return;
+            }
+            if (attempt + 1 < maxAttempts) {
+              pollWriteJobStatus(jobId, submittedForm, submittedView, attempt + 1);
+            } else {
+              showStatus('warn', `Lệnh lưu vẫn đang chờ đồng bộ. Mã: ${jobId}. Bạn có thể tiếp tục làm việc, hệ thống sẽ xử lý trong nền.`);
+            }
+          })
+          .catch((err) => {
+            if (attempt + 1 < maxAttempts) {
+              pollWriteJobStatus(jobId, submittedForm, submittedView, attempt + 1);
+            } else {
+              showStatus('warn', `Chưa kiểm tra được trạng thái đồng bộ. Mã: ${jobId}\n${err.message || err}`);
+            }
+          });
+      }, delayMs);
+    }
+
+    function handleWriteJobSynced(job, submittedForm, submittedView) {
+      const result = job.result || {};
+      const inserted = result.inserted || 0;
+      const sheetText = result.sheetName ? ` sheet ${result.sheetName}` : ' Google Sheet';
+      const details = [];
+      if (result.errors?.length) details.push(result.errors.join('\n'));
+      if (result.warnings?.length) details.push(result.warnings.join('\n'));
+      let msg = inserted
+        ? `Đã đồng bộ ${inserted} dòng vào${sheetText}.`
+        : `Lệnh lưu đã xử lý xong nhưng không có dòng nào được ghi.`;
+      if (details.length) msg += `\nLưu ý:\n` + details.join('\n');
+      showStatus(details.length ? 'warn' : 'ok', msg);
+      showSyncToast(inserted ? 'Đã đồng bộ Google Sheet.' : 'Lệnh lưu đã xử lý xong.');
+      loadDashboard(false).catch((err) => console.warn('Không thể tải lại Tổng quan sau khi đồng bộ:', err));
+      if (submittedView === 'manage' && activeView === 'manage') {
+        const sheetName = FORM_SHEET_MAP[submittedForm] || 'NL_VanChuyen';
+        if (el('manageSheetSelect').value !== sheetName) el('manageSheetSelect').value = sheetName;
+        loadManageSheetData(true);
+      }
+      if (submittedView === 'reports' && activeView === 'reports') {
+        refreshReports(false);
+      }
     }
 
     function checkTripReconciliation(submittedRows) {

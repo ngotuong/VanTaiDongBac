@@ -351,7 +351,7 @@ function withSheetRowSync_(sheetName, fn) {
         SupabaseService.syncCatalogDataBundle('DM_ThamSo_GD');
       }
     } else if (safeSheetName.indexOf('NL_') === 0) {
-      SupabaseService.syncTransportAfterWrite(safeSheetName);
+      SupabaseService.syncTransportAfterWrite(safeSheetName, [], { fast: true });
     }
   } catch (err) {
     console.log('supabase_sync_after_sheet_row_write_failed: ' + (err && err.message ? err.message : err));

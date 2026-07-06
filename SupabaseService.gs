@@ -37,7 +37,9 @@ var SupabaseService = (function () {
   var DEFAULT_WRITE_JOB_LIMIT = 5;
   var ASYNC_WRITE_ENABLED = false;
   var REALTIME_TICK_INDEX_KEY = 'SUPABASE_REALTIME_TICK_INDEX';
+  var REALTIME_TICK_RUNNING_CACHE_KEY = 'SUPABASE_REALTIME_TICK_RUNNING';
   var REALTIME_TICK_INTERVAL_MINUTES = 1;
+  var REALTIME_TICK_RUNNING_TTL_SECONDS = 300;
 
   function syncReportBundle(month) {
     var targetMonth = clean_(month) || 'latest';
@@ -357,8 +359,8 @@ var SupabaseService = (function () {
   }
 
   function syncRealtimeCache() {
-    var lock = LockService.getScriptLock();
-    if (!lock.tryLock(1000)) {
+    var runtimeCache = CacheService.getScriptCache();
+    if (runtimeCache.get(REALTIME_TICK_RUNNING_CACHE_KEY)) {
       return {
         ok: true,
         mode: 'tick',
@@ -366,6 +368,7 @@ var SupabaseService = (function () {
         reason: 'Previous syncRealtimeCache tick is still running.'
       };
     }
+    runtimeCache.put(REALTIME_TICK_RUNNING_CACHE_KEY, new Date().toISOString(), REALTIME_TICK_RUNNING_TTL_SECONDS);
 
     try {
       var steps = buildRealtimeTickSteps_();
@@ -397,7 +400,7 @@ var SupabaseService = (function () {
         errors: errors
       };
     } finally {
-      lock.releaseLock();
+      runtimeCache.remove(REALTIME_TICK_RUNNING_CACHE_KEY);
     }
   }
 

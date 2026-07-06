@@ -153,6 +153,7 @@ Commit lien quan:
 - Ngay 2026-07-06 sua tiep KPI thang cua Quy > Khoan vay: khi loc thang, `Da tra no goc`/`Da tra lai`/`Tong khoan vay` tinh theo cac dong phat sinh trong thang, con `Du no cuoi ky` tinh luy ke toan bo vay/tra den ngay cuoi thang. Doi nhan bo loc tu `Tat ca thang` thanh `Tat ca`. Da deploy Apps Script `@225`, sync `syncAllFundBundlesToSupabase('2026')` thanh cong 13 bundle, deploy Vercel production ve `https://dongbac.vercel.app`; test HTTP thang `2026-06` tra `Da tra no goc = 23.008.000`, `Du no cuoi ky = 578.349.414`, `recentRows = 39`.
 - Ngay 2026-07-06 bat dau buoc 3 gan realtime/co kha nang quan sat: them action `getSupabaseSyncStatus` doc bang `sync_status` qua Apps Script service role, va them card `Cai dat > Trang thai dong bo` tren frontend de xem cac cache moi nhat, status, message, tuoi cache. Da deploy Apps Script `@226`, deploy Vercel production; test HTTP `getSupabaseSyncStatus&limit=5` tra `ok=true`, co `realtime_cache_tick`, `dashboard`, `manage_data` status `ok`.
 - Ngay 2026-07-06 bat dau buoc 3b write queue v2 cho luong hep `Van hanh > Nhap moi`: route POST `submitRows` khong ghi Sheet truc tiep nua ma enqueue `write_jobs` qua `SupabaseService.enqueueTransportSubmitRows()`. Chi bat co rieng `ASYNC_TRANSPORT_SUBMIT_ENABLED=true`, giu `ASYNC_WRITE_ENABLED=false` de khong bat lai v1 dai tra. Frontend khi bam Luu nhan `jobId`, hien pending trong nhat ky, kick worker `processWriteJobs` khong cho ket qua, poll `getWriteJobStatus`, reload bang Van hanh khi job `synced`, hien retry khi `failed`. Da deploy Apps Script `@227`, deploy Vercel production; test `clasp run processWriteJobs -p '[1]'` tra `{ processed: 0, ok: true }`, production HTML co `pendingWriteJobs`/`kickWriteJobWorker`.
+- Ngay 2026-07-06 sua UX write queue v2: sau khi nhap moi Van hanh, cac dong `pending/processing/failed` duoc chen tam vao bang Van hanh dang xem dung sheet, co nhan `Dang dong bo` va khong cho sua/xoa khi chua co `rowIndex` that. Muc tieu la nguoi dung co the thay ngay dong vua nhap va xuat anh bao cao truoc khi worker ghi xong Google Sheet. Da deploy Vercel production, test HTML co `getManageRowsWithPending_`, `mapPendingEntryValue_`, `manage-pending-row`.
 
 ## File tài liệu hiện hành
 
@@ -196,7 +197,7 @@ Commit lien quan:
 - Job co trang thai ro: `pending`, `processing`, `synced`, `failed`; co `write_job_logs` va retry.
 - Worker Apps Script xu ly job theo module, ghi Google Sheet bang cac service hien co, sau do sync cache Supabase lien quan.
 - Hien da bat feature flag rieng `ASYNC_TRANSPORT_SUBMIT_ENABLED=true` cho `transport/submitRows`; van giu `ASYNC_WRITE_ENABLED=false` de tranh bat lai v1 dai tra.
-- Yeu cau v2 khac v1: frontend hien job pending trong danh sach local ngay sau khi Luu, worker khong lam cham request, va cache/danh sach chi reload khi job `synced`.
+- Yeu cau v2 khac v1: frontend hien job pending trong danh sach local va bang Van hanh ngay sau khi Luu, worker khong lam cham request, va cache/danh sach that reload khi job `synced`.
 
 ### 4. Thong bao va phan quyen
 

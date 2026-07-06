@@ -776,7 +776,10 @@
             if (activeView === 'catalog') {
               loadCatalogSheetData();
             } else {
-              loadManageSheetData();
+              showSyncToast('Đã lưu. Đang tải lại dữ liệu mới nhất từ Apps Script...', 'info', true);
+              loadManageSheetData(true)
+                .then(() => showSyncToast('Dữ liệu Vận hành đã được cập nhật.', 'info'))
+                .catch((err) => showSyncToast('Đã lưu, nhưng tải lại bảng lỗi: ' + (err.message || err), 'error'));
             }
           } else {
             alert('Lỗi: ' + res.error);
@@ -808,6 +811,7 @@
         columnsToClear = ["Giá dầu áp dụng", "Ngày áp dụng giá dầu", "Ghi chú"];
       }
 
+      showSyncToast('Đang xóa dòng và cập nhật bảng...', 'info', true);
       callApi('POST', 'deleteSheetRow', {}, { sheetName: targetSheetName, rowIndex: rowIndex, columnsToClear: columnsToClear })
         .then((res) => {
           if (res.ok) {
@@ -818,13 +822,15 @@
             if (activeView === 'catalog') {
               loadCatalogSheetData();
             } else {
-              loadManageSheetData();
+              return loadManageSheetData(true)
+                .then(() => showSyncToast('Đã xóa dòng và tải lại dữ liệu mới nhất.', 'info'));
             }
           } else {
             alert('Lỗi: ' + res.error);
           }
         })
         .catch((err) => {
+          showSyncToast('Không thể xóa dữ liệu: ' + err.message, 'error');
           alert('Lỗi xóa dữ liệu: ' + err.message);
         });
     }

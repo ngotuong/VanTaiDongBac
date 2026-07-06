@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@220 - Avoid realtime tick write lock contention`
+- Apps Script deployment moi nhat da xac nhan: `@221 - Refresh manage after edits quickly`
 - Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @218`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
 - Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
@@ -137,6 +137,8 @@ Commit lien quan:
 - Ngay 2026-07-06 da go `client_secret.json` va `.clasp.json` khoi Git tracking, them `.gitignore` tracked de tranh commit lai credential/cau hinh local. Neu `client_secret.json` da tung len GitHub, nen rotate OAuth client secret trong Google Cloud.
 - Audit doc Supabase ngay 2026-07-06: cac man hinh doc chinh da doc Supabase truoc/fallback Apps Script gom startup, dashboard/report, danh muc Van tai, Van hanh, Quy overview/giao dich/vay. Cac duong van doc Apps Script co chu dich gom `checkTripReconciliation`, `getFundFormOptions`, `getFundCatalog`, va cac thao tac ghi. Da dua `saveFundCatalogItem`/`deleteFundCatalogItem` qua `withFundSync_()` de lam tuoi cache Quy sau khi sua danh muc Quy.
 - So phieu giao dich Quy do web app tao dang co dang `yyMMddHHmmssSSS-xx` vi ghi bang Apps Script `setValues()` khong nen phu thuoc simple `onEdit(e)` cua file Thu chi de tu sinh cot A. Hau to `-xx` giup tranh trung khi luu nhieu dong cung batch/nhan ban nhanh.
+- Ngay 2026-07-06 user test sua/xoa Van hanh thay popup cho lau va bang khong tu refresh. Nguyen nhan: `withSheetRowSync_()` sau sua/xoa `NL_*` dang goi sync Van hanh/Bao cao che do day du, va frontend reload lai bang khong force refresh nen co the doc Supabase cache cu. Da doi sua/xoa `NL_*` sang sync nhanh `{ fast: true }` va frontend save/delete Van hanh reload `loadManageSheetData(true)` kem toast loading.
+- Huong nghien cuu so phieu Quy ngan hon: co the doi sang dang `TCyymmdd-xxxx` hoac `TCyymmdd-R<row>`, nhung can chon chien luoc chong trung. Dang `TCyymmdd-xxxx` dep nhung can daily sequence trong lock va quet cot A; dang row-based ngan va nhanh hon nhung phu thuoc dong append. Chua doi production neu chua test migration/compat voi cong thuc cong no.
 
 ## File tài liệu hiện hành
 

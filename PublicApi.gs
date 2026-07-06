@@ -133,11 +133,15 @@ function addFundLoanPayment(year, payment) {
 }
 
 function saveFundCatalogItem(year, item) {
-  return FundService.saveFundCatalogItem(year, item);
+  return withFundSync_(year, {}, function () {
+    return FundService.saveFundCatalogItem(year, item);
+  });
 }
 
 function deleteFundCatalogItem(year, item) {
-  return FundService.deleteFundCatalogItem(year, item);
+  return withFundSync_(year, {}, function () {
+    return FundService.deleteFundCatalogItem(year, item);
+  });
 }
 
 function syncReportBundleToSupabase(month) {
@@ -296,8 +300,8 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'addFundTransactions') return withFundSync_(safeBody.year, { transactions: safeBody.transactions || [] }, function () { return FundService.addFundTransactions(safeBody.year, safeBody.transactions || []); });
     if (action === 'addFundLoan') return withFundSync_(safeBody.year, { loan: safeBody.loan }, function () { return FundService.addFundLoan(safeBody.year, safeBody.loan); });
     if (action === 'addFundLoanPayment') return withFundSync_(safeBody.year, { payment: safeBody.payment }, function () { return FundService.addFundLoanPayment(safeBody.year, safeBody.payment); });
-    if (action === 'saveFundCatalogItem') return FundService.saveFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody);
-    if (action === 'deleteFundCatalogItem') return FundService.deleteFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody);
+    if (action === 'saveFundCatalogItem') return withFundSync_(safeBody.year, {}, function () { return FundService.saveFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody); });
+    if (action === 'deleteFundCatalogItem') return withFundSync_(safeBody.year, {}, function () { return FundService.deleteFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody); });
     if (action === 'retryWriteJob') return SupabaseService.retryWriteJob(safeBody.jobId);
     if (action === 'processWriteJobs') return SupabaseService.processWriteJobs(safeBody.maxJobs || 3);
     throw new Error('Hành động POST không hợp lệ: ' + action);

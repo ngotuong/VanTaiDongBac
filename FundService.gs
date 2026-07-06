@@ -1,5 +1,5 @@
 var FundService = (function () {
-  var FUND_CACHE_VERSION = 'fund_v4';
+  var FUND_CACHE_VERSION = 'fund_v5';
   var FUND_TTL_SECONDS = 300;
   var FUND_CATALOG_TTL_SECONDS = 21600;
   var FUND_DATA_VERSION_PROP = 'FUND_DATA_VERSION_V1';
@@ -232,7 +232,7 @@ var FundService = (function () {
       loans: loans,
       recentRows: filteredRows.slice().sort(function (a, b) {
         return a.date < b.date ? 1 : -1;
-      }).slice(0, 100).map(function (row) {
+      }).map(function (row) {
         var overallLoan = overallLoanMap[row.code || ('row-' + row.rowIndex)] || null;
         return extendLoanHistoryRow_(row, overallLoan);
       })
@@ -312,21 +312,12 @@ var FundService = (function () {
     if (catalogCached) return catalogCached;
     var ss = getFundSpreadsheet_(year);
     var catalogSheet = ensureFundCatalogSheet_(ss);
-    var rows = readFundCatalogRows_(catalogSheet);
-    var nativeRows = readNativeFundCatalogRows_(ss);
-    rows = rows.concat(nativeRows);
+    var rows = readFundCatalogRows_(catalogSheet).concat(readNativeFundCatalogRows_(ss));
     var normalizedGroup = normalizeFundCatalogGroup_(group);
-    var fallbackRows = normalizedGroup ? getFallbackFundCatalogRows_(ss, normalizedGroup, rows) : [];
     var displayRows = normalizedGroup
-      ? rows.filter(function (row) { return row.groupKey === normalizedGroup; }).concat(fallbackRows)
-      : rows.concat(fallbackRows);
+      ? rows.filter(function (row) { return row.groupKey === normalizedGroup; })
+      : rows;
     var groups = getFundCatalogGroupSummary_(rows);
-    groups = groups.map(function (item) {
-      if (item.key === normalizedGroup && fallbackRows.length) {
-        return Object.assign({}, item, { count: item.count + fallbackRows.length, fallbackCount: fallbackRows.length });
-      }
-      return item;
-    });
     var result = {
       ok: true,
       sheetName: CATALOG_SHEET_NAME,
@@ -730,6 +721,21 @@ var FundService = (function () {
       .trim();
   }
 
+  function normalizeLoanType_(value) {
+    var text = clean_(value);
+    var normalized = normalizeHeader_(text);
+    if (!normalized) return '';
+    if (normalized === 'vay' || normalized.indexOf('vay ') === 0) return 'Vay';
+    if (normalized.indexOf('lai') !== -1) return 'Trả lãi';
+    if (
+      normalized.indexOf('tra') !== -1 &&
+      (normalized.indexOf('no') !== -1 || normalized.indexOf('goc') !== -1)
+    ) {
+      return 'Trả nợ';
+    }
+    return text;
+  }
+
   function readLoanRows_(ss) {
     var sheet = ss.getSheetByName(LOAN_SHEET_NAME);
     if (!sheet || sheet.getLastRow() < 2) return [];
@@ -748,7 +754,8 @@ var FundService = (function () {
         dateText: clean_(row[1]),
         month: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'yyyy-MM') : '',
         monthLabel: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'MM/yyyy') : '',
-        type: clean_(row[2]),
+        type: normalizeLoanType_(row[2]),
+        rawType: clean_(row[2]),
         method: clean_(row[3]),
         partner: clean_(row[4]),
         amount: parseNumber_(row[5]),

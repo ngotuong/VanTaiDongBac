@@ -161,6 +161,8 @@ Frontend đọc:
 - `client_data.html` đọc danh mục nhập liệu bằng `readCatalogsFromSupabase(formType)`.
 - `client_catalog.html` đọc bảng Danh mục bằng `readCatalogDataFromSupabase(displaySheetName)`.
 - `client_cashflow.html` đọc form options/danh mục Quỹ bằng `fund_form_options:YYYY` và `fund_catalog:YYYY:group`.
+- `fund_catalog:YYYY:group` chỉ chứa danh mục cấu hình từ `CAIDAT`/catalog sheet, không trộn các giá trị fallback quét từ giao dịch đã nhập.
+- `fund_loan_bundles` nhận payload từ `FundService.getFundLoanOverview`; khi đọc `NHAP_VAY`, backend chuẩn hóa các biến thể loại dòng trả gốc thành `Trả nợ` để KPI `Đã trả nợ gốc` và `Dư nợ` nhất quán.
 - Nếu cache thiếu/lỗi, frontend fallback về Apps Script `getCatalogs` hoặc `readCatalogData`.
 
 Luồng đồng bộ:

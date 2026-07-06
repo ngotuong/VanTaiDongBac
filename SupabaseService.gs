@@ -25,6 +25,7 @@ var SupabaseService = (function () {
     'DM_ThuongQuanLy',
     'DM_PhatNoiBo'
   ];
+  var FUND_CATALOG_GROUPS = ['incomeCategories', 'expenseCategories', 'actors', 'partners', 'loanPartners'];
   var MANAGE_SHEET_NAMES = [
     'NL_VanChuyen',
     'NL_TaiXe',
@@ -205,6 +206,9 @@ var SupabaseService = (function () {
     runSyncStep_(results, errors, 'fundLoansLatest', function () {
       return syncFundLoanOverview(safeYear, '');
     });
+    runSyncStep_(results, errors, 'fundCatalogs', function () {
+      return syncAllFundCatalogBundles(safeYear);
+    });
     return {
       ok: errors.length === 0,
       year: safeYear,
@@ -256,6 +260,50 @@ var SupabaseService = (function () {
     }], 'catalog_key');
     writeSyncStatus_('catalog_data:' + safeDisplaySheetName, 'catalog', 'ok', 'Catalog table cache synced.', syncedAt);
     return { ok: true, table: TABLE_CATALOG_BUNDLES, catalogKey: catalogKey, syncedAt: syncedAt };
+  }
+
+  function syncFundFormOptionsBundle(year) {
+    var safeYear = clean_(year) || DEFAULT_FUND_YEAR;
+    var catalogKey = buildFundFormOptionsKey_(safeYear);
+    var payload = FundService.getFundFormOptions(safeYear);
+    var syncedAt = new Date().toISOString();
+    upsertRows_(TABLE_CATALOG_BUNDLES, [{
+      catalog_key: catalogKey,
+      payload: payload,
+      synced_at: syncedAt
+    }], 'catalog_key');
+    writeSyncStatus_('fund_form_options:' + safeYear, 'fund', 'ok', 'Fund form options cache synced.', syncedAt);
+    return { ok: true, table: TABLE_CATALOG_BUNDLES, catalogKey: catalogKey, syncedAt: syncedAt };
+  }
+
+  function syncFundCatalogBundle(year, group) {
+    var safeYear = clean_(year) || DEFAULT_FUND_YEAR;
+    var safeGroup = clean_(group) || 'all';
+    var catalogKey = buildFundCatalogKey_(safeYear, safeGroup);
+    var payload = FundService.getFundCatalog(safeYear, safeGroup);
+    var syncedAt = new Date().toISOString();
+    upsertRows_(TABLE_CATALOG_BUNDLES, [{
+      catalog_key: catalogKey,
+      payload: payload,
+      synced_at: syncedAt
+    }], 'catalog_key');
+    writeSyncStatus_('fund_catalog:' + safeYear + ':' + safeGroup, 'fund', 'ok', 'Fund catalog cache synced.', syncedAt);
+    return { ok: true, table: TABLE_CATALOG_BUNDLES, catalogKey: catalogKey, syncedAt: syncedAt };
+  }
+
+  function syncAllFundCatalogBundles(year) {
+    var safeYear = clean_(year) || DEFAULT_FUND_YEAR;
+    var results = [];
+    var errors = [];
+    runSyncStep_(results, errors, 'fundFormOptions:' + safeYear, function () {
+      return syncFundFormOptionsBundle(safeYear);
+    });
+    FUND_CATALOG_GROUPS.forEach(function (group) {
+      runSyncStep_(results, errors, 'fundCatalog:' + group, function () {
+        return syncFundCatalogBundle(safeYear, group);
+      });
+    });
+    return { ok: errors.length === 0, synced: results.length, failed: errors.length, results: results, errors: errors };
   }
 
   function syncAllStartupAndCatalogs() {
@@ -464,6 +512,11 @@ var SupabaseService = (function () {
     var monthKeys = getFundWriteMonthKeys_(safeYear, options || {});
     var results = [];
     var errors = [];
+    if (options && options.fundCatalog) {
+      runSyncStep_(results, errors, 'fundCatalogs', function () {
+        return syncAllFundCatalogBundles(safeYear);
+      });
+    }
     runSyncStep_(results, errors, 'fundOverview', function () { return syncFundOverview(safeYear, ''); });
     runSyncStep_(results, errors, 'fundTransactions', function () { return syncFundTransactions(safeYear, { limit: 500 }); });
     runSyncStep_(results, errors, 'fundLoans', function () { return syncFundLoanOverview(safeYear, ''); });
@@ -757,6 +810,7 @@ var SupabaseService = (function () {
       { name: 'reportsRecent' },
       { name: 'reportsAll' },
       { name: 'fundRecent' },
+      { name: 'fundCatalogs' },
       { name: 'startupCatalogs' }
     ];
     MANAGE_SHEET_NAMES.forEach(function (sheetName) {
@@ -799,6 +853,12 @@ var SupabaseService = (function () {
         runSyncStep_(results, errors, 'fundLoans:' + monthKey, function () {
           return syncFundLoanOverview(DEFAULT_FUND_YEAR, monthKey);
         });
+      });
+      return;
+    }
+    if (step.name === 'fundCatalogs') {
+      runSyncStep_(results, errors, 'fundCatalogs', function () {
+        return syncAllFundCatalogBundles(DEFAULT_FUND_YEAR);
       });
       return;
     }
@@ -1040,6 +1100,14 @@ var SupabaseService = (function () {
     return 'catalog_data:' + clean_(displaySheetName);
   }
 
+  function buildFundFormOptionsKey_(year) {
+    return 'fund_form_options:' + (clean_(year) || DEFAULT_FUND_YEAR);
+  }
+
+  function buildFundCatalogKey_(year, group) {
+    return 'fund_catalog:' + (clean_(year) || DEFAULT_FUND_YEAR) + ':' + (clean_(group) || 'all');
+  }
+
   function buildManageMonthFilterKey_(monthKey) {
     return 'month:' + normalizeYearMonthKey_(monthKey);
   }
@@ -1191,6 +1259,9 @@ var SupabaseService = (function () {
     syncFundOverview: syncFundOverview,
     syncFundTransactionMonth: syncFundTransactionMonth,
     syncFundTransactions: syncFundTransactions,
+    syncFundFormOptionsBundle: syncFundFormOptionsBundle,
+    syncFundCatalogBundle: syncFundCatalogBundle,
+    syncAllFundCatalogBundles: syncAllFundCatalogBundles,
     syncAllFundBundles: syncAllFundBundles,
     syncStartupBundle: syncStartupBundle,
     syncCatalogsBundle: syncCatalogsBundle,

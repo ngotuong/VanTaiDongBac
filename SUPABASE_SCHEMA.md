@@ -154,11 +154,13 @@ Nguồn Google Sheet tương ứng:
 - `DM_DonGiaVanChuyen`
 - `DM_ThuongQuanLy`
 - `DM_PhatNoiBo`
+- File Thu chi 2026: `CAIDAT`, `NHAP_THUCHI`, `NHAP_VAY` cho cache danh mục nhập Quỹ.
 
 Frontend đọc:
 
 - `client_data.html` đọc danh mục nhập liệu bằng `readCatalogsFromSupabase(formType)`.
 - `client_catalog.html` đọc bảng Danh mục bằng `readCatalogDataFromSupabase(displaySheetName)`.
+- `client_cashflow.html` đọc form options/danh mục Quỹ bằng `fund_form_options:YYYY` và `fund_catalog:YYYY:group`.
 - Nếu cache thiếu/lỗi, frontend fallback về Apps Script `getCatalogs` hoặc `readCatalogData`.
 
 Luồng đồng bộ:

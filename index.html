@@ -6681,6 +6681,7 @@
       }
       if (btn) btn.disabled = true;
       showFundCatalogStatus('success', 'Đang lưu danh mục...');
+      showSyncToast('Đang lưu danh mục Quỹ...', 'info', true);
       callApi('POST', 'saveFundCatalogItem', {}, {
         year: '2026',
         payload: {
@@ -6691,15 +6692,16 @@
         }
       })
         .then(() => {
-          showFundCatalogStatus('success', 'Đã lưu danh mục.');
+          showFundCatalogStatus('success', 'Đã lưu danh mục. Đang tải lại danh sách...');
           clearFundCatalogForm();
           fundFormOptions = null;
           return Promise.all([
             loadFundCatalog(true),
             loadFundFormOptions()
-          ]);
+          ]).then(() => showSyncToast('Danh mục Quỹ đã được cập nhật.', 'info'));
         })
         .catch((err) => {
+          showSyncToast('Không thể lưu danh mục Quỹ: ' + err.message, 'error');
           showFundCatalogStatus('error', 'Không thể lưu danh mục: ' + err.message);
         })
         .finally(() => {
@@ -6709,6 +6711,8 @@
 
     function deleteFundCatalogItem(rowIndex) {
       if (!confirm('Xóa mục danh mục này?')) return;
+      showFundCatalogStatus('success', 'Đang xóa danh mục...');
+      showSyncToast('Đang xóa danh mục Quỹ...', 'info', true);
       callApi('POST', 'deleteFundCatalogItem', {}, {
         year: '2026',
         payload: {
@@ -6716,9 +6720,15 @@
         }
       }).then(() => {
         fundFormOptions = null;
-        loadFundCatalog(true);
-        loadFundFormOptions();
+        return Promise.all([
+          loadFundCatalog(true),
+          loadFundFormOptions()
+        ]).then(() => {
+          showFundCatalogStatus('success', 'Đã xóa danh mục.');
+          showSyncToast('Danh mục Quỹ đã được cập nhật.', 'info');
+        });
       }).catch((err) => {
+        showSyncToast('Không thể xóa danh mục Quỹ: ' + err.message, 'error');
         showFundCatalogStatus('error', 'Không thể xóa danh mục: ' + err.message);
       });
     }
@@ -6738,13 +6748,27 @@
       renderFundTableLoading(el('fundLoanHistoryBody'), 5, 'Đang tải lịch sử vay/trả...');
       const historyPager = el('fundLoanHistoryPager');
       if (historyPager) historyPager.style.display = 'none';
+      let fundLoanFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
       const loadFundLoanFromAppsScript = () => callApi('GET', 'getFundLoanOverview', { year: '2026', month: month, forceRefresh: forceRefresh ? 'true' : '' });
-      return loadFundLoanFromAppsScript()
+      const loader = (!forceRefresh && supabaseStatus.ok)
+        ? readFundLoanOverviewFromSupabase('2026', month).catch((err) => {
+            fundLoanFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được Khoản vay từ Supabase, quay về Apps Script:', err);
+            return loadFundLoanFromAppsScript();
+          })
+        : (() => {
+            fundLoanFallbackReason = supabaseStatus.reason;
+            return loadFundLoanFromAppsScript();
+          })();
+      return loader
         .then((data) => {
           fundLoanData = data;
           fundLoanHistoryPage = 1;
           renderFundLoanOverview(data);
-          showSyncToast('Vay nợ đang đọc trực tiếp từ Apps Script để bảo đảm bộ lọc tháng mới nhất.');
+          showSyncToast(data.supabaseCached
+            ? 'Khoản vay đang đọc từ Supabase cache.'
+            : 'Khoản vay đã quay về Apps Script. ' + (fundLoanFallbackReason || ''));
         })
         .catch((err) => {
           el('fundLoanMetrics').innerHTML = `<article class="kpi-card"><div class="kpi-label">Lỗi tải khoản vay</div><div class="kpi-value" style="font-size:18px;">${escapeHtml(err.message)}</div></article>`;

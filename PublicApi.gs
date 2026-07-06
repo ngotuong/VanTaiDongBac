@@ -320,25 +320,16 @@ function withFundSync_(year, syncContext, fn) {
     syncContext = {};
   }
   var result = fn();
-  try {
-    syncContext = syncContext || {};
-    syncContext.result = result;
-    SupabaseService.syncFundAfterWrite(year || '2026', syncContext);
-  } catch (err) {
-    console.log('fund_supabase_sync_after_write_failed: ' + (err && err.message ? err.message : err));
+  if (result && typeof result === 'object') {
+    result.supabaseSync = { ok: true, deferred: true, handler: 'syncRealtimeCache' };
   }
   return result;
 }
 
 function withTransportSync_(rows, fn) {
   var result = fn();
-  if (result && result.inserted) {
-    try {
-      result.supabaseSync = SupabaseService.syncTransportAfterWrite(result.sheetName, rows, { fast: true });
-    } catch (err) {
-      result.supabaseSync = { ok: false, error: err && err.message ? err.message : String(err) };
-      console.log('transport_supabase_sync_after_write_failed: ' + (err && err.message ? err.message : err));
-    }
+  if (result && typeof result === 'object') {
+    result.supabaseSync = { ok: true, deferred: true, handler: 'syncRealtimeCache' };
   }
   return result;
 }
@@ -355,7 +346,7 @@ function withSheetRowSync_(sheetName, fn) {
         SupabaseService.syncCatalogDataBundle('DM_ThamSo_GD');
       }
     } else if (safeSheetName.indexOf('NL_') === 0) {
-      SupabaseService.syncTransportAfterWrite(safeSheetName, [], { fast: true });
+      result.supabaseSync = { ok: true, deferred: true, handler: 'syncRealtimeCache' };
     }
   } catch (err) {
     console.log('supabase_sync_after_sheet_row_write_failed: ' + (err && err.message ? err.message : err));

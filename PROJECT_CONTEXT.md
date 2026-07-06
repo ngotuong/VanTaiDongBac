@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@222 - Cache fund catalogs in Supabase`
+- Apps Script deployment moi nhat da xac nhan: `@223 - Defer write cache sync and improve fund UI`
 - Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @218`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
 - Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
@@ -137,6 +137,7 @@ Commit lien quan:
 - Ngay 2026-07-06 da go `client_secret.json` va `.clasp.json` khoi Git tracking, them `.gitignore` tracked de tranh commit lai credential/cau hinh local. Neu `client_secret.json` da tung len GitHub, nen rotate OAuth client secret trong Google Cloud.
 - Audit doc Supabase ngay 2026-07-06: cac man hinh doc chinh da doc Supabase truoc/fallback Apps Script gom startup, dashboard/report, danh muc Van tai, Van hanh, Quy overview/giao dich/vay. Cac duong van doc Apps Script co chu dich gom `checkTripReconciliation` va cac thao tac ghi. Da dua `getFundFormOptions`/`getFundCatalog` sang doc Supabase truoc bang `catalog_bundles` key `fund_form_options:YYYY` va `fund_catalog:YYYY:group`; `saveFundCatalogItem`/`deleteFundCatalogItem` sync lai cac cache nay sau ghi.
 - Da backfill `syncAllFundCatalogsToSupabase('2026')` thanh cong 6 bundle: form options va 5 nhom danh muc Quy.
+- Ngay 2026-07-06 user xac nhan ghi/xoa Sheet xong nhung web app bao cap nhat cham. Da doi wrapper ghi Quỹ/Vận hành (`withFundSync_`, `withTransportSync_`, sua/xoa `NL_*`) sang tra response ngay sau khi Google Sheet ghi xong, gan `supabaseSync.deferred=true`; Supabase cache do trigger tick `syncRealtimeCache` cap nhat sau. UI sau ghi dung force refresh Apps Script de hien du lieu moi.
 - So phieu giao dich Quy do web app tao dang co dang `yyMMddHHmmssSSS-xx` vi ghi bang Apps Script `setValues()` khong nen phu thuoc simple `onEdit(e)` cua file Thu chi de tu sinh cot A. Hau to `-xx` giup tranh trung khi luu nhieu dong cung batch/nhan ban nhanh.
 - Ngay 2026-07-06 user test sua/xoa Van hanh thay popup cho lau va bang khong tu refresh. Nguyen nhan: `withSheetRowSync_()` sau sua/xoa `NL_*` dang goi sync Van hanh/Bao cao che do day du, va frontend reload lai bang khong force refresh nen co the doc Supabase cache cu. Da doi sua/xoa `NL_*` sang sync nhanh `{ fast: true }` va frontend save/delete Van hanh reload `loadManageSheetData(true)` kem toast loading.
 - Huong nghien cuu so phieu Quy ngan hon: co the doi sang dang `TCyymmdd-xxxx` hoac `TCyymmdd-R<row>`, nhung can chon chien luoc chong trung. Dang `TCyymmdd-xxxx` dep nhung can daily sequence trong lock va quet cot A; dang row-based ngan va nhanh hon nhung phu thuoc dong append. Chua doi production neu chua test migration/compat voi cong thuc cong no.

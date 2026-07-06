@@ -10,6 +10,14 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Supabase dung lam database/cache doc nhanh, khong thay the Google Sheet o giai doan hien tai.
 - Nguoi dung noi bo khoang 4-5 nguoi, uu tien tra cuu nhanh, bao cao dung, nhap lieu an toan.
 
+## Dinh huong kien truc muc tieu
+
+- Google Sheet: noi doi soat, bao cao, backup va kiem tra cong thuc; khong dung lam backend thao tac nhanh cho frontend ve lau dai.
+- Supabase: database thao tac nhanh cho web app, bao gom doc nhanh va tien toi ghi nhanh/co trang thai.
+- Apps Script: cau noi dong bo hai chieu co kiem soat giua Google Sheet va Supabase; chay worker ghi Sheet, sync cache, log loi va retry.
+- Vercel: giao dien nguoi dung; khong giu service role key va khong ghi truc tiep vao Google Sheet.
+- Giai doan truoc mat: Google Sheet van la nguon doi soat cuoi cung, nhung thao tac web app can phan hoi nhanh bang cach tao y dinh ghi trong Supabase truoc, sau do worker dong bo ve Sheet.
+
 ## Nguyen tac bat buoc
 
 - Khong bo Google Sheet, Apps Script, hoac Vercel trong giai doan hien tai.
@@ -180,6 +188,14 @@ Commit lien quan:
 - Ghi tu web app: ghi Google Sheet truoc, sau do sync nhanh cache lien quan de UI co du lieu som.
 - Da them panel quan sat `Cai dat > Trang thai dong bo` de nhin duoc cache nao moi/cũ/lỗi truoc khi mo rong realtime notification.
 - Chua chuyen source-of-truth sang Supabase neu chua co quyet dinh rieng.
+
+### 3b. Toi uu ghi tu web app bang write queue v2
+
+- Muc tieu: khi bam Luu, frontend nhan phan hoi nhanh sau khi tao job trong Supabase; khong cho frontend cho Apps Script ghi Google Sheet xong.
+- Job co trang thai ro: `pending`, `processing`, `synced`, `failed`; co `write_job_logs` va retry.
+- Worker Apps Script xu ly job theo module, ghi Google Sheet bang cac service hien co, sau do sync cache Supabase lien quan.
+- Khong bat lai `ASYNC_WRITE_ENABLED` dai tra ngay. Can lam theo feature flag rieng tung module, bat dau voi mot luong hep va rollback nhanh.
+- Yeu cau v2 khac v1: frontend phai hien job pending trong danh sach local/Supabase ngay sau khi Luu, worker khong duoc lam cham request, va cache phai co cach hien du lieu pending de nguoi dung thay lenh vua tao.
 
 ### 4. Thong bao va phan quyen
 

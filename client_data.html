@@ -184,7 +184,7 @@
         .then((result) => {
           if (result && result.queued && result.jobId) {
             const description = `${submitted.length} dòng ${FORM_LABELS[submittedForm] || submittedForm}`;
-            trackPendingWriteJob(result, description);
+            trackPendingWriteJob(result, description, submittedForm, submittedRows);
             showStatus('warn', `Đã nhận lệnh lưu ${description}. Trạng thái hiện tại: pending. Hệ thống sẽ đồng bộ về Google Sheet ở nền.`);
             recentSubmissions = submitted.filter(Boolean).map((item) => `[pending] ${item}`).concat(recentSubmissions).slice(0, 8);
             rows = [newBlankRow()];

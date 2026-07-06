@@ -96,15 +96,19 @@
       holder.appendChild(wrap);
     }
 
-    function trackPendingWriteJob(job, description) {
+    function trackPendingWriteJob(job, description, formType, submittedRows) {
       if (!job || !job.jobId) return;
       pendingWriteJobs = [{
         jobId: job.jobId,
         status: job.status || 'pending',
         description: description || '',
-        lastError: ''
+        lastError: '',
+        formType: formType || '',
+        sheetName: FORM_SHEET_MAP[formType] || '',
+        rows: (submittedRows || []).map((row) => ({ ...row }))
       }].concat(pendingWriteJobs.filter((item) => item.jobId !== job.jobId)).slice(0, 8);
       renderEntry();
+      if (activeView === 'manage') renderManageTable();
       pollPendingWriteJob(job.jobId, 0);
     }
 
@@ -140,6 +144,7 @@
         };
       });
       renderEntry();
+      if (activeView === 'manage') renderManageTable();
       if (job.status === 'synced') {
         showSyncToast('Dữ liệu đã đồng bộ về Google Sheet.');
       } else if (job.status === 'failed') {

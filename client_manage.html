@@ -189,7 +189,7 @@
       if (!currentManageData) return;
       const sheetName = el('manageSheetSelect').value;
       const headers = [...currentManageData.headers];
-      const rawRows = currentManageData.rows || [];
+      const rawRows = getManageRowsWithPending_(sheetName, currentManageData.headers, currentManageData.rows || []);
       const visibleColumns = getManageVisibleColumns(headers, sheetName);
       const isDauSheet = sheetName === 'NL_Dau';
       const manageTable = el('manageTable');
@@ -245,6 +245,64 @@
       });
 
       filterManageRows();
+    }
+
+    function getManageRowsWithPending_(sheetName, headers, baseRows) {
+      const pendingRows = buildPendingManageRows_(sheetName, headers);
+      return pendingRows.length ? pendingRows.concat(baseRows || []) : (baseRows || []);
+    }
+
+    function buildPendingManageRows_(sheetName, headers) {
+      if (!Array.isArray(headers) || !headers.length) return [];
+      const jobs = (pendingWriteJobs || []).filter((job) => {
+        return job.sheetName === sheetName
+          && (job.status === 'pending' || job.status === 'processing' || job.status === 'failed');
+      });
+      const rows = [];
+      jobs.forEach((job) => {
+        (job.rows || []).forEach((entryRow, index) => {
+          rows.push({
+            rowIndex: `pending:${job.jobId}:${index}`,
+            values: headers.map((header) => mapPendingEntryValue_(job.formType, entryRow, header)),
+            isPendingWrite: true,
+            pendingStatus: job.status,
+            pendingJobId: job.jobId
+          });
+        });
+      });
+      return rows;
+    }
+
+    function mapPendingEntryValue_(formType, row, header) {
+      const normalized = removeAccents(String(header || '').trim().toLowerCase());
+      if (!row) return '';
+      const directMap = {
+        date: ['ngay', 'ngay chay', 'ngay tiep dau', 'ngay lap bien ban', 'ngay bao nghi'],
+        vehicle: ['bien so xe', 'bien so xe nhan', 'xe', 'bien so xe nghi'],
+        project: ['du an', 'du an chay', 'du an anh huong'],
+        trips: ['so chuyen', 'so chuyen chay'],
+        tickets: ['so phieu', 'so phieu chung tu', 'chung tu'],
+        note: ['ghi chu', 'ghi chu them', 'ghi chu chi tiet'],
+        driver: ['tai xe', 'tai xe cam lai'],
+        source: ['nguon', 'nguon cung cap', 'nguon dau'],
+        liters: ['so lit', 'lit', 'so lit dau'],
+        price: ['gia dau lit', 'gia dau', 'don gia'],
+        sourcePay: ['nguon chi'],
+        fromDate: ['tu ngay'],
+        toDate: ['den ngay', 'den ngay gom ca'],
+        person: ['nhan su', 'nhan su nghi', 'nhan su vi pham'],
+        workdayType: ['loai ngay nghi', 'loai ngay cong'],
+        penaltyCode: ['ma vi pham', 'ma vi pham noi bo'],
+        stopType: ['ly do dung may'],
+        hours: ['so gio', 'so gio dung may']
+      };
+
+      const found = Object.keys(directMap).find((key) => directMap[key].includes(normalized));
+      if (found) return row[found] || '';
+      if (normalized === 'trang thai' || normalized === 'trang thai dong bo') {
+        return 'Đang đồng bộ';
+      }
+      return '';
     }
 
     function getManageVisibleColumns(headers, sheetName) {
@@ -480,6 +538,7 @@
       const fragment = document.createDocumentFragment();
       pageRows.forEach(row => {
         const tr = document.createElement('tr');
+        if (row.isPendingWrite) tr.className = `manage-pending-row ${row.pendingStatus || 'pending'}`;
         
         visibleColumns.forEach((idx) => {
           const val = row.values[idx];
@@ -504,6 +563,13 @@
           } else {
             td.textContent = val || '';
           }
+          if (row.isPendingWrite && idx === visibleColumns[0]) {
+            const badge = document.createElement('span');
+            badge.className = `preview-badge ${row.pendingStatus === 'failed' ? 'warning' : 'info'}`;
+            badge.style.marginLeft = '8px';
+            badge.textContent = row.pendingStatus === 'failed' ? 'Lỗi đồng bộ' : 'Đang đồng bộ';
+            td.appendChild(badge);
+          }
           tr.appendChild(td);
 
           if (showOwnerCol && idx === vehicleColIdx) {
@@ -527,25 +593,32 @@
         tdActions.style.textAlign = 'center';
         tdActions.style.whiteSpace = 'nowrap';
         
-        const btnEdit = document.createElement('button');
-        btnEdit.type = 'button';
-        btnEdit.className = 'btn-table-action edit';
-        btnEdit.title = 'Sửa';
-        btnEdit.setAttribute('aria-label', 'Sửa dòng');
-        btnEdit.style.marginRight = '4px';
-        btnEdit.innerHTML = `<svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
-        btnEdit.onclick = () => openManageEditModal(row);
+        if (row.isPendingWrite) {
+          const pendingText = document.createElement('span');
+          pendingText.className = 'preview-badge info';
+          pendingText.textContent = row.pendingStatus === 'failed' ? 'Có thể thử lại' : 'Chờ Sheet';
+          tdActions.appendChild(pendingText);
+        } else {
+          const btnEdit = document.createElement('button');
+          btnEdit.type = 'button';
+          btnEdit.className = 'btn-table-action edit';
+          btnEdit.title = 'Sửa';
+          btnEdit.setAttribute('aria-label', 'Sửa dòng');
+          btnEdit.style.marginRight = '4px';
+          btnEdit.innerHTML = `<svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+          btnEdit.onclick = () => openManageEditModal(row);
 
-        const btnDelete = document.createElement('button');
-        btnDelete.type = 'button';
-        btnDelete.className = 'btn-table-action delete';
-        btnDelete.title = 'Xóa';
-        btnDelete.setAttribute('aria-label', 'Xóa dòng');
-        btnDelete.innerHTML = `<svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
-        btnDelete.onclick = () => deleteManageRow(row.rowIndex);
+          const btnDelete = document.createElement('button');
+          btnDelete.type = 'button';
+          btnDelete.className = 'btn-table-action delete';
+          btnDelete.title = 'Xóa';
+          btnDelete.setAttribute('aria-label', 'Xóa dòng');
+          btnDelete.innerHTML = `<svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+          btnDelete.onclick = () => deleteManageRow(row.rowIndex);
 
-        tdActions.appendChild(btnEdit);
-        tdActions.appendChild(btnDelete);
+          tdActions.appendChild(btnEdit);
+          tdActions.appendChild(btnDelete);
+        }
         tr.appendChild(tdActions);
         
         fragment.appendChild(tr);

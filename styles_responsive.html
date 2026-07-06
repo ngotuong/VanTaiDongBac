@@ -1489,6 +1489,29 @@
     }
     
     @media (max-width: 768px) {
+      .settings-card-header,
+      .theme-settings-card {
+        grid-template-columns: 1fr !important;
+      }
+
+      .settings-card-header {
+        align-items: stretch;
+      }
+
+      .settings-card-header .icon-text-btn {
+        justify-content: center;
+        width: 100%;
+      }
+
+      .sync-status-row {
+        grid-template-columns: 1fr;
+      }
+
+      .sync-status-time {
+        justify-self: start;
+        text-align: left;
+      }
+
       .sticky-col {
         position: sticky !important;
         z-index: 2;

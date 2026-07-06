@@ -102,6 +102,105 @@
     .theme-toggle-row input:checked::after {
       transform: translateX(22px);
     }
+
+    .settings-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .icon-text-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .sync-status-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .sync-status-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(92px, auto) minmax(126px, auto);
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--canvas);
+    }
+
+    .sync-status-main {
+      min-width: 0;
+    }
+
+    .sync-status-key {
+      color: var(--deep);
+      font-weight: 800;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sync-status-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sync-status-pill {
+      justify-self: start;
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+      background: var(--paper);
+      border: 1px solid var(--line);
+    }
+
+    .sync-status-pill.ok {
+      color: var(--green);
+      border-color: rgba(22, 163, 74, 0.25);
+      background: rgba(22, 163, 74, 0.08);
+    }
+
+    .sync-status-pill.error {
+      color: var(--red);
+      border-color: rgba(220, 38, 38, 0.25);
+      background: rgba(220, 38, 38, 0.08);
+    }
+
+    .sync-status-time {
+      justify-self: end;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .sync-status-empty {
+      padding: 18px;
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+      color: var(--muted);
+      background: var(--canvas);
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
     
     .steps { 
       margin: 12px 0 0; 

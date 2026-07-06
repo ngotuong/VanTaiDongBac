@@ -164,6 +164,9 @@
         if (activeCashflowTab === 'transactions') loadFundTransactions(false);
         if (activeCashflowTab === 'loans') loadFundLoanOverview(false);
       }
+      if (view === 'settings') {
+        loadSupabaseSyncStatus(false);
+      }
     }
 
     function getLatestDataUpdateText() {

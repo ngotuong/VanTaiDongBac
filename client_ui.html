@@ -221,6 +221,79 @@
       };
     }
 
+    function loadSupabaseSyncStatus(forceRefresh = false) {
+      const body = el('syncStatusBody');
+      const checkedAt = el('syncStatusCheckedAt');
+      const btn = el('syncStatusRefreshBtn');
+      if (!body) return Promise.resolve(null);
+      if (btn) btn.disabled = true;
+      if (checkedAt) checkedAt.textContent = forceRefresh ? 'Đang làm mới...' : 'Đang tải trạng thái...';
+      body.innerHTML = '<div class="sync-status-empty">Đang tải trạng thái đồng bộ...</div>';
+
+      return callApi('GET', 'getSupabaseSyncStatus', { limit: 24, forceRefresh: forceRefresh ? 'true' : '' })
+        .then((data) => {
+          renderSupabaseSyncStatus(data || {});
+          return data;
+        })
+        .catch((err) => {
+          if (checkedAt) checkedAt.textContent = 'Không tải được trạng thái.';
+          body.innerHTML = `<div class="sync-status-empty">Không tải được trạng thái: ${escapeHtml(err.message || err)}</div>`;
+          return null;
+        })
+        .finally(() => {
+          if (btn) btn.disabled = false;
+        });
+    }
+
+    function renderSupabaseSyncStatus(data) {
+      const body = el('syncStatusBody');
+      const checkedAt = el('syncStatusCheckedAt');
+      if (!body) return;
+      const rows = data.rows || [];
+      if (checkedAt) checkedAt.textContent = data.checkedAt ? `Kiểm tra lúc ${formatSyncStatusTime(data.checkedAt)}` : 'Đã tải trạng thái.';
+      if (!rows.length) {
+        body.innerHTML = '<div class="sync-status-empty">Chưa có trạng thái đồng bộ.</div>';
+        return;
+      }
+      body.innerHTML = rows.map((row) => {
+        const status = String(row.status || '').toLowerCase();
+        const statusClass = status === 'ok' ? 'ok' : (status === 'error' ? 'error' : '');
+        return `
+          <div class="sync-status-row">
+            <div class="sync-status-main">
+              <div class="sync-status-key" title="${escapeHtml(row.syncKey || '')}">${escapeHtml(row.syncKey || '')}</div>
+              <div class="sync-status-note" title="${escapeHtml(row.message || '')}">${escapeHtml(row.module || '')}${row.message ? ' · ' + escapeHtml(row.message) : ''}</div>
+            </div>
+            <span class="sync-status-pill ${statusClass}">${escapeHtml((row.status || '').toUpperCase())}</span>
+            <div class="sync-status-time">${formatSyncStatusAge(row.ageSeconds, row.syncedAt)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function formatSyncStatusTime(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return String(value);
+      return date.toLocaleString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    }
+
+    function formatSyncStatusAge(ageSeconds, syncedAt) {
+      const seconds = Number(ageSeconds);
+      if (!isNaN(seconds)) {
+        if (seconds < 60) return `${seconds}s trước`;
+        if (seconds < 3600) return `${Math.round(seconds / 60)} phút trước`;
+        if (seconds < 86400) return `${Math.round(seconds / 3600)} giờ trước`;
+      }
+      return formatSyncStatusTime(syncedAt);
+    }
+
     window.showSettingsFromLoader = () => {
       document.body.classList.remove('locked');
       el('loader').classList.add('hidden');

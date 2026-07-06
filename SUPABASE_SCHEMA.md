@@ -103,6 +103,8 @@ Khóa chính:
 
 Ghi trạng thái sync gần nhất theo `sync_key`, gồm module, status, message và thời điểm sync.
 
+Frontend không đọc bảng này trực tiếp. Apps Script expose action `getSupabaseSyncStatus` và dùng service role key để đọc tối đa các dòng mới nhất; màn hình `Cài đặt > Trạng thái đồng bộ` hiển thị `sync_key`, module, status, message và tuổi cache. Panel này dùng để quan sát độ tươi cache trước khi mở rộng realtime notification.
+
 RLS của các bảng giai đoạn 2:
 
 - `anon` và `authenticated` chỉ được `select`.

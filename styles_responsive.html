@@ -237,6 +237,48 @@
       font-size: 12.5px;
       line-height: 1.45;
     }
+
+    .write-job-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-color: rgba(245, 158, 11, 0.35);
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .write-job-item div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .write-job-item strong {
+      color: inherit;
+      font-size: 12.5px;
+    }
+
+    .write-job-item span,
+    .write-job-item small {
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .write-job-item.synced {
+      border-color: rgba(22, 163, 74, 0.35);
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .write-job-item.failed {
+      border-color: rgba(220, 38, 38, 0.35);
+      background: var(--red-soft);
+      color: var(--red);
+    }
     
     .loading-note {
       padding: 16px;

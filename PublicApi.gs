@@ -299,7 +299,7 @@ function invokeApi(method, action, params, bodyData) {
   }
 
   if (normalizedMethod === 'POST') {
-    if (action === 'submitRows') return withTransportSync_(safeBody.rows, function () { return EntryService.submitRows(safeBody.formType, safeBody.rows); });
+    if (action === 'submitRows') return SupabaseService.enqueueTransportSubmitRows(safeBody.formType, safeBody.rows || []);
     if (action === 'checkTripReconciliation') return EntryService.checkTripReconciliation(safeBody.rows);
     if (action === 'saveSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData); });
     if (action === 'deleteSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear); });

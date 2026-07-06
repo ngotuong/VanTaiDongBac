@@ -265,3 +265,10 @@ Các cột chính:
 Log từng lần xử lý job, dùng để debug lỗi và làm nền cho retry/notification sau này.
 
 Frontend hiện poll trạng thái qua Apps Script action `getWriteJobStatus`. Retry thủ công dùng `retryWriteJob(jobId)`. Worker Apps Script chạy `processWriteJobs()` bằng trigger 1 phút, cài bằng `installWriteJobTrigger()`.
+
+Từ ngày 2026-07-06, write queue v2 được bật hẹp cho `transport/submitRows`:
+
+- `ASYNC_TRANSPORT_SUBMIT_ENABLED=true` cho nhập mới Vận hành.
+- `ASYNC_WRITE_ENABLED=false` vẫn giữ để không bật lại các luồng async v1 đại trà.
+- POST `submitRows` tạo job `pending` trong `write_jobs`, frontend nhận `jobId` nhanh và poll trạng thái.
+- Worker ghi Google Sheet bằng `EntryService.submitRows()`, sau đó sync nhanh cache Vận hành liên quan.

@@ -59,10 +59,33 @@
     }
 
     function renderRecentSubmissions(holder) {
-      if (!recentSubmissions.length) return;
+      if (!recentSubmissions.length && !pendingWriteJobs.length) return;
       const wrap = document.createElement('div');
       wrap.className = 'recent-list';
       wrap.innerHTML = '<div class="panel-note" style="font-weight: 700;">Nhật ký giao dịch vừa thực hiện</div>';
+
+      pendingWriteJobs.slice(0, 5).forEach((job) => {
+        const row = document.createElement('div');
+        row.className = `recent-item write-job-item ${job.status || 'pending'}`;
+        const statusLabel = {
+          pending: 'Đang chờ đồng bộ',
+          processing: 'Đang ghi Sheet',
+          synced: 'Đã đồng bộ Sheet',
+          failed: 'Lỗi đồng bộ'
+        }[job.status] || job.status || 'Đang chờ đồng bộ';
+        const retryHtml = job.status === 'failed'
+          ? `<button type="button" class="ghost" style="min-height:28px;height:28px;padding:0 10px;" onclick="retryPendingWriteJob('${escapeHtml(job.jobId || '')}')">Thử lại</button>`
+          : '';
+        row.innerHTML = `
+          <div>
+            <strong>${escapeHtml(statusLabel)}</strong>
+            <span>${escapeHtml(job.description || '')}</span>
+            ${job.lastError ? `<small>${escapeHtml(job.lastError)}</small>` : ''}
+          </div>
+          ${retryHtml}
+        `;
+        wrap.appendChild(row);
+      });
       
       recentSubmissions.slice(0, 5).forEach((item) => {
         const row = document.createElement('div');
@@ -71,6 +94,67 @@
         wrap.appendChild(row);
       });
       holder.appendChild(wrap);
+    }
+
+    function trackPendingWriteJob(job, description) {
+      if (!job || !job.jobId) return;
+      pendingWriteJobs = [{
+        jobId: job.jobId,
+        status: job.status || 'pending',
+        description: description || '',
+        lastError: ''
+      }].concat(pendingWriteJobs.filter((item) => item.jobId !== job.jobId)).slice(0, 8);
+      renderEntry();
+      pollPendingWriteJob(job.jobId, 0);
+    }
+
+    function pollPendingWriteJob(jobId, attempt) {
+      if (!jobId) return;
+      const delay = attempt === 0 ? 1200 : Math.min(1200 + attempt * 1000, 8000);
+      setTimeout(() => {
+        callApi('GET', 'getWriteJobStatus', { jobId })
+          .then((job) => {
+            updatePendingWriteJob(job);
+            if (job.status === 'pending' || job.status === 'processing') {
+              pollPendingWriteJob(jobId, attempt + 1);
+            }
+            if (job.status === 'synced') {
+              loadDashboard(false).catch((err) => console.warn('Không thể tải lại Tổng quan sau khi job synced:', err));
+              if (activeView === 'manage') loadManageSheetData(true);
+            }
+          })
+          .catch((err) => {
+            console.warn('Không kiểm tra được trạng thái job:', err);
+          });
+      }, delay);
+    }
+
+    function updatePendingWriteJob(job) {
+      if (!job || !job.jobId) return;
+      pendingWriteJobs = pendingWriteJobs.map((item) => {
+        if (item.jobId !== job.jobId) return item;
+        return {
+          ...item,
+          status: job.status || item.status,
+          lastError: job.lastError || ''
+        };
+      });
+      renderEntry();
+      if (job.status === 'synced') {
+        showSyncToast('Dữ liệu đã đồng bộ về Google Sheet.');
+      } else if (job.status === 'failed') {
+        showSyncToast('Đồng bộ Google Sheet thất bại. Có thể thử lại trong nhật ký.', 'error');
+      }
+    }
+
+    function retryPendingWriteJob(jobId) {
+      if (!jobId) return;
+      callApi('POST', 'retryWriteJob', {}, { jobId })
+        .then((job) => {
+          updatePendingWriteJob(job);
+          pollPendingWriteJob(jobId, 0);
+        })
+        .catch((err) => showSyncToast(err.message || String(err), 'error'));
     }
 
     function getEntryRowExtraTitle(row) {

@@ -28,6 +28,7 @@ function doGet(e) {
     if (action === 'readManageData') return timedJsonResponse_(action, startedAt, ManageService.readManageData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate, e.parameter.limit));
     if (action === 'readCatalogData') return timedJsonResponse_(action, startedAt, CatalogService.readCatalogData(e.parameter.displaySheetName || e.parameter.sheetName));
     if (action === 'getWriteJobStatus') return timedJsonResponse_(action, startedAt, SupabaseService.getWriteJobStatus(e.parameter.jobId));
+    if (action === 'getSupabaseSyncStatus') return timedJsonResponse_(action, startedAt, SupabaseService.getSupabaseSyncStatus(e.parameter.limit, e.parameter.module));
     if (action === 'submitRowsGet') {
       throw new Error('submitRowsGet đã tắt để tránh ghi trùng dữ liệu. Vui lòng tải lại frontend mới và gửi bằng POST.');
     }

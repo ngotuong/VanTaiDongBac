@@ -1019,6 +1019,37 @@ var SupabaseService = (function () {
     }
   }
 
+  function getSupabaseSyncStatus(limit, moduleName) {
+    var safeLimit = Math.min(Math.max(parseInt(limit || 30, 10) || 30, 1), 100);
+    var query = {
+      select: 'sync_key,module,status,message,synced_at,updated_at',
+      order: 'synced_at.desc',
+      limit: safeLimit
+    };
+    var safeModule = clean_(moduleName);
+    if (safeModule) query.module = 'eq.' + safeModule;
+    var rows = readRows_(TABLE_SYNC_STATUS, query);
+    var now = new Date().getTime();
+    rows = (rows || []).map(function (row) {
+      var syncedAt = row.synced_at || '';
+      var syncedTime = syncedAt ? new Date(syncedAt).getTime() : NaN;
+      return {
+        syncKey: row.sync_key || '',
+        module: row.module || '',
+        status: row.status || '',
+        message: row.message || '',
+        syncedAt: syncedAt,
+        ageSeconds: isNaN(syncedTime) ? null : Math.max(0, Math.round((now - syncedTime) / 1000))
+      };
+    });
+    return {
+      ok: true,
+      rows: rows,
+      count: rows.length,
+      checkedAt: new Date().toISOString()
+    };
+  }
+
   function runSyncStep_(results, errors, name, fn) {
     try {
       results.push({ name: name, result: fn() });
@@ -1273,6 +1304,7 @@ var SupabaseService = (function () {
     syncAllManageDataBundles: syncAllManageDataBundles,
     syncFullRealtimeCache: syncFullRealtimeCache,
     syncRealtimeCache: syncRealtimeCache,
+    getSupabaseSyncStatus: getSupabaseSyncStatus,
     syncReportBundle: syncReportBundle,
     syncAllReportBundles: syncAllReportBundles,
     syncTransportAfterWrite: syncTransportAfterWrite,

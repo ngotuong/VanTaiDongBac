@@ -28,8 +28,8 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@225 - Fix fund loan monthly metrics`
-- Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @225`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
+- Apps Script deployment moi nhat da xac nhan: `@226 - Add sync status monitor`
+- Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @226`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
 - Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
 
@@ -143,6 +143,7 @@ Commit lien quan:
 - Huong nghien cuu so phieu Quy ngan hon: co the doi sang dang `TCyymmdd-xxxx` hoac `TCyymmdd-R<row>`, nhung can chon chien luoc chong trung. Dang `TCyymmdd-xxxx` dep nhung can daily sequence trong lock va quet cot A; dang row-based ngan va nhanh hon nhung phu thuoc dong append. Chua doi production neu chua test migration/compat voi cong thuc cong no.
 - Ngay 2026-07-06 sua Quy > Khoan vay va Quy > Danh muc: `FundService` chuan hoa loai dong vay/tra khi doc `NHAP_VAY` de cac bien the `Tra goc`/`Tra no goc` deu duoc tinh vao `Da tra no goc`, giup `Du no cuoi ky` dung hon; lich su khoan vay khong con gioi han 100 dong de frontend phan trang 20 dong/trang tren toan bo du lieu da loc. Quy > Danh muc khong con tron fallback `Tu du lieu hien co`; cac tab chi tra gia tri cau hinh tu `CAIDAT`/catalog sheet theo nhom. Da deploy Apps Script `@224` va chay `syncAllFundBundlesToSupabase('2026')` thanh cong 13 bundle, failed 0.
 - Ngay 2026-07-06 sua tiep KPI thang cua Quy > Khoan vay: khi loc thang, `Da tra no goc`/`Da tra lai`/`Tong khoan vay` tinh theo cac dong phat sinh trong thang, con `Du no cuoi ky` tinh luy ke toan bo vay/tra den ngay cuoi thang. Doi nhan bo loc tu `Tat ca thang` thanh `Tat ca`. Da deploy Apps Script `@225`, sync `syncAllFundBundlesToSupabase('2026')` thanh cong 13 bundle, deploy Vercel production ve `https://dongbac.vercel.app`; test HTTP thang `2026-06` tra `Da tra no goc = 23.008.000`, `Du no cuoi ky = 578.349.414`, `recentRows = 39`.
+- Ngay 2026-07-06 bat dau buoc 3 gan realtime/co kha nang quan sat: them action `getSupabaseSyncStatus` doc bang `sync_status` qua Apps Script service role, va them card `Cai dat > Trang thai dong bo` tren frontend de xem cac cache moi nhat, status, message, tuoi cache. Da deploy Apps Script `@226`, deploy Vercel production; test HTTP `getSupabaseSyncStatus&limit=5` tra `ok=true`, co `realtime_cache_tick`, `dashboard`, `manage_data` status `ok`.
 
 ## File tài liệu hiện hành
 
@@ -177,6 +178,7 @@ Commit lien quan:
 
 - Sua tay tren Google Sheet: trigger tick 1 phut dong bo luan phien cache gan nhat, co lock de tranh chay chong.
 - Ghi tu web app: ghi Google Sheet truoc, sau do sync nhanh cache lien quan de UI co du lieu som.
+- Da them panel quan sat `Cai dat > Trang thai dong bo` de nhin duoc cache nao moi/cũ/lỗi truoc khi mo rong realtime notification.
 - Chua chuyen source-of-truth sang Supabase neu chua co quyet dinh rieng.
 
 ### 4. Thong bao va phan quyen

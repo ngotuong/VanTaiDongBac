@@ -220,6 +220,10 @@ function syncFullRealtimeCache() {
   return SupabaseService.syncFullRealtimeCache();
 }
 
+function getSupabaseSyncStatus(limit, moduleName) {
+  return SupabaseService.getSupabaseSyncStatus(limit, moduleName);
+}
+
 function installSupabaseSyncTriggers() {
   return SupabaseService.installSupabaseSyncTriggers();
 }
@@ -290,6 +294,7 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'getFundFormOptions') return FundService.getFundFormOptions(safeParams.year);
     if (action === 'getFundCatalog') return FundService.getFundCatalog(safeParams.year, safeParams.group);
     if (action === 'getWriteJobStatus') return SupabaseService.getWriteJobStatus(safeParams.jobId);
+    if (action === 'getSupabaseSyncStatus') return SupabaseService.getSupabaseSyncStatus(safeParams.limit, safeParams.module);
     throw new Error('Hành động GET không hợp lệ: ' + action);
   }
 

@@ -28,7 +28,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@216 - Fix dashboard operating cost KPI endpoint`
+- Apps Script deployment moi nhat da xac nhan: `@218 - Use lightweight realtime cache ticks`
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co

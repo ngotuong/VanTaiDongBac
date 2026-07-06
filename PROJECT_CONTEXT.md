@@ -29,6 +29,8 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
 - Apps Script deployment moi nhat da xac nhan: `@218 - Use lightweight realtime cache ticks`
+- Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @218`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
+- Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
 
 ### Supabase cache da co
@@ -131,6 +133,8 @@ Commit lien quan:
 - Rollback ngay sau test: async write v1 lam he thong kho debug, co `Load failed`, mo bang cham hon va cache Supabase van stale khi xoa tay trong Sheet. Hien tai `submitRows` da quay ve ghi Apps Script truc tiep; frontend khong poll/kick worker; `ASYNC_WRITE_ENABLED=false` trong `SupabaseService.gs` de cac trigger queue/sync recent neu con ton tai chi no-op. `write_jobs`/`write_job_logs` giu lai tren Supabase lam nen tang thu nghiem, chua dung cho nut Luu production.
 - Sua card Tong quan `Chi phí vận hành`: loi den tu frontend tu cong cac cot chi phi theo fallback index cu, co the nham cot `Doanh thu chưa VAT` khi header khong match chinh xac. Tu 2026-07-05, card nay dung cong thuc `Tổng doanh thu - Lợi nhuận gộp` theo bang `BC_TongQuan`; backend `overview.kpis` tra them `operatingCost` de frontend uu tien nguon KPI chuan khi cache moi da sync.
 - Ngay 2026-07-06 da backfill cache bang `clasp run`: cleanup temp report sheet ok/count 0; report bundles ok cho `05/2026`, `06/2026`, `07/2026`, `Tất cả`; startup/catalog ok 17 bundle; fund ok 12 bundle cho `2026-05..07`; manage data ok 20 bundle. Ket luan: full backfill van dung thu cong, nhung qua nang cho trigger ngan han nen da chuyen trigger sang tick nho.
+- Ngay 2026-07-06 da cai lai trigger `syncRealtimeCache` moi 1 phut o mode tick: lan cai dat removed 1 trigger cu, installed true. Tick thu cong sync duoc `reportsRecent`; cac lan sau co the `skipped` neu trigger nen dang chay, day la co che lock mong muon.
+- Ngay 2026-07-06 da go `client_secret.json` va `.clasp.json` khoi Git tracking, them `.gitignore` tracked de tranh commit lai credential/cau hinh local. Neu `client_secret.json` da tung len GitHub, nen rotate OAuth client secret trong Google Cloud.
 
 ## File tài liệu hiện hành
 

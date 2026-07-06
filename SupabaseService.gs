@@ -37,6 +37,7 @@ var SupabaseService = (function () {
   var DEFAULT_MANAGE_FILTER_KEY = 'recent_500';
   var DEFAULT_WRITE_JOB_LIMIT = 5;
   var ASYNC_WRITE_ENABLED = false;
+  var ASYNC_TRANSPORT_SUBMIT_ENABLED = true;
   var REALTIME_TICK_INDEX_KEY = 'SUPABASE_REALTIME_TICK_INDEX';
   var REALTIME_TICK_RUNNING_CACHE_KEY = 'SUPABASE_REALTIME_TICK_RUNNING';
   var REALTIME_TICK_INTERVAL_MINUTES = 1;
@@ -534,15 +535,28 @@ var SupabaseService = (function () {
     return { ok: errors.length === 0, synced: results.length, failed: errors.length, months: monthKeys, errors: errors };
   }
 
+  function isWriteJobEnabled_() {
+    return ASYNC_WRITE_ENABLED || ASYNC_TRANSPORT_SUBMIT_ENABLED;
+  }
+
+  function isWriteJobAllowed_(moduleName, actionName) {
+    if (ASYNC_WRITE_ENABLED) return true;
+    return ASYNC_TRANSPORT_SUBMIT_ENABLED
+      && clean_(moduleName) === 'transport'
+      && clean_(actionName) === 'submitRows';
+  }
+
   function enqueueWriteJob(moduleName, actionName, payload) {
-    if (!ASYNC_WRITE_ENABLED) {
+    var safeModule = clean_(moduleName) || 'transport';
+    var safeAction = clean_(actionName);
+    if (!isWriteJobAllowed_(safeModule, safeAction)) {
       throw new Error('Async write queue đang tắt. Dùng luồng ghi Apps Script trực tiếp.');
     }
     var jobId = Utilities.getUuid();
     var row = {
       id: jobId,
-      module: clean_(moduleName) || 'transport',
-      action: clean_(actionName),
+      module: safeModule,
+      action: safeAction,
       status: 'pending',
       payload: payload || {},
       attempts: 0,
@@ -587,6 +601,14 @@ var SupabaseService = (function () {
     };
   }
 
+  function enqueueTransportSubmitRows(formType, rows) {
+    return enqueueWriteJob('transport', 'submitRows', {
+      formType: clean_(formType),
+      rows: rows || [],
+      queuedAt: new Date().toISOString()
+    });
+  }
+
   function getWriteJobStatus(jobId) {
     var safeJobId = clean_(jobId);
     if (!safeJobId) throw new Error('Thiếu mã job cần kiểm tra.');
@@ -619,7 +641,7 @@ var SupabaseService = (function () {
   }
 
   function processWriteJobs(maxJobs) {
-    if (!ASYNC_WRITE_ENABLED) {
+    if (!isWriteJobEnabled_()) {
       return { ok: true, disabled: true, processed: 0, message: 'Async write queue is disabled.' };
     }
     var lock = LockService.getScriptLock();
@@ -649,7 +671,7 @@ var SupabaseService = (function () {
   }
 
   function installWriteJobTrigger() {
-    if (!ASYNC_WRITE_ENABLED) {
+    if (!isWriteJobEnabled_()) {
       return { ok: true, disabled: true, installed: false, handler: 'processWriteJobs' };
     }
     var triggers = ScriptApp.getProjectTriggers();
@@ -1309,6 +1331,7 @@ var SupabaseService = (function () {
     syncAllReportBundles: syncAllReportBundles,
     syncTransportAfterWrite: syncTransportAfterWrite,
     enqueueWriteJob: enqueueWriteJob,
+    enqueueTransportSubmitRows: enqueueTransportSubmitRows,
     getWriteJobStatus: getWriteJobStatus,
     installManageDataSyncTrigger: installManageDataSyncTrigger,
     installWriteJobTrigger: installWriteJobTrigger,

@@ -182,6 +182,22 @@
       
       callApi('POST', 'submitRows', {}, { formType: submittedForm, rows: rows })
         .then((result) => {
+          if (result && result.queued && result.jobId) {
+            const description = `${submitted.length} dòng ${FORM_LABELS[submittedForm] || submittedForm}`;
+            trackPendingWriteJob(result, description);
+            showStatus('warn', `Đã nhận lệnh lưu ${description}. Trạng thái hiện tại: pending. Hệ thống sẽ đồng bộ về Google Sheet ở nền.`);
+            recentSubmissions = submitted.filter(Boolean).map((item) => `[pending] ${item}`).concat(recentSubmissions).slice(0, 8);
+            rows = [newBlankRow()];
+            renderEntry();
+            if (activeView === 'manage' && isMobileViewport()) {
+              closeMobileEntrySheet();
+              showSyncToast('Đã nhận lệnh lưu. Đang chờ đồng bộ Google Sheet.');
+            }
+            kickWriteJobWorker();
+            setBusy(false);
+            return;
+          }
+
           const details = [];
           if (result.errors?.length) details.push(result.errors.join('\n'));
           if (result.warnings?.length) details.push(result.warnings.join('\n'));
@@ -231,6 +247,13 @@
           showStatus('err', err.message || String(err));
           setBusy(false);
         });
+    }
+
+    function kickWriteJobWorker() {
+      setTimeout(() => {
+        callApi('POST', 'processWriteJobs', {}, { maxJobs: 2 })
+          .catch((err) => console.warn('Không kick được worker write_jobs:', err));
+      }, 250);
     }
 
     function checkTripReconciliation(submittedRows) {

@@ -3029,6 +3029,48 @@
       font-size: 12.5px;
       line-height: 1.45;
     }
+
+    .write-job-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-color: rgba(245, 158, 11, 0.35);
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .write-job-item div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .write-job-item strong {
+      color: inherit;
+      font-size: 12.5px;
+    }
+
+    .write-job-item span,
+    .write-job-item small {
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .write-job-item.synced {
+      border-color: rgba(22, 163, 74, 0.35);
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .write-job-item.failed {
+      border-color: rgba(220, 38, 38, 0.35);
+      background: var(--red-soft);
+      color: var(--red);
+    }
     
     .loading-note {
       padding: 16px;
@@ -5283,6 +5325,7 @@
     let catalogsByForm = {};
     let reportsByType = {};
     let recentSubmissions = [];
+    let pendingWriteJobs = [];
     let activeView = 'home';
     let activeForm = 'vanChuyen';
     let activeReportTab = 'all';
@@ -9734,10 +9777,33 @@
     }
 
     function renderRecentSubmissions(holder) {
-      if (!recentSubmissions.length) return;
+      if (!recentSubmissions.length && !pendingWriteJobs.length) return;
       const wrap = document.createElement('div');
       wrap.className = 'recent-list';
       wrap.innerHTML = '<div class="panel-note" style="font-weight: 700;">Nhật ký giao dịch vừa thực hiện</div>';
+
+      pendingWriteJobs.slice(0, 5).forEach((job) => {
+        const row = document.createElement('div');
+        row.className = `recent-item write-job-item ${job.status || 'pending'}`;
+        const statusLabel = {
+          pending: 'Đang chờ đồng bộ',
+          processing: 'Đang ghi Sheet',
+          synced: 'Đã đồng bộ Sheet',
+          failed: 'Lỗi đồng bộ'
+        }[job.status] || job.status || 'Đang chờ đồng bộ';
+        const retryHtml = job.status === 'failed'
+          ? `<button type="button" class="ghost" style="min-height:28px;height:28px;padding:0 10px;" onclick="retryPendingWriteJob('${escapeHtml(job.jobId || '')}')">Thử lại</button>`
+          : '';
+        row.innerHTML = `
+          <div>
+            <strong>${escapeHtml(statusLabel)}</strong>
+            <span>${escapeHtml(job.description || '')}</span>
+            ${job.lastError ? `<small>${escapeHtml(job.lastError)}</small>` : ''}
+          </div>
+          ${retryHtml}
+        `;
+        wrap.appendChild(row);
+      });
       
       recentSubmissions.slice(0, 5).forEach((item) => {
         const row = document.createElement('div');
@@ -9746,6 +9812,67 @@
         wrap.appendChild(row);
       });
       holder.appendChild(wrap);
+    }
+
+    function trackPendingWriteJob(job, description) {
+      if (!job || !job.jobId) return;
+      pendingWriteJobs = [{
+        jobId: job.jobId,
+        status: job.status || 'pending',
+        description: description || '',
+        lastError: ''
+      }].concat(pendingWriteJobs.filter((item) => item.jobId !== job.jobId)).slice(0, 8);
+      renderEntry();
+      pollPendingWriteJob(job.jobId, 0);
+    }
+
+    function pollPendingWriteJob(jobId, attempt) {
+      if (!jobId) return;
+      const delay = attempt === 0 ? 1200 : Math.min(1200 + attempt * 1000, 8000);
+      setTimeout(() => {
+        callApi('GET', 'getWriteJobStatus', { jobId })
+          .then((job) => {
+            updatePendingWriteJob(job);
+            if (job.status === 'pending' || job.status === 'processing') {
+              pollPendingWriteJob(jobId, attempt + 1);
+            }
+            if (job.status === 'synced') {
+              loadDashboard(false).catch((err) => console.warn('Không thể tải lại Tổng quan sau khi job synced:', err));
+              if (activeView === 'manage') loadManageSheetData(true);
+            }
+          })
+          .catch((err) => {
+            console.warn('Không kiểm tra được trạng thái job:', err);
+          });
+      }, delay);
+    }
+
+    function updatePendingWriteJob(job) {
+      if (!job || !job.jobId) return;
+      pendingWriteJobs = pendingWriteJobs.map((item) => {
+        if (item.jobId !== job.jobId) return item;
+        return {
+          ...item,
+          status: job.status || item.status,
+          lastError: job.lastError || ''
+        };
+      });
+      renderEntry();
+      if (job.status === 'synced') {
+        showSyncToast('Dữ liệu đã đồng bộ về Google Sheet.');
+      } else if (job.status === 'failed') {
+        showSyncToast('Đồng bộ Google Sheet thất bại. Có thể thử lại trong nhật ký.', 'error');
+      }
+    }
+
+    function retryPendingWriteJob(jobId) {
+      if (!jobId) return;
+      callApi('POST', 'retryWriteJob', {}, { jobId })
+        .then((job) => {
+          updatePendingWriteJob(job);
+          pollPendingWriteJob(jobId, 0);
+        })
+        .catch((err) => showSyncToast(err.message || String(err), 'error'));
     }
 
     function getEntryRowExtraTitle(row) {
@@ -10983,6 +11110,22 @@
       
       callApi('POST', 'submitRows', {}, { formType: submittedForm, rows: rows })
         .then((result) => {
+          if (result && result.queued && result.jobId) {
+            const description = `${submitted.length} dòng ${FORM_LABELS[submittedForm] || submittedForm}`;
+            trackPendingWriteJob(result, description);
+            showStatus('warn', `Đã nhận lệnh lưu ${description}. Trạng thái hiện tại: pending. Hệ thống sẽ đồng bộ về Google Sheet ở nền.`);
+            recentSubmissions = submitted.filter(Boolean).map((item) => `[pending] ${item}`).concat(recentSubmissions).slice(0, 8);
+            rows = [newBlankRow()];
+            renderEntry();
+            if (activeView === 'manage' && isMobileViewport()) {
+              closeMobileEntrySheet();
+              showSyncToast('Đã nhận lệnh lưu. Đang chờ đồng bộ Google Sheet.');
+            }
+            kickWriteJobWorker();
+            setBusy(false);
+            return;
+          }
+
           const details = [];
           if (result.errors?.length) details.push(result.errors.join('\n'));
           if (result.warnings?.length) details.push(result.warnings.join('\n'));
@@ -11032,6 +11175,13 @@
           showStatus('err', err.message || String(err));
           setBusy(false);
         });
+    }
+
+    function kickWriteJobWorker() {
+      setTimeout(() => {
+        callApi('POST', 'processWriteJobs', {}, { maxJobs: 2 })
+          .catch((err) => console.warn('Không kick được worker write_jobs:', err));
+      }, 250);
     }
 
     function checkTripReconciliation(submittedRows) {

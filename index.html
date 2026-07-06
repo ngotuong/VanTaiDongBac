@@ -6922,9 +6922,10 @@
 
     function buildFundLoanMetrics(data, loans, selectedPartner) {
       if (!selectedPartner) return data.metrics || [];
-      const borrowed = loans.reduce((sum, item) => sum + Number(item.borrowed || 0), 0);
-      const principalPaid = loans.reduce((sum, item) => sum + Number(item.principalPaid || 0), 0);
-      const interestPaid = loans.reduce((sum, item) => sum + Number(item.interestPaid || 0), 0);
+      const metricRows = (data.recentRows || []).filter((row) => String(row.partner || '') === selectedPartner);
+      const borrowed = metricRows.reduce((sum, item) => sum + (item.type === 'Vay' ? Number(item.amount || 0) : 0), 0);
+      const principalPaid = metricRows.reduce((sum, item) => sum + (item.type === 'Trả nợ' ? Number(item.amount || 0) : 0), 0);
+      const interestPaid = metricRows.reduce((sum, item) => sum + (item.type === 'Trả lãi' ? Number(item.amount || 0) : 0), 0);
       const outstanding = loans.reduce((sum, item) => sum + Number(item.outstanding || 0), 0);
       return [
         { key: 'borrowed', label: 'Tổng khoản vay', value: borrowed },
@@ -6938,7 +6939,7 @@
       const select = el('fundLoanMonthFilter');
       if (!select) return;
       const current = selectedMonth || select.value || '';
-      select.innerHTML = '<option value="">Tất cả tháng</option>';
+      select.innerHTML = '<option value="">Tất cả</option>';
       months.forEach((month) => {
         const option = document.createElement('option');
         option.value = month.key;

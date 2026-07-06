@@ -1,5 +1,5 @@
 var FundService = (function () {
-  var FUND_CACHE_VERSION = 'fund_v5';
+  var FUND_CACHE_VERSION = 'fund_v6';
   var FUND_TTL_SECONDS = 300;
   var FUND_CATALOG_TTL_SECONDS = 21600;
   var FUND_DATA_VERSION_PROP = 'FUND_DATA_VERSION_V1';
@@ -146,15 +146,8 @@ var FundService = (function () {
     var filteredRows = period ? rows.filter(function (row) {
       return row.dateObj && row.dateObj >= period.start && row.dateObj <= period.end;
     }) : rows;
-    var periodLoanCodes = {};
-    if (period) {
-      filteredRows.forEach(function (row) {
-        if (row.type === 'Vay') periodLoanCodes[row.code || ('row-' + row.rowIndex)] = true;
-      });
-    }
     var summaryRows = period ? rows.filter(function (row) {
-      var key = row.code || ('row-' + row.rowIndex);
-      return periodLoanCodes[key] && row.dateObj && row.dateObj <= period.end;
+      return row.dateObj && row.dateObj <= period.end;
     }) : rows;
     var totalBorrowed = 0;
     var totalPrincipalPaid = 0;
@@ -163,7 +156,7 @@ var FundService = (function () {
     var totalOutstandingPrincipalPaid = 0;
     var loanMap = {};
 
-    var metricSourceRows = period ? summaryRows : filteredRows;
+    var metricSourceRows = filteredRows;
     metricSourceRows.forEach(function (row) {
       if (row.type === 'Vay') totalBorrowed += row.amount;
       if (row.type === 'Trả nợ') totalPrincipalPaid += row.amount;

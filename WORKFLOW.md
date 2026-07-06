@@ -73,19 +73,19 @@ syncReportBundleToSupabase('6')
 
 ## Khi đồng bộ cache gần realtime
 
-Chạy thủ công toàn bộ cache chính:
+Chạy thủ công toàn bộ cache chính khi cần backfill:
 
 ```javascript
-syncRealtimeCache()
+syncFullRealtimeCache()
 ```
 
-Cài trigger tự động 5 phút:
+Cài trigger tự động gần realtime:
 
 ```javascript
 installSupabaseSyncTriggers()
 ```
 
-Trigger này không tự bật nếu chưa chạy hàm cài đặt. Khi đã cài, Apps Script sẽ cập nhật cache Supabase cho Tổng quan, Báo cáo và Quỹ khoảng mỗi 5 phút.
+Trigger này không tự bật nếu chưa chạy hàm cài đặt. Khi đã cài, Apps Script chạy `syncRealtimeCache()` mỗi 1 phút ở chế độ tick luân phiên, có `ScriptLock` để tránh chạy chồng. Mỗi tick chỉ sync một nhóm nhỏ như dashboard, report gần đây, Quỹ gần đây, startup/danh mục, hoặc một sheet Vận hành gần đây. Không dùng trigger này làm full backfill.
 
 Sau giai đoạn 3, trigger này cũng cập nhật cache màn hình khởi động và Danh mục. Nếu chỉ muốn sync riêng phần này, chạy:
 
@@ -98,6 +98,14 @@ Sau giai đoạn 4, trigger này cũng cập nhật cache danh sách mặc đị
 ```javascript
 syncAllManageDataToSupabase()
 ```
+
+Lưu ý vận hành ngày 2026-07-06:
+
+- `syncAllReportBundlesToSupabase()` đã sync thành công `05/2026`, `06/2026`, `07/2026`, `Tất cả`, mất hơn 2 phút.
+- `syncAllStartupAndCatalogsToSupabase()` đã sync thành công 17 bundle, mất dưới 1 phút.
+- `syncAllFundBundlesToSupabase('2026')` đã sync thành công 12 bundle cho `2026-05`, `2026-06`, `2026-07`, mất khoảng 30-60 giây.
+- `syncAllManageDataToSupabase()` đã sync thành công 20 bundle, mất gần 5 phút.
+- Vì vậy không đặt full sync vào request người dùng hoặc trigger ngắn; dùng trigger tick và sync hẹp sau ghi.
 
 Nếu chỉ cần sync lại một tháng cụ thể của một sheet Vận hành:
 
@@ -158,7 +166,7 @@ Supabase:
 
 1. Chạy SQL migration bằng SQL Editor.
 2. Không commit secret key.
-3. Chạy sync test thủ công hoặc `syncRealtimeCache()`.
+3. Chạy sync test thủ công hoặc `syncFullRealtimeCache()`.
 4. Kiểm tra Table Editor có row mới trong các bảng cache vừa thêm.
 
 ## Khi rollback

@@ -36,6 +36,8 @@ var SupabaseService = (function () {
   var DEFAULT_MANAGE_FILTER_KEY = 'recent_500';
   var DEFAULT_WRITE_JOB_LIMIT = 5;
   var ASYNC_WRITE_ENABLED = false;
+  var REALTIME_TICK_INDEX_KEY = 'SUPABASE_REALTIME_TICK_INDEX';
+  var REALTIME_TICK_INTERVAL_MINUTES = 1;
 
   function syncReportBundle(month) {
     var targetMonth = clean_(month) || 'latest';
@@ -335,7 +337,7 @@ var SupabaseService = (function () {
     };
   }
 
-  function syncRealtimeCache() {
+  function syncFullRealtimeCache() {
     var results = [];
     var errors = [];
     runSyncStep_(results, errors, 'startupCatalogs', function () { return syncAllStartupAndCatalogs(); });
@@ -352,6 +354,51 @@ var SupabaseService = (function () {
       results: results,
       errors: errors
     };
+  }
+
+  function syncRealtimeCache() {
+    var lock = LockService.getScriptLock();
+    if (!lock.tryLock(1000)) {
+      return {
+        ok: true,
+        mode: 'tick',
+        skipped: true,
+        reason: 'Previous syncRealtimeCache tick is still running.'
+      };
+    }
+
+    try {
+      var steps = buildRealtimeTickSteps_();
+      var props = PropertiesService.getScriptProperties();
+      var rawIndex = Number(props.getProperty(REALTIME_TICK_INDEX_KEY) || 0);
+      var index = isNaN(rawIndex) || rawIndex < 0 ? 0 : rawIndex;
+      var step = steps[index % steps.length];
+      props.setProperty(REALTIME_TICK_INDEX_KEY, String((index + 1) % steps.length));
+
+      var results = [];
+      var errors = [];
+      runRealtimeTickStep_(step, results, errors);
+      var syncedAt = new Date().toISOString();
+      writeSyncStatus_(
+        'realtime_cache_tick',
+        'system',
+        errors.length ? 'error' : 'ok',
+        errors.length ? JSON.stringify(errors) : 'Realtime cache tick synced: ' + step.name,
+        syncedAt
+      );
+      return {
+        ok: errors.length === 0,
+        mode: 'tick',
+        step: step.name,
+        nextStep: steps[(index + 1) % steps.length].name,
+        synced: results.length,
+        failed: errors.length,
+        results: results,
+        errors: errors
+      };
+    } finally {
+      lock.releaseLock();
+    }
   }
 
   function syncTransportAfterWrite(sheetName, rows, options) {
@@ -701,19 +748,95 @@ var SupabaseService = (function () {
     }
   }
 
+  function buildRealtimeTickSteps_() {
+    var steps = [
+      { name: 'dashboard' },
+      { name: 'reportsRecent' },
+      { name: 'reportsAll' },
+      { name: 'fundRecent' },
+      { name: 'startupCatalogs' }
+    ];
+    MANAGE_SHEET_NAMES.forEach(function (sheetName) {
+      steps.push({ name: 'manageRecent:' + sheetName, sheetName: sheetName });
+    });
+    return steps;
+  }
+
+  function runRealtimeTickStep_(step, results, errors) {
+    if (!step || !step.name) return;
+    if (step.name === 'dashboard') {
+      runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
+      return;
+    }
+    if (step.name === 'reportsRecent') {
+      getRecentReportMonths_(2).forEach(function (month) {
+        runSyncStep_(results, errors, 'report:' + month, function () {
+          return syncReportBundle(month);
+        });
+      });
+      return;
+    }
+    if (step.name === 'reportsAll') {
+      runSyncStep_(results, errors, 'report:Tất cả', function () {
+        return syncReportBundle('Tất cả');
+      });
+      return;
+    }
+    if (step.name === 'fundRecent') {
+      runSyncStep_(results, errors, 'fundOverviewLatest', function () { return syncFundOverview(DEFAULT_FUND_YEAR, ''); });
+      runSyncStep_(results, errors, 'fundTransactionsRecent', function () { return syncFundTransactions(DEFAULT_FUND_YEAR, { limit: 500 }); });
+      runSyncStep_(results, errors, 'fundLoansLatest', function () { return syncFundLoanOverview(DEFAULT_FUND_YEAR, ''); });
+      getRecentFundMonthKeys_(DEFAULT_FUND_YEAR, 2).forEach(function (monthKey) {
+        runSyncStep_(results, errors, 'fundOverview:' + monthKey, function () {
+          return syncFundOverview(DEFAULT_FUND_YEAR, monthKey);
+        });
+        runSyncStep_(results, errors, 'fundTransactions:' + monthKey, function () {
+          return syncFundTransactionMonth(DEFAULT_FUND_YEAR, monthKey);
+        });
+        runSyncStep_(results, errors, 'fundLoans:' + monthKey, function () {
+          return syncFundLoanOverview(DEFAULT_FUND_YEAR, monthKey);
+        });
+      });
+      return;
+    }
+    if (step.name === 'startupCatalogs') {
+      runSyncStep_(results, errors, 'startupCatalogs', function () { return syncAllStartupAndCatalogs(); });
+      return;
+    }
+    if (step.sheetName) {
+      runSyncStep_(results, errors, 'manageData:' + step.sheetName, function () {
+        return syncManageDataBundle(step.sheetName);
+      });
+      getRecentManageMonthKeys_(step.sheetName, 2).forEach(function (monthKey) {
+        runSyncStep_(results, errors, 'manageData:' + step.sheetName + ':' + monthKey, function () {
+          return syncManageMonthBundle(step.sheetName, monthKey);
+        });
+      });
+    }
+  }
+
+  function getRecentReportMonths_(maxCount) {
+    var months = getReportMonths_();
+    return months.slice(Math.max(0, months.length - Math.max(1, maxCount || 1))).reverse();
+  }
+
   function installSupabaseSyncTriggers() {
     var triggers = ScriptApp.getProjectTriggers();
-    var exists = triggers.some(function (trigger) {
-      return trigger.getHandlerFunction && trigger.getHandlerFunction() === 'syncRealtimeCache';
+    var removed = 0;
+    triggers.forEach(function (trigger) {
+      if (trigger.getHandlerFunction && trigger.getHandlerFunction() === 'syncRealtimeCache') {
+        ScriptApp.deleteTrigger(trigger);
+        removed++;
+      }
     });
-    if (!exists) {
-      ScriptApp.newTrigger('syncRealtimeCache').timeBased().everyMinutes(5).create();
-    }
+    ScriptApp.newTrigger('syncRealtimeCache').timeBased().everyMinutes(REALTIME_TICK_INTERVAL_MINUTES).create();
     return {
       ok: true,
-      installed: !exists,
+      installed: true,
+      removed: removed,
       handler: 'syncRealtimeCache',
-      intervalMinutes: 5
+      intervalMinutes: REALTIME_TICK_INTERVAL_MINUTES,
+      mode: 'tick'
     };
   }
 
@@ -1074,6 +1197,7 @@ var SupabaseService = (function () {
     syncManageDataBundle: syncManageDataBundle,
     syncManageMonthBundle: syncManageMonthBundle,
     syncAllManageDataBundles: syncAllManageDataBundles,
+    syncFullRealtimeCache: syncFullRealtimeCache,
     syncRealtimeCache: syncRealtimeCache,
     syncReportBundle: syncReportBundle,
     syncAllReportBundles: syncAllReportBundles,

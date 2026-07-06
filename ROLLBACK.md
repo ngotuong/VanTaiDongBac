@@ -42,11 +42,13 @@ SUPABASE_SERVICE_ROLE_KEY
 
 Không cần xóa code ngay.
 
-Nếu đã cài trigger 5 phút, có thể vào Apps Script **Triggers** và xóa trigger của function:
+Nếu đã cài trigger gần realtime, có thể vào Apps Script **Triggers** và xóa trigger của function:
 
 ```text
 syncRealtimeCache
 ```
+
+Từ 2026-07-06, `syncRealtimeCache` là trigger tick mỗi 1 phút, không còn là full backfill. Full backfill thủ công là `syncFullRealtimeCache`.
 
 ## Nếu Supabase có dữ liệu sai
 

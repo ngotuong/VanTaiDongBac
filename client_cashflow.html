@@ -401,7 +401,15 @@
 
     function loadFundFormOptions() {
       if (fundFormOptions) return Promise.resolve(fundFormOptions);
-      return callApi('GET', 'getFundFormOptions', { year: '2026' })
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadFromAppsScript = () => callApi('GET', 'getFundFormOptions', { year: '2026' });
+      const loader = supabaseStatus.ok
+        ? readFundFormOptionsFromSupabase('2026').catch((err) => {
+            console.warn('Không đọc được danh mục nhập Quỹ từ Supabase, quay về Apps Script:', err);
+            return loadFromAppsScript();
+          })
+        : loadFromAppsScript();
+      return loader
         .then((data) => {
           fundFormOptions = data;
           renderFundFormOptions();
@@ -737,11 +745,19 @@
       const group = activeFundCatalogGroup || 'incomeCategories';
       const tableBody = el('fundCatalogTableBody');
       renderFundTableLoading(tableBody, 3, 'Đang tải danh mục quỹ...');
-      return callApi('GET', 'getFundCatalog', {
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadFromAppsScript = () => callApi('GET', 'getFundCatalog', {
         year: '2026',
         group: group,
         forceRefresh: forceRefresh ? 'true' : ''
-      }).then((data) => {
+      });
+      const loader = (!forceRefresh && supabaseStatus.ok)
+        ? readFundCatalogFromSupabase('2026', group).catch((err) => {
+            console.warn('Không đọc được danh mục Quỹ từ Supabase, quay về Apps Script:', err);
+            return loadFromAppsScript();
+          })
+        : loadFromAppsScript();
+      return loader.then((data) => {
         fundCatalogData = data;
         renderFundCatalog(data);
       }).catch((err) => {

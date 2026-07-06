@@ -5624,6 +5624,14 @@
       return 'catalog_data:' + String(displaySheetName || '').trim();
     }
 
+    function buildFundFormOptionsKeyForSupabase(year) {
+      return 'fund_form_options:' + String(year || '2026').trim();
+    }
+
+    function buildFundCatalogKeyForSupabase(year, group) {
+      return 'fund_catalog:' + String(year || '2026').trim() + ':' + (String(group || '').trim() || 'all');
+    }
+
     function readCatalogsFromSupabase(formType) {
       return readSupabasePayload('catalog_bundles', {
         catalog_key: buildCatalogsKeyForSupabase(formType)
@@ -5634,6 +5642,18 @@
       return readSupabasePayload('catalog_bundles', {
         catalog_key: buildCatalogDataKeyForSupabase(displaySheetName)
       }, 'Chưa có catalog data cache trong Supabase.');
+    }
+
+    function readFundFormOptionsFromSupabase(year) {
+      return readSupabasePayload('catalog_bundles', {
+        catalog_key: buildFundFormOptionsKeyForSupabase(year)
+      }, 'Chưa có cache Supabase cho danh mục nhập Quỹ.');
+    }
+
+    function readFundCatalogFromSupabase(year, group) {
+      return readSupabasePayload('catalog_bundles', {
+        catalog_key: buildFundCatalogKeyForSupabase(year, group)
+      }, 'Chưa có cache Supabase cho danh mục Quỹ.');
     }
 
     function readManageDataFromSupabase(sheetName, filterKey = 'recent_500') {
@@ -6204,7 +6224,15 @@
 
     function loadFundFormOptions() {
       if (fundFormOptions) return Promise.resolve(fundFormOptions);
-      return callApi('GET', 'getFundFormOptions', { year: '2026' })
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadFromAppsScript = () => callApi('GET', 'getFundFormOptions', { year: '2026' });
+      const loader = supabaseStatus.ok
+        ? readFundFormOptionsFromSupabase('2026').catch((err) => {
+            console.warn('Không đọc được danh mục nhập Quỹ từ Supabase, quay về Apps Script:', err);
+            return loadFromAppsScript();
+          })
+        : loadFromAppsScript();
+      return loader
         .then((data) => {
           fundFormOptions = data;
           renderFundFormOptions();
@@ -6540,11 +6568,19 @@
       const group = activeFundCatalogGroup || 'incomeCategories';
       const tableBody = el('fundCatalogTableBody');
       renderFundTableLoading(tableBody, 3, 'Đang tải danh mục quỹ...');
-      return callApi('GET', 'getFundCatalog', {
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadFromAppsScript = () => callApi('GET', 'getFundCatalog', {
         year: '2026',
         group: group,
         forceRefresh: forceRefresh ? 'true' : ''
-      }).then((data) => {
+      });
+      const loader = (!forceRefresh && supabaseStatus.ok)
+        ? readFundCatalogFromSupabase('2026', group).catch((err) => {
+            console.warn('Không đọc được danh mục Quỹ từ Supabase, quay về Apps Script:', err);
+            return loadFromAppsScript();
+          })
+        : loadFromAppsScript();
+      return loader.then((data) => {
         fundCatalogData = data;
         renderFundCatalog(data);
       }).catch((err) => {

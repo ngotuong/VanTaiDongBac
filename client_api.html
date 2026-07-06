@@ -225,6 +225,14 @@
       return 'catalog_data:' + String(displaySheetName || '').trim();
     }
 
+    function buildFundFormOptionsKeyForSupabase(year) {
+      return 'fund_form_options:' + String(year || '2026').trim();
+    }
+
+    function buildFundCatalogKeyForSupabase(year, group) {
+      return 'fund_catalog:' + String(year || '2026').trim() + ':' + (String(group || '').trim() || 'all');
+    }
+
     function readCatalogsFromSupabase(formType) {
       return readSupabasePayload('catalog_bundles', {
         catalog_key: buildCatalogsKeyForSupabase(formType)
@@ -235,6 +243,18 @@
       return readSupabasePayload('catalog_bundles', {
         catalog_key: buildCatalogDataKeyForSupabase(displaySheetName)
       }, 'Chưa có catalog data cache trong Supabase.');
+    }
+
+    function readFundFormOptionsFromSupabase(year) {
+      return readSupabasePayload('catalog_bundles', {
+        catalog_key: buildFundFormOptionsKeyForSupabase(year)
+      }, 'Chưa có cache Supabase cho danh mục nhập Quỹ.');
+    }
+
+    function readFundCatalogFromSupabase(year, group) {
+      return readSupabasePayload('catalog_bundles', {
+        catalog_key: buildFundCatalogKeyForSupabase(year, group)
+      }, 'Chưa có cache Supabase cho danh mục Quỹ.');
     }
 
     function readManageDataFromSupabase(sheetName, filterKey = 'recent_500') {

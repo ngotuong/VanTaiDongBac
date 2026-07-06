@@ -208,6 +208,10 @@ function syncRealtimeCache() {
   return SupabaseService.syncRealtimeCache();
 }
 
+function syncFullRealtimeCache() {
+  return SupabaseService.syncFullRealtimeCache();
+}
+
 function installSupabaseSyncTriggers() {
   return SupabaseService.installSupabaseSyncTriggers();
 }

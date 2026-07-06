@@ -113,7 +113,7 @@ Commit lien quan:
 - Sửa/xóa dòng `DM_*` qua web app giờ đi qua `withSheetRowSync_()`, sync lai `startup_bundles`, cac `catalog_bundles`, va rieng `DM_ThamSo` sync them `DM_ThamSo_TS`/`DM_ThamSo_GD`.
 - Sửa/xóa dòng `NL_*` qua web app giờ sync hẹp sau ghi: dashboard/latest report, `manage_data_bundles.recent_500`, cache thang lien quan neu co payload ngay, hoac 2 thang gan nhat neu khong xac dinh duoc ngay.
 - Cac thao tac Quy/Thu chi truyen context giao dich/khoan vay vao `syncFundAfterWrite()`, sync them `fund_transaction_bundles.month:YYYY-MM`, `fund_overview_bundles.month_key`, va `fund_loan_bundles.month_key` theo thang lien quan; neu khong xac dinh duoc thang thi fallback 2 thang gan nhat.
-- `syncRealtimeCache()` van giu vai tro backfill/trigger dinh ky, khong con la co che chinh de lam tuoi cache sau ghi tu web app.
+- `syncRealtimeCache()` khong con la full backfill; tu 2026-07-06 ham nay la trigger tick gan realtime moi 1 phut, co lock va moi lan chi sync mot nhom nho. Full backfill thu cong chuyen sang `syncFullRealtimeCache()`.
 - Sau khi test nhap Van Chuyen tu frontend static, phat hien route toi uu `submitRowsGet` ghi duoc Google Sheet nhung bo qua wrapper sync. Da sua `submitRowsGet` dung `invokeApi('POST', 'submitRows', ...)` va frontend sau khi nhap thanh cong goi `loadManageSheetData(true)` de doc Apps Script truc tiep mot lan, tranh hien bang cu tu Supabase/session cache.
 - Sau do phat hien `submitRowsGet` van nguy hiem vi GET co the bi retry/nguoi dung bam lai khi sync Supabase keo dai, gay ghi trung 4-5 dong. Da tat route ghi GET, frontend quay ve POST that, va `submitRows` chi sync Supabase o che do nhanh cho cache Van hanh lien quan. `submitRows` cung copy format dong truoc va giu cong thuc o cot trong de tranh mat dinh dang/cong thuc khi ghi vao dong moi.
 - Sau khi test lai, Google Sheets bao loi set number format voi cot co kieu du lieu dac biet. Da bo buoc `applyFormatsSafely_()` sau submit, chi giu copy format/cong thuc tu dong truoc; sync nhanh sau nhap chi cap nhat `manage_data_bundles.recent_500` cua sheet lien quan de request tra ve nhanh hon.
@@ -130,6 +130,7 @@ Commit lien quan:
 - Menu Van hanh neu doc Supabase cache mac dinh qua 90 giay se tu fallback Apps Script mot luot de tranh hien du lieu cu qua lau sau thao tac sua/xoa truc tiep tren Sheet.
 - Rollback ngay sau test: async write v1 lam he thong kho debug, co `Load failed`, mo bang cham hon va cache Supabase van stale khi xoa tay trong Sheet. Hien tai `submitRows` da quay ve ghi Apps Script truc tiep; frontend khong poll/kick worker; `ASYNC_WRITE_ENABLED=false` trong `SupabaseService.gs` de cac trigger queue/sync recent neu con ton tai chi no-op. `write_jobs`/`write_job_logs` giu lai tren Supabase lam nen tang thu nghiem, chua dung cho nut Luu production.
 - Sua card Tong quan `Chi phí vận hành`: loi den tu frontend tu cong cac cot chi phi theo fallback index cu, co the nham cot `Doanh thu chưa VAT` khi header khong match chinh xac. Tu 2026-07-05, card nay dung cong thuc `Tổng doanh thu - Lợi nhuận gộp` theo bang `BC_TongQuan`; backend `overview.kpis` tra them `operatingCost` de frontend uu tien nguon KPI chuan khi cache moi da sync.
+- Ngay 2026-07-06 da backfill cache bang `clasp run`: cleanup temp report sheet ok/count 0; report bundles ok cho `05/2026`, `06/2026`, `07/2026`, `Tất cả`; startup/catalog ok 17 bundle; fund ok 12 bundle cho `2026-05..07`; manage data ok 20 bundle. Ket luan: full backfill van dung thu cong, nhung qua nang cho trigger ngan han nen da chuyen trigger sang tick nho.
 
 ## File tài liệu hiện hành
 
@@ -152,7 +153,7 @@ Commit lien quan:
 
 ### 2. Tach sync theo module/thang
 
-- Giam `syncRealtimeCache()` toan cuc vi chay lau.
+- Giam full sync toan cuc vi chay lau; `syncRealtimeCache()` hien la tick nho, `syncFullRealtimeCache()` moi la backfill toan cuc.
 - Da bat dau dua duong ghi web app ve cac ham sync nho:
   - report/dashboard thang vua thay doi
   - manage month vua ghi
@@ -162,7 +163,7 @@ Commit lien quan:
 
 ### 3. Gan realtime nhung van giu Google Sheet la source of truth
 
-- Sua tay tren Google Sheet: trigger 5 phut dong bo cache.
+- Sua tay tren Google Sheet: trigger tick 1 phut dong bo luan phien cache gan nhat, co lock de tranh chay chong.
 - Ghi tu web app: ghi Google Sheet truoc, sau do sync nhanh cache lien quan de UI co du lieu som.
 - Chua chuyen source-of-truth sang Supabase neu chua co quyet dinh rieng.
 

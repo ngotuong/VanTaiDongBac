@@ -164,7 +164,7 @@ Frontend đọc:
 Luồng đồng bộ:
 
 1. Google Sheet vẫn là nguồn chuẩn.
-2. Apps Script chạy `syncAllStartupAndCatalogsToSupabase()` hoặc trigger `syncRealtimeCache()`.
+2. Apps Script chạy `syncAllStartupAndCatalogsToSupabase()` khi backfill, hoặc trigger tick `syncRealtimeCache()` đồng bộ luân phiên.
 3. Apps Script upsert vào `startup_bundles` và `catalog_bundles` bằng service role key.
 4. Frontend Vercel đọc bằng anon key.
 5. Khi sửa/xóa danh mục qua web app, Apps Script ghi Google Sheet trước rồi sync lại cache liên quan.
@@ -211,7 +211,7 @@ Frontend đọc:
 Luồng đồng bộ:
 
 1. Google Sheet vẫn là nguồn chuẩn.
-2. Apps Script chạy `syncAllManageDataToSupabase()` hoặc trigger `syncRealtimeCache()`.
+2. Apps Script chạy `syncAllManageDataToSupabase()` khi backfill, hoặc trigger tick `syncRealtimeCache()` đồng bộ lần lượt từng sheet gần đây.
 3. Apps Script upsert `recent_500` và các cache tháng đang có dữ liệu.
 4. Khi nhập/sửa/xóa dữ liệu vận hành qua web app, Apps Script ghi Google Sheet trước rồi sync lại cache sheet liên quan và các tháng gần nhất.
 

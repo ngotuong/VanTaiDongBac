@@ -639,10 +639,10 @@
         
         if (row.isPendingWrite) {
           const pendingText = document.createElement('span');
-          pendingText.className = 'preview-badge info';
+          pendingText.className = `preview-badge ${row.pendingStatus === 'failed' ? 'warning' : 'info'}`;
           pendingText.textContent = row.pendingStatus === 'failed'
             ? 'Có thể thử lại'
-            : (row.pendingStatus === 'synced' ? 'Chờ cache' : 'Chờ Sheet');
+            : 'Chờ Sheet';
           tdActions.appendChild(pendingText);
         } else {
           const btnEdit = document.createElement('button');

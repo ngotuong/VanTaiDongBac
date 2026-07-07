@@ -17,6 +17,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Apps Script: cau noi dong bo hai chieu co kiem soat giua Google Sheet va Supabase; chay worker ghi Sheet, sync cache, log loi va retry.
 - Vercel: giao dien nguoi dung; khong giu service role key va khong ghi truc tiep vao Google Sheet.
 - Giai doan truoc mat: Google Sheet van la nguon doi soat cuoi cung, nhung thao tac web app can phan hoi nhanh bang cach tao y dinh ghi trong Supabase truoc, sau do worker dong bo ve Sheet.
+- Huong dich chuyen thao tac chinh: `Web app -> Supabase -> tra ket qua ngay`, sau do Apps Script dong bo ve Google Sheet o nen. Khong thiet ke them luong moi bat frontend cho Google Sheet ghi xong truoc khi phan hoi, tru khi thao tac do bat buoc can ket qua cong thuc Sheet ngay lap tuc.
 
 ## Nguyen tac bat buoc
 

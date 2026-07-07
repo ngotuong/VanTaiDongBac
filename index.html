@@ -4367,6 +4367,93 @@
       td.sticky-col { background: var(--paper) !important; }
       tr.total-row td.sticky-col { background: #f0fdfa !important; }
       tr.grand-total-row td.sticky-col { background: #edf7f6 !important; }
+
+      /* === Tối ưu hóa thu gọn các card sticky trên mobile === */
+      .app-sticky-tabs,
+      #reportTabsBar,
+      #catalogView .tab-bar {
+        padding: 4px 6px !important;
+        gap: 4px !important;
+      }
+      .app-sticky-tabs button,
+      #reportTabsBar button,
+      #catalogView .tab-bar button {
+        min-height: 32px !important;
+        height: 32px !important;
+        padding: 0 10px !important;
+        font-size: 13px !important;
+        border-radius: 6px !important;
+      }
+
+      .app-sticky-toolbar,
+      .filter-bar,
+      .report-filter-panel {
+        padding: 8px 10px !important;
+        margin-bottom: 8px !important;
+        gap: 6px !important;
+        border-radius: 8px !important;
+      }
+      
+      .filter-bar select,
+      .filter-bar input,
+      .report-filter-panel select,
+      .report-filter-panel input,
+      .mobile-period-control select {
+        min-height: 36px !important;
+        height: 36px !important;
+        font-size: 13px !important;
+        padding: 0 8px !important;
+        border-radius: 6px !important;
+      }
+      
+      .mobile-operation-bar {
+        margin-bottom: 6px !important;
+        gap: 6px !important;
+      }
+      .mobile-operation-bar button {
+        min-height: 36px !important;
+        height: 36px !important;
+        font-size: 13px !important;
+        padding: 0 12px !important;
+        border-radius: 6px !important;
+      }
+
+      .app-sticky-tabs {
+        top: env(safe-area-inset-top, 0px) !important;
+        margin-bottom: 6px !important;
+      }
+      #reportsView #reportTabsBar {
+        top: env(safe-area-inset-top, 0px) !important;
+      }
+      .app-sticky-toolbar.sticky-after-tabs,
+      .catalog-sticky-toolbar.sticky-after-tabs,
+      #reportsView .report-filter-panel.sticky-after-tabs {
+        top: calc(40px + env(safe-area-inset-top, 0px)) !important;
+      }
+
+      /* === Tối ưu Báo cáo > Tổng hợp xe trên mobile === */
+      .report-table-head .panel-note {
+        display: none !important;
+      }
+      .report-card-actions button.sub-tab {
+        display: none !important;
+      }
+      .vehicle-summary-filters {
+        display: flex !important;
+        gap: 4px !important;
+        flex-wrap: nowrap !important;
+        margin-left: 8px !important;
+      }
+      .vehicle-summary-filters .compact-filter {
+        flex: 1 1 auto !important;
+      }
+      .vehicle-summary-filters .compact-filter select {
+        height: 28px !important;
+        min-height: 28px !important;
+        padding: 0 6px !important;
+        font-size: 11px !important;
+        border-radius: 6px !important;
+      }
     }
 
     @media (max-width: 900px) {
@@ -8063,7 +8150,7 @@
       const rawRows = getManageRowsWithPending_(sheetName, currentManageData.headers, currentManageData.rows || []);
       const visibleColumns = getManageVisibleColumns(headers, sheetName);
       const isDauSheet = sheetName === 'NL_Dau';
-      const isHorizontalTable = sheetName === 'NL_Dau' || sheetName === 'NL_VanChuyen';
+      const isHorizontalTable = true;
       const manageTable = el('manageTable');
       if (manageTable) manageTable.classList.toggle('manage-horizontal-table', isHorizontalTable);
       const manageScroll = manageTable ? manageTable.closest('.table-scroll') : null;
@@ -9619,7 +9706,7 @@
       if (titleEl) {
         titleEl.innerHTML = `
           <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: var(--teal); stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-          Tháng ${selectedMonth ? selectedMonth : ''}
+          ${selectedMonth ? selectedMonth : ''}
         `;
       }
       

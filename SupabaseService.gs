@@ -493,6 +493,45 @@ var SupabaseService = (function () {
     return { ok: errors.length === 0, synced: results.length, failed: errors.length, errors: errors };
   }
 
+  function syncTransportReportsAfterWrite(sheetName, rows, options) {
+    var safeSheetName = clean_(sheetName);
+    var results = [];
+    var errors = [];
+    if (!isManageSheetName_(safeSheetName)) {
+      return { ok: true, skipped: true, synced: 0, failed: 0, reason: 'Sheet is not a transport manage sheet.' };
+    }
+
+    var monthKeys = getTransportRowsMonthKeys_(rows);
+    if (!monthKeys.length) monthKeys = getRecentReportMonthKeysForSync_(2);
+    monthKeys.forEach(function (monthKey) {
+      runSyncStep_(results, errors, 'report:' + monthKey, function () {
+        return syncReportBundle(formatMonthKeyForReport_(monthKey));
+      });
+    });
+    if (options && options.includeAll === true) {
+      runSyncStep_(results, errors, 'report:Tất cả', function () {
+        return syncReportBundle('Tất cả');
+      });
+    }
+    var syncedAt = new Date().toISOString();
+    writeSyncStatus_(
+      'transport_reports_after_write:' + safeSheetName,
+      'transport',
+      errors.length ? 'error' : 'ok',
+      errors.length ? JSON.stringify(errors) : 'Transport report cache synced after write.',
+      syncedAt
+    );
+    return {
+      ok: errors.length === 0,
+      sheetName: safeSheetName,
+      months: monthKeys,
+      synced: results.length,
+      failed: errors.length,
+      results: results,
+      errors: errors
+    };
+  }
+
   function syncTransportSheetChange(eventType, sheetName, editedRange) {
     var safeEventType = clean_(eventType) || 'UNKNOWN';
     var safeSheetName = clean_(sheetName);
@@ -1118,6 +1157,11 @@ var SupabaseService = (function () {
         } catch (dashboardErr) {
           result.dashboardSync = { ok: false, error: dashboardErr && dashboardErr.message ? dashboardErr.message : String(dashboardErr) };
         }
+        try {
+          result.reportSync = syncTransportReportsAfterWrite(result.sheetName, payload.rows || [], { includeAll: true });
+        } catch (reportErr) {
+          result.reportSync = { ok: false, error: reportErr && reportErr.message ? reportErr.message : String(reportErr) };
+        }
       }
       return result;
     }
@@ -1136,6 +1180,11 @@ var SupabaseService = (function () {
             saveResult.dashboardSync = { ok: false, error: saveDashboardErr && saveDashboardErr.message ? saveDashboardErr.message : String(saveDashboardErr) };
           }
         }
+        try {
+          saveResult.reportSync = syncTransportReportsAfterWrite(payload.sheetName, [payload.previousRowData || {}, payload.rowData || {}], { includeAll: true });
+        } catch (saveReportErr) {
+          saveResult.reportSync = { ok: false, error: saveReportErr && saveReportErr.message ? saveReportErr.message : String(saveReportErr) };
+        }
       }
       return saveResult;
     }
@@ -1153,6 +1202,11 @@ var SupabaseService = (function () {
           } catch (deleteDashboardErr) {
             deleteResult.dashboardSync = { ok: false, error: deleteDashboardErr && deleteDashboardErr.message ? deleteDashboardErr.message : String(deleteDashboardErr) };
           }
+        }
+        try {
+          deleteResult.reportSync = syncTransportReportsAfterWrite(payload.sheetName, [payload.rowData || {}], { includeAll: true });
+        } catch (deleteReportErr) {
+          deleteResult.reportSync = { ok: false, error: deleteReportErr && deleteReportErr.message ? deleteReportErr.message : String(deleteReportErr) };
         }
       }
       return deleteResult;
@@ -1268,6 +1322,14 @@ var SupabaseService = (function () {
   function getRecentReportMonths_(maxCount) {
     var months = getReportMonths_();
     return months.slice(Math.max(0, months.length - Math.max(1, maxCount || 1))).reverse();
+  }
+
+  function getRecentReportMonthKeysForSync_(maxCount) {
+    return getRecentReportMonths_(maxCount).map(function (month) {
+      return normalizeYearMonthKey_(month);
+    }).filter(function (monthKey) {
+      return monthKey;
+    });
   }
 
   function installSupabaseSyncTriggers() {
@@ -1702,7 +1764,19 @@ var SupabaseService = (function () {
   function getTransportRowsMonthKeys_(rows) {
     var seen = {};
     (Array.isArray(rows) ? rows : []).forEach(function (row) {
-      var date = parseDateValue_(row && (row.date || row.fromDate || row.toDate));
+      var date = parseDateValue_(row && (
+        row.date
+        || row.fromDate
+        || row.toDate
+        || row['Ngày']
+        || row['Ngày chạy']
+        || row['Ngày tiếp dầu']
+        || row['Ngày lập biên bản']
+        || row['Ngày báo nghỉ']
+        || row['Từ ngày']
+        || row['Đến ngày']
+        || row['Đến ngày (Gồm cả)']
+      ));
       if (!date) return;
       seen[Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM')] = true;
     });
@@ -1819,6 +1893,7 @@ var SupabaseService = (function () {
     syncReportBundle: syncReportBundle,
     syncAllReportBundles: syncAllReportBundles,
     syncTransportAfterWrite: syncTransportAfterWrite,
+    syncTransportReportsAfterWrite: syncTransportReportsAfterWrite,
     enqueueWriteJob: enqueueWriteJob,
     enqueueTransportSubmitRows: enqueueTransportSubmitRows,
     enqueueTransportSaveSheetRow: enqueueTransportSaveSheetRow,

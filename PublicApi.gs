@@ -268,6 +268,10 @@ function syncTransportSheetChange(eventType, sheetName) {
   return SupabaseService.syncTransportSheetChange(eventType, sheetName, null);
 }
 
+function syncTransportReportsAfterWrite(sheetName, rows) {
+  return SupabaseService.syncTransportReportsAfterWrite(sheetName, rows || [], { includeAll: true });
+}
+
 function syncUnknownTransportSheetChange(eventType) {
   return SupabaseService.syncUnknownTransportSheetChange(eventType);
 }

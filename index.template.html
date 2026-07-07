@@ -234,38 +234,6 @@
       <!-- View: Manage Sheet Data (Transaction Logs CRUD) -->
       <section id="manageView" class="view">
         <div class="entry-sheet-backdrop" id="entrySheetBackdrop" onclick="closeMobileEntrySheet()"></div>
-        <div class="entry-shell" id="entryShell" style="margin-bottom: 16px;">
-          <aside class="form-list" id="formTabs"></aside>
-
-          <section class="panel grow">
-            <div class="panel-head" style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
-              <div>
-                <h2 class="panel-title" id="formTitle">Nhập liệu nghiệp vụ</h2>
-                <div class="panel-note" id="formSummary">Chọn một nghiệp vụ để tiến hành điền biểu mẫu.</div>
-              </div>
-            </div>
-
-            <div class="status" id="status"></div>
-
-            <div class="panel-body" id="rows" style="max-height: 65vh; overflow-y: auto;"></div>
-
-            <div class="submit-bar">
-              <button type="button" class="primary grow" id="submitBtn">
-                <svg class="btn-svg" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
-                Cập nhật
-              </button>
-              <button type="button" id="cloneBtn" class="ghost icon-button" title="Nhân bản dòng cuối" aria-label="Nhân bản dòng cuối">
-                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              </button>
-              <button type="button" id="addBtn" class="secondary icon-button" title="Thêm dòng" aria-label="Thêm dòng">
-                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              </button>
-              <button type="button" id="closeMobileEntryBtn" class="outline icon-button mobile-entry-close" title="Hủy bỏ" aria-label="Hủy bỏ" onclick="closeMobileEntrySheet()">
-                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
-            </div>
-          </section>
-        </div>
 
         <!-- Nút trượt ngang chọn Nhật ký -->
         <div class="sub-tabs-bar app-sticky-tabs" id="manageTabsBar" style="width: 100%; margin-bottom: 12px;">
@@ -360,6 +328,41 @@
             <span>Tổng thành tiền: <span id="manageDauTotalAmount" style="color: var(--red); font-size: 14.5px;">0</span></span>
           </div>
         </div>
+
+        <div class="entry-shell" id="entryShell" style="margin-bottom: 16px;">
+          <aside class="form-list" id="formTabs"></aside>
+
+          <section class="panel grow">
+            <div class="panel-head" style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+              <div>
+                <h2 class="panel-title" id="formTitle">Nhập liệu nghiệp vụ</h2>
+                <div class="panel-note" id="formSummary">Chọn một nghiệp vụ để tiến hành điền biểu mẫu.</div>
+              </div>
+            </div>
+
+            <div class="status" id="status"></div>
+
+            <div class="panel-body" id="rows" style="max-height: 65vh; overflow-y: auto;"></div>
+
+            <div class="submit-bar">
+              <button type="button" class="primary grow" id="submitBtn">
+                <svg class="btn-svg" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+                Cập nhật
+              </button>
+              <button type="button" id="cloneBtn" class="ghost icon-button" title="Nhân bản dòng cuối" aria-label="Nhân bản dòng cuối">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+              <button type="button" id="addBtn" class="secondary icon-button" title="Thêm dòng" aria-label="Thêm dòng">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <button type="button" id="closeMobileEntryBtn" class="outline icon-button mobile-entry-close" title="Hủy bỏ" aria-label="Hủy bỏ" onclick="closeMobileEntrySheet()">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+          </section>
+        </div>
+
+
 
         <div class="table-card">
           <div id="manageLimitNotice" style="display: none;">

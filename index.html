@@ -4398,7 +4398,7 @@
       .filter-container, .fund-transaction-toolbar {
         display: flex !important;
         flex-direction: row !important;
-        align-items: center !important;
+        align-items: flex-end !important; /* Căn thẳng hàng ở đáy */
         justify-content: space-between !important;
         flex-wrap: nowrap !important;
         gap: 16px !important;
@@ -4407,18 +4407,51 @@
       .filter-container > div:first-child, .fund-transaction-toolbar > div:first-child {
         display: flex !important;
         flex-direction: row !important;
-        align-items: center !important;
+        align-items: flex-end !important; /* Căn thẳng hàng ở đáy */
         flex-wrap: nowrap !important;
         gap: 16px !important;
         flex: 1 !important;
       }
       
+      /* Cấu trúc label có nhãn chữ ở trên */
+      .filter-container label,
+      #manageDateFilterGroup label,
+      .fund-transaction-toolbar label,
+      #fundDateFilterGroup label {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 4px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        color: var(--muted) !important;
+        margin: 0 !important;
+      }
+      
+      /* Cho phép label Kỳ cũng có nhãn ở trên để đồng bộ */
       .manage-period-filter, .fund-period-filter {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 4px !important;
         flex: 0 0 140px !important;
         min-width: 140px !important;
       }
+      /* Thêm nhãn giả "KỲ LỌC:" trước select bằng CSS pseudo-element nếu label không có text nhãn */
+      .manage-period-filter::before, .fund-period-filter::before {
+        content: "KỲ LỌC:" !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        color: var(--muted) !important;
+        line-height: 1.1 !important;
+      }
       
       #manageDateFilterGroup, #fundDateFilterGroup {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-end !important;
         flex: 0 0 auto !important;
         min-width: 320px !important;
         gap: 12px !important;
@@ -4430,21 +4463,41 @@
       }
       
       #manageDateFilterGroup label input, #fundDateFilterGroup label input {
-        width: 110px !important;
-        flex: 0 0 110px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
       }
       
+      /* Ô tìm kiếm */
       .filter-container label:has(#manageSearchInput),
       .filter-container label:has(#catalogSearchInput),
       .fund-transaction-toolbar label.fund-transaction-search {
-        flex: 0 0 320px !important;
-        min-width: 320px !important;
+        flex: 1 1 320px !important;
+        min-width: 260px !important;
+        max-width: 450px !important;
       }
       
       .filter-container label:has(#manageSearchInput) input,
       .filter-container label:has(#catalogSearchInput) input,
       .fund-transaction-toolbar label.fund-transaction-search input {
-        flex: 1 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      
+      /* Căn chỉnh nút + và các action */
+      .filter-container > div:last-child,
+      .fund-transaction-toolbar-actions {
+        display: flex !important;
+        align-items: center !important;
+        margin-bottom: 0 !important;
+        height: 38px !important;
+      }
+
+      /* Ẩn sidebar nhập liệu bên trái trên PC và chuyển thành full width */
+      #manageView .entry-shell {
+        grid-template-columns: 1fr !important;
+      }
+      #manageView .entry-shell .form-list {
+        display: none !important;
       }
       
       #manageDauFilterBlock {
@@ -4653,38 +4706,6 @@
       <!-- View: Manage Sheet Data (Transaction Logs CRUD) -->
       <section id="manageView" class="view">
         <div class="entry-sheet-backdrop" id="entrySheetBackdrop" onclick="closeMobileEntrySheet()"></div>
-        <div class="entry-shell" id="entryShell" style="margin-bottom: 16px;">
-          <aside class="form-list" id="formTabs"></aside>
-
-          <section class="panel grow">
-            <div class="panel-head" style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
-              <div>
-                <h2 class="panel-title" id="formTitle">Nhập liệu nghiệp vụ</h2>
-                <div class="panel-note" id="formSummary">Chọn một nghiệp vụ để tiến hành điền biểu mẫu.</div>
-              </div>
-            </div>
-
-            <div class="status" id="status"></div>
-
-            <div class="panel-body" id="rows" style="max-height: 65vh; overflow-y: auto;"></div>
-
-            <div class="submit-bar">
-              <button type="button" class="primary grow" id="submitBtn">
-                <svg class="btn-svg" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
-                Cập nhật
-              </button>
-              <button type="button" id="cloneBtn" class="ghost icon-button" title="Nhân bản dòng cuối" aria-label="Nhân bản dòng cuối">
-                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              </button>
-              <button type="button" id="addBtn" class="secondary icon-button" title="Thêm dòng" aria-label="Thêm dòng">
-                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              </button>
-              <button type="button" id="closeMobileEntryBtn" class="outline icon-button mobile-entry-close" title="Hủy bỏ" aria-label="Hủy bỏ" onclick="closeMobileEntrySheet()">
-                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
-            </div>
-          </section>
-        </div>
 
         <!-- Nút trượt ngang chọn Nhật ký -->
         <div class="sub-tabs-bar app-sticky-tabs" id="manageTabsBar" style="width: 100%; margin-bottom: 12px;">
@@ -4779,6 +4800,41 @@
             <span>Tổng thành tiền: <span id="manageDauTotalAmount" style="color: var(--red); font-size: 14.5px;">0</span></span>
           </div>
         </div>
+
+        <div class="entry-shell" id="entryShell" style="margin-bottom: 16px;">
+          <aside class="form-list" id="formTabs"></aside>
+
+          <section class="panel grow">
+            <div class="panel-head" style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+              <div>
+                <h2 class="panel-title" id="formTitle">Nhập liệu nghiệp vụ</h2>
+                <div class="panel-note" id="formSummary">Chọn một nghiệp vụ để tiến hành điền biểu mẫu.</div>
+              </div>
+            </div>
+
+            <div class="status" id="status"></div>
+
+            <div class="panel-body" id="rows" style="max-height: 65vh; overflow-y: auto;"></div>
+
+            <div class="submit-bar">
+              <button type="button" class="primary grow" id="submitBtn">
+                <svg class="btn-svg" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+                Cập nhật
+              </button>
+              <button type="button" id="cloneBtn" class="ghost icon-button" title="Nhân bản dòng cuối" aria-label="Nhân bản dòng cuối">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+              <button type="button" id="addBtn" class="secondary icon-button" title="Thêm dòng" aria-label="Thêm dòng">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <button type="button" id="closeMobileEntryBtn" class="outline icon-button mobile-entry-close" title="Hủy bỏ" aria-label="Hủy bỏ" onclick="closeMobileEntrySheet()">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+          </section>
+        </div>
+
+
 
         <div class="table-card">
           <div id="manageLimitNotice" style="display: none;">
@@ -10873,7 +10929,7 @@
         }
         return -1;
       };
-      const companyIdx = findIdx(['cong ty', 'chu xe', 'nha xe', 'don vi', 'bo phan', 'to', 'nhom', 'tuyen']);
+      const companyIdx = findIdx(['cong ty', 'don vi', 'bo phan', 'to doi', 'nhom', 'tuyen dung']);
       if (companyIdx === -1) return null;
       
       const rows = body.filter((row) => {

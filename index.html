@@ -4467,6 +4467,60 @@
         font-size: 11px !important;
         border-radius: 6px !important;
       }
+
+      /* === Đưa text Nguồn Dầu/Nguồn Chi nằm ngang hàng với select trên mobile === */
+      #manageDauFilterBlock label {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 6px !important;
+        font-size: 12.5px !important;
+        font-weight: 700 !important;
+      }
+      #manageDauFilterBlock select {
+        height: 32px !important;
+        min-height: 32px !important;
+        padding: 0 6px !important;
+        font-size: 12px !important;
+        border-radius: 6px !important;
+      }
+
+      /* === Làm gọn dòng bảng và nút thao tác sửa xóa trên mobile === */
+      .mobile-record-table th,
+      .mobile-record-table td {
+        padding: 6px 8px !important;
+        font-size: 12px !important;
+        line-height: 1.2 !important;
+      }
+      .mobile-record-table tr {
+        height: auto !important;
+      }
+      .mobile-record-table .btn-table-action {
+        width: 28px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+        min-height: 28px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      .mobile-record-table .btn-table-action svg {
+        width: 14px !important;
+        height: 14px !important;
+      }
+
+      /* === Bỏ cố định cột Thao tác sửa/xóa trên tất cả các bảng trên mobile === */
+      .sticky-col-right,
+      th.sticky-col-right,
+      td.sticky-col-right,
+      .mobile-record-table.manage-horizontal-table .sticky-col-right {
+        position: static !important;
+        right: auto !important;
+        box-shadow: none !important;
+        background: transparent !important;
+      }
     }
 
     @media (max-width: 900px) {
@@ -4890,7 +4944,7 @@
             <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--deep);">
               Nguồn dầu:
               <select id="manageDauSourceFilter" style="height: 34px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; outline: none; background: var(--paper); cursor: pointer;" onchange="filterManageRows()">
-                <option value="all">Tất cả nguồn</option>
+                <option value="all">Tất cả</option>
                 <option value="Quang Minh">Quang Minh</option>
                 <option value="Đổ ngoài">Đổ ngoài</option>
               </select>
@@ -4898,7 +4952,7 @@
             <label style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--deep);">
               Nguồn chi:
               <select id="manageDauOwnerFilter" style="height: 34px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; outline: none; background: var(--paper); cursor: pointer;" onchange="filterManageRows()">
-                <option value="all">Tất cả nguồn chi</option>
+                <option value="all">Tất cả</option>
                 <option value="Quang Quân">Quang Quân</option>
                 <option value="Minh Vương">Minh Vương</option>
                 <option value="Quỹ">Quỹ</option>

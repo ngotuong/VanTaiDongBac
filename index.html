@@ -5888,6 +5888,9 @@
         .then((rows) => {
           const data = rows && rows[0];
           if (!data || !data.payload) throw new Error(missingMessage || 'Chưa có dữ liệu Supabase cache.');
+          if (data.payload.ok === false) {
+            throw new Error(data.payload.error || 'Supabase cache đang chứa payload lỗi.');
+          }
           return {
             ...data.payload,
             supabaseCached: true,
@@ -5990,6 +5993,10 @@
         if (!raw) return null;
         const cached = JSON.parse(raw);
         if (!cached || !cached.savedAt || !cached.data) return null;
+        if (cached.data.ok === false) {
+          sessionStorage.removeItem(getSheetDataCacheKey(params));
+          return null;
+        }
         return cached;
       } catch (err) {
         return null;

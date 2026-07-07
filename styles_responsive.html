@@ -1606,7 +1606,7 @@
       .filter-container, .fund-transaction-toolbar {
         display: flex !important;
         flex-direction: row !important;
-        align-items: center !important;
+        align-items: flex-end !important; /* Căn thẳng hàng ở đáy */
         justify-content: space-between !important;
         flex-wrap: nowrap !important;
         gap: 16px !important;
@@ -1615,18 +1615,51 @@
       .filter-container > div:first-child, .fund-transaction-toolbar > div:first-child {
         display: flex !important;
         flex-direction: row !important;
-        align-items: center !important;
+        align-items: flex-end !important; /* Căn thẳng hàng ở đáy */
         flex-wrap: nowrap !important;
         gap: 16px !important;
         flex: 1 !important;
       }
       
+      /* Cấu trúc label có nhãn chữ ở trên */
+      .filter-container label,
+      #manageDateFilterGroup label,
+      .fund-transaction-toolbar label,
+      #fundDateFilterGroup label {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 4px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        color: var(--muted) !important;
+        margin: 0 !important;
+      }
+      
+      /* Cho phép label Kỳ cũng có nhãn ở trên để đồng bộ */
       .manage-period-filter, .fund-period-filter {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 4px !important;
         flex: 0 0 140px !important;
         min-width: 140px !important;
       }
+      /* Thêm nhãn giả "KỲ LỌC:" trước select bằng CSS pseudo-element nếu label không có text nhãn */
+      .manage-period-filter::before, .fund-period-filter::before {
+        content: "KỲ LỌC:" !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        color: var(--muted) !important;
+        line-height: 1.1 !important;
+      }
       
       #manageDateFilterGroup, #fundDateFilterGroup {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-end !important;
         flex: 0 0 auto !important;
         min-width: 320px !important;
         gap: 12px !important;
@@ -1638,21 +1671,41 @@
       }
       
       #manageDateFilterGroup label input, #fundDateFilterGroup label input {
-        width: 110px !important;
-        flex: 0 0 110px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
       }
       
+      /* Ô tìm kiếm */
       .filter-container label:has(#manageSearchInput),
       .filter-container label:has(#catalogSearchInput),
       .fund-transaction-toolbar label.fund-transaction-search {
-        flex: 0 0 320px !important;
-        min-width: 320px !important;
+        flex: 1 1 320px !important;
+        min-width: 260px !important;
+        max-width: 450px !important;
       }
       
       .filter-container label:has(#manageSearchInput) input,
       .filter-container label:has(#catalogSearchInput) input,
       .fund-transaction-toolbar label.fund-transaction-search input {
-        flex: 1 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      
+      /* Căn chỉnh nút + và các action */
+      .filter-container > div:last-child,
+      .fund-transaction-toolbar-actions {
+        display: flex !important;
+        align-items: center !important;
+        margin-bottom: 0 !important;
+        height: 38px !important;
+      }
+
+      /* Ẩn sidebar nhập liệu bên trái trên PC và chuyển thành full width */
+      #manageView .entry-shell {
+        grid-template-columns: 1fr !important;
+      }
+      #manageView .entry-shell .form-list {
+        display: none !important;
       }
       
       #manageDauFilterBlock {

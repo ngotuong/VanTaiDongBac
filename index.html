@@ -9475,13 +9475,6 @@
         const tdTicket = document.createElement('td');
         tdTicket.textContent = item.ticket || '-';
         tdTicket.style.color = 'var(--muted)';
-        if (item.pendingStatus) {
-          const badge = document.createElement('span');
-          badge.className = `preview-badge ${item.pendingStatus === 'failed' ? 'warning' : 'info'}`;
-          badge.style.marginLeft = '8px';
-          badge.textContent = item.pendingStatus === 'synced' ? 'Đã đồng bộ' : 'Đang đồng bộ';
-          tdTicket.appendChild(badge);
-        }
         
         tr.appendChild(tdProject);
         tr.appendChild(tdVehicle);

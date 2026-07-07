@@ -193,7 +193,7 @@
       const rawRows = getManageRowsWithPending_(sheetName, currentManageData.headers, currentManageData.rows || []);
       const visibleColumns = getManageVisibleColumns(headers, sheetName);
       const isDauSheet = sheetName === 'NL_Dau';
-      const isHorizontalTable = sheetName === 'NL_Dau' || sheetName === 'NL_VanChuyen';
+      const isHorizontalTable = true;
       const manageTable = el('manageTable');
       if (manageTable) manageTable.classList.toggle('manage-horizontal-table', isHorizontalTable);
       const manageScroll = manageTable ? manageTable.closest('.table-scroll') : null;

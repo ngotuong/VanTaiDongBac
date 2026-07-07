@@ -40,8 +40,10 @@ var SupabaseService = (function () {
   var ASYNC_TRANSPORT_SUBMIT_ENABLED = true;
   var REALTIME_TICK_INDEX_KEY = 'SUPABASE_REALTIME_TICK_INDEX';
   var REALTIME_TICK_RUNNING_CACHE_KEY = 'SUPABASE_REALTIME_TICK_RUNNING';
+  var TRANSPORT_SHEET_SYNC_RUNNING_CACHE_KEY = 'SUPABASE_TRANSPORT_SHEET_SYNC_RUNNING';
   var REALTIME_TICK_INTERVAL_MINUTES = 1;
   var REALTIME_TICK_RUNNING_TTL_SECONDS = 300;
+  var TRANSPORT_SHEET_SYNC_RUNNING_TTL_SECONDS = 120;
 
   function syncReportBundle(month) {
     var targetMonth = clean_(month) || 'latest';
@@ -490,6 +492,91 @@ var SupabaseService = (function () {
     return { ok: errors.length === 0, synced: results.length, failed: errors.length, errors: errors };
   }
 
+  function syncTransportSheetChange(eventType, sheetName, editedRange) {
+    var safeEventType = clean_(eventType) || 'UNKNOWN';
+    var safeSheetName = clean_(sheetName);
+    var results = [];
+    var errors = [];
+    if (!isManageSheetName_(safeSheetName)) {
+      return {
+        ok: true,
+        skipped: true,
+        eventType: safeEventType,
+        sheetName: safeSheetName,
+        reason: 'Sheet is not a transport manage sheet.'
+      };
+    }
+
+    var runtimeCache = CacheService.getScriptCache();
+    var runningKey = TRANSPORT_SHEET_SYNC_RUNNING_CACHE_KEY + ':' + safeSheetName;
+    if (runtimeCache.get(runningKey)) {
+      return {
+        ok: true,
+        skipped: true,
+        eventType: safeEventType,
+        sheetName: safeSheetName,
+        reason: 'Previous sheet change sync is still running.'
+      };
+    }
+    runtimeCache.put(runningKey, new Date().toISOString(), TRANSPORT_SHEET_SYNC_RUNNING_TTL_SECONDS);
+
+    try {
+      runSyncStep_(results, errors, 'manageData:' + safeSheetName, function () {
+        return syncManageDataBundle(safeSheetName);
+      });
+
+      var monthKeys = getEditedManageMonthKeys_(safeSheetName, editedRange);
+      if (!monthKeys.length) {
+        monthKeys = getRecentManageMonthKeys_(safeSheetName, 2);
+      }
+      monthKeys.forEach(function (monthKey) {
+        runSyncStep_(results, errors, 'manageData:' + safeSheetName + ':' + monthKey, function () {
+          return syncManageMonthBundle(safeSheetName, monthKey);
+        });
+      });
+
+      if (safeSheetName === 'NL_VanChuyen') {
+        runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
+      }
+
+      var syncedAt = new Date().toISOString();
+      writeSyncStatus_(
+        'transport_sheet_change:' + safeSheetName,
+        'manage',
+        errors.length ? 'error' : 'ok',
+        errors.length ? JSON.stringify(errors) : 'Transport sheet change synced: ' + safeEventType,
+        syncedAt
+      );
+      return {
+        ok: errors.length === 0,
+        eventType: safeEventType,
+        sheetName: safeSheetName,
+        synced: results.length,
+        failed: errors.length,
+        months: monthKeys,
+        results: results,
+        errors: errors
+      };
+    } finally {
+      runtimeCache.remove(runningKey);
+    }
+  }
+
+  function handleTransportSheetEdit(e) {
+    activateFromSpreadsheetEvent_(e);
+    var range = e && e.range;
+    var sheet = range && range.getSheet ? range.getSheet() : null;
+    var sheetName = sheet && sheet.getName ? sheet.getName() : '';
+    return syncTransportSheetChange('EDIT', sheetName, range || null);
+  }
+
+  function handleTransportSheetChange(e) {
+    activateFromSpreadsheetEvent_(e);
+    var sheet = getEventActiveSheet_(e);
+    var sheetName = sheet && sheet.getName ? sheet.getName() : '';
+    return syncTransportSheetChange((e && e.changeType) || 'CHANGE', sheetName, null);
+  }
+
   function syncCatalogAfterWrite(displaySheetName) {
     var safeDisplaySheetName = clean_(displaySheetName);
     var results = [];
@@ -745,6 +832,33 @@ var SupabaseService = (function () {
       installed: !exists,
       handler: 'syncRecentManageDataCache',
       intervalMinutes: 1
+    };
+  }
+
+  function installTransportSheetSyncTrigger(spreadsheetId) {
+    var targetSpreadsheetId = clean_(spreadsheetId) || APP_CONFIG.spreadsheetId;
+    if (!targetSpreadsheetId) throw new Error('Thiếu Spreadsheet ID để cài trigger đồng bộ Sheet -> Supabase.');
+    var handlers = {
+      handleTransportSheetEdit: true,
+      handleTransportSheetChange: true
+    };
+    var triggers = ScriptApp.getProjectTriggers();
+    var removed = 0;
+    triggers.forEach(function (trigger) {
+      var handler = trigger.getHandlerFunction && trigger.getHandlerFunction();
+      if (handlers[handler]) {
+        ScriptApp.deleteTrigger(trigger);
+        removed++;
+      }
+    });
+    ScriptApp.newTrigger('handleTransportSheetEdit').forSpreadsheet(targetSpreadsheetId).onEdit().create();
+    ScriptApp.newTrigger('handleTransportSheetChange').forSpreadsheet(targetSpreadsheetId).onChange().create();
+    return {
+      ok: true,
+      spreadsheetId: targetSpreadsheetId,
+      installed: 2,
+      removed: removed,
+      handlers: Object.keys(handlers)
     };
   }
 
@@ -1213,6 +1327,31 @@ var SupabaseService = (function () {
     return getManageMonthKeys_(sheetName).slice(0, Math.max(1, maxCount || 1));
   }
 
+  function getEditedManageMonthKeys_(sheetName, editedRange) {
+    if (!editedRange || !editedRange.getRow || !editedRange.getNumRows) return [];
+    var safeSheetName = clean_(sheetName);
+    var headerRow = getHeaderRowForSheet_(safeSheetName);
+    var firstRow = Math.max(headerRow + 1, editedRange.getRow());
+    var lastRow = Math.max(firstRow, editedRange.getRow() + editedRange.getNumRows() - 1);
+    if (lastRow < firstRow) return [];
+    try {
+      var ss = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
+      var sheet = ss.getSheetByName(safeSheetName);
+      if (!sheet) return [];
+      var maxLastRow = Math.min(lastRow, sheet.getLastRow());
+      if (maxLastRow < firstRow) return [];
+      var values = sheet.getRange(firstRow, 1, maxLastRow - firstRow + 1, 1).getValues();
+      var seen = {};
+      values.forEach(function (row) {
+        var date = parseDateValue_(row[0]);
+        if (date) seen[Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM')] = true;
+      });
+      return Object.keys(seen).sort().reverse();
+    } catch (err) {
+      return [];
+    }
+  }
+
   function getRecentFundMonthKeys_(year, maxCount) {
     var seen = {};
     getFundMonthsFromOverview_(year).forEach(function (monthKey) {
@@ -1326,6 +1465,31 @@ var SupabaseService = (function () {
     return parts[1] + '/' + parts[0];
   }
 
+  function isManageSheetName_(sheetName) {
+    var safeSheetName = clean_(sheetName);
+    return MANAGE_SHEET_NAMES.indexOf(safeSheetName) !== -1;
+  }
+
+  function activateFromSpreadsheetEvent_(e) {
+    try {
+      var source = e && e.source;
+      var spreadsheetId = source && source.getId ? source.getId() : '';
+      if (spreadsheetId) AppConfig.activate({ spreadsheetId: spreadsheetId });
+    } catch (err) {
+      console.log('activate_from_spreadsheet_event_failed: ' + (err && err.message ? err.message : err));
+    }
+  }
+
+  function getEventActiveSheet_(e) {
+    try {
+      var source = e && e.source;
+      if (source && source.getActiveSheet) return source.getActiveSheet();
+    } catch (err) {
+      console.log('get_event_active_sheet_failed: ' + (err && err.message ? err.message : err));
+    }
+    return null;
+  }
+
   function clean_(value) {
     return value === null || value === undefined ? '' : String(value).trim();
   }
@@ -1361,6 +1525,10 @@ var SupabaseService = (function () {
     getRecentWriteJobs: getRecentWriteJobs,
     getWriteJobStatus: getWriteJobStatus,
     installManageDataSyncTrigger: installManageDataSyncTrigger,
+    installTransportSheetSyncTrigger: installTransportSheetSyncTrigger,
+    handleTransportSheetEdit: handleTransportSheetEdit,
+    handleTransportSheetChange: handleTransportSheetChange,
+    syncTransportSheetChange: syncTransportSheetChange,
     installWriteJobTrigger: installWriteJobTrigger,
     processWriteJobs: processWriteJobs,
     retryWriteJob: retryWriteJob,

@@ -244,6 +244,22 @@ function syncRecentManageDataCache() {
   return SupabaseService.syncRecentManageDataCache();
 }
 
+function installTransportSheetSyncTrigger(spreadsheetId) {
+  return SupabaseService.installTransportSheetSyncTrigger(spreadsheetId);
+}
+
+function handleTransportSheetEdit(e) {
+  return SupabaseService.handleTransportSheetEdit(e);
+}
+
+function handleTransportSheetChange(e) {
+  return SupabaseService.handleTransportSheetChange(e);
+}
+
+function syncTransportSheetChange(eventType, sheetName) {
+  return SupabaseService.syncTransportSheetChange(eventType, sheetName, null);
+}
+
 function getWriteJobStatus(jobId) {
   return SupabaseService.getWriteJobStatus(jobId);
 }

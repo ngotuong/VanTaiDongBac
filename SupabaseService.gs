@@ -681,9 +681,11 @@ var SupabaseService = (function () {
 
   function isWriteJobAllowed_(moduleName, actionName) {
     if (ASYNC_WRITE_ENABLED) return true;
-    return ASYNC_TRANSPORT_SUBMIT_ENABLED
-      && clean_(moduleName) === 'transport'
-      && clean_(actionName) === 'submitRows';
+    if (!ASYNC_TRANSPORT_SUBMIT_ENABLED || clean_(moduleName) !== 'transport') return false;
+    var safeAction = clean_(actionName);
+    return safeAction === 'submitRows'
+      || safeAction === 'saveSheetRow'
+      || safeAction === 'deleteSheetRow';
   }
 
   function enqueueWriteJob(moduleName, actionName, payload) {
@@ -745,6 +747,32 @@ var SupabaseService = (function () {
     return enqueueWriteJob('transport', 'submitRows', {
       formType: clean_(formType),
       rows: rows || [],
+      queuedAt: new Date().toISOString()
+    });
+  }
+
+  function enqueueTransportSaveSheetRow(sheetName, rowIndex, rowData) {
+    var safeSheetName = clean_(sheetName);
+    if (!isManageSheetName_(safeSheetName)) {
+      throw new Error('Async save chỉ hỗ trợ sheet Vận hành NL_* ở bước này.');
+    }
+    return enqueueWriteJob('transport', 'saveSheetRow', {
+      sheetName: safeSheetName,
+      rowIndex: rowIndex,
+      rowData: rowData || {},
+      queuedAt: new Date().toISOString()
+    });
+  }
+
+  function enqueueTransportDeleteSheetRow(sheetName, rowIndex, columnsToClear) {
+    var safeSheetName = clean_(sheetName);
+    if (!isManageSheetName_(safeSheetName)) {
+      throw new Error('Async delete chỉ hỗ trợ sheet Vận hành NL_* ở bước này.');
+    }
+    return enqueueWriteJob('transport', 'deleteSheetRow', {
+      sheetName: safeSheetName,
+      rowIndex: rowIndex,
+      columnsToClear: columnsToClear || null,
       queuedAt: new Date().toISOString()
     });
   }
@@ -984,6 +1012,42 @@ var SupabaseService = (function () {
         }
       }
       return result;
+    }
+    if (actionName === 'saveSheetRow') {
+      var saveResult = EntryService.saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData || {});
+      if (saveResult && saveResult.ok !== false) {
+        try {
+          saveResult.supabaseSync = syncTransportAfterWrite(payload.sheetName, [payload.rowData || {}], { fast: true });
+        } catch (saveSyncErr) {
+          saveResult.supabaseSync = { ok: false, error: saveSyncErr && saveSyncErr.message ? saveSyncErr.message : String(saveSyncErr) };
+        }
+        if (payload.sheetName === 'NL_VanChuyen') {
+          try {
+            saveResult.dashboardSync = syncDashboard();
+          } catch (saveDashboardErr) {
+            saveResult.dashboardSync = { ok: false, error: saveDashboardErr && saveDashboardErr.message ? saveDashboardErr.message : String(saveDashboardErr) };
+          }
+        }
+      }
+      return saveResult;
+    }
+    if (actionName === 'deleteSheetRow') {
+      var deleteResult = EntryService.deleteSheetRow(payload.sheetName, payload.rowIndex, payload.columnsToClear || null);
+      if (deleteResult && deleteResult.ok !== false) {
+        try {
+          deleteResult.supabaseSync = syncTransportAfterWrite(payload.sheetName, [], { fast: true });
+        } catch (deleteSyncErr) {
+          deleteResult.supabaseSync = { ok: false, error: deleteSyncErr && deleteSyncErr.message ? deleteSyncErr.message : String(deleteSyncErr) };
+        }
+        if (payload.sheetName === 'NL_VanChuyen') {
+          try {
+            deleteResult.dashboardSync = syncDashboard();
+          } catch (deleteDashboardErr) {
+            deleteResult.dashboardSync = { ok: false, error: deleteDashboardErr && deleteDashboardErr.message ? deleteDashboardErr.message : String(deleteDashboardErr) };
+          }
+        }
+      }
+      return deleteResult;
     }
     throw new Error('Write job action chưa được hỗ trợ: ' + actionName);
   }
@@ -1575,6 +1639,8 @@ var SupabaseService = (function () {
     syncTransportAfterWrite: syncTransportAfterWrite,
     enqueueWriteJob: enqueueWriteJob,
     enqueueTransportSubmitRows: enqueueTransportSubmitRows,
+    enqueueTransportSaveSheetRow: enqueueTransportSaveSheetRow,
+    enqueueTransportDeleteSheetRow: enqueueTransportDeleteSheetRow,
     getRecentWriteJobs: getRecentWriteJobs,
     getWriteJobStatus: getWriteJobStatus,
     installManageDataSyncTrigger: installManageDataSyncTrigger,

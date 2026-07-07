@@ -322,8 +322,14 @@ function invokeApi(method, action, params, bodyData) {
   if (normalizedMethod === 'POST') {
     if (action === 'submitRows') return SupabaseService.enqueueTransportSubmitRows(safeBody.formType, safeBody.rows || []);
     if (action === 'checkTripReconciliation') return EntryService.checkTripReconciliation(safeBody.rows);
-    if (action === 'saveSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData); });
-    if (action === 'deleteSheetRow') return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear); });
+    if (action === 'saveSheetRow') {
+      if (isTransportManageSheet_(safeBody.sheetName)) return SupabaseService.enqueueTransportSaveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData);
+      return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData); });
+    }
+    if (action === 'deleteSheetRow') {
+      if (isTransportManageSheet_(safeBody.sheetName)) return SupabaseService.enqueueTransportDeleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear);
+      return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear); });
+    }
     if (action === 'updateFundTransaction') return withFundSync_(safeBody.year, { transaction: safeBody.transaction }, function () { return FundService.updateFundTransaction(safeBody.year, safeBody.rowIndex, safeBody.transaction); });
     if (action === 'deleteFundTransaction') return withFundSync_(safeBody.year, {}, function () { return FundService.deleteFundTransaction(safeBody.year, safeBody.rowIndex); });
     if (action === 'addFundTransaction') return withFundSync_(safeBody.year, { transaction: safeBody.transaction }, function () { return FundService.addFundTransaction(safeBody.year, safeBody.transaction); });
@@ -378,4 +384,8 @@ function withSheetRowSync_(sheetName, fn) {
     console.log('supabase_sync_after_sheet_row_write_failed: ' + (err && err.message ? err.message : err));
   }
   return result;
+}
+
+function isTransportManageSheet_(sheetName) {
+  return String(sheetName || '').trim().indexOf('NL_') === 0;
 }

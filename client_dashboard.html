@@ -195,7 +195,7 @@
       const rows = [];
       (pendingWriteJobs || []).forEach((job) => {
         if (job.formType !== 'vanChuyen') return;
-        if (!['pending', 'processing', 'failed', 'synced'].includes(job.status)) return;
+        if (!['pending', 'processing', 'failed'].includes(job.status)) return;
         (job.rows || []).forEach((row) => {
           if (!row || !row.date) return;
           rows.push({

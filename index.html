@@ -7988,7 +7988,7 @@
       if (!Array.isArray(headers) || !headers.length) return [];
       const jobs = (pendingWriteJobs || []).filter((job) => {
         return job.sheetName === sheetName
-          && (job.status === 'pending' || job.status === 'processing' || job.status === 'failed' || job.status === 'synced');
+          && (job.status === 'pending' || job.status === 'processing' || job.status === 'failed');
       });
       const rows = [];
       jobs.forEach((job) => {
@@ -9539,7 +9539,7 @@
       const rows = [];
       (pendingWriteJobs || []).forEach((job) => {
         if (job.formType !== 'vanChuyen') return;
-        if (!['pending', 'processing', 'failed', 'synced'].includes(job.status)) return;
+        if (!['pending', 'processing', 'failed'].includes(job.status)) return;
         (job.rows || []).forEach((row) => {
           if (!row || !row.date) return;
           rows.push({
@@ -10068,14 +10068,12 @@
         limit: 20
       })
         .then((res) => {
-          const now = Date.now();
           const jobs = (res.jobs || [])
             .map(normalizeTransportWriteJobForClient_)
             .filter((job) => {
               if (!job || !job.jobId || !job.rows.length) return false;
               if (job.status === 'pending' || job.status === 'processing' || job.status === 'failed') return true;
-              const createdTime = job.createdAt ? new Date(job.createdAt).getTime() : 0;
-              return job.status === 'synced' && createdTime && now - createdTime < 30 * 60 * 1000;
+              return false;
             });
           if (!jobs.length) return res;
           const existing = new Set(pendingWriteJobs.map((job) => job.jobId));

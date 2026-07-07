@@ -256,7 +256,7 @@
       if (!Array.isArray(headers) || !headers.length) return [];
       const jobs = (pendingWriteJobs || []).filter((job) => {
         return job.sheetName === sheetName
-          && (job.status === 'pending' || job.status === 'processing' || job.status === 'failed' || job.status === 'synced');
+          && (job.status === 'pending' || job.status === 'processing' || job.status === 'failed');
       });
       const rows = [];
       jobs.forEach((job) => {

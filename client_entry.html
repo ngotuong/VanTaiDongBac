@@ -170,14 +170,12 @@
         limit: 20
       })
         .then((res) => {
-          const now = Date.now();
           const jobs = (res.jobs || [])
             .map(normalizeTransportWriteJobForClient_)
             .filter((job) => {
               if (!job || !job.jobId || !job.rows.length) return false;
               if (job.status === 'pending' || job.status === 'processing' || job.status === 'failed') return true;
-              const createdTime = job.createdAt ? new Date(job.createdAt).getTime() : 0;
-              return job.status === 'synced' && createdTime && now - createdTime < 30 * 60 * 1000;
+              return false;
             });
           if (!jobs.length) return res;
           const existing = new Set(pendingWriteJobs.map((job) => job.jobId));

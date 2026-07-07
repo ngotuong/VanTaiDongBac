@@ -189,7 +189,7 @@
             recentSubmissions = submitted.filter(Boolean).map((item) => `[pending] ${item}`).concat(recentSubmissions).slice(0, 8);
             rows = [newBlankRow()];
             renderEntry();
-            if (activeView === 'manage' && isMobileViewport()) {
+            if (activeView === 'manage') {
               closeMobileEntrySheet();
               showSyncToast('Đã nhận lệnh lưu. Đang chờ đồng bộ Google Sheet.');
             }
@@ -231,10 +231,8 @@
           
           renderEntry();
           if (result.inserted && activeView === 'manage') {
-            if (isMobileViewport()) {
-              closeMobileEntrySheet();
-              showSyncToast('Đã ghi dữ liệu và cập nhật danh sách Vận hành.');
-            }
+            closeMobileEntrySheet();
+            showSyncToast('Đã ghi dữ liệu và cập nhật danh sách Vận hành.');
             loadManageSheetData(true);
           }
           

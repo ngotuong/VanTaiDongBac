@@ -171,7 +171,7 @@
         .map((row) => String(row.owner || '').trim())
         .filter(Boolean)))
         .sort((a, b) => a.localeCompare(b, 'vi'));
-      select.innerHTML = '<option value="">Tất cả công ty</option>';
+      select.innerHTML = '<option value="">Tất cả</option>';
       owners.forEach((owner) => {
         const option = document.createElement('option');
         option.value = owner;

@@ -398,13 +398,13 @@
         <div class="vehicle-volume-filters vehicle-summary-filters">
           <label class="compact-filter compact-filter-inline">
             <select class="report-vehicle-filter" data-filter="company" onchange="filterReportRows()">
-              <option value="">Tất cả công ty</option>
+              <option value="">Tất cả</option>
               ${filters.companies.map((company) => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('')}
             </select>
           </label>
           <label class="compact-filter compact-filter-inline">
             <select class="report-vehicle-filter" data-filter="plate" onchange="filterReportRows()">
-              <option value="">Tất cả xe</option>
+              <option value="">Tất cả</option>
               ${filters.plates.map((plate) => `<option value="${escapeHtml(plate)}">${escapeHtml(plate)}</option>`).join('')}
             </select>
           </label>
@@ -436,7 +436,7 @@
         <div class="payroll-summary-filters" style="display: inline-flex;">
           <label class="compact-filter compact-filter-inline">
             <select class="report-payroll-filter" data-filter="company" onchange="filterReportRows()" style="height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--line); font-size: 12px; font-weight: 600; outline: none; background: var(--paper); cursor: pointer;">
-              <option value="">Tất cả công ty</option>
+              <option value="">Tất cả</option>
               ${filters.companies.map((company) => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('')}
             </select>
           </label>

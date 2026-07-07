@@ -4391,7 +4391,7 @@
         padding: 8px 10px !important;
         margin-bottom: 8px !important;
         gap: 6px !important;
-        border-radius: 8px !important;
+        border-radius: var(--radius, 12px) !important;
       }
       
       .filter-bar select,
@@ -4461,27 +4461,38 @@
         flex: 1 1 auto !important;
       }
       .vehicle-summary-filters .compact-filter select {
-        height: 28px !important;
-        min-height: 28px !important;
-        padding: 0 6px !important;
-        font-size: 11px !important;
-        border-radius: 6px !important;
+        height: 36px !important;
+        min-height: 36px !important;
+        padding: 0 8px !important;
+        font-size: 13.5px !important;
+        border-radius: 8px !important;
       }
 
       /* === Đưa text Nguồn Dầu/Nguồn Chi nằm ngang hàng với select trên mobile === */
+      #manageDauFilterBlock > div:first-child {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        gap: 8px !important;
+      }
       #manageDauFilterBlock label {
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
-        gap: 6px !important;
-        font-size: 12.5px !important;
+        gap: 4px !important;
+        font-size: 11.5px !important;
         font-weight: 700 !important;
+        white-space: nowrap !important;
       }
       #manageDauFilterBlock select {
+        width: 85px !important;
         height: 32px !important;
         min-height: 32px !important;
-        padding: 0 6px !important;
-        font-size: 12px !important;
+        padding: 0 4px !important;
+        font-size: 11.5px !important;
         border-radius: 6px !important;
       }
 
@@ -5055,7 +5066,7 @@
               </label>
               <label id="catalogVehicleOwnerFilterWrap" style="margin: 0; display: none; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); flex: 0 0 142px;">
                 <select id="catalogVehicleOwnerFilter" aria-label="Lọc công ty xe" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="filterCatalogRows()">
-                  <option value="">Tất cả công ty</option>
+                  <option value="">Tất cả</option>
                 </select>
               </label>
             </div>
@@ -9201,7 +9212,7 @@
         .map((row) => String(row.owner || '').trim())
         .filter(Boolean)))
         .sort((a, b) => a.localeCompare(b, 'vi'));
-      select.innerHTML = '<option value="">Tất cả công ty</option>';
+      select.innerHTML = '<option value="">Tất cả</option>';
       owners.forEach((owner) => {
         const option = document.createElement('option');
         option.value = owner;
@@ -11069,13 +11080,13 @@
         <div class="vehicle-volume-filters vehicle-summary-filters">
           <label class="compact-filter compact-filter-inline">
             <select class="report-vehicle-filter" data-filter="company" onchange="filterReportRows()">
-              <option value="">Tất cả công ty</option>
+              <option value="">Tất cả</option>
               ${filters.companies.map((company) => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('')}
             </select>
           </label>
           <label class="compact-filter compact-filter-inline">
             <select class="report-vehicle-filter" data-filter="plate" onchange="filterReportRows()">
-              <option value="">Tất cả xe</option>
+              <option value="">Tất cả</option>
               ${filters.plates.map((plate) => `<option value="${escapeHtml(plate)}">${escapeHtml(plate)}</option>`).join('')}
             </select>
           </label>
@@ -11107,7 +11118,7 @@
         <div class="payroll-summary-filters" style="display: inline-flex;">
           <label class="compact-filter compact-filter-inline">
             <select class="report-payroll-filter" data-filter="company" onchange="filterReportRows()" style="height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--line); font-size: 12px; font-weight: 600; outline: none; background: var(--paper); cursor: pointer;">
-              <option value="">Tất cả công ty</option>
+              <option value="">Tất cả</option>
               ${filters.companies.map((company) => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('')}
             </select>
           </label>

@@ -4729,7 +4729,7 @@
 
         <div class="filter-bar app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
           <div class="mobile-operation-bar">
-            <div class="mobile-period-control" style="flex: 1;">
+            <div class="mobile-period-control">
               <select id="manageQuickDateFilterMobile" aria-label="Chọn kỳ vận hành" onchange="setManageQuickDate(this.value)">
                 <option value="recent">Mới nhất</option>
                 <option value="today">Hôm nay</option>
@@ -4739,6 +4739,10 @@
                 <option value="custom">Tùy chọn</option>
               </select>
             </div>
+            <button type="button" class="primary" onclick="openMobileEntrySheet()">
+              <svg class="btn-svg" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Nhập mới
+            </button>
           </div>
           <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
@@ -4769,10 +4773,6 @@
               </label>
             </div>
             <div style="display: flex; align-items: center; gap: 8px; height: 38px;">
-              <button type="button" class="sub-tab" id="toggleEntryFormBtn" style="height: 38px; padding: 0 16px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; border: 1px solid var(--teal); color: var(--teal); background: var(--paper);" onclick="toggleManageEntryForm()">
-                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin: 0; stroke: currentColor;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                Nhập nhanh
-              </button>
               <button type="button" class="primary icon-button manage-add-shortcut" title="Thêm dòng mới" aria-label="Thêm dòng mới" style="padding: 0 !important; border-radius: 8px; height: 38px; width: 38px; display: inline-flex; align-items: center; justify-content: center;" onclick="openResponsiveManageAdd()">
                 <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px; margin: 0;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               </button>
@@ -11655,7 +11655,7 @@
             recentSubmissions = submitted.filter(Boolean).map((item) => `[pending] ${item}`).concat(recentSubmissions).slice(0, 8);
             rows = [newBlankRow()];
             renderEntry();
-            if (activeView === 'manage') {
+            if (activeView === 'manage' && isMobileViewport()) {
               closeMobileEntrySheet();
               showSyncToast('Đã nhận lệnh lưu. Đang chờ đồng bộ Google Sheet.');
             }
@@ -11697,8 +11697,10 @@
           
           renderEntry();
           if (result.inserted && activeView === 'manage') {
-            closeMobileEntrySheet();
-            showSyncToast('Đã ghi dữ liệu và cập nhật danh sách Vận hành.');
+            if (isMobileViewport()) {
+              closeMobileEntrySheet();
+              showSyncToast('Đã ghi dữ liệu và cập nhật danh sách Vận hành.');
+            }
             loadManageSheetData(true);
           }
           

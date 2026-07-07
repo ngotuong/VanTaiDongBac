@@ -248,18 +248,42 @@
     }
 
     function getManageRowsWithPending_(sheetName, headers, baseRows) {
-      const pendingRows = buildPendingManageRows_(sheetName, headers, baseRows || []);
-      return pendingRows.length ? pendingRows.concat(baseRows || []) : (baseRows || []);
+      const jobs = getPendingManageWriteJobs_(sheetName);
+      const suppressedRowIndexes = new Set(
+        jobs
+          .filter((job) => job.action === 'saveSheetRow' || job.action === 'deleteSheetRow')
+          .map((job) => String(job.rowIndex || ''))
+          .filter(Boolean)
+      );
+      const visibleBaseRows = (baseRows || []).filter((row) => !suppressedRowIndexes.has(String(row.rowIndex || '')));
+      const pendingRows = buildPendingManageRows_(sheetName, headers, visibleBaseRows, jobs);
+      return pendingRows.length ? pendingRows.concat(visibleBaseRows) : visibleBaseRows;
     }
 
-    function buildPendingManageRows_(sheetName, headers, baseRows) {
-      if (!Array.isArray(headers) || !headers.length) return [];
-      const jobs = (pendingWriteJobs || []).filter((job) => {
+    function getPendingManageWriteJobs_(sheetName) {
+      return (pendingWriteJobs || []).filter((job) => {
         return job.sheetName === sheetName
           && (job.status === 'pending' || job.status === 'processing' || job.status === 'failed');
       });
+    }
+
+    function buildPendingManageRows_(sheetName, headers, baseRows, jobs) {
+      if (!Array.isArray(headers) || !headers.length) return [];
       const rows = [];
-      jobs.forEach((job) => {
+      (jobs || getPendingManageWriteJobs_(sheetName)).forEach((job) => {
+        if (job.action === 'deleteSheetRow') return;
+        if (job.action === 'saveSheetRow') {
+          const values = headers.map((header) => job.rowData && Object.prototype.hasOwnProperty.call(job.rowData, header) ? job.rowData[header] : '');
+          rows.push({
+            rowIndex: `pending:${job.jobId}:save:${job.rowIndex}`,
+            values: values,
+            isPendingWrite: true,
+            pendingStatus: job.status,
+            pendingJobId: job.jobId,
+            pendingAction: job.action
+          });
+          return;
+        }
         (job.rows || []).forEach((entryRow, index) => {
           const values = headers.map((header) => mapPendingEntryValue_(job.formType, entryRow, header));
           if (hasMatchingManageBaseRow_(values, baseRows)) return;
@@ -268,7 +292,8 @@
             values: values,
             isPendingWrite: true,
             pendingStatus: job.status,
-            pendingJobId: job.jobId
+            pendingJobId: job.jobId,
+            pendingAction: job.action || 'submitRows'
           });
         });
       });
@@ -859,6 +884,18 @@
 
       callApi('POST', 'saveSheetRow', {}, payload)
         .then((res) => {
+          if (res && res.queued && res.jobId && activeView !== 'catalog') {
+            closeManageModal();
+            trackPendingWriteJob(res, `Sửa dòng ${rowIndex} ${targetSheetName}`, '', [], {
+              action: 'saveSheetRow',
+              sheetName: targetSheetName,
+              rowIndex: rowIndex,
+              rowData: rowData
+            });
+            showSyncToast('Đã nhận lệnh sửa. Bảng đã cập nhật tạm và đang chờ đồng bộ Sheet.', 'info');
+            if (typeof kickWriteJobWorker === 'function') kickWriteJobWorker();
+            return;
+          }
           if (res.ok) {
             closeManageModal();
             if (sheetName.indexOf('DM_') === 0) {
@@ -906,6 +943,17 @@
       showSyncToast('Đang xóa dòng và cập nhật bảng...', 'info', true);
       callApi('POST', 'deleteSheetRow', {}, { sheetName: targetSheetName, rowIndex: rowIndex, columnsToClear: columnsToClear })
         .then((res) => {
+          if (res && res.queued && res.jobId && activeView !== 'catalog') {
+            trackPendingWriteJob(res, `Xóa dòng ${rowIndex} ${targetSheetName}`, '', [], {
+              action: 'deleteSheetRow',
+              sheetName: targetSheetName,
+              rowIndex: rowIndex,
+              columnsToClear: columnsToClear
+            });
+            showSyncToast('Đã nhận lệnh xóa. Dòng đã được ẩn tạm và đang chờ đồng bộ Sheet.', 'info');
+            if (typeof kickWriteJobWorker === 'function') kickWriteJobWorker();
+            return;
+          }
           if (res.ok) {
             if (sheetName.indexOf('DM_') === 0) {
               sessionStorage.clear();

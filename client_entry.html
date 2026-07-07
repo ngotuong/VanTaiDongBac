@@ -96,15 +96,20 @@
       holder.appendChild(wrap);
     }
 
-    function trackPendingWriteJob(job, description, formType, submittedRows) {
+    function trackPendingWriteJob(job, description, formType, submittedRows, extra) {
       if (!job || !job.jobId) return;
+      const meta = extra || {};
       pendingWriteJobs = [{
         jobId: job.jobId,
+        action: meta.action || job.action || 'submitRows',
         status: job.status || 'pending',
         description: description || '',
         lastError: '',
         formType: formType || '',
-        sheetName: FORM_SHEET_MAP[formType] || '',
+        sheetName: meta.sheetName || FORM_SHEET_MAP[formType] || '',
+        rowIndex: meta.rowIndex || '',
+        rowData: meta.rowData ? { ...meta.rowData } : null,
+        columnsToClear: meta.columnsToClear || null,
         rows: (submittedRows || []).map((row) => ({ ...row }))
       }].concat(pendingWriteJobs.filter((item) => item.jobId !== job.jobId)).slice(0, 8);
       renderEntry();
@@ -166,14 +171,15 @@
     function loadRecentTransportWriteJobs() {
       return callApi('GET', 'getRecentWriteJobs', {
         module: 'transport',
-        jobAction: 'submitRows',
-        limit: 20
+        limit: 40
       })
         .then((res) => {
           const jobs = (res.jobs || [])
             .map(normalizeTransportWriteJobForClient_)
             .filter((job) => {
-              if (!job || !job.jobId || !job.rows.length) return false;
+              if (!job || !job.jobId) return false;
+              if (job.action === 'submitRows' && !job.rows.length) return false;
+              if ((job.action === 'saveSheetRow' || job.action === 'deleteSheetRow') && !job.sheetName) return false;
               if (job.status === 'pending' || job.status === 'processing' || job.status === 'failed') return true;
               return false;
             });
@@ -196,14 +202,27 @@
     function normalizeTransportWriteJobForClient_(job) {
       const payload = job.payload || {};
       const formType = payload.formType || '';
+      const action = job.action || 'submitRows';
+      const rows = action === 'submitRows'
+        ? (payload.rows || []).map((row) => ({ ...row }))
+        : [];
+      const description = action === 'saveSheetRow'
+        ? `Sửa dòng ${payload.rowIndex || ''} ${payload.sheetName || ''}`
+        : (action === 'deleteSheetRow'
+          ? `Xóa dòng ${payload.rowIndex || ''} ${payload.sheetName || ''}`
+          : `${rows.length || 0} dòng ${FORM_LABELS[formType] || formType}`);
       return {
         jobId: job.jobId,
+        action: action,
         status: job.status || 'pending',
-        description: `${(payload.rows || []).length || 0} dòng ${FORM_LABELS[formType] || formType}`,
+        description: description,
         lastError: job.lastError || '',
         formType: formType,
-        sheetName: FORM_SHEET_MAP[formType] || '',
-        rows: (payload.rows || []).map((row) => ({ ...row })),
+        sheetName: payload.sheetName || FORM_SHEET_MAP[formType] || '',
+        rowIndex: payload.rowIndex || '',
+        rowData: payload.rowData ? { ...payload.rowData } : null,
+        columnsToClear: payload.columnsToClear || null,
+        rows: rows,
         createdAt: job.createdAt || '',
         syncedAt: job.syncedAt || ''
       };

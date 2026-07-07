@@ -37,8 +37,8 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@231 - Fix synced write overlay after sheet delete`
-- Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @231`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
+- Apps Script deployment moi nhat da xac nhan: `@232 - Queue transport edit and delete jobs`
+- Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @232`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
 - Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
 
@@ -159,6 +159,7 @@ Commit lien quan:
 - Ngay 2026-07-07 bo nhan `Dang dong bo/Da dong bo` khoi bang `Tong quan > Du lieu chuyen gan day` vi bang nay dung de xuat anh bao cao. Trang thai dong bo van xem o `Nhat ky giao dich vua thuc hien` va `Cai dat > Trang thai dong bo`, khong chen vao anh xuat.
 - Ngay 2026-07-07 bat dau buoc Sheet -> Supabase gan realtime cho chinh sua/xoa tay trong Google Sheet Van tai: them trigger cai bang `installTransportSheetSyncTrigger()` voi 2 handler `handleTransportSheetEdit(e)` va `handleTransportSheetChange(e)`. Handler chi xu ly cac sheet `NL_*`, sync `manage_data_bundles.recent_500`, cache thang lien quan neu biet dong sua hoac 2 thang gan nhat neu la onChange/xoa dong, va sync dashboard khi `NL_VanChuyen` doi. Da `clasp push -f`, test `clasp run syncTransportSheetChange -p '["MANUAL_TEST","NL_VanChuyen"]'` thanh cong `synced=4`, months `2026-07`,`2026-06`, `failed=0`; da cai trigger vao spreadsheet Van tai `1VSNLz...` voi `installed=2`, `removed=0`; da deploy Apps Script production `@230`; test HTTP production `getSupabaseSyncStatus&module=manage` tra `ok=true` va co `transport_sheet_change:NL_VanChuyen`. Muc tieu la giam do tre khi sua/xoa tay tren Sheet ma khong bat lai quet full/backfill nang.
 - Ngay 2026-07-07 sau test user: nhap web app hien ngay ok, nhung xoa tay trong `NL_VanChuyen` van hien dong cu va co trang thai `Da dong bo`/`Cho cache`. Nguyen nhan: frontend dang khoi phuc ca job `synced` tu `write_jobs` va overlay vao bang Van hanh/Tong quan, nen dong vua ghi co the song lai tu job log du da xoa trong Sheet; them vao do trigger `onChange` khi xoa dong co the khong tra active sheet. Da sua frontend chi overlay job `pending`/`processing`/`failed`, khong overlay `synced`; job `synced` chi con trong nhat ky. Da sua `handleTransportSheetChange(e)` fallback khi khong biet sheet: sync `recent_500` cua `NL_VanChuyen`, 2 thang gan nhat cua `NL_VanChuyen`, va dashboard; ghi `sync_status` key `transport_sheet_change:unknown`. Them ham test `syncUnknownTransportSheetChange(eventType)` de chay fallback bang `clasp run`. Test fallback ban dau sync tat ca `NL_*` thanh cong nhung mat gan 2 phut nen da thu hep ve `NL_VanChuyen`; test lai `MANUAL_UNKNOWN_CHANGE_LIGHT_TEST` thanh cong `synced=4`, `failed=0`. Da `clasp push -f` va deploy Apps Script production `@231`.
+- Ngay 2026-07-07 tiep tuc buoc 3b write queue v2: mo rong queue tu `transport/submitRows` sang `transport/saveSheetRow` va `transport/deleteSheetRow` cho rieng cac sheet `NL_*`. API frontend van goi `saveSheetRow`/`deleteSheetRow` nhu cu; backend chi enqueue khi sheet la `NL_*`, con `DM_*` van ghi truc tiep va sync danh muc nhu truoc. Frontend Van hanh cap nhat lac quan: sua dong thi thay tam dong cu bang rowData moi, xoa dong thi an tam dong khoi bang; cac dong pending bi khoa sua/xoa va poll `write_jobs` de reload lai tu nguon that khi `synced`. Da build `index.html`, `clasp push -f`, test worker `clasp run processWriteJobs -p '[1]'` tra `{ processed: 0, ok: true }`, va deploy Apps Script production `@232`.
 
 ## File tài liệu hiện hành
 
@@ -203,7 +204,7 @@ Commit lien quan:
 - Muc tieu: khi bam Luu, frontend nhan phan hoi nhanh sau khi tao job trong Supabase; khong cho frontend cho Apps Script ghi Google Sheet xong.
 - Job co trang thai ro: `pending`, `processing`, `synced`, `failed`; co `write_job_logs` va retry.
 - Worker Apps Script xu ly job theo module, ghi Google Sheet bang cac service hien co, sau do sync cache Supabase lien quan.
-- Hien da bat feature flag rieng `ASYNC_TRANSPORT_SUBMIT_ENABLED=true` cho `transport/submitRows`; van giu `ASYNC_WRITE_ENABLED=false` de tranh bat lai v1 dai tra.
+- Hien da bat feature flag rieng `ASYNC_TRANSPORT_SUBMIT_ENABLED=true` cho `transport/submitRows`, `transport/saveSheetRow`, `transport/deleteSheetRow`; van giu `ASYNC_WRITE_ENABLED=false` de tranh bat lai v1 dai tra.
 - Yeu cau v2 khac v1: frontend hien job pending trong danh sach local va bang Van hanh ngay sau khi Luu, khoi phuc job gan day sau reload, worker khong lam cham request, va cache/danh sach that reload khi job `synced`.
 
 ### 4. Thong bao va phan quyen

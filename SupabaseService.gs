@@ -751,7 +751,7 @@ var SupabaseService = (function () {
     });
   }
 
-  function enqueueTransportSaveSheetRow(sheetName, rowIndex, rowData) {
+  function enqueueTransportSaveSheetRow(sheetName, rowIndex, rowData, previousRowData) {
     var safeSheetName = clean_(sheetName);
     if (!isManageSheetName_(safeSheetName)) {
       throw new Error('Async save chỉ hỗ trợ sheet Vận hành NL_* ở bước này.');
@@ -760,11 +760,12 @@ var SupabaseService = (function () {
       sheetName: safeSheetName,
       rowIndex: rowIndex,
       rowData: rowData || {},
+      previousRowData: previousRowData || null,
       queuedAt: new Date().toISOString()
     });
   }
 
-  function enqueueTransportDeleteSheetRow(sheetName, rowIndex, columnsToClear) {
+  function enqueueTransportDeleteSheetRow(sheetName, rowIndex, columnsToClear, rowData) {
     var safeSheetName = clean_(sheetName);
     if (!isManageSheetName_(safeSheetName)) {
       throw new Error('Async delete chỉ hỗ trợ sheet Vận hành NL_* ở bước này.');
@@ -773,6 +774,7 @@ var SupabaseService = (function () {
       sheetName: safeSheetName,
       rowIndex: rowIndex,
       columnsToClear: columnsToClear || null,
+      rowData: rowData || null,
       queuedAt: new Date().toISOString()
     });
   }

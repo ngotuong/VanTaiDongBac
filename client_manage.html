@@ -4,6 +4,7 @@
     let lastManageQuery = '';
     let lastManageSheet = '';
     let manageLoadSeq = 0;
+    let currentEditOriginalRowData = null;
 
     // CRUD Manager Operations
     function loadManageSheetData(forceRefresh) {
@@ -192,10 +193,11 @@
       const rawRows = getManageRowsWithPending_(sheetName, currentManageData.headers, currentManageData.rows || []);
       const visibleColumns = getManageVisibleColumns(headers, sheetName);
       const isDauSheet = sheetName === 'NL_Dau';
+      const isHorizontalTable = sheetName === 'NL_Dau' || sheetName === 'NL_VanChuyen';
       const manageTable = el('manageTable');
-      if (manageTable) manageTable.classList.toggle('manage-horizontal-table', isDauSheet);
+      if (manageTable) manageTable.classList.toggle('manage-horizontal-table', isHorizontalTable);
       const manageScroll = manageTable ? manageTable.closest('.table-scroll') : null;
-      if (manageScroll) manageScroll.classList.toggle('manage-horizontal-scroll', isDauSheet);
+      if (manageScroll) manageScroll.classList.toggle('manage-horizontal-scroll', isHorizontalTable);
       
       let vehicleColIdx = -1;
       for (let i = 0; i < headers.length; i++) {
@@ -693,6 +695,7 @@
       } else {
         currentEditRowIndex = null;
       }
+      currentEditOriginalRowData = null;
       el('manageModalTitle').textContent = 'Thêm dòng dữ liệu mới';
       buildManageModalFields({});
       el('manageModal').classList.add('active');
@@ -711,6 +714,7 @@
       currentData.headers.forEach((h, idx) => {
         rowData[h] = row.values[idx];
       });
+      currentEditOriginalRowData = { ...rowData };
       
       buildManageModalFields(rowData);
       el('manageModal').classList.add('active');
@@ -881,6 +885,9 @@
         rowIndex: rowIndex,
         rowData: rowData
       };
+      if (currentEditOriginalRowData) {
+        payload.previousRowData = currentEditOriginalRowData;
+      }
 
       callApi('POST', 'saveSheetRow', {}, payload)
         .then((res) => {
@@ -890,7 +897,8 @@
               action: 'saveSheetRow',
               sheetName: targetSheetName,
               rowIndex: rowIndex,
-              rowData: rowData
+              rowData: rowData,
+              previousRowData: currentEditOriginalRowData ? { ...currentEditOriginalRowData } : null
             });
             showSyncToast('Đã nhận lệnh sửa. Bảng đã cập nhật tạm và đang chờ đồng bộ Sheet.', 'info');
             if (typeof kickWriteJobWorker === 'function') kickWriteJobWorker();
@@ -940,15 +948,18 @@
         columnsToClear = ["Giá dầu áp dụng", "Ngày áp dụng giá dầu", "Ghi chú"];
       }
 
+      const currentRowData = getCurrentManageRowDataByIndex_(rowIndex);
+
       showSyncToast('Đang xóa dòng và cập nhật bảng...', 'info', true);
-      callApi('POST', 'deleteSheetRow', {}, { sheetName: targetSheetName, rowIndex: rowIndex, columnsToClear: columnsToClear })
+      callApi('POST', 'deleteSheetRow', {}, { sheetName: targetSheetName, rowIndex: rowIndex, columnsToClear: columnsToClear, rowData: currentRowData })
         .then((res) => {
           if (res && res.queued && res.jobId && activeView !== 'catalog') {
             trackPendingWriteJob(res, `Xóa dòng ${rowIndex} ${targetSheetName}`, '', [], {
               action: 'deleteSheetRow',
               sheetName: targetSheetName,
               rowIndex: rowIndex,
-              columnsToClear: columnsToClear
+              columnsToClear: columnsToClear,
+              rowData: currentRowData
             });
             showSyncToast('Đã nhận lệnh xóa. Dòng đã được ẩn tạm và đang chờ đồng bộ Sheet.', 'info');
             if (typeof kickWriteJobWorker === 'function') kickWriteJobWorker();
@@ -973,6 +984,18 @@
           showSyncToast('Không thể xóa dữ liệu: ' + err.message, 'error');
           alert('Lỗi xóa dữ liệu: ' + err.message);
         });
+    }
+
+    function getCurrentManageRowDataByIndex_(rowIndex) {
+      const source = activeView === 'catalog' ? currentCatalogData : currentManageData;
+      if (!source || !Array.isArray(source.headers) || !Array.isArray(source.rows)) return null;
+      const match = source.rows.find((row) => String(row.rowIndex || '') === String(rowIndex || ''));
+      if (!match) return null;
+      const rowData = {};
+      source.headers.forEach((header, idx) => {
+        rowData[header] = match.values ? match.values[idx] : '';
+      });
+      return rowData;
     }
 
     function changeManagePage(offset) {

@@ -804,4 +804,31 @@
     .btn-table-action.delete:hover {
       color: #b91c1c !important;
     }
+
+    .btn-table-action.pending-sync {
+      color: var(--amber) !important;
+      cursor: default !important;
+    }
+
+    .btn-table-action.pending-sync.failed {
+      color: var(--red) !important;
+      cursor: pointer !important;
+    }
+
+    .btn-table-action.pending-sync:disabled {
+      opacity: 1 !important;
+    }
+
+    .pending-sync-spinner {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 2px solid rgba(245, 158, 11, 0.22);
+      border-top-color: var(--amber);
+      animation: pending-sync-spin 0.8s linear infinite;
+    }
+
+    @keyframes pending-sync-spin {
+      to { transform: rotate(360deg); }
+    }
 </style>

@@ -2279,6 +2279,33 @@
     .btn-table-action.delete:hover {
       color: #b91c1c !important;
     }
+
+    .btn-table-action.pending-sync {
+      color: var(--amber) !important;
+      cursor: default !important;
+    }
+
+    .btn-table-action.pending-sync.failed {
+      color: var(--red) !important;
+      cursor: pointer !important;
+    }
+
+    .btn-table-action.pending-sync:disabled {
+      opacity: 1 !important;
+    }
+
+    .pending-sync-spinner {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 2px solid rgba(245, 158, 11, 0.22);
+      border-top-color: var(--amber);
+      animation: pending-sync-spin 0.8s linear infinite;
+    }
+
+    @keyframes pending-sync-spin {
+      to { transform: rotate(360deg); }
+    }
 </style>
 
   <style>
@@ -8715,12 +8742,19 @@
         tdActions.style.whiteSpace = 'nowrap';
         
         if (row.isPendingWrite) {
-          const pendingText = document.createElement('span');
-          pendingText.className = `preview-badge ${row.pendingStatus === 'failed' ? 'warning' : 'info'}`;
-          pendingText.textContent = row.pendingStatus === 'failed'
-            ? 'Có thể thử lại'
-            : 'Chờ Sheet';
-          tdActions.appendChild(pendingText);
+          const statusBtn = document.createElement('button');
+          statusBtn.type = 'button';
+          statusBtn.className = `btn-table-action pending-sync ${row.pendingStatus === 'failed' ? 'failed' : ''}`;
+          statusBtn.title = row.pendingStatus === 'failed' ? 'Đồng bộ lỗi, bấm để thử lại' : 'Đang chờ Google Sheet đồng bộ';
+          statusBtn.setAttribute('aria-label', statusBtn.title);
+          if (row.pendingStatus === 'failed') {
+            statusBtn.innerHTML = `<svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+            statusBtn.onclick = () => retryPendingWriteJob(row.pendingJobId);
+          } else {
+            statusBtn.disabled = true;
+            statusBtn.innerHTML = `<span class="pending-sync-spinner" aria-hidden="true"></span>`;
+          }
+          tdActions.appendChild(statusBtn);
         } else {
           const btnEdit = document.createElement('button');
           btnEdit.type = 'button';

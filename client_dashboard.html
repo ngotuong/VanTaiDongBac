@@ -151,15 +151,19 @@
 
     function getLatestTripsWithPending_(latestTrips) {
       const base = latestTrips || { date: '', trips: [] };
-      const pendingTrips = buildPendingLatestTrips_();
-      if (!pendingTrips.length) return base;
+      const pendingState = buildPendingLatestTrips_();
+      const pendingTrips = pendingState.upserts || [];
+      const removalKeys = new Set(pendingState.removals || []);
+      if (!pendingTrips.length && !removalKeys.size) return base;
 
       const candidates = [];
       if (base.date) {
         candidates.push({
           key: normalizeLatestTripDateKey_(base.date),
           label: base.date,
-          trips: base.trips || []
+          trips: (base.trips || []).filter((item) => {
+            return !removalKeys.has(buildLatestTripKey_(item, item.date || base.date));
+          })
         });
       }
       pendingTrips.forEach((item) => {
@@ -177,13 +181,7 @@
       const seen = new Set();
       const trips = [];
       (latest.trips || []).forEach((item) => {
-        const key = [
-          normalizeLatestTripDateKey_(item.date || latest.label),
-          String(item.project || '').trim().toLowerCase(),
-          String(item.vehicle || '').trim().toLowerCase(),
-          String(item.count || '').trim(),
-          String(item.ticket || '').trim().toLowerCase()
-        ].join('|');
+        const key = buildLatestTripKey_(item, item.date || latest.label);
         if (seen.has(key)) return;
         seen.add(key);
         trips.push(item);
@@ -193,9 +191,23 @@
 
     function buildPendingLatestTrips_() {
       const rows = [];
+      const removals = [];
       (pendingWriteJobs || []).forEach((job) => {
-        if (job.formType !== 'vanChuyen') return;
+        const isVanChuyenJob = job.formType === 'vanChuyen' || job.sheetName === 'NL_VanChuyen';
+        if (!isVanChuyenJob) return;
         if (!['pending', 'processing', 'failed'].includes(job.status)) return;
+        if (job.action === 'deleteSheetRow') {
+          const deletedTrip = mapManageRowDataToLatestTrip_(job.rowData);
+          if (deletedTrip) removals.push(buildLatestTripKey_(deletedTrip, deletedTrip.date));
+          return;
+        }
+        if (job.action === 'saveSheetRow') {
+          const previousTrip = mapManageRowDataToLatestTrip_(job.previousRowData);
+          if (previousTrip) removals.push(buildLatestTripKey_(previousTrip, previousTrip.date));
+          const updatedTrip = mapManageRowDataToLatestTrip_(job.rowData);
+          if (updatedTrip) rows.push({ ...updatedTrip, pendingStatus: job.status });
+          return;
+        }
         (job.rows || []).forEach((row) => {
           if (!row || !row.date) return;
           rows.push({
@@ -208,7 +220,30 @@
           });
         });
       });
-      return rows;
+      return { upserts: rows, removals: removals };
+    }
+
+    function mapManageRowDataToLatestTrip_(rowData) {
+      if (!rowData) return null;
+      const date = rowData['Ngày'] || rowData.date || '';
+      if (!date) return null;
+      return {
+        date: date,
+        project: rowData['Dự án'] || rowData.project || '',
+        vehicle: rowData['Biển số xe'] || rowData.vehicle || '',
+        count: parseLocaleNumber(rowData['Số chuyến'] || rowData.trips) || 0,
+        ticket: rowData['Số phiếu'] || rowData.tickets || rowData['Ghi chú'] || rowData.note || ''
+      };
+    }
+
+    function buildLatestTripKey_(item, fallbackDate) {
+      return [
+        normalizeLatestTripDateKey_(item && (item.date || fallbackDate)),
+        String(item && item.project || '').trim().toLowerCase(),
+        String(item && item.vehicle || '').trim().toLowerCase(),
+        String(item && item.count || '').trim(),
+        String(item && item.ticket || '').trim().toLowerCase()
+      ].join('|');
     }
 
     function normalizeLatestTripDateKey_(value) {

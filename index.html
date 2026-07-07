@@ -4393,6 +4393,73 @@
       :root[data-theme="dark"] tr.grand-total-row td.sticky-col {
         background: #101827 !important;
       }
+    @media (min-width: 769px) {
+      /* Dong bo hoa filter bar tren PC */
+      .filter-container, .fund-transaction-toolbar {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        flex-wrap: nowrap !important;
+        gap: 16px !important;
+      }
+      
+      .filter-container > div:first-child, .fund-transaction-toolbar > div:first-child {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+        gap: 16px !important;
+        flex: 1 !important;
+      }
+      
+      .manage-period-filter, .fund-period-filter {
+        flex: 0 0 140px !important;
+        min-width: 140px !important;
+      }
+      
+      #manageDateFilterGroup, #fundDateFilterGroup {
+        flex: 0 0 auto !important;
+        min-width: 320px !important;
+        gap: 12px !important;
+      }
+      
+      #manageDateFilterGroup label, #fundDateFilterGroup label {
+        flex: 0 0 150px !important;
+        min-width: 150px !important;
+      }
+      
+      #manageDateFilterGroup label input, #fundDateFilterGroup label input {
+        width: 110px !important;
+        flex: 0 0 110px !important;
+      }
+      
+      .filter-container label:has(#manageSearchInput),
+      .filter-container label:has(#catalogSearchInput),
+      .fund-transaction-toolbar label.fund-transaction-search {
+        flex: 0 0 320px !important;
+        min-width: 320px !important;
+      }
+      
+      .filter-container label:has(#manageSearchInput) input,
+      .filter-container label:has(#catalogSearchInput) input,
+      .fund-transaction-toolbar label.fund-transaction-search input {
+        flex: 1 !important;
+      }
+      
+      #manageDauFilterBlock {
+        flex-wrap: nowrap !important;
+      }
+      #manageDauFilterBlock > div:first-child {
+        flex-wrap: nowrap !important;
+        gap: 20px !important;
+      }
+      #manageDauFilterBlock label {
+        white-space: nowrap !important;
+      }
+      #manageDauFilterBlock select {
+        width: 140px !important;
+      }
     }
 </style>
 
@@ -7743,6 +7810,7 @@
     let lastManageQuery = '';
     let lastManageSheet = '';
     let manageLoadSeq = 0;
+    let currentEditOriginalRowData = null;
 
     // CRUD Manager Operations
     function loadManageSheetData(forceRefresh) {
@@ -7931,10 +7999,11 @@
       const rawRows = getManageRowsWithPending_(sheetName, currentManageData.headers, currentManageData.rows || []);
       const visibleColumns = getManageVisibleColumns(headers, sheetName);
       const isDauSheet = sheetName === 'NL_Dau';
+      const isHorizontalTable = sheetName === 'NL_Dau' || sheetName === 'NL_VanChuyen';
       const manageTable = el('manageTable');
-      if (manageTable) manageTable.classList.toggle('manage-horizontal-table', isDauSheet);
+      if (manageTable) manageTable.classList.toggle('manage-horizontal-table', isHorizontalTable);
       const manageScroll = manageTable ? manageTable.closest('.table-scroll') : null;
-      if (manageScroll) manageScroll.classList.toggle('manage-horizontal-scroll', isDauSheet);
+      if (manageScroll) manageScroll.classList.toggle('manage-horizontal-scroll', isHorizontalTable);
       
       let vehicleColIdx = -1;
       for (let i = 0; i < headers.length; i++) {
@@ -8432,6 +8501,7 @@
       } else {
         currentEditRowIndex = null;
       }
+      currentEditOriginalRowData = null;
       el('manageModalTitle').textContent = 'Thêm dòng dữ liệu mới';
       buildManageModalFields({});
       el('manageModal').classList.add('active');
@@ -8450,6 +8520,7 @@
       currentData.headers.forEach((h, idx) => {
         rowData[h] = row.values[idx];
       });
+      currentEditOriginalRowData = { ...rowData };
       
       buildManageModalFields(rowData);
       el('manageModal').classList.add('active');
@@ -8620,6 +8691,9 @@
         rowIndex: rowIndex,
         rowData: rowData
       };
+      if (currentEditOriginalRowData) {
+        payload.previousRowData = currentEditOriginalRowData;
+      }
 
       callApi('POST', 'saveSheetRow', {}, payload)
         .then((res) => {
@@ -8629,7 +8703,8 @@
               action: 'saveSheetRow',
               sheetName: targetSheetName,
               rowIndex: rowIndex,
-              rowData: rowData
+              rowData: rowData,
+              previousRowData: currentEditOriginalRowData ? { ...currentEditOriginalRowData } : null
             });
             showSyncToast('Đã nhận lệnh sửa. Bảng đã cập nhật tạm và đang chờ đồng bộ Sheet.', 'info');
             if (typeof kickWriteJobWorker === 'function') kickWriteJobWorker();
@@ -8679,15 +8754,18 @@
         columnsToClear = ["Giá dầu áp dụng", "Ngày áp dụng giá dầu", "Ghi chú"];
       }
 
+      const currentRowData = getCurrentManageRowDataByIndex_(rowIndex);
+
       showSyncToast('Đang xóa dòng và cập nhật bảng...', 'info', true);
-      callApi('POST', 'deleteSheetRow', {}, { sheetName: targetSheetName, rowIndex: rowIndex, columnsToClear: columnsToClear })
+      callApi('POST', 'deleteSheetRow', {}, { sheetName: targetSheetName, rowIndex: rowIndex, columnsToClear: columnsToClear, rowData: currentRowData })
         .then((res) => {
           if (res && res.queued && res.jobId && activeView !== 'catalog') {
             trackPendingWriteJob(res, `Xóa dòng ${rowIndex} ${targetSheetName}`, '', [], {
               action: 'deleteSheetRow',
               sheetName: targetSheetName,
               rowIndex: rowIndex,
-              columnsToClear: columnsToClear
+              columnsToClear: columnsToClear,
+              rowData: currentRowData
             });
             showSyncToast('Đã nhận lệnh xóa. Dòng đã được ẩn tạm và đang chờ đồng bộ Sheet.', 'info');
             if (typeof kickWriteJobWorker === 'function') kickWriteJobWorker();
@@ -8712,6 +8790,18 @@
           showSyncToast('Không thể xóa dữ liệu: ' + err.message, 'error');
           alert('Lỗi xóa dữ liệu: ' + err.message);
         });
+    }
+
+    function getCurrentManageRowDataByIndex_(rowIndex) {
+      const source = activeView === 'catalog' ? currentCatalogData : currentManageData;
+      if (!source || !Array.isArray(source.headers) || !Array.isArray(source.rows)) return null;
+      const match = source.rows.find((row) => String(row.rowIndex || '') === String(rowIndex || ''));
+      if (!match) return null;
+      const rowData = {};
+      source.headers.forEach((header, idx) => {
+        rowData[header] = match.values ? match.values[idx] : '';
+      });
+      return rowData;
     }
 
     function changeManagePage(offset) {
@@ -9550,15 +9640,19 @@
 
     function getLatestTripsWithPending_(latestTrips) {
       const base = latestTrips || { date: '', trips: [] };
-      const pendingTrips = buildPendingLatestTrips_();
-      if (!pendingTrips.length) return base;
+      const pendingState = buildPendingLatestTrips_();
+      const pendingTrips = pendingState.upserts || [];
+      const removalKeys = new Set(pendingState.removals || []);
+      if (!pendingTrips.length && !removalKeys.size) return base;
 
       const candidates = [];
       if (base.date) {
         candidates.push({
           key: normalizeLatestTripDateKey_(base.date),
           label: base.date,
-          trips: base.trips || []
+          trips: (base.trips || []).filter((item) => {
+            return !removalKeys.has(buildLatestTripKey_(item, item.date || base.date));
+          })
         });
       }
       pendingTrips.forEach((item) => {
@@ -9576,13 +9670,7 @@
       const seen = new Set();
       const trips = [];
       (latest.trips || []).forEach((item) => {
-        const key = [
-          normalizeLatestTripDateKey_(item.date || latest.label),
-          String(item.project || '').trim().toLowerCase(),
-          String(item.vehicle || '').trim().toLowerCase(),
-          String(item.count || '').trim(),
-          String(item.ticket || '').trim().toLowerCase()
-        ].join('|');
+        const key = buildLatestTripKey_(item, item.date || latest.label);
         if (seen.has(key)) return;
         seen.add(key);
         trips.push(item);
@@ -9592,9 +9680,23 @@
 
     function buildPendingLatestTrips_() {
       const rows = [];
+      const removals = [];
       (pendingWriteJobs || []).forEach((job) => {
-        if (job.formType !== 'vanChuyen') return;
+        const isVanChuyenJob = job.formType === 'vanChuyen' || job.sheetName === 'NL_VanChuyen';
+        if (!isVanChuyenJob) return;
         if (!['pending', 'processing', 'failed'].includes(job.status)) return;
+        if (job.action === 'deleteSheetRow') {
+          const deletedTrip = mapManageRowDataToLatestTrip_(job.rowData);
+          if (deletedTrip) removals.push(buildLatestTripKey_(deletedTrip, deletedTrip.date));
+          return;
+        }
+        if (job.action === 'saveSheetRow') {
+          const previousTrip = mapManageRowDataToLatestTrip_(job.previousRowData);
+          if (previousTrip) removals.push(buildLatestTripKey_(previousTrip, previousTrip.date));
+          const updatedTrip = mapManageRowDataToLatestTrip_(job.rowData);
+          if (updatedTrip) rows.push({ ...updatedTrip, pendingStatus: job.status });
+          return;
+        }
         (job.rows || []).forEach((row) => {
           if (!row || !row.date) return;
           rows.push({
@@ -9607,7 +9709,30 @@
           });
         });
       });
-      return rows;
+      return { upserts: rows, removals: removals };
+    }
+
+    function mapManageRowDataToLatestTrip_(rowData) {
+      if (!rowData) return null;
+      const date = rowData['Ngày'] || rowData.date || '';
+      if (!date) return null;
+      return {
+        date: date,
+        project: rowData['Dự án'] || rowData.project || '',
+        vehicle: rowData['Biển số xe'] || rowData.vehicle || '',
+        count: parseLocaleNumber(rowData['Số chuyến'] || rowData.trips) || 0,
+        ticket: rowData['Số phiếu'] || rowData.tickets || rowData['Ghi chú'] || rowData.note || ''
+      };
+    }
+
+    function buildLatestTripKey_(item, fallbackDate) {
+      return [
+        normalizeLatestTripDateKey_(item && (item.date || fallbackDate)),
+        String(item && item.project || '').trim().toLowerCase(),
+        String(item && item.vehicle || '').trim().toLowerCase(),
+        String(item && item.count || '').trim(),
+        String(item && item.ticket || '').trim().toLowerCase()
+      ].join('|');
     }
 
     function normalizeLatestTripDateKey_(value) {
@@ -10062,6 +10187,7 @@
         sheetName: meta.sheetName || FORM_SHEET_MAP[formType] || '',
         rowIndex: meta.rowIndex || '',
         rowData: meta.rowData ? { ...meta.rowData } : null,
+        previousRowData: meta.previousRowData ? { ...meta.previousRowData } : null,
         columnsToClear: meta.columnsToClear || null,
         rows: (submittedRows || []).map((row) => ({ ...row }))
       }].concat(pendingWriteJobs.filter((item) => item.jobId !== job.jobId)).slice(0, 8);
@@ -10174,6 +10300,7 @@
         sheetName: payload.sheetName || FORM_SHEET_MAP[formType] || '',
         rowIndex: payload.rowIndex || '',
         rowData: payload.rowData ? { ...payload.rowData } : null,
+        previousRowData: payload.previousRowData ? { ...payload.previousRowData } : null,
         columnsToClear: payload.columnsToClear || null,
         rows: rows,
         createdAt: job.createdAt || '',
@@ -10348,8 +10475,8 @@
       holder.appendChild(renderTableCard('Báo cáo chi tiết', dashboard.overview.details || [], links.overview, 'details'));
       
       holder.appendChild(reportsByType.payroll?.data
-        ? renderTableCard('Bảng tổng hợp lương nhân sự', reportsByType.payroll.data, links.payroll, 'payroll')
-        : renderReportLoadingCard('Bảng tổng hợp lương nhân sự', 'payroll')
+        ? renderTableCard('Tổng hợp lương', reportsByType.payroll.data, links.payroll, 'payroll')
+        : renderReportLoadingCard('Tổng hợp lương', 'payroll')
       );
       
       if (reportsByType.vehicles?.data) {
@@ -10449,7 +10576,7 @@
       const cards = [
         ['Báo cáo tổng quan', 'finance'],
         ['Báo cáo chi tiết', 'details'],
-        ['Bảng tổng hợp lương nhân sự', 'payroll'],
+        ['Tổng hợp lương', 'payroll'],
         ['Tổng hợp xe', 'vehicles']
       ];
       return cards.map(([title, type]) => {
@@ -10494,6 +10621,7 @@
       }
 
       const vehicleFilters = type === 'vehicles' ? buildVehicleTableFilters(head, body) : null;
+      const payrollFilters = type === 'payroll' ? buildPayrollTableFilters(head, body) : null;
       const detailColgroup = type === 'details'
         ? `<colgroup>${head.map((cell, idx) => {
             const lower = removeAccents(String(cell || '').toLowerCase());
@@ -10542,6 +10670,7 @@
             ${displayMonth ? `<div class="panel-note" style="margin-top: 4px; font-weight: 500; font-size: 13px; color: var(--muted);">${escapeHtml(displayMonth)}</div>` : ''}
           </div>
           <div class="report-card-actions" style="display: flex; gap: 8px; align-items: center;">
+            ${payrollFilters ? renderPayrollTableFilterControls(payrollFilters) : ''}
             ${vehicleFilters ? renderVehicleTableFilterControls(vehicleFilters) : ''}
             <button type="button" class="sub-tab" title="Xuất ảnh" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;" onclick="exportCardAsImage(this, '${escapeHtml(type)}')">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
@@ -10593,7 +10722,9 @@
               const searchText = removeAccents(row.join(' ').toLowerCase());
               const vehicleRowAttrs = type === 'vehicles'
                 ? ` data-vehicle-company="${escapeHtml(row[vehicleFilters?.companyIdx] || '')}" data-vehicle-plate="${escapeHtml(row[vehicleFilters?.plateIdx] || '')}"`
-                : '';
+                : (type === 'payroll' && payrollFilters
+                  ? ` data-payroll-company="${escapeHtml(row[payrollFilters?.companyIdx] || '')}"`
+                  : '');
               
               return `<tr ${rowClass} ${rowStyle} data-search-text="${escapeHtml(searchText)}"${vehicleRowAttrs}>${head.map((colName, i) => {
                 let styleRules = [];
@@ -10734,6 +10865,38 @@
       `;
     }
 
+    function buildPayrollTableFilters(head, body) {
+      const normalized = head.map((cell) => removeAccents(String(cell || '').toLowerCase()));
+      const findIdx = (candidates) => {
+        for (let i = 0; i < normalized.length; i++) {
+          if (candidates.some((candidate) => normalized[i].includes(candidate))) return i;
+        }
+        return -1;
+      };
+      const companyIdx = findIdx(['cong ty', 'chu xe', 'nha xe', 'don vi', 'bo phan', 'to', 'nhom', 'tuyen']);
+      if (companyIdx === -1) return null;
+      
+      const rows = body.filter((row) => {
+        const first = removeAccents(String(row[0] || '').toLowerCase());
+        return !first.includes('tong') && !first.includes('cong');
+      });
+      const companies = Array.from(new Set(rows.map((row) => String(row[companyIdx] || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+      return { companyIdx, companies };
+    }
+
+    function renderPayrollTableFilterControls(filters) {
+      return `
+        <div class="payroll-summary-filters" style="display: inline-flex;">
+          <label class="compact-filter compact-filter-inline">
+            <select class="report-payroll-filter" data-filter="company" onchange="filterReportRows()" style="height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--line); font-size: 12px; font-weight: 600; outline: none; background: var(--paper); cursor: pointer;">
+              <option value="">Tất cả công ty</option>
+              ${filters.companies.map((company) => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+      `;
+    }
+
     // Helper functions for filtering and calculating subtotals
     function removeAccents(str) {
       if (!str) return '';
@@ -10813,7 +10976,9 @@
       tables.forEach((card) => {
         const type = card.dataset.reportType;
         if (type !== 'payroll' && type !== 'vehicles') return;
-        const companyFilter = type === 'vehicles' ? (card.querySelector('[data-filter="company"]')?.value || '') : '';
+        const companyFilter = type === 'vehicles' 
+          ? (card.querySelector('.report-vehicle-filter[data-filter="company"]')?.value || '')
+          : (type === 'payroll' ? (card.querySelector('.report-payroll-filter[data-filter="company"]')?.value || '') : '');
         const plateFilter = type === 'vehicles' ? (card.querySelector('[data-filter="plate"]')?.value || '') : '';
         
         const rows = card.querySelectorAll('tbody tr');
@@ -10831,9 +10996,12 @@
             match = parts.some(part => text.includes(part));
           }
 
-          const matchVehicleFilters = type !== 'vehicles'
-            || ((!companyFilter || row.dataset.vehicleCompany === companyFilter)
-              && (!plateFilter || row.dataset.vehiclePlate === plateFilter));
+          const matchVehicleFilters = type === 'vehicles'
+            ? ((!companyFilter || row.dataset.vehicleCompany === companyFilter)
+              && (!plateFilter || row.dataset.vehiclePlate === plateFilter))
+            : (type === 'payroll'
+              ? (!companyFilter || row.dataset.payrollCompany === companyFilter)
+              : true);
 
           if (match && matchVehicleFilters) {
             row.classList.remove('hidden-row');
@@ -10913,9 +11081,9 @@
         }
       }
       
-      const hasVehicleFilter = type === 'vehicles'
-        && (card.querySelector('[data-filter="company"]')?.value || card.querySelector('[data-filter="plate"]')?.value);
-      const isFiltered = document.getElementById('reportSearchInput')?.value.trim() !== '' || Boolean(hasVehicleFilter);
+      const hasFilter = (type === 'vehicles' && (card.querySelector('.report-vehicle-filter[data-filter="company"]')?.value || card.querySelector('[data-filter="plate"]')?.value))
+        || (type === 'payroll' && card.querySelector('.report-payroll-filter[data-filter="company"]')?.value);
+      const isFiltered = document.getElementById('reportSearchInput')?.value.trim() !== '' || Boolean(hasFilter);
       const cleanBase = baseText.replace(/\s*\(Lọc\)/i, '');
       if (firstCell) {
         if (isFiltered) {

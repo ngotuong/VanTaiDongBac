@@ -1601,5 +1601,72 @@
       :root[data-theme="dark"] tr.grand-total-row td.sticky-col {
         background: #101827 !important;
       }
+    @media (min-width: 769px) {
+      /* Dong bo hoa filter bar tren PC */
+      .filter-container, .fund-transaction-toolbar {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        flex-wrap: nowrap !important;
+        gap: 16px !important;
+      }
+      
+      .filter-container > div:first-child, .fund-transaction-toolbar > div:first-child {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+        gap: 16px !important;
+        flex: 1 !important;
+      }
+      
+      .manage-period-filter, .fund-period-filter {
+        flex: 0 0 140px !important;
+        min-width: 140px !important;
+      }
+      
+      #manageDateFilterGroup, #fundDateFilterGroup {
+        flex: 0 0 auto !important;
+        min-width: 320px !important;
+        gap: 12px !important;
+      }
+      
+      #manageDateFilterGroup label, #fundDateFilterGroup label {
+        flex: 0 0 150px !important;
+        min-width: 150px !important;
+      }
+      
+      #manageDateFilterGroup label input, #fundDateFilterGroup label input {
+        width: 110px !important;
+        flex: 0 0 110px !important;
+      }
+      
+      .filter-container label:has(#manageSearchInput),
+      .filter-container label:has(#catalogSearchInput),
+      .fund-transaction-toolbar label.fund-transaction-search {
+        flex: 0 0 320px !important;
+        min-width: 320px !important;
+      }
+      
+      .filter-container label:has(#manageSearchInput) input,
+      .filter-container label:has(#catalogSearchInput) input,
+      .fund-transaction-toolbar label.fund-transaction-search input {
+        flex: 1 !important;
+      }
+      
+      #manageDauFilterBlock {
+        flex-wrap: nowrap !important;
+      }
+      #manageDauFilterBlock > div:first-child {
+        flex-wrap: nowrap !important;
+        gap: 20px !important;
+      }
+      #manageDauFilterBlock label {
+        white-space: nowrap !important;
+      }
+      #manageDauFilterBlock select {
+        width: 140px !important;
+      }
     }
 </style>

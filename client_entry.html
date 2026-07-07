@@ -109,6 +109,7 @@
         sheetName: meta.sheetName || FORM_SHEET_MAP[formType] || '',
         rowIndex: meta.rowIndex || '',
         rowData: meta.rowData ? { ...meta.rowData } : null,
+        previousRowData: meta.previousRowData ? { ...meta.previousRowData } : null,
         columnsToClear: meta.columnsToClear || null,
         rows: (submittedRows || []).map((row) => ({ ...row }))
       }].concat(pendingWriteJobs.filter((item) => item.jobId !== job.jobId)).slice(0, 8);
@@ -221,6 +222,7 @@
         sheetName: payload.sheetName || FORM_SHEET_MAP[formType] || '',
         rowIndex: payload.rowIndex || '',
         rowData: payload.rowData ? { ...payload.rowData } : null,
+        previousRowData: payload.previousRowData ? { ...payload.previousRowData } : null,
         columnsToClear: payload.columnsToClear || null,
         rows: rows,
         createdAt: job.createdAt || '',

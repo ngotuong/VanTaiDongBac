@@ -37,8 +37,8 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@233 - Avoid format writes on transport edit`
-- Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @233`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
+- Apps Script deployment moi nhat da xac nhan: `@234 - Optimistic latest trips for transport edits`
+- Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @234`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
 - Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
 
@@ -162,6 +162,7 @@ Commit lien quan:
 - Ngay 2026-07-07 tiep tuc buoc 3b write queue v2: mo rong queue tu `transport/submitRows` sang `transport/saveSheetRow` va `transport/deleteSheetRow` cho rieng cac sheet `NL_*`. API frontend van goi `saveSheetRow`/`deleteSheetRow` nhu cu; backend chi enqueue khi sheet la `NL_*`, con `DM_*` van ghi truc tiep va sync danh muc nhu truoc. Frontend Van hanh cap nhat lac quan: sua dong thi thay tam dong cu bang rowData moi, xoa dong thi an tam dong khoi bang; cac dong pending bi khoa sua/xoa va poll `write_jobs` de reload lai tu nguon that khi `synced`. Da build `index.html`, `clasp push -f`, test worker `clasp run processWriteJobs -p '[1]'` tra `{ processed: 0, ok: true }`, va deploy Apps Script production `@232`.
 - Ngay 2026-07-07 user test sua dong Van hanh qua queue: Sheet da sua thanh cong, Tong quan cap nhat, nhung bang Van hanh bao loi `Bạn không thể đặt định dạng số của các ô trong một cột đã nhập`. Nguyen nhan: `SheetService.saveSheetRow()` van goi `applyFormatsSafely_()` sau khi ghi, Google Sheets co the nem loi voi smart chip/typed column du gia tri da ghi xong. Da bo call apply format sau `saveSheetRow`, giong cach da xu ly cho luong nhap moi; chi giu ghi gia tri va clear cache. Da `clasp push -f`, test `clasp run processWriteJobs -p '[3]'` tra `{ processed: 0, ok: true }`, va deploy Apps Script production `@233`.
 - Ngay 2026-07-07 user mo lai menu Van hanh van thay loi format. Kiem tra production `readManageData&sheetName=NL_VanChuyen` tra `ok=true`, job `saveSheetRow` moi nhat da `synced`, `lastError` rong; suy ra loi con lai den tu Supabase/session cache cu co payload `{ok:false,error:...}`. Da sync lai cache bang `clasp run syncTransportSheetChange -p '["REPAIR_MANAGE_CACHE","NL_VanChuyen"]'` thanh cong `synced=4`, `failed=0`. Da sua frontend `readSupabasePayload()` reject payload `ok:false` de fallback Apps Script, va `getCachedSheetData()` tu xoa session cache loi `ok:false`.
+- Ngay 2026-07-07 user test xoa Van Chuyen: bang Van hanh an dong ngay, nhung `Tong quan > Du lieu chuyen gan day` cham mat vai phut do chi doi dashboard cache. Da them metadata `previousRowData`/`rowData` vao job `transport/saveSheetRow` va `transport/deleteSheetRow`; frontend dashboard dung pending job de tam thoi an dong bi xoa hoac thay dong cu bang dong sua trong `Dữ liệu chuyến gần đây`, sau khi job `synced` van reload nguon that nhu cu. Da build `index.html`, `clasp push -f`, test worker `{ processed: 0, ok: true }`, va deploy Apps Script production `@234`.
 
 ## File tài liệu hiện hành
 

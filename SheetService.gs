@@ -896,7 +896,7 @@ var SheetService = (function () {
       if (cached) return cached;
     }
     var tables = {
-      payroll: readTable_(ss, 'BC_BangLuong', 2, 1, 200, 14),
+      payroll: readTable_(ss, 'BC_BangLuong', 2, 1, 200, 16),
       vehicles: readTable_(ss, 'BC_TongHopXe', 2, 1, 200, 12)
     };
     putChunkedCache_(cacheKey, tables, REPORT_TTL_SECONDS);

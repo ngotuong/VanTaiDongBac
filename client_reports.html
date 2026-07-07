@@ -22,8 +22,8 @@
       holder.appendChild(renderTableCard('Báo cáo chi tiết', dashboard.overview.details || [], links.overview, 'details'));
       
       holder.appendChild(reportsByType.payroll?.data
-        ? renderTableCard('Bảng tổng hợp lương nhân sự', reportsByType.payroll.data, links.payroll, 'payroll')
-        : renderReportLoadingCard('Bảng tổng hợp lương nhân sự', 'payroll')
+        ? renderTableCard('Tổng hợp lương', reportsByType.payroll.data, links.payroll, 'payroll')
+        : renderReportLoadingCard('Tổng hợp lương', 'payroll')
       );
       
       if (reportsByType.vehicles?.data) {
@@ -123,7 +123,7 @@
       const cards = [
         ['Báo cáo tổng quan', 'finance'],
         ['Báo cáo chi tiết', 'details'],
-        ['Bảng tổng hợp lương nhân sự', 'payroll'],
+        ['Tổng hợp lương', 'payroll'],
         ['Tổng hợp xe', 'vehicles']
       ];
       return cards.map(([title, type]) => {
@@ -168,6 +168,7 @@
       }
 
       const vehicleFilters = type === 'vehicles' ? buildVehicleTableFilters(head, body) : null;
+      const payrollFilters = type === 'payroll' ? buildPayrollTableFilters(head, body) : null;
       const detailColgroup = type === 'details'
         ? `<colgroup>${head.map((cell, idx) => {
             const lower = removeAccents(String(cell || '').toLowerCase());
@@ -216,6 +217,7 @@
             ${displayMonth ? `<div class="panel-note" style="margin-top: 4px; font-weight: 500; font-size: 13px; color: var(--muted);">${escapeHtml(displayMonth)}</div>` : ''}
           </div>
           <div class="report-card-actions" style="display: flex; gap: 8px; align-items: center;">
+            ${payrollFilters ? renderPayrollTableFilterControls(payrollFilters) : ''}
             ${vehicleFilters ? renderVehicleTableFilterControls(vehicleFilters) : ''}
             <button type="button" class="sub-tab" title="Xuất ảnh" style="min-height: 28px !important; width: 28px !important; padding: 0 !important; border-radius: 6px !important; display: inline-flex !important; align-items: center; justify-content: center;" onclick="exportCardAsImage(this, '${escapeHtml(type)}')">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
@@ -267,7 +269,9 @@
               const searchText = removeAccents(row.join(' ').toLowerCase());
               const vehicleRowAttrs = type === 'vehicles'
                 ? ` data-vehicle-company="${escapeHtml(row[vehicleFilters?.companyIdx] || '')}" data-vehicle-plate="${escapeHtml(row[vehicleFilters?.plateIdx] || '')}"`
-                : '';
+                : (type === 'payroll' && payrollFilters
+                  ? ` data-payroll-company="${escapeHtml(row[payrollFilters?.companyIdx] || '')}"`
+                  : '');
               
               return `<tr ${rowClass} ${rowStyle} data-search-text="${escapeHtml(searchText)}"${vehicleRowAttrs}>${head.map((colName, i) => {
                 let styleRules = [];
@@ -408,6 +412,38 @@
       `;
     }
 
+    function buildPayrollTableFilters(head, body) {
+      const normalized = head.map((cell) => removeAccents(String(cell || '').toLowerCase()));
+      const findIdx = (candidates) => {
+        for (let i = 0; i < normalized.length; i++) {
+          if (candidates.some((candidate) => normalized[i].includes(candidate))) return i;
+        }
+        return -1;
+      };
+      const companyIdx = findIdx(['cong ty', 'chu xe', 'nha xe', 'don vi', 'bo phan', 'to', 'nhom', 'tuyen']);
+      if (companyIdx === -1) return null;
+      
+      const rows = body.filter((row) => {
+        const first = removeAccents(String(row[0] || '').toLowerCase());
+        return !first.includes('tong') && !first.includes('cong');
+      });
+      const companies = Array.from(new Set(rows.map((row) => String(row[companyIdx] || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'vi'));
+      return { companyIdx, companies };
+    }
+
+    function renderPayrollTableFilterControls(filters) {
+      return `
+        <div class="payroll-summary-filters" style="display: inline-flex;">
+          <label class="compact-filter compact-filter-inline">
+            <select class="report-payroll-filter" data-filter="company" onchange="filterReportRows()" style="height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--line); font-size: 12px; font-weight: 600; outline: none; background: var(--paper); cursor: pointer;">
+              <option value="">Tất cả công ty</option>
+              ${filters.companies.map((company) => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join('')}
+            </select>
+          </label>
+        </div>
+      `;
+    }
+
     // Helper functions for filtering and calculating subtotals
     function removeAccents(str) {
       if (!str) return '';
@@ -487,7 +523,9 @@
       tables.forEach((card) => {
         const type = card.dataset.reportType;
         if (type !== 'payroll' && type !== 'vehicles') return;
-        const companyFilter = type === 'vehicles' ? (card.querySelector('[data-filter="company"]')?.value || '') : '';
+        const companyFilter = type === 'vehicles' 
+          ? (card.querySelector('.report-vehicle-filter[data-filter="company"]')?.value || '')
+          : (type === 'payroll' ? (card.querySelector('.report-payroll-filter[data-filter="company"]')?.value || '') : '');
         const plateFilter = type === 'vehicles' ? (card.querySelector('[data-filter="plate"]')?.value || '') : '';
         
         const rows = card.querySelectorAll('tbody tr');
@@ -505,9 +543,12 @@
             match = parts.some(part => text.includes(part));
           }
 
-          const matchVehicleFilters = type !== 'vehicles'
-            || ((!companyFilter || row.dataset.vehicleCompany === companyFilter)
-              && (!plateFilter || row.dataset.vehiclePlate === plateFilter));
+          const matchVehicleFilters = type === 'vehicles'
+            ? ((!companyFilter || row.dataset.vehicleCompany === companyFilter)
+              && (!plateFilter || row.dataset.vehiclePlate === plateFilter))
+            : (type === 'payroll'
+              ? (!companyFilter || row.dataset.payrollCompany === companyFilter)
+              : true);
 
           if (match && matchVehicleFilters) {
             row.classList.remove('hidden-row');
@@ -587,9 +628,9 @@
         }
       }
       
-      const hasVehicleFilter = type === 'vehicles'
-        && (card.querySelector('[data-filter="company"]')?.value || card.querySelector('[data-filter="plate"]')?.value);
-      const isFiltered = document.getElementById('reportSearchInput')?.value.trim() !== '' || Boolean(hasVehicleFilter);
+      const hasFilter = (type === 'vehicles' && (card.querySelector('.report-vehicle-filter[data-filter="company"]')?.value || card.querySelector('[data-filter="plate"]')?.value))
+        || (type === 'payroll' && card.querySelector('.report-payroll-filter[data-filter="company"]')?.value);
+      const isFiltered = document.getElementById('reportSearchInput')?.value.trim() !== '' || Boolean(hasFilter);
       const cleanBase = baseText.replace(/\s*\(Lọc\)/i, '');
       if (firstCell) {
         if (isFiltered) {

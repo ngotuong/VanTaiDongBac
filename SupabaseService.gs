@@ -865,6 +865,57 @@ var SupabaseService = (function () {
     };
   }
 
+  function getManageCacheAudit(sheetNames) {
+    var requestedSheets = normalizeManageAuditSheets_(sheetNames);
+    var rows = readRows_(TABLE_MANAGE_DATA_BUNDLES, {
+      sheet_name: 'in.(' + requestedSheets.map(encodeSupabaseInValue_).join(',') + ')',
+      filter_key: 'eq.' + DEFAULT_MANAGE_FILTER_KEY,
+      select: 'sheet_name,payload,synced_at,updated_at',
+      limit: String(requestedSheets.length)
+    });
+    var cachedBySheet = {};
+    (rows || []).forEach(function (row) {
+      cachedBySheet[clean_(row.sheet_name)] = row;
+    });
+
+    var checkedAt = new Date().toISOString();
+    var results = requestedSheets.map(function (sheetName) {
+      var cached = cachedBySheet[sheetName];
+      if (!cached || !cached.payload) {
+        return {
+          sheetName: sheetName,
+          ok: false,
+          status: 'missing',
+          message: 'Chưa có manage_data_bundles recent_500.',
+          syncedAt: ''
+        };
+      }
+
+      var livePayload = sanitizeManageAuditPayload_(ManageService.readManageData(sheetName, '', '', 50));
+      var cachedPayload = sanitizeManageAuditPayload_(cached.payload);
+      var liveHash = hashPayload_(livePayload);
+      var cachedHash = hashPayload_(cachedPayload);
+      var ok = liveHash === cachedHash;
+      return {
+        sheetName: sheetName,
+        ok: ok,
+        status: ok ? 'ok' : 'stale',
+        message: ok ? 'Cache recent_500 khớp 50 dòng live mới nhất.' : 'Cache recent_500 lệch 50 dòng live mới nhất.',
+        syncedAt: cached.synced_at || '',
+        liveHash: liveHash,
+        cachedHash: cachedHash
+      };
+    });
+
+    return {
+      ok: results.every(function (item) { return item.ok; }),
+      spreadsheetId: APP_CONFIG.spreadsheetId,
+      checkedAt: checkedAt,
+      sheets: requestedSheets,
+      results: results
+    };
+  }
+
   function retryWriteJob(jobId) {
     var safeJobId = clean_(jobId);
     if (!safeJobId) throw new Error('Thiếu mã job cần retry.');
@@ -1394,6 +1445,17 @@ var SupabaseService = (function () {
     return cleanedText.length ? cleanedText : REPORT_AUDIT_MONTHS.slice();
   }
 
+  function normalizeManageAuditSheets_(sheetNames) {
+    if (Array.isArray(sheetNames)) {
+      var cleaned = sheetNames.map(clean_).filter(isManageSheetName_);
+      return cleaned.length ? cleaned : MANAGE_SHEET_NAMES.slice();
+    }
+    var text = clean_(sheetNames);
+    if (!text) return MANAGE_SHEET_NAMES.slice();
+    var cleanedText = text.split(',').map(clean_).filter(isManageSheetName_);
+    return cleanedText.length ? cleanedText : MANAGE_SHEET_NAMES.slice();
+  }
+
   function encodeSupabaseInValue_(value) {
     return '"' + clean_(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
   }
@@ -1411,6 +1473,20 @@ var SupabaseService = (function () {
       payroll: payload.payroll || [],
       vehicles: payload.vehicles || [],
       links: payload.links || {}
+    };
+  }
+
+  function sanitizeManageAuditPayload_(payload) {
+    if (!payload || typeof payload !== 'object') return payload;
+    return {
+      ok: payload.ok !== false,
+      headers: payload.headers || [],
+      rows: (payload.rows || []).slice(0, 50).map(function (row) {
+        return {
+          rowIndex: row.rowIndex || '',
+          values: row.values || []
+        };
+      })
     };
   }
 
@@ -1735,6 +1811,7 @@ var SupabaseService = (function () {
     syncRealtimeCache: syncRealtimeCache,
     getSupabaseSyncStatus: getSupabaseSyncStatus,
     getReportCacheAudit: getReportCacheAudit,
+    getManageCacheAudit: getManageCacheAudit,
     syncReportBundle: syncReportBundle,
     syncAllReportBundles: syncAllReportBundles,
     syncTransportAfterWrite: syncTransportAfterWrite,

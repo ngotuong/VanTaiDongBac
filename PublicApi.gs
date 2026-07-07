@@ -228,6 +228,10 @@ function getReportCacheAudit(months) {
   return SupabaseService.getReportCacheAudit(months);
 }
 
+function getManageCacheAudit(sheetNames) {
+  return SupabaseService.getManageCacheAudit(sheetNames);
+}
+
 function installSupabaseSyncTriggers() {
   return SupabaseService.installSupabaseSyncTriggers();
 }
@@ -321,6 +325,7 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'getRecentWriteJobs') return SupabaseService.getRecentWriteJobs(safeParams.module, safeParams.actionName || safeParams.jobAction, safeParams.limit);
     if (action === 'getSupabaseSyncStatus') return SupabaseService.getSupabaseSyncStatus(safeParams.limit, safeParams.module);
     if (action === 'getReportCacheAudit') return SupabaseService.getReportCacheAudit(safeParams.months);
+    if (action === 'getManageCacheAudit') return SupabaseService.getManageCacheAudit(safeParams.sheetNames || safeParams.sheets);
     throw new Error('Hành động GET không hợp lệ: ' + action);
   }
 

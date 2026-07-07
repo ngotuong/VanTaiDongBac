@@ -272,3 +272,4 @@ Từ ngày 2026-07-06, write queue v2 được bật hẹp cho `transport/submit
 - `ASYNC_WRITE_ENABLED=false` vẫn giữ để không bật lại các luồng async v1 đại trà.
 - POST `submitRows` tạo job `pending` trong `write_jobs`, frontend nhận `jobId` nhanh và poll trạng thái.
 - Worker ghi Google Sheet bằng `EntryService.submitRows()`, sau đó sync nhanh cache Vận hành liên quan.
+- Action `getRecentWriteJobs` cho phép frontend khôi phục job gần đây sau khi reload, dùng để hiển thị lại pending/synced tạm thời trong bảng Vận hành và Tổng quan.

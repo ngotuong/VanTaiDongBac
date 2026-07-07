@@ -74,7 +74,7 @@
       renderProfitChart(parsed.rows);
       
       // Render the latest trips table
-      renderLatestTripsTable(dashboard.latestTrips);
+      renderLatestTripsTable(getLatestTripsWithPending_(dashboard.latestTrips));
       
       // Render the condensed summary table on the dashboard
       renderHomeSummaryTable(dashboard.overview.months);
@@ -131,6 +131,13 @@
         const tdTicket = document.createElement('td');
         tdTicket.textContent = item.ticket || '-';
         tdTicket.style.color = 'var(--muted)';
+        if (item.pendingStatus) {
+          const badge = document.createElement('span');
+          badge.className = `preview-badge ${item.pendingStatus === 'failed' ? 'warning' : 'info'}`;
+          badge.style.marginLeft = '8px';
+          badge.textContent = item.pendingStatus === 'synced' ? 'Đã đồng bộ' : 'Đang đồng bộ';
+          tdTicket.appendChild(badge);
+        }
         
         tr.appendChild(tdProject);
         tr.appendChild(tdVehicle);
@@ -147,6 +154,81 @@
         <td></td>
       `;
       tbody.appendChild(totalRow);
+    }
+
+    function getLatestTripsWithPending_(latestTrips) {
+      const base = latestTrips || { date: '', trips: [] };
+      const pendingTrips = buildPendingLatestTrips_();
+      if (!pendingTrips.length) return base;
+
+      const candidates = [];
+      if (base.date) {
+        candidates.push({
+          key: normalizeLatestTripDateKey_(base.date),
+          label: base.date,
+          trips: base.trips || []
+        });
+      }
+      pendingTrips.forEach((item) => {
+        const key = normalizeLatestTripDateKey_(item.date);
+        if (!key) return;
+        let bucket = candidates.find((candidate) => candidate.key === key);
+        if (!bucket) {
+          bucket = { key, label: formatIsoDateForDisplay(item.date), trips: [] };
+          candidates.push(bucket);
+        }
+        bucket.trips.push(item);
+      });
+      candidates.sort((a, b) => String(b.key).localeCompare(String(a.key)));
+      const latest = candidates[0] || base;
+      const seen = new Set();
+      const trips = [];
+      (latest.trips || []).forEach((item) => {
+        const key = [
+          normalizeLatestTripDateKey_(item.date || latest.label),
+          String(item.project || '').trim().toLowerCase(),
+          String(item.vehicle || '').trim().toLowerCase(),
+          String(item.count || '').trim(),
+          String(item.ticket || '').trim().toLowerCase()
+        ].join('|');
+        if (seen.has(key)) return;
+        seen.add(key);
+        trips.push(item);
+      });
+      return { date: latest.label, trips: trips };
+    }
+
+    function buildPendingLatestTrips_() {
+      const rows = [];
+      (pendingWriteJobs || []).forEach((job) => {
+        if (job.formType !== 'vanChuyen') return;
+        if (!['pending', 'processing', 'failed', 'synced'].includes(job.status)) return;
+        (job.rows || []).forEach((row) => {
+          if (!row || !row.date) return;
+          rows.push({
+            date: row.date,
+            project: row.project || '',
+            vehicle: row.vehicle || '',
+            count: parseLocaleNumber(row.trips) || 0,
+            ticket: row.tickets || row.note || '',
+            pendingStatus: job.status
+          });
+        });
+      });
+      return rows;
+    }
+
+    function normalizeLatestTripDateKey_(value) {
+      if (!value) return '';
+      const text = String(value).trim();
+      let match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+      match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+      if (match) {
+        const year = match[3].length === 2 ? `20${match[3]}` : match[3];
+        return `${year}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+      }
+      return text;
     }
 
     function renderMetrics(latest) {

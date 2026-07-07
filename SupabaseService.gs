@@ -623,6 +623,26 @@ var SupabaseService = (function () {
     return normalizeWriteJobRow_(rows[0]);
   }
 
+  function getRecentWriteJobs(moduleName, actionName, limit) {
+    var safeLimit = Math.min(Math.max(parseInt(limit || 20, 10) || 20, 1), 100);
+    var query = {
+      select: 'id,module,action,status,payload,result,attempts,max_attempts,last_error,created_at,updated_at,synced_at',
+      order: 'created_at.desc',
+      limit: String(safeLimit)
+    };
+    var safeModule = clean_(moduleName);
+    var safeAction = clean_(actionName);
+    if (safeModule) query.module = 'eq.' + safeModule;
+    if (safeAction) query.action = 'eq.' + safeAction;
+    var rows = readRows_(TABLE_WRITE_JOBS, query);
+    return {
+      ok: true,
+      jobs: (rows || []).map(normalizeWriteJobRow_),
+      count: rows.length,
+      checkedAt: new Date().toISOString()
+    };
+  }
+
   function retryWriteJob(jobId) {
     var safeJobId = clean_(jobId);
     if (!safeJobId) throw new Error('Thiếu mã job cần retry.');
@@ -790,6 +810,11 @@ var SupabaseService = (function () {
         } catch (syncErr) {
           result.supabaseSync = { ok: false, error: syncErr && syncErr.message ? syncErr.message : String(syncErr) };
         }
+        try {
+          result.dashboardSync = syncDashboard();
+        } catch (dashboardErr) {
+          result.dashboardSync = { ok: false, error: dashboardErr && dashboardErr.message ? dashboardErr.message : String(dashboardErr) };
+        }
       }
       return result;
     }
@@ -804,6 +829,7 @@ var SupabaseService = (function () {
       action: row.action,
       status: row.status,
       result: row.result || null,
+      payload: row.payload || null,
       attempts: row.attempts || 0,
       maxAttempts: row.max_attempts || 0,
       lastError: row.last_error || '',
@@ -1332,6 +1358,7 @@ var SupabaseService = (function () {
     syncTransportAfterWrite: syncTransportAfterWrite,
     enqueueWriteJob: enqueueWriteJob,
     enqueueTransportSubmitRows: enqueueTransportSubmitRows,
+    getRecentWriteJobs: getRecentWriteJobs,
     getWriteJobStatus: getWriteJobStatus,
     installManageDataSyncTrigger: installManageDataSyncTrigger,
     installWriteJobTrigger: installWriteJobTrigger,

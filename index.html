@@ -7980,22 +7980,24 @@
     }
 
     function getManageRowsWithPending_(sheetName, headers, baseRows) {
-      const pendingRows = buildPendingManageRows_(sheetName, headers);
+      const pendingRows = buildPendingManageRows_(sheetName, headers, baseRows || []);
       return pendingRows.length ? pendingRows.concat(baseRows || []) : (baseRows || []);
     }
 
-    function buildPendingManageRows_(sheetName, headers) {
+    function buildPendingManageRows_(sheetName, headers, baseRows) {
       if (!Array.isArray(headers) || !headers.length) return [];
       const jobs = (pendingWriteJobs || []).filter((job) => {
         return job.sheetName === sheetName
-          && (job.status === 'pending' || job.status === 'processing' || job.status === 'failed');
+          && (job.status === 'pending' || job.status === 'processing' || job.status === 'failed' || job.status === 'synced');
       });
       const rows = [];
       jobs.forEach((job) => {
         (job.rows || []).forEach((entryRow, index) => {
+          const values = headers.map((header) => mapPendingEntryValue_(job.formType, entryRow, header));
+          if (hasMatchingManageBaseRow_(values, baseRows)) return;
           rows.push({
             rowIndex: `pending:${job.jobId}:${index}`,
-            values: headers.map((header) => mapPendingEntryValue_(job.formType, entryRow, header)),
+            values: values,
             isPendingWrite: true,
             pendingStatus: job.status,
             pendingJobId: job.jobId
@@ -8003,6 +8005,19 @@
         });
       });
       return rows;
+    }
+
+    function hasMatchingManageBaseRow_(pendingValues, baseRows) {
+      const filledIndexes = (pendingValues || [])
+        .map((value, index) => ({ value: String(value || '').trim(), index }))
+        .filter((item) => item.value);
+      if (!filledIndexes.length) return false;
+      return (baseRows || []).some((row) => {
+        const values = row.values || [];
+        return filledIndexes.every((item) => {
+          return String(values[item.index] || '').trim().toLowerCase() === item.value.toLowerCase();
+        });
+      });
     }
 
     function mapPendingEntryValue_(formType, row, header) {
@@ -8299,7 +8314,9 @@
             const badge = document.createElement('span');
             badge.className = `preview-badge ${row.pendingStatus === 'failed' ? 'warning' : 'info'}`;
             badge.style.marginLeft = '8px';
-            badge.textContent = row.pendingStatus === 'failed' ? 'Lỗi đồng bộ' : 'Đang đồng bộ';
+            badge.textContent = row.pendingStatus === 'failed'
+              ? 'Lỗi đồng bộ'
+              : (row.pendingStatus === 'synced' ? 'Đã đồng bộ' : 'Đang đồng bộ');
             td.appendChild(badge);
           }
           tr.appendChild(td);
@@ -8328,7 +8345,9 @@
         if (row.isPendingWrite) {
           const pendingText = document.createElement('span');
           pendingText.className = 'preview-badge info';
-          pendingText.textContent = row.pendingStatus === 'failed' ? 'Có thể thử lại' : 'Chờ Sheet';
+          pendingText.textContent = row.pendingStatus === 'failed'
+            ? 'Có thể thử lại'
+            : (row.pendingStatus === 'synced' ? 'Chờ cache' : 'Chờ Sheet');
           tdActions.appendChild(pendingText);
         } else {
           const btnEdit = document.createElement('button');
@@ -9090,6 +9109,7 @@
       renderReports();
       const links = getLinks();
       if (el('openSheetTop')) el('openSheetTop').href = links.spreadsheet || '#';
+      loadRecentTransportWriteJobs();
     }
 
     function renderNav() {
@@ -9398,7 +9418,7 @@
       renderProfitChart(parsed.rows);
       
       // Render the latest trips table
-      renderLatestTripsTable(dashboard.latestTrips);
+      renderLatestTripsTable(getLatestTripsWithPending_(dashboard.latestTrips));
       
       // Render the condensed summary table on the dashboard
       renderHomeSummaryTable(dashboard.overview.months);
@@ -9455,6 +9475,13 @@
         const tdTicket = document.createElement('td');
         tdTicket.textContent = item.ticket || '-';
         tdTicket.style.color = 'var(--muted)';
+        if (item.pendingStatus) {
+          const badge = document.createElement('span');
+          badge.className = `preview-badge ${item.pendingStatus === 'failed' ? 'warning' : 'info'}`;
+          badge.style.marginLeft = '8px';
+          badge.textContent = item.pendingStatus === 'synced' ? 'Đã đồng bộ' : 'Đang đồng bộ';
+          tdTicket.appendChild(badge);
+        }
         
         tr.appendChild(tdProject);
         tr.appendChild(tdVehicle);
@@ -9471,6 +9498,81 @@
         <td></td>
       `;
       tbody.appendChild(totalRow);
+    }
+
+    function getLatestTripsWithPending_(latestTrips) {
+      const base = latestTrips || { date: '', trips: [] };
+      const pendingTrips = buildPendingLatestTrips_();
+      if (!pendingTrips.length) return base;
+
+      const candidates = [];
+      if (base.date) {
+        candidates.push({
+          key: normalizeLatestTripDateKey_(base.date),
+          label: base.date,
+          trips: base.trips || []
+        });
+      }
+      pendingTrips.forEach((item) => {
+        const key = normalizeLatestTripDateKey_(item.date);
+        if (!key) return;
+        let bucket = candidates.find((candidate) => candidate.key === key);
+        if (!bucket) {
+          bucket = { key, label: formatIsoDateForDisplay(item.date), trips: [] };
+          candidates.push(bucket);
+        }
+        bucket.trips.push(item);
+      });
+      candidates.sort((a, b) => String(b.key).localeCompare(String(a.key)));
+      const latest = candidates[0] || base;
+      const seen = new Set();
+      const trips = [];
+      (latest.trips || []).forEach((item) => {
+        const key = [
+          normalizeLatestTripDateKey_(item.date || latest.label),
+          String(item.project || '').trim().toLowerCase(),
+          String(item.vehicle || '').trim().toLowerCase(),
+          String(item.count || '').trim(),
+          String(item.ticket || '').trim().toLowerCase()
+        ].join('|');
+        if (seen.has(key)) return;
+        seen.add(key);
+        trips.push(item);
+      });
+      return { date: latest.label, trips: trips };
+    }
+
+    function buildPendingLatestTrips_() {
+      const rows = [];
+      (pendingWriteJobs || []).forEach((job) => {
+        if (job.formType !== 'vanChuyen') return;
+        if (!['pending', 'processing', 'failed', 'synced'].includes(job.status)) return;
+        (job.rows || []).forEach((row) => {
+          if (!row || !row.date) return;
+          rows.push({
+            date: row.date,
+            project: row.project || '',
+            vehicle: row.vehicle || '',
+            count: parseLocaleNumber(row.trips) || 0,
+            ticket: row.tickets || row.note || '',
+            pendingStatus: job.status
+          });
+        });
+      });
+      return rows;
+    }
+
+    function normalizeLatestTripDateKey_(value) {
+      if (!value) return '';
+      const text = String(value).trim();
+      let match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+      match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+      if (match) {
+        const year = match[3].length === 2 ? `20${match[3]}` : match[3];
+        return `${year}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+      }
+      return text;
     }
 
     function renderMetrics(latest) {
@@ -9948,6 +10050,7 @@
       });
       renderEntry();
       if (activeView === 'manage') renderManageTable();
+      renderDashboard();
       if (job.status === 'synced') {
         showSyncToast('Dữ liệu đã đồng bộ về Google Sheet.');
       } else if (job.status === 'failed') {
@@ -9963,6 +10066,54 @@
           pollPendingWriteJob(jobId, 0);
         })
         .catch((err) => showSyncToast(err.message || String(err), 'error'));
+    }
+
+    function loadRecentTransportWriteJobs() {
+      return callApi('GET', 'getRecentWriteJobs', {
+        module: 'transport',
+        jobAction: 'submitRows',
+        limit: 20
+      })
+        .then((res) => {
+          const now = Date.now();
+          const jobs = (res.jobs || [])
+            .map(normalizeTransportWriteJobForClient_)
+            .filter((job) => {
+              if (!job || !job.jobId || !job.rows.length) return false;
+              if (job.status === 'pending' || job.status === 'processing' || job.status === 'failed') return true;
+              const createdTime = job.createdAt ? new Date(job.createdAt).getTime() : 0;
+              return job.status === 'synced' && createdTime && now - createdTime < 30 * 60 * 1000;
+            });
+          if (!jobs.length) return res;
+          const existing = new Set(pendingWriteJobs.map((job) => job.jobId));
+          pendingWriteJobs = jobs
+            .filter((job) => !existing.has(job.jobId))
+            .concat(pendingWriteJobs)
+            .slice(0, 12);
+          if (activeView === 'manage') renderManageTable();
+          renderDashboard();
+          return res;
+        })
+        .catch((err) => {
+          console.warn('Không tải được write jobs gần đây:', err);
+          return null;
+        });
+    }
+
+    function normalizeTransportWriteJobForClient_(job) {
+      const payload = job.payload || {};
+      const formType = payload.formType || '';
+      return {
+        jobId: job.jobId,
+        status: job.status || 'pending',
+        description: `${(payload.rows || []).length || 0} dòng ${FORM_LABELS[formType] || formType}`,
+        lastError: job.lastError || '',
+        formType: formType,
+        sheetName: FORM_SHEET_MAP[formType] || '',
+        rows: (payload.rows || []).map((row) => ({ ...row })),
+        createdAt: job.createdAt || '',
+        syncedAt: job.syncedAt || ''
+      };
     }
 
     function getEntryRowExtraTitle(row) {

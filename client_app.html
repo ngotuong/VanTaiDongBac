@@ -98,6 +98,7 @@
       renderReports();
       const links = getLinks();
       if (el('openSheetTop')) el('openSheetTop').href = links.spreadsheet || '#';
+      loadRecentTransportWriteJobs();
     }
 
     function renderNav() {

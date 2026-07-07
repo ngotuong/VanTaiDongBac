@@ -5467,6 +5467,10 @@
                   <svg class="btn-svg" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"></path></svg>
                   Kiểm tra sâu
                 </button>
+                <button type="button" class="ghost icon-text-btn" id="manageAllAuditBtn" onclick="runManageCacheAudit(true, true)" title="So sâu 500 dòng của toàn bộ sheet Vận hành">
+                  <svg class="btn-svg" viewBox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>
+                  Kiểm tra tất cả
+                </button>
                 <button type="button" class="ghost icon-text-btn" id="reportAuditBtn" onclick="runReportCacheAudit()" title="So cache Báo cáo với Google Sheet">
                   <svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M19 9l-5 5-4-4-3 3"></path></svg>
                   Kiểm tra Báo cáo
@@ -12628,10 +12632,10 @@
     }
 
     function runManageCacheAudit(allSheets = false, deep = false) {
-      const buttonId = deep ? 'manageDeepAuditBtn' : 'manageAuditBtn';
+      const buttonId = allSheets ? 'manageAllAuditBtn' : (deep ? 'manageDeepAuditBtn' : 'manageAuditBtn');
       const auditLimit = deep ? 500 : 50;
       setAuditButtonBusy_(buttonId, true);
-      showSyncToast(deep ? 'Đang kiểm tra sâu cache Vận hành...' : 'Đang kiểm tra cache Vận hành...', 'info', true);
+      showSyncToast(allSheets ? 'Đang kiểm tra sâu toàn bộ Vận hành...' : (deep ? 'Đang kiểm tra sâu cache Vận hành...' : 'Đang kiểm tra cache Vận hành...'), 'info', true);
       return callApi('GET', 'getManageCacheAudit', {
         sheetNames: allSheets ? '' : getCurrentManageAuditSheetName_(),
         limit: auditLimit,
@@ -12640,7 +12644,7 @@
         .then((auditData) => {
           return loadSupabaseSyncStatus(false).then((data) => {
             renderSupabaseSyncStatus({ ...(data || {}), manageAudit: auditData || {}, checkedAt: new Date().toISOString() });
-            showSyncToast(auditData && auditData.ok ? `Audit Vận hành OK (${auditLimit} dòng).` : `Audit Vận hành phát hiện cache lệch (${auditLimit} dòng).`, auditData && auditData.ok ? 'info' : 'error');
+            showSyncToast(auditData && auditData.ok ? `Audit Vận hành OK (${allSheets ? 'tất cả, ' : ''}${auditLimit} dòng).` : `Audit Vận hành phát hiện cache lệch (${allSheets ? 'tất cả, ' : ''}${auditLimit} dòng).`, auditData && auditData.ok ? 'info' : 'error');
             return auditData;
           });
         })

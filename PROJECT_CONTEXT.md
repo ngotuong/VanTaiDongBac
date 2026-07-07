@@ -155,6 +155,7 @@ Commit lien quan:
 - Ngay 2026-07-06 bat dau buoc 3b write queue v2 cho luong hep `Van hanh > Nhap moi`: route POST `submitRows` khong ghi Sheet truc tiep nua ma enqueue `write_jobs` qua `SupabaseService.enqueueTransportSubmitRows()`. Chi bat co rieng `ASYNC_TRANSPORT_SUBMIT_ENABLED=true`, giu `ASYNC_WRITE_ENABLED=false` de khong bat lai v1 dai tra. Frontend khi bam Luu nhan `jobId`, hien pending trong nhat ky, kick worker `processWriteJobs` khong cho ket qua, poll `getWriteJobStatus`, reload bang Van hanh khi job `synced`, hien retry khi `failed`. Da deploy Apps Script `@227`, deploy Vercel production; test `clasp run processWriteJobs -p '[1]'` tra `{ processed: 0, ok: true }`, production HTML co `pendingWriteJobs`/`kickWriteJobWorker`.
 - Ngay 2026-07-06 sua UX write queue v2: sau khi nhap moi Van hanh, cac dong `pending/processing/failed` duoc chen tam vao bang Van hanh dang xem dung sheet, co nhan `Dang dong bo` va khong cho sua/xoa khi chua co `rowIndex` that. Muc tieu la nguoi dung co the thay ngay dong vua nhap va xuat anh bao cao truoc khi worker ghi xong Google Sheet. Da deploy Vercel production, test HTML co `getManageRowsWithPending_`, `mapPendingEntryValue_`, `manage-pending-row`.
 - Ngay 2026-07-07 sua tiep write queue v2 sau test thuc te: pending truoc do chi luu trong bo nho trinh duyet nen tat/mo web bi mat. Da them action `getRecentWriteJobs` doc `write_jobs` gan day qua Apps Script, frontend goi `loadRecentTransportWriteJobs()` khi khoi dong de khoi phuc job `pending/processing/failed` va `synced` gan day. Bang Van hanh va Tong quan > chuyen gan day se merge cac job nay, co dedupe neu cache that da co dong. Worker sau khi ghi Sheet xong sync them dashboard/latest trips bang `syncDashboard()` de Tong quan cap nhat som hon. Da deploy Apps Script `@229`, deploy Vercel production; test HTTP `getRecentWriteJobs` tra cac job `synced`, production HTML co `getLatestTripsWithPending_` va `loadRecentTransportWriteJobs`.
+- Ngay 2026-07-07 bo nhan `Dang dong bo/Da dong bo` khoi bang `Tong quan > Du lieu chuyen gan day` vi bang nay dung de xuat anh bao cao. Trang thai dong bo van xem o `Nhat ky giao dich vua thuc hien` va `Cai dat > Trang thai dong bo`, khong chen vao anh xuat.
 
 ## File tài liệu hiện hành
 
@@ -190,6 +191,7 @@ Commit lien quan:
 - Sua tay tren Google Sheet: trigger tick 1 phut dong bo luan phien cache gan nhat, co lock de tranh chay chong.
 - Ghi tu web app: ghi Google Sheet truoc, sau do sync nhanh cache lien quan de UI co du lieu som.
 - Da them panel quan sat `Cai dat > Trang thai dong bo` de nhin duoc cache nao moi/cũ/lỗi truoc khi mo rong realtime notification.
+- Luu y: xoa/sua thu cong truc tiep trong Google Sheet hien chua phai realtime hai chieu dung nghia; web chi mat dong sau khi trigger tick/backfill cache lien quan chay xong hoac nguoi dung force refresh Apps Script. Can thiet ke them co che Sheet -> Supabase nhanh hon neu van thao tac truc tiep tren Sheet.
 - Chua chuyen source-of-truth sang Supabase neu chua co quyet dinh rieng.
 
 ### 3b. Toi uu ghi tu web app bang write queue v2

@@ -38,6 +38,7 @@ var SupabaseService = (function () {
   var DEFAULT_WRITE_JOB_LIMIT = 5;
   var ASYNC_WRITE_ENABLED = false;
   var ASYNC_TRANSPORT_SUBMIT_ENABLED = true;
+  var REPORT_AUDIT_MONTHS = ['05/2026', '06/2026', '07/2026', 'Tất cả'];
   var REALTIME_TICK_INDEX_KEY = 'SUPABASE_REALTIME_TICK_INDEX';
   var REALTIME_TICK_RUNNING_CACHE_KEY = 'SUPABASE_REALTIME_TICK_RUNNING';
   var TRANSPORT_SHEET_SYNC_RUNNING_CACHE_KEY = 'SUPABASE_TRANSPORT_SHEET_SYNC_RUNNING';
@@ -813,6 +814,57 @@ var SupabaseService = (function () {
     };
   }
 
+  function getReportCacheAudit(months) {
+    var requestedMonths = normalizeReportAuditMonths_(months);
+    var rows = readRows_(TABLE_REPORT_BUNDLES, {
+      spreadsheet_id: 'eq.' + APP_CONFIG.spreadsheetId,
+      report_month: 'in.(' + requestedMonths.map(encodeSupabaseInValue_).join(',') + ')',
+      select: 'report_month,payload,synced_at,updated_at',
+      limit: String(requestedMonths.length)
+    });
+    var cachedByMonth = {};
+    (rows || []).forEach(function (row) {
+      cachedByMonth[clean_(row.report_month)] = row;
+    });
+
+    var checkedAt = new Date().toISOString();
+    var results = requestedMonths.map(function (month) {
+      var cached = cachedByMonth[month];
+      if (!cached || !cached.payload) {
+        return {
+          month: month,
+          ok: false,
+          status: 'missing',
+          message: 'Chưa có report_bundles cache cho kỳ này.',
+          syncedAt: ''
+        };
+      }
+
+      var liveBundle = sanitizeReportAuditPayload_(ReportService.getReportBundle(month, true));
+      var cachedBundle = sanitizeReportAuditPayload_(cached.payload);
+      var liveHash = hashPayload_(liveBundle);
+      var cachedHash = hashPayload_(cachedBundle);
+      var ok = liveHash === cachedHash;
+      return {
+        month: month,
+        ok: ok,
+        status: ok ? 'ok' : 'stale',
+        message: ok ? 'Cache khớp dữ liệu live từ Google Sheet.' : 'Cache lệch dữ liệu live, cần sync lại report_bundles.',
+        syncedAt: cached.synced_at || '',
+        liveHash: liveHash,
+        cachedHash: cachedHash
+      };
+    });
+
+    return {
+      ok: results.every(function (item) { return item.ok; }),
+      spreadsheetId: APP_CONFIG.spreadsheetId,
+      checkedAt: checkedAt,
+      months: requestedMonths,
+      results: results
+    };
+  }
+
   function retryWriteJob(jobId) {
     var safeJobId = clean_(jobId);
     if (!safeJobId) throw new Error('Thiếu mã job cần retry.');
@@ -1331,6 +1383,52 @@ var SupabaseService = (function () {
     };
   }
 
+  function normalizeReportAuditMonths_(months) {
+    if (Array.isArray(months)) {
+      var cleaned = months.map(clean_).filter(function (month) { return month; });
+      return cleaned.length ? cleaned : REPORT_AUDIT_MONTHS.slice();
+    }
+    var text = clean_(months);
+    if (!text) return REPORT_AUDIT_MONTHS.slice();
+    var cleanedText = text.split(',').map(clean_).filter(function (month) { return month; });
+    return cleanedText.length ? cleanedText : REPORT_AUDIT_MONTHS.slice();
+  }
+
+  function encodeSupabaseInValue_(value) {
+    return '"' + clean_(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  }
+
+  function hashPayload_(payload) {
+    var json = stableStringify_(payload);
+    var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, json, Utilities.Charset.UTF_8);
+    return Utilities.base64EncodeWebSafe(digest).replace(/=+$/, '');
+  }
+
+  function sanitizeReportAuditPayload_(payload) {
+    if (!payload || typeof payload !== 'object') return payload;
+    return {
+      overview: payload.overview || {},
+      payroll: payload.payroll || [],
+      vehicles: payload.vehicles || [],
+      links: payload.links || {}
+    };
+  }
+
+  function stableStringify_(value) {
+    if (value === null || value === undefined) return 'null';
+    if (Object.prototype.toString.call(value) === '[object Date]') return JSON.stringify(value.toISOString());
+    if (Array.isArray(value)) {
+      return '[' + value.map(stableStringify_).join(',') + ']';
+    }
+    if (typeof value === 'object') {
+      var keys = Object.keys(value).sort();
+      return '{' + keys.map(function (key) {
+        return JSON.stringify(key) + ':' + stableStringify_(value[key]);
+      }).join(',') + '}';
+    }
+    return JSON.stringify(value);
+  }
+
   function runSyncStep_(results, errors, name, fn) {
     try {
       results.push({ name: name, result: fn() });
@@ -1636,6 +1734,7 @@ var SupabaseService = (function () {
     syncFullRealtimeCache: syncFullRealtimeCache,
     syncRealtimeCache: syncRealtimeCache,
     getSupabaseSyncStatus: getSupabaseSyncStatus,
+    getReportCacheAudit: getReportCacheAudit,
     syncReportBundle: syncReportBundle,
     syncAllReportBundles: syncAllReportBundles,
     syncTransportAfterWrite: syncTransportAfterWrite,

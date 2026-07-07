@@ -248,22 +248,24 @@
     }
 
     function getManageRowsWithPending_(sheetName, headers, baseRows) {
-      const pendingRows = buildPendingManageRows_(sheetName, headers);
+      const pendingRows = buildPendingManageRows_(sheetName, headers, baseRows || []);
       return pendingRows.length ? pendingRows.concat(baseRows || []) : (baseRows || []);
     }
 
-    function buildPendingManageRows_(sheetName, headers) {
+    function buildPendingManageRows_(sheetName, headers, baseRows) {
       if (!Array.isArray(headers) || !headers.length) return [];
       const jobs = (pendingWriteJobs || []).filter((job) => {
         return job.sheetName === sheetName
-          && (job.status === 'pending' || job.status === 'processing' || job.status === 'failed');
+          && (job.status === 'pending' || job.status === 'processing' || job.status === 'failed' || job.status === 'synced');
       });
       const rows = [];
       jobs.forEach((job) => {
         (job.rows || []).forEach((entryRow, index) => {
+          const values = headers.map((header) => mapPendingEntryValue_(job.formType, entryRow, header));
+          if (hasMatchingManageBaseRow_(values, baseRows)) return;
           rows.push({
             rowIndex: `pending:${job.jobId}:${index}`,
-            values: headers.map((header) => mapPendingEntryValue_(job.formType, entryRow, header)),
+            values: values,
             isPendingWrite: true,
             pendingStatus: job.status,
             pendingJobId: job.jobId
@@ -271,6 +273,19 @@
         });
       });
       return rows;
+    }
+
+    function hasMatchingManageBaseRow_(pendingValues, baseRows) {
+      const filledIndexes = (pendingValues || [])
+        .map((value, index) => ({ value: String(value || '').trim(), index }))
+        .filter((item) => item.value);
+      if (!filledIndexes.length) return false;
+      return (baseRows || []).some((row) => {
+        const values = row.values || [];
+        return filledIndexes.every((item) => {
+          return String(values[item.index] || '').trim().toLowerCase() === item.value.toLowerCase();
+        });
+      });
     }
 
     function mapPendingEntryValue_(formType, row, header) {
@@ -567,7 +582,9 @@
             const badge = document.createElement('span');
             badge.className = `preview-badge ${row.pendingStatus === 'failed' ? 'warning' : 'info'}`;
             badge.style.marginLeft = '8px';
-            badge.textContent = row.pendingStatus === 'failed' ? 'Lỗi đồng bộ' : 'Đang đồng bộ';
+            badge.textContent = row.pendingStatus === 'failed'
+              ? 'Lỗi đồng bộ'
+              : (row.pendingStatus === 'synced' ? 'Đã đồng bộ' : 'Đang đồng bộ');
             td.appendChild(badge);
           }
           tr.appendChild(td);
@@ -596,7 +613,9 @@
         if (row.isPendingWrite) {
           const pendingText = document.createElement('span');
           pendingText.className = 'preview-badge info';
-          pendingText.textContent = row.pendingStatus === 'failed' ? 'Có thể thử lại' : 'Chờ Sheet';
+          pendingText.textContent = row.pendingStatus === 'failed'
+            ? 'Có thể thử lại'
+            : (row.pendingStatus === 'synced' ? 'Chờ cache' : 'Chờ Sheet');
           tdActions.appendChild(pendingText);
         } else {
           const btnEdit = document.createElement('button');

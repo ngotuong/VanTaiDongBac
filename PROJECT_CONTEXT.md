@@ -36,8 +36,8 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@227 - Enable transport write queue v2`
-- Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @227`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
+- Apps Script deployment moi nhat da xac nhan: `@229 - Restore write jobs after reload and sync dashboard`
+- Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @229`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
 - Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
 
@@ -154,6 +154,7 @@ Commit lien quan:
 - Ngay 2026-07-06 bat dau buoc 3 gan realtime/co kha nang quan sat: them action `getSupabaseSyncStatus` doc bang `sync_status` qua Apps Script service role, va them card `Cai dat > Trang thai dong bo` tren frontend de xem cac cache moi nhat, status, message, tuoi cache. Da deploy Apps Script `@226`, deploy Vercel production; test HTTP `getSupabaseSyncStatus&limit=5` tra `ok=true`, co `realtime_cache_tick`, `dashboard`, `manage_data` status `ok`.
 - Ngay 2026-07-06 bat dau buoc 3b write queue v2 cho luong hep `Van hanh > Nhap moi`: route POST `submitRows` khong ghi Sheet truc tiep nua ma enqueue `write_jobs` qua `SupabaseService.enqueueTransportSubmitRows()`. Chi bat co rieng `ASYNC_TRANSPORT_SUBMIT_ENABLED=true`, giu `ASYNC_WRITE_ENABLED=false` de khong bat lai v1 dai tra. Frontend khi bam Luu nhan `jobId`, hien pending trong nhat ky, kick worker `processWriteJobs` khong cho ket qua, poll `getWriteJobStatus`, reload bang Van hanh khi job `synced`, hien retry khi `failed`. Da deploy Apps Script `@227`, deploy Vercel production; test `clasp run processWriteJobs -p '[1]'` tra `{ processed: 0, ok: true }`, production HTML co `pendingWriteJobs`/`kickWriteJobWorker`.
 - Ngay 2026-07-06 sua UX write queue v2: sau khi nhap moi Van hanh, cac dong `pending/processing/failed` duoc chen tam vao bang Van hanh dang xem dung sheet, co nhan `Dang dong bo` va khong cho sua/xoa khi chua co `rowIndex` that. Muc tieu la nguoi dung co the thay ngay dong vua nhap va xuat anh bao cao truoc khi worker ghi xong Google Sheet. Da deploy Vercel production, test HTML co `getManageRowsWithPending_`, `mapPendingEntryValue_`, `manage-pending-row`.
+- Ngay 2026-07-07 sua tiep write queue v2 sau test thuc te: pending truoc do chi luu trong bo nho trinh duyet nen tat/mo web bi mat. Da them action `getRecentWriteJobs` doc `write_jobs` gan day qua Apps Script, frontend goi `loadRecentTransportWriteJobs()` khi khoi dong de khoi phuc job `pending/processing/failed` va `synced` gan day. Bang Van hanh va Tong quan > chuyen gan day se merge cac job nay, co dedupe neu cache that da co dong. Worker sau khi ghi Sheet xong sync them dashboard/latest trips bang `syncDashboard()` de Tong quan cap nhat som hon. Da deploy Apps Script `@229`, deploy Vercel production; test HTTP `getRecentWriteJobs` tra cac job `synced`, production HTML co `getLatestTripsWithPending_` va `loadRecentTransportWriteJobs`.
 
 ## File tài liệu hiện hành
 
@@ -197,7 +198,7 @@ Commit lien quan:
 - Job co trang thai ro: `pending`, `processing`, `synced`, `failed`; co `write_job_logs` va retry.
 - Worker Apps Script xu ly job theo module, ghi Google Sheet bang cac service hien co, sau do sync cache Supabase lien quan.
 - Hien da bat feature flag rieng `ASYNC_TRANSPORT_SUBMIT_ENABLED=true` cho `transport/submitRows`; van giu `ASYNC_WRITE_ENABLED=false` de tranh bat lai v1 dai tra.
-- Yeu cau v2 khac v1: frontend hien job pending trong danh sach local va bang Van hanh ngay sau khi Luu, worker khong lam cham request, va cache/danh sach that reload khi job `synced`.
+- Yeu cau v2 khac v1: frontend hien job pending trong danh sach local va bang Van hanh ngay sau khi Luu, khoi phuc job gan day sau reload, worker khong lam cham request, va cache/danh sach that reload khi job `synced`.
 
 ### 4. Thong bao va phan quyen
 

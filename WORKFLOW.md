@@ -85,7 +85,7 @@ Cài trigger tự động gần realtime:
 installSupabaseSyncTriggers()
 ```
 
-Trigger này không tự bật nếu chưa chạy hàm cài đặt. Khi đã cài, Apps Script chạy `syncRealtimeCache()` mỗi 1 phút ở chế độ tick luân phiên, có `ScriptLock` để tránh chạy chồng. Mỗi tick chỉ sync một nhóm nhỏ như dashboard, report gần đây, Quỹ gần đây, startup/danh mục, hoặc một sheet Vận hành gần đây. Không dùng trigger này làm full backfill.
+Trigger này không tự bật nếu chưa chạy hàm cài đặt. Khi đã cài, Apps Script chạy `syncRealtimeCache()` mỗi 1 phút ở chế độ tick luân phiên. Mỗi tick chỉ sync một nhóm nhỏ như dashboard, report gần đây, Quỹ gần đây, startup/danh mục, hoặc một sheet Vận hành gần đây. Không dùng trigger này làm full backfill.
 
 Sau giai đoạn 3, trigger này cũng cập nhật cache màn hình khởi động và Danh mục. Nếu chỉ muốn sync riêng phần này, chạy:
 
@@ -115,6 +115,25 @@ syncManageMonthToSupabase('NL_VanChuyen', '2026-07')
 
 Frontend dùng cache `month:YYYY-MM` khi người dùng chọn đủ khoảng ngày trong menu Vận hành.
 
+Để bắt chỉnh sửa/xóa tay trong file Google Sheet Vận tải nhanh hơn trigger tick luân phiên, cài installable trigger trực tiếp cho spreadsheet:
+
+```javascript
+installTransportSheetSyncTrigger()
+```
+
+Hàm này xóa trigger cũ cùng handler rồi cài lại 2 handler:
+
+- `handleTransportSheetEdit(e)`: bắt chỉnh sửa ô/dòng trong các sheet `NL_*`, sync `recent_500`, tháng liên quan nếu xác định được, và dashboard nếu là `NL_VanChuyen`.
+- `handleTransportSheetChange(e)`: bắt thay đổi cấu trúc/xóa dòng trong các sheet `NL_*`, sync `recent_500`, 2 tháng gần nhất, và dashboard nếu là `NL_VanChuyen`.
+
+Test nhanh sau khi cài:
+
+```javascript
+syncTransportSheetChange('MANUAL_TEST', 'NL_VanChuyen')
+```
+
+Sau đó kiểm tra `Cài đặt > Trạng thái đồng bộ` có key `transport_sheet_change:NL_VanChuyen` và thử xóa/sửa một dòng trong Sheet rồi reload web app không force refresh.
+
 Nếu chỉ cần sync lại một tháng giao dịch Quỹ/Thu chi:
 
 ```javascript
@@ -125,12 +144,12 @@ Frontend dùng cache `fund_transaction_bundles.filter_key = month:YYYY-MM` khi n
 
 ## Khi vận hành ghi bất đồng bộ
 
-Trang thai hien tai: async write queue dang tat trong production (`ASYNC_WRITE_ENABLED=false`). Khong bat lai neu chua co ke hoach test rieng va rollback ro.
+Trang thai hien tai: write queue v2 chi bat cho `transport/submitRows` (`ASYNC_TRANSPORT_SUBMIT_ENABLED=true`), con flag dai tra `ASYNC_WRITE_ENABLED=false`. Khong bat queue dai tra neu chua co ke hoach test rieng va rollback ro.
 
 1. Schema queue nằm trong `supabase/migrations/005_write_jobs.sql`.
 2. Worker Apps Script là `processWriteJobs()`, trigger 1 phút cài bằng `installWriteJobTrigger()`.
 3. Nếu `clasp run` không đủ quyền cài trigger, lần enqueue đầu tiên sẽ tự thử cài trigger.
-4. Trigger nhẹ `syncRecentManageDataCache()` làm tươi `recent_500` các sheet Vận hành mỗi phút để bắt các sửa/xóa tay trong Google Sheet.
+4. Sửa/xóa tay trong Google Sheet Vận tải dùng `installTransportSheetSyncTrigger()` ở phần cache gần realtime; không dùng `syncRecentManageDataCache()` khi `ASYNC_WRITE_ENABLED=false`.
 5. Kiểm tra trạng thái job bằng `getWriteJobStatus(jobId)`.
 6. Retry job lỗi bằng `retryWriteJob(jobId)`.
 7. Log chi tiết nằm trong Supabase bảng `write_job_logs`.

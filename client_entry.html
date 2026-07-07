@@ -129,7 +129,7 @@
               pollPendingWriteJob(jobId, attempt + 1);
             }
             if (job.status === 'synced') {
-              loadDashboard(false).catch((err) => console.warn('Không thể tải lại Tổng quan sau khi job synced:', err));
+              loadDashboard(true).catch((err) => console.warn('Không thể tải lại Tổng quan sau khi job synced:', err));
               if (activeView === 'manage') loadManageSheetData(true);
             }
           })
@@ -141,14 +141,18 @@
 
     function updatePendingWriteJob(job) {
       if (!job || !job.jobId) return;
-      pendingWriteJobs = pendingWriteJobs.map((item) => {
-        if (item.jobId !== job.jobId) return item;
-        return {
-          ...item,
-          status: job.status || item.status,
-          lastError: job.lastError || ''
-        };
-      });
+      if (job.status === 'synced') {
+        pendingWriteJobs = pendingWriteJobs.filter((item) => item.jobId !== job.jobId);
+      } else {
+        pendingWriteJobs = pendingWriteJobs.map((item) => {
+          if (item.jobId !== job.jobId) return item;
+          return {
+            ...item,
+            status: job.status || item.status,
+            lastError: job.lastError || ''
+          };
+        });
+      }
       renderEntry();
       if (activeView === 'manage') renderManageTable();
       renderDashboard();

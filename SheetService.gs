@@ -1620,17 +1620,6 @@ var SheetService = (function () {
 
       writeRowSkippingColumns_(sheet, rowNum, valuesToSet, skippedColumns);
 
-      var formType = null;
-      for (var key in APP_CONFIG.sheets) {
-        if (APP_CONFIG.sheets[key].name === sheetName) {
-          formType = key;
-          break;
-        }
-      }
-      if (formType) {
-        applyFormatsSafely_(sheet, formType, rowNum, 1);
-      }
-
       clearAfterSubmitCache_();
 
       if (sheetName.indexOf('DM_') === 0) {

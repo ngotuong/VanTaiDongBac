@@ -136,9 +136,34 @@
     }
 
     function closeMobileEntrySheet() {
+      // Đóng trên mobile
       document.body.classList.remove('mobile-entry-open');
       if (!document.body.classList.contains('drawer-open')) {
         document.body.classList.remove('locked');
+      }
+      
+      // Đóng trên PC (nếu đang hiển thị form nhập nhanh)
+      const entryShell = el('entryShell');
+      const btn = el('toggleEntryFormBtn');
+      if (entryShell) entryShell.classList.remove('entry-shell-visible');
+      if (btn) btn.classList.remove('active');
+    }
+
+    function toggleManageEntryForm() {
+      const entryShell = el('entryShell');
+      const btn = el('toggleEntryFormBtn');
+      if (!entryShell) return;
+      
+      const isVisible = entryShell.classList.toggle('entry-shell-visible');
+      if (btn) {
+        btn.classList.toggle('active', isVisible);
+      }
+      
+      // Load form và catalogs tương ứng nếu mở ra
+      if (isVisible) {
+        renderFormTabs();
+        renderEntry();
+        loadCatalogs(activeForm);
       }
     }
 

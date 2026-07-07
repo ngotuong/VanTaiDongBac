@@ -263,11 +263,11 @@
               Nhập mới
             </button>
           </div>
-          <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; width: 100%;">
-            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; flex: 1; width: 100%;">
-              <label class="manage-period-filter" style="margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); flex: 1; min-width: 145px;">
-                KỲ LỌC:
-                <select id="manageQuickDateFilter" aria-label="Chọn kỳ vận hành" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="setManageQuickDate(this.value)">
+          <div class="filter-container" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
+              <label class="manage-period-filter" style="margin: 0; display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); flex: 0 0 210px; min-width: 210px; white-space: nowrap;">
+                Kỳ lọc:
+                <select id="manageQuickDateFilter" aria-label="Chọn kỳ vận hành" style="height: 38px; flex: 1; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="setManageQuickDate(this.value)">
                   <option value="recent">Mới nhất</option>
                   <option value="today">Hôm nay</option>
                   <option value="7days">7 ngày</option>
@@ -276,22 +276,26 @@
                   <option value="custom">Tùy chọn</option>
                 </select>
               </label>
-              <div id="manageDateFilterGroup" style="display: flex; gap: 8px; align-items: flex-end; flex: 2; min-width: 260px;">
-                <label style="margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); flex: 1; min-width: 120px;">
-                  TỪ:
-                  <input type="text" class="vi-date-input" id="manageStartDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
+              <div id="manageDateFilterGroup" style="display: flex; gap: 12px; align-items: center; flex: 0 0 auto; min-width: 380px;">
+                <label style="margin: 0; display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); flex: 1; min-width: 180px; white-space: nowrap;">
+                  Từ:
+                  <input type="text" class="vi-date-input" id="manageStartDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" style="height: 38px; flex: 1; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
                 </label>
-                <label style="margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); flex: 1; min-width: 120px;">
-                  ĐẾN:
-                  <input type="text" class="vi-date-input" id="manageEndDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
+                <label style="margin: 0; display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); flex: 1; min-width: 180px; white-space: nowrap;">
+                  Đến:
+                  <input type="text" class="vi-date-input" id="manageEndDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" style="height: 38px; flex: 1; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;" onchange="setManageCustomDate()">
                 </label>
               </div>
-              <label style="margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); flex: 2; min-width: 220px;">
-                TÌM KIẾM:
-                <input type="text" id="manageSearchInput" placeholder="Tìm theo biển số, tài xế..." style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="debounceManageSearch()">
+              <label style="margin: 0; display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); flex: 1 1 360px; min-width: 280px; white-space: nowrap;">
+                Tìm kiếm:
+                <input type="text" id="manageSearchInput" placeholder="Tìm theo biển số, tài xế..." style="height: 38px; flex: 1; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;" oninput="debounceManageSearch()">
               </label>
             </div>
-            <div style="display: flex; align-items: center; height: 38px;">
+            <div style="display: flex; align-items: center; gap: 8px; height: 38px;">
+              <button type="button" class="sub-tab" id="toggleEntryFormBtn" style="height: 38px; padding: 0 16px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; border: 1px solid var(--teal); color: var(--teal); background: var(--paper);" onclick="toggleManageEntryForm()">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin: 0; stroke: currentColor;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Nhập nhanh
+              </button>
               <button type="button" class="primary icon-button manage-add-shortcut" title="Thêm dòng mới" aria-label="Thêm dòng mới" style="padding: 0 !important; border-radius: 8px; height: 38px; width: 38px; display: inline-flex; align-items: center; justify-content: center;" onclick="openResponsiveManageAdd()">
                 <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px; margin: 0;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               </button>
@@ -356,8 +360,8 @@
               <button type="button" id="addBtn" class="secondary icon-button" title="Thêm dòng" aria-label="Thêm dòng">
                 <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               </button>
-              <button type="button" id="closeMobileEntryBtn" class="outline icon-button mobile-entry-close" title="Hủy bỏ" aria-label="Hủy bỏ" onclick="closeMobileEntrySheet()">
-                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              <button type="button" id="closeMobileEntryBtn" class="outline icon-button" title="Hủy bỏ/Đóng" aria-label="Hủy bỏ/Đóng" style="height: 44px; width: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px;" onclick="closeMobileEntrySheet()">
+                <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px; margin: 0;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
           </section>
@@ -528,11 +532,11 @@
 
         <div data-cashflow-panel="transactions" style="display: none;">
           <section class="panel app-sticky-toolbar sticky-after-tabs" style="margin-bottom: 16px;">
-            <div class="fund-transaction-toolbar">
-              <div class="fund-transaction-filters" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; flex: 1; width: 100%;">
-                <label class="manage-period-filter" style="margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); flex: 0 0 140px; min-width: 140px;">
-                  KỲ LỌC:
-                  <select id="fundQuickDateFilter" onchange="setFundQuickDate(this.value)" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;">
+            <div class="fund-transaction-toolbar" style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+              <div class="fund-transaction-filters" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex: 1; width: 100%;">
+                <label class="manage-period-filter" style="margin: 0; display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); flex: 0 0 210px; min-width: 210px; white-space: nowrap;">
+                  Kỳ lọc:
+                  <select id="fundQuickDateFilter" onchange="setFundQuickDate(this.value)" style="height: 38px; flex: 1; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;">
                     <option value="recent">Mới nhất</option>
                     <option value="today">Hôm nay</option>
                     <option value="7days">7 ngày</option>
@@ -541,19 +545,19 @@
                     <option value="custom">Tùy chọn</option>
                   </select>
                 </label>
-                <div id="fundDateFilterGroup" style="display: flex; gap: 8px; align-items: flex-end; flex: 2; min-width: 260px;">
-                  <label style="margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); flex: 1; min-width: 120px;">
-                    TỪ:
-                    <input type="text" class="vi-date-input" id="fundStartDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" onchange="setFundCustomDate()" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;">
+                <div id="fundDateFilterGroup" style="display: flex; gap: 12px; align-items: center; flex: 0 0 auto; min-width: 380px;">
+                  <label style="margin: 0; display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); flex: 1; min-width: 180px; white-space: nowrap;">
+                    Từ:
+                    <input type="text" class="vi-date-input" id="fundStartDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" onchange="setFundCustomDate()" style="height: 38px; flex: 1; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;">
                   </label>
-                  <label style="margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); flex: 1; min-width: 120px;">
-                    ĐẾN:
-                    <input type="text" class="vi-date-input" id="fundEndDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" onchange="setFundCustomDate()" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;">
+                  <label style="margin: 0; display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); flex: 1; min-width: 180px; white-space: nowrap;">
+                    Đến:
+                    <input type="text" class="vi-date-input" id="fundEndDate" inputmode="numeric" placeholder="dd/mm/yyyy" autocomplete="off" onchange="setFundCustomDate()" style="height: 38px; flex: 1; box-sizing: border-box; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--ink); background: var(--paper); outline: none;">
                   </label>
                 </div>
-                <label class="fund-transaction-search" style="margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); flex: 2; min-width: 220px;">
-                  TÌM KIẾM:
-                  <input type="text" id="fundSearchInput" placeholder="Tìm mục, người, đối tác..." oninput="debounceFundTransactionSearch()" style="height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;">
+                <label class="fund-transaction-search" style="margin: 0; display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); flex: 1 1 360px; min-width: 280px; white-space: nowrap;">
+                  Tìm kiếm:
+                  <input type="text" id="fundSearchInput" placeholder="Tìm mục, người, đối tác..." oninput="debounceFundTransactionSearch()" style="height: 38px; flex: 1; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none;">
                 </label>
               </div>
               <div class="fund-transaction-toolbar-actions">

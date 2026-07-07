@@ -1608,7 +1608,7 @@
       .filter-container, .fund-transaction-toolbar {
         display: flex !important;
         flex-direction: row !important;
-        align-items: flex-end !important; /* Căn thẳng hàng ở đáy */
+        align-items: center !important; /* Căn giữa dọc */
         justify-content: space-between !important;
         flex-wrap: nowrap !important;
         gap: 16px !important;
@@ -1617,51 +1617,58 @@
       .filter-container > div:first-child, .fund-transaction-toolbar > div:first-child {
         display: flex !important;
         flex-direction: row !important;
-        align-items: flex-end !important; /* Căn thẳng hàng ở đáy */
+        align-items: center !important; /* Căn giữa dọc */
         flex-wrap: nowrap !important;
         gap: 16px !important;
         flex: 1 !important;
       }
       
-      /* Cấu trúc label có nhãn chữ ở trên */
+      /* Cấu trúc label có nhãn chữ nằm ngang hàng (cùng dòng) trên PC */
       .filter-container label,
       #manageDateFilterGroup label,
       .fund-transaction-toolbar label,
       #fundDateFilterGroup label {
         display: flex !important;
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 4px !important;
-        font-size: 11px !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 8px !important;
+        font-size: 13px !important;
         font-weight: 700 !important;
-        text-transform: uppercase !important;
+        text-transform: none !important;
         color: var(--muted) !important;
         margin: 0 !important;
+        white-space: nowrap !important;
       }
       
-      /* Cho phép label Kỳ cũng có nhãn ở trên để đồng bộ */
+      .filter-container label select,
+      .filter-container label input,
+      .fund-transaction-toolbar label select,
+      .fund-transaction-toolbar label input {
+        flex: 1 !important;
+      }
+      
+      /* Cho phép label Kỳ cũng có nhãn ngang hàng */
       .manage-period-filter, .fund-period-filter {
         display: flex !important;
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 4px !important;
-        flex: 0 0 140px !important;
-        min-width: 140px !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex: 0 0 210px !important;
+        min-width: 210px !important;
       }
-
       
       #manageDateFilterGroup, #fundDateFilterGroup {
         display: flex !important;
         flex-direction: row !important;
-        align-items: flex-end !important;
+        align-items: center !important;
         flex: 0 0 auto !important;
-        min-width: 320px !important;
+        min-width: 380px !important;
         gap: 12px !important;
       }
       
       #manageDateFilterGroup label, #fundDateFilterGroup label {
-        flex: 0 0 150px !important;
-        min-width: 150px !important;
+        flex: 1 !important;
+        min-width: 180px !important;
       }
       
       #manageDateFilterGroup label input, #fundDateFilterGroup label input {
@@ -1673,8 +1680,8 @@
       .filter-container label:has(#manageSearchInput),
       .filter-container label:has(#catalogSearchInput),
       .fund-transaction-toolbar label.fund-transaction-search {
-        flex: 1 1 320px !important;
-        min-width: 260px !important;
+        flex: 1 1 360px !important;
+        min-width: 280px !important;
         max-width: 450px !important;
       }
       
@@ -1696,10 +1703,18 @@
 
       /* Ẩn sidebar nhập liệu bên trái trên PC và chuyển thành full width */
       #entryShell {
+        display: none !important; /* Ẩn mặc định trên PC */
         grid-template-columns: 1fr !important;
+      }
+      #entryShell.entry-shell-visible {
+        display: grid !important; /* Hiện lại dưới dạng grid */
       }
       #formTabs {
         display: none !important;
+      }
+      #toggleEntryFormBtn.active {
+        background: var(--teal) !important;
+        color: #ffffff !important;
       }
       
       #manageDauFilterBlock {

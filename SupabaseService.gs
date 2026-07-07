@@ -574,7 +574,60 @@ var SupabaseService = (function () {
     activateFromSpreadsheetEvent_(e);
     var sheet = getEventActiveSheet_(e);
     var sheetName = sheet && sheet.getName ? sheet.getName() : '';
+    if (!sheetName) {
+      return syncUnknownTransportSheetChange_((e && e.changeType) || 'CHANGE');
+    }
     return syncTransportSheetChange((e && e.changeType) || 'CHANGE', sheetName, null);
+  }
+
+  function syncUnknownTransportSheetChange_(eventType) {
+    var safeEventType = clean_(eventType) || 'CHANGE';
+    var runtimeCache = CacheService.getScriptCache();
+    var runningKey = TRANSPORT_SHEET_SYNC_RUNNING_CACHE_KEY + ':unknown';
+    if (runtimeCache.get(runningKey)) {
+      return {
+        ok: true,
+        skipped: true,
+        eventType: safeEventType,
+        reason: 'Previous unknown sheet change sync is still running.'
+      };
+    }
+    runtimeCache.put(runningKey, new Date().toISOString(), TRANSPORT_SHEET_SYNC_RUNNING_TTL_SECONDS);
+
+    var results = [];
+    var errors = [];
+    try {
+      runSyncStep_(results, errors, 'manageData:NL_VanChuyen', function () {
+        return syncManageDataBundle('NL_VanChuyen');
+      });
+      getRecentManageMonthKeys_('NL_VanChuyen', 2).forEach(function (monthKey) {
+        runSyncStep_(results, errors, 'manageData:NL_VanChuyen:' + monthKey, function () {
+          return syncManageMonthBundle('NL_VanChuyen', monthKey);
+        });
+      });
+      runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
+
+      var syncedAt = new Date().toISOString();
+      writeSyncStatus_(
+        'transport_sheet_change:unknown',
+        'manage',
+        errors.length ? 'error' : 'ok',
+        errors.length ? JSON.stringify(errors) : 'Transport sheet change synced without active sheet: ' + safeEventType,
+        syncedAt
+      );
+      return {
+        ok: errors.length === 0,
+        eventType: safeEventType,
+        sheetName: '',
+        fallback: true,
+        synced: results.length,
+        failed: errors.length,
+        results: results,
+        errors: errors
+      };
+    } finally {
+      runtimeCache.remove(runningKey);
+    }
   }
 
   function syncCatalogAfterWrite(displaySheetName) {
@@ -1529,6 +1582,7 @@ var SupabaseService = (function () {
     handleTransportSheetEdit: handleTransportSheetEdit,
     handleTransportSheetChange: handleTransportSheetChange,
     syncTransportSheetChange: syncTransportSheetChange,
+    syncUnknownTransportSheetChange: syncUnknownTransportSheetChange_,
     installWriteJobTrigger: installWriteJobTrigger,
     processWriteJobs: processWriteJobs,
     retryWriteJob: retryWriteJob,

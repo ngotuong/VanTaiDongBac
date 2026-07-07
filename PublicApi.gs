@@ -260,6 +260,10 @@ function syncTransportSheetChange(eventType, sheetName) {
   return SupabaseService.syncTransportSheetChange(eventType, sheetName, null);
 }
 
+function syncUnknownTransportSheetChange(eventType) {
+  return SupabaseService.syncUnknownTransportSheetChange(eventType);
+}
+
 function getWriteJobStatus(jobId) {
   return SupabaseService.getWriteJobStatus(jobId);
 }

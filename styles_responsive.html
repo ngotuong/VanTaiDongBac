@@ -1601,6 +1601,8 @@
       :root[data-theme="dark"] tr.grand-total-row td.sticky-col {
         background: #101827 !important;
       }
+    }
+
     @media (min-width: 769px) {
       /* Dong bo hoa filter bar tren PC */
       .filter-container, .fund-transaction-toolbar {
@@ -1646,15 +1648,7 @@
         flex: 0 0 140px !important;
         min-width: 140px !important;
       }
-      /* Thêm nhãn giả "KỲ LỌC:" trước select bằng CSS pseudo-element nếu label không có text nhãn */
-      .manage-period-filter::before, .fund-period-filter::before {
-        content: "KỲ LỌC:" !important;
-        font-size: 11px !important;
-        font-weight: 700 !important;
-        text-transform: uppercase !important;
-        color: var(--muted) !important;
-        line-height: 1.1 !important;
-      }
+
       
       #manageDateFilterGroup, #fundDateFilterGroup {
         display: flex !important;
@@ -1701,10 +1695,10 @@
       }
 
       /* Ẩn sidebar nhập liệu bên trái trên PC và chuyển thành full width */
-      #manageView .entry-shell {
+      #entryShell {
         grid-template-columns: 1fr !important;
       }
-      #manageView .entry-shell .form-list {
+      #formTabs {
         display: none !important;
       }
       

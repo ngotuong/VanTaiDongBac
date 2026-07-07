@@ -729,12 +729,22 @@
             <div class="settings-card-header">
               <div>
                 <h2>Trạng thái đồng bộ</h2>
-                <p id="syncStatusCheckedAt">Theo dõi cache, write queue và audit Báo cáo.</p>
+                <p id="syncStatusCheckedAt">Theo dõi cache và write queue. Audit chỉ chạy khi bấm kiểm tra.</p>
               </div>
-              <button type="button" class="ghost icon-text-btn" id="syncStatusRefreshBtn" onclick="loadSupabaseSyncStatus(true)">
-                <svg class="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
-                Làm mới
-              </button>
+              <div class="sync-status-actions">
+                <button type="button" class="ghost icon-text-btn" id="syncStatusRefreshBtn" onclick="loadSupabaseSyncStatus(true)" title="Tải lại trạng thái đồng bộ nhanh">
+                  <svg class="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+                  Làm mới
+                </button>
+                <button type="button" class="ghost icon-text-btn" id="manageAuditBtn" onclick="runManageCacheAudit(false)" title="So cache Vận hành với Google Sheet">
+                  <svg class="btn-svg" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                  Kiểm tra Vận hành
+                </button>
+                <button type="button" class="ghost icon-text-btn" id="reportAuditBtn" onclick="runReportCacheAudit()" title="So cache Báo cáo với Google Sheet">
+                  <svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M19 9l-5 5-4-4-3 3"></path></svg>
+                  Kiểm tra Báo cáo
+                </button>
+              </div>
             </div>
             <div id="syncStatusBody" class="sync-status-list">
               <div class="sync-status-empty">Chọn Cài đặt để tải trạng thái.</div>

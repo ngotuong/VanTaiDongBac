@@ -255,13 +255,21 @@
       if (checkedAt) checkedAt.textContent = forceRefresh ? 'Đang làm mới...' : 'Đang tải trạng thái...';
       body.innerHTML = '<div class="sync-status-empty">Đang tải trạng thái đồng bộ...</div>';
 
+      const reportAuditLoader = forceRefresh
+        ? callApi('GET', 'getReportCacheAudit', { months: '05/2026,06/2026,07/2026,Tất cả', forceRefresh: 'true' }).catch((err) => ({ ok: false, error: err.message || String(err), results: [] }))
+        : Promise.resolve({ ok: true, skipped: true, results: [] });
+
       return Promise.all([
         callApi('GET', 'getSupabaseSyncStatus', { limit: 24, forceRefresh: forceRefresh ? 'true' : '' }).catch((err) => ({ ok: false, error: err.message || String(err), rows: [] })),
         callApi('GET', 'getRecentWriteJobs', { module: 'transport', limit: 12, forceRefresh: forceRefresh ? 'true' : '' }).catch((err) => ({ ok: false, error: err.message || String(err), jobs: [] })),
-        callApi('GET', 'getReportCacheAudit', { months: '05/2026,06/2026,07/2026,Tất cả', forceRefresh: forceRefresh ? 'true' : '' }).catch((err) => ({ ok: false, error: err.message || String(err), results: [] }))
+        callApi('GET', 'getManageCacheAudit', {
+          sheetNames: forceRefresh ? '' : getCurrentManageAuditSheetName_(),
+          forceRefresh: forceRefresh ? 'true' : ''
+        }).catch((err) => ({ ok: false, error: err.message || String(err), results: [] })),
+        reportAuditLoader
       ])
-        .then(([syncData, jobData, auditData]) => {
-          const data = { sync: syncData || {}, jobs: jobData || {}, audit: auditData || {}, checkedAt: new Date().toISOString() };
+        .then(([syncData, jobData, manageAuditData, reportAuditData]) => {
+          const data = { sync: syncData || {}, jobs: jobData || {}, manageAudit: manageAuditData || {}, reportAudit: reportAuditData || {}, checkedAt: new Date().toISOString() };
           renderSupabaseSyncStatus(data);
           return data;
         })
@@ -281,17 +289,20 @@
       if (!body) return;
       const syncData = data.sync || data || {};
       const jobData = data.jobs || {};
-      const auditData = data.audit || {};
+      const manageAuditData = data.manageAudit || {};
+      const reportAuditData = data.reportAudit || data.audit || {};
       const rows = syncData.rows || [];
       const jobs = jobData.jobs || [];
-      const auditRows = auditData.results || [];
+      const manageAuditRows = manageAuditData.results || [];
+      const reportAuditRows = reportAuditData.results || [];
       const visibleJobs = jobs.filter((job) => job.status === 'pending' || job.status === 'processing' || job.status === 'failed').slice(0, 8);
       if (checkedAt) checkedAt.textContent = data.checkedAt ? `Kiểm tra lúc ${formatSyncStatusTime(data.checkedAt)}` : 'Đã tải trạng thái.';
 
       const sections = [];
       sections.push(renderSyncStatusSection_('Cache Supabase', syncData.ok === false ? syncData.error : '', rows.map(renderSyncStatusRow_).join('') || '<div class="sync-status-empty">Chưa có trạng thái đồng bộ cache.</div>'));
       sections.push(renderSyncStatusSection_('Write queue Vận hành', jobData.ok === false ? jobData.error : '', renderWriteJobStatusRows_(visibleJobs, jobs)));
-      sections.push(renderSyncStatusSection_('Audit Báo cáo', auditData.ok === false ? auditData.error : '', renderReportAuditRows_(auditRows)));
+      sections.push(renderSyncStatusSection_('Audit Vận hành', manageAuditData.ok === false ? manageAuditData.error : '', renderManageAuditRows_(manageAuditRows)));
+      sections.push(renderSyncStatusSection_('Audit Báo cáo', reportAuditData.ok === false ? reportAuditData.error : '', renderReportAuditRows_(reportAuditRows, reportAuditData.skipped)));
       body.innerHTML = sections.join('');
     }
 
@@ -320,6 +331,11 @@
           <div class="sync-status-list">${content}</div>
         </div>
       `;
+    }
+
+    function getCurrentManageAuditSheetName_() {
+      const select = el('manageSheetSelect');
+      return select && select.value ? select.value : 'NL_VanChuyen';
     }
 
     function renderWriteJobStatusRows_(visibleJobs, allJobs) {
@@ -352,7 +368,30 @@
       }).join('');
     }
 
-    function renderReportAuditRows_(auditRows) {
+    function renderManageAuditRows_(auditRows) {
+      if (!auditRows.length) {
+        return '<div class="sync-status-empty">Chưa có kết quả audit Vận hành.</div>';
+      }
+      return auditRows.map((item) => {
+        const status = String(item.status || '').toLowerCase();
+        const statusClass = item.ok ? 'ok' : 'error';
+        return `
+          <div class="sync-status-row">
+            <div class="sync-status-main">
+              <div class="sync-status-key">${escapeHtml(item.sheetName || '')}</div>
+              <div class="sync-status-note" title="${escapeHtml(item.message || '')}">${escapeHtml(item.message || '')}</div>
+            </div>
+            <span class="sync-status-pill ${statusClass}">${escapeHtml((status || 'unknown').toUpperCase())}</span>
+            <div class="sync-status-time">${formatSyncStatusAge(null, item.syncedAt)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderReportAuditRows_(auditRows, skipped) {
+      if (skipped) {
+        return '<div class="sync-status-empty">Audit Báo cáo khá nặng; bấm Làm mới khi cần đối chiếu 05/2026, 06/2026, 07/2026 và Tất cả.</div>';
+      }
       if (!auditRows.length) {
         return '<div class="sync-status-empty">Chưa có kết quả audit Báo cáo.</div>';
       }

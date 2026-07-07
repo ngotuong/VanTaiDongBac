@@ -865,8 +865,9 @@ var SupabaseService = (function () {
     };
   }
 
-  function getManageCacheAudit(sheetNames) {
+  function getManageCacheAudit(sheetNames, limit) {
     var requestedSheets = normalizeManageAuditSheets_(sheetNames);
+    var auditLimit = Math.min(Math.max(parseInt(limit || 50, 10) || 50, 1), 500);
     var rows = readRows_(TABLE_MANAGE_DATA_BUNDLES, {
       sheet_name: 'in.(' + requestedSheets.map(encodeSupabaseInValue_).join(',') + ')',
       filter_key: 'eq.' + DEFAULT_MANAGE_FILTER_KEY,
@@ -891,16 +892,17 @@ var SupabaseService = (function () {
         };
       }
 
-      var livePayload = sanitizeManageAuditPayload_(ManageService.readManageData(sheetName, '', '', 50));
-      var cachedPayload = sanitizeManageAuditPayload_(cached.payload);
+      var livePayload = sanitizeManageAuditPayload_(ManageService.readManageData(sheetName, '', '', auditLimit), auditLimit);
+      var cachedPayload = sanitizeManageAuditPayload_(cached.payload, auditLimit);
       var liveHash = hashPayload_(livePayload);
       var cachedHash = hashPayload_(cachedPayload);
       var ok = liveHash === cachedHash;
       return {
         sheetName: sheetName,
+        limit: auditLimit,
         ok: ok,
         status: ok ? 'ok' : 'stale',
-        message: ok ? 'Cache recent_500 khớp 50 dòng live mới nhất.' : 'Cache recent_500 lệch 50 dòng live mới nhất.',
+        message: ok ? 'Cache recent_500 khớp ' + auditLimit + ' dòng live mới nhất.' : 'Cache recent_500 lệch ' + auditLimit + ' dòng live mới nhất.',
         syncedAt: cached.synced_at || '',
         liveHash: liveHash,
         cachedHash: cachedHash
@@ -912,6 +914,7 @@ var SupabaseService = (function () {
       spreadsheetId: APP_CONFIG.spreadsheetId,
       checkedAt: checkedAt,
       sheets: requestedSheets,
+      limit: auditLimit,
       results: results
     };
   }
@@ -1476,12 +1479,13 @@ var SupabaseService = (function () {
     };
   }
 
-  function sanitizeManageAuditPayload_(payload) {
+  function sanitizeManageAuditPayload_(payload, limit) {
     if (!payload || typeof payload !== 'object') return payload;
+    var auditLimit = Math.min(Math.max(parseInt(limit || 50, 10) || 50, 1), 500);
     return {
       ok: payload.ok !== false,
       headers: payload.headers || [],
-      rows: (payload.rows || []).slice(0, 50).map(function (row) {
+      rows: (payload.rows || []).slice(0, auditLimit).map(function (row) {
         return {
           rowIndex: row.rowIndex || '',
           values: row.values || []

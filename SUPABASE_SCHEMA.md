@@ -266,10 +266,18 @@ Log từng lần xử lý job, dùng để debug lỗi và làm nền cho retry/
 
 Frontend hiện poll trạng thái qua Apps Script action `getWriteJobStatus`. Retry thủ công dùng `retryWriteJob(jobId)`. Worker Apps Script chạy `processWriteJobs()` bằng trigger 1 phút, cài bằng `installWriteJobTrigger()`.
 
-Từ ngày 2026-07-06, write queue v2 được bật hẹp cho `transport/submitRows`:
+Write queue v2 hiện hỗ trợ `transport/submitRows`, `transport/saveSheetRow` và queued delete chỉ khi xóa nội dung cột:
 
-- `ASYNC_TRANSPORT_SUBMIT_ENABLED=true` cho nhập mới Vận hành.
+- `ASYNC_TRANSPORT_WRITE_ENABLED=true` cho nhập mới/sửa Vận hành.
 - `ASYNC_WRITE_ENABLED=false` vẫn giữ để không bật lại các luồng async v1 đại trà.
-- POST `submitRows` tạo job `pending` trong `write_jobs`, frontend nhận `jobId` nhanh và poll trạng thái.
+- POST `submitRows`/`saveSheetRow` tạo job `pending`; xóa nguyên dòng không vào queue để tránh retry xóa nhầm dòng kế tiếp.
 - Worker ghi Google Sheet bằng `EntryService.submitRows()`, sau đó sync nhanh cache Vận hành liên quan.
 - Action `getRecentWriteJobs` cho phép frontend khôi phục job gần đây sau khi reload, dùng để hiển thị lại pending/synced tạm thời trong bảng Vận hành và Tổng quan.
+
+Migration `006_write_queue_hardening.sql` bổ sung `idempotency_key`, `worker_id`, `claimed_at` và RPC `claim_write_jobs()`. RPC claim atomically bằng `FOR UPDATE SKIP LOCKED`, chỉ lấy `pending` hoặc `processing` quá 5 phút. Append Vận hành giữ `jobId` trong Developer Metadata của vùng Sheet để retry không append dòng mới.
+
+Pilot Quỹ dùng `module=fund`, `action=addFundTransactions`. Voucher được sinh trước và lưu trong payload; worker kiểm tra toàn bộ voucher trước khi append. Flag `ASYNC_FUND_TRANSACTION_ADD_ENABLED` đọc từ Script Properties, mặc định false trong code và đã bật true trên production ngày 2026-07-10. Pending Quỹ không được cộng vào KPI trước khi job `synced`.
+
+### `public.app_users`
+
+Allowlist cho Supabase Auth nội bộ, gồm `user_id`, `username`, email kỹ thuật, `role`, `active`, `display_name`, `created_at`. Giao diện đăng nhập bằng username/password; frontend chuyển username thành địa chỉ kỹ thuật `username@dongbac.internal`, không yêu cầu email thật. Migration `007_auth_hardening.sql` tạo allowlist; migration `008_authenticated_read_cutover.sql` thu hồi quyền `anon` trên toàn bộ cache/queue và chỉ cho role `authenticated` đọc khi `is_active_app_user()` trả true. Ghi cache/queue vẫn chỉ dùng service role ở backend.

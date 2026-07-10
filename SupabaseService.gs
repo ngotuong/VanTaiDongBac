@@ -37,7 +37,8 @@ var SupabaseService = (function () {
   var DEFAULT_MANAGE_FILTER_KEY = 'recent_500';
   var DEFAULT_WRITE_JOB_LIMIT = 5;
   var ASYNC_WRITE_ENABLED = false;
-  var ASYNC_TRANSPORT_SUBMIT_ENABLED = true;
+  var ASYNC_TRANSPORT_WRITE_ENABLED = true;
+  var ASYNC_FUND_TRANSACTION_ADD_ENABLED = readBooleanProperty_('ASYNC_FUND_TRANSACTION_ADD_ENABLED', false);
   var REPORT_AUDIT_MONTHS = ['05/2026', '06/2026', '07/2026', 'Tất cả'];
   var REALTIME_TICK_INDEX_KEY = 'SUPABASE_REALTIME_TICK_INDEX';
   var REALTIME_TICK_RUNNING_CACHE_KEY = 'SUPABASE_REALTIME_TICK_RUNNING';
@@ -715,26 +716,73 @@ var SupabaseService = (function () {
     return { ok: errors.length === 0, synced: results.length, failed: errors.length, months: monthKeys, errors: errors };
   }
 
+  function syncFundTransactionsAfterWrite(year, transactions) {
+    var safeYear = clean_(year) || DEFAULT_FUND_YEAR;
+    var monthKeys = getFundWriteMonthKeys_(safeYear, { transactions: transactions || [] });
+    var results = [];
+    var errors = [];
+    runSyncStep_(results, errors, 'fundOverview', function () { return syncFundOverview(safeYear, ''); });
+    runSyncStep_(results, errors, 'fundTransactions', function () { return syncFundTransactions(safeYear, { limit: 500 }); });
+    monthKeys.forEach(function (monthKey) {
+      runSyncStep_(results, errors, 'fundOverview:' + monthKey, function () {
+        return syncFundOverview(safeYear, monthKey);
+      });
+      runSyncStep_(results, errors, 'fundTransactions:' + monthKey, function () {
+        return syncFundTransactionMonth(safeYear, monthKey);
+      });
+    });
+    return { ok: errors.length === 0, synced: results.length, failed: errors.length, months: monthKeys, errors: errors };
+  }
+
   function isWriteJobEnabled_() {
-    return ASYNC_WRITE_ENABLED || ASYNC_TRANSPORT_SUBMIT_ENABLED;
+    return ASYNC_WRITE_ENABLED || ASYNC_TRANSPORT_WRITE_ENABLED || ASYNC_FUND_TRANSACTION_ADD_ENABLED;
   }
 
   function isWriteJobAllowed_(moduleName, actionName) {
     if (ASYNC_WRITE_ENABLED) return true;
-    if (!ASYNC_TRANSPORT_SUBMIT_ENABLED || clean_(moduleName) !== 'transport') return false;
+    var safeModule = clean_(moduleName);
     var safeAction = clean_(actionName);
-    return safeAction === 'submitRows'
-      || safeAction === 'saveSheetRow'
-      || safeAction === 'deleteSheetRow';
+    if (ASYNC_TRANSPORT_WRITE_ENABLED && safeModule === 'transport') {
+      return safeAction === 'submitRows' || safeAction === 'saveSheetRow' || safeAction === 'deleteSheetRow';
+    }
+    return ASYNC_FUND_TRANSACTION_ADD_ENABLED && safeModule === 'fund' && safeAction === 'addFundTransactions';
   }
 
-  function enqueueWriteJob(moduleName, actionName, payload) {
+  function shouldQueueFundTransactions() {
+    return ASYNC_WRITE_ENABLED || ASYNC_FUND_TRANSACTION_ADD_ENABLED;
+  }
+
+  function enqueueWriteJob(moduleName, actionName, payload, idempotencyKey) {
     var safeModule = clean_(moduleName) || 'transport';
     var safeAction = clean_(actionName);
     if (!isWriteJobAllowed_(safeModule, safeAction)) {
       throw new Error('Async write queue đang tắt. Dùng luồng ghi Apps Script trực tiếp.');
     }
-    var jobId = Utilities.getUuid();
+    var safeIdempotencyKey = clean_(idempotencyKey);
+    if (safeIdempotencyKey) {
+      var existing = readRows_(TABLE_WRITE_JOBS, {
+        module: 'eq.' + safeModule,
+        idempotency_key: 'eq.' + safeIdempotencyKey,
+        select: 'id,module,action,status,result,attempts,max_attempts,last_error,created_at,updated_at,synced_at',
+        limit: '1'
+      });
+      if (existing.length) {
+        var existingJob = normalizeWriteJobRow_(existing[0]);
+        if (existingJob.status === 'synced' && existingJob.result && typeof existingJob.result === 'object') {
+          var completedResult = {};
+          Object.keys(existingJob.result).forEach(function (key) { completedResult[key] = existingJob.result[key]; });
+          completedResult.jobId = existingJob.jobId;
+          completedResult.status = 'synced';
+          completedResult.queued = false;
+          completedResult.duplicateRequest = true;
+          return completedResult;
+        }
+        existingJob.queued = existingJob.status !== 'synced';
+        existingJob.duplicateRequest = true;
+        return existingJob;
+      }
+    }
+    var jobId = safeIdempotencyKey ? buildIdempotentJobId_(safeModule, safeIdempotencyKey) : Utilities.getUuid();
     var row = {
       id: jobId,
       module: safeModule,
@@ -744,14 +792,15 @@ var SupabaseService = (function () {
       attempts: 0,
       max_attempts: 3,
       last_error: '',
-      next_run_at: new Date().toISOString()
+      next_run_at: new Date().toISOString(),
+      idempotency_key: safeIdempotencyKey || jobId
     };
     upsertRows_(TABLE_WRITE_JOBS, [row], 'id');
     insertRows_(TABLE_WRITE_JOB_LOGS, [{
       job_id: jobId,
       status: 'pending',
       message: 'Write job queued.',
-      details: { action: row.action, module: row.module }
+      details: { action: row.action, module: row.module, idempotencyKey: row.idempotency_key }
     }]);
     var triggerResult = null;
     try {
@@ -779,6 +828,7 @@ var SupabaseService = (function () {
       status: 'pending',
       module: row.module,
       action: row.action,
+      idempotencyKey: row.idempotency_key,
       trigger: triggerResult
     };
   }
@@ -810,6 +860,9 @@ var SupabaseService = (function () {
     if (!isManageSheetName_(safeSheetName)) {
       throw new Error('Async delete chỉ hỗ trợ sheet Vận hành NL_* ở bước này.');
     }
+    if (!Array.isArray(columnsToClear) || !columnsToClear.length) {
+      throw new Error('Xóa bất đồng bộ chỉ được phép xóa nội dung các cột chỉ định; không được deleteRow().');
+    }
     return enqueueWriteJob('transport', 'deleteSheetRow', {
       sheetName: safeSheetName,
       rowIndex: rowIndex,
@@ -819,12 +872,38 @@ var SupabaseService = (function () {
     });
   }
 
+  function enqueueFundTransactions(year, transactions, clientRequestId) {
+    var safeYear = clean_(year) || DEFAULT_FUND_YEAR;
+    if (!/^\d{4}$/.test(safeYear)) throw new Error('Năm Thu chi không hợp lệ: ' + safeYear);
+    var safeTransactions = Array.isArray(transactions) ? transactions : [];
+    if (!safeTransactions.length) throw new Error('Chưa có giao dịch thu chi nào để ghi.');
+    FundService.validateFundTransactions(safeTransactions);
+    var requestId = clean_(clientRequestId) || Utilities.getUuid();
+    if (requestId.length > 200 || !/^[A-Za-z0-9._:-]+$/.test(requestId)) {
+      throw new Error('clientRequestId không hợp lệ.');
+    }
+    var now = new Date();
+    var voucherSeed = Utilities.formatDate(now, APP_CONFIG.timezone, 'yyMMddHHmmss') + String(now.getMilliseconds()).padStart(3, '0');
+    var prepared = safeTransactions.map(function (transaction, index) {
+      var copy = {};
+      Object.keys(transaction || {}).forEach(function (key) { copy[key] = transaction[key]; });
+      copy.voucher = clean_(copy.voucher) || voucherSeed + '-' + String(index + 1).padStart(2, '0');
+      return copy;
+    });
+    return enqueueWriteJob('fund', 'addFundTransactions', {
+      year: safeYear,
+      transactions: prepared,
+      clientRequestId: requestId,
+      queuedAt: new Date().toISOString()
+    }, 'fund:add:' + safeYear + ':' + requestId);
+  }
+
   function getWriteJobStatus(jobId) {
     var safeJobId = clean_(jobId);
     if (!safeJobId) throw new Error('Thiếu mã job cần kiểm tra.');
     var rows = readRows_(TABLE_WRITE_JOBS, {
       id: 'eq.' + safeJobId,
-      select: 'id,module,action,status,result,attempts,max_attempts,last_error,created_at,updated_at,synced_at',
+      select: 'id,module,action,status,result,attempts,max_attempts,last_error,idempotency_key,worker_id,claimed_at,created_at,updated_at,synced_at',
       limit: '1'
     });
     if (!rows.length) {
@@ -836,7 +915,7 @@ var SupabaseService = (function () {
   function getRecentWriteJobs(moduleName, actionName, limit) {
     var safeLimit = Math.min(Math.max(parseInt(limit || 20, 10) || 20, 1), 100);
     var query = {
-      select: 'id,module,action,status,payload,result,attempts,max_attempts,last_error,created_at,updated_at,synced_at',
+      select: 'id,module,action,status,payload,result,attempts,max_attempts,last_error,idempotency_key,worker_id,claimed_at,created_at,updated_at,synced_at',
       order: 'created_at.desc',
       limit: String(safeLimit)
     };
@@ -963,9 +1042,12 @@ var SupabaseService = (function () {
     if (!safeJobId) throw new Error('Thiếu mã job cần retry.');
     updateRows_(TABLE_WRITE_JOBS, {
       status: 'pending',
+      attempts: 0,
       last_error: '',
       next_run_at: new Date().toISOString(),
-      locked_at: null
+      locked_at: null,
+      claimed_at: null,
+      worker_id: null
     }, { id: 'eq.' + safeJobId });
     insertRows_(TABLE_WRITE_JOB_LOGS, [{
       job_id: safeJobId,
@@ -979,30 +1061,23 @@ var SupabaseService = (function () {
     if (!isWriteJobEnabled_()) {
       return { ok: true, disabled: true, processed: 0, message: 'Async write queue is disabled.' };
     }
-    var lock = LockService.getScriptLock();
-    lock.waitLock(5000);
-    try {
-      var limit = Math.max(1, Math.min(parseInt(maxJobs, 10) || DEFAULT_WRITE_JOB_LIMIT, 20));
-      var nowIso = new Date().toISOString();
-      var jobs = readRows_(TABLE_WRITE_JOBS, {
-        status: 'in.(pending,processing)',
-        next_run_at: 'lte.' + nowIso,
-        order: 'created_at.asc',
-        limit: String(limit),
-        select: 'id,module,action,status,payload,attempts,max_attempts,last_error,created_at'
-      });
-      var results = [];
-      jobs.forEach(function (job) {
-        results.push(processWriteJob_(job));
-      });
-      return {
-        ok: results.every(function (item) { return item && item.ok !== false; }),
-        processed: results.length,
-        results: results
-      };
-    } finally {
-      lock.releaseLock();
-    }
+    var limit = Math.max(1, Math.min(parseInt(maxJobs, 10) || DEFAULT_WRITE_JOB_LIMIT, 20));
+    var workerId = 'gas-' + Utilities.getUuid();
+    var jobs = callRpc_('claim_write_jobs', {
+      p_limit: limit,
+      p_worker_id: workerId,
+      p_stale_seconds: 300
+    });
+    var results = [];
+    (jobs || []).forEach(function (job) {
+      results.push(processWriteJob_(job, workerId));
+    });
+    return {
+      ok: results.every(function (item) { return item && item.ok !== false; }),
+      workerId: workerId,
+      processed: results.length,
+      results: results
+    };
   }
 
   function installWriteJobTrigger() {
@@ -1090,20 +1165,14 @@ var SupabaseService = (function () {
     };
   }
 
-  function processWriteJob_(job) {
-    var attempts = Number(job.attempts || 0) + 1;
+  function processWriteJob_(job, workerId) {
+    var attempts = Number(job.attempts || 0);
     var jobId = clean_(job.id);
-    updateRows_(TABLE_WRITE_JOBS, {
-      status: 'processing',
-      attempts: attempts,
-      locked_at: new Date().toISOString(),
-      last_error: ''
-    }, { id: 'eq.' + jobId });
     insertRows_(TABLE_WRITE_JOB_LOGS, [{
       job_id: jobId,
       status: 'processing',
       message: 'Write job processing started.',
-      details: { attempt: attempts }
+      details: { attempt: attempts, workerId: workerId || job.worker_id || '', claimedAt: job.claimed_at || '', idempotencyKey: job.idempotency_key || '' }
     }]);
 
     try {
@@ -1145,7 +1214,8 @@ var SupabaseService = (function () {
     var actionName = clean_(job.action);
     var payload = job.payload || {};
     if (actionName === 'submitRows') {
-      var result = EntryService.submitRows(payload.formType, payload.rows || []);
+      var result = EntryService.submitRows(payload.formType, payload.rows || [], { jobId: job.id, idempotencyKey: job.idempotency_key });
+      assertWriteResultOk_(result, 'Không thể ghi dữ liệu Vận hành.');
       if (result && result.inserted) {
         try {
           result.supabaseSync = syncTransportAfterWrite(result.sheetName, payload.rows || [], { fast: true });
@@ -1166,7 +1236,8 @@ var SupabaseService = (function () {
       return result;
     }
     if (actionName === 'saveSheetRow') {
-      var saveResult = EntryService.saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData || {});
+      var saveResult = EntryService.saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData || {}, payload.previousRowData || null);
+      assertWriteResultOk_(saveResult, 'Không thể sửa dòng Vận hành.');
       if (saveResult && saveResult.ok !== false) {
         try {
           saveResult.supabaseSync = syncTransportAfterWrite(payload.sheetName, [payload.rowData || {}], { fast: true });
@@ -1189,7 +1260,11 @@ var SupabaseService = (function () {
       return saveResult;
     }
     if (actionName === 'deleteSheetRow') {
-      var deleteResult = EntryService.deleteSheetRow(payload.sheetName, payload.rowIndex, payload.columnsToClear || null);
+      if (!Array.isArray(payload.columnsToClear) || !payload.columnsToClear.length) {
+        throw new Error('Job deleteSheetRow không có columnsToClear; từ chối deleteRow() để tránh xóa nhầm khi retry.');
+      }
+      var deleteResult = EntryService.deleteSheetRow(payload.sheetName, payload.rowIndex, payload.columnsToClear || null, payload.rowData || null);
+      assertWriteResultOk_(deleteResult, 'Không thể xóa nội dung dòng Vận hành.');
       if (deleteResult && deleteResult.ok !== false) {
         try {
           deleteResult.supabaseSync = syncTransportAfterWrite(payload.sheetName, [], { fast: true });
@@ -1211,7 +1286,26 @@ var SupabaseService = (function () {
       }
       return deleteResult;
     }
+    if (clean_(job.module) === 'fund' && actionName === 'addFundTransactions') {
+      var fundResult = FundService.addFundTransactions(payload.year, payload.transactions || [], {
+        jobId: job.id,
+        idempotencyKey: job.idempotency_key
+      });
+      assertWriteResultOk_(fundResult, 'Không thể ghi giao dịch Thu chi.');
+      try {
+        fundResult.supabaseSync = syncFundTransactionsAfterWrite(payload.year, payload.transactions || []);
+      } catch (fundSyncErr) {
+        fundResult.supabaseSync = { ok: false, error: fundSyncErr && fundSyncErr.message ? fundSyncErr.message : String(fundSyncErr) };
+      }
+      return fundResult;
+    }
     throw new Error('Write job action chưa được hỗ trợ: ' + actionName);
+  }
+
+  function assertWriteResultOk_(result, fallbackMessage) {
+    if (result && result.ok !== false) return result;
+    var errorMessage = result && (result.error || (result.errors && result.errors.join('; ')));
+    throw new Error(errorMessage || fallbackMessage || 'Write job thất bại.');
   }
 
   function normalizeWriteJobRow_(row) {
@@ -1220,6 +1314,9 @@ var SupabaseService = (function () {
       jobId: row.id,
       module: row.module,
       action: row.action,
+      idempotencyKey: row.idempotency_key || '',
+      workerId: row.worker_id || '',
+      claimedAt: row.claimed_at || '',
       status: row.status,
       result: row.result || null,
       payload: row.payload || null,
@@ -1454,6 +1551,26 @@ var SupabaseService = (function () {
     }
   }
 
+  function callRpc_(functionName, payload) {
+    var config = getConfig_();
+    var endpoint = config.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + encodeURIComponent(functionName);
+    var response = UrlFetchApp.fetch(endpoint, {
+      method: 'post',
+      muteHttpExceptions: true,
+      contentType: 'application/json',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: 'Bearer ' + config.serviceRoleKey
+      },
+      payload: JSON.stringify(payload || {})
+    });
+    var code = response.getResponseCode();
+    if (code < 200 || code >= 300) {
+      throw new Error('Supabase RPC ' + functionName + ' thất bại (' + code + '): ' + response.getContentText());
+    }
+    return JSON.parse(response.getContentText() || '[]');
+  }
+
   function writeSyncStatus_(syncKey, moduleName, status, message, syncedAt) {
     try {
       upsertRows_(TABLE_SYNC_STATUS, [{
@@ -1529,6 +1646,15 @@ var SupabaseService = (function () {
     var json = stableStringify_(payload);
     var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, json, Utilities.Charset.UTF_8);
     return Utilities.base64EncodeWebSafe(digest).replace(/=+$/, '');
+  }
+
+  function buildIdempotentJobId_(moduleName, idempotencyKey) {
+    var digest = Utilities.computeDigest(
+      Utilities.DigestAlgorithm.SHA_256,
+      clean_(moduleName) + ':' + clean_(idempotencyKey),
+      Utilities.Charset.UTF_8
+    );
+    return 'idem-' + Utilities.base64EncodeWebSafe(digest).replace(/=+$/, '').substring(0, 43);
   }
 
   function sanitizeReportAuditPayload_(payload) {
@@ -1865,10 +1991,21 @@ var SupabaseService = (function () {
     return value === null || value === undefined ? '' : String(value).trim();
   }
 
+  function readBooleanProperty_(propertyName, fallbackValue) {
+    try {
+      var value = PropertiesService.getScriptProperties().getProperty(propertyName);
+      if (value === null || value === undefined || value === '') return Boolean(fallbackValue);
+      return ['1', 'true', 'yes', 'on'].indexOf(String(value).trim().toLowerCase()) !== -1;
+    } catch (err) {
+      return Boolean(fallbackValue);
+    }
+  }
+
   return {
     installSupabaseSyncTriggers: installSupabaseSyncTriggers,
     syncDashboard: syncDashboard,
     syncFundAfterWrite: syncFundAfterWrite,
+    syncFundTransactionsAfterWrite: syncFundTransactionsAfterWrite,
     syncFundLoanOverview: syncFundLoanOverview,
     syncFundOverview: syncFundOverview,
     syncFundTransactionMonth: syncFundTransactionMonth,
@@ -1898,6 +2035,8 @@ var SupabaseService = (function () {
     enqueueTransportSubmitRows: enqueueTransportSubmitRows,
     enqueueTransportSaveSheetRow: enqueueTransportSaveSheetRow,
     enqueueTransportDeleteSheetRow: enqueueTransportDeleteSheetRow,
+    enqueueFundTransactions: enqueueFundTransactions,
+    shouldQueueFundTransactions: shouldQueueFundTransactions,
     getRecentWriteJobs: getRecentWriteJobs,
     getWriteJobStatus: getWriteJobStatus,
     installManageDataSyncTrigger: installManageDataSyncTrigger,

@@ -198,7 +198,7 @@ var SheetService = (function () {
     return sheet ? base + '#gid=' + sheet.getSheetId() : base;
   }
 
-  function submitRows(formType, rows) {
+  function submitRows(formType, rows, writeContext) {
     if (!APP_CONFIG.sheets[formType]) {
       throw new Error('Loai form khong hop le: ' + formType);
     }
@@ -212,6 +212,14 @@ var SheetService = (function () {
       var ss = getSpreadsheet_();
       var catalogs = getCatalogs(formType);
       var result = ValidationService.buildRows(formType, rows, catalogs);
+      if (writeContext && writeContext.jobId && result.errors && result.errors.length) {
+        return {
+          ok: false,
+          inserted: 0,
+          errors: result.errors,
+          warnings: result.warnings
+        };
+      }
       if (!result.values.length) {
         return {
           ok: false,
@@ -227,8 +235,14 @@ var SheetService = (function () {
         throw new Error('Khong tim thay sheet ' + cfg.name);
       }
 
-      var appendRow = getAppendRow_(sheet, cfg.headerRow);
+      var reservedRange = findWriteJobRange_(sheet, writeContext);
+      var idempotentReplay = Boolean(reservedRange);
+      var appendRow = reservedRange ? reservedRange.getRow() : getAppendRow_(sheet, cfg.headerRow);
       ensureRows_(sheet, appendRow + result.values.length - 1);
+      if (!reservedRange && writeContext && writeContext.jobId) {
+        reservedRange = sheet.getRange(appendRow, 1, result.values.length, Math.max(1, result.values[0].length));
+        reservedRange.addDeveloperMetadata('WRITE_JOB_ID', String(writeContext.jobId), SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT);
+      }
       
       if (formType === 'dau') {
         var dauHeaders = sheet.getRange(cfg.headerRow, 1, 1, sheet.getLastColumn()).getValues()[0].map(function (h) {
@@ -249,6 +263,7 @@ var SheetService = (function () {
         inserted: result.values.length,
         startRow: appendRow,
         sheetName: cfg.name,
+        idempotentReplay: idempotentReplay,
         errors: result.errors,
         warnings: result.warnings
       };
@@ -1532,7 +1547,7 @@ var SheetService = (function () {
     }
   }
 
-  function saveSheetRow(sheetName, rowIndex, rowData) {
+  function saveSheetRow(sheetName, rowIndex, rowData, expectedRowData) {
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
@@ -1571,6 +1586,13 @@ var SheetService = (function () {
       if (rowNum <= sheet.getLastRow()) {
         existingFormulas = sheet.getRange(rowNum, 1, 1, headers.length).getFormulas()[0];
         existingValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+      }
+
+      if (existingValues && rowObjectMatchesValues_(headers, existingValues, rowData)) {
+        return { ok: true, rowIndex: rowNum, idempotentReplay: true };
+      }
+      if (existingValues && expectedRowData && !rowObjectMatchesValues_(headers, existingValues, expectedRowData)) {
+        throw new Error('Dòng ' + rowNum + ' đã thay đổi sau khi tạo job; từ chối ghi để tránh sửa nhầm dữ liệu.');
       }
 
       var valuesToSet = [];
@@ -1637,7 +1659,7 @@ var SheetService = (function () {
     }
   }
 
-  function deleteSheetRow(sheetName, rowIndex, columnsToClear) {
+  function deleteSheetRow(sheetName, rowIndex, columnsToClear, expectedRowData) {
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
@@ -1674,6 +1696,16 @@ var SheetService = (function () {
           return h;
         });
 
+        var currentValues = sheet.getRange(rowNum, 1, 1, lastCol).getValues()[0];
+        var alreadyCleared = columnsToClear.every(function (colHeader) {
+          var clearedColIdx = headers.indexOf(colHeader);
+          return clearedColIdx === -1 || normalizeComparableCell_(currentValues[clearedColIdx]) === '';
+        });
+        if (alreadyCleared) return { ok: true, rowIndex: rowNum, idempotentReplay: true };
+        if (expectedRowData && !rowObjectMatchesValues_(headers, currentValues, expectedRowData)) {
+          throw new Error('Dòng ' + rowNum + ' đã thay đổi sau khi tạo job; từ chối xóa để tránh xóa nhầm dữ liệu.');
+        }
+
         columnsToClear.forEach(function(colHeader) {
           var colIdx = headers.indexOf(colHeader);
           if (colIdx !== -1) {
@@ -1700,6 +1732,37 @@ var SheetService = (function () {
     } finally {
       lock.releaseLock();
     }
+  }
+
+  function findWriteJobRange_(sheet, writeContext) {
+    var jobId = writeContext && writeContext.jobId ? String(writeContext.jobId).trim() : '';
+    if (!jobId) return null;
+    var metadata = sheet.createDeveloperMetadataFinder()
+      .withKey('WRITE_JOB_ID')
+      .withValue(jobId)
+      .find();
+    if (!metadata || !metadata.length) return null;
+    var location = metadata[0].getLocation();
+    return location && location.getRange ? location.getRange() : null;
+  }
+
+  function rowObjectMatchesValues_(headers, values, rowData) {
+    var compared = 0;
+    var matches = true;
+    Object.keys(rowData || {}).forEach(function (header) {
+      var colIndex = headers.indexOf(header);
+      if (colIndex < 0 || rowData[header] === undefined) return;
+      compared++;
+      if (normalizeComparableCell_(values[colIndex]) !== normalizeComparableCell_(rowData[header])) matches = false;
+    });
+    return compared > 0 && matches;
+  }
+
+  function normalizeComparableCell_(value) {
+    if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+      return Utilities.formatDate(value, APP_CONFIG.timezone, 'yyyy-MM-dd');
+    }
+    return String(value === null || value === undefined ? '' : value).trim().replace(/\s+/g, ' ');
   }
 
   return {

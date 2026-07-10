@@ -8,6 +8,8 @@ function doGet(e) {
       return renderIndex_();
     }
 
+    SecurityService.assertProxyRequest(action, e.parameter.proxySecret);
+
     if (action === 'debugSheet') {
       var ss = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
       var sheet = ss.getSheetByName('BC_TongQuan');
@@ -76,7 +78,12 @@ function doPost(e) {
       year: payload.year
     });
     action = payload.action;
-    return timedJsonResponse_(action, startedAt, invokeApi('POST', action, {}, payload));
+    SecurityService.assertProxyRequest(action, payload.proxySecret);
+    var requestMethod = String(payload.method || 'POST').toUpperCase();
+    var requestParams = payload.params || {};
+    var requestBody = payload.body && typeof payload.body === 'object' ? payload.body : payload;
+    requestBody.proxySecret = payload.proxySecret;
+    return timedJsonResponse_(action, startedAt, invokeApi(requestMethod, action, requestParams, requestBody));
   } catch (err) {
     return timedJsonResponse_(action || 'unknown', startedAt, { ok: false, error: err.message });
   }
@@ -113,6 +120,7 @@ function renderIndex_() {
   template.supabaseUrl = props.getProperty('SUPABASE_URL') || '';
   template.supabaseAnonKey = props.getProperty('SUPABASE_ANON_KEY') || '';
   template.supabaseReportsEnabled = props.getProperty('SUPABASE_REPORTS_ENABLED') || '';
+  template.authEnabled = props.getProperty('AUTH_ENABLED') || '';
   return template
     .evaluate()
     .setTitle('Vận tải Đông Bắc - Hệ thống điều hành nội bộ')

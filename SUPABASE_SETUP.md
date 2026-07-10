@@ -148,9 +148,25 @@ syncRealtimeCache()
 installSupabaseSyncTriggers()
 ```
 
-4. Vào mục **Triggers** trong Apps Script để kiểm tra có trigger `syncRealtimeCache` chạy mỗi 5 phút.
+4. Vào mục **Triggers** trong Apps Script để kiểm tra có trigger `syncRealtimeCache` chạy mỗi 1 phút.
 
-Trigger này giúp dữ liệu sửa tay trong Google Sheet được đẩy sang Supabase trong khoảng 1-5 phút.
+Trigger này chạy tick nhỏ mỗi 1 phút; installable trigger theo file Vận tải có thể cập nhật sớm hơn khi sửa tay các sheet `NL_*`.
+
+## 8. Bật đăng nhập nội bộ và API proxy
+
+Thực hiện đúng thứ tự để không tự khóa production:
+
+1. Chạy migration `006_write_queue_hardening.sql`, sau đó `007_auth_hardening.sql` để tạo allowlist nhưng chưa thu hồi anon read.
+2. Bật Email provider trong Supabase Auth. Tài khoản nội bộ dùng email kỹ thuật dạng `<username>@dongbac.internal`, nhưng giao diện chỉ hiển thị tên đăng nhập.
+3. Tạo Auth user bằng Admin API, sau đó thêm `user_id`, `username`, email kỹ thuật, `role` và `display_name` vào `app_users`; không commit thông tin tài khoản vào repo.
+4. Đặt Vercel server env: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APPS_SCRIPT_URL`, `APP_PROXY_SECRET`.
+5. Đặt frontend env `VITE_AUTH_ENABLED=true`; giữ service role/proxy secret không có prefix `VITE_`.
+6. Đặt Apps Script Properties `APP_PROXY_SECRET` cùng giá trị, `AUTH_ENABLED=true`, nhưng giữ `AUTH_ENFORCEMENT_ENABLED=false` trong lần deploy đầu.
+7. Deploy proxy/frontend với auth, đăng nhập bằng tài khoản nội bộ và test `/api/app?action=authSession`.
+8. Chạy migration `008_authenticated_read_cutover.sql` để thu hồi anon read, rồi kiểm tra cache vẫn đọc được bằng JWT.
+9. Cuối cùng mới đặt `AUTH_ENFORCEMENT_ENABLED=true` rồi deploy Apps Script version mới. Test gọi thẳng Apps Script bị từ chối và proxy vẫn hoạt động.
+
+Không chạy migration `008` trước khi đã có ít nhất một tài khoản trong `app_users` và proxy/frontend sẵn sàng, vì migration này thu hồi quyền đọc `anon`.
 
 Sau migration giai đoạn 3, `syncRealtimeCache()` đồng bộ thêm:
 

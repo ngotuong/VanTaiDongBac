@@ -14,5 +14,6 @@
 supabase/.temp/
 .vercel
 .env*
+!.env.example
 .clasp.json
 client_secret.json

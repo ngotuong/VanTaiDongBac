@@ -10,6 +10,7 @@ const DEFAULT_SERVICE_URL = process.env.VITE_APP_SERVICE_URL
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 const SUPABASE_REPORTS_ENABLED = process.env.VITE_SUPABASE_REPORTS_ENABLED || process.env.SUPABASE_REPORTS_ENABLED || '';
+const AUTH_ENABLED = process.env.VITE_AUTH_ENABLED || process.env.AUTH_ENABLED || '';
 
 console.log('🔄 Bắt đầu quá trình build index.html...');
 
@@ -35,6 +36,10 @@ try {
   templateContent = templateContent.replace(
     /<\?!=\s*JSON\.stringify\(supabaseReportsEnabled\s*\|\|\s*''\)\s*\?>/g,
     JSON.stringify(SUPABASE_REPORTS_ENABLED)
+  );
+  templateContent = templateContent.replace(
+    /<\?!=\s*JSON\.stringify\(authEnabled\s*\|\|\s*''\)\s*\?>/g,
+    JSON.stringify(AUTH_ENABLED)
   );
 
   // Regex tìm kiếm tag Apps Script: <?!= include('filename'); ?>

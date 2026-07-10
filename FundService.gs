@@ -499,7 +499,20 @@ var FundService = (function () {
     return result.rows[0];
   }
 
-  function addFundTransactions(year, payloads) {
+  function validateFundTransactions(payloads) {
+    var safePayloads = Array.isArray(payloads) ? payloads : [];
+    if (!safePayloads.length) throw new Error('Chưa có giao dịch thu chi nào để ghi.');
+    safePayloads.forEach(function (payload, index) {
+      try {
+        buildTransactionRow_(payload || {}, 'VALIDATION', index);
+      } catch (err) {
+        throw new Error('Dòng ' + (index + 1) + ': ' + (err && err.message ? err.message : String(err)));
+      }
+    });
+    return { ok: true, count: safePayloads.length };
+  }
+
+  function addFundTransactions(year, payloads, writeContext) {
     var safePayloads = Array.isArray(payloads) ? payloads : [];
     if (!safePayloads.length) {
       throw new Error('Chưa có giao dịch thu chi nào để ghi.');
@@ -517,6 +530,35 @@ var FundService = (function () {
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
+      var existingVoucherRows = findFundVoucherRows_(sheet, rows.map(function (row) { return clean_(row[0]); }));
+      var existingCount = Object.keys(existingVoucherRows).length;
+      if (existingCount === rows.length) {
+        var replayRows = rows.map(function (row) {
+          return {
+            ok: true,
+            rowIndex: existingVoucherRows[clean_(row[0])],
+            voucher: clean_(row[0]),
+            spreadsheetId: ss.getId(),
+            spreadsheetName: ss.getName(),
+            sheetName: TRANSACTION_SHEET_NAME
+          };
+        });
+        return {
+          ok: true,
+          inserted: rows.length,
+          spreadsheetId: ss.getId(),
+          spreadsheetName: ss.getName(),
+          firstRow: Math.min.apply(null, replayRows.map(function (row) { return row.rowIndex; })),
+          lastRow: Math.max.apply(null, replayRows.map(function (row) { return row.rowIndex; })),
+          rows: replayRows,
+          sheetName: TRANSACTION_SHEET_NAME,
+          idempotentReplay: true,
+          jobId: writeContext && writeContext.jobId ? writeContext.jobId : ''
+        };
+      }
+      if (existingCount > 0) {
+        throw new Error('Batch Thu chi đã tồn tại một phần voucher; dừng ghi để tránh nhân đôi dữ liệu.');
+      }
       var appendRow = getAppendRow_(sheet);
       var lastNeededRow = appendRow + rows.length - 1;
       if (sheet.getMaxRows() < lastNeededRow) {
@@ -563,6 +605,23 @@ var FundService = (function () {
     } finally {
       lock.releaseLock();
     }
+  }
+
+  function findFundVoucherRows_(sheet, vouchers) {
+    var wanted = {};
+    (vouchers || []).forEach(function (voucher) {
+      var cleanVoucher = clean_(voucher);
+      if (cleanVoucher) wanted[cleanVoucher] = true;
+    });
+    var found = {};
+    var lastRow = sheet.getLastRow();
+    if (!Object.keys(wanted).length || lastRow < 2) return found;
+    var values = sheet.getRange(2, 1, lastRow - 1, 1).getDisplayValues();
+    values.forEach(function (row, index) {
+      var voucher = clean_(row[0]);
+      if (wanted[voucher] && !found[voucher]) found[voucher] = index + 2;
+    });
+    return found;
   }
 
   function rollbackInsertedFundTransactionRows_(sheet, startRow, rowCount) {
@@ -1230,7 +1289,7 @@ var FundService = (function () {
     if (debt && !partner) throw new Error('Khoản công nợ cần có Đối tác.');
 
     return [
-      buildVoucher_(voucherSeed, voucherIndex),
+      clean_(payload.voucher) || buildVoucher_(voucherSeed, voucherIndex),
       date,
       type === 'Thu' ? category : '',
       type === 'Chi' ? category : '',
@@ -1521,6 +1580,7 @@ var FundService = (function () {
     getFundOverview: getFundOverview,
     getFundTransactions: getFundTransactions,
     saveFundCatalogItem: saveFundCatalogItem,
+    validateFundTransactions: validateFundTransactions,
     getFundSpreadsheet_: getFundSpreadsheet_
   };
 })();

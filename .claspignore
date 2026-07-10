@@ -1,5 +1,7 @@
 docs/**
 scripts/**
+api/**
+tests/**
 assets/**
 *.md
 .git/**
@@ -9,4 +11,3 @@ public/**
 manifest.json
 *.bak
 node_modules/**
-

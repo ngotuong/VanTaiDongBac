@@ -11,7 +11,7 @@
         if (!getDateInputIso('fundStartDate') && !getDateInputIso('fundEndDate')) {
           setFundQuickDate(el('fundQuickDateFilter')?.value || 'recent', true);
         }
-        loadFundTransactions(false);
+        loadRecentFundWriteJobs().finally(() => loadFundTransactions(false));
       }
       if (tab === 'entry') {
         loadFundFormOptions();
@@ -630,6 +630,11 @@
       if (btn) btn.disabled = true;
 
       if (fundTransactionEditRowIndex) {
+        if (transactions.length > 1) {
+          showFundEntryStatus('error', 'Khi sửa một giao dịch, vui lòng chỉ lưu dòng đang sửa. Hãy thêm giao dịch mới ở lượt riêng.');
+          if (btn) btn.disabled = false;
+          return;
+        }
         showFundEntryStatus('info', transactions.length > 1 ? `Đang cập nhật 1 khoản và lưu thêm ${transactions.length - 1} khoản mới...` : 'Đang cập nhật khoản thu/chi...');
         const oldItem = currentEditingTransaction || {};
         const transaction = transactions[0];
@@ -677,11 +682,23 @@
           });
       } else {
         showFundEntryStatus('info', `Đang lưu ${transactions.length} khoản thu/chi...`);
+        fundSubmitRequestId = fundSubmitRequestId || (window.crypto?.randomUUID?.() || `fund-${Date.now()}-${Math.random().toString(36).slice(2)}`);
         callApi('POST', 'addFundTransactions', {}, {
           year: '2026',
-          transactions: transactions
+          transactions: transactions,
+          clientRequestId: fundSubmitRequestId,
+          useQueue: true
         })
           .then((res) => {
+            if (res && res.queued && res.jobId) {
+              trackPendingFundWriteJob(res, transactions);
+              clearFundEntryForm();
+              showFundEntryStatus('success', `Đã nhận ${transactions.length} khoản. Dữ liệu đang chờ Google Sheet xác nhận và chưa được cộng vào KPI.`);
+              if (typeof kickWriteJobWorker === 'function') kickWriteJobWorker();
+              pollFundWriteJob(res.jobId);
+              setTimeout(closeFundTransactionAddDrawer, 1000);
+              return null;
+            }
             const addResult = res || {};
             const inserted = Number(addResult.inserted ?? addResult.rows?.length ?? 0);
             if (inserted < transactions.length) {
@@ -691,7 +708,9 @@
             showFundEntryStatus('success', `Đã lưu ${inserted} khoản thu/chi vào ${addResult.sheetName || 'file Thu chi'}${formatFundWriteRowRange(addResult)}.`);
             loadFundTransactions(true);
             loadFundOverview(true);
+            fundSubmitRequestId = '';
             setTimeout(closeFundTransactionAddDrawer, 1000);
+            return addResult;
           })
           .catch((err) => {
             showFundEntryStatus('error', 'Không thể lưu khoản thu/chi: ' + err.message);
@@ -700,6 +719,72 @@
             if (btn) btn.disabled = false;
           });
       }
+    }
+
+    function normalizePendingFundJob(job, fallbackTransactions) {
+      const payload = job?.payload || {};
+      return {
+        ...job,
+        jobId: job.jobId || job.id || '',
+        transactions: payload.transactions || fallbackTransactions || [],
+        status: job.status || 'pending'
+      };
+    }
+
+    function trackPendingFundWriteJob(job, transactions) {
+      const normalized = normalizePendingFundJob(job, transactions);
+      pendingFundWriteJobs = pendingFundWriteJobs.filter((item) => item.jobId !== normalized.jobId);
+      pendingFundWriteJobs.unshift(normalized);
+      if (fundTransactionsData) renderFundTransactions(fundTransactionsData);
+    }
+
+    function loadRecentFundWriteJobs() {
+      return callApi('GET', 'getRecentWriteJobs', { module: 'fund', actionName: 'addFundTransactions', limit: 12 })
+        .then((result) => {
+          pendingFundWriteJobs = (result.jobs || [])
+            .filter((job) => ['pending', 'processing', 'failed'].includes(job.status))
+            .map((job) => normalizePendingFundJob(job));
+          return result;
+        })
+        .catch((err) => {
+          console.warn('Không tải được write_jobs Quỹ:', err);
+          return { ok: false, jobs: [] };
+        });
+    }
+
+    function pollFundWriteJob(jobId, attemptsLeft = 40) {
+      if (!jobId || attemptsLeft <= 0) return;
+      setTimeout(() => {
+        callApi('GET', 'getWriteJobStatus', { jobId })
+          .then((job) => {
+            const current = pendingFundWriteJobs.find((item) => item.jobId === jobId);
+            trackPendingFundWriteJob({ ...current, ...job }, current?.transactions || []);
+            if (job.status === 'synced') {
+              pendingFundWriteJobs = pendingFundWriteJobs.filter((item) => item.jobId !== jobId);
+              fundSubmitRequestId = '';
+              showSyncToast('Giao dịch Quỹ đã được Google Sheet xác nhận.', 'info');
+              return Promise.all([loadFundTransactions(true), loadFundOverview(true)]);
+            }
+            if (job.status === 'failed') {
+              showSyncToast('Giao dịch Quỹ đồng bộ lỗi. Bạn có thể bấm thử lại tại dòng chờ.', 'error');
+              if (fundTransactionsData) renderFundTransactions(fundTransactionsData);
+              return null;
+            }
+            pollFundWriteJob(jobId, attemptsLeft - 1);
+            return null;
+          })
+          .catch(() => pollFundWriteJob(jobId, attemptsLeft - 1));
+      }, 1500);
+    }
+
+    function retryFundWriteJob(jobId) {
+      callApi('POST', 'retryWriteJob', {}, { jobId })
+        .then((job) => {
+          trackPendingFundWriteJob(job, pendingFundWriteJobs.find((item) => item.jobId === jobId)?.transactions || []);
+          if (typeof kickWriteJobWorker === 'function') kickWriteJobWorker();
+          pollFundWriteJob(jobId);
+        })
+        .catch((err) => showSyncToast('Không thể thử lại giao dịch Quỹ: ' + err.message, 'error'));
     }
 
     function formatFundWriteRowRange(result) {
@@ -1162,6 +1247,8 @@
       
       const title = el('fundTransactionDrawerTitle');
       const saveBtn = el('fundSaveBtn');
+      const cloneBtn = el('fundCloneRowBtn');
+      const addRowBtn = el('fundAddRowBtn');
       
       if (!isEdit) {
         fundTransactionRows = [newBlankFundTransaction()];
@@ -1169,8 +1256,13 @@
         currentEditingTransaction = null;
         if (title) title.textContent = 'Thêm khoản thu/chi';
         if (saveBtn) saveBtn.textContent = 'Lưu vào Thu chi';
+        if (cloneBtn) cloneBtn.classList.remove('hidden');
+        if (addRowBtn) addRowBtn.classList.remove('hidden');
       } else if (saveBtn) {
         saveBtn.textContent = 'Cập nhật';
+        if (title) title.textContent = 'Sửa khoản thu/chi';
+        if (cloneBtn) cloneBtn.classList.add('hidden');
+        if (addRowBtn) addRowBtn.classList.add('hidden');
       }
       renderFundTransactionRows();
       loadFundFormOptions().then(renderFundTransactionRows);
@@ -1582,7 +1674,17 @@
       const pager = el('fundTransactionsPager');
       if (!tableBody || !empty || !notice) return;
 
-      const rows = data.transactions || [];
+      const pendingRows = pendingFundWriteJobs.flatMap((job) => (job.transactions || []).map((transaction, index) => ({
+        ...transaction,
+        rowIndex: 0,
+        amountText: transaction.amount,
+        dateText: formatTableDate(transaction.date, false),
+        _pending: true,
+        _jobId: job.jobId,
+        _jobStatus: job.status,
+        _pendingIndex: index
+      })));
+      const rows = pendingRows.concat(data.transactions || []);
       tableBody.innerHTML = '';
       if (!rows.length) {
         empty.style.display = 'block';
@@ -1599,6 +1701,7 @@
       const fragment = document.createDocumentFragment();
       pageRows.forEach((item) => {
         const tr = document.createElement('tr');
+        if (item._pending) tr.classList.add('fund-pending-row');
         const typeColor = item.type === 'Thu' ? 'var(--green)' : (item.type === 'Chi' ? 'var(--red)' : 'var(--muted)');
         tr.innerHTML = `
           <td>${escapeHtml(item.dateText || formatTableDate(item.date, false))}</td>
@@ -1609,12 +1712,16 @@
           <td>${escapeHtml(item.partner || '')}</td>
           <td>${escapeHtml(item.content || '')}</td>
           <td style="text-align: center; white-space: nowrap;" class="sticky-col-right">
+            ${item._pending ? (item._jobStatus === 'failed'
+              ? `<button type="button" class="btn-table-action delete" title="Thử lại" aria-label="Thử lại giao dịch lỗi" onclick="retryFundWriteJob('${escapeHtml(item._jobId)}')">!</button>`
+              : `<span class="fund-pending-status" role="status">Đang đồng bộ</span>`) : `
             <button type="button" class="btn-table-action edit" title="Sửa" style="margin-right: 4px;" onclick="editFundTransaction(${item.rowIndex})">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
             </button>
             <button type="button" class="btn-table-action delete" title="Xóa" onclick="deleteFundTransaction(${item.rowIndex})">
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
             </button>
+            `}
           </td>
         `;
         fragment.appendChild(tr);

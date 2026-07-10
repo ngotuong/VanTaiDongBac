@@ -35,6 +35,20 @@
       return DEFAULT_BACKEND_URL ? 'default' : '';
     }
 
+    function isAuthEnabled() {
+      return normalizeSupabaseEnabledFlag((window.__SUPABASE_CONFIG || {}).authEnabled);
+    }
+
+    function getApiEndpoint() {
+      return isAuthEnabled() && !hasAppsScriptRuntime() ? '/api/app' : getBackendUrl();
+    }
+
+    function getSupabaseAccessToken() {
+      const client = getSupabaseClient();
+      if (!client || !isAuthEnabled()) return Promise.resolve('');
+      return client.auth.getSession().then(({ data }) => data?.session?.access_token || '');
+    }
+
     function callAppsScriptAction(method, action, params = {}, bodyData = null) {
       if (!hasAppsScriptRuntime()) {
         return Promise.reject(new Error('google.script.run unavailable'));
@@ -57,12 +71,12 @@
     }
 
     function callFetchApi(method, action, params = {}, bodyData = null) {
-      const backendUrl = getBackendUrl();
+      const backendUrl = getApiEndpoint();
       if (!backendUrl) {
         return Promise.reject(new Error('Chưa cấu hình đường dẫn Web App trong Cài đặt!'));
       }
       
-      let url = new URL(backendUrl);
+      let url = new URL(backendUrl, window.location.origin);
       url.searchParams.set('action', action);
       Object.keys(params).forEach(k => {
         url.searchParams.set(k, params[k]);
@@ -71,23 +85,30 @@
         url.searchParams.set('_ts', Date.now());
       }
       
-      const options = {
-        method: method,
-        headers: {
-          'Content-Type': 'text/plain;charset=UTF-8' // bypass preflight CORS
-        }
-      };
-      
-      if (bodyData) {
-        options.body = JSON.stringify({ action: action, ...bodyData });
-      }
-      
-      return fetch(url.toString(), options)
-        .then(res => {
-          if (!res.ok) {
-            throw new Error(`Kết nối API thất bại, status: ${res.status}. URL: ${backendUrl}`);
+      return getSupabaseAccessToken().then((accessToken) => {
+        const usingProxy = isAuthEnabled() && !hasAppsScriptRuntime();
+        const options = {
+          method: method,
+          headers: {
+            'Content-Type': usingProxy ? 'application/json;charset=UTF-8' : 'text/plain;charset=UTF-8'
           }
-          return res.json();
+        };
+        if (accessToken) options.headers.Authorization = 'Bearer ' + accessToken;
+        if (bodyData) options.body = JSON.stringify({ action: action, ...bodyData });
+        return fetch(url.toString(), options);
+      })
+        .then(async (res) => {
+          const data = await res.json().catch(() => null);
+          if (!res.ok) {
+            if (res.status === 401 && isAuthEnabled()) {
+              const client = getSupabaseClient();
+              if (client) await client.auth.signOut();
+              sessionStorage.clear();
+              showAuthGate('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            }
+            throw new Error(data?.error || `Kết nối API thất bại, status: ${res.status}. URL: ${backendUrl}`);
+          }
+          return data;
         })
         .then(data => {
           if (data && data.ok === false) {
@@ -120,7 +141,8 @@
       return {
         url: String(cfg.url || '').trim(),
         anonKey: String(cfg.anonKey || '').trim(),
-        reportsEnabled: normalizeSupabaseEnabledFlag(cfg.reportsEnabled)
+        reportsEnabled: normalizeSupabaseEnabledFlag(cfg.reportsEnabled),
+        authEnabled: normalizeSupabaseEnabledFlag(cfg.authEnabled)
       };
     }
 
@@ -138,15 +160,114 @@
 
     let supabaseClientInstance = null;
     function getSupabaseClient() {
-      if (!canUseSupabaseReports()) return null;
+      const cfg = getSupabaseConfig();
+      if (!cfg.url || !cfg.anonKey) return null;
       if (!window.supabase || !window.supabase.createClient) return null;
       if (!supabaseClientInstance) {
-        const cfg = getSupabaseConfig();
         supabaseClientInstance = window.supabase.createClient(cfg.url, cfg.anonKey, {
-          auth: { persistSession: false, autoRefreshToken: false }
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
         });
       }
       return supabaseClientInstance;
+    }
+
+    function setAuthStatus(message, isError) {
+      const status = document.getElementById('authStatus');
+      if (!status) return;
+      status.textContent = message || '';
+      status.style.color = isError ? 'var(--red)' : 'var(--muted)';
+    }
+
+    function showAuthGate(message) {
+      document.getElementById('authGate')?.classList.remove('hidden');
+      document.querySelector('.app')?.classList.add('hidden');
+      document.getElementById('loader')?.classList.add('hidden');
+      setApplicationInert_(true);
+      document.body.classList.add('auth-locked');
+      document.body.classList.remove('locked');
+      setAuthStatus(message || '', Boolean(message));
+      document.getElementById('authUsername')?.focus();
+    }
+
+    function hideAuthGate(user) {
+      setApplicationInert_(false);
+      document.body.classList.remove('auth-locked');
+      document.getElementById('authGate')?.classList.add('hidden');
+      document.querySelector('.app')?.classList.remove('hidden');
+      const panel = document.getElementById('authUserPanel');
+      if (panel) panel.classList.remove('hidden');
+      const email = document.getElementById('authUserEmail');
+      if (email) email.textContent = user?.displayName || user?.username || '';
+    }
+
+    function setApplicationInert_(isInert) {
+      Array.from(document.body.children).forEach((element) => {
+        if (element.id === 'authGate' || element.tagName === 'SCRIPT') return;
+        if (isInert) {
+          element.setAttribute('inert', '');
+          element.setAttribute('aria-hidden', 'true');
+          element.dataset.authInert = 'true';
+        } else if (element.dataset.authInert === 'true') {
+          element.removeAttribute('inert');
+          element.removeAttribute('aria-hidden');
+          delete element.dataset.authInert;
+        }
+      });
+    }
+
+    async function signInWithUsername() {
+      const client = getSupabaseClient();
+      if (!client) return setAuthStatus('Thiếu cấu hình Supabase Auth.', true);
+      const username = String(document.getElementById('authUsername')?.value || '').trim().toLowerCase();
+      const password = String(document.getElementById('authPassword')?.value || '');
+      if (!/^[a-z0-9._-]{3,40}$/.test(username)) return setAuthStatus('Tên đăng nhập không hợp lệ.', true);
+      if (!password) return setAuthStatus('Vui lòng nhập mật khẩu.', true);
+      const button = document.getElementById('usernameSignInBtn');
+      if (button) button.disabled = true;
+      setAuthStatus('Đang xác thực...', false);
+      const { error } = await client.auth.signInWithPassword({
+        email: username + '@dongbac.internal',
+        password: password
+      });
+      if (error) {
+        if (button) button.disabled = false;
+        setAuthStatus('Tên đăng nhập hoặc mật khẩu không đúng.', true);
+        return;
+      }
+      window.location.reload();
+    }
+
+    async function signOutCurrentUser() {
+      const client = getSupabaseClient();
+      if (client) await client.auth.signOut();
+      sessionStorage.clear();
+      showAuthGate('Bạn đã đăng xuất.');
+    }
+
+    async function bootstrapAuthenticatedApp() {
+      if (!isAuthEnabled()) {
+        document.getElementById('authGate')?.classList.add('hidden');
+        init();
+        return;
+      }
+      const client = getSupabaseClient();
+      if (!client) {
+        showAuthGate('Supabase Auth chưa được cấu hình trên frontend.');
+        return;
+      }
+      const { data, error } = await client.auth.getSession();
+      if (error || !data?.session) {
+        showAuthGate(error?.message || '');
+        return;
+      }
+      try {
+        const result = await callFetchApi('GET', 'authSession');
+        hideAuthGate(result.user || data.session.user);
+        init();
+      } catch (err) {
+        await client.auth.signOut();
+        showAuthGate(err.message || 'Tài khoản chưa được cấp quyền.');
+      }
     }
 
     function readSupabaseRows(tableName, filters, selectColumns) {
@@ -161,14 +282,14 @@
       });
       url.searchParams.set('order', 'synced_at.desc');
       url.searchParams.set('limit', '1');
-      return fetch(url.toString(), {
+      return getSupabaseAccessToken().then((accessToken) => fetch(url.toString(), {
         method: 'GET',
         headers: {
           apikey: cfg.anonKey,
-          Authorization: 'Bearer ' + cfg.anonKey,
+          Authorization: 'Bearer ' + (accessToken || cfg.anonKey),
           Accept: 'application/json'
         }
-      }).then((res) => {
+      })).then((res) => {
         if (!res.ok) {
           return res.text().then((text) => {
             throw new Error(`Supabase đọc cache thất bại, status: ${res.status}. ${text || ''}`);

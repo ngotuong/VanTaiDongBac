@@ -731,6 +731,6 @@
       openNativeDatePicker(target);
     }, true);
     
-    // Run initial boot
-    init();
+    // Run initial boot after the deferred Supabase SDK is available.
+    window.addEventListener('DOMContentLoaded', bootstrapAuthenticatedApp, { once: true });
 </script>

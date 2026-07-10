@@ -32,7 +32,8 @@
     window.__SUPABASE_CONFIG = {
       url: <?!= JSON.stringify(supabaseUrl || '') ?>,
       anonKey: <?!= JSON.stringify(supabaseAnonKey || '') ?>,
-      reportsEnabled: <?!= JSON.stringify(supabaseReportsEnabled || '') ?>
+      reportsEnabled: <?!= JSON.stringify(supabaseReportsEnabled || '') ?>,
+      authEnabled: <?!= JSON.stringify(authEnabled || '') ?>
     };
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
@@ -46,6 +47,23 @@
   <?!= include('styles_responsive'); ?>
 </head>
 <body class="locked">
+
+  <section class="auth-gate hidden" id="authGate" aria-labelledby="authTitle">
+    <div class="auth-card">
+      <img class="auth-logo" src="/public/static/assets/apple-touch-icon.png?v=2" alt="Logo Vận tải Đông Bắc" width="80" height="80">
+      <div class="eyebrow">HỆ THỐNG NỘI BỘ</div>
+      <h1 id="authTitle">Đăng nhập Đông Bắc</h1>
+      <p>Dùng tài khoản nội bộ đã được cấp quyền để truy cập hệ thống.</p>
+      <form class="auth-form" onsubmit="event.preventDefault(); signInWithUsername();">
+        <label for="authUsername">Tên đăng nhập</label>
+        <input id="authUsername" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+        <label for="authPassword">Mật khẩu</label>
+        <input id="authPassword" name="password" type="password" autocomplete="current-password" required>
+        <div class="auth-status" id="authStatus" role="alert" aria-live="polite"></div>
+        <button type="submit" class="primary auth-button" id="usernameSignInBtn">Đăng nhập</button>
+      </form>
+    </div>
+  </section>
 
   <!-- Loader Overlay -->
   <div class="loader" id="loader">
@@ -71,6 +89,10 @@
           </div>
         </div>
         <nav class="nav-stack" id="sideNav"></nav>
+        <div class="auth-user hidden" id="authUserPanel">
+          <div class="auth-user-email" id="authUserEmail"></div>
+          <button type="button" class="ghost" onclick="signOutCurrentUser()">Đăng xuất</button>
+        </div>
       </div>
     </aside>
 
@@ -866,10 +888,10 @@
       </div>
       <div class="modal-footer fund-transaction-actions" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 16px)) 20px; border-top: 1px solid var(--line); background: var(--canvas); flex-shrink: 0;">
         <button type="submit" class="primary grow" style="min-height:38px;" id="fundSaveBtn">Lưu vào Thu chi</button>
-        <button type="button" class="ghost icon-button" title="Nhân bản dòng cuối" aria-label="Nhân bản dòng cuối" onclick="cloneFundTransactionRow()">
+        <button type="button" class="ghost icon-button" id="fundCloneRowBtn" title="Nhân bản dòng cuối" aria-label="Nhân bản dòng cuối" onclick="cloneFundTransactionRow()">
           <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
         </button>
-        <button type="button" class="secondary icon-button" title="Thêm mới" aria-label="Thêm mới" onclick="addFundTransactionRow()">
+        <button type="button" class="secondary icon-button" id="fundAddRowBtn" title="Thêm mới" aria-label="Thêm mới" onclick="addFundTransactionRow()">
           <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
         <button type="button" class="outline icon-button" title="Hủy bỏ" aria-label="Hủy bỏ" onclick="closeFundTransactionAddDrawer()">

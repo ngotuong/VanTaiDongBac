@@ -144,7 +144,7 @@ Frontend dùng cache `fund_transaction_bundles.filter_key = month:YYYY-MM` khi n
 
 ## Khi vận hành ghi bất đồng bộ
 
-Trang thai hien tai: write queue v2 chi bat cho `transport/submitRows` (`ASYNC_TRANSPORT_SUBMIT_ENABLED=true`), con flag dai tra `ASYNC_WRITE_ENABLED=false`. Khong bat queue dai tra neu chua co ke hoach test rieng va rollback ro.
+Trang thai source code: queue Vận hành dùng `ASYNC_TRANSPORT_WRITE_ENABLED=true` cho append/sửa; xóa nguyên dòng chạy trực tiếp, không queue. Pilot thêm Thu chi đọc `ASYNC_FUND_TRANSACTION_ADD_ENABLED` từ Script Properties, mặc định false và production hiện bật true. Flag đại trà `ASYNC_WRITE_ENABLED=false`.
 
 1. Schema queue nằm trong `supabase/migrations/005_write_jobs.sql`.
 2. Worker Apps Script là `processWriteJobs()`, trigger 1 phút cài bằng `installWriteJobTrigger()`.
@@ -153,6 +153,16 @@ Trang thai hien tai: write queue v2 chi bat cho `transport/submitRows` (`ASYNC_T
 5. Kiểm tra trạng thái job bằng `getWriteJobStatus(jobId)`.
 6. Retry job lỗi bằng `retryWriteJob(jobId)`.
 7. Log chi tiết nằm trong Supabase bảng `write_job_logs`.
+8. Trước khi deploy worker mới phải chạy migration `006_write_queue_hardening.sql`; nếu chưa có RPC `claim_write_jobs`, worker sẽ không xử lý job.
+9. Chỉ bật `ASYNC_FUND_TRANSACTION_ADD_ENABLED=true` sau khi test voucher retry, double-click, cache tháng và đối chiếu Sheet.
+
+## Khi bật xác thực nội bộ
+
+- Deploy theo thứ tự: migration 006/007 -> tạo Auth user + `app_users` -> Vercel proxy/frontend auth -> migration 008 RLS cutover -> Apps Script auth enforcement.
+- Proxy secret phải giống nhau giữa Vercel `APP_PROXY_SECRET` và Apps Script Property cùng tên.
+- `SUPABASE_SERVICE_ROLE_KEY` chỉ đặt trong Vercel/Apps Script server env; không dùng prefix `VITE_`.
+- Sau khi bật, test bốn trường hợp: chưa đăng nhập 401, tài khoản ngoài allowlist 403, anon Supabase không đọc được cache, tài khoản allowlist đọc/ghi qua proxy thành công.
+- Chạy `npm test && npm run build` trước push. Build production phải có `VITE_AUTH_ENABLED=true`; build local an toàn mặc định để trống/false.
 
 ## Khi deploy
 

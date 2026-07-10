@@ -89,6 +89,14 @@ Frontend:
   - Ban build/tong hop dung cho web app/static hosting.
   - Chua UI hien tai cua toan bo web app.
 
+Bo sung kien truc tu 2026-07-10:
+
+- `SecurityService.gs` chan API truc tiep khi `AUTH_ENFORCEMENT_ENABLED=true`; Vercel proxy phai gui `APP_PROXY_SECRET` hop le.
+- `api/app.js` la Vercel serverless proxy: xac thuc Supabase session cua tai khoan username/password, doi chieu `app_users`, sau do moi goi Apps Script. File nay va `tests/**` nam trong `.claspignore`.
+- Supabase Auth/RLS tach rollout: migration `007` tao allowlist, migration `008` moi thu hoi anon read.
+- Write queue claim job atomically qua RPC `claim_write_jobs`; append Van hanh dung Developer Metadata, pilot them Thu chi dung voucher on dinh de retry khong ghi trung.
+- Queue Thu chi chi ap dung `addFundTransactions` khi feature flag duoc bat; sua/xoa/vay no/danh muc van dung luong ghi truc tiep.
+
 - `client_*.html`
   - Cac module JS nguon cua frontend.
   - Dang tach logic theo khu vuc: config, API, dashboard, nhap lieu, bao cao, quan ly, danh muc, UI.

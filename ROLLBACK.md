@@ -97,3 +97,18 @@ clasp push
 - Không cần bảng `report_bundles`.
 - Không cần Supabase URL/key.
 - Dữ liệu hiển thị khớp luồng Apps Script cũ.
+
+## Rollback Auth / API proxy
+
+1. Đặt Apps Script Property `AUTH_ENFORCEMENT_ENABLED=false` trước để khôi phục API cũ.
+2. Đặt Vercel `VITE_AUTH_ENABLED=false` và redeploy frontend nếu proxy/auth lỗi diện rộng.
+3. Không xóa `app_users`; giữ allowlist để có thể bật lại.
+4. Nếu cần khôi phục anon read tạm thời, tạo migration mới phục hồi policy; không sửa/xóa migration `008` đã chạy.
+5. Rotate `APP_PROXY_SECRET` ở cả Vercel và Apps Script nếu nghi ngờ bị lộ.
+
+## Rollback Queue hardening / pilot Quỹ
+
+- Tắt `ASYNC_FUND_TRANSACTION_ADD_ENABLED=false` để thao tác thêm Thu chi quay về ghi trực tiếp.
+- Có thể giữ migration `006`; cột/RPC mới tương thích với dữ liệu job cũ.
+- Không rollback bằng cách bật lại worker đọc mọi job `processing`; dùng RPC atomic claim.
+- Nếu RPC lỗi, tạm tắt các flag queue trước khi deploy code cũ. Các job `pending` phải được kiểm tra thủ công trước khi retry để tránh ghi hai lần.

@@ -1,4 +1,21 @@
 <style>
+  .auth-gate { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; min-height: 100dvh; padding: 24px; background: var(--canvas); }
+  body.auth-locked > :not(#authGate):not(script) { display: none !important; }
+  .auth-gate.hidden { display: none; }
+  .auth-card { width: min(100%, 420px); padding: 32px; border: 1px solid var(--line); border-radius: 24px; background: var(--paper); box-shadow: var(--shadow-lg); text-align: center; }
+  .auth-logo { display: block; margin: 0 auto 20px; border-radius: 22px; object-fit: cover; }
+  .auth-card h1 { margin: 8px 0; color: var(--deep); font-size: clamp(24px, 6vw, 32px); }
+  .auth-card p { margin: 0 auto 20px; color: var(--muted); line-height: 1.6; max-width: 34ch; }
+  .auth-button { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+  .auth-form { display: grid; gap: 8px; text-align: left; }
+  .auth-form label { color: var(--deep); font-size: 13px; font-weight: 700; }
+  .auth-form input { width: 100%; min-height: 48px; box-sizing: border-box; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); font: inherit; font-size: 16px; }
+  .auth-form input:focus-visible { outline: 3px solid color-mix(in srgb, var(--teal) 28%, transparent); border-color: var(--teal); }
+  .auth-status { min-height: 22px; margin-bottom: 10px; color: var(--red); font-weight: 600; font-size: 14px; }
+  .auth-user { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .auth-user.hidden { display: none; }
+  .auth-user-email { margin-bottom: 8px; overflow-wrap: anywhere; color: var(--muted); font-size: 12px; }
+  .auth-user button { width: 100%; min-height: 44px; }
     :root {
       --ink: #0f172a;
       --muted: #64748b;

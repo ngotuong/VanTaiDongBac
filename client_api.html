@@ -23,15 +23,12 @@
     
     const getBackendUrl = () => {
       return normalizeWebAppUrl(window.__APP_SERVICE_URL)
-        || normalizeWebAppUrl(localStorage.getItem('eb_backend_url'))
         || DEFAULT_BACKEND_URL;
     };
 
     function getBackendUrlSource() {
       const appUrl = normalizeWebAppUrl(window.__APP_SERVICE_URL);
       if (appUrl) return 'app';
-      const storedUrl = normalizeWebAppUrl(localStorage.getItem('eb_backend_url'));
-      if (storedUrl) return 'localStorage';
       return DEFAULT_BACKEND_URL ? 'default' : '';
     }
 
@@ -186,10 +183,24 @@
       document.body.classList.add('auth-locked');
       document.body.classList.remove('locked');
       setAuthStatus(message || '', Boolean(message));
+      restoreRememberedUsername();
       document.getElementById('authUsername')?.focus();
     }
 
+    function restoreRememberedUsername() {
+      try {
+        const input = document.getElementById('authUsername');
+        const saved = localStorage.getItem('dongbac_auth_username') || '';
+        if (input && !input.value && saved) input.value = saved;
+      } catch (err) {}
+    }
+
     function hideAuthGate(user) {
+      currentAuthUser = user || null;
+      try {
+        if (user?.username) localStorage.setItem('dongbac_auth_username', String(user.username));
+      } catch (err) {}
+      document.body.dataset.role = getCurrentRole();
       setApplicationInert_(false);
       document.body.classList.remove('auth-locked');
       document.getElementById('authGate')?.classList.add('hidden');
@@ -197,7 +208,8 @@
       const panel = document.getElementById('authUserPanel');
       if (panel) panel.classList.remove('hidden');
       const email = document.getElementById('authUserEmail');
-      if (email) email.textContent = user?.displayName || user?.username || '';
+      if (email) email.textContent = `${user?.displayName || user?.username || ''} · ${getRoleLabel(getCurrentRole())}`;
+      applyRoleUi();
     }
 
     function setApplicationInert_(isInert) {
@@ -234,6 +246,7 @@
         setAuthStatus('Tên đăng nhập hoặc mật khẩu không đúng.', true);
         return;
       }
+      try { localStorage.setItem('dongbac_auth_username', username); } catch (err) {}
       window.location.reload();
     }
 

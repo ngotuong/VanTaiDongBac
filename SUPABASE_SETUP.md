@@ -168,6 +168,8 @@ Thực hiện đúng thứ tự để không tự khóa production:
 
 Không chạy migration `008` trước khi đã có ít nhất một tài khoản trong `app_users` và proxy/frontend sẵn sàng, vì migration này thu hồi quyền đọc `anon`.
 
+Sau khi auth đã hoạt động, chạy thêm migration `009_shareholder_role.sql`. Quản trị viên có thể tạo tài khoản ngay trong `Cài đặt > Quản lý tài khoản`; không cần tạo thủ công bằng SQL. Chọn `Cổ đông (chỉ xem)` để cấp quyền xem báo cáo, Vận hành, giao dịch Thu chi và khoản vay mà không có quyền ghi.
+
 Sau migration giai đoạn 3, `syncRealtimeCache()` đồng bộ thêm:
 
 - `startup_bundles`: dữ liệu khởi động ban đầu.

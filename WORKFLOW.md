@@ -163,6 +163,8 @@ Trang thai source code: queue Vận hành dùng `ASYNC_TRANSPORT_WRITE_ENABLED=t
 - `SUPABASE_SERVICE_ROLE_KEY` chỉ đặt trong Vercel/Apps Script server env; không dùng prefix `VITE_`.
 - Sau khi bật, test bốn trường hợp: chưa đăng nhập 401, tài khoản ngoài allowlist 403, anon Supabase không đọc được cache, tài khoản allowlist đọc/ghi qua proxy thành công.
 - Chạy `npm test && npm run build` trước push. Build production phải có `VITE_AUTH_ENABLED=true`; build local an toàn mặc định để trống/false.
+- Sau migration `009`, quản trị tài khoản tại `Cài đặt`: `admin` được tạo/sửa/khóa/reset mật khẩu; mọi user active được đổi mật khẩu của chính mình. Không cấp service role key cho frontend.
+- Khi kiểm thử `shareholder`, phải xác nhận các màn hình đọc vẫn hoạt động và thử ít nhất một action ghi qua API nhận HTTP 403; không chỉ kiểm tra nút đã bị ẩn.
 
 ## Khi deploy
 

@@ -4,7 +4,7 @@
   <base target="_top">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#062e2b" id="themeColorMeta">
+  <meta name="theme-color" content="#062e2b">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,13 +20,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script>
-    (function () {
-      try {
-        if (localStorage.getItem('dongbac_theme') === 'dark') {
-          document.documentElement.dataset.theme = 'dark';
-        }
-      } catch (err) {}
-    })();
     window.__DEFAULT_APP_SERVICE_URL = 'https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec';
     window.__APP_SERVICE_URL = <?!= JSON.stringify(serviceUrl || '') ?> || window.__DEFAULT_APP_SERVICE_URL;
     window.__SUPABASE_CONFIG = {
@@ -59,6 +52,7 @@
         <input id="authUsername" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
         <label for="authPassword">Mật khẩu</label>
         <input id="authPassword" name="password" type="password" autocomplete="current-password" required>
+        <p class="auth-remember-note">Ứng dụng sẽ ghi nhớ tên đăng nhập và duy trì phiên an toàn trên thiết bị này. Bạn có thể cho phép trình duyệt lưu mật khẩu để tự điền lần sau.</p>
         <div class="auth-status" id="authStatus" role="alert" aria-live="polite"></div>
         <button type="submit" class="primary auth-button" id="usernameSignInBtn">Đăng nhập</button>
       </form>
@@ -255,7 +249,7 @@
 
       <!-- View: Manage Sheet Data (Transaction Logs CRUD) -->
       <section id="manageView" class="view">
-        <div class="entry-sheet-backdrop" id="entrySheetBackdrop" onclick="closeMobileEntrySheet()"></div>
+        <div class="entry-sheet-backdrop" id="entrySheetBackdrop" data-write-only onclick="closeMobileEntrySheet()"></div>
 
         <!-- Nút trượt ngang chọn Nhật ký -->
         <div class="sub-tabs-bar app-sticky-tabs" id="manageTabsBar" style="width: 100%; margin-bottom: 12px;">
@@ -280,7 +274,7 @@
                 <option value="custom">Tùy chọn</option>
               </select>
             </div>
-            <button type="button" class="primary" onclick="openMobileEntrySheet()">
+            <button type="button" class="primary" data-write-only onclick="openMobileEntrySheet()">
               <svg class="btn-svg" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               Nhập mới
             </button>
@@ -314,7 +308,7 @@
               </label>
             </div>
             <div style="display: flex; align-items: center; gap: 8px; height: 38px;">
-              <button type="button" class="primary icon-button manage-add-shortcut" title="Thêm dòng mới" aria-label="Thêm dòng mới" style="padding: 0 !important; border-radius: 8px; height: 38px; width: 38px; display: inline-flex; align-items: center; justify-content: center;" onclick="openResponsiveManageAdd()">
+              <button type="button" class="primary icon-button manage-add-shortcut" data-write-only title="Thêm dòng mới" aria-label="Thêm dòng mới" style="padding: 0 !important; border-radius: 8px; height: 38px; width: 38px; display: inline-flex; align-items: center; justify-content: center;" onclick="openResponsiveManageAdd()">
                 <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px; margin: 0;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               </button>
             </div>
@@ -352,7 +346,7 @@
           </div>
         </div>
 
-        <div class="entry-shell" id="entryShell" style="margin-bottom: 16px;">
+        <div class="entry-shell" id="entryShell" data-write-only style="margin-bottom: 16px;">
           <aside class="form-list" id="formTabs"></aside>
 
           <section class="panel grow">
@@ -482,7 +476,7 @@
           <button type="button" class="sub-tab active" data-cashflow-tab="overview" onclick="setCashflowTab('overview')">Tổng quan</button>
           <button type="button" class="sub-tab" data-cashflow-tab="transactions" onclick="setCashflowTab('transactions')">Danh sách thu chi</button>
           <button type="button" class="sub-tab" data-cashflow-tab="loans" onclick="setCashflowTab('loans')">Khoản vay</button>
-          <button type="button" class="sub-tab" data-cashflow-tab="catalog" onclick="setCashflowTab('catalog')">Danh mục</button>
+          <button type="button" class="sub-tab" data-cashflow-tab="catalog" data-write-only onclick="setCashflowTab('catalog')">Danh mục</button>
         </div>
 
         <div data-cashflow-panel="overview">
@@ -580,7 +574,7 @@
                 <button type="button" class="ghost" style="height: 36px; min-height: 36px; width: 36px; padding: 0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;" title="Tải lại" onclick="loadFundTransactions(true)">
                   <svg class="btn-svg" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin: 0;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
                 </button>
-                <button type="button" class="primary" style="height: 36px; min-height: 36px; width: 36px; padding: 0 !important; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;" title="Thêm khoản thu/chi mới" onclick="openFundTransactionAddDrawer()">
+                <button type="button" class="primary" data-write-only style="height: 36px; min-height: 36px; width: 36px; padding: 0 !important; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;" title="Thêm khoản thu/chi mới" onclick="openFundTransactionAddDrawer()">
                   <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px; margin: 0;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
               </div>
@@ -601,7 +595,7 @@
                     <th>Người Thu/Chi</th>
                     <th>Đối tác</th>
                     <th>Nội dung</th>
-                    <th style="text-align: center;" class="sticky-col-right">Thao tác</th>
+                    <th style="text-align: center;" class="sticky-col-right" data-write-only>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody id="fundTransactionsTableBody">
@@ -627,7 +621,7 @@
                 <select id="fundLoanMonthFilter" style="height: 38px; width: 150px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; font-size: 13px; color: var(--ink); background: var(--paper); outline: none; cursor: pointer;" onchange="loadFundLoanOverview(false)">
                   <option value="">Tất cả tháng</option>
                 </select>
-                <button type="button" class="primary" style="height: 38px; min-height: 38px; width: 38px; padding: 0 !important; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;" title="Thêm khoản vay mới" onclick="openFundLoanAddDrawer()">
+                <button type="button" class="primary" data-write-only style="height: 38px; min-height: 38px; width: 38px; padding: 0 !important; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;" title="Thêm khoản vay mới" onclick="openFundLoanAddDrawer()">
                   <svg class="btn-svg" viewBox="0 0 24 24" style="width: 18px; height: 18px; margin: 0;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
               </div>
@@ -650,7 +644,7 @@
             </div>
             <div class="table-wrap">
               <table class="report-table" style="min-width: auto !important; width: 100%;">
-                <thead><tr><th>Ngày vay</th><th>Đối tác</th><th style="text-align:right;">Số tiền còn nợ</th><th style="text-align:right;">Thao tác</th></tr></thead>
+                <thead><tr><th>Ngày vay</th><th>Đối tác</th><th style="text-align:right;">Số tiền còn nợ</th><th style="text-align:right;" data-write-only>Thao tác</th></tr></thead>
                 <tbody id="fundLoanSummaryBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
             </div>
@@ -682,7 +676,7 @@
           </section>
         </div>
 
-        <div class="table-card fund-catalog-card" data-cashflow-panel="catalog" style="display: none;">
+        <div class="table-card fund-catalog-card" data-cashflow-panel="catalog" data-write-only style="display: none;">
           <div class="panel-body">
             <div class="fund-catalog-head">
               <div>
@@ -722,32 +716,52 @@
       <!-- View: Mobile Settings / Manual -->
       <section id="settingsView" class="view">
         <div class="settings-grid">
-          <!-- API Config Widget -->
-          <article class="info-card" style="grid-column: 1 / -1; border-color: var(--teal); background: var(--mint-soft);">
-            <h2>Cấu hình đường dẫn Web App</h2>
-            <p style="margin-bottom: 12px; color: var(--muted); font-size: 13px;">Web app sẽ tự nhận diện URL của deployment hiện tại. Ô bên dưới chỉ dùng như phương án dự phòng nếu hệ thống không nhận được URL tự động.</p>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <input type="text" id="backendUrlInput" placeholder="https://script.google.com/macros/s/AKfycb.../exec" style="flex: 1; min-width: 200px;">
-              <button type="button" class="primary" id="saveUrlBtn" style="min-width: 100px;">Lưu lại</button>
+          <article class="info-card account-password-card">
+            <h2>Đổi mật khẩu</h2>
+            <p id="currentAccountIdentity" class="account-card-note"></p>
+            <div class="account-form-grid">
+              <label>Mật khẩu hiện tại
+                <span class="password-field"><input type="password" id="currentPasswordInput" autocomplete="current-password"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('currentPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
+              </label>
+              <label>Mật khẩu mới
+                <span class="password-field"><input type="password" id="newPasswordInput" autocomplete="new-password" minlength="12"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('newPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
+                <small>Tối thiểu 12 ký tự.</small>
+              </label>
+              <label>Xác nhận mật khẩu mới
+                <span class="password-field"><input type="password" id="confirmPasswordInput" autocomplete="new-password" minlength="12"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('confirmPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
+              </label>
             </div>
-            <p id="urlStatusText" style="margin-top: 8px; font-size: 12px; font-weight: bold;"></p>
+            <button type="button" class="primary account-submit-btn" id="changePasswordBtn" onclick="changeOwnPassword()">Đổi mật khẩu</button>
           </article>
 
-          <article class="info-card theme-settings-card" style="grid-column: 1 / -1;">
-            <div>
-              <h2>Giao diện</h2>
-              <p>Chuyển nền tối cho màn hình điều hành khi dùng vào buổi tối hoặc trong cabin.</p>
+          <article class="info-card account-management-card" data-admin-only hidden>
+            <div class="settings-card-header">
+              <div><h2>Quản lý tài khoản</h2><p>Tạo tài khoản và chọn quyền truy cập phù hợp.</p></div>
+              <button type="button" class="ghost" onclick="loadUsers()">Làm mới</button>
             </div>
-            <label class="theme-toggle-row" for="darkModeToggle">
-              <span>
-                <strong>Dark mode</strong>
-                <small>Nền tối, chữ sáng, giữ màu teal nhận diện Đông Bắc.</small>
-              </span>
-              <input type="checkbox" id="darkModeToggle" role="switch" aria-label="Bật Dark mode">
-            </label>
+            <div class="account-create-grid">
+              <label>Tên đăng nhập<input type="text" id="newAccountUsername" autocomplete="off" placeholder="vidu: codong01"></label>
+              <label>Tên hiển thị<input type="text" id="newAccountDisplayName" autocomplete="name" placeholder="Nguyễn Văn A"></label>
+              <label>Vai trò<select id="newAccountRole"><option value="shareholder">Cổ đông (chỉ xem)</option><option value="operator">Nhân viên vận hành</option><option value="admin">Quản trị viên</option></select></label>
+              <label>Mật khẩu ban đầu (tùy chọn)<span class="password-field"><input type="password" id="newAccountPassword" autocomplete="new-password" minlength="12" placeholder="Để trống để tự tạo"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('newAccountPassword', this)" aria-label="Hiện mật khẩu">Hiện</button></span></label>
+              <button type="button" class="primary" id="createAccountBtn" onclick="createUserAccount()">Tạo tài khoản</button>
+            </div>
+            <div id="temporaryPasswordBox" class="temporary-password-box" hidden>
+              <span>Mật khẩu tạm của <strong id="temporaryPasswordAccount"></strong></span>
+              <code id="temporaryPasswordValue"></code>
+              <button type="button" class="ghost" onclick="copyTemporaryPassword()">Sao chép</button>
+            </div>
+            <div class="table-wrap account-users-wrap">
+              <table class="report-table account-users-table">
+                <thead><tr><th>Tên đăng nhập</th><th>Tên hiển thị</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+                <tbody id="accountUsersBody"><tr><td colspan="5" class="account-table-message">Chọn Cài đặt để tải tài khoản.</td></tr></tbody>
+              </table>
+            </div>
           </article>
 
-          <article class="info-card sync-status-card" style="grid-column: 1 / -1;">
+          <div id="accountSettingsStatus" class="account-settings-status" role="status" aria-live="polite"></div>
+
+          <article class="info-card sync-status-card" data-hide-shareholder style="grid-column: 1 / -1;">
             <div class="settings-card-header">
               <div>
                 <h2>Trạng thái đồng bộ</h2>
@@ -787,7 +801,7 @@
   </div>
 
   <!-- Modal Popup for Add/Edit Sheet Data (CRUD) -->
-  <div class="modal-overlay" id="manageModal">
+  <div class="modal-overlay" id="manageModal" data-write-only>
     <div class="modal-container">
       <div class="modal-header">
         <h3 id="manageModalTitle">Thêm dòng dữ liệu mới</h3>
@@ -835,9 +849,9 @@
   </section>
 
   <!-- Backdrop for Loan Payment Drawer -->
-  <div class="drawer-backdrop" id="fundLoanPaymentBackdrop" onclick="closeFundLoanPaymentDrawer()"></div>
+  <div class="drawer-backdrop" id="fundLoanPaymentBackdrop" data-write-only onclick="closeFundLoanPaymentDrawer()"></div>
   <!-- Drawer for Loan Payment -->
-  <section class="table-card fund-detail-drawer" id="fundLoanPaymentDrawer" style="max-width: 480px;">
+  <section class="table-card fund-detail-drawer" id="fundLoanPaymentDrawer" data-write-only style="max-width: 480px;">
     <div class="table-card-head" style="position: sticky; top: 0; background: var(--paper); z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--line);">
       <div style="flex: 1; min-width: 0;">
         <div class="table-title" id="loanPaymentDrawerTitle" style="font-size: 14px; font-weight:700; color:var(--deep); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Thanh toán khoản vay</div>
@@ -871,9 +885,9 @@
   </section>
 
   <!-- Backdrop for Transaction Add Drawer -->
-  <div class="drawer-backdrop" id="fundTransactionAddBackdrop" onclick="closeFundTransactionAddDrawer()"></div>
+  <div class="drawer-backdrop" id="fundTransactionAddBackdrop" data-write-only onclick="closeFundTransactionAddDrawer()"></div>
   <!-- Drawer for Add Transaction -->
-  <section class="table-card fund-detail-drawer" id="fundTransactionAddDrawer" style="max-width: 480px;">
+  <section class="table-card fund-detail-drawer" id="fundTransactionAddDrawer" data-write-only style="max-width: 480px;">
     <div class="table-card-head" style="position: sticky; top: 0; background: var(--paper); z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--line);">
       <div style="flex: 1; min-width: 0;">
         <div class="table-title" id="fundTransactionDrawerTitle" style="font-size: 14px; font-weight:700; color:var(--deep); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Thêm khoản thu/chi</div>
@@ -902,9 +916,9 @@
   </section>
 
   <!-- Backdrop for Loan Add Drawer -->
-  <div class="drawer-backdrop" id="fundLoanAddBackdrop" onclick="closeFundLoanAddDrawer()"></div>
+  <div class="drawer-backdrop" id="fundLoanAddBackdrop" data-write-only onclick="closeFundLoanAddDrawer()"></div>
   <!-- Drawer for Add Loan -->
-  <section class="table-card fund-detail-drawer" id="fundLoanAddDrawer" style="max-width: 480px;">
+  <section class="table-card fund-detail-drawer" id="fundLoanAddDrawer" data-write-only style="max-width: 480px;">
     <div class="table-card-head" style="position: sticky; top: 0; background: var(--paper); z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--line);">
       <div style="flex: 1; min-width: 0;">
         <div class="table-title" id="loanAddDrawerTitle" style="font-size: 14px; font-weight:700; color:var(--deep); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Nhập khoản vay</div>
@@ -938,6 +952,7 @@
 
   <?!= include('client_config'); ?>
   <?!= include('client_api'); ?>
+  <?!= include('client_accounts'); ?>
   <?!= include('client_cashflow'); ?>
   <?!= include('client_manage'); ?>
   <?!= include('client_catalog'); ?>

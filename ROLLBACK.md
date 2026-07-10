@@ -106,6 +106,8 @@ clasp push
 4. Nếu cần khôi phục anon read tạm thời, tạo migration mới phục hồi policy; không sửa/xóa migration `008` đã chạy.
 5. Rotate `APP_PROXY_SECRET` ở cả Vercel và Apps Script nếu nghi ngờ bị lộ.
 
+Migration `009` chỉ mở rộng giá trị role và thêm `updated_at`, không cần rollback schema. Nếu cần tạm ngừng tài khoản cổ đông, đặt `active=false` trong `app_users` hoặc thao tác tại `Cài đặt > Quản lý tài khoản`. Không đổi role constraint ngược lại khi vẫn còn row `shareholder`.
+
 ## Rollback Queue hardening / pilot Quỹ
 
 - Tắt `ASYNC_FUND_TRANSACTION_ADD_ENABLED=false` để thao tác thêm Thu chi quay về ghi trực tiếp.

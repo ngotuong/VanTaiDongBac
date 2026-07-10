@@ -9,7 +9,6 @@
       }
 
       renderNav();
-      setupConfigInput();
       
       const backendUrl = getBackendUrl();
       if (!backendUrl && !hasAppsScriptRuntime()) {
@@ -107,7 +106,11 @@
       side.innerHTML = '';
       bottom.innerHTML = '';
       
-      NAV.forEach(([key, label, sub, icoSvg]) => {
+      const shareholder = isShareholderUser();
+      const bottomKeys = shareholder
+        ? ['home', 'reports', 'manage', 'cashflow', 'settings']
+        : BOTTOM_NAV_KEYS;
+      NAV.filter(([key]) => !(shareholder && key === 'catalog')).forEach(([key, label, sub, icoSvg]) => {
         const s = document.createElement('button');
         s.type = 'button';
         s.className = 'nav-btn';
@@ -116,7 +119,7 @@
         s.onclick = () => setView(key);
         side.appendChild(s);
 
-        if (BOTTOM_NAV_KEYS.includes(key)) {
+        if (bottomKeys.includes(key)) {
           const b = document.createElement('button');
           b.type = 'button';
           b.dataset.view = key;
@@ -130,6 +133,7 @@
 
     function setView(view) {
       if (view === 'entry') view = 'manage';
+      if (isShareholderUser() && view === 'catalog') view = 'reports';
       closeMobileEntrySheet();
       activeView = view;
       closeDrawer();
@@ -166,7 +170,8 @@
         if (activeCashflowTab === 'loans') loadFundLoanOverview(false);
       }
       if (view === 'settings') {
-        loadSupabaseSyncStatus(false);
+        loadAccountSettings();
+        if (!isShareholderUser()) loadSupabaseSyncStatus(false);
       }
     }
 

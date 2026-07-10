@@ -28,79 +28,85 @@
       font-size: 13.5px; 
     }
 
-    .theme-settings-card {
+    [hidden] { display: none !important; }
+
+    .account-password-card,
+    .account-management-card,
+    .account-settings-status {
+      grid-column: 1 / -1;
+    }
+
+    .account-card-note { margin-bottom: 16px !important; }
+
+    .account-form-grid,
+    .account-create-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: center;
-      gap: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
     }
 
-    .theme-toggle-row {
-      display: inline-flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      min-width: min(100%, 360px);
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: var(--canvas);
-      cursor: pointer;
-    }
-
-    .theme-toggle-row span {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      min-width: 0;
-    }
-
-    .theme-toggle-row strong {
+    .account-form-grid label,
+    .account-create-grid label {
+      display: grid;
+      gap: 7px;
       color: var(--deep);
-      font-size: 14px;
-      line-height: 1.2;
+      font-size: 13px;
+      font-weight: 700;
     }
 
-    .theme-toggle-row small {
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.35;
-    }
-
-    .theme-toggle-row input {
-      appearance: none;
-      width: 52px;
-      min-width: 52px;
-      height: 30px;
-      min-height: 30px;
+    .account-form-grid input,
+    .account-create-grid input,
+    .account-create-grid select,
+    .account-inline-input {
+      width: 100%;
+      min-height: 44px;
+      padding: 0 12px;
       border: 1px solid var(--line);
-      border-radius: 999px;
-      background: #cbd5e1;
-      position: relative;
-      cursor: pointer;
-      transition: background 0.18s ease, border-color 0.18s ease;
+      border-radius: 10px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 16px;
     }
 
-    .theme-toggle-row input::after {
-      content: "";
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      background: #fff;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
-      transition: transform 0.18s ease;
-    }
+    .account-form-grid small { color: var(--muted); font-size: 12px; font-weight: 500; }
+    .account-submit-btn { margin-top: 16px; min-height: 44px; }
+    .account-create-grid > button { align-self: end; min-height: 44px; }
 
-    .theme-toggle-row input:checked {
-      background: var(--teal);
-      border-color: var(--teal);
-    }
+    .password-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+    .password-toggle-btn { min-width: 58px; min-height: 44px; padding: 0 12px; }
 
-    .theme-toggle-row input:checked::after {
-      transform: translateX(22px);
+    .temporary-password-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 18px 0;
+      padding: 14px;
+      border: 1px solid var(--teal);
+      border-radius: 12px;
+      background: var(--mint-soft);
+    }
+    .temporary-password-box code { padding: 6px 10px; border-radius: 8px; background: var(--paper); color: var(--deep); font-weight: 800; overflow-wrap: anywhere; }
+
+    .account-users-wrap { margin-top: 18px; }
+    .account-users-table { min-width: 860px; }
+    .account-inline-input { min-height: 38px; font-size: 13px; }
+    .account-active-toggle { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+    .account-active-toggle input { width: 18px; height: 18px; }
+    .account-row-actions { display: flex; gap: 8px; white-space: nowrap; }
+    .account-row-actions button { min-height: 38px; }
+    .account-table-message { padding: 24px !important; text-align: center; color: var(--muted); }
+    .account-table-message.error { color: var(--red); }
+
+    .account-settings-status { min-height: 24px; color: var(--muted); font-size: 14px; font-weight: 700; }
+    .account-settings-status.success { color: var(--green); }
+    .account-settings-status.error { color: var(--red); }
+
+    @media (max-width: 720px) {
+      .account-form-grid,
+      .account-create-grid { grid-template-columns: 1fr; }
+      .account-password-card,
+      .account-management-card { padding: 18px; }
     }
 
     .settings-card-header {

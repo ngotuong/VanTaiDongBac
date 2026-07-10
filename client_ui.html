@@ -126,6 +126,7 @@
     }
 
     function openMobileEntrySheet() {
+      if (!requireWritePermission()) return;
       if (activeView !== 'manage') setView('manage');
       if (!rows.length) rows = [newBlankRow()];
       document.body.classList.add('mobile-entry-open');
@@ -150,6 +151,7 @@
     }
 
     function toggleManageEntryForm() {
+      if (!requireWritePermission()) return;
       const entryShell = el('entryShell');
       const btn = el('toggleEntryFormBtn');
       if (!entryShell) return;
@@ -168,82 +170,12 @@
     }
 
     function openResponsiveManageAdd() {
+      if (!requireWritePermission()) return;
       if (isMobileViewport()) {
         openMobileEntrySheet();
       } else {
         openManageAddModal();
       }
-    }
-
-    const THEME_STORAGE_KEY = 'dongbac_theme';
-
-    function getThemeMode() {
-      try {
-        return localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
-      } catch (err) {
-        return 'light';
-      }
-    }
-
-    function applyThemeMode(mode) {
-      const isDark = mode === 'dark';
-      document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
-      const meta = document.getElementById('themeColorMeta');
-      if (meta) meta.setAttribute('content', isDark ? '#07111f' : '#062e2b');
-      const toggle = el('darkModeToggle');
-      if (toggle) toggle.checked = isDark;
-    }
-
-    function setThemeMode(mode) {
-      const normalized = mode === 'dark' ? 'dark' : 'light';
-      try {
-        localStorage.setItem(THEME_STORAGE_KEY, normalized);
-      } catch (err) {}
-      applyThemeMode(normalized);
-    }
-
-    function setupThemeControls() {
-      applyThemeMode(getThemeMode());
-      const toggle = el('darkModeToggle');
-      if (toggle) {
-        toggle.onchange = () => setThemeMode(toggle.checked ? 'dark' : 'light');
-      }
-    }
-
-    // Configuration input controls binder
-    function setupConfigInput() {
-      const urlInput = el('backendUrlInput');
-      const saveBtn = el('saveUrlBtn');
-      const statusText = el('urlStatusText');
-      setupThemeControls();
-      
-      urlInput.value = getBackendUrl();
-      
-      saveBtn.onclick = () => {
-        const urlVal = urlInput.value.trim();
-        if (!urlVal) {
-          localStorage.removeItem('eb_backend_url');
-          statusText.style.color = 'var(--red)';
-          statusText.textContent = 'Đã xóa cấu hình kết nối.';
-          sessionStorage.clear();
-          return;
-        }
-        
-        if (!urlVal.startsWith('https://script.google.com/')) {
-          statusText.style.color = 'var(--red)';
-          statusText.textContent = 'Đường dẫn không hợp lệ, phải bắt đầu bằng https://script.google.com/...';
-          return;
-        }
-        
-        localStorage.setItem('eb_backend_url', urlVal);
-        sessionStorage.clear();
-        statusText.style.color = 'var(--green)';
-        statusText.textContent = 'Đã lưu cấu hình đường dẫn và làm mới bộ nhớ đệm!';
-        
-        setTimeout(() => {
-          location.reload();
-        }, 1000);
-      };
     }
 
     function loadSupabaseSyncStatus(forceRefresh = false) {

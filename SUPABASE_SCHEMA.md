@@ -280,4 +280,12 @@ Pilot Quỹ dùng `module=fund`, `action=addFundTransactions`. Voucher được 
 
 ### `public.app_users`
 
-Allowlist cho Supabase Auth nội bộ, gồm `user_id`, `username`, email kỹ thuật, `role`, `active`, `display_name`, `created_at`. Giao diện đăng nhập bằng username/password; frontend chuyển username thành địa chỉ kỹ thuật `username@dongbac.internal`, không yêu cầu email thật. Migration `007_auth_hardening.sql` tạo allowlist; migration `008_authenticated_read_cutover.sql` thu hồi quyền `anon` trên toàn bộ cache/queue và chỉ cho role `authenticated` đọc khi `is_active_app_user()` trả true. Ghi cache/queue vẫn chỉ dùng service role ở backend.
+Allowlist cho Supabase Auth nội bộ, gồm `user_id`, `username`, email kỹ thuật, `role`, `active`, `display_name`, `created_at`, `updated_at`. Giao diện đăng nhập bằng username/password; frontend chuyển username thành địa chỉ kỹ thuật `username@dongbac.internal`, không yêu cầu email thật. Migration `007_auth_hardening.sql` tạo allowlist; migration `008_authenticated_read_cutover.sql` thu hồi quyền `anon`; migration `009_shareholder_role.sql` thêm role `shareholder`.
+
+Role ứng dụng:
+
+- `admin`: toàn quyền nghiệp vụ và quản lý tài khoản.
+- `operator`: đọc/ghi nghiệp vụ, không quản lý tài khoản.
+- `shareholder`: chỉ đọc báo cáo, bảng Vận hành, giao dịch Thu chi và khoản vay. Proxy từ chối action ghi bằng HTTP 403.
+
+RLS cho phép user `authenticated` đang active đọc cache; ghi cache/queue vẫn chỉ dùng service role. Phân quyền action chi tiết được thực thi tại Vercel API proxy, không dựa riêng vào việc ẩn nút frontend.

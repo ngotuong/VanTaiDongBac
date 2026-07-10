@@ -226,11 +226,13 @@
         }
       });
       
-      const thActions = document.createElement('th');
-      thActions.textContent = 'Thao tác';
-      thActions.style.textAlign = 'center';
-      thActions.className = 'sticky-col-right';
-      thead.appendChild(thActions);
+      if (canWriteData()) {
+        const thActions = document.createElement('th');
+        thActions.textContent = 'Thao tác';
+        thActions.style.textAlign = 'center';
+        thActions.className = 'sticky-col-right';
+        thead.appendChild(thActions);
+      }
 
       const vehiclesByPlate = buildVehicleOwnerMap();
       filteredManageRowsData = rawRows.map(row => {
@@ -631,6 +633,7 @@
           }
         });
 
+        if (canWriteData()) {
         const tdActions = document.createElement('td');
         tdActions.className = 'sticky-col-right';
         tdActions.dataset.label = '';
@@ -673,6 +676,7 @@
           tdActions.appendChild(btnDelete);
         }
         tr.appendChild(tdActions);
+        }
         
         fragment.appendChild(tr);
       });
@@ -697,6 +701,7 @@
     }
 
     function openManageAddModal() {
+      if (!requireWritePermission()) return;
       if (activeView === 'catalog') {
         currentEditCatalogRowIndex = null;
       } else {
@@ -709,6 +714,7 @@
     }
 
     function openManageEditModal(row) {
+      if (!requireWritePermission()) return;
       if (activeView === 'catalog') {
         currentEditCatalogRowIndex = row.rowIndex;
       } else {
@@ -857,6 +863,7 @@
     }
 
     function saveManageRow() {
+      if (!requireWritePermission()) return;
       const sheetName = activeView === 'catalog' ? el('catalogSheetSelect').value : el('manageSheetSelect').value;
       const submitBtn = el('manageModalSubmitBtn');
       const originalText = submitBtn.textContent;
@@ -939,6 +946,7 @@
     }
 
     function deleteManageRow(rowIndex) {
+      if (!requireWritePermission()) return;
       if (!confirm(`Bạn có chắc chắn muốn xóa dòng thứ ${rowIndex} không? Hành động này không thể hoàn tác.`)) {
         return;
       }

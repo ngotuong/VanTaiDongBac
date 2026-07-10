@@ -56,3 +56,23 @@ test('auth migration revokes anon and API proxy validates allowlist', () => {
   assert.match(proxy, /app_users\?select=/);
   assert.doesNotMatch(proxy, /console\.log/);
 });
+
+test('shareholder role is read-only and account administration stays admin-only', () => {
+  const migration = read('supabase/migrations/009_shareholder_role.sql');
+  const proxy = read('api/app.js');
+  const template = read('index.template.html');
+  const accounts = read('client_accounts.html');
+  assert.match(migration, /'shareholder'/);
+  assert.match(proxy, /SHAREHOLDER_ACTIONS/);
+  assert.match(proxy, /Tài khoản cổ đông chỉ có quyền xem dữ liệu/);
+  assert.match(proxy, /function assertAdmin/);
+  assert.match(proxy, /changeOwnPassword/);
+  assert.match(proxy, /resetUserPassword/);
+  assert.match(template, /data-write-only/);
+  assert.match(template, /Quản lý tài khoản/);
+  assert.doesNotMatch(template, /Cấu hình đường dẫn Web App/);
+  assert.doesNotMatch(template, /darkModeToggle/);
+  assert.match(accounts, /function requireWritePermission/);
+  assert.match(read('client_api.html'), /dongbac_auth_username/);
+  assert.doesNotMatch(read('client_api.html'), /setItem\([^\n]*password/i);
+});

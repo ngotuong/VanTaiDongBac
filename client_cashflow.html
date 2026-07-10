@@ -1,5 +1,6 @@
 <script>
     function setCashflowTab(tab) {
+      if (isShareholderUser() && ['catalog', 'entry', 'loanEntry'].includes(tab)) tab = 'overview';
       activeCashflowTab = tab;
       document.querySelectorAll('[data-cashflow-tab]').forEach((button) => {
         button.classList.toggle('active', button.dataset.cashflowTab === tab);
@@ -619,6 +620,7 @@
     };
 
     function submitFundTransaction() {
+      if (!requireWritePermission()) return;
       const btn = el('fundSaveBtn');
       const transactions = fundTransactionRows.map((row) => ({ ...row }));
       const error = validateFundTransactions(transactions);
@@ -918,6 +920,7 @@
     }
 
     function openFundCatalogEdit(rowIndex, value) {
+      if (!requireWritePermission()) return;
       fundCatalogEditRowIndex = rowIndex;
       const valueInput = el('fundCatalogValueInput');
       if (valueInput) valueInput.value = value || '';
@@ -935,6 +938,7 @@
     }
 
     function saveFundCatalogItem() {
+      if (!requireWritePermission()) return;
       const value = el('fundCatalogValueInput')?.value || '';
       const btn = el('fundCatalogSaveBtn');
       if (!value.trim()) {
@@ -972,6 +976,7 @@
     }
 
     function deleteFundCatalogItem(rowIndex) {
+      if (!requireWritePermission()) return;
       if (!confirm('Xóa mục danh mục này?')) return;
       showFundCatalogStatus('success', 'Đang xóa danh mục...');
       showSyncToast('Đang xóa danh mục Quỹ...', 'info', true);
@@ -1075,11 +1080,13 @@
           <td>${escapeHtml(item.loanDateText || item.loanDate || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>
           <td style="text-align:right; font-weight:800; color: var(--red);">${formatFundAmount(item.outstanding, '')}</td>
+          ${canWriteData() ? `
           <td style="text-align:right; white-space:nowrap;">
             <button type="button" class="sub-tab" style="min-height:28px;" onclick="openFundLoanPayment(decodeURIComponent('${encodeURIComponent(item.code || '')}'), decodeURIComponent('${encodeURIComponent(item.partner || '')}'), ${Number(item.outstanding || 0)})">Thanh toán</button>
           </td>
+          ` : ''}
         </tr>
-      `).join('') : '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>';
+      `).join('') : `<tr><td colspan="${canWriteData() ? 4 : 3}" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>`;
 
       const historyType = el('fundLoanHistoryTypeFilter')?.value || '';
       const historyPartner = el('fundLoanHistoryPartnerFilter')?.value || '';
@@ -1212,6 +1219,7 @@
     }
 
     function openFundLoanPayment(code, partner, outstanding) {
+      if (!requireWritePermission()) return;
       currentLoanOutstanding = Number(outstanding || 0);
       const drawer = el('fundLoanPaymentDrawer');
       const backdrop = el('fundLoanPaymentBackdrop');
@@ -1241,6 +1249,7 @@
     }
 
     function openFundTransactionAddDrawer(isEdit = false) {
+      if (!requireWritePermission()) return;
       const drawer = el('fundTransactionAddDrawer');
       const backdrop = el('fundTransactionAddBackdrop');
       if (!drawer || !backdrop) return;
@@ -1282,6 +1291,7 @@
     }
 
     function openFundLoanAddDrawer() {
+      if (!requireWritePermission()) return;
       loadFundFormOptions();
       const drawer = el('fundLoanAddDrawer');
       const backdrop = el('fundLoanAddBackdrop');
@@ -1332,6 +1342,7 @@
     }
 
     function submitFundLoanPayment() {
+      if (!requireWritePermission()) return;
       const btn = el('loanPaymentSaveBtn');
       let submitType = el('loanPaymentTypeInput')?.value || '';
       if (submitType === 'Trả gốc') {
@@ -1411,6 +1422,7 @@
     }
 
     function submitFundLoan() {
+      if (!requireWritePermission()) return;
       const btn = el('loanSaveBtn');
       const loan = {
         date: getDateInputIso('loanDateInput'),
@@ -1711,7 +1723,7 @@
           <td>${escapeHtml(item.actor || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>
           <td>${escapeHtml(item.content || '')}</td>
-          <td style="text-align: center; white-space: nowrap;" class="sticky-col-right">
+          ${canWriteData() ? `<td style="text-align: center; white-space: nowrap;" class="sticky-col-right">
             ${item._pending ? (item._jobStatus === 'failed'
               ? `<button type="button" class="btn-table-action delete" title="Thử lại" aria-label="Thử lại giao dịch lỗi" onclick="retryFundWriteJob('${escapeHtml(item._jobId)}')">!</button>`
               : `<span class="fund-pending-status" role="status">Đang đồng bộ</span>`) : `
@@ -1722,7 +1734,7 @@
               <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
             </button>
             `}
-          </td>
+          </td>` : ''}
         `;
         fragment.appendChild(tr);
       });
@@ -1776,6 +1788,7 @@
     }
 
     window.editFundTransaction = function(rowIndex) {
+      if (!requireWritePermission()) return;
       const item = fundTransactionsData?.transactions?.find(t => t.rowIndex === rowIndex);
       if (!item) return;
 
@@ -1788,6 +1801,7 @@
     };
 
     window.deleteFundTransaction = function(rowIndex) {
+      if (!requireWritePermission()) return;
       if (!confirm('Bạn có chắc chắn muốn xóa giao dịch thu chi này?')) return;
 
       showGlobalLoader('Đang xóa giao dịch...', 'Hệ thống đang tiến hành xóa dòng trên Google Sheets...');

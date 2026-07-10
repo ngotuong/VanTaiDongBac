@@ -37,7 +37,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@244 - Internal username auth and fund queue pilot`
+- Apps Script deployment moi nhat da xac nhan: `@245 - Account roles and shareholder read-only`
 - Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @234`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
 - Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
@@ -188,6 +188,14 @@ Commit lien quan:
 - `ROLLBACK.md`: cach rollback Supabase/cache/code.
 - `README.md`: gioi thieu ngan va lenh deploy nhanh.
 
+## Auth va phan quyen tai khoan (Ngay 2026-07-11)
+
+- Them role `shareholder`: chi xem Tong quan/Bao cao, cac bang trong menu Van hanh, chi tiet giao dich Thu chi va Khoan vay; khong duoc them/sua/xoa, audit queue hoac quan tri tai khoan.
+- Vercel API proxy la lop phan quyen bat buoc; UI an nut ghi chi la lop UX thu hai. Migration `009_shareholder_role.sql` mo rong constraint role va them `updated_at` cho `app_users`.
+- `Cai dat` co doi mat khau bang mat khau hien tai; `admin` co them tao tai khoan, chon role, bat/tat tai khoan va dat lai mat khau tam. `operator` van duoc doc/ghi nghiep vu nhung khong quan ly tai khoan.
+- Bo card `Cau hinh duong dan Web App`; production chi goi proxy `/api/app`, khong cho thay URL backend bang `localStorage`.
+- Bo card va logic Dark mode, production chi dung light mode. App luu username sau lan dang nhap thanh cong va dung Supabase persistent session; mat khau khong luu tho, de password manager cua trinh duyet tu dien qua `autocomplete`.
+
 ## Lo trinh tiep theo
 
 ### 1. Dong bang do dung cua Bao cao
@@ -224,11 +232,10 @@ Commit lien quan:
 - Pilot `fund/addFundTransactions` doc flag tu Script Property, mac dinh false trong code va da bat true tren production sau khi migration/auth/worker kiem tra thanh cong.
 - Yeu cau v2 khac v1: frontend hien job pending trong danh sach local va bang Van hanh ngay sau khi Luu, khoi phuc job gan day sau reload, worker khong lam cham request, va cache/danh sach that reload khi job `synced`.
 
-### 4. Thong bao va phan quyen
+### 4. Thong bao va mo rong phan quyen
 
 - Sau khi Bao cao va cache on dinh, thiet ke `notification_events` cho thong bao in-app tu `XL_DoiSoatChuyen`.
-- Sau thong bao, thiet ke user/role toi thieu cho noi bo.
-- Khong dua auth/role vao neu chua co luong du lieu chuan va rollback ro.
+- Auth/role toi thieu da co `admin`, `operator`, `shareholder`; chi mo rong permission chi tiet khi co nhu cau nghiep vu moi va phai giu proxy la diem enforcement.
 
 ## Cach tiep tuc o cuoc tro chuyen moi
 

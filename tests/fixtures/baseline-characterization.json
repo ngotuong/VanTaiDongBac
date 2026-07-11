@@ -6,6 +6,7 @@
     "appsScript": [
       "AppConfig.gs",
       "CatalogService.gs",
+      "DashboardService.gs",
       "EntryService.gs",
       "FundService.gs",
       "ManageService.gs",

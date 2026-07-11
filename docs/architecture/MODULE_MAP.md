@@ -72,7 +72,7 @@ flowchart TD
 | `TRANSPORT_ENTRY` | Nhập liệu Vận tải | Nghiệp vụ | `EntryService.gs`, `SheetService.gs`, `ValidationService.gs` | `NL_*` |
 | `TRANSPORT_MANAGE` | Vận hành và CRUD dữ liệu | Nghiệp vụ | `ManageService.gs`, `SheetReadService.gs`, `EntryService.gs`, `SheetService.gs` | `NL_*` |
 | `TRANSPORT_CATALOG` | Danh mục Vận tải | Nghiệp vụ | `CatalogService.gs`; cache compatibility trong `SheetService.gs` | `DM_*` |
-| `TRANSPORT_REPORT` | Tổng quan và Báo cáo | Nghiệp vụ | `ReportService.gs`, `SheetService.gs`, `ReportTempSheetService.gs`, `SheetReportCacheRepository.gs` | `BC_*`, `XL_*`, `SYS_ReportCache` |
+| `TRANSPORT_REPORT` | Tổng quan và Báo cáo | Nghiệp vụ | `ReportService.gs`, `DashboardService.gs`, `SheetService.gs`, `ReportTempSheetService.gs`, `SheetReportCacheRepository.gs` | `BC_*`, `XL_*`, `SYS_ReportCache` |
 | `TRANSPORT_RECONCILIATION` | Đối soát chuyến | Nghiệp vụ | `TransportReconciliationService.gs`; facade `EntryService.gs` | `NL_VanChuyen`, `NL_TaiXe`, `XL_DoiSoatChuyen` |
 | `FUND_TRANSACTIONS` | Giao dịch Thu chi | Nghiệp vụ | `FundService.gs` | `NHAP_THUCHI` |
 | `FUND_OVERVIEW` | Tổng quan Thu chi | Nghiệp vụ | `FundService.gs` | `NHAP_THUCHI`, cấu hình Thu chi |
@@ -378,7 +378,8 @@ Phạm vi:
 Source:
 
 - facade: `ReportService.gs`;
-- parser/dashboard implementation: `SheetService.gs`;
+- month resolution và KPI parsing: `DashboardService.gs`;
+- detail aggregation/report tables/latest trips và Sheet adapters chưa tách: `SheetService.gs`;
 - temp-sheet lifecycle: `ReportTempSheetService.gs`;
 - `SYS_ReportCache` version/read/write: `SheetReportCacheRepository.gs`;
 - Supabase bundle sync/audit: `SupabaseService.gs`;

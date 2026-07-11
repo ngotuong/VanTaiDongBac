@@ -70,7 +70,7 @@ flowchart TD
 | `PLATFORM_SUPABASE` | Cache, sync, queue và worker | Nền tảng | `SupabaseService.gs` | Supabase bundle/queue tables |
 | `TRANSPORT_ENTRY` | Nhập liệu Vận tải | Nghiệp vụ | `EntryService.gs`, `SheetService.gs`, `ValidationService.gs` | `NL_*` |
 | `TRANSPORT_MANAGE` | Vận hành và CRUD dữ liệu | Nghiệp vụ | `ManageService.gs`, `SheetReadService.gs`, `EntryService.gs`, `SheetService.gs` | `NL_*` |
-| `TRANSPORT_CATALOG` | Danh mục Vận tải | Nghiệp vụ | `CatalogService.gs`, `SheetService.gs` | `DM_*` |
+| `TRANSPORT_CATALOG` | Danh mục Vận tải | Nghiệp vụ | `CatalogService.gs`; cache compatibility trong `SheetService.gs` | `DM_*` |
 | `TRANSPORT_REPORT` | Tổng quan và Báo cáo | Nghiệp vụ | `ReportService.gs`, `SheetService.gs` | `BC_*`, `XL_*`, `SYS_ReportCache` |
 | `TRANSPORT_RECONCILIATION` | Đối soát chuyến | Nghiệp vụ | `EntryService.gs`, `SheetService.gs` | `NL_VanChuyen`, `NL_TaiXe`, `XL_DoiSoatChuyen` |
 | `FUND_TRANSACTIONS` | Giao dịch Thu chi | Nghiệp vụ | `FundService.gs` | `NHAP_THUCHI` |
@@ -326,8 +326,8 @@ Trách nhiệm:
 
 Source:
 
-- facade/read customization: `CatalogService.gs`;
-- generic implementation/CRUD: `SheetService.gs`;
+- facade và implementation đọc catalog/form/display customization: `CatalogService.gs`;
+- runtime cache compatibility và generic CRUD chưa tách: `SheetService.gs`;
 - sync: `SupabaseService.gs`;
 - frontend: `client_catalog.html`, `client_config.html`, `client_data.html`.
 

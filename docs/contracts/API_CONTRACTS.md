@@ -495,7 +495,7 @@ Params:
 
 - `formType`: `vanChuyen`, `taiXe`, `dau`, `chamCong`, `phat`, `nghiVanHanh` hoặc rỗng để lấy tập rộng.
 
-Handler: `CatalogService.getCatalogs()` → `SheetService.getCatalogs()`.
+Handler: `CatalogService.getCatalogs()`; compatibility cache wrapper `SheetService.getCatalogs()` gọi lại implementation đọc `CatalogService.readCatalogs()`.
 
 Response logic:
 

@@ -57,7 +57,7 @@ var SheetService = (function () {
     var key = cacheKey_('catalogs', formType || 'all');
     var cached = getChunkedCache_(key);
     if (cached) return cached;
-    var catalogs = readCatalogs_(getSpreadsheet_(), formType);
+    var catalogs = CatalogService.readCatalogs(getSpreadsheet_(), formType);
     putChunkedCache_(key, catalogs, CATALOG_TTL_SECONDS);
     return catalogs;
   }
@@ -300,138 +300,6 @@ var SheetService = (function () {
 
   function getSpreadsheet_() {
     return SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
-  }
-
-  function readCatalogs_(ss, formType) {
-    var needs = catalogNeeds_(formType);
-    var params = needs.params ? readParams_(ss) : {};
-    var peopleRows = needs.people ? readRows_(ss, 'DM_NhanSu') : [];
-    var vehicleRows = needs.vehicles ? readRows_(ss, 'DM_Xe') : [];
-    var projectRows = needs.projects ? readRows_(ss, 'DM_DuAn') : [];
-    var penaltyRows = needs.penalties ? readRows_(ss, 'DM_PhatNoiBo') : [];
-    var assignmentRows = [];
-    var chamCongTypes = needs.chamCongTypes ? readChamCongTypes_(ss) : [];
-
-    var people = peopleRows.map(function (row) {
-      return {
-        name: clean_(row[0]),
-        role: clean_(row[1]),
-        recruiter: clean_(row[2]),
-        status: clean_(row[9])
-      };
-    }).filter(function (item) { return item.name; });
-
-    var vehicles = vehicleRows.map(function (row) {
-      return {
-        plate: clean_(row[1]),
-        status: clean_(row[5]),
-        owner: clean_(row[7])
-      };
-    }).filter(function (item) { return item.plate; });
-
-    var projects = projectRows.map(function (row) {
-      return {
-        name: clean_(row[0]),
-        distanceKm: parseNumberLoose_(row[1])
-      };
-    }).filter(function (item) { return item.name; });
-
-    var penalties = penaltyRows.map(function (row) {
-      return {
-        code: clean_(row[0]),
-        content: clean_(row[1]),
-        amount: parseNumberLoose_(row[2]),
-        status: clean_(row[3])
-      };
-    }).filter(function (item) { return item.code; });
-
-    var activeVehicles = vehicles.filter(function (item) { return item.status === 'Dang chay' || item.status === 'Đang chạy'; });
-    var activePeople = people.filter(function (item) { return item.status === 'Dang lam' || item.status === 'Đang làm'; });
-    var activeDrivers = people.filter(function (item) {
-        return (item.status === 'Dang lam' || item.status === 'Đang làm') && item.role === 'Tài xế';
-      });
-    return {
-      vehicles: vehicles,
-      activeVehicles: activeVehicles,
-      people: people,
-      activePeople: activePeople,
-      activeDrivers: activeDrivers,
-      projects: projects,
-      penalties: penalties,
-      activePenalties: penalties.filter(function (item) { return item.status === 'Dang ap dung' || item.status === 'Đang áp dụng'; }),
-      assignments: [],
-      params: params,
-      chamCongTypes: chamCongTypes,
-      nghiVanHanhTypes: ['Mỏ báo nghỉ', 'Mưa', 'Lễ/Tết', 'Xe hỏng', 'Khác'],
-      fuelSources: ['Quang Minh', 'Đổ ngoài'],
-      fuelPaymentSources: ['Quang Quân', 'Minh Vương', 'Quỹ']
-    };
-  }
-
-  function catalogNeeds_(formType) {
-    var needs = { params: false, people: false, vehicles: false, projects: false, penalties: false, assignments: false, chamCongTypes: false };
-    if (!formType) {
-      return { params: true, people: true, vehicles: true, projects: true, penalties: true, assignments: false, chamCongTypes: true };
-    }
-    if (formType === 'vanChuyen') {
-      needs.vehicles = true;
-      needs.projects = true;
-    } else if (formType === 'taiXe') {
-      needs.vehicles = true;
-      needs.people = true;
-      needs.assignments = false;
-    } else if (formType === 'dau') {
-      needs.vehicles = true;
-    } else if (formType === 'chamCong') {
-      needs.people = true;
-      needs.chamCongTypes = true;
-    } else if (formType === 'phat') {
-      needs.people = true;
-      needs.penalties = true;
-    } else if (formType === 'nghiVanHanh') {
-      needs.vehicles = true;
-      needs.projects = true;
-      needs.params = true;
-    } else {
-      return catalogNeeds_();
-    }
-    return needs;
-  }
-
-  function readRows_(ss, sheetName) {
-    var sheet = ss.getSheetByName(sheetName);
-    if (!sheet) return [];
-    var lastRow = sheet.getLastRow();
-    var lastColumn = sheet.getLastColumn();
-    if (lastRow < 2 || lastColumn < 1) return [];
-    return sheet.getRange(2, 1, lastRow - 1, lastColumn).getValues();
-  }
-
-  function readChamCongTypes_(ss) {
-    var sheet = ss.getSheetByName('NL_ChamCong');
-    if (!sheet || sheet.getLastRow() < 2 || sheet.getLastColumn() < 10) return [];
-    var values = sheet.getRange(2, 10, sheet.getLastRow() - 1, 1).getDisplayValues();
-    var seen = {};
-    var result = [];
-    values.forEach(function (row) {
-      var name = clean_(row[0]);
-      if (!name || seen[name]) return;
-      seen[name] = true;
-      result.push({ name: name, group: '', salary: '' });
-    });
-    return result;
-  }
-
-  function readParams_(ss) {
-    var sheet = ss.getSheetByName('DM_ThamSo');
-    var params = {};
-    if (!sheet || sheet.getLastRow() < 2) return params;
-    var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 3).getValues();
-    rows.forEach(function (row) {
-      var key = clean_(row[0]);
-      if (key) params[key] = parseNumberLoose_(row[2]);
-    });
-    return params;
   }
 
   function readOverviewReport_(ss, month) {

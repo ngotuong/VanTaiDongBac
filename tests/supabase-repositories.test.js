@@ -66,12 +66,9 @@ test('SupabaseService routes only bundle persistence through the bundle reposito
   const startupCatalogSource = read('StartupCatalogSyncService.gs');
   const reportSyncSource = read('ReportSyncService.gs');
   const manageSyncSource = read('ManageSyncService.gs');
+  const fundSyncSource = read('FundSyncService.gs');
   const bundleTables = [
     'TABLE_REPORT_BUNDLES',
-    'TABLE_FUND_OVERVIEW_BUNDLES',
-    'TABLE_FUND_TRANSACTION_BUNDLES',
-    'TABLE_FUND_LOAN_BUNDLES',
-    'TABLE_CATALOG_BUNDLES',
     'TABLE_MANAGE_DATA_BUNDLES'
   ];
   bundleTables.forEach((table) => {
@@ -82,6 +79,10 @@ test('SupabaseService routes only bundle persistence through the bundle reposito
   assert.match(startupCatalogSource, /context\.upsertRows\(TABLE_CATALOG_BUNDLES/);
   assert.match(reportSyncSource, /context\.upsertRows\(TABLE_REPORT_BUNDLES/);
   assert.match(manageSyncSource, /context\.upsertRows\(TABLE_MANAGE_DATA_BUNDLES/);
+  assert.match(fundSyncSource, /context\.upsertRows\(TABLE_FUND_OVERVIEW_BUNDLES/);
+  assert.match(fundSyncSource, /context\.upsertRows\(TABLE_FUND_TRANSACTION_BUNDLES/);
+  assert.match(fundSyncSource, /context\.upsertRows\(TABLE_FUND_LOAN_BUNDLES/);
+  assert.match(fundSyncSource, /context\.upsertRows\(TABLE_CATALOG_BUNDLES/);
   assert.match(source, /upsertRows_\(TABLE_WRITE_JOBS/);
   assert.match(source, /readRows_\(TABLE_WRITE_JOBS/);
 });

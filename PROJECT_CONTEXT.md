@@ -218,14 +218,17 @@ Commit lien quan:
 - Step 9 đã pass 66/66 test, build thành công, deploy Apps Script production `@251`; smoke test `health` và `getSupabaseSyncStatus(1)` đều thành công.
 - Step 10 tách pure cache-audit normalization/hash/result formatting sang `CacheAuditService.gs`; live Sheet/Supabase reads vẫn ở `SupabaseService`.
 - Step 10 đã pass 72/72 test, build thành công, deploy Apps Script production `@252`; smoke test `health` và `getManageCacheAudit(['NL_VanChuyen'], 1)` đều thành công.
-- Chưa thực hiện Step 11 (tách runtime cache helpers khỏi `SheetService`).
+- Step 11 đã tách chunked runtime cache, cache-key assembly và batch invalidation sang `RuntimeCacheService.gs`; `SheetService` giữ compatibility wrappers và nguyên TTL/key/version/invalidation behavior.
+- Step 11 đã pass 78/78 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@253 - Refactor Step 11 extract runtime cache service`.
+- Smoke production Step 11 thành công: HTTP `health`, Execution API `health` và `invalidateCaches` đều trả `ok=true`, cache version giữ nguyên `v13`.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: đã hoàn thành và checkpoint Step 10; production đang ở Apps Script `@252`.
-- Bước kế tiếp được đề xuất: Step 11 trong `REFACTOR_PLAN.md` — tách runtime cache helpers khỏi `SheetService`.
-- Coding Agent mới không được tự bắt đầu Step 11. Sau khi đọc tài liệu bắt buộc, Agent chỉ được tóm tắt dự án, trạng thái, mục tiêu cuối và bước kế tiếp, sau đó chờ người dùng phê duyệt rõ ràng.
-- Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`; chưa thực hiện Step 11.
+- Trạng thái hiện tại: Step 11 đã hoàn thành và checkpoint production đang ở Apps Script `@253`.
+- Việc còn lại của Step 11: commit/push GitHub đang chờ cài đặt và xác thực GitHub CLI `gh` trên máy local.
+- Bước kế tiếp được đề xuất: Step 12 (`SheetWritePreserver`); chưa được phê duyệt và không được tự bắt đầu.
+- Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
+- Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
 ### 1. Dong bang do dung cua Bao cao
 
@@ -270,4 +273,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 11 hoặc bất kỳ thay đổi nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 12 hoặc bất kỳ thay đổi mới nào.

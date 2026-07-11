@@ -1186,11 +1186,14 @@ var SheetService = (function () {
   }
 
   function cacheKey_(type) {
-    var parts = ['ss', normalizeMonthKey_(APP_CONFIG.spreadsheetId), type, CACHE_VERSION];
+    var dimensions = [];
     for (var i = 1; i < arguments.length; i++) {
-      parts.push(normalizeMonthKey_(arguments[i]) || 'all');
+      dimensions.push(normalizeMonthKey_(arguments[i]) || 'all');
     }
-    return parts.join(':');
+    return RuntimeCacheService.buildKey(
+      ['ss', normalizeMonthKey_(APP_CONFIG.spreadsheetId), type, CACHE_VERSION],
+      dimensions
+    );
   }
 
   function filterDisplayTableByMonth_(matrix, month) {
@@ -1217,69 +1220,15 @@ var SheetService = (function () {
   }
 
   function putChunkedCache_(key, data, ttlSeconds) {
-    var cache = CacheService.getScriptCache();
-    var text = JSON.stringify(data);
-    var chunkSize = 90000;
-    var chunks = [];
-    for (var i = 0; i < text.length; i += chunkSize) {
-      chunks.push(text.substring(i, i + chunkSize));
-    }
-    
-    // First, clear old chunks just in case the new count is smaller
-    var oldCountStr = cache.get(key + '_count');
-    if (oldCountStr) {
-      var oldCount = parseInt(oldCountStr, 10);
-      var oldKeys = [];
-      for (var o = 0; o < oldCount; o++) {
-        oldKeys.push(key + '_' + o);
-      }
-      oldKeys.push(key + '_count');
-      cache.removeAll(oldKeys);
-    }
-    
-    // Write new chunks
-    var chunkKeys = {};
-    for (var j = 0; j < chunks.length; j++) {
-      chunkKeys[key + '_' + j] = chunks[j];
-    }
-    cache.putAll(chunkKeys, ttlSeconds);
-    cache.put(key + '_count', String(chunks.length), ttlSeconds);
+    return RuntimeCacheService.putChunked(key, data, ttlSeconds);
   }
 
   function getChunkedCache_(key) {
-    var cache = CacheService.getScriptCache();
-    var countStr = cache.get(key + '_count');
-    if (!countStr) return null;
-    var count = parseInt(countStr, 10);
-    var keys = [];
-    for (var j = 0; j < count; j++) {
-      keys.push(key + '_' + j);
-    }
-    var retrieved = cache.getAll(keys);
-    var text = '';
-    for (var j = 0; j < count; j++) {
-      var chunk = retrieved[key + '_' + j];
-      if (!chunk) return null; // A chunk is missing or expired
-      text += chunk;
-    }
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      return null;
-    }
+    return RuntimeCacheService.getChunked(key);
   }
 
   function removeChunkedCache_(key) {
-    var cache = CacheService.getScriptCache();
-    var countStr = cache.get(key + '_count');
-    if (countStr) {
-      var count = parseInt(countStr, 10);
-      var keys = [key + '_count'];
-      for (var j = 0; j < count; j++) {
-        keys.push(key + '_' + j);
-      }
-      cache.removeAll(keys);
-    }
+    return RuntimeCacheService.removeChunked(key);
   }
 
   function clearAfterSubmitCache_() {
@@ -1297,13 +1246,15 @@ var SheetService = (function () {
 
   function invalidateRuntimeCaches_() {
     bumpReportDataVersion_();
-    removeChunkedCache_(cacheKey_('reports', 'all'));
-    removeChunkedCache_(cacheKey_('dashboard', 'latest'));
-    removeChunkedCache_(cacheKey_('report', 'overview', 'all'));
-    removeChunkedCache_(cacheKey_('report', 'payroll', 'all'));
-    removeChunkedCache_(cacheKey_('report', 'vehicles', 'all'));
-    removeChunkedCache_(cacheKey_('report_bundle', 'all'));
-    removeChunkedCache_(cacheKey_('report_tables', 'all'));
+    RuntimeCacheService.removeChunkedMany([
+      cacheKey_('reports', 'all'),
+      cacheKey_('dashboard', 'latest'),
+      cacheKey_('report', 'overview', 'all'),
+      cacheKey_('report', 'payroll', 'all'),
+      cacheKey_('report', 'vehicles', 'all'),
+      cacheKey_('report_bundle', 'all'),
+      cacheKey_('report_tables', 'all')
+    ]);
     
     // Clear catalog caches
     var formTypes = ['all', 'vanChuyen', 'taiXe', 'dau', 'chamCong', 'phat', 'nghiVanHanh'];

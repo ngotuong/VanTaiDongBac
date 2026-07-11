@@ -12,6 +12,7 @@
       "PublicApi.gs",
       "ReportService.gs",
       "Router.gs",
+      "RuntimeCacheService.gs",
       "SecurityService.gs",
       "SheetReadService.gs",
       "SheetService.gs",

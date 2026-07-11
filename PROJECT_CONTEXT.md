@@ -288,11 +288,14 @@ Commit lien quan:
 - Step 23a tách managed/native catalog read, named-range spec resolution và encoded native row index sang `FundCatalogRepository.gs`; group normalization, de-dup, option fallback merge, group counts/filter payload sang `FundCatalogService.gs`. `FundService` giữ spreadsheet/cache facade và CRUD/bounds chưa chuyển.
 - Step 23a đã pass 152/152 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@277 - Step 23a - Fund catalog read extraction`; không cần migration/schema/named-range change.
 - Smoke production Step 23a read-only thành công: `health` trả `ok=true`; form options trả đủ 5 nhóm; `incomeCategories` trả 5 native rows đúng encoded index, group counts `5/18/3/27/2`. Không ghi catalog production.
+- Step 23b tách encoded-index parsing, named/native bounds, first-blank append, bounded no-overflow và native/managed CRUD sang `FundCatalogService.gs`/`FundCatalogRepository.gs`; `FundService` chỉ giữ public facade, spreadsheet resolver, lock và cache-version bump.
+- Step 23b đã pass 157/157 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@278 - Step 23b - Fund catalog CRUD extraction`; không cần migration/schema/named-range change.
+- Smoke production Step 23b an toàn thành công: `health` trả `ok=true`; worker idle `processed=0`; catalog group counts và form options giữ nguyên so với `@277`. Không save/delete catalog production. Toàn bộ Step 23 đã hoàn thành.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 23a đã hoàn thành; Step 23 tổng thể chưa hoàn thành và checkpoint production đang ở Apps Script `@277`.
-- Bước kế tiếp được đề xuất: Step 23b — tách native/managed catalog CRUD, encoded index parsing, bounds/append/no-overflow; chưa được tự bắt đầu nếu chưa có phê duyệt Step 23b.
+- Trạng thái hiện tại: toàn bộ Step 23 đã hoàn thành và checkpoint production đang ở Apps Script `@278`.
+- Bước kế tiếp được đề xuất: Step 24 — tách FundLoanRepository/Service theo `REFACTOR_PLAN.md`, chỉ bắt đầu sau full loan characterization; chưa được tự bắt đầu nếu chưa có phê duyệt Step 24.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -339,4 +342,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 23b hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 24 hoặc bất kỳ thay đổi mới nào.

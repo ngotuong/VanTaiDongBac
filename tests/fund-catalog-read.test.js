@@ -76,3 +76,71 @@ test('FundService keeps cache and spreadsheet resolution while delegating catalo
   assert.match(facade, /putFundCache_\(optionsCacheKey, result, FUND_CATALOG_TTL_SECONDS\)/);
   assert.match(facade, /putFundCache_\(catalogCacheKey, result, FUND_CATALOG_TTL_SECONDS\)/);
 });
+
+test('encoded index parsing and bounds rejection preserve native catalog rules', () => {
+  const { FundCatalogService: service } = load();
+  const ctx = context();
+  assert.deepEqual(JSON.parse(JSON.stringify(service.parseNativeRowIndex('native:incomeCategories:12', ctx))), { groupKey: 'incomeCategories', row: 12 });
+  assert.equal(service.parseNativeRowIndex('12', ctx), null);
+  assert.doesNotThrow(() => service.assertBounds({ startRow: 3, endRow: 12 }, 12, 'incomeCategories', ctx));
+  assert.throws(() => service.assertBounds({ startRow: 3, endRow: 12 }, 13, 'incomeCategories', ctx), /Mục Thu chỉ được chỉnh trong vùng dòng 3-12 của sheet CAIDAT/);
+});
+
+test('repository finds the first native blank and rejects bounded range overflow', () => {
+  const { FundCatalogRepository: repository } = load();
+  const sheet = { getLastRow: () => 6, getRange: () => ({ getValues: () => [['A'], [''], ['C'], ['D']] }) };
+  assert.equal(repository.findAppendRowInColumn(sheet, 5, 3, 6, 'Mục Thu', (column) => column === 5 ? 'E' : '', 'CAIDAT'), 4);
+  const full = { getLastRow: () => 4, getRange: () => ({ getValues: () => [['A'], ['B']] }) };
+  assert.throws(() => repository.findAppendRowInColumn(full, 5, 3, 4, 'Mục Thu', () => 'E', 'CAIDAT'), /đã hết dòng trống.*CAIDAT!E3:E4/);
+});
+
+test('native save/update/delete preserve resolved column, encoded result, row growth, and clear-only delete', () => {
+  const { FundCatalogRepository: repository, FundCatalogService: service } = load();
+  const calls = [];
+  const targetSheet = {
+    getLastRow: () => 5, getMaxRows: () => 4, insertRowsAfter: (...args) => calls.push(['grow', ...args]),
+    getRange(row, column, height, width) {
+      return { getValues: () => [['A'], [''], ['']], setValue: (value) => calls.push(['set', row, column, value]), clearContent: () => calls.push(['clear', row, column]) };
+    }
+  };
+  const spreadsheet = { getRangeByName: () => ({ getColumn: () => 6, getRow: () => 3, getNumRows: () => 4 }) };
+  const ctx = context({ repository, spreadsheet, sheet: targetSheet, getAppendRow: () => 2, columnToLetter: () => 'F' });
+  const saved = service.saveItem({ group: 'incomeCategories', value: 'Thu mới' }, ctx);
+  assert.deepEqual(JSON.parse(JSON.stringify(saved)), { ok: true, rowIndex: 'native:incomeCategories:4', group: 'incomeCategories', value: 'Thu mới', note: '', sheetName: 'CAIDAT', nativeColumn: 6 });
+  assert.deepEqual(calls, [['set', 4, 6, 'Thu mới']]);
+  calls.length = 0;
+  service.saveItem({ group: 'incomeCategories', rowIndex: 'native:incomeCategories:5', value: 'Đổi tên' }, ctx);
+  assert.deepEqual(calls, [['grow', 4, 1], ['set', 5, 6, 'Đổi tên']]);
+  calls.length = 0;
+  const deleted = service.deleteItem({ rowIndex: 'native:incomeCategories:5' }, ctx);
+  assert.equal(Number.isNaN(deleted.rowIndex), true);
+  assert.deepEqual(calls, [['clear', 5, 6]]);
+});
+
+test('managed CRUD fallback preserves A:C writes, physical delete, validation, and result shape', () => {
+  const { FundCatalogService: service } = load();
+  const calls = [];
+  const repository = {
+    saveManagedValue(sheet, row, values) { calls.push(['save', row, values]); return 8; },
+    deleteManagedValue(sheet, row) { calls.push(['delete', row]); }
+  };
+  const ctx = context({ repository, spreadsheet: {}, sheet: {}, nativeSpecs: {}, getAppendRow: () => 8, columnToLetter: () => 'A' });
+  assert.deepEqual(JSON.parse(JSON.stringify(service.saveItem({ group: 'actors', value: 'An', note: 'Nội bộ' }, ctx))),
+    { ok: true, rowIndex: 8, group: 'actors', value: 'An', note: 'Nội bộ', sheetName: 'CAIDAT' });
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[0])), ['save', null, ['Người Thu/Chi', 'An', 'Nội bộ']]);
+  assert.deepEqual(JSON.parse(JSON.stringify(service.deleteItem({ rowIndex: 8 }, ctx))), { ok: true, rowIndex: 8, sheetName: 'CAIDAT' });
+  assert.deepEqual(calls[1], ['delete', 8]);
+  assert.throws(() => service.saveItem({ group: '', value: 'A' }, ctx), /Vui lòng chọn nhóm/);
+  assert.throws(() => service.saveItem({ group: 'actors', value: '' }, ctx), /Vui lòng nhập giá trị/);
+  assert.throws(() => service.deleteItem({ rowIndex: '' }, ctx), /Thiếu dòng danh mục cần xóa/);
+});
+
+test('FundService delegates catalog CRUD while retaining resolver, lock, and cache bump', () => {
+  const facade = read('FundService.gs');
+  assert.match(facade, /FundCatalogService\.saveItem\(payload, context\)/);
+  assert.match(facade, /FundCatalogService\.deleteItem\(payload, context\)/);
+  assert.match(facade, /LockService\.getScriptLock\(\)/);
+  assert.match(facade, /bumpFundDataVersion_\(\)/);
+  assert.doesNotMatch(facade, /function saveNativeFundCatalogValue_/);
+  assert.doesNotMatch(facade, /function getAppendRowInColumn_/);
+});

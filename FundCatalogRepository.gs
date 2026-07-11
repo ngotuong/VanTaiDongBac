@@ -40,5 +40,40 @@ var FundCatalogRepository = (function () {
     return rows;
   }
 
-  return { readManagedRows: readManagedRows, resolveNativeSpec: resolveNativeSpec, readNativeRows: readNativeRows };
+  function findAppendRowInColumn(sheet, column, startRow, endRow, label, columnToLetter, sheetName) {
+    var maxRow = endRow || Math.max(sheet.getLastRow(), startRow);
+    var values = sheet.getRange(startRow, column, Math.max(maxRow - startRow + 1, 1), 1).getValues();
+    for (var i = 0; i < values.length; i++) {
+      var value = values[i][0];
+      if (value === '' || value === null || value === undefined) return startRow + i;
+    }
+    if (endRow) throw new Error((label || 'Danh mục') + ' đã hết dòng trống trong vùng cấu hình ' + sheetName + '!' + columnToLetter(column) + startRow + ':' + columnToLetter(column) + endRow + '.');
+    return maxRow + 1;
+  }
+
+  function saveNativeValue(spreadsheet, sheet, spec, groupKey, rowNumber, value, context) {
+    var targetRow = rowNumber || findAppendRowInColumn(sheet, spec.column, spec.startRow, spec.endRow, context.groupLabel, context.columnToLetter, context.sheetName);
+    if (sheet.getMaxRows() < targetRow) sheet.insertRowsAfter(sheet.getMaxRows(), targetRow - sheet.getMaxRows());
+    sheet.getRange(targetRow, spec.column).setValue(value);
+    return { rowIndex: 'native:' + groupKey + ':' + targetRow, column: spec.column };
+  }
+
+  function saveManagedValue(sheet, rowNumber, values, getAppendRow) {
+    var targetRow = rowNumber > 1 ? rowNumber : getAppendRow(sheet);
+    if (sheet.getMaxRows() < targetRow) sheet.insertRowsAfter(sheet.getMaxRows(), targetRow - sheet.getMaxRows());
+    sheet.getRange(targetRow, 1, 1, 3).setValues([values]);
+    return targetRow;
+  }
+
+  function deleteNativeValue(sheet, spec, rowNumber) {
+    sheet.getRange(rowNumber, spec.column).clearContent();
+  }
+
+  function deleteManagedValue(sheet, rowNumber) {
+    sheet.deleteRow(rowNumber);
+  }
+
+  return { readManagedRows: readManagedRows, resolveNativeSpec: resolveNativeSpec, readNativeRows: readNativeRows,
+    findAppendRowInColumn: findAppendRowInColumn, saveNativeValue: saveNativeValue, saveManagedValue: saveManagedValue,
+    deleteNativeValue: deleteNativeValue, deleteManagedValue: deleteManagedValue };
 })();

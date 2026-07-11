@@ -905,14 +905,14 @@ Vùng quan sát được:
 Contract:
 
 - không đổi tên named range;
-- không di chuyển vùng nếu chưa cập nhật bound script, công thức và `FundService`;
+- không di chuyển vùng nếu chưa cập nhật bound script, công thức và `FundCatalogRepository`/`FundCatalogService`;
 - giữ giới hạn vùng danh mục hiện tại;
 - CRUD web app phải kiểm tra row nằm trong start/end row;
 - append danh mục không được tràn sang vùng kế bên.
 
 ### 16.3. Catalog source priority
 
-`FundService` có thể lấy option từ:
+`FundCatalogService` qua facade/cache của `FundService` có thể lấy option từ:
 
 1. named range/native range;
 2. catalog hỗ trợ;

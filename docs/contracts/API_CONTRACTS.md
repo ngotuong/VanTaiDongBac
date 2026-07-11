@@ -939,7 +939,7 @@ GET action=getFundFormOptions&year=2026
 
 Auth: admin/operator/shareholder.
 
-Handler: `FundService.getFundFormOptions()`.
+Handler: `FundService.getFundFormOptions()` giữ spreadsheet/cache facade và delegate managed/native read, option merge cho `FundCatalogRepository`/`FundCatalogService`.
 
 Response chứa các option form như nhóm Thu/Chi, người thực hiện, đối tác, phương thức và đối tác vay.
 
@@ -951,7 +951,7 @@ GET action=getFundCatalog&year=2026&group=incomeCategories
 
 Auth: admin/operator; shareholder hiện bị proxy chặn.
 
-Handler: `FundService.getFundCatalog()`.
+Handler: `FundService.getFundCatalog()` giữ spreadsheet/cache facade và delegate named/native range read, group mapping/filter cho `FundCatalogRepository`/`FundCatalogService`.
 
 Params `group` là một nhóm catalog được backend allowlist/normalize.
 

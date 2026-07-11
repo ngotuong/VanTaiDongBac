@@ -49,7 +49,7 @@ var AppConfig = (function () {
   }
 
   function clean_(value) {
-    return value === null || value === undefined ? '' : String(value).trim();
+    return normalizeCleanValue_(value);
   }
 
   return {

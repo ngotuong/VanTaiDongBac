@@ -1988,7 +1988,7 @@ var SupabaseService = (function () {
   }
 
   function clean_(value) {
-    return value === null || value === undefined ? '' : String(value).trim();
+    return normalizeCleanValue_(value);
   }
 
   function readBooleanProperty_(propertyName, fallbackValue) {

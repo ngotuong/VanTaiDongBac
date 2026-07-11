@@ -23,13 +23,16 @@ Quy tắc quan trọng:
 - Không gộp dữ liệu 2 file Google Sheet nếu chưa được yêu cầu.
 - Không copy code web app vào từng Google Sheet theo năm.
 - Không giả định SpreadsheetApp.getActiveSpreadsheet() là file dữ liệu chính.
+- Khi không chắc chắn về yêu cầu, hỏi lại thay vì đoán
+- Thay đổi lớn luôn lên kế hoạch và xem xét các vấn đề trước khi code
 - Khi đọc/ghi dữ liệu chính, ưu tiên dùng SpreadsheetApp.openById(id).
 - Nếu cần đổi cấu trúc Google Sheet, phải viết hàm migration riêng, không sửa trực tiếp.
 - Trước khi sửa code phải giải thích kế hoạch ngắn bằng tiếng Việt.
 - Sau khi sửa phải báo đã sửa file nào, sửa để làm gì, và cách test.
 
 Tài liệu dự án:
+- `docs/ai/AI_START_HERE.md` là điểm bắt đầu bắt buộc và quy định Agent phải đọc tài liệu nào theo từng loại tác vụ. Không cần đọc toàn bộ thư mục `docs/` trong mọi cuộc trò chuyện.
 - `PROJECT_CONTEXT.md` là file handoff/lộ trình sống. Khi bắt đầu một cuộc trò chuyện mới hoặc sau khi mất ngữ cảnh, phải đọc file này để nắm trạng thái hiện tại trước khi đề xuất/sửa tiếp.
-- `PROJECT_SCHEMA.md` là bản đồ schema và kiến trúc chi tiết.
-- `SUPABASE_SCHEMA.md`, `SUPABASE_SETUP.md`, `WORKFLOW.md`, `ROLLBACK.md` là tài liệu vận hành Supabase/deploy/rollback.
+- `PROJECT_SCHEMA.md` là schema index ngắn, dẫn tới schema snapshot và contract chi tiết.
+- `SUPABASE_SCHEMA.md`, `SUPABASE_SETUP.md`, `WORKFLOW.md`, `ROLLBACK.md` là tài liệu schema/vận hành Supabase, deploy và rollback; chỉ đọc khi tác vụ liên quan.
 - Khi có quyết định kiến trúc hoặc trạng thái lộ trình mới, cập nhật `PROJECT_CONTEXT.md`.

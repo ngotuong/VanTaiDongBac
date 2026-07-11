@@ -115,27 +115,21 @@ function snapshotProperties(sheet, rows, property) {
 }
 
 function loadWriteHelpers() {
-  let source = read('SheetService.gs');
-  const returnIndex = source.lastIndexOf('  return {');
-  assert.ok(returnIndex >= 0, 'Could not locate SheetService public return object.');
-  source = source.slice(0, returnIndex)
-    + `  return { __sheetWriteTest: {
-        writeRowSkippingColumns: writeRowSkippingColumns_,
-        writeRowsPreservingSheetState: writeRowsPreservingSheetState_,
-        ensureRows: ensureRows_
-      },`
-    + source.slice(returnIndex + '  return {'.length);
-
+  const cache = new Map();
   const context = vm.createContext({
     console,
-    SpreadsheetApp: { CopyPasteType: { PASTE_FORMAT: 'PASTE_FORMAT' } }
+    SpreadsheetApp: { CopyPasteType: { PASTE_FORMAT: 'PASTE_FORMAT' } },
+    CacheService: { getScriptCache: () => ({
+      get: (key) => cache.has(key) ? cache.get(key) : null,
+      put: (key, value) => cache.set(key, value)
+    }) }
   });
-  new vm.Script(read('ValidationService.gs'), { filename: 'ValidationService.gs#sheet-write-test' }).runInContext(context);
-  new vm.Script(source, { filename: 'SheetService.gs#sheet-write-test' }).runInContext(context);
-  return context.SheetService.__sheetWriteTest;
+  new vm.Script(read('SheetWritePreserver.gs'), { filename: 'SheetWritePreserver.gs#test' }).runInContext(context);
+  return { cache, service: context.SheetWritePreserver };
 }
 
-const helpers = loadWriteHelpers();
+const loaded = loadWriteHelpers();
+const helpers = loaded.service;
 
 test('fixture is synthetic and contains no production workbook identifier', () => {
   assert.equal(fixture.fixtureType, 'synthetic');
@@ -216,4 +210,28 @@ test('ensureRows grows exactly to the required row and never shrinks the sheet',
 
   assert.equal(sheet.getMaxRows(), 5);
   assert.deepEqual(sheet.insertions, [{ afterPosition: 2, howMany: 3 }]);
+});
+
+test('last non-empty row scans backward and preserves the optional cache contract', () => {
+  const sheet = new FakeSheet(5, fixture.columns.length);
+  sheet.getLastRow = () => 5;
+  sheet.getName = () => 'NL_Test';
+  sheet.cell(2, 1).value = 'first';
+  sheet.cell(4, 1).value = 'last';
+
+  assert.equal(helpers.getLastNonEmptyRowInColumn(sheet, 1, 2, 'lastrow:test', 300), 4);
+  assert.equal(loaded.cache.get('lastrow:test'), '4');
+  sheet.cell(4, 1).value = '';
+  assert.equal(helpers.getLastNonEmptyRowInColumn(sheet, 1, 2, 'lastrow:test', 300), 4);
+  assert.equal(helpers.getLastNonEmptyRowInColumn(sheet, 1, 2, '', 300), 2);
+});
+
+test('SheetService keeps write-preservation wrappers and no longer owns low-level implementations', () => {
+  const source = read('SheetService.gs');
+  assert.match(source, /SheetWritePreserver\.writeRowSkippingColumns/);
+  assert.match(source, /SheetWritePreserver\.writeRowsPreservingSheetState/);
+  assert.match(source, /SheetWritePreserver\.ensureRows/);
+  assert.match(source, /SheetWritePreserver\.getLastNonEmptyRowInColumn/);
+  assert.doesNotMatch(source, /function copyRowFormatSafely_/);
+  assert.doesNotMatch(source, /function writeRowSegments_/);
 });

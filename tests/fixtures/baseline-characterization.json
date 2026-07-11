@@ -16,6 +16,7 @@
       "SecurityService.gs",
       "SheetReadService.gs",
       "SheetService.gs",
+      "SheetWritePreserver.gs",
       "SupabaseService.gs",
       "ValidationService.gs"
     ],

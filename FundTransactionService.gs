@@ -55,6 +55,25 @@ var FundTransactionService = (function () {
       sheetName: context.sheetName };
   }
 
+  function updateTransaction(rowIndex, payload, context) {
+    var rowNumber = parseInt(rowIndex, 10);
+    if (!(rowNumber > 1)) throw new Error('Số dòng thu chi không hợp lệ: ' + rowIndex);
+    var item = payload || {};
+    var existing = context.repository.readRow(context.sheet, rowNumber, context.headers.length);
+    var row = buildRow(item, undefined, undefined, context);
+    row[0] = context.clean(item.voucher) || context.clean(existing[0]) || row[0];
+    row[4] = context.clean(item.method) || context.clean(existing[4]) || row[4];
+    context.repository.updateRow(context.sheet, rowNumber, row, context.writeOptions);
+    return { ok: true, rowIndex: rowNumber, voucher: row[0], sheetName: context.sheetName };
+  }
+
+  function deleteTransaction(rowIndex, context) {
+    var rowNumber = parseInt(rowIndex, 10);
+    if (!(rowNumber > 1)) throw new Error('Số dòng thu chi không hợp lệ: ' + rowIndex);
+    context.repository.deleteRow(context.sheet, rowNumber, context.writeOptions);
+    return { ok: true, rowIndex: rowNumber, sheetName: context.sheetName };
+  }
+
   function getTransactions(year, filter, context) {
     var options = filter || {};
     var selectedMonth = context.normalizeMonth(options.month);
@@ -110,5 +129,6 @@ var FundTransactionService = (function () {
     };
   }
 
-  return { buildRow: buildRow, validate: validate, addTransactions: addTransactions, getTransactions: getTransactions };
+  return { buildRow: buildRow, validate: validate, addTransactions: addTransactions, updateTransaction: updateTransaction,
+    deleteTransaction: deleteTransaction, getTransactions: getTransactions };
 })();

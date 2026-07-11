@@ -432,7 +432,7 @@ var FundService = (function () {
       context.spreadsheet = ss;
       context.sheet = sheet;
       context.appendOptions = { getAppendRow: getAppendRow_, buildDebtFormula: buildDebtFormula_, buildFilterFormula: buildFilterFormula_,
-        flush: function () { SpreadsheetApp.flush(); }, rollback: rollbackInsertedFundTransactionRows_ };
+        flush: function () { SpreadsheetApp.flush(); }, warn: function (message, error) { console.warn(message, error); } };
       var result = FundTransactionService.addTransactions(safePayloads, writeContext, context);
       if (result.idempotentReplay) return result;
       bumpFundDataVersion_();
@@ -444,18 +444,7 @@ var FundService = (function () {
 
   function fundTransactionWriteContext_() {
     return { repository: FundTransactionRepository, sheetName: TRANSACTION_SHEET_NAME, clean: clean_, parseDate: parseDate_,
-      parseNumber: parseNumber_, buildVoucherSeed: buildVoucherSeed_, buildVoucher: buildVoucher_ };
-  }
-
-  function rollbackInsertedFundTransactionRows_(sheet, startRow, rowCount) {
-    if (!(startRow > 1) || !(rowCount > 0)) return;
-    try {
-      var colCount = Math.max(sheet.getLastColumn(), 14);
-      sheet.getRange(startRow, 1, rowCount, colCount).clearContent();
-      SpreadsheetApp.flush();
-    } catch (rollbackErr) {
-      console.warn('Không thể rollback vùng Thu chi ghi lỗi:', rollbackErr);
-    }
+      parseNumber: parseNumber_, buildVoucherSeed: buildVoucherSeed_, buildVoucher: buildVoucher_, headers: TRANSACTION_HEADERS };
   }
 
   function updateFundTransaction(year, rowIndex, payload) {
@@ -465,30 +454,15 @@ var FundService = (function () {
       throw new Error('Không tìm thấy sheet Thu chi: ' + TRANSACTION_SHEET_NAME);
     }
 
-    var rowNum = parseInt(rowIndex, 10);
-    if (!(rowNum > 1)) throw new Error('Số dòng thu chi không hợp lệ: ' + rowIndex);
-    var existing = rowNum <= sheet.getLastRow()
-      ? sheet.getRange(rowNum, 1, 1, Math.max(sheet.getLastColumn(), TRANSACTION_HEADERS.length)).getValues()[0]
-      : [];
-    var row = buildTransactionRow_(payload || {});
-    row[0] = clean_((payload || {}).voucher) || clean_(existing[0]) || row[0];
-    row[4] = clean_((payload || {}).method) || clean_(existing[4]) || row[4];
-
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      sheet.getRange(rowNum, 1, 1, row.length).setValues([row]);
-      sheet.getRange(rowNum, 2).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(rowNum, 6).setNumberFormat('#,##0');
-      if (row[9] === 'Có') {
-        sheet.getRange(rowNum, 13).setFormula(buildDebtFormula_(rowNum));
-      } else {
-        sheet.getRange(rowNum, 13).clearContent();
-      }
-      sheet.getRange(rowNum, 14).setFormula(buildFilterFormula_(rowNum));
-      SpreadsheetApp.flush();
+      var context = fundTransactionWriteContext_();
+      context.sheet = sheet;
+      context.writeOptions = { buildDebtFormula: buildDebtFormula_, buildFilterFormula: buildFilterFormula_, flush: function () { SpreadsheetApp.flush(); } };
+      var result = FundTransactionService.updateTransaction(rowIndex, payload, context);
       bumpFundDataVersion_();
-      return { ok: true, rowIndex: rowNum, voucher: row[0], sheetName: TRANSACTION_SHEET_NAME };
+      return result;
     } finally {
       lock.releaseLock();
     }
@@ -501,15 +475,15 @@ var FundService = (function () {
       throw new Error('Không tìm thấy sheet Thu chi: ' + TRANSACTION_SHEET_NAME);
     }
 
-    var rowNum = parseInt(rowIndex, 10);
-    if (!(rowNum > 1)) throw new Error('Số dòng thu chi không hợp lệ: ' + rowIndex);
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      sheet.deleteRow(rowNum);
-      SpreadsheetApp.flush();
+      var context = fundTransactionWriteContext_();
+      context.sheet = sheet;
+      context.writeOptions = { flush: function () { SpreadsheetApp.flush(); } };
+      var result = FundTransactionService.deleteTransaction(rowIndex, context);
       bumpFundDataVersion_();
-      return { ok: true, rowIndex: rowNum, sheetName: TRANSACTION_SHEET_NAME };
+      return result;
     } finally {
       lock.releaseLock();
     }

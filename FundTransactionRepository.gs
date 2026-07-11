@@ -78,11 +78,42 @@ var FundTransactionRepository = (function () {
       });
       options.flush();
     } catch (error) {
-      options.rollback(sheet, appendRow, rows.length);
+      rollbackRows(sheet, appendRow, rows.length, options);
       throw error;
     }
     return { firstRow: appendRow, lastRow: lastRow };
   }
 
-  return { getColumns: getColumns, readSnapshot: readSnapshot, findVoucherRows: findVoucherRows, appendRows: appendRows };
+  function rollbackRows(sheet, startRow, rowCount, options) {
+    if (!(startRow > 1) || !(rowCount > 0)) return;
+    try {
+      sheet.getRange(startRow, 1, rowCount, Math.max(sheet.getLastColumn(), 14)).clearContent();
+      options.flush();
+    } catch (error) {
+      options.warn('Không thể rollback vùng Thu chi ghi lỗi:', error);
+    }
+  }
+
+  function readRow(sheet, rowNumber, minimumColumns) {
+    if (rowNumber > sheet.getLastRow()) return [];
+    return sheet.getRange(rowNumber, 1, 1, Math.max(sheet.getLastColumn(), minimumColumns)).getValues()[0];
+  }
+
+  function updateRow(sheet, rowNumber, row, options) {
+    sheet.getRange(rowNumber, 1, 1, row.length).setValues([row]);
+    sheet.getRange(rowNumber, 2).setNumberFormat('dd/MM/yyyy');
+    sheet.getRange(rowNumber, 6).setNumberFormat('#,##0');
+    if (row[9] === 'Có') sheet.getRange(rowNumber, 13).setFormula(options.buildDebtFormula(rowNumber));
+    else sheet.getRange(rowNumber, 13).clearContent();
+    sheet.getRange(rowNumber, 14).setFormula(options.buildFilterFormula(rowNumber));
+    options.flush();
+  }
+
+  function deleteRow(sheet, rowNumber, options) {
+    sheet.deleteRow(rowNumber);
+    options.flush();
+  }
+
+  return { getColumns: getColumns, readSnapshot: readSnapshot, findVoucherRows: findVoucherRows, appendRows: appendRows,
+    rollbackRows: rollbackRows, readRow: readRow, updateRow: updateRow, deleteRow: deleteRow };
 })();

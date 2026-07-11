@@ -395,110 +395,12 @@ var FundService = (function () {
     var transactionsCacheKey = fundCacheKey_(year, 'transactions', selectedMonth || 'all', formatDateKey_(startFilter) || 'all', formatDateKey_(endFilter) || 'all', searchFilter || 'all', String(options.limit || ''));
     var transactionsCached = getFundCache_(transactionsCacheKey);
     if (transactionsCached) return transactionsCached;
-    var ss = getFundSpreadsheet_(year);
-    var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
-    if (!sheet) {
-      throw new Error('Không tìm thấy sheet Thu chi: ' + TRANSACTION_SHEET_NAME);
-    }
-
-    var limit = Math.max(1, Math.min(parseInt(options.limit, 10) || 300, 1000));
-    var lastRow = sheet.getLastRow();
-    var lastCol = Math.max(sheet.getLastColumn(), TRANSACTION_HEADERS.length);
-
-    if (lastRow < 2) {
-      var emptyResult = {
-        ok: true,
-        year: clean_(year) || '',
-        sheetName: TRANSACTION_SHEET_NAME,
-        headers: TRANSACTION_HEADERS,
-        months: [],
-        transactions: []
-      };
-      putFundCache_(transactionsCacheKey, emptyResult, FUND_TTL_SECONDS);
-      return emptyResult;
-    }
-
-    var headerValues = sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
-    var columns = getTransactionColumns_(headerValues);
-    var displayValues = sheet.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
-    var rawDateValues = sheet.getRange(2, columns.date + 1, lastRow - 1, 1).getValues();
-    var transactions = [];
-    var monthMap = {};
-
-    for (var i = 0; i < displayValues.length; i++) {
-      var row = displayValues[i];
-      var rawDate = rawDateValues[i][0];
-      var hasBusinessData = row.slice(0, TRANSACTION_HEADERS.length).some(function (cell) {
-        return clean_(cell);
-      });
-      if (!hasBusinessData) continue;
-
-      var parsedDate = parseDate_(rawDate, row[columns.date]);
-      var monthKey = parsedDate ? Utilities.formatDate(parsedDate, APP_CONFIG.timezone, 'yyyy-MM') : '';
-      var monthLabel = parsedDate ? Utilities.formatDate(parsedDate, APP_CONFIG.timezone, 'MM/yyyy') : '';
-      if (monthKey) monthMap[monthKey] = monthLabel;
-      if (selectedMonth && monthKey !== selectedMonth) continue;
-      if (startFilter && (!parsedDate || parsedDate < startFilter)) continue;
-      if (endFilter && (!parsedDate || parsedDate > endFilter)) continue;
-
-      var incomeCategory = clean_(row[columns.income]);
-      var expenseCategory = clean_(row[columns.expense]);
-      var transaction = {
-        rowIndex: i + 2,
-        voucher: columns.voucher >= 0 ? clean_(row[columns.voucher]) : '',
-        date: parsedDate ? Utilities.formatDate(parsedDate, APP_CONFIG.timezone, 'yyyy-MM-dd') : clean_(row[columns.date]),
-        dateText: clean_(row[columns.date]),
-        month: monthKey,
-        monthLabel: monthLabel,
-        type: incomeCategory ? 'Thu' : (expenseCategory ? 'Chi' : ''),
-        category: incomeCategory || expenseCategory,
-        incomeCategory: incomeCategory,
-        expenseCategory: expenseCategory,
-        method: clean_(row[columns.method]),
-        amount: parseNumber_(row[columns.amount]),
-        amountText: clean_(row[columns.amount]),
-        actor: clean_(row[columns.actor]),
-        partner: clean_(row[columns.partner]),
-        content: clean_(row[columns.content]),
-        debt: clean_(row[columns.debt])
-      };
-      if (searchFilter) {
-        var searchable = normalizeHeader_([
-          transaction.voucher,
-          transaction.dateText,
-          transaction.type,
-          transaction.category,
-          transaction.amountText,
-          transaction.actor,
-          transaction.partner,
-          transaction.content,
-          transaction.debt
-        ].join(' '));
-        if (searchable.indexOf(searchFilter) < 0) continue;
-      }
-      transactions.push(transaction);
-    }
-
-    transactions.sort(function (a, b) {
-      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-      return b.rowIndex - a.rowIndex;
+    var result = FundTransactionService.getTransactions(year, options, {
+      repository: FundTransactionRepository, spreadsheet: getFundSpreadsheet_(year), sheetName: TRANSACTION_SHEET_NAME,
+      headers: TRANSACTION_HEADERS, clean: clean_, normalizeMonth: normalizeMonthKey_, normalizeHeader: normalizeHeader_,
+      parseDate: parseDate_, parseNumber: parseNumber_,
+      formatDate: function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); }
     });
-
-    var months = Object.keys(monthMap).sort().reverse().map(function (key) {
-      return { key: key, label: monthMap[key] };
-    });
-
-    var result = {
-      ok: true,
-      year: clean_(year) || '',
-      sheetName: TRANSACTION_SHEET_NAME,
-      headers: headerValues.slice(0, TRANSACTION_HEADERS.length),
-      months: months,
-      selectedMonth: selectedMonth,
-      transactions: transactions.slice(0, limit),
-      totalRows: transactions.length,
-      limited: transactions.length > limit
-    };
     putFundCache_(transactionsCacheKey, result, FUND_TTL_SECONDS);
     return result;
   }

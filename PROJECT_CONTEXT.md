@@ -276,11 +276,14 @@ Commit lien quan:
 - Step 21c tách queued `fund/addFundTransactions`, replay metadata, write-result validation và Fund cache-after-write isolation sang `FundJobHandler.gs`; `SupabaseService.executeWriteJob_` chỉ còn dispatch Transport/Fund và unsupported-action guard.
 - Step 21c đã pass 138/138 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@273 - Refactor Step 21c extract fund job handler`; không cần migration/schema change.
 - Smoke production Step 21c thành công: `health` trả `ok=true`; `processWriteJobs(1)` trả `processed=0`, `ok=true`; không enqueue hoặc ghi thử giao dịch Fund production. Toàn bộ Step 21 đã hoàn thành.
+- Step 22a tách Sheet read/header lookup sang `FundTransactionRepository.gs` và mapping/filter/sort/limit giao dịch sang `FundTransactionService.gs`; `FundService.getFundTransactions()` giữ public facade và cache orchestration. Luồng ghi/voucher/rollback chưa chuyển trong lát cắt này.
+- Step 22a đã pass 142/142 test, build thành công, diff build sạch và deploy Apps Script production `@274 - Step 22a - Fund transaction read extraction`; không cần migration/schema change.
+- Smoke production Step 22a read-only thành công: `health` trả `ok=true`; `getFundTransactions('2026', {month:'2026-07',limit:5})` trả đúng `NHAP_THUCHI`, đủ month list, `totalRows=67`, `limited=true` và 5 giao dịch mới nhất. Không ghi dữ liệu production.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: toàn bộ Step 21 đã hoàn thành và checkpoint production đang ở Apps Script `@273`.
-- Bước kế tiếp được đề xuất: Step 22 — tách Fund transaction repository/service theo `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 22.
+- Trạng thái hiện tại: Step 22a đã hoàn thành; Step 22 tổng thể chưa hoàn thành và checkpoint production đang ở Apps Script `@274`.
+- Bước kế tiếp được đề xuất: Step 22b — tách validate/build row và append/voucher replay của Fund transaction, giữ update/delete/batch rollback cho lát cắt kế tiếp; chưa được tự bắt đầu nếu chưa có phê duyệt Step 22b.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -327,4 +330,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 22 hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 22b hoặc bất kỳ thay đổi mới nào.

@@ -74,7 +74,7 @@ flowchart TD
 | `TRANSPORT_CATALOG` | Danh mục Vận tải | Nghiệp vụ | `CatalogService.gs`; cache compatibility trong `SheetService.gs` | `DM_*` |
 | `TRANSPORT_REPORT` | Tổng quan và Báo cáo | Nghiệp vụ | `ReportService.gs`, `DashboardService.gs`, `ReportTableService.gs`, `SheetService.gs`, `ReportTempSheetService.gs`, `SheetReportCacheRepository.gs` | `BC_*`, `XL_*`, `SYS_ReportCache` |
 | `TRANSPORT_RECONCILIATION` | Đối soát chuyến | Nghiệp vụ | `TransportReconciliationService.gs`; facade `EntryService.gs` | `NL_VanChuyen`, `NL_TaiXe`, `XL_DoiSoatChuyen` |
-| `FUND_TRANSACTIONS` | Giao dịch Thu chi | Nghiệp vụ | `FundService.gs` | `NHAP_THUCHI` |
+| `FUND_TRANSACTIONS` | Giao dịch Thu chi | Nghiệp vụ | Read: `FundTransactionRepository.gs`, `FundTransactionService.gs`; facade/write: `FundService.gs` | `NHAP_THUCHI` |
 | `FUND_OVERVIEW` | Tổng quan Thu chi | Nghiệp vụ | `FundService.gs` | `NHAP_THUCHI`, cấu hình Thu chi |
 | `FUND_LOANS` | Vay nợ và đối soát khoản vay | Nghiệp vụ | `FundService.gs` | `NHAP_VAY` |
 | `FUND_CATALOG` | Danh mục Thu chi | Nghiệp vụ | `FundService.gs` | named ranges, `CAIDAT`, catalog hỗ trợ |

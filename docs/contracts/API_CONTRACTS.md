@@ -869,7 +869,7 @@ Params:
 - `month`: optional `YYYY-MM`;
 - `limit`: optional.
 
-Handler: `FundService.getFundTransactions()`.
+Handler: `FundService.getFundTransactions()` giữ cache/public facade và delegate read mapping cho `FundTransactionService`, Sheet read/header lookup cho `FundTransactionRepository`.
 
 Response logic:
 

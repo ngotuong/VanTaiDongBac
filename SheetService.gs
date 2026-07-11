@@ -418,26 +418,13 @@ var SheetService = (function () {
     });
   }
 
-  function readTable_(ss, sheetName, startRow, startColumn, numRows, numColumns) {
-    var sheet = ss.getSheetByName(sheetName);
-    if (!sheet) return [];
-    var safeRows = Math.min(numRows, Math.max(sheet.getLastRow() - startRow + 1, 1));
-    return sheet.getRange(startRow, startColumn, safeRows, numColumns).getDisplayValues()
-      .filter(function (row, index) {
-        return index === 0 || row.some(function (cell) { return clean_(cell); });
-      });
-  }
-
   function readReportTables_(ss, forceRefresh) {
     var cacheKey = cacheKey_('report_tables', 'all');
     if (!forceRefresh) {
       var cached = getChunkedCache_(cacheKey);
       if (cached) return cached;
     }
-    var tables = {
-      payroll: readTable_(ss, 'BC_BangLuong', 2, 1, 200, 16),
-      vehicles: readTable_(ss, 'BC_TongHopXe', 2, 1, 200, 12)
-    };
+    var tables = ReportTableService.readTables(ss);
     putChunkedCache_(cacheKey, tables, REPORT_TTL_SECONDS);
     return tables;
   }
@@ -596,14 +583,9 @@ var SheetService = (function () {
   }
 
   function filterDisplayTableByMonth_(matrix, month) {
-    if (month === 'Tất cả') return matrix || [];
-    var key = normalizeDisplayMonth_(month);
-    if (!key || !matrix || matrix.length < 2) return matrix || [];
-    var header = matrix[0];
-    var rows = matrix.slice(1).filter(function (row) {
-      return normalizeDisplayMonth_(row[0]) === key;
+    return ReportTableService.filterByMonth(matrix, month, function (value) {
+      return normalizeDisplayMonth_(value);
     });
-    return [header].concat(rows);
   }
 
   function normalizeDisplayMonth_(value) {

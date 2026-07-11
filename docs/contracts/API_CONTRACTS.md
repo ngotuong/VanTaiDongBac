@@ -598,7 +598,7 @@ Params:
 - `month`: kỳ báo cáo;
 - `forceRefresh`: bỏ cache nếu true.
 
-Handler: `ReportService.getReport()`.
+Handler: `ReportService.getReport()` → `SheetService.getReport()`; payroll/vehicles table read/filter delegate sang `ReportTableService`.
 
 Side effect có thể có: tính và ghi `SYS_ReportCache` khi cần chi tiết tháng.
 

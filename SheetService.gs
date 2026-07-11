@@ -36,15 +36,14 @@ var SheetService = (function () {
   }
 
   function getStartupDashboard_(ss) {
-    return {
+    return DashboardService.buildDashboard({
       updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
       overview: readOverviewDashboard_(ss),
       inputs: [],
       latestTrips: { date: '', trips: [] },
       links: reportLinks_(ss),
-      cached: false,
       partial: true
-    };
+    });
   }
 
   function getInitialData() {
@@ -71,14 +70,13 @@ var SheetService = (function () {
       if (cached) return cached;
     }
     var ss = getSpreadsheet_();
-    var dashboard = {
+    var dashboard = DashboardService.buildDashboard({
       updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
       overview: readOverviewDashboard_(ss),
       inputs: [],
       latestTrips: readLatestTrips_(ss),
-      links: reportLinks_(ss),
-      cached: false
-    };
+      links: reportLinks_(ss)
+    });
     putChunkedCache_(key, dashboard, REPORT_TTL_SECONDS);
     return dashboard;
   }
@@ -645,81 +643,10 @@ var SheetService = (function () {
   }
 
   function readLatestTrips_(ss) {
-    var sheet = ss.getSheetByName('NL_VanChuyen');
-    if (!sheet) return { date: '', trips: [] };
-    var lastDataRow = getLastNonEmptyRowInColumn_(sheet, 1, 3, true);
-    if (lastDataRow < 3) return { date: '', trips: [] };
-    var sampleRows = Math.min(lastDataRow - 2, 500);
-    var startRow = lastDataRow - sampleRows + 1;
-    var values = sheet.getRange(startRow, 1, sampleRows, 6).getValues();
-    
-    var maxTime = 0;
-    var maxDate = null;
-    values.forEach(function (row) {
-      var d = row[0];
-      if (Object.prototype.toString.call(d) === '[object Date]') {
-        var t = d.getTime();
-        if (t > maxTime) {
-          maxTime = t;
-          maxDate = d;
-        }
-      }
+    return DashboardService.readLatestTrips(ss, {
+      timezone: APP_CONFIG.timezone,
+      getLastNonEmptyRow: getLastNonEmptyRowInColumn_
     });
-    
-    if (!maxDate) return { date: '', trips: [] };
-    
-    var maxDateStr = Utilities.formatDate(maxDate, APP_CONFIG.timezone, 'yyyy-MM-dd');
-    var dateLabel = Utilities.formatDate(maxDate, APP_CONFIG.timezone, 'dd/MM/yyyy');
-    
-    var tripsMap = {};
-    var ticketMap = {};
-    var projectMap = {};
-    values.forEach(function (row) {
-      var d = row[0];
-      if (Object.prototype.toString.call(d) === '[object Date]') {
-        var dStr = Utilities.formatDate(d, APP_CONFIG.timezone, 'yyyy-MM-dd');
-        if (dStr === maxDateStr) {
-          var plate = clean_(row[2]);
-          var project = clean_(row[3]);
-          var count = parseNumberLoose_(row[4]);
-          var ticket = clean_(row[5]);
-          if (plate && count > 0) {
-            var key = project + '|' + plate;
-            tripsMap[key] = (tripsMap[key] || 0) + count;
-            projectMap[key] = project;
-            if (ticket) {
-              if (!ticketMap[key]) {
-                ticketMap[key] = [];
-              }
-              if (ticketMap[key].indexOf(ticket) === -1) {
-                ticketMap[key].push(ticket);
-              }
-            }
-          }
-        }
-      }
-    });
-    
-    var tripsList = Object.keys(tripsMap).map(function (key) {
-      var parts = key.split('|');
-      return { 
-        project: projectMap[key] || parts[0] || '-',
-        vehicle: parts[1] || '', 
-        count: tripsMap[key],
-        ticket: ticketMap[key] ? ticketMap[key].join(', ') : '-'
-      };
-    });
-    
-    tripsList.sort(function (a, b) {
-      if (a.project !== b.project) return a.project.localeCompare(b.project);
-      if (b.count !== a.count) return b.count - a.count;
-      return a.vehicle.localeCompare(b.vehicle);
-    });
-    
-    return {
-      date: dateLabel,
-      trips: tripsList
-    };
   }
 
   function parseOverview_(monthsMatrix) {

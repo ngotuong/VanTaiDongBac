@@ -249,11 +249,14 @@ Commit lien quan:
 - Step 18c tách read matrix `BC_BangLuong`/`BC_TongHopXe` và filter tháng/`Tất cả` sang `ReportTableService.gs`; cache key/TTL vẫn ở `SheetService`.
 - Step 18c đã pass 102/102 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@262 - Refactor Step 18c extract report table service`.
 - Smoke production Step 18c thành công: payroll/vehicles `07/2026` trả đúng header width 16/12 và dữ liệu lọc; audit `07/2026`/`Tất cả` đều `status=ok`, hash giữ nguyên.
+- Step 18d tách latest-trips read/serialization và dashboard payload assembly sang `DashboardService.gs`; `SheetService` giữ compatibility adapters, cache orchestration, report links và các Sheet overview/input readers hiện hữu.
+- Step 18d đã pass 105/105 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@263 - Refactor Step 18d extract dashboard latest trips`.
+- Smoke production Step 18d thành công: HTTP/Execution API `health` trả `ok=true`; dashboard trả đúng payload và latest trips ngày `04/07/2026`; audit `07/2026`/`Tất cả` đều `status=ok`, live/cache hash giữ nguyên. Toàn bộ Step 18 đã hoàn thành.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 18c đã hoàn thành và checkpoint production đang ở Apps Script `@262`; toàn bộ Step 18 chưa hoàn thành.
-- Bước kế tiếp được đề xuất: Step 18d — tách dashboard/latest trips implementation; chưa được tự bắt đầu nếu chưa có phê duyệt tiếp tục Step 18.
+- Trạng thái hiện tại: toàn bộ Step 18 đã hoàn thành và checkpoint production đang ở Apps Script `@263`.
+- Bước kế tiếp được đề xuất: Step 19 — tách các module sync service theo `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 19.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -300,4 +303,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 18d hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 19 hoặc bất kỳ thay đổi mới nào.

@@ -72,6 +72,7 @@ test('Supabase tables and stable cache/job keys remain represented in runtime an
     read('SupabaseService.gs'),
     read('StartupCatalogSyncService.gs'),
     read('ReportSyncService.gs'),
+    read('ManageSyncService.gs'),
     read('SupabaseBundleRepository.gs'),
     read('SupabaseSyncStatusRepository.gs')
   ].join('\n');

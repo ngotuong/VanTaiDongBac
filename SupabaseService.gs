@@ -576,30 +576,13 @@ var SupabaseService = (function () {
 
   function executeWriteJob_(job) {
     var actionName = clean_(job.action);
-    var payload = job.payload || {};
     if (TransportJobHandler.canHandle(actionName)) {
       return TransportJobHandler.execute(job, transportJobHandlerContext_());
     }
-    if (clean_(job.module) === 'fund' && actionName === 'addFundTransactions') {
-      var fundResult = FundService.addFundTransactions(payload.year, payload.transactions || [], {
-        jobId: job.id,
-        idempotencyKey: job.idempotency_key
-      });
-      assertWriteResultOk_(fundResult, 'Không thể ghi giao dịch Thu chi.');
-      try {
-        fundResult.supabaseSync = syncFundTransactionsAfterWrite(payload.year, payload.transactions || []);
-      } catch (fundSyncErr) {
-        fundResult.supabaseSync = { ok: false, error: fundSyncErr && fundSyncErr.message ? fundSyncErr.message : String(fundSyncErr) };
-      }
-      return fundResult;
+    if (FundJobHandler.canHandle(job, clean_)) {
+      return FundJobHandler.execute(job, fundJobHandlerContext_());
     }
     throw new Error('Write job action chưa được hỗ trợ: ' + actionName);
-  }
-
-  function assertWriteResultOk_(result, fallbackMessage) {
-    if (result && result.ok !== false) return result;
-    var errorMessage = result && (result.error || (result.errors && result.errors.join('; ')));
-    throw new Error(errorMessage || fallbackMessage || 'Write job thất bại.');
   }
 
   function buildRealtimeTickSteps_() {
@@ -839,6 +822,15 @@ var SupabaseService = (function () {
       syncTransportAfterWrite: syncTransportAfterWrite,
       syncDashboard: syncDashboard,
       syncTransportReportsAfterWrite: syncTransportReportsAfterWrite
+    };
+  }
+
+  function fundJobHandlerContext_() {
+    return {
+      addFundTransactions: function (year, transactions, options) {
+        return FundService.addFundTransactions(year, transactions, options);
+      },
+      syncFundTransactionsAfterWrite: syncFundTransactionsAfterWrite
     };
   }
 

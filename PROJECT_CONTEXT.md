@@ -37,7 +37,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@246 - Fix loan settlement reconciliation and password UX`
+- Apps Script deployment moi nhat da xac nhan: `@247 - Clarify historical loan settlement status`
 - Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @234`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
 - Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
@@ -203,6 +203,7 @@ Commit lien quan:
 - `FundService` nay uu tien ghep ma chinh xac; dong tra no co ma khong ton tai chi duoc doi soat khi co dung mot khoan vay cung doi tac, phat sinh truoc ngay tra va so du khop hoan toan so tien tra.
 - Da xac nhan hai ma `260622145024` va `260704114143` deu borrowed 5.752.000, principalPaid 5.752.000, outstanding 0. Cache version tang `fund_v7`; sync lai 13 fund bundles thanh cong, failed 0.
 - UI Chi tiet khoan vay va Lich su vay/tra hien them cot Ma vay; lich su dung ma da doi soat va giu `reconciledFromCode` de truy vet ma ghi nhan ban dau.
+- Sau khi user danh gia lai khong gian bang, da bo cot Ma vay khoi UI nhung van giu `loanKey`/`reconciledFromCode` noi bo. Khi xem thang lich su, cot so du van la du no tai cuoi thang; nut Thanh toan chi hien neu khoan vay hien tai con no. Khoan da tra sau thang dang xem hien nhan `Da tat toan dd/MM/yyyy` de tranh thanh toan lap va tranh hieu nham.
 
 ## Lo trinh tiep theo
 

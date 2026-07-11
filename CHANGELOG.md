@@ -1,0 +1,49 @@
+# CHANGELOG
+
+Các thay đổi đáng chú ý của repository được ghi tại đây. Trạng thái deployment và roadmap sống vẫn thuộc `PROJECT_CONTEXT.md`.
+
+## Unreleased
+
+### Phase 4 — Refactor Step 1
+
+- Thêm `tests/fixtures/baseline-characterization.json` để ghi nhận public API actions, runtime source surfaces, mapping form Vận tải, Supabase cache/queue tables và feature flag defaults hiện tại.
+- Thêm `tests/baseline-characterization.test.js` để phát hiện contract drift trước các bước refactor tiếp theo.
+- Không thay đổi runtime code, nghiệp vụ, giao diện, Google Sheet schema, Supabase schema hoặc deployment behavior.
+
+### Phase 4 — Refactor Step 2
+
+- Thêm `tests/api-rbac-contract.test.js` để kiểm tra frontend action/method khớp `PublicApi`, không có business write qua GET, shareholder giữ deny-by-default và account administration vẫn admin-only.
+- Khóa thứ tự enforcement tại Vercel proxy và proxy-secret checks tại Apps Script boundaries.
+- Không thay đổi runtime module, API contract, permission, nghiệp vụ, giao diện hoặc deployment behavior.
+
+### Phase 4 — Refactor Step 3
+
+- Thêm `tests/cache-key-parity.test.js` để thực thi và so sánh trực tiếp cache-key builders giữa `SupabaseService.gs` và `client_api.html`.
+- Bảo vệ catalog keys, fund form/catalog keys, month normalization, transaction filter keys, manage month keys và dashboard/recent literals.
+- Không thay đổi runtime module, cache key, payload, nghiệp vụ, giao diện hoặc deployment behavior.
+
+### Phase 4 — Refactor Step 4
+
+- Thêm `tests/fixtures/report-golden.synthetic.json` với dữ liệu tổng hợp khác nhau cho `05/2026`, `06/2026`, `07/2026` và kết quả `Tất cả`, không chứa số liệu production.
+- Thêm `tests/report-golden.test.js` để khóa KPI parsing backend/frontend, explicit payroll matching, month-label preservation, detail parsing và all-period aggregation.
+- Không thay đổi report runtime, công thức Google Sheet, payload, nghiệp vụ, giao diện hoặc deployment behavior.
+
+### Phase 4 — Refactor Step 5
+
+- Thêm `tests/fixtures/sheet-write-preservation.synthetic.json` làm baseline tổng hợp cho value, formula R1C1, format, validation và metadata; không chứa Spreadsheet ID hoặc dữ liệu production.
+- Thêm `tests/sheet-write-preservation.test.js` để khóa hành vi partial update, skipped columns, bảo toàn formula có sẵn, lan formula mẫu, sao chép format và mở rộng số dòng.
+- Test chạy hoàn toàn trên Sheet/Range giả lập, không ghi Google Sheet thật và không thay đổi runtime module, schema, công thức, nghiệp vụ, giao diện hoặc deployment behavior.
+
+### Phase 4 — Refactor Step 6
+
+- Thêm `tests/fixtures/queue-lifecycle.synthetic.json` làm baseline tổng hợp cho trạng thái queue, transport metadata replay, Fund voucher replay/conflict và public result shape.
+- Thêm `tests/queue-lifecycle.test.js` để khóa duplicate enqueue, atomic/stale claim, max attempts, retry sau lỗi, chống ghi trùng và các invariant giữa worker với migration queue.
+- Test không tạo job Supabase hoặc ghi Google Sheet thật; không thay đổi queue schema, worker, runtime module, nghiệp vụ, giao diện hoặc deployment behavior.
+
+### Phase 4 — Refactor Step 7
+
+- Thêm `NormalizationUtils.gs` làm nguồn duy nhất cho phép chuẩn hóa chuỗi thuần túy `null/undefined -> ''`, còn lại dùng `String(value).trim()`.
+- Giữ nguyên `clean_()` tại `AppConfig`, `ValidationService`, `SheetService`, `FundService` và `SupabaseService` dưới dạng compatibility wrapper; không đổi call site hoặc public API.
+- Thêm `tests/backend-normalization.test.js` để khóa parity cho null, Unicode whitespace, chuỗi, số, boolean, array và object conversion.
+- Không thay đổi thuật toán ngày/tháng/số, timezone, nghiệp vụ, giao diện, Sheet schema, cache key hoặc queue contract.
+- Đã push Apps Script source và deploy production `@249 - Refactor Step 7 shared clean normalization`; smoke test `health` thành công.

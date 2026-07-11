@@ -1139,7 +1139,7 @@ var SheetService = (function () {
   }
 
   function clean_(value) {
-    return value === null || value === undefined ? '' : String(value).trim();
+    return normalizeCleanValue_(value);
   }
 
   function normalizeText_(value) {

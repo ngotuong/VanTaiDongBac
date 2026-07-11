@@ -1,0 +1,66 @@
+{
+  "fixtureType": "synthetic",
+  "description": "Queue lifecycle and idempotency baseline without production jobs or credentials.",
+  "jobs": {
+    "pending": {
+      "id": "idem-transport-test-001",
+      "module": "transport",
+      "action": "submitRows",
+      "status": "pending",
+      "attempts": 0,
+      "max_attempts": 3,
+      "idempotency_key": "transport:test:001"
+    },
+    "staleProcessing": {
+      "id": "idem-transport-stale-001",
+      "module": "transport",
+      "action": "saveSheetRow",
+      "status": "processing",
+      "attempts": 1,
+      "max_attempts": 3,
+      "claimedSecondsAgo": 600,
+      "idempotency_key": "transport:stale:001"
+    },
+    "freshProcessing": {
+      "id": "idem-transport-fresh-001",
+      "module": "transport",
+      "action": "saveSheetRow",
+      "status": "processing",
+      "attempts": 1,
+      "max_attempts": 3,
+      "claimedSecondsAgo": 30,
+      "idempotency_key": "transport:fresh:001"
+    },
+    "exhausted": {
+      "id": "idem-fund-exhausted-001",
+      "module": "fund",
+      "action": "addFundTransactions",
+      "status": "pending",
+      "attempts": 3,
+      "max_attempts": 3,
+      "idempotency_key": "fund:add:2026:test-exhausted"
+    }
+  },
+  "transportReplay": {
+    "jobId": "idem-transport-test-001",
+    "metadataKey": "WRITE_JOB_ID",
+    "firstResult": { "ok": true, "inserted": 2, "startRow": 101, "sheetName": "NL_VanChuyen", "idempotentReplay": false },
+    "replayResult": { "ok": true, "inserted": 2, "startRow": 101, "sheetName": "NL_VanChuyen", "idempotentReplay": true }
+  },
+  "fundReplay": {
+    "vouchers": ["TEST-VC-001", "TEST-VC-002"],
+    "fullExisting": ["TEST-VC-001", "TEST-VC-002"],
+    "partialExisting": ["TEST-VC-001"],
+    "partialConflictMessage": "Batch Thu chi đã tồn tại một phần voucher; dừng ghi để tránh nhân đôi dữ liệu."
+  },
+  "syncedShape": {
+    "ok": true,
+    "jobId": "idem-transport-test-001",
+    "status": "synced"
+  },
+  "pendingShape": {
+    "ok": false,
+    "jobId": "idem-transport-test-001",
+    "status": "pending"
+  }
+}

@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-07-11",
+  "purpose": "Phase 4 Step 1 baseline for public actions, runtime modules, cache surfaces and feature flags.",
+  "runtimeSources": {
+    "appsScript": [
+      "AppConfig.gs",
+      "CatalogService.gs",
+      "EntryService.gs",
+      "FundService.gs",
+      "ManageService.gs",
+      "PublicApi.gs",
+      "ReportService.gs",
+      "Router.gs",
+      "SecurityService.gs",
+      "SheetReadService.gs",
+      "SheetService.gs",
+      "SupabaseService.gs",
+      "ValidationService.gs"
+    ],
+    "vercel": [
+      "api/app.js"
+    ],
+    "frontend": [
+      "client_accounts.html",
+      "client_api.html",
+      "client_app.html",
+      "client_cashflow.html",
+      "client_catalog.html",
+      "client_config.html",
+      "client_dashboard.html",
+      "client_data.html",
+      "client_entry.html",
+      "client_manage.html",
+      "client_reports.html",
+      "client_ui.html"
+    ]
+  },
+  "publicApi": {
+    "getActions": [
+      "getBootstrap",
+      "getCatalogs",
+      "getDashboard",
+      "getFundCatalog",
+      "getFundFormOptions",
+      "getFundLoanOverview",
+      "getFundOverview",
+      "getFundTransactions",
+      "getInitialData",
+      "getManageCacheAudit",
+      "getRecentWriteJobs",
+      "getReport",
+      "getReportBundle",
+      "getReportCacheAudit",
+      "getReports",
+      "getStartupData",
+      "getSupabaseSyncStatus",
+      "getWriteJobStatus",
+      "health",
+      "invalidateCaches",
+      "readCatalogData",
+      "readManageData",
+      "readSheetData"
+    ],
+    "postActions": [
+      "addFundLoan",
+      "addFundLoanPayment",
+      "addFundTransaction",
+      "addFundTransactions",
+      "checkTripReconciliation",
+      "deleteFundCatalogItem",
+      "deleteFundTransaction",
+      "deleteSheetRow",
+      "processWriteJobs",
+      "retryWriteJob",
+      "saveFundCatalogItem",
+      "saveSheetRow",
+      "submitRows",
+      "updateFundTransaction"
+    ],
+    "routerOnlyActions": [
+      "debugSheet"
+    ],
+    "disabledActions": [
+      "submitRowsGet"
+    ]
+  },
+  "proxy": {
+    "unauthenticatedActions": [
+      "health"
+    ],
+    "localAccountActions": [
+      "authSession",
+      "changeOwnPassword",
+      "createUser",
+      "listUsers",
+      "resetUserPassword",
+      "updateUser"
+    ],
+    "shareholderActions": [
+      "authSession",
+      "changeOwnPassword",
+      "checkTripReconciliation",
+      "getCatalogs",
+      "getDashboard",
+      "getFundFormOptions",
+      "getFundLoanOverview",
+      "getFundOverview",
+      "getFundTransactions",
+      "getReport",
+      "getReportBundle",
+      "getReports",
+      "getStartupData",
+      "readManageData"
+    ]
+  },
+  "transportForms": {
+    "vanChuyen": {
+      "sheet": "NL_VanChuyen",
+      "headerRow": 2,
+      "columns": 7
+    },
+    "taiXe": {
+      "sheet": "NL_TaiXe",
+      "headerRow": 1,
+      "columns": 6
+    },
+    "dau": {
+      "sheet": "NL_Dau",
+      "headerRow": 2,
+      "columns": 9
+    },
+    "chamCong": {
+      "sheet": "NL_ChamCong",
+      "headerRow": 1,
+      "columns": 11
+    },
+    "phat": {
+      "sheet": "NL_Phat",
+      "headerRow": 1,
+      "columns": 7
+    },
+    "nghiVanHanh": {
+      "sheet": "NL_NghiVanHanh",
+      "headerRow": 1,
+      "columns": 9
+    }
+  },
+  "supabase": {
+    "cacheTables": [
+      "catalog_bundles",
+      "fund_loan_bundles",
+      "fund_overview_bundles",
+      "fund_transaction_bundles",
+      "manage_data_bundles",
+      "report_bundles",
+      "startup_bundles"
+    ],
+    "operationalTables": [
+      "sync_status",
+      "write_job_logs",
+      "write_jobs"
+    ],
+    "filterKeys": [
+      "recent_500",
+      "month:YYYY-MM"
+    ],
+    "dashboardReportMonth": "__dashboard_latest__",
+    "writeJobStatuses": [
+      "pending",
+      "processing",
+      "synced",
+      "failed"
+    ]
+  },
+  "featureFlags": {
+    "ASYNC_WRITE_ENABLED": false,
+    "ASYNC_TRANSPORT_WRITE_ENABLED": true,
+    "ASYNC_FUND_TRANSACTION_ADD_ENABLED": false,
+    "AUTH_ENFORCEMENT_ENABLED": "script-property",
+    "VITE_AUTH_ENABLED": "build-time",
+    "VITE_SUPABASE_REPORTS_ENABLED": "build-time"
+  }
+}

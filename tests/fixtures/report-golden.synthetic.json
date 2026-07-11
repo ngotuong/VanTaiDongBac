@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "fixtureType": "synthetic",
+  "purpose": "Characterize report parsing and aggregation without committing production financial data.",
+  "overviewMonths": [
+    [
+      "Tháng",
+      "Khối lượng",
+      "Doanh thu",
+      "Thuế TNDN",
+      "Thuế VAT",
+      "Dầu QM",
+      "Dầu ngoài",
+      "Cầu đường",
+      "Lợi nhuận gộp",
+      "Chi quỹ thực tế",
+      "Lợi nhuận thực tế",
+      "Chi phí lương"
+    ],
+    ["05/2026", 5000, 1000, 100, 80, 120, 30, 20, 680, 40, 560, 50],
+    ["06/2026", 7000, 2000, 200, 160, 240, 60, 40, 1360, 80, 1120, 100],
+    ["07/2026", 9000, 3000, 300, 240, 360, 90, 60, 2040, 120, 1680, 150]
+  ],
+  "expectedKpis": [
+    {
+      "month": "05/2026",
+      "monthKey": "2026-05",
+      "revenue": 1000,
+      "taxTndn": 100,
+      "taxVat": 80,
+      "fuelQm": 120,
+      "toll": 20,
+      "gross": 680,
+      "operatingCost": 320,
+      "final": 560,
+      "cashCost": 120,
+      "fuelOut": 30,
+      "payroll": 50,
+      "fund": 40,
+      "totalCost": 440
+    },
+    {
+      "month": "06/2026",
+      "monthKey": "2026-06",
+      "revenue": 2000,
+      "taxTndn": 200,
+      "taxVat": 160,
+      "fuelQm": 240,
+      "toll": 40,
+      "gross": 1360,
+      "operatingCost": 640,
+      "final": 1120,
+      "cashCost": 240,
+      "fuelOut": 60,
+      "payroll": 100,
+      "fund": 80,
+      "totalCost": 880
+    },
+    {
+      "month": "07/2026",
+      "monthKey": "2026-07",
+      "revenue": 3000,
+      "taxTndn": 300,
+      "taxVat": 240,
+      "fuelQm": 360,
+      "toll": 60,
+      "gross": 2040,
+      "operatingCost": 960,
+      "final": 1680,
+      "cashCost": 360,
+      "fuelOut": 90,
+      "payroll": 150,
+      "fund": 120,
+      "totalCost": 1320
+    }
+  ],
+  "detailMatrices": {
+    "05/2026": [
+      ["Danh mục", "Số tiền", "Giá trị 2", "Giá trị 3", "Diễn giải"],
+      ["Lợi nhuận gộp", "680 ₫", 1, 10, "Theo báo cáo gốc"],
+      ["Chi phí dầu", "30 ₫", 2, 20, "Dầu đổ ngoài"],
+      ["Chi phí lương", "50 ₫", 3, 30, "Tổng lương"],
+      ["Chi quỹ thực tế", "40 ₫", 4, 40, "Chi sau loại trừ"],
+      ["Lợi nhuận thực", "560 ₫", 5, 50, "Kết quả cuối"]
+    ],
+    "06/2026": [
+      ["Danh mục", "Số tiền", "Giá trị 2", "Giá trị 3", "Diễn giải"],
+      ["Lợi nhuận gộp", "1.360 ₫", 6, 60, "Theo báo cáo gốc"],
+      ["Chi phí dầu", "60 ₫", 7, 70, "Dầu đổ ngoài"],
+      ["Chi phí lương", "100 ₫", 8, 80, "Tổng lương"],
+      ["Chi quỹ thực tế", "80 ₫", 9, 90, "Chi sau loại trừ"],
+      ["Lợi nhuận thực", "1.120 ₫", 10, 100, "Kết quả cuối"]
+    ],
+    "07/2026": [
+      ["Danh mục", "Số tiền", "Giá trị 2", "Giá trị 3", "Diễn giải"],
+      ["Lợi nhuận gộp", "2.040 ₫", 11, 110, "Theo báo cáo gốc"],
+      ["Chi phí dầu", "90 ₫", 12, 120, "Dầu đổ ngoài"],
+      ["Chi phí lương", "150 ₫", 13, 130, "Tổng lương"],
+      ["Chi quỹ thực tế", "120 ₫", 14, 140, "Chi sau loại trừ"],
+      ["Lợi nhuận thực", "1.680 ₫", 15, 150, "Kết quả cuối"]
+    ]
+  },
+  "expectedAllDetails": [
+    ["Danh mục", "Số tiền", "Giá trị 2", "Giá trị 3", "Diễn giải"],
+    ["Lợi nhuận gộp", "4.080 ₫", "18", "180", "Theo báo cáo gốc"],
+    ["Chi phí dầu", "180 ₫", "21", "210", "Dầu đổ ngoài"],
+    ["Chi phí lương", "300 ₫", "24", "240", "Tổng lương"],
+    ["Chi quỹ thực tế", "240 ₫", "27", "270", "Chi sau loại trừ"],
+    ["Lợi nhuận thực", "3.360 ₫", "30", "300", "Kết quả cuối"]
+  ]
+}

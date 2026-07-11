@@ -1,0 +1,27 @@
+{
+  "fixtureType": "synthetic",
+  "description": "Google Sheet write-preservation baseline without production data or workbook access.",
+  "columns": ["Ngày", "Biển số xe", "Số lượng", "Thành tiền", "Ghi chú"],
+  "templateRow": {
+    "values": ["10/07/2026", "30A-TEST", 10, "", "dòng mẫu"],
+    "formulasR1C1": ["", "", "", "=RC[-1]*1000", ""],
+    "formats": ["date", "text", "number", "currency", "text"],
+    "validations": ["date", "vehicle-list", "positive-number", null, "free-text"],
+    "metadata": [null, "catalog:vehicle", null, "computed", null]
+  },
+  "existingTargetRow": {
+    "values": ["", "", "", "", "giữ nguyên"],
+    "formulasR1C1": ["", "", "", "=RC[-1]*2000", ""],
+    "formats": ["blank", "blank", "blank", "custom-currency", "blank"],
+    "validations": ["date", "vehicle-list", "positive-number", null, "free-text"],
+    "metadata": [null, "target:vehicle", null, "target:computed", null]
+  },
+  "appendRows": [
+    ["11/07/2026", "30A-NEW-1", 4, "", "append 1"],
+    ["12/07/2026", "30A-NEW-2", 5, "", "append 2"]
+  ],
+  "partialUpdate": {
+    "incoming": ["13/07/2026", "30A-UPDATED", 8, 999999, "đã cập nhật"],
+    "skippedZeroBasedColumns": [3]
+  }
+}

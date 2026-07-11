@@ -37,7 +37,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@247 - Clarify historical loan settlement status`
+- Apps Script deployment moi nhat da xac nhan: `@249 - Refactor Step 7 shared clean normalization`
 - Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @234`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
 - Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
@@ -206,6 +206,13 @@ Commit lien quan:
 - Sau khi user danh gia lai khong gian bang, da bo cot Ma vay khoi UI nhung van giu `loanKey`/`reconciledFromCode` noi bo. Khi xem thang lich su, cot so du van la du no tai cuoi thang; nut Thanh toan chi hien neu khoan vay hien tai con no. Khoan da tra sau thang dang xem hien nhan `Da tat toan dd/MM/yyyy` de tranh thanh toan lap va tranh hieu nham.
 
 ## Lo trinh tiep theo
+
+### Phase 4 refactor safety-first (Ngày 2026-07-11)
+
+- Step 1-6 đã bổ sung characterization/contract fixtures cho API-RBAC, cache key, báo cáo, ghi Google Sheet và queue lifecycle mà không đổi runtime.
+- Step 7 tách phép chuẩn hóa `clean_()` dùng chung sang `NormalizationUtils.gs`; wrapper cũ được giữ nguyên tại các service để không đổi call site hoặc hành vi.
+- Step 7 đã pass 54/54 test, build thành công, deploy Apps Script production `@249` và smoke test `health` thành công.
+- Các bước tách service tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`; chưa thực hiện Step 8.
 
 ### 1. Dong bang do dung cua Bao cao
 

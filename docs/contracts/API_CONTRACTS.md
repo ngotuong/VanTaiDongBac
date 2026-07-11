@@ -1413,7 +1413,7 @@ Consumer phải kiểm tra response `queued/jobId`, không chỉ dựa vào acti
 | `invalidateCaches` | runtime/report data version/cache |
 | `getReportBundle` | có thể ghi `SYS_ReportCache`; không mặc nhiên upsert Supabase trong request |
 
-Khi thay đổi sync behavior, phải kiểm tra cả direct wrapper và worker path.
+Report/dashboard Supabase upsert và chọn tháng report-after-write do `ReportSyncService` sở hữu, qua compatibility facade `SupabaseService`. Khi thay đổi sync behavior, phải kiểm tra cả direct wrapper và worker path.
 
 ## 19. Quy tắc mở rộng API
 

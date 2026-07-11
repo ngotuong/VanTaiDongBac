@@ -283,10 +283,10 @@ Trách nhiệm:
 
 Source:
 
-- read facade: `ManageService.gs`;
-- generic read facade: `SheetReadService.gs`;
+- manage facade: `ManageService.gs`;
+- generic/manage read implementation: `SheetReadService.gs`;
 - CRUD facade: `EntryService.gs`;
-- implementation: `SheetService.gs`;
+- read compatibility adapter và CRUD implementation chưa tách: `SheetService.gs`;
 - queue/sync: `SupabaseService.gs`;
 - frontend: `client_manage.html`, `client_entry.html`, `client_dashboard.html`.
 

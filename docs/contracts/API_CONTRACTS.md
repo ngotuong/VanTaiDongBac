@@ -654,7 +654,7 @@ GET action=readSheetData&sheetName=<SHEET>&startDate=<ISO>&endDate=<ISO>&limit=<
 
 Auth: admin/operator; shareholder hiện không nằm trong allowlist.
 
-Handler: `SheetReadService.readSheetData()` → `SheetService.readSheetData()`.
+Handler: `SheetReadService.readSheetData()`; compatibility adapter `SheetService.readSheetData()` truyền spreadsheet/cache/config context về implementation `SheetReadService.readSheetDataFromSpreadsheet()`.
 
 Params:
 
@@ -688,7 +688,7 @@ GET action=readManageData&sheetName=NL_VanChuyen&startDate=<ISO>&endDate=<ISO>&l
 
 Auth: admin/operator/shareholder.
 
-Handler: `ManageService.readManageData()` → `SheetService.readSheetData()`.
+Handler: `ManageService.readManageData()` → `SheetReadService.readSheetData()`; thuật toán read nằm trong `SheetReadService`.
 
 Response chứa:
 

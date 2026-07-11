@@ -227,11 +227,14 @@ Commit lien quan:
 - Step 13 chuyển catalog needs/read/mapping payload Vận tải sang implementation thật trong `CatalogService.gs`; cache orchestration vẫn ở compatibility wrapper `SheetService.getCatalogs()`, generic catalog CRUD giữ nguyên.
 - Step 13 đã pass 83/83 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@255 - Refactor Step 13 implement transport catalog facade`.
 - Smoke production Step 13 thành công: `health`, catalog `vanChuyen`, `chamCong`, full catalog và virtual display `DM_ThamSo_TS`/`DM_ThamSo_GD` đều trả `ok=true`/đúng payload shape; không ghi dữ liệu production.
+- Step 14 chuyển generic/manage read, header/date range/limit/order/row serialization sang implementation thật trong `SheetReadService.gs`; `SheetService.readSheetData()` chỉ còn compatibility adapter truyền spreadsheet/cache/config context. Update/delete không thay đổi.
+- Step 14 đã pass 87/87 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@256 - Refactor Step 14 implement transport read manage facade`.
+- Smoke production Step 14 thành công: HTTP/Execution API `health`, recent read cho cả sáu `NL_*` và date-range `NL_VanChuyen` đều trả `ok=true`, đúng header/rowIndex/order/isLimited; không ghi dữ liệu production.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 13 đã hoàn thành và checkpoint production đang ở Apps Script `@255`.
-- Bước kế tiếp được đề xuất: Step 14 — làm thật Transport Read/Manage facade; chưa được phê duyệt và không được tự bắt đầu.
+- Trạng thái hiện tại: Step 14 đã hoàn thành và checkpoint production đang ở Apps Script `@256`.
+- Bước kế tiếp được đề xuất: Step 15 — làm thật `TransportEntryService` facade; chưa được phê duyệt và không được tự bắt đầu.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 

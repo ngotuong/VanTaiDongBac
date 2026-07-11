@@ -1122,150 +1122,15 @@ var SheetService = (function () {
   }
 
   function readSheetData(sheetName, startDateStr, endDateStr, limit) {
-    try {
-      var ss = getSpreadsheet_();
-      var sheet = ss.getSheetByName(sheetName);
-      if (!sheet) throw new Error('Không tìm thấy sheet: ' + sheetName);
-
-      var headerRow = 1;
-      for (var key in APP_CONFIG.sheets) {
-        if (APP_CONFIG.sheets[key].name === sheetName) {
-          headerRow = APP_CONFIG.sheets[key].headerRow;
-          break;
-        }
-      }
-
-      var lastRow = sheet.getLastRow();
-      var lastCol = sheet.getLastColumn();
-      var headers = [];
-      var rows = [];
-      var rowLimit = Math.max(1, Math.min(parseInt(limit, 10) || 10, 500));
-      var responseCacheKey = cacheKey_('read_sheet', sheetName, startDateStr || '', endDateStr || '', rowLimit, getReportDataVersion_());
-      var responseCached = getChunkedCache_(responseCacheKey);
-      if (responseCached) return responseCached;
-
-      if (lastCol > 0) {
-        var rawHeaders = sheet.getRange(headerRow, 1, 1, lastCol).getValues()[0].map(function (h) {
-          return String(h).trim();
-        });
-        headers = rawHeaders.map(function(h, idx) {
-          if (sheetName === 'DM_ThamSo') {
-            if (idx === 3) return 'Ngày áp dụng tham số';
-            if (idx === 5) return 'Ngày áp dụng giá dầu';
-          }
-          return h;
-        });
-
-        if (lastRow > headerRow) {
-          var isJournalSheet = sheetName.indexOf('NL_') === 0;
-          var hasDateFilter = (startDateStr || endDateStr) && isJournalSheet;
-          var readStartRow = headerRow + 1;
-          var readRowCount = lastRow - headerRow;
-          var rowEntries = [];
-          var startLimit = startDateStr ? new Date(startDateStr + 'T00:00:00') : null;
-          var endLimit = endDateStr ? new Date(endDateStr + 'T23:59:59') : null;
-
-          if (hasDateFilter) {
-            var matchedRows = [];
-            var scanChunkSize = 1000;
-            for (var scanEnd = lastRow; scanEnd > headerRow && matchedRows.length < rowLimit; scanEnd -= scanChunkSize) {
-              var scanStart = Math.max(headerRow + 1, scanEnd - scanChunkSize + 1);
-              var dateValues = sheet.getRange(scanStart, 1, scanEnd - scanStart + 1, 1).getValues();
-              for (var dIdx = dateValues.length - 1; dIdx >= 0; dIdx--) {
-                var parsedDate = parseSheetDate_(dateValues[dIdx][0]);
-                if (parsedDate && (!startLimit || parsedDate >= startLimit) && (!endLimit || parsedDate <= endLimit)) {
-                  matchedRows.push(scanStart + dIdx);
-                  if (matchedRows.length >= rowLimit) break;
-                }
-              }
-            }
-            matchedRows.sort(function (a, b) { return a - b; });
-
-            if (matchedRows.length) {
-              var groupStart = matchedRows[0];
-              var groupEnd = matchedRows[0];
-              var groups = [];
-              for (var gIdx = 1; gIdx < matchedRows.length; gIdx++) {
-                if (matchedRows[gIdx] === groupEnd + 1) {
-                  groupEnd = matchedRows[gIdx];
-                } else {
-                  groups.push({ start: groupStart, end: groupEnd });
-                  groupStart = matchedRows[gIdx];
-                  groupEnd = matchedRows[gIdx];
-                }
-              }
-              groups.push({ start: groupStart, end: groupEnd });
-
-              groups.forEach(function (group) {
-                var groupValues = sheet.getRange(group.start, 1, group.end - group.start + 1, lastCol).getValues();
-                groupValues.forEach(function (rowValues, offset) {
-                  rowEntries.push({ rowIndex: group.start + offset, values: rowValues });
-                });
-              });
-              rowEntries.sort(function (a, b) { return b.rowIndex - a.rowIndex; });
-            }
-          } else {
-            if (isJournalSheet) {
-              var lastDataRow = getLastNonEmptyRowInColumn_(sheet, 1, headerRow + 1, true);
-              if (lastDataRow >= headerRow + 1) {
-                readRowCount = Math.min(rowLimit, lastDataRow - headerRow);
-                readStartRow = lastDataRow - readRowCount + 1;
-              } else {
-                readRowCount = 0;
-              }
-            }
-
-            var rawValues = readRowCount > 0
-              ? sheet.getRange(readStartRow, 1, readRowCount, lastCol).getValues()
-              : [];
-            for (var rawIdx = rawValues.length - 1; rawIdx >= 0; rawIdx--) {
-              rowEntries.push({ rowIndex: readStartRow + rawIdx, values: rawValues[rawIdx] });
-            }
-          }
-
-          rowEntries.forEach(function (entry) {
-            var rowIndex = entry.rowIndex;
-            var rawRow = entry.values;
-            var cells = rawRow.map(function (val) {
-              if (Object.prototype.toString.call(val) === '[object Date]' && !isNaN(val.getTime())) {
-                return Utilities.formatDate(val, APP_CONFIG.timezone, 'yyyy-MM-dd');
-              }
-              return val;
-            });
-            
-            var isEmpty = cells.every(function (cell) {
-              return cell === null || cell === undefined || String(cell).trim() === '';
-            });
-            
-            if (isEmpty) return;
-
-            rows.push({
-              rowIndex: rowIndex,
-              values: cells
-            });
-          });
-        }
-      }
-
-      var isLimited = false;
-      if (sheetName.indexOf('NL_') === 0 && !startDateStr && !endDateStr) {
-        isLimited = true;
-      }
-      if (sheetName.indexOf('DM_') === 0) {
-        rows.reverse();
-      }
-
-      var result = {
-        ok: true,
-        headers: headers,
-        rows: rows,
-        isLimited: isLimited
-      };
-      putChunkedCache_(responseCacheKey, result, 60);
-      return result;
-    } catch (e) {
-      return { ok: false, error: e.message };
-    }
+    return SheetReadService.readSheetDataFromSpreadsheet(getSpreadsheet_(), sheetName, startDateStr, endDateStr, limit, {
+      sheets: APP_CONFIG.sheets,
+      timezone: APP_CONFIG.timezone,
+      buildCacheKey: cacheKey_,
+      getDataVersion: getReportDataVersion_,
+      getCached: getChunkedCache_,
+      putCached: putChunkedCache_,
+      getLastNonEmptyRow: getLastNonEmptyRowInColumn_
+    });
   }
 
   function saveSheetRow(sheetName, rowIndex, rowData, expectedRowData) {

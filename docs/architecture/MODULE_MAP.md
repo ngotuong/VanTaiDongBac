@@ -200,7 +200,8 @@ Source:
 
 - startup/catalog sync implementation: `StartupCatalogSyncService.gs`;
 - report/dashboard sync implementation: `ReportSyncService.gs`;
-- facade, realtime orchestration và các manage/fund sync implementation còn lại: `SupabaseService.gs`;
+- manage bundle/sheet-change sync implementation: `ManageSyncService.gs`;
+- facade, trigger/realtime orchestration và fund sync implementation còn lại: `SupabaseService.gs`;
 - public wrapper: `PublicApi.gs`;
 - database contract: `supabase/migrations/*.sql`;
 - frontend reader: `client_api.html`;

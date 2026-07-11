@@ -210,59 +210,15 @@ var SupabaseService = (function () {
   }
 
   function syncManageDataBundle(sheetName) {
-    var safeSheetName = clean_(sheetName);
-    if (!safeSheetName) throw new Error('Thiếu tên sheet vận hành cần sync.');
-    var payload = ManageService.readManageData(safeSheetName, '', '', 500);
-    var syncedAt = new Date().toISOString();
-    SupabaseBundleRepository.upsertRows(TABLE_MANAGE_DATA_BUNDLES, [{
-      sheet_name: safeSheetName,
-      filter_key: DEFAULT_MANAGE_FILTER_KEY,
-      payload: payload,
-      synced_at: syncedAt
-    }], 'sheet_name,filter_key');
-    writeSyncStatus_('manage_data:' + safeSheetName + ':' + DEFAULT_MANAGE_FILTER_KEY, 'manage', 'ok', 'Manage list cache synced.', syncedAt);
-    return { ok: true, table: TABLE_MANAGE_DATA_BUNDLES, sheetName: safeSheetName, filterKey: DEFAULT_MANAGE_FILTER_KEY, syncedAt: syncedAt };
+    return ManageSyncService.syncManageDataBundle(sheetName, manageSyncContext_());
   }
 
   function syncManageMonthBundle(sheetName, monthKey) {
-    var safeSheetName = clean_(sheetName);
-    var safeMonthKey = normalizeYearMonthKey_(monthKey);
-    if (!safeSheetName) throw new Error('Thiếu tên sheet vận hành cần sync.');
-    if (!safeMonthKey) throw new Error('Thiếu tháng vận hành cần sync.');
-    var period = monthPeriod_(safeMonthKey);
-    var filterKey = buildManageMonthFilterKey_(safeMonthKey);
-    var payload = ManageService.readManageData(safeSheetName, period.startDate, period.endDate, 500);
-    var syncedAt = new Date().toISOString();
-    SupabaseBundleRepository.upsertRows(TABLE_MANAGE_DATA_BUNDLES, [{
-      sheet_name: safeSheetName,
-      filter_key: filterKey,
-      payload: payload,
-      synced_at: syncedAt
-    }], 'sheet_name,filter_key');
-    writeSyncStatus_('manage_data:' + safeSheetName + ':' + filterKey, 'manage', 'ok', 'Manage month cache synced.', syncedAt);
-    return { ok: true, table: TABLE_MANAGE_DATA_BUNDLES, sheetName: safeSheetName, filterKey: filterKey, monthKey: safeMonthKey, syncedAt: syncedAt };
+    return ManageSyncService.syncManageMonthBundle(sheetName, monthKey, manageSyncContext_());
   }
 
   function syncAllManageDataBundles() {
-    var results = [];
-    var errors = [];
-    MANAGE_SHEET_NAMES.forEach(function (sheetName) {
-      runSyncStep_(results, errors, 'manageData:' + sheetName, function () {
-        return syncManageDataBundle(sheetName);
-      });
-      getManageMonthKeys_(sheetName).forEach(function (monthKey) {
-        runSyncStep_(results, errors, 'manageData:' + sheetName + ':' + monthKey, function () {
-          return syncManageMonthBundle(sheetName, monthKey);
-        });
-      });
-    });
-    return {
-      ok: errors.length === 0,
-      synced: results.length,
-      failed: errors.length,
-      results: results,
-      errors: errors
-    };
+    return ManageSyncService.syncAllManageDataBundles(manageSyncContext_());
   }
 
   function syncFullRealtimeCache() {
@@ -372,73 +328,7 @@ var SupabaseService = (function () {
   }
 
   function syncTransportSheetChange(eventType, sheetName, editedRange) {
-    var safeEventType = clean_(eventType) || 'UNKNOWN';
-    var safeSheetName = clean_(sheetName);
-    var results = [];
-    var errors = [];
-    if (!isManageSheetName_(safeSheetName)) {
-      return {
-        ok: true,
-        skipped: true,
-        eventType: safeEventType,
-        sheetName: safeSheetName,
-        reason: 'Sheet is not a transport manage sheet.'
-      };
-    }
-
-    var runtimeCache = CacheService.getScriptCache();
-    var runningKey = TRANSPORT_SHEET_SYNC_RUNNING_CACHE_KEY + ':' + safeSheetName;
-    if (runtimeCache.get(runningKey)) {
-      return {
-        ok: true,
-        skipped: true,
-        eventType: safeEventType,
-        sheetName: safeSheetName,
-        reason: 'Previous sheet change sync is still running.'
-      };
-    }
-    runtimeCache.put(runningKey, new Date().toISOString(), TRANSPORT_SHEET_SYNC_RUNNING_TTL_SECONDS);
-
-    try {
-      runSyncStep_(results, errors, 'manageData:' + safeSheetName, function () {
-        return syncManageDataBundle(safeSheetName);
-      });
-
-      var monthKeys = getEditedManageMonthKeys_(safeSheetName, editedRange);
-      if (!monthKeys.length) {
-        monthKeys = getRecentManageMonthKeys_(safeSheetName, 2);
-      }
-      monthKeys.forEach(function (monthKey) {
-        runSyncStep_(results, errors, 'manageData:' + safeSheetName + ':' + monthKey, function () {
-          return syncManageMonthBundle(safeSheetName, monthKey);
-        });
-      });
-
-      if (safeSheetName === 'NL_VanChuyen') {
-        runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
-      }
-
-      var syncedAt = new Date().toISOString();
-      writeSyncStatus_(
-        'transport_sheet_change:' + safeSheetName,
-        'manage',
-        errors.length ? 'error' : 'ok',
-        errors.length ? JSON.stringify(errors) : 'Transport sheet change synced: ' + safeEventType,
-        syncedAt
-      );
-      return {
-        ok: errors.length === 0,
-        eventType: safeEventType,
-        sheetName: safeSheetName,
-        synced: results.length,
-        failed: errors.length,
-        months: monthKeys,
-        results: results,
-        errors: errors
-      };
-    } finally {
-      runtimeCache.remove(runningKey);
-    }
+    return ManageSyncService.syncTransportSheetChange(eventType, sheetName, editedRange, manageSyncContext_());
   }
 
   function handleTransportSheetEdit(e) {
@@ -460,53 +350,7 @@ var SupabaseService = (function () {
   }
 
   function syncUnknownTransportSheetChange_(eventType) {
-    var safeEventType = clean_(eventType) || 'CHANGE';
-    var runtimeCache = CacheService.getScriptCache();
-    var runningKey = TRANSPORT_SHEET_SYNC_RUNNING_CACHE_KEY + ':unknown';
-    if (runtimeCache.get(runningKey)) {
-      return {
-        ok: true,
-        skipped: true,
-        eventType: safeEventType,
-        reason: 'Previous unknown sheet change sync is still running.'
-      };
-    }
-    runtimeCache.put(runningKey, new Date().toISOString(), TRANSPORT_SHEET_SYNC_RUNNING_TTL_SECONDS);
-
-    var results = [];
-    var errors = [];
-    try {
-      runSyncStep_(results, errors, 'manageData:NL_VanChuyen', function () {
-        return syncManageDataBundle('NL_VanChuyen');
-      });
-      getRecentManageMonthKeys_('NL_VanChuyen', 2).forEach(function (monthKey) {
-        runSyncStep_(results, errors, 'manageData:NL_VanChuyen:' + monthKey, function () {
-          return syncManageMonthBundle('NL_VanChuyen', monthKey);
-        });
-      });
-      runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
-
-      var syncedAt = new Date().toISOString();
-      writeSyncStatus_(
-        'transport_sheet_change:unknown',
-        'manage',
-        errors.length ? 'error' : 'ok',
-        errors.length ? JSON.stringify(errors) : 'Transport sheet change synced without active sheet: ' + safeEventType,
-        syncedAt
-      );
-      return {
-        ok: errors.length === 0,
-        eventType: safeEventType,
-        sheetName: '',
-        fallback: true,
-        synced: results.length,
-        failed: errors.length,
-        results: results,
-        errors: errors
-      };
-    } finally {
-      runtimeCache.remove(runningKey);
-    }
+    return ManageSyncService.syncUnknownTransportSheetChange(eventType, manageSyncContext_());
   }
 
   function syncCatalogAfterWrite(displaySheetName) {
@@ -1298,6 +1142,34 @@ var SupabaseService = (function () {
     };
   }
 
+  function manageSyncContext_() {
+    var ss = null;
+    return {
+      clean: clean_,
+      nowISOString: function () { return new Date().toISOString(); },
+      normalizeYearMonthKey: normalizeYearMonthKey_,
+      formatDate: function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); },
+      parseDateValue: parseDateValue_,
+      getHeaderRow: getHeaderRowForSheet_,
+      getSheet: function (sheetName) {
+        if (!ss) ss = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
+        return ss.getSheetByName(sheetName);
+      },
+      readManageData: function (sheetName, startDate, endDate, limit) {
+        return ManageService.readManageData(sheetName, startDate, endDate, limit);
+      },
+      upsertRows: function (tableName, rows, onConflict) {
+        return SupabaseBundleRepository.upsertRows(tableName, rows, onConflict);
+      },
+      writeSyncStatus: writeSyncStatus_,
+      runSyncStep: runSyncStep_,
+      syncDashboard: syncDashboard,
+      runtimeCache: CacheService.getScriptCache(),
+      runningKeyPrefix: TRANSPORT_SHEET_SYNC_RUNNING_CACHE_KEY,
+      runningTtlSeconds: TRANSPORT_SHEET_SYNC_RUNNING_TTL_SECONDS
+    };
+  }
+
   function getSupabaseSyncStatus(limit, moduleName) {
     var safeLimit = Math.min(Math.max(parseInt(limit || 30, 10) || 30, 1), 100);
     var query = {
@@ -1393,54 +1265,21 @@ var SupabaseService = (function () {
   }
 
   function buildManageMonthFilterKey_(monthKey) {
-    return 'month:' + normalizeYearMonthKey_(monthKey);
+    return ManageSyncService.buildManageMonthFilterKey(monthKey, {
+      normalizeYearMonthKey: normalizeYearMonthKey_
+    });
   }
 
   function getManageMonthKeys_(sheetName) {
-    var safeSheetName = clean_(sheetName);
-    var headerRow = getHeaderRowForSheet_(safeSheetName);
-    var ss = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
-    var sheet = ss.getSheetByName(safeSheetName);
-    if (!sheet) return [];
-    var lastRow = sheet.getLastRow();
-    if (lastRow <= headerRow) return [];
-    var values = sheet.getRange(headerRow + 1, 1, lastRow - headerRow, 1).getValues();
-    var seen = {};
-    values.forEach(function (row) {
-      var date = parseDateValue_(row[0]);
-      if (!date) return;
-      seen[Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM')] = true;
-    });
-    return Object.keys(seen).sort().reverse();
+    return ManageSyncService.getManageMonthKeys(sheetName, manageSyncContext_());
   }
 
   function getRecentManageMonthKeys_(sheetName, maxCount) {
-    return getManageMonthKeys_(sheetName).slice(0, Math.max(1, maxCount || 1));
+    return ManageSyncService.getRecentManageMonthKeys(sheetName, maxCount, manageSyncContext_());
   }
 
   function getEditedManageMonthKeys_(sheetName, editedRange) {
-    if (!editedRange || !editedRange.getRow || !editedRange.getNumRows) return [];
-    var safeSheetName = clean_(sheetName);
-    var headerRow = getHeaderRowForSheet_(safeSheetName);
-    var firstRow = Math.max(headerRow + 1, editedRange.getRow());
-    var lastRow = Math.max(firstRow, editedRange.getRow() + editedRange.getNumRows() - 1);
-    if (lastRow < firstRow) return [];
-    try {
-      var ss = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
-      var sheet = ss.getSheetByName(safeSheetName);
-      if (!sheet) return [];
-      var maxLastRow = Math.min(lastRow, sheet.getLastRow());
-      if (maxLastRow < firstRow) return [];
-      var values = sheet.getRange(firstRow, 1, maxLastRow - firstRow + 1, 1).getValues();
-      var seen = {};
-      values.forEach(function (row) {
-        var date = parseDateValue_(row[0]);
-        if (date) seen[Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM')] = true;
-      });
-      return Object.keys(seen).sort().reverse();
-    } catch (err) {
-      return [];
-    }
+    return ManageSyncService.getEditedManageMonthKeys(sheetName, editedRange, manageSyncContext_());
   }
 
   function getRecentFundMonthKeys_(year, maxCount) {
@@ -1457,18 +1296,6 @@ var SupabaseService = (function () {
       if (APP_CONFIG.sheets[key].name === sheetName) return APP_CONFIG.sheets[key].headerRow;
     }
     return 1;
-  }
-
-  function monthPeriod_(monthKey) {
-    var normalized = normalizeYearMonthKey_(monthKey);
-    var parts = normalized.split('-');
-    var year = Number(parts[0]);
-    var month = Number(parts[1]);
-    var end = new Date(year, month, 0);
-    return {
-      startDate: normalized + '-01',
-      endDate: Utilities.formatDate(end, APP_CONFIG.timezone, 'yyyy-MM-dd')
-    };
   }
 
   function normalizeYearMonthKey_(monthKey) {
@@ -1569,8 +1396,7 @@ var SupabaseService = (function () {
   }
 
   function isManageSheetName_(sheetName) {
-    var safeSheetName = clean_(sheetName);
-    return MANAGE_SHEET_NAMES.indexOf(safeSheetName) !== -1;
+    return ManageSyncService.isManageSheetName(sheetName, clean_);
   }
 
   function activateFromSpreadsheetEvent_(e) {

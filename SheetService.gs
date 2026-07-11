@@ -493,72 +493,24 @@ var SheetService = (function () {
   }
 
   function computeAndCacheOverviewDetails_(ss, sheet, months, dataVersion) {
-    var detailsByMonth = {};
-    var lock = LockService.getScriptLock();
-    var locked = false;
-    var tempSheet = null;
-    try {
-      lock.waitLock(15000);
-      locked = true;
-      cleanupOverviewTempSheets_(ss);
-      tempSheet = sheet.copyTo(ss);
-      tempSheet.setName('_TMP_BC_TongQuan_' + Utilities.getUuid().slice(0, 8));
-      tempSheet.hideSheet();
-
-      months.forEach(function (month) {
-        var monthLabel = clean_(month);
-        if (!monthLabel) return;
-        var dateValue = parseMonthLabelToDate_(monthLabel);
-        tempSheet.getRange('B1').setValue(dateValue);
-        SpreadsheetApp.flush();
-        var monthKey = normalizeDisplayMonth_(monthLabel) || normalizeMonthKey_(monthLabel);
-        detailsByMonth[monthKey] = readCurrentOverviewDetails_(tempSheet);
-      });
-    } catch (e) {
-      console.error('Lỗi tính toán/cache báo cáo chi tiết trên sheet tạm:', e);
-    } finally {
-      if (tempSheet) {
-        try {
-          ss.deleteSheet(tempSheet);
-        } catch (deleteErr) {
-          console.error('Không xóa được sheet tạm báo cáo:', deleteErr);
-        }
-      }
-      if (locked) lock.releaseLock();
-    }
-
+    var detailsByMonth = ReportTempSheetService.computeDetails(ss, sheet, months, {
+      clean: clean_,
+      parseMonth: parseMonthLabelToDate_,
+      normalizeMonth: function (monthLabel) {
+        return normalizeDisplayMonth_(monthLabel) || normalizeMonthKey_(monthLabel);
+      },
+      readDetails: readCurrentOverviewDetails_
+    });
     writeReportDetailsCache_(ss, dataVersion, detailsByMonth);
     return detailsByMonth;
   }
 
   function cleanupOverviewTempSheets_(ss) {
-    ss.getSheets().forEach(function (candidate) {
-      if (isOverviewTempSheet_(candidate.getName())) {
-        ss.deleteSheet(candidate);
-      }
-    });
-  }
-
-  function isOverviewTempSheet_(sheetName) {
-    var name = clean_(sheetName);
-    return name.indexOf('_TMP_BC_TongQuan_') === 0
-      || /^Bản sao của BC_TongQuan(?: \d+)?$/.test(name)
-      || /^Copy of BC_TongQuan(?: \d+)?$/.test(name);
+    return ReportTempSheetService.cleanup(ss);
   }
 
   function cleanupOverviewTempSheets() {
-    var ss = getSpreadsheet_();
-    var deleted = [];
-    ss.getSheets().forEach(function (candidate) {
-      if (!isOverviewTempSheet_(candidate.getName())) return;
-      deleted.push(candidate.getName());
-      ss.deleteSheet(candidate);
-    });
-    return {
-      ok: true,
-      deleted: deleted,
-      count: deleted.length
-    };
+    return ReportTempSheetService.cleanupAndReport(getSpreadsheet_());
   }
 
   function parseMonthLabelToDate_(monthLabel) {
@@ -580,72 +532,28 @@ var SheetService = (function () {
   }
 
   function getReportDataVersion_() {
-    var baseVersion = PropertiesService.getScriptProperties().getProperty(REPORT_DATA_VERSION_PROP) || '0';
-    return baseVersion;
+    return SheetReportCacheRepository.getDataVersion(REPORT_DATA_VERSION_PROP);
   }
 
   function bumpReportDataVersion_() {
-    PropertiesService.getScriptProperties().setProperty(REPORT_DATA_VERSION_PROP, String(new Date().getTime()));
-  }
-
-  function getReportCacheSheet_(ss, createIfMissing) {
-    var sheet = ss.getSheetByName(REPORT_CACHE_SHEET_NAME);
-    if (!sheet && createIfMissing) {
-      sheet = ss.insertSheet(REPORT_CACHE_SHEET_NAME);
-      sheet.hideSheet();
-      sheet.getRange(1, 1, 1, 10).setValues([[
-        'cacheVersion', 'dataVersion', 'monthKey', 'monthLabel', 'rowOrder',
-        'colA', 'colB', 'colC', 'colD', 'colE'
-      ]]);
-    }
-    return sheet;
+    return SheetReportCacheRepository.bumpDataVersion(REPORT_DATA_VERSION_PROP);
   }
 
   function readReportDetailsCacheMap_(ss, dataVersion) {
-    var sheet = getReportCacheSheet_(ss, false);
-    var map = {};
-    if (!sheet || sheet.getLastRow() < 2) return map;
-
-    var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 10).getValues();
-    rows.forEach(function (row) {
-      if (clean_(row[0]) !== CACHE_VERSION || clean_(row[1]) !== dataVersion) return;
-      var monthKey = clean_(row[2]);
-      var rowOrder = Number(row[4]);
-      if (!monthKey || !rowOrder) return;
-      if (!map[monthKey]) map[monthKey] = [];
-      map[monthKey][rowOrder - 1] = [row[5], row[6], row[7], row[8], row[9]];
+    return SheetReportCacheRepository.readDetailsMap(ss, {
+      sheetName: REPORT_CACHE_SHEET_NAME,
+      cacheVersion: CACHE_VERSION,
+      dataVersion: dataVersion,
+      clean: clean_
     });
-
-    Object.keys(map).forEach(function (key) {
-      map[key] = map[key].filter(function (row) { return row && row.length; });
-    });
-    return map;
   }
 
   function writeReportDetailsCache_(ss, dataVersion, detailsByMonth) {
-    var rows = [];
-    Object.keys(detailsByMonth).forEach(function (monthKey) {
-      var matrix = detailsByMonth[monthKey] || [];
-      matrix.forEach(function (row, index) {
-        rows.push([
-          CACHE_VERSION,
-          dataVersion,
-          monthKey,
-          monthKey,
-          index + 1,
-          row[0] || '',
-          row[1] || '',
-          row[2] || '',
-          row[3] || '',
-          row[4] || ''
-        ]);
-      });
+    return SheetReportCacheRepository.writeDetails(ss, detailsByMonth, {
+      sheetName: REPORT_CACHE_SHEET_NAME,
+      cacheVersion: CACHE_VERSION,
+      dataVersion: dataVersion
     });
-    if (!rows.length) return;
-
-    var sheet = getReportCacheSheet_(ss, true);
-    var appendRow = sheet.getLastRow() + 1;
-    sheet.getRange(appendRow, 1, rows.length, 10).setValues(rows);
   }
 
   function readInputStats_(ss) {

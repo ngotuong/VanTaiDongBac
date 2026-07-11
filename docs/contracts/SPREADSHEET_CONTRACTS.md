@@ -113,7 +113,7 @@ File 2026 trong raw snapshot có Spreadsheet ID riêng và không phải file V�
 | `XL_*` | Xử lý và đối soát | Không ghi dữ liệu nghiệp vụ trực tiếp |
 | `BC_*` | Báo cáo | Chủ yếu đọc; chỉ controller/cache tạm theo contract đặc biệt |
 | `IMP_ThuChi` | Import từ file Thu chi | Không ghi tay từ web app |
-| `SYS_ReportCache` | Cache hệ thống trong Sheet | Chỉ service báo cáo quản lý |
+| `SYS_ReportCache` | Cache hệ thống trong Sheet | Chỉ `SheetReportCacheRepository` qua report service quản lý |
 
 ## 6. Danh mục sheet Vận tải hiện có trong snapshot
 

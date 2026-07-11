@@ -932,10 +932,10 @@ var SupabaseService = (function () {
   }
 
   function getReportCacheAudit(months) {
-    var requestedMonths = normalizeReportAuditMonths_(months);
+    var requestedMonths = CacheAuditService.normalizeReportMonths(months, REPORT_AUDIT_MONTHS);
     var rows = SupabaseBundleRepository.readRows(TABLE_REPORT_BUNDLES, {
       spreadsheet_id: 'eq.' + APP_CONFIG.spreadsheetId,
-      report_month: 'in.(' + requestedMonths.map(encodeSupabaseInValue_).join(',') + ')',
+      report_month: 'in.(' + requestedMonths.map(CacheAuditService.encodeSupabaseInValue).join(',') + ')',
       select: 'report_month,payload,synced_at,updated_at',
       limit: String(requestedMonths.length)
     });
@@ -947,30 +947,8 @@ var SupabaseService = (function () {
     var checkedAt = new Date().toISOString();
     var results = requestedMonths.map(function (month) {
       var cached = cachedByMonth[month];
-      if (!cached || !cached.payload) {
-        return {
-          month: month,
-          ok: false,
-          status: 'missing',
-          message: 'Chưa có report_bundles cache cho kỳ này.',
-          syncedAt: ''
-        };
-      }
-
-      var liveBundle = sanitizeReportAuditPayload_(ReportService.getReportBundle(month, true));
-      var cachedBundle = sanitizeReportAuditPayload_(cached.payload);
-      var liveHash = hashPayload_(liveBundle);
-      var cachedHash = hashPayload_(cachedBundle);
-      var ok = liveHash === cachedHash;
-      return {
-        month: month,
-        ok: ok,
-        status: ok ? 'ok' : 'stale',
-        message: ok ? 'Cache khớp dữ liệu live từ Google Sheet.' : 'Cache lệch dữ liệu live, cần sync lại report_bundles.',
-        syncedAt: cached.synced_at || '',
-        liveHash: liveHash,
-        cachedHash: cachedHash
-      };
+      var liveBundle = cached && cached.payload ? ReportService.getReportBundle(month, true) : null;
+      return CacheAuditService.buildReportResult(month, cached, liveBundle);
     });
 
     return {
@@ -983,10 +961,10 @@ var SupabaseService = (function () {
   }
 
   function getManageCacheAudit(sheetNames, limit) {
-    var requestedSheets = normalizeManageAuditSheets_(sheetNames);
+    var requestedSheets = CacheAuditService.normalizeManageSheets(sheetNames, MANAGE_SHEET_NAMES);
     var auditLimit = Math.min(Math.max(parseInt(limit || 50, 10) || 50, 1), 500);
     var rows = SupabaseBundleRepository.readRows(TABLE_MANAGE_DATA_BUNDLES, {
-      sheet_name: 'in.(' + requestedSheets.map(encodeSupabaseInValue_).join(',') + ')',
+      sheet_name: 'in.(' + requestedSheets.map(CacheAuditService.encodeSupabaseInValue).join(',') + ')',
       filter_key: 'eq.' + DEFAULT_MANAGE_FILTER_KEY,
       select: 'sheet_name,payload,synced_at,updated_at',
       limit: String(requestedSheets.length)
@@ -999,31 +977,8 @@ var SupabaseService = (function () {
     var checkedAt = new Date().toISOString();
     var results = requestedSheets.map(function (sheetName) {
       var cached = cachedBySheet[sheetName];
-      if (!cached || !cached.payload) {
-        return {
-          sheetName: sheetName,
-          ok: false,
-          status: 'missing',
-          message: 'Chưa có manage_data_bundles recent_500.',
-          syncedAt: ''
-        };
-      }
-
-      var livePayload = sanitizeManageAuditPayload_(ManageService.readManageData(sheetName, '', '', auditLimit), auditLimit);
-      var cachedPayload = sanitizeManageAuditPayload_(cached.payload, auditLimit);
-      var liveHash = hashPayload_(livePayload);
-      var cachedHash = hashPayload_(cachedPayload);
-      var ok = liveHash === cachedHash;
-      return {
-        sheetName: sheetName,
-        limit: auditLimit,
-        ok: ok,
-        status: ok ? 'ok' : 'stale',
-        message: ok ? 'Cache recent_500 khớp ' + auditLimit + ' dòng live mới nhất.' : 'Cache recent_500 lệch ' + auditLimit + ' dòng live mới nhất.',
-        syncedAt: cached.synced_at || '',
-        liveHash: liveHash,
-        cachedHash: cachedHash
-      };
+      var livePayload = cached && cached.payload ? ManageService.readManageData(sheetName, '', '', auditLimit) : null;
+      return CacheAuditService.buildManageResult(sheetName, auditLimit, cached, livePayload);
     });
 
     return {
@@ -1513,38 +1468,6 @@ var SupabaseService = (function () {
     };
   }
 
-  function normalizeReportAuditMonths_(months) {
-    if (Array.isArray(months)) {
-      var cleaned = months.map(clean_).filter(function (month) { return month; });
-      return cleaned.length ? cleaned : REPORT_AUDIT_MONTHS.slice();
-    }
-    var text = clean_(months);
-    if (!text) return REPORT_AUDIT_MONTHS.slice();
-    var cleanedText = text.split(',').map(clean_).filter(function (month) { return month; });
-    return cleanedText.length ? cleanedText : REPORT_AUDIT_MONTHS.slice();
-  }
-
-  function normalizeManageAuditSheets_(sheetNames) {
-    if (Array.isArray(sheetNames)) {
-      var cleaned = sheetNames.map(clean_).filter(isManageSheetName_);
-      return cleaned.length ? cleaned : MANAGE_SHEET_NAMES.slice();
-    }
-    var text = clean_(sheetNames);
-    if (!text) return MANAGE_SHEET_NAMES.slice();
-    var cleanedText = text.split(',').map(clean_).filter(isManageSheetName_);
-    return cleanedText.length ? cleanedText : MANAGE_SHEET_NAMES.slice();
-  }
-
-  function encodeSupabaseInValue_(value) {
-    return '"' + clean_(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
-  }
-
-  function hashPayload_(payload) {
-    var json = stableStringify_(payload);
-    var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, json, Utilities.Charset.UTF_8);
-    return Utilities.base64EncodeWebSafe(digest).replace(/=+$/, '');
-  }
-
   function buildIdempotentJobId_(moduleName, idempotencyKey) {
     var digest = Utilities.computeDigest(
       Utilities.DigestAlgorithm.SHA_256,
@@ -1552,46 +1475,6 @@ var SupabaseService = (function () {
       Utilities.Charset.UTF_8
     );
     return 'idem-' + Utilities.base64EncodeWebSafe(digest).replace(/=+$/, '').substring(0, 43);
-  }
-
-  function sanitizeReportAuditPayload_(payload) {
-    if (!payload || typeof payload !== 'object') return payload;
-    return {
-      overview: payload.overview || {},
-      payroll: payload.payroll || [],
-      vehicles: payload.vehicles || [],
-      links: payload.links || {}
-    };
-  }
-
-  function sanitizeManageAuditPayload_(payload, limit) {
-    if (!payload || typeof payload !== 'object') return payload;
-    var auditLimit = Math.min(Math.max(parseInt(limit || 50, 10) || 50, 1), 500);
-    return {
-      ok: payload.ok !== false,
-      headers: payload.headers || [],
-      rows: (payload.rows || []).slice(0, auditLimit).map(function (row) {
-        return {
-          rowIndex: row.rowIndex || '',
-          values: row.values || []
-        };
-      })
-    };
-  }
-
-  function stableStringify_(value) {
-    if (value === null || value === undefined) return 'null';
-    if (Object.prototype.toString.call(value) === '[object Date]') return JSON.stringify(value.toISOString());
-    if (Array.isArray(value)) {
-      return '[' + value.map(stableStringify_).join(',') + ']';
-    }
-    if (typeof value === 'object') {
-      var keys = Object.keys(value).sort();
-      return '{' + keys.map(function (key) {
-        return JSON.stringify(key) + ':' + stableStringify_(value[key]);
-      }).join(',') + '}';
-    }
-    return JSON.stringify(value);
   }
 
   function runSyncStep_(results, errors, name, fn) {

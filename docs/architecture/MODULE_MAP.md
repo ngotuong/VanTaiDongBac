@@ -77,7 +77,7 @@ flowchart TD
 | `FUND_TRANSACTIONS` | Giao dịch Thu chi | Nghiệp vụ | Repository/service: `FundTransactionRepository.gs`, `FundTransactionService.gs`; public facade/cache/lock: `FundService.gs` | `NHAP_THUCHI` |
 | `FUND_OVERVIEW` | Tổng quan Thu chi | Nghiệp vụ | `FundService.gs` | `NHAP_THUCHI`, cấu hình Thu chi |
 | `FUND_LOANS` | Vay nợ và đối soát khoản vay | Nghiệp vụ | `FundService.gs` | `NHAP_VAY` |
-| `FUND_CATALOG` | Danh mục Thu chi | Nghiệp vụ | Read: `FundCatalogRepository.gs`, `FundCatalogService.gs`; cache/CRUD facade: `FundService.gs` | named ranges, `CAIDAT`, catalog hỗ trợ |
+| `FUND_CATALOG` | Danh mục Thu chi | Nghiệp vụ | Repository/service: `FundCatalogRepository.gs`, `FundCatalogService.gs`; public facade/cache/lock: `FundService.gs` | named ranges, `CAIDAT`, catalog hỗ trợ |
 | `FRONTEND_CORE` | App shell, state và navigation | Giao diện | `index.template.html`, `client_config.html`, `client_app.html` | Browser global state, DOM |
 | `FRONTEND_API` | API/Auth/Supabase client | Giao diện | `client_api.html` | HTTP, Supabase REST/Auth, session cache |
 | `FRONTEND_TRANSPORT` | UI Vận tải | Giao diện | `client_dashboard.html`, `client_entry.html`, `client_manage.html`, `client_catalog.html`, `client_reports.html`, `client_data.html` | API payload, bundle cache |
@@ -527,7 +527,7 @@ Trách nhiệm:
 
 Source:
 
-- backend: `FundService.gs`;
+- backend implementation: `FundCatalogRepository.gs`, `FundCatalogService.gs`; public facade/cache/lock: `FundService.gs`;
 - frontend: phần loan trong `client_cashflow.html`;
 - sync implementation: `FundSyncService.syncFundLoanOverview()` qua facade `SupabaseService`;
 - contract test: `tests/contracts.test.js`.

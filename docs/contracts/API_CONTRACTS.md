@@ -1141,7 +1141,7 @@ Body chuẩn:
 }
 ```
 
-Handler chấp nhận `item`, fallback `payload` hoặc body và gọi `FundService.saveFundCatalogItem()`.
+Handler chấp nhận `item`, fallback `payload` hoặc body và gọi `FundService.saveFundCatalogItem()`; facade giữ resolver/lock/cache bump và delegate validation, encoded index, bounds/append và native/managed write cho `FundCatalogService`/`FundCatalogRepository`.
 
 ### 12.8. `deleteFundCatalogItem`
 
@@ -1153,7 +1153,7 @@ Auth: admin/operator.
 
 Body giống save nhưng xác định item/row cần xóa.
 
-Handler: `FundService.deleteFundCatalogItem()`.
+Handler: `FundService.deleteFundCatalogItem()`; facade giữ resolver/lock/cache bump và delegate bounds + native clear/managed physical delete cho `FundCatalogService`/`FundCatalogRepository`.
 
 Rule: row/group phải nằm trong vùng catalog đã resolve.
 

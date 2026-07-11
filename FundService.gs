@@ -307,7 +307,7 @@ var FundService = (function () {
   }
 
   function getFundCatalog(year, group) {
-    var catalogCacheKey = fundCacheKey_(year, 'catalog', normalizeFundCatalogGroup_(group) || 'all');
+    var catalogCacheKey = fundCacheKey_(year, 'catalog', FundCatalogService.normalizeGroup(group, fundCatalogReadContext_(null, null)) || 'all');
     var catalogCached = getFundCache_(catalogCacheKey);
     if (catalogCached) return catalogCached;
     var ss = getFundSpreadsheet_(year);
@@ -328,30 +328,15 @@ var FundService = (function () {
   function saveFundCatalogItem(year, payload) {
     var ss = getFundSpreadsheet_(year);
     var sheet = ensureFundCatalogSheet_(ss);
-    var groupKey = normalizeFundCatalogGroup_(payload && payload.group);
-    var value = clean_(payload && payload.value);
-    var note = clean_(payload && payload.note);
-    var rawRowIndex = clean_(payload && payload.rowIndex);
-    var rowIndex = parseInt(rawRowIndex || '', 10);
-
-    if (!groupKey) throw new Error('Vui lòng chọn nhóm danh mục.');
-    if (!value) throw new Error('Vui lòng nhập giá trị danh mục.');
-
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      var nativeResult = saveNativeFundCatalogValue_(ss, groupKey, rawRowIndex, value);
-      if (nativeResult) {
-        bumpFundDataVersion_();
-        return { ok: true, rowIndex: nativeResult.rowIndex, group: groupKey, value: value, note: note, sheetName: CATALOG_SHEET_NAME, nativeColumn: nativeResult.column };
-      }
-      var targetRow = rowIndex > 1 ? rowIndex : getAppendRow_(sheet);
-      if (sheet.getMaxRows() < targetRow) {
-        sheet.insertRowsAfter(sheet.getMaxRows(), targetRow - sheet.getMaxRows());
-      }
-      sheet.getRange(targetRow, 1, 1, 3).setValues([[getFundCatalogGroupLabel_(groupKey), value, note]]);
+      var context = fundCatalogReadContext_(ss, sheet);
+      context.getAppendRow = getAppendRow_;
+      context.columnToLetter = columnToLetter_;
+      var result = FundCatalogService.saveItem(payload, context);
       bumpFundDataVersion_();
-      return { ok: true, rowIndex: targetRow, group: groupKey, value: value, note: note, sheetName: CATALOG_SHEET_NAME };
+      return result;
     } finally {
       lock.releaseLock();
     }
@@ -360,21 +345,13 @@ var FundService = (function () {
   function deleteFundCatalogItem(year, payload) {
     var ss = getFundSpreadsheet_(year);
     var sheet = ensureFundCatalogSheet_(ss);
-    var rawRowIndex = clean_(payload && payload.rowIndex);
-    var rowIndex = parseInt(rawRowIndex || '', 10);
-    if (!parseNativeCatalogRowIndexParts_(rawRowIndex) && !(rowIndex > 1)) throw new Error('Thiếu dòng danh mục cần xóa.');
-
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      var nativeDeleted = deleteNativeFundCatalogValue_(ss, rawRowIndex);
-      if (nativeDeleted) {
-        bumpFundDataVersion_();
-        return { ok: true, rowIndex: rowIndex, sheetName: CATALOG_SHEET_NAME };
-      }
-      sheet.deleteRow(rowIndex);
+      var context = fundCatalogReadContext_(ss, sheet);
+      var result = FundCatalogService.deleteItem(payload, context);
       bumpFundDataVersion_();
-      return { ok: true, rowIndex: rowIndex, sheetName: CATALOG_SHEET_NAME };
+      return result;
     } finally {
       lock.releaseLock();
     }
@@ -726,178 +703,6 @@ var FundService = (function () {
     };
   }
 
-  function readFundCatalogGroups_(ss) {
-    var rows = readFundCatalogRows_(ensureFundCatalogSheet_(ss));
-    rows = rows.concat(readNativeFundCatalogRows_(ss));
-    var grouped = {
-      incomeCategories: [],
-      expenseCategories: [],
-      actors: [],
-      partners: [],
-      loanPartners: []
-    };
-    rows.forEach(function (row) {
-      if (row.groupKey && grouped[row.groupKey]) {
-        grouped[row.groupKey].push(row.value);
-      }
-    });
-    Object.keys(grouped).forEach(function (key) {
-      grouped[key] = uniqueValues_(grouped[key]);
-    });
-    return grouped;
-  }
-
-  function getFallbackFundCatalogRows_(ss, groupKey, existingRows) {
-    var existing = {};
-    (existingRows || []).forEach(function (row) {
-      if (row.groupKey === groupKey) existing[normalizeHeader_(row.value)] = true;
-    });
-    var values = [];
-    var settings = null;
-    if (groupKey === 'incomeCategories') {
-      settings = readFundSettings_(ss);
-      values = getFallbackFundIncomeCategories_(ss, settings);
-    } else if (groupKey === 'expenseCategories') {
-      values = getFallbackFundExpenseCategories_(ss);
-    } else if (groupKey === 'actors') {
-      values = getFallbackFundActors_(ss);
-    } else if (groupKey === 'partners') {
-      values = getFallbackFundPartners_(ss);
-    } else if (groupKey === 'loanPartners') {
-      values = getFallbackFundLoanPartners_(ss);
-    }
-    return uniqueValues_(values)
-      .filter(function (value) { return !existing[normalizeHeader_(value)]; })
-      .map(function (value, index) {
-        return {
-          rowIndex: '',
-          group: getFundCatalogGroupLabel_(groupKey),
-          groupKey: groupKey,
-          value: value,
-          note: 'Tự đọc từ dữ liệu hiện có',
-          source: 'fallback',
-          fallbackIndex: index + 1
-        };
-      });
-  }
-
-  function getNativeFundCatalogSpec_(groupKey) {
-    var specs = {
-      incomeCategories: { rangeName: 'MUCTHU', column: 5, startRow: 3 },
-      expenseCategories: { rangeName: 'MUCCHI', column: 8, startRow: 3 },
-      actors: { column: 15, startRow: 3 },
-      partners: { column: 13, startRow: 3 },
-      loanPartners: { column: 11, startRow: 3 }
-    };
-    return specs[groupKey] || null;
-  }
-
-  function readNativeFundCatalogRows_(ss) {
-    var sheet = ss.getSheetByName(CATALOG_SHEET_NAME);
-    if (!sheet) return [];
-    var rows = [];
-    CATALOG_GROUPS.forEach(function (group) {
-      var spec = resolveNativeFundCatalogSpec_(ss, group.key);
-      if (!spec) return;
-      if (sheet.getLastRow() < spec.startRow) return;
-      var endRow = spec.endRow || sheet.getLastRow();
-      if (endRow < spec.startRow) return;
-      var values = sheet.getRange(spec.startRow, spec.column, endRow - spec.startRow + 1, 1).getDisplayValues();
-      values.forEach(function (row, index) {
-        var value = clean_(row[0]);
-        if (!value) return;
-        rows.push({
-          rowIndex: 'native:' + group.key + ':' + (spec.startRow + index),
-          group: group.label,
-          groupKey: group.key,
-          value: value,
-          note: '',
-          source: 'native',
-          nativeColumn: spec.column
-        });
-      });
-    });
-    return rows;
-  }
-
-  function saveNativeFundCatalogValue_(ss, groupKey, rowIndex, value) {
-    var spec = resolveNativeFundCatalogSpec_(ss, groupKey);
-    var sheet = ss.getSheetByName(CATALOG_SHEET_NAME);
-    if (!spec || !sheet) return null;
-    var targetRow = parseNativeCatalogRowIndex_(rowIndex, groupKey);
-    if (targetRow) assertNativeCatalogRowInBounds_(spec, targetRow, groupKey);
-    if (!targetRow) targetRow = getAppendRowInColumn_(sheet, spec.column, spec.startRow, spec.endRow, getFundCatalogGroupLabel_(groupKey));
-    if (sheet.getMaxRows() < targetRow) {
-      sheet.insertRowsAfter(sheet.getMaxRows(), targetRow - sheet.getMaxRows());
-    }
-    sheet.getRange(targetRow, spec.column).setValue(value);
-    return { rowIndex: 'native:' + groupKey + ':' + targetRow, column: spec.column };
-  }
-
-  function deleteNativeFundCatalogValue_(ss, rowIndex) {
-    var parsed = parseNativeCatalogRowIndexParts_(rowIndex);
-    if (!parsed) return false;
-    var spec = resolveNativeFundCatalogSpec_(ss, parsed.groupKey);
-    var sheet = ss.getSheetByName(CATALOG_SHEET_NAME);
-    if (!spec || !sheet) return false;
-    assertNativeCatalogRowInBounds_(spec, parsed.row, parsed.groupKey);
-    sheet.getRange(parsed.row, spec.column).clearContent();
-    return true;
-  }
-
-  function resolveNativeFundCatalogSpec_(ss, groupKey) {
-    var spec = getNativeFundCatalogSpec_(groupKey);
-    if (!spec) return null;
-    var resolved = {
-      rangeName: spec.rangeName || '',
-      column: spec.column,
-      startRow: spec.startRow,
-      endRow: spec.endRow || 0
-    };
-    if (spec.rangeName) {
-      var range = ss.getRangeByName(spec.rangeName);
-      if (range) {
-        resolved.column = range.getColumn();
-        resolved.startRow = range.getRow();
-        resolved.endRow = range.getRow() + range.getNumRows() - 1;
-      }
-    }
-    return resolved;
-  }
-
-  function assertNativeCatalogRowInBounds_(spec, row, groupKey) {
-    if (row < spec.startRow || (spec.endRow && row > spec.endRow)) {
-      var label = getFundCatalogGroupLabel_(groupKey);
-      var rangeText = spec.endRow ? ('dòng ' + spec.startRow + '-' + spec.endRow) : ('từ dòng ' + spec.startRow);
-      throw new Error(label + ' chỉ được chỉnh trong vùng ' + rangeText + ' của sheet ' + CATALOG_SHEET_NAME + '.');
-    }
-  }
-
-  function parseNativeCatalogRowIndex_(rowIndex, expectedGroupKey) {
-    var parsed = parseNativeCatalogRowIndexParts_(rowIndex);
-    if (!parsed || parsed.groupKey !== expectedGroupKey) return 0;
-    return parsed.row;
-  }
-
-  function parseNativeCatalogRowIndexParts_(rowIndex) {
-    var match = clean_(rowIndex).match(/^native:([^:]+):(\d+)$/);
-    if (!match) return null;
-    return { groupKey: match[1], row: Number(match[2]) };
-  }
-
-  function getAppendRowInColumn_(sheet, column, startRow, endRow, label) {
-    var maxRow = endRow || Math.max(sheet.getLastRow(), startRow);
-    var values = sheet.getRange(startRow, column, Math.max(maxRow - startRow + 1, 1), 1).getValues();
-    for (var i = 0; i < values.length; i++) {
-      var value = values[i][0];
-      if (value === '' || value === null || value === undefined) return startRow + i;
-    }
-    if (endRow) {
-      throw new Error((label || 'Danh mục') + ' đã hết dòng trống trong vùng cấu hình ' + CATALOG_SHEET_NAME + '!' + columnToLetter_(column) + startRow + ':' + columnToLetter_(column) + endRow + '.');
-    }
-    return maxRow + 1;
-  }
-
   function readFundSettings_(ss) {
     return {
       cashOpening: parseNumber_(readNamedRangeDisplay_(ss, 'TMDK')),
@@ -917,74 +722,6 @@ var FundService = (function () {
       sheet.setFrozenRows(1);
     }
     return sheet;
-  }
-
-  function readFundCatalogRows_(sheet) {
-    if (!sheet || sheet.getLastRow() < 2) return [];
-    var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 3).getDisplayValues();
-    return values.map(function (row, index) {
-      return {
-        rowIndex: index + 2,
-        group: clean_(row[0]),
-        groupKey: normalizeFundCatalogGroup_(row[0]),
-        value: clean_(row[1]),
-        note: clean_(row[2])
-      };
-    }).filter(function (row) {
-      return row.groupKey && row.value;
-    });
-  }
-
-  function getFundCatalogGroupSummary_(rows) {
-    var counts = {};
-    CATALOG_GROUPS.forEach(function (group) {
-      counts[group.key] = 0;
-    });
-    rows.forEach(function (row) {
-      if (counts[row.groupKey] !== undefined) counts[row.groupKey] += 1;
-    });
-    return CATALOG_GROUPS.map(function (group) {
-      return {
-        key: group.key,
-        label: group.label,
-        count: counts[group.key] || 0
-      };
-    });
-  }
-
-  function getFundCatalogGroupLabel_(groupKey) {
-    var found = CATALOG_GROUPS.find(function (group) { return group.key === groupKey; });
-    return found ? found.label : groupKey;
-  }
-
-  function normalizeFundCatalogGroup_(value) {
-    var text = clean_(value).toLowerCase();
-    if (text === 'muc thu' || text === 'mục thu' || text === 'incomecategories') return 'incomeCategories';
-    if (text === 'muc chi' || text === 'mục chi' || text === 'expensecategories') return 'expenseCategories';
-    if (text === 'nguoi thu/chi' || text === 'người thu/chi' || text === 'actors') return 'actors';
-    if (text === 'doi tac' || text === 'đối tác' || text === 'partners') return 'partners';
-    if (text === 'noi vay' || text === 'nơi vay' || text === 'loanpartners') return 'loanPartners';
-    var exact = CATALOG_GROUPS.find(function (group) { return group.key.toLowerCase() === text; });
-    return exact ? exact.key : '';
-  }
-
-  function uniqueValues_(values) {
-    var seen = {};
-    var result = [];
-    (values || []).forEach(function (value) {
-      var text = clean_(value);
-      if (!text) return;
-      var key = normalizeHeader_(text);
-      if (!seen[key]) {
-        seen[key] = true;
-        result.push(text);
-      }
-    });
-    return result;
-  }
-
-  function mergeUniqueValues_(baseValues, fallbackValues) {
-    return uniqueValues_((baseValues || []).concat(fallbackValues || []));
   }
 
   function getFallbackFundIncomeCategories_(ss, settings) {

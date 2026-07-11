@@ -860,6 +860,14 @@ Chỉ test theo runbook và môi trường kiểm soát:
 | Bound script | Live-source verify + Sheet copy positional/manual flows |
 | Year cutover | Full integration hai file/cache/trigger/report |
 
+Loan characterization baseline hiện có tại `tests/fund-loan-characterization.test.js`, khóa các contract:
+
+- current và historical month metrics/outstanding;
+- exact match, safe orphan exact-balance match, ambiguous và amount-mismatch rejection;
+- partial/full principal settlement và interest behavior;
+- type variants, terms/rate/first-interest mapping và history order;
+- add loan/payment A:K, format B/F, helper formula N, row growth, lock, response và validation.
+
 ## 22. Tiêu chí chấp nhận trước deploy
 
 ### 22.1. Mọi thay đổi code

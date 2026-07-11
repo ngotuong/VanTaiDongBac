@@ -77,12 +77,12 @@ test('failure remains pending below max attempts and permanent at max attempts',
   assert.equal(permanent.calls.failures[0].details.retryable, false);
 });
 
-test('SupabaseService delegates worker lifecycle but retains transport and fund action handlers', () => {
+test('SupabaseService delegates worker lifecycle and dispatches transport/fund handlers', () => {
   const service = read('SupabaseService.gs');
   assert.match(service, /return WriteJobWorker\.process\(maxJobs, writeJobWorkerContext_\(\)\)/);
   assert.match(service, /executeJob: executeWriteJob_/);
   assert.match(service, /function executeWriteJob_\(job\)/);
   assert.match(service, /TransportJobHandler\.execute/);
-  assert.match(service, /FundService\.addFundTransactions/);
+  assert.match(service, /FundJobHandler\.execute/);
   assert.doesNotMatch(service, /function processWriteJob_/);
 });

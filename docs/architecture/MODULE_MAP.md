@@ -205,7 +205,8 @@ Source:
 - write-job persistence và normalization: `WriteJobRepository.gs`;
 - atomic claim/lifecycle wrapper: `WriteJobWorker.gs`;
 - queued Transport action execution và cache sync scopes: `TransportJobHandler.gs`;
-- facade, trigger/realtime orchestration và Fund action execution: `SupabaseService.gs`;
+- queued Fund action execution và cache sync scope: `FundJobHandler.gs`;
+- facade, trigger/realtime orchestration và action dispatch: `SupabaseService.gs`;
 - public wrapper: `PublicApi.gs`;
 - database contract: `supabase/migrations/*.sql`;
 - frontend reader: `client_api.html`;

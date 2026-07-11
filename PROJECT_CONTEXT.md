@@ -273,11 +273,14 @@ Commit lien quan:
 - Step 21b tách queued Transport actions `submitRows`/`saveSheetRow`/`deleteSheetRow`, replay metadata, physical-delete guard và manage/dashboard/report sync scopes sang `TransportJobHandler.gs`; Fund action vẫn ở `SupabaseService` cho Step 21c.
 - Step 21b đã pass 134/134 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@272 - Refactor Step 21b extract transport job handler`; không cần migration/schema change.
 - Smoke production Step 21b thành công: `health` trả `ok=true`; `processWriteJobs(1)` trả `processed=0`, `ok=true`, không enqueue hoặc ghi thử trên Sheet production.
+- Step 21c tách queued `fund/addFundTransactions`, replay metadata, write-result validation và Fund cache-after-write isolation sang `FundJobHandler.gs`; `SupabaseService.executeWriteJob_` chỉ còn dispatch Transport/Fund và unsupported-action guard.
+- Step 21c đã pass 138/138 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@273 - Refactor Step 21c extract fund job handler`; không cần migration/schema change.
+- Smoke production Step 21c thành công: `health` trả `ok=true`; `processWriteJobs(1)` trả `processed=0`, `ok=true`; không enqueue hoặc ghi thử giao dịch Fund production. Toàn bộ Step 21 đã hoàn thành.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 21b đã hoàn thành và checkpoint production đang ở Apps Script `@272`; toàn bộ Step 21 chưa hoàn thành.
-- Bước kế tiếp được đề xuất: Step 21c — tách `FundJobHandler`; chưa được tự bắt đầu nếu chưa có phê duyệt tiếp tục Step 21.
+- Trạng thái hiện tại: toàn bộ Step 21 đã hoàn thành và checkpoint production đang ở Apps Script `@273`.
+- Bước kế tiếp được đề xuất: Step 22 — tách Fund transaction repository/service theo `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 22.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -324,4 +327,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 21c hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 22 hoặc bất kỳ thay đổi mới nào.

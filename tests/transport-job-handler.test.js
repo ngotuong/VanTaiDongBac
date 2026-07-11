@@ -70,10 +70,11 @@ test('sync failures remain isolated while write failures propagate to lifecycle 
   assert.throws(() => writeFailure.handler.execute({ action: 'submitRows', payload: {} }, writeFailure.context), /synthetic validation/);
 });
 
-test('SupabaseService delegates transport actions and retains Fund action for Step 21c', () => {
+test('SupabaseService delegates transport actions separately from Fund actions', () => {
   const source = read('SupabaseService.gs');
+  const fundHandler = read('FundJobHandler.gs');
   assert.match(source, /TransportJobHandler\.canHandle\(actionName\)/);
   assert.match(source, /TransportJobHandler\.execute\(job, transportJobHandlerContext_\(\)\)/);
-  assert.match(source, /FundService\.addFundTransactions/);
+  assert.match(fundHandler, /context\.addFundTransactions/);
   assert.doesNotMatch(source, /if \(actionName === 'submitRows'\)/);
 });

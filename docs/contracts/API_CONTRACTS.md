@@ -1271,7 +1271,7 @@ Body:
 }
 ```
 
-Handler: `SupabaseService.processWriteJobs(maxJobs)` → `WriteJobWorker.process()`; các action Vận tải delegate sang `TransportJobHandler`, action Fund vẫn ở `SupabaseService` trong Step 21b.
+Handler: `SupabaseService.processWriteJobs(maxJobs)` → `WriteJobWorker.process()`; action Vận tải delegate sang `TransportJobHandler`, action Fund delegate sang `FundJobHandler`, còn `SupabaseService` giữ dispatch/unsupported guard.
 
 Behavior:
 

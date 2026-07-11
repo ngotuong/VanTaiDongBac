@@ -1271,7 +1271,7 @@ Body:
 }
 ```
 
-Handler: `SupabaseService.processWriteJobs(maxJobs)` → `WriteJobWorker.process()`; action execution vẫn delegate ngược về handler hiện hữu trong `SupabaseService` ở Step 21a.
+Handler: `SupabaseService.processWriteJobs(maxJobs)` → `WriteJobWorker.process()`; các action Vận tải delegate sang `TransportJobHandler`, action Fund vẫn ở `SupabaseService` trong Step 21b.
 
 Behavior:
 

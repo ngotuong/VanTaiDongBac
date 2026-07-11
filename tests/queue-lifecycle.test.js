@@ -8,6 +8,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const fixture = JSON.parse(read('tests/fixtures/queue-lifecycle.synthetic.json'));
 const service = read('SupabaseService.gs');
 const worker = read('WriteJobWorker.gs');
+const transportHandler = read('TransportJobHandler.gs');
 const sheetService = read('SheetService.gs');
 const entryService = read('EntryService.gs');
 const fundService = read('FundService.gs');
@@ -116,7 +117,9 @@ test('transport retry reuses WRITE_JOB_ID metadata and preserves the original ro
   assert.equal(fixture.transportReplay.replayResult.startRow, fixture.transportReplay.firstResult.startRow);
   assert.equal(fixture.transportReplay.replayResult.inserted, fixture.transportReplay.firstResult.inserted);
   assert.equal(fixture.transportReplay.replayResult.idempotentReplay, true);
-  assert.match(service, /EntryService\.submitRows\(payload\.formType, payload\.rows \|\| \[\], \{ jobId: job\.id, idempotencyKey: job\.idempotency_key \}\)/);
+  assert.match(transportHandler, /context\.submitRows\(payload\.formType, payload\.rows \|\| \[\], \{/);
+  assert.match(transportHandler, /jobId: job\.id/);
+  assert.match(transportHandler, /idempotencyKey: job\.idempotency_key/);
   assert.match(entryService, /addDeveloperMetadata\([\s\S]*?'WRITE_JOB_ID'/);
   assert.match(entryService, /withKey\('WRITE_JOB_ID'\)[\s\S]*?withValue\(jobId\)/);
 });

@@ -577,78 +577,8 @@ var SupabaseService = (function () {
   function executeWriteJob_(job) {
     var actionName = clean_(job.action);
     var payload = job.payload || {};
-    if (actionName === 'submitRows') {
-      var result = EntryService.submitRows(payload.formType, payload.rows || [], { jobId: job.id, idempotencyKey: job.idempotency_key });
-      assertWriteResultOk_(result, 'Không thể ghi dữ liệu Vận hành.');
-      if (result && result.inserted) {
-        try {
-          result.supabaseSync = syncTransportAfterWrite(result.sheetName, payload.rows || [], { fast: true });
-        } catch (syncErr) {
-          result.supabaseSync = { ok: false, error: syncErr && syncErr.message ? syncErr.message : String(syncErr) };
-        }
-        try {
-          result.dashboardSync = syncDashboard();
-        } catch (dashboardErr) {
-          result.dashboardSync = { ok: false, error: dashboardErr && dashboardErr.message ? dashboardErr.message : String(dashboardErr) };
-        }
-        try {
-          result.reportSync = syncTransportReportsAfterWrite(result.sheetName, payload.rows || [], { includeAll: true });
-        } catch (reportErr) {
-          result.reportSync = { ok: false, error: reportErr && reportErr.message ? reportErr.message : String(reportErr) };
-        }
-      }
-      return result;
-    }
-    if (actionName === 'saveSheetRow') {
-      var saveResult = EntryService.saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData || {}, payload.previousRowData || null);
-      assertWriteResultOk_(saveResult, 'Không thể sửa dòng Vận hành.');
-      if (saveResult && saveResult.ok !== false) {
-        try {
-          saveResult.supabaseSync = syncTransportAfterWrite(payload.sheetName, [payload.rowData || {}], { fast: true });
-        } catch (saveSyncErr) {
-          saveResult.supabaseSync = { ok: false, error: saveSyncErr && saveSyncErr.message ? saveSyncErr.message : String(saveSyncErr) };
-        }
-        if (payload.sheetName === 'NL_VanChuyen') {
-          try {
-            saveResult.dashboardSync = syncDashboard();
-          } catch (saveDashboardErr) {
-            saveResult.dashboardSync = { ok: false, error: saveDashboardErr && saveDashboardErr.message ? saveDashboardErr.message : String(saveDashboardErr) };
-          }
-        }
-        try {
-          saveResult.reportSync = syncTransportReportsAfterWrite(payload.sheetName, [payload.previousRowData || {}, payload.rowData || {}], { includeAll: true });
-        } catch (saveReportErr) {
-          saveResult.reportSync = { ok: false, error: saveReportErr && saveReportErr.message ? saveReportErr.message : String(saveReportErr) };
-        }
-      }
-      return saveResult;
-    }
-    if (actionName === 'deleteSheetRow') {
-      if (!Array.isArray(payload.columnsToClear) || !payload.columnsToClear.length) {
-        throw new Error('Job deleteSheetRow không có columnsToClear; từ chối deleteRow() để tránh xóa nhầm khi retry.');
-      }
-      var deleteResult = EntryService.deleteSheetRow(payload.sheetName, payload.rowIndex, payload.columnsToClear || null, payload.rowData || null);
-      assertWriteResultOk_(deleteResult, 'Không thể xóa nội dung dòng Vận hành.');
-      if (deleteResult && deleteResult.ok !== false) {
-        try {
-          deleteResult.supabaseSync = syncTransportAfterWrite(payload.sheetName, [], { fast: true });
-        } catch (deleteSyncErr) {
-          deleteResult.supabaseSync = { ok: false, error: deleteSyncErr && deleteSyncErr.message ? deleteSyncErr.message : String(deleteSyncErr) };
-        }
-        if (payload.sheetName === 'NL_VanChuyen') {
-          try {
-            deleteResult.dashboardSync = syncDashboard();
-          } catch (deleteDashboardErr) {
-            deleteResult.dashboardSync = { ok: false, error: deleteDashboardErr && deleteDashboardErr.message ? deleteDashboardErr.message : String(deleteDashboardErr) };
-          }
-        }
-        try {
-          deleteResult.reportSync = syncTransportReportsAfterWrite(payload.sheetName, [payload.rowData || {}], { includeAll: true });
-        } catch (deleteReportErr) {
-          deleteResult.reportSync = { ok: false, error: deleteReportErr && deleteReportErr.message ? deleteReportErr.message : String(deleteReportErr) };
-        }
-      }
-      return deleteResult;
+    if (TransportJobHandler.canHandle(actionName)) {
+      return TransportJobHandler.execute(job, transportJobHandlerContext_());
     }
     if (clean_(job.module) === 'fund' && actionName === 'addFundTransactions') {
       var fundResult = FundService.addFundTransactions(payload.year, payload.transactions || [], {
@@ -893,6 +823,22 @@ var SupabaseService = (function () {
       nextRunISOString: function (attempts) {
         return new Date(new Date().getTime() + attempts * 60000).toISOString();
       }
+    };
+  }
+
+  function transportJobHandlerContext_() {
+    return {
+      clean: clean_,
+      submitRows: function (formType, rows, options) { return EntryService.submitRows(formType, rows, options); },
+      saveSheetRow: function (sheetName, rowIndex, rowData, previousRowData) {
+        return EntryService.saveSheetRow(sheetName, rowIndex, rowData, previousRowData);
+      },
+      deleteSheetRow: function (sheetName, rowIndex, columnsToClear, rowData) {
+        return EntryService.deleteSheetRow(sheetName, rowIndex, columnsToClear, rowData);
+      },
+      syncTransportAfterWrite: syncTransportAfterWrite,
+      syncDashboard: syncDashboard,
+      syncTransportReportsAfterWrite: syncTransportReportsAfterWrite
     };
   }
 

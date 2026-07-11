@@ -82,7 +82,7 @@ test('SupabaseService delegates worker lifecycle but retains transport and fund 
   assert.match(service, /return WriteJobWorker\.process\(maxJobs, writeJobWorkerContext_\(\)\)/);
   assert.match(service, /executeJob: executeWriteJob_/);
   assert.match(service, /function executeWriteJob_\(job\)/);
-  assert.match(service, /EntryService\.submitRows/);
+  assert.match(service, /TransportJobHandler\.execute/);
   assert.match(service, /FundService\.addFundTransactions/);
   assert.doesNotMatch(service, /function processWriteJob_/);
 });

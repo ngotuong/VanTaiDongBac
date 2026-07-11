@@ -16,13 +16,19 @@ function loadService(overrides = {}) {
     clean(value) { return value === null || value === undefined ? '' : String(value).trim(); },
     nowISOString() { return syncTime; },
     encodeSearch(value) { return Buffer.from(String(value), 'utf8').toString('base64url'); },
-    getFundOverview(year, filter) { calls.reads.push(['overview', year, filter]); return { kind: 'overview', year, filter }; },
+    getFundOverview(year, filter) {
+      calls.reads.push(['overview', year, filter]);
+      return { kind: 'overview', year, filter, months: [{ key: '2026-06' }, { key: '2026-07' }] };
+    },
     getFundTransactions(year, filter) { calls.reads.push(['transactions', year, filter]); return { kind: 'transactions', year, filter }; },
     getFundLoanOverview(year, filter) { calls.reads.push(['loans', year, filter]); return { kind: 'loans', year, filter }; },
     getFundFormOptions(year) { calls.reads.push(['formOptions', year]); return { kind: 'formOptions', year }; },
     getFundCatalog(year, group) { calls.reads.push(['catalog', year, group]); return { kind: 'catalog', year, group }; },
-    getFundMonthsFromOverview() { return ['2026-06', '2026-07']; },
-    getFundWriteMonthKeys() { return ['2026-07']; },
+    parseDateValue(value) {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    },
+    formatDate(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; },
     upsertRows(tableName, rows, onConflict) { calls.upserts.push({ tableName, rows, onConflict }); },
     writeSyncStatus(...args) { calls.statuses.push(args); },
     runSyncStep(results, errors, name, fn) {
@@ -74,8 +80,8 @@ test('full and after-write sync preserve month scope and orchestration result co
 
   const afterWrite = loadService();
   const result = afterWrite.service.syncFundAfterWrite('2026', {}, afterWrite.context);
-  assert.deepEqual(JSON.parse(JSON.stringify(result.months)), ['2026-07']);
-  assert.equal(result.synced, 6);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.months)), ['2026-07', '2026-06']);
+  assert.equal(result.synced, 9);
   const transactionResult = afterWrite.service.syncFundTransactionsAfterWrite('2026', [{ date: '2026-07-11' }], afterWrite.context);
   assert.equal(transactionResult.synced, 4);
   assert.deepEqual(JSON.parse(JSON.stringify(transactionResult.months)), ['2026-07']);
@@ -88,5 +94,7 @@ test('SupabaseService retains fund facades while FundSyncService owns fund sync 
   assert.match(facade, /FundSyncService\.syncAllFundBundles\(year, fundSyncContext_\(\)\)/);
   assert.match(facade, /FundSyncService\.syncFundAfterWrite\(year, options, fundSyncContext_\(\)\)/);
   assert.doesNotMatch(facade, /fund_overview:.*Fund overview cache synced/);
+  assert.doesNotMatch(facade, /var explicitMonths = options\.months/);
+  assert.match(implementation, /function getFundWriteMonthKeys\(year, options, context\)/);
   assert.match(implementation, /var DEFAULT_FUND_TRANSACTION_FILTER_KEY = 'recent_500'/);
 });

@@ -37,6 +37,71 @@ var FundSyncService = (function () {
     return 'fund_catalog:' + (clean(year) || DEFAULT_FUND_YEAR) + ':' + (clean(group) || 'all');
   }
 
+  function normalizeFundWriteMonthKey(value, context) {
+    if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+      return context.formatDate(value, 'yyyy-MM');
+    }
+    var text = context.clean(value);
+    if (!text || text === 'latest' || text === 'all' || text === 'Tất cả') return '';
+    var isoMonth = text.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/);
+    if (isoMonth) return isoMonth[1] + '-' + ('0' + Number(isoMonth[2])).slice(-2);
+    var vnMonth = text.match(/^(\d{1,2})\/(\d{4})$/);
+    if (vnMonth) return vnMonth[2] + '-' + ('0' + Number(vnMonth[1])).slice(-2);
+    var date = context.parseDateValue(text);
+    return date ? context.formatDate(date, 'yyyy-MM') : '';
+  }
+
+  function getFundMonthsFromOverview(year, context) {
+    try {
+      var overview = context.getFundOverview(year, { month: '' });
+      return (overview.months || []).map(function (item) {
+        return context.clean(item && item.key);
+      }).filter(function (key) { return key; });
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function getRecentFundMonthKeys(year, maxCount, context) {
+    var seen = {};
+    getFundMonthsFromOverview(year, context).forEach(function (monthKey) {
+      var normalized = normalizeFundWriteMonthKey(monthKey, context);
+      if (normalized) seen[normalized] = true;
+    });
+    return Object.keys(seen).sort().reverse().slice(0, Math.max(1, maxCount || 1));
+  }
+
+  function addFundMonthKey_(seen, value, context) {
+    var monthKey = normalizeFundWriteMonthKey(value, context);
+    if (monthKey) seen[monthKey] = true;
+  }
+
+  function addFundPayloadMonthKey_(seen, payload, context) {
+    if (!payload) return;
+    addFundMonthKey_(seen, payload.month || payload.monthKey || payload.selectedMonth, context);
+    addFundMonthKey_(seen, payload.date || payload.dateText || payload.loanDate || payload.paymentDate, context);
+  }
+
+  function getFundWriteMonthKeys(year, options, context) {
+    var seen = {};
+    var explicitMonths = options.months || options.monthKeys;
+    (Array.isArray(explicitMonths) ? explicitMonths : []).forEach(function (monthKey) {
+      addFundMonthKey_(seen, monthKey, context);
+    });
+    addFundPayloadMonthKey_(seen, options.transaction, context);
+    (Array.isArray(options.transactions) ? options.transactions : []).forEach(function (transaction) {
+      addFundPayloadMonthKey_(seen, transaction, context);
+    });
+    addFundPayloadMonthKey_(seen, options.loan, context);
+    addFundPayloadMonthKey_(seen, options.payment, context);
+    addFundPayloadMonthKey_(seen, options.result, context);
+    (Array.isArray(options.result && options.result.rows) ? options.result.rows : []).forEach(function (row) {
+      addFundPayloadMonthKey_(seen, row, context);
+    });
+    var monthKeys = Object.keys(seen).sort().reverse();
+    return monthKeys.length ? monthKeys : getRecentFundMonthKeys(year, 2, context);
+  }
+
   function syncFundOverview(year, month, context) {
     var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
     var monthKey = normalizeFundMonthKey(month, context.clean);
@@ -122,7 +187,7 @@ var FundSyncService = (function () {
       overviewSeed = syncFundOverview(safeYear, '', context);
       return overviewSeed;
     });
-    var months = context.getFundMonthsFromOverview(safeYear);
+    var months = getFundMonthsFromOverview(safeYear, context);
     months.forEach(function (monthKey) {
       context.runSyncStep(results, errors, 'fundOverview:' + monthKey, function () { return syncFundOverview(safeYear, monthKey, context); });
       context.runSyncStep(results, errors, 'fundTransactions:' + monthKey, function () { return syncFundTransactionMonth(safeYear, monthKey, context); });
@@ -136,7 +201,7 @@ var FundSyncService = (function () {
 
   function syncFundAfterWrite(year, options, context) {
     var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
-    var monthKeys = context.getFundWriteMonthKeys(safeYear, options || {});
+    var monthKeys = getFundWriteMonthKeys(safeYear, options || {}, context);
     var results = [];
     var errors = [];
     if (options && options.fundCatalog) context.runSyncStep(results, errors, 'fundCatalogs', function () { return syncAllFundCatalogBundles(safeYear, context); });
@@ -153,7 +218,7 @@ var FundSyncService = (function () {
 
   function syncFundTransactionsAfterWrite(year, transactions, context) {
     var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
-    var monthKeys = context.getFundWriteMonthKeys(safeYear, { transactions: transactions || [] });
+    var monthKeys = getFundWriteMonthKeys(safeYear, { transactions: transactions || [] }, context);
     var results = [];
     var errors = [];
     context.runSyncStep(results, errors, 'fundOverview', function () { return syncFundOverview(safeYear, '', context); });
@@ -172,6 +237,10 @@ var FundSyncService = (function () {
     syncAllFundCatalogBundles: syncAllFundCatalogBundles, syncAllFundBundles: syncAllFundBundles,
     syncFundAfterWrite: syncFundAfterWrite, syncFundTransactionsAfterWrite: syncFundTransactionsAfterWrite,
     normalizeFundMonthKey: normalizeFundMonthKey, buildFundTransactionFilterKey: buildFundTransactionFilterKey,
-    buildFundFormOptionsKey: buildFundFormOptionsKey, buildFundCatalogKey: buildFundCatalogKey
+    buildFundFormOptionsKey: buildFundFormOptionsKey, buildFundCatalogKey: buildFundCatalogKey,
+    normalizeFundWriteMonthKey: normalizeFundWriteMonthKey,
+    getFundMonthsFromOverview: getFundMonthsFromOverview,
+    getRecentFundMonthKeys: getRecentFundMonthKeys,
+    getFundWriteMonthKeys: getFundWriteMonthKeys
   };
 })();

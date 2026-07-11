@@ -1413,7 +1413,7 @@ Consumer phải kiểm tra response `queued/jobId`, không chỉ dựa vào acti
 | `invalidateCaches` | runtime/report data version/cache |
 | `getReportBundle` | có thể ghi `SYS_ReportCache`; không mặc nhiên upsert Supabase trong request |
 
-Report/dashboard sync do `ReportSyncService` sở hữu; Manage recent/month và sheet-change sync do `ManageSyncService` sở hữu; Fund overview/transaction/loan/catalog và after-write sync do `FundSyncService` sở hữu. Tất cả đi qua compatibility facade `SupabaseService`; khi thay đổi sync behavior, phải kiểm tra direct wrapper, trigger và worker path.
+Report/dashboard sync do `ReportSyncService` sở hữu; Manage recent/month và sheet-change sync do `ManageSyncService` sở hữu; Fund overview/transaction/loan/catalog, month discovery/fallback và after-write sync do `FundSyncService` sở hữu. Tất cả đi qua compatibility facade `SupabaseService`; khi thay đổi sync behavior, phải kiểm tra direct wrapper, trigger và worker path.
 
 ## 19. Quy tắc mở rộng API
 

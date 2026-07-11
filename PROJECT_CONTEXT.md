@@ -261,13 +261,13 @@ Commit lien quan:
 - Step 19c tách manage recent/month bundle upsert, month discovery, full-sync targets và transport sheet-change/fallback scope/lock sang `ManageSyncService.gs`; `SupabaseService` giữ public facade, trigger installation/event adapters, worker và audit call sites.
 - Step 19c đã pass 117/117 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@266 - Refactor Step 19c extract manage sync service`; không cần migration/schema/trigger change.
 - Smoke production Step 19c thành công: recent `NL_VanChuyen`, `month:2026-07` và sheet-change `NL_TaiXe` đều `ok`; sheet-change sync đúng recent + `2026-07`/`2026-06`, failed 0; audit 50 dòng `NL_VanChuyen`/`NL_TaiXe` đều `status=ok`, live/cache hash khớp.
-- Step 19d tách Fund overview/transaction/loan/catalog bundle upsert, stable keys/status, full-sync và after-write month selection sang `FundSyncService.gs`; `SupabaseService` giữ public facade, feature flags, queue/worker và realtime orchestration.
-- Step 19d đã pass 121/121 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@267 - Refactor Step 19d extract fund sync service`; không cần migration/schema change.
-- Smoke production Step 19d thành công: `health` trả `ok=true`; `syncAllFundBundlesToSupabase('2026')` chạy 13 bước, ba tháng `2026-07`/`2026-06`/`2026-05`, failed 0; đủ 18 `sync_status` Fund đều `ok`, overview `2026-07` đọc đúng payload. Toàn bộ Step 19 đã hoàn thành.
+- Step 19d tách Fund overview/transaction/loan/catalog bundle upsert, stable keys/status, full-sync, month discovery/fallback/payload parsing và after-write month selection sang `FundSyncService.gs`; `SupabaseService` chỉ giữ public facade/context, feature flags, queue/worker và realtime orchestration.
+- Step 19d hoàn thiện đã pass 121/121 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@269 - Finalize Step 19d fund sync ownership`; không cần migration/schema change.
+- Smoke production Step 19d hoàn thiện thành công: `health` trả `ok=true`; `syncAllFundBundlesToSupabase('2026')` chạy 13 bước, ba tháng `2026-07`/`2026-06`/`2026-05`, failed 0; đủ 18 `sync_status` Fund đều `ok`. Toàn bộ Step 19 đã hoàn thành.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: toàn bộ Step 19 đã hoàn thành và checkpoint production đang ở Apps Script `@267`.
+- Trạng thái hiện tại: toàn bộ Step 19 đã hoàn thành và checkpoint production đang ở Apps Script `@269`.
 - Bước kế tiếp được đề xuất: Step 20 — tách `WriteJobRepository` theo `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 20.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.

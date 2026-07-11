@@ -796,19 +796,6 @@ var SupabaseService = (function () {
     };
   }
 
-  function getFundMonthsFromOverview_(year) {
-    try {
-      var overview = FundService.getFundOverview(year, { month: '' });
-      return (overview.months || []).map(function (item) {
-        return clean_(item && item.key);
-      }).filter(function (key) {
-        return key;
-      });
-    } catch (err) {
-      return [];
-    }
-  }
-
   function buildRealtimeTickSteps_() {
     var steps = [
       { name: 'dashboard' },
@@ -1024,8 +1011,8 @@ var SupabaseService = (function () {
       getFundLoanOverview: function (year, filter) { return FundService.getFundLoanOverview(year, filter); },
       getFundFormOptions: function (year) { return FundService.getFundFormOptions(year); },
       getFundCatalog: function (year, group) { return FundService.getFundCatalog(year, group); },
-      getFundMonthsFromOverview: getFundMonthsFromOverview_,
-      getFundWriteMonthKeys: getFundWriteMonthKeys_,
+      parseDateValue: parseDateValue_,
+      formatDate: function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); },
       upsertRows: function (tableName, rows, onConflict) {
         return SupabaseBundleRepository.upsertRows(tableName, rows, onConflict);
       },
@@ -1132,12 +1119,7 @@ var SupabaseService = (function () {
   }
 
   function getRecentFundMonthKeys_(year, maxCount) {
-    var seen = {};
-    getFundMonthsFromOverview_(year).forEach(function (monthKey) {
-      var normalized = normalizeFundWriteMonthKey_(monthKey);
-      if (normalized) seen[normalized] = true;
-    });
-    return Object.keys(seen).sort().reverse().slice(0, Math.max(1, maxCount || 1));
+    return FundSyncService.getRecentFundMonthKeys(year, maxCount, fundSyncContext_());
   }
 
   function getHeaderRowForSheet_(sheetName) {
@@ -1189,52 +1171,6 @@ var SupabaseService = (function () {
       seen[Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM')] = true;
     });
     return Object.keys(seen).sort().reverse();
-  }
-
-  function getFundWriteMonthKeys_(year, options) {
-    var seen = {};
-    var explicitMonths = options.months || options.monthKeys;
-    (Array.isArray(explicitMonths) ? explicitMonths : []).forEach(function (monthKey) {
-      addFundMonthKey_(seen, monthKey);
-    });
-    addFundPayloadMonthKey_(seen, options.transaction);
-    (Array.isArray(options.transactions) ? options.transactions : []).forEach(function (transaction) {
-      addFundPayloadMonthKey_(seen, transaction);
-    });
-    addFundPayloadMonthKey_(seen, options.loan);
-    addFundPayloadMonthKey_(seen, options.payment);
-    addFundPayloadMonthKey_(seen, options.result);
-    (Array.isArray(options.result && options.result.rows) ? options.result.rows : []).forEach(function (row) {
-      addFundPayloadMonthKey_(seen, row);
-    });
-
-    var monthKeys = Object.keys(seen).sort().reverse();
-    return monthKeys.length ? monthKeys : getRecentFundMonthKeys_(year, 2);
-  }
-
-  function addFundPayloadMonthKey_(seen, payload) {
-    if (!payload) return;
-    addFundMonthKey_(seen, payload.month || payload.monthKey || payload.selectedMonth);
-    addFundMonthKey_(seen, payload.date || payload.dateText || payload.loanDate || payload.paymentDate);
-  }
-
-  function addFundMonthKey_(seen, value) {
-    var monthKey = normalizeFundWriteMonthKey_(value);
-    if (monthKey) seen[monthKey] = true;
-  }
-
-  function normalizeFundWriteMonthKey_(value) {
-    if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
-      return Utilities.formatDate(value, APP_CONFIG.timezone, 'yyyy-MM');
-    }
-    var text = clean_(value);
-    if (!text || text === 'latest' || text === 'all' || text === 'Tất cả') return '';
-    var isoMonth = text.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/);
-    if (isoMonth) return isoMonth[1] + '-' + ('0' + Number(isoMonth[2])).slice(-2);
-    var vnMonth = text.match(/^(\d{1,2})\/(\d{4})$/);
-    if (vnMonth) return vnMonth[2] + '-' + ('0' + Number(vnMonth[1])).slice(-2);
-    var date = parseDateValue_(text);
-    return date ? Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM') : '';
   }
 
   function formatMonthKeyForReport_(monthKey) {

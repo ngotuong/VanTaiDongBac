@@ -201,7 +201,7 @@ Source:
 - startup/catalog sync implementation: `StartupCatalogSyncService.gs`;
 - report/dashboard sync implementation: `ReportSyncService.gs`;
 - manage bundle/sheet-change sync implementation: `ManageSyncService.gs`;
-- Fund bundle/catalog/after-write sync implementation: `FundSyncService.gs`;
+- Fund bundle/catalog, month discovery/fallback và after-write sync implementation: `FundSyncService.gs`;
 - facade, trigger/realtime orchestration và queue/worker implementation: `SupabaseService.gs`;
 - public wrapper: `PublicApi.gs`;
 - database contract: `supabase/migrations/*.sql`;

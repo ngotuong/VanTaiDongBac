@@ -233,11 +233,14 @@ Commit lien quan:
 - Step 15 chuyển validation/append orchestration, `WRITE_JOB_ID` replay, formula skip và cache invalidation callback của `submitRows` sang implementation thật trong `EntryService.gs`; `SheetService.submitRows()` chỉ còn compatibility adapter. Reconciliation và generic save/delete chưa thay đổi.
 - Step 15 đã pass 91/91 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@257 - Refactor Step 15 implement transport entry facade`.
 - Smoke production Step 15 thành công: HTTP/Execution API `health`, recent read `NL_VanChuyen` trả `ok=true`; submit payload rỗng bị chặn đúng với `Chua co dong nao de ghi.` trước khi tạo job/ghi Sheet. Không chạy write test production.
+- Step 16 tách read/aggregate trip pairs, compare submitted rows và warning formatting sang `TransportReconciliationService.gs`; `EntryService` và compatibility `SheetService` delegate trực tiếp. Không đổi threshold, quyền hoặc công thức Sheet.
+- Step 16 đã pass 94/94 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@258 - Refactor Step 16 extract transport reconciliation service`.
+- Smoke production Step 16 thành công: HTTP/Execution API `health` trả `ok=true`; reconciliation payload rỗng và một cặp ngày/xe read-only đều trả array hợp lệ, không ghi dữ liệu production.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 15 đã hoàn thành và checkpoint production đang ở Apps Script `@257`.
-- Bước kế tiếp được đề xuất: Step 16 — tách `TransportReconciliationService`; chưa được phê duyệt và không được tự bắt đầu.
+- Trạng thái hiện tại: Step 16 đã hoàn thành và checkpoint production đang ở Apps Script `@258`.
+- Bước kế tiếp được đề xuất: Step 17 — tách report temp-sheet và Sheet cache infrastructure; chưa được phê duyệt và không được tự bắt đầu.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 

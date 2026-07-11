@@ -81,7 +81,7 @@ var EntryService = (function () {
   }
 
   function checkTripReconciliation(rows) {
-    return SheetService.checkTripReconciliation(rows);
+    return TransportReconciliationService.checkTripReconciliation(rows);
   }
 
   function saveSheetRow(sheetName, rowIndex, rowData, expectedRowData) {

@@ -772,7 +772,7 @@ Body:
 }
 ```
 
-Handler: `EntryService.checkTripReconciliation()` → `SheetService.checkTripReconciliation()`.
+Handler: `EntryService.checkTripReconciliation()` → `TransportReconciliationService.checkTripReconciliation()`; `SheetService` chỉ giữ compatibility delegate.
 
 Behavior: đọc dữ liệu chuyến liên quan và trả cảnh báo/đối chiếu; không ghi Sheet.
 

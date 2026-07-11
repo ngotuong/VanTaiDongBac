@@ -18,6 +18,7 @@
       "SheetService.gs",
       "SheetWritePreserver.gs",
       "SupabaseService.gs",
+      "TransportReconciliationService.gs",
       "ValidationService.gs"
     ],
     "vercel": [

@@ -72,7 +72,7 @@ flowchart TD
 | `TRANSPORT_MANAGE` | Vận hành và CRUD dữ liệu | Nghiệp vụ | `ManageService.gs`, `SheetReadService.gs`, `EntryService.gs`, `SheetService.gs` | `NL_*` |
 | `TRANSPORT_CATALOG` | Danh mục Vận tải | Nghiệp vụ | `CatalogService.gs`; cache compatibility trong `SheetService.gs` | `DM_*` |
 | `TRANSPORT_REPORT` | Tổng quan và Báo cáo | Nghiệp vụ | `ReportService.gs`, `SheetService.gs` | `BC_*`, `XL_*`, `SYS_ReportCache` |
-| `TRANSPORT_RECONCILIATION` | Đối soát chuyến | Nghiệp vụ | `EntryService.gs`, `SheetService.gs` | `NL_VanChuyen`, `NL_TaiXe`, `XL_DoiSoatChuyen` |
+| `TRANSPORT_RECONCILIATION` | Đối soát chuyến | Nghiệp vụ | `TransportReconciliationService.gs`; facade `EntryService.gs` | `NL_VanChuyen`, `NL_TaiXe`, `XL_DoiSoatChuyen` |
 | `FUND_TRANSACTIONS` | Giao dịch Thu chi | Nghiệp vụ | `FundService.gs` | `NHAP_THUCHI` |
 | `FUND_OVERVIEW` | Tổng quan Thu chi | Nghiệp vụ | `FundService.gs` | `NHAP_THUCHI`, cấu hình Thu chi |
 | `FUND_LOANS` | Vay nợ và đối soát khoản vay | Nghiệp vụ | `FundService.gs` | `NHAP_VAY` |
@@ -245,7 +245,7 @@ Source:
 
 - facade và submit implementation: `EntryService.gs`;
 - validation/row builder: `ValidationService.gs`;
-- submit compatibility adapter, reconciliation và generic CRUD chưa tách: `SheetService.gs`;
+- submit/reconciliation compatibility adapters và generic CRUD chưa tách: `SheetService.gs`;
 - API orchestration/queue selection: `PublicApi.gs`, `SupabaseService.gs`;
 - frontend: `client_entry.html`, `client_data.html`, `client_config.html`.
 
@@ -390,6 +390,12 @@ Trách nhiệm:
 - so sánh dữ liệu chuyến được nhập từ các nguồn;
 - cảnh báo sau submit khi số chuyến không khớp;
 - cung cấp dữ liệu cho sheet xử lý đối soát.
+
+Source:
+
+- implementation: `TransportReconciliationService.gs`;
+- public facade: `EntryService.gs`;
+- compatibility adapter: `SheetService.gs`.
 
 Source:
 

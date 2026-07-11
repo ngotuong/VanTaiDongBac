@@ -1450,125 +1450,23 @@ var SupabaseService = (function () {
   }
 
   function upsertRows_(tableName, rows, onConflict) {
-    if (!rows || !rows.length) return;
-    var config = getConfig_();
-    var endpoint = config.url.replace(/\/+$/, '') + '/rest/v1/' + encodeURIComponent(tableName) + '?on_conflict=' + encodeURIComponent(onConflict);
-    var response = UrlFetchApp.fetch(endpoint, {
-      method: 'post',
-      muteHttpExceptions: true,
-      contentType: 'application/json',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: 'Bearer ' + config.serviceRoleKey,
-        Prefer: 'resolution=merge-duplicates,return=representation'
-      },
-      payload: JSON.stringify(rows)
-    });
-
-    var code = response.getResponseCode();
-    if (code < 200 || code >= 300) {
-      throw new Error('Supabase upsert thất bại (' + code + '): ' + response.getContentText());
-    }
+    return SupabaseHttpClient.upsertRows(tableName, rows, onConflict);
   }
 
   function insertRows_(tableName, rows) {
-    if (!rows || !rows.length) return;
-    var config = getConfig_();
-    var endpoint = config.url.replace(/\/+$/, '') + '/rest/v1/' + encodeURIComponent(tableName);
-    var response = UrlFetchApp.fetch(endpoint, {
-      method: 'post',
-      muteHttpExceptions: true,
-      contentType: 'application/json',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: 'Bearer ' + config.serviceRoleKey,
-        Prefer: 'return=minimal'
-      },
-      payload: JSON.stringify(rows)
-    });
-
-    var code = response.getResponseCode();
-    if (code < 200 || code >= 300) {
-      throw new Error('Supabase insert thất bại (' + code + '): ' + response.getContentText());
-    }
+    return SupabaseHttpClient.insertRows(tableName, rows);
   }
 
   function readRows_(tableName, query) {
-    var config = getConfig_();
-    var endpoint = config.url.replace(/\/+$/, '') + '/rest/v1/' + encodeURIComponent(tableName);
-    var params = query || {};
-    var first = true;
-    Object.keys(params).forEach(function (key) {
-      var value = params[key];
-      if (value === null || value === undefined || value === '') return;
-      endpoint += first ? '?' : '&';
-      first = false;
-      endpoint += encodeURIComponent(key) + '=' + encodeURIComponent(String(value));
-    });
-    var response = UrlFetchApp.fetch(endpoint, {
-      method: 'get',
-      muteHttpExceptions: true,
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: 'Bearer ' + config.serviceRoleKey
-      }
-    });
-
-    var code = response.getResponseCode();
-    if (code < 200 || code >= 300) {
-      throw new Error('Supabase select thất bại (' + code + '): ' + response.getContentText());
-    }
-    return JSON.parse(response.getContentText() || '[]');
+    return SupabaseHttpClient.readRows(tableName, query);
   }
 
   function updateRows_(tableName, patch, filters) {
-    var config = getConfig_();
-    var endpoint = config.url.replace(/\/+$/, '') + '/rest/v1/' + encodeURIComponent(tableName);
-    var params = filters || {};
-    var first = true;
-    Object.keys(params).forEach(function (key) {
-      var value = params[key];
-      if (value === null || value === undefined || value === '') return;
-      endpoint += first ? '?' : '&';
-      first = false;
-      endpoint += encodeURIComponent(key) + '=' + encodeURIComponent(String(value));
-    });
-    var response = UrlFetchApp.fetch(endpoint, {
-      method: 'patch',
-      muteHttpExceptions: true,
-      contentType: 'application/json',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: 'Bearer ' + config.serviceRoleKey,
-        Prefer: 'return=minimal'
-      },
-      payload: JSON.stringify(patch || {})
-    });
-
-    var code = response.getResponseCode();
-    if (code < 200 || code >= 300) {
-      throw new Error('Supabase update thất bại (' + code + '): ' + response.getContentText());
-    }
+    return SupabaseHttpClient.updateRows(tableName, patch, filters);
   }
 
   function callRpc_(functionName, payload) {
-    var config = getConfig_();
-    var endpoint = config.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + encodeURIComponent(functionName);
-    var response = UrlFetchApp.fetch(endpoint, {
-      method: 'post',
-      muteHttpExceptions: true,
-      contentType: 'application/json',
-      headers: {
-        apikey: config.serviceRoleKey,
-        Authorization: 'Bearer ' + config.serviceRoleKey
-      },
-      payload: JSON.stringify(payload || {})
-    });
-    var code = response.getResponseCode();
-    if (code < 200 || code >= 300) {
-      throw new Error('Supabase RPC ' + functionName + ' thất bại (' + code + '): ' + response.getContentText());
-    }
-    return JSON.parse(response.getContentText() || '[]');
+    return SupabaseHttpClient.callRpc(functionName, payload);
   }
 
   function writeSyncStatus_(syncKey, moduleName, status, message, syncedAt) {
@@ -1703,18 +1601,6 @@ var SupabaseService = (function () {
     } catch (err) {
       errors.push({ name: name, error: err && err.message ? err.message : String(err) });
     }
-  }
-
-  function getConfig_() {
-    var props = PropertiesService.getScriptProperties();
-    var url = clean_(props.getProperty('SUPABASE_URL'));
-    var serviceRoleKey = clean_(props.getProperty('SUPABASE_SERVICE_ROLE_KEY'));
-    if (!url) throw new Error('Thiếu Script Property SUPABASE_URL.');
-    if (!serviceRoleKey) throw new Error('Thiếu Script Property SUPABASE_SERVICE_ROLE_KEY.');
-    return {
-      url: url,
-      serviceRoleKey: serviceRoleKey
-    };
   }
 
   function resolveBundleMonth_(requestedMonth, bundle) {

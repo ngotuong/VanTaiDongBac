@@ -37,7 +37,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@249 - Refactor Step 7 shared clean normalization`
+- Apps Script deployment moi nhat da xac nhan: `@250 - Refactor Step 8 extract Supabase HTTP client`
 - Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @234`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
 - Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
@@ -212,7 +212,9 @@ Commit lien quan:
 - Step 1-6 đã bổ sung characterization/contract fixtures cho API-RBAC, cache key, báo cáo, ghi Google Sheet và queue lifecycle mà không đổi runtime.
 - Step 7 tách phép chuẩn hóa `clean_()` dùng chung sang `NormalizationUtils.gs`; wrapper cũ được giữ nguyên tại các service để không đổi call site hoặc hành vi.
 - Step 7 đã pass 54/54 test, build thành công, deploy Apps Script production `@249` và smoke test `health` thành công.
-- Các bước tách service tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`; chưa thực hiện Step 8.
+- Step 8 tách Supabase REST/RPC transport sang `SupabaseHttpClient.gs`, giữ compatibility wrapper trong `SupabaseService`; chưa tách repository của Step 9.
+- Step 8 đã pass 62/62 test, build thành công, deploy Apps Script production `@250`; smoke test `health` và `getSupabaseSyncStatus(1)` đều thành công.
+- Các bước tách service tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`; chưa thực hiện Step 9.
 
 ### 1. Dong bang do dung cua Bao cao
 

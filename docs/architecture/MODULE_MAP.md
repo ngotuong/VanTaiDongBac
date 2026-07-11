@@ -201,7 +201,8 @@ Source:
 - startup/catalog sync implementation: `StartupCatalogSyncService.gs`;
 - report/dashboard sync implementation: `ReportSyncService.gs`;
 - manage bundle/sheet-change sync implementation: `ManageSyncService.gs`;
-- facade, trigger/realtime orchestration và fund sync implementation còn lại: `SupabaseService.gs`;
+- Fund bundle/catalog/after-write sync implementation: `FundSyncService.gs`;
+- facade, trigger/realtime orchestration và queue/worker implementation: `SupabaseService.gs`;
 - public wrapper: `PublicApi.gs`;
 - database contract: `supabase/migrations/*.sql`;
 - frontend reader: `client_api.html`;
@@ -492,7 +493,7 @@ Source:
 
 - backend: `FundService.getFundOverview()` và helper liên quan;
 - frontend: phần overview/report trong `client_cashflow.html`;
-- sync: `SupabaseService.syncFundOverview()`.
+- sync implementation: `FundSyncService.syncFundOverview()` qua facade `SupabaseService`.
 
 Cache:
 
@@ -524,7 +525,7 @@ Source:
 
 - backend: `FundService.gs`;
 - frontend: phần loan trong `client_cashflow.html`;
-- sync: `SupabaseService.syncFundLoanOverview()`;
+- sync implementation: `FundSyncService.syncFundLoanOverview()` qua facade `SupabaseService`;
 - contract test: `tests/contracts.test.js`.
 
 Google Sheet dependency:

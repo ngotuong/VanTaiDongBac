@@ -35,6 +35,7 @@ function loadBackendKeyBuilders() {
   new vm.Script(read('NormalizationUtils.gs'), { filename: 'NormalizationUtils.gs#cache-key-test' }).runInContext(context);
   new vm.Script(read('StartupCatalogSyncService.gs'), { filename: 'StartupCatalogSyncService.gs#cache-key-test' }).runInContext(context);
   new vm.Script(read('ManageSyncService.gs'), { filename: 'ManageSyncService.gs#cache-key-test' }).runInContext(context);
+  new vm.Script(read('FundSyncService.gs'), { filename: 'FundSyncService.gs#cache-key-test' }).runInContext(context);
   new vm.Script(source, { filename: 'SupabaseService.gs#cache-key-test' }).runInContext(context);
   return context.SupabaseService.__cacheKeyTest;
 }
@@ -154,7 +155,7 @@ test('dashboard and stable filter-key literals remain aligned with the baseline'
   const frontendSource = read('client_api.html');
   assert.match(reportSyncSource, new RegExp(`DASHBOARD_REPORT_MONTH = '${baseline.supabase.dashboardReportMonth}'`));
   assert.match(frontendSource, new RegExp(`readReportBundleFromSupabase\\('${baseline.supabase.dashboardReportMonth}'\\)`));
-  assert.match(backendSource, /DEFAULT_FUND_TRANSACTION_FILTER_KEY = 'recent_500'/);
+  assert.match(read('FundSyncService.gs'), /DEFAULT_FUND_TRANSACTION_FILTER_KEY = 'recent_500'/);
   assert.match(frontendSource, /return 'recent_500'/);
   assert.match(frontendSource, /filterKey = 'recent_500'/);
 });

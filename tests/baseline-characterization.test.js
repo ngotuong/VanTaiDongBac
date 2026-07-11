@@ -70,6 +70,7 @@ test('transport form-to-sheet configuration matches the baseline', () => {
 test('Supabase tables and stable cache/job keys remain represented in runtime and migrations', () => {
   const service = [
     read('SupabaseService.gs'),
+    read('StartupCatalogSyncService.gs'),
     read('SupabaseBundleRepository.gs'),
     read('SupabaseSyncStatusRepository.gs')
   ].join('\n');

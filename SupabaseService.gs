@@ -3,7 +3,6 @@ var SupabaseService = (function () {
   var TABLE_FUND_OVERVIEW_BUNDLES = 'fund_overview_bundles';
   var TABLE_FUND_TRANSACTION_BUNDLES = 'fund_transaction_bundles';
   var TABLE_FUND_LOAN_BUNDLES = 'fund_loan_bundles';
-  var TABLE_STARTUP_BUNDLES = 'startup_bundles';
   var TABLE_CATALOG_BUNDLES = 'catalog_bundles';
   var TABLE_MANAGE_DATA_BUNDLES = 'manage_data_bundles';
   var TABLE_WRITE_JOBS = 'write_jobs';
@@ -12,18 +11,6 @@ var SupabaseService = (function () {
   var DEFAULT_FUND_YEAR = '2026';
   var DEFAULT_FUND_TRANSACTION_FILTER_KEY = 'recent_500';
   var DEFAULT_STARTUP_FORM_TYPE = 'vanChuyen';
-  var CATALOG_FORM_TYPES = ['', 'vanChuyen', 'taiXe', 'dau', 'chamCong', 'phat', 'nghiVanHanh'];
-  var CATALOG_DISPLAY_SHEETS = [
-    'DM_NhanSu',
-    'DM_Xe',
-    'DM_DuAn',
-    'DM_LuongChuyen',
-    'DM_ThamSo_TS',
-    'DM_ThamSo_GD',
-    'DM_DonGiaVanChuyen',
-    'DM_ThuongQuanLy',
-    'DM_PhatNoiBo'
-  ];
   var FUND_CATALOG_GROUPS = ['incomeCategories', 'expenseCategories', 'actors', 'partners', 'loanPartners'];
   var MANAGE_SHEET_NAMES = [
     'NL_VanChuyen',
@@ -225,45 +212,15 @@ var SupabaseService = (function () {
   }
 
   function syncStartupBundle(formType) {
-    var safeFormType = clean_(formType) || DEFAULT_STARTUP_FORM_TYPE;
-    var payload = SheetService.getStartupData(safeFormType);
-    var syncedAt = new Date().toISOString();
-    SupabaseBundleRepository.upsertRows(TABLE_STARTUP_BUNDLES, [{
-      form_type: safeFormType,
-      payload: payload,
-      synced_at: syncedAt
-    }], 'form_type');
-    writeSyncStatus_('startup:' + safeFormType, 'startup', 'ok', 'Startup cache synced.', syncedAt);
-    return { ok: true, table: TABLE_STARTUP_BUNDLES, formType: safeFormType, syncedAt: syncedAt };
+    return StartupCatalogSyncService.syncStartupBundle(formType, startupCatalogSyncContext_());
   }
 
   function syncCatalogsBundle(formType) {
-    var safeFormType = clean_(formType);
-    var catalogKey = buildCatalogsKey_(safeFormType);
-    var payload = CatalogService.getCatalogs(safeFormType);
-    var syncedAt = new Date().toISOString();
-    SupabaseBundleRepository.upsertRows(TABLE_CATALOG_BUNDLES, [{
-      catalog_key: catalogKey,
-      payload: payload,
-      synced_at: syncedAt
-    }], 'catalog_key');
-    writeSyncStatus_('catalogs:' + (safeFormType || 'all'), 'catalog', 'ok', 'Catalog options cache synced.', syncedAt);
-    return { ok: true, table: TABLE_CATALOG_BUNDLES, catalogKey: catalogKey, syncedAt: syncedAt };
+    return StartupCatalogSyncService.syncCatalogsBundle(formType, startupCatalogSyncContext_());
   }
 
   function syncCatalogDataBundle(displaySheetName) {
-    var safeDisplaySheetName = clean_(displaySheetName);
-    if (!safeDisplaySheetName) throw new Error('Thiếu tên danh mục cần sync.');
-    var catalogKey = buildCatalogDataKey_(safeDisplaySheetName);
-    var payload = CatalogService.readCatalogData(safeDisplaySheetName);
-    var syncedAt = new Date().toISOString();
-    SupabaseBundleRepository.upsertRows(TABLE_CATALOG_BUNDLES, [{
-      catalog_key: catalogKey,
-      payload: payload,
-      synced_at: syncedAt
-    }], 'catalog_key');
-    writeSyncStatus_('catalog_data:' + safeDisplaySheetName, 'catalog', 'ok', 'Catalog table cache synced.', syncedAt);
-    return { ok: true, table: TABLE_CATALOG_BUNDLES, catalogKey: catalogKey, syncedAt: syncedAt };
+    return StartupCatalogSyncService.syncCatalogDataBundle(displaySheetName, startupCatalogSyncContext_());
   }
 
   function syncFundFormOptionsBundle(year) {
@@ -311,28 +268,7 @@ var SupabaseService = (function () {
   }
 
   function syncAllStartupAndCatalogs() {
-    var results = [];
-    var errors = [];
-    runSyncStep_(results, errors, 'startup:' + DEFAULT_STARTUP_FORM_TYPE, function () {
-      return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE);
-    });
-    CATALOG_FORM_TYPES.forEach(function (formType) {
-      runSyncStep_(results, errors, 'catalogs:' + (formType || 'all'), function () {
-        return syncCatalogsBundle(formType);
-      });
-    });
-    CATALOG_DISPLAY_SHEETS.forEach(function (displaySheetName) {
-      runSyncStep_(results, errors, 'catalogData:' + displaySheetName, function () {
-        return syncCatalogDataBundle(displaySheetName);
-      });
-    });
-    return {
-      ok: errors.length === 0,
-      synced: results.length,
-      failed: errors.length,
-      results: results,
-      errors: errors
-    };
+    return StartupCatalogSyncService.syncAllStartupAndCatalogs(startupCatalogSyncContext_());
   }
 
   function syncManageDataBundle(sheetName) {
@@ -671,21 +607,7 @@ var SupabaseService = (function () {
   }
 
   function syncCatalogAfterWrite(displaySheetName) {
-    var safeDisplaySheetName = clean_(displaySheetName);
-    var results = [];
-    var errors = [];
-    runSyncStep_(results, errors, 'startup', function () { return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE); });
-    CATALOG_FORM_TYPES.forEach(function (formType) {
-      runSyncStep_(results, errors, 'catalogs:' + (formType || 'all'), function () {
-        return syncCatalogsBundle(formType);
-      });
-    });
-    if (safeDisplaySheetName) {
-      runSyncStep_(results, errors, 'catalogData:' + safeDisplaySheetName, function () {
-        return syncCatalogDataBundle(safeDisplaySheetName);
-      });
-    }
-    return { ok: errors.length === 0, synced: results.length, failed: errors.length, errors: errors };
+    return StartupCatalogSyncService.syncCatalogAfterWrite(displaySheetName, startupCatalogSyncContext_());
   }
 
   function syncFundAfterWrite(year, options) {
@@ -1437,6 +1359,21 @@ var SupabaseService = (function () {
     }
   }
 
+  function startupCatalogSyncContext_() {
+    return {
+      clean: clean_,
+      nowISOString: function () { return new Date().toISOString(); },
+      getStartupData: function (formType) { return SheetService.getStartupData(formType); },
+      getCatalogs: function (formType) { return CatalogService.getCatalogs(formType); },
+      readCatalogData: function (displaySheetName) { return CatalogService.readCatalogData(displaySheetName); },
+      upsertRows: function (tableName, rows, onConflict) {
+        return SupabaseBundleRepository.upsertRows(tableName, rows, onConflict);
+      },
+      writeSyncStatus: writeSyncStatus_,
+      runSyncStep: runSyncStep_
+    };
+  }
+
   function getSupabaseSyncStatus(limit, moduleName) {
     var safeLimit = Math.min(Math.max(parseInt(limit || 30, 10) || 30, 1), 100);
     var query = {
@@ -1522,6 +1459,14 @@ var SupabaseService = (function () {
     return text;
   }
 
+  function buildCatalogsKey_(formType) {
+    return StartupCatalogSyncService.buildCatalogsKey(formType, clean_);
+  }
+
+  function buildCatalogDataKey_(displaySheetName) {
+    return StartupCatalogSyncService.buildCatalogDataKey(displaySheetName, clean_);
+  }
+
   function buildFundTransactionFilterKey_(filter) {
     var month = normalizeFundMonthKey_(filter.month);
     if (month) return 'month:' + month;
@@ -1536,14 +1481,6 @@ var SupabaseService = (function () {
       search ? Utilities.base64EncodeWebSafe(search).replace(/=+$/, '') : 'all',
       limit
     ].join('|');
-  }
-
-  function buildCatalogsKey_(formType) {
-    return 'catalogs:' + (clean_(formType) || 'all');
-  }
-
-  function buildCatalogDataKey_(displaySheetName) {
-    return 'catalog_data:' + clean_(displaySheetName);
   }
 
   function buildFundFormOptionsKey_(year) {

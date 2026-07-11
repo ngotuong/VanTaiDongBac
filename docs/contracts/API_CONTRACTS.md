@@ -450,7 +450,7 @@ Handler: `SheetService.getStartupData(formType)`.
 
 Response chứa dữ liệu tối thiểu để render màn hình đầu, thường gồm dashboard/startup catalogs/links theo implementation.
 
-Cache tương ứng: `startup_bundles.form_type`.
+Cache tương ứng: `startup_bundles.form_type`; sync implementation nằm trong `StartupCatalogSyncService`, qua compatibility facade `SupabaseService`.
 
 ### 6.3. `getInitialData`
 
@@ -514,7 +514,7 @@ Response logic:
 
 Field thực tế phụ thuộc `formType`. Consumer phải chịu được danh mục không cần thiết bị thiếu/rỗng.
 
-Cache: `catalog_bundles` theo catalog key của form.
+Cache: `catalog_bundles` theo catalog key của form; key/upsert/status sync do `StartupCatalogSyncService` sở hữu.
 
 ### 7.2. `readCatalogData`
 

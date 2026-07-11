@@ -63,12 +63,12 @@ test('sync-status repository fixes only the table and conflict key while preserv
 
 test('SupabaseService routes only bundle persistence through the bundle repository', () => {
   const source = read('SupabaseService.gs');
+  const startupCatalogSource = read('StartupCatalogSyncService.gs');
   const bundleTables = [
     'TABLE_REPORT_BUNDLES',
     'TABLE_FUND_OVERVIEW_BUNDLES',
     'TABLE_FUND_TRANSACTION_BUNDLES',
     'TABLE_FUND_LOAN_BUNDLES',
-    'TABLE_STARTUP_BUNDLES',
     'TABLE_CATALOG_BUNDLES',
     'TABLE_MANAGE_DATA_BUNDLES'
   ];
@@ -76,6 +76,8 @@ test('SupabaseService routes only bundle persistence through the bundle reposito
     assert.match(source, new RegExp(`SupabaseBundleRepository\\.(?:upsertRows|readRows)\\(${table}`));
     assert.doesNotMatch(source, new RegExp(`(?:upsertRows_|readRows_)\\(${table}`));
   });
+  assert.match(startupCatalogSource, /context\.upsertRows\(TABLE_STARTUP_BUNDLES/);
+  assert.match(startupCatalogSource, /context\.upsertRows\(TABLE_CATALOG_BUNDLES/);
   assert.match(source, /upsertRows_\(TABLE_WRITE_JOBS/);
   assert.match(source, /readRows_\(TABLE_WRITE_JOBS/);
 });

@@ -644,8 +644,8 @@
             </div>
             <div class="table-wrap">
               <table class="report-table" style="min-width: auto !important; width: 100%;">
-                <thead><tr><th>Ngày vay</th><th>Đối tác</th><th style="text-align:right;">Số tiền còn nợ</th><th style="text-align:right;" data-write-only>Thao tác</th></tr></thead>
-                <tbody id="fundLoanSummaryBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                <thead><tr><th>Ngày vay</th><th>Mã vay</th><th>Đối tác</th><th style="text-align:right;">Số tiền còn nợ</th><th style="text-align:right;" data-write-only>Thao tác</th></tr></thead>
+                <tbody id="fundLoanSummaryBody"><tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
             </div>
           </section>
@@ -668,8 +668,8 @@
             </div>
             <div class="table-wrap">
               <table class="report-table table-wide">
-                <thead><tr><th>Ngày</th><th>Loại</th><th>Đối tác</th><th style="text-align:right;">Số tiền</th><th>Nội dung</th></tr></thead>
-                <tbody id="fundLoanHistoryBody"><tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                <thead><tr><th>Ngày</th><th>Mã vay</th><th>Loại</th><th>Đối tác</th><th style="text-align:right;">Số tiền</th><th>Nội dung</th></tr></thead>
+                <tbody id="fundLoanHistoryBody"><tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
             </div>
             <div id="fundLoanHistoryPager" style="display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding: 12px 16px; border-top: 1px solid var(--line);"></div>
@@ -724,11 +724,11 @@
                 <span class="password-field"><input type="password" id="currentPasswordInput" autocomplete="current-password"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('currentPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
               </label>
               <label>Mật khẩu mới
-                <span class="password-field"><input type="password" id="newPasswordInput" autocomplete="new-password" minlength="12"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('newPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
-                <small>Tối thiểu 12 ký tự.</small>
+                <span class="password-field"><input type="password" id="newPasswordInput" autocomplete="new-password" minlength="6"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('newPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
+                <small>Tối thiểu 6 ký tự, không bắt buộc chữ hoa hoặc ký tự đặc biệt.</small>
               </label>
               <label>Xác nhận mật khẩu mới
-                <span class="password-field"><input type="password" id="confirmPasswordInput" autocomplete="new-password" minlength="12"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('confirmPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
+                <span class="password-field"><input type="password" id="confirmPasswordInput" autocomplete="new-password" minlength="6"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('confirmPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
               </label>
             </div>
             <button type="button" class="primary account-submit-btn" id="changePasswordBtn" onclick="changeOwnPassword()">Đổi mật khẩu</button>
@@ -743,7 +743,7 @@
               <label>Tên đăng nhập<input type="text" id="newAccountUsername" autocomplete="off" placeholder="vidu: codong01"></label>
               <label>Tên hiển thị<input type="text" id="newAccountDisplayName" autocomplete="name" placeholder="Nguyễn Văn A"></label>
               <label>Vai trò<select id="newAccountRole"><option value="shareholder">Cổ đông (chỉ xem)</option><option value="operator">Nhân viên vận hành</option><option value="admin">Quản trị viên</option></select></label>
-              <label>Mật khẩu ban đầu (tùy chọn)<span class="password-field"><input type="password" id="newAccountPassword" autocomplete="new-password" minlength="12" placeholder="Để trống để tự tạo"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('newAccountPassword', this)" aria-label="Hiện mật khẩu">Hiện</button></span></label>
+              <label>Mật khẩu ban đầu (tùy chọn)<span class="password-field"><input type="password" id="newAccountPassword" autocomplete="new-password" minlength="6" placeholder="Tối thiểu 6 ký tự"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('newAccountPassword', this)" aria-label="Hiện mật khẩu">Hiện</button></span></label>
               <button type="button" class="primary" id="createAccountBtn" onclick="createUserAccount()">Tạo tài khoản</button>
             </div>
             <div id="temporaryPasswordBox" class="temporary-password-box" hidden>

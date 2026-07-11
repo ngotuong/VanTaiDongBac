@@ -116,7 +116,7 @@ async function createUser(config, body) {
   const password = String(body.password || '') || generateTemporaryPassword();
   if (!USERNAME_PATTERN.test(username)) throw httpError(400, 'Tên đăng nhập phải dài 3–40 ký tự, chỉ gồm chữ thường, số, dấu chấm, gạch dưới hoặc gạch ngang.');
   if (!ROLES.has(role)) throw httpError(400, 'Vai trò không hợp lệ.');
-  if (password.length < 12) throw httpError(400, 'Mật khẩu phải có ít nhất 12 ký tự.');
+  if (password.length < 6) throw httpError(400, 'Mật khẩu phải có ít nhất 6 ký tự.');
 
   const authResponse = await fetch(`${config.supabaseUrl}/auth/v1/admin/users`, {
     method: 'POST',
@@ -187,7 +187,7 @@ async function changeOwnPassword(config, user, body) {
   const currentPassword = String(body.currentPassword || '');
   const newPassword = String(body.newPassword || '');
   if (!currentPassword) throw httpError(400, 'Vui lòng nhập mật khẩu hiện tại.');
-  if (newPassword.length < 12) throw httpError(400, 'Mật khẩu mới phải có ít nhất 12 ký tự.');
+  if (newPassword.length < 6) throw httpError(400, 'Mật khẩu mới phải có ít nhất 6 ký tự.');
   if (currentPassword === newPassword) throw httpError(400, 'Mật khẩu mới phải khác mật khẩu hiện tại.');
   const verifyResponse = await fetch(`${config.supabaseUrl}/auth/v1/token?grant_type=password`, {
     method: 'POST',
@@ -202,7 +202,7 @@ async function resetUserPassword(config, body) {
   const userId = String(body.userId || '').trim();
   const password = String(body.password || '') || generateTemporaryPassword();
   if (!userId) throw httpError(400, 'Thiếu tài khoản cần đặt lại mật khẩu.');
-  if (password.length < 12) throw httpError(400, 'Mật khẩu phải có ít nhất 12 ký tự.');
+  if (password.length < 6) throw httpError(400, 'Mật khẩu phải có ít nhất 6 ký tự.');
   await updateAuthPassword(config, userId, password);
   return password;
 }

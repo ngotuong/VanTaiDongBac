@@ -76,3 +76,34 @@ test('shareholder role is read-only and account administration stays admin-only'
   assert.match(read('client_api.html'), /dongbac_auth_username/);
   assert.doesNotMatch(read('client_api.html'), /setItem\([^\n]*password/i);
 });
+
+test('loan reconciliation safely matches one orphan settlement by partner and exact balance', () => {
+  const source = read('FundService.gs');
+  const start = source.indexOf('  function resolveLoanPaymentCodes_');
+  const end = source.indexOf('\n  function buildLoanSummaryMap_', start);
+  assert.ok(start >= 0 && end > start);
+  const sandbox = {
+    normalizeHeader_: (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, ' ').trim()
+  };
+  vm.runInNewContext(source.slice(start, end), sandbox);
+  const rows = [
+    { rowIndex: 4, code: 'LOAN-A', type: 'Vay', partner: 'Quang Quân', amount: 5752000, dateObj: new Date('2026-05-25') },
+    { rowIndex: 5, code: 'LOAN-B', type: 'Vay', partner: 'Quang Quân', amount: 5752000, dateObj: new Date('2026-05-25') },
+    { rowIndex: 8, code: 'LOAN-A', type: 'Trả nợ', partner: 'Quang Quân', amount: 5752000, dateObj: new Date('2026-06-20') },
+    { rowIndex: 9, code: 'WRONG-CODE', type: 'Trả nợ', partner: 'Quang Quân', amount: 5752000, dateObj: new Date('2026-06-20') }
+  ];
+  const resolved = sandbox.resolveLoanPaymentCodes_(rows);
+  assert.equal(resolved[2].loanKey, 'LOAN-A');
+  assert.equal(resolved[3].loanKey, 'LOAN-B');
+  assert.equal(resolved[3].reconciledFromCode, 'WRONG-CODE');
+});
+
+test('password policy accepts any value with at least six characters', () => {
+  const proxy = read('api/app.js');
+  const accounts = read('client_accounts.html');
+  const template = read('index.template.html');
+  assert.match(proxy, /newPassword\.length < 6/);
+  assert.match(accounts, /newPassword\.length < 6/);
+  assert.match(template, /minlength="6"/);
+  assert.doesNotMatch(proxy, /newPassword\.length < 12/);
+});

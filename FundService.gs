@@ -1,5 +1,5 @@
 var FundService = (function () {
-  var FUND_CACHE_VERSION = 'fund_v6';
+  var FUND_CACHE_VERSION = 'fund_v7';
   var FUND_TTL_SECONDS = 300;
   var FUND_CATALOG_TTL_SECONDS = 21600;
   var FUND_DATA_VERSION_PROP = 'FUND_DATA_VERSION_V1';
@@ -138,7 +138,7 @@ var FundService = (function () {
     var loanCached = getFundCache_(loanCacheKey);
     if (loanCached) return loanCached;
     var ss = getFundSpreadsheet_(year);
-    var rows = readLoanRows_(ss);
+    var rows = resolveLoanPaymentCodes_(readLoanRows_(ss));
     var months = buildMonths_(rows);
     var monthKey = normalizeMonthKey_((filter || {}).month);
     var period = monthKey ? monthPeriod_(monthKey) : null;
@@ -164,7 +164,7 @@ var FundService = (function () {
     });
 
     summaryRows.forEach(function (row) {
-      var key = row.code || ('row-' + row.rowIndex);
+      var key = row.loanKey || row.code || ('row-' + row.rowIndex);
       if (!loanMap[key]) {
         loanMap[key] = {
           code: row.code,
@@ -226,7 +226,7 @@ var FundService = (function () {
       recentRows: filteredRows.slice().sort(function (a, b) {
         return a.date < b.date ? 1 : -1;
       }).map(function (row) {
-        var overallLoan = overallLoanMap[row.code || ('row-' + row.rowIndex)] || null;
+        var overallLoan = overallLoanMap[row.loanKey || row.code || ('row-' + row.rowIndex)] || null;
         return extendLoanHistoryRow_(row, overallLoan);
       })
     };
@@ -822,10 +822,69 @@ var FundService = (function () {
     return rows;
   }
 
+  function resolveLoanPaymentCodes_(rows) {
+    var resolvedRows = (rows || []).map(function (row) {
+      var copy = {};
+      Object.keys(row).forEach(function (key) { copy[key] = row[key]; });
+      copy.loanKey = row.code || ('row-' + row.rowIndex);
+      copy.reconciledFromCode = '';
+      return copy;
+    });
+    var states = {};
+
+    resolvedRows.forEach(function (row) {
+      if (row.type !== 'Vay' || !row.code) return;
+      if (!states[row.code]) {
+        states[row.code] = {
+          code: row.code,
+          partnerKey: normalizeHeader_(row.partner),
+          borrowed: 0,
+          principalPaid: 0,
+          loanDateObj: row.dateObj || null
+        };
+      }
+      states[row.code].borrowed += row.amount;
+      if (row.dateObj && (!states[row.code].loanDateObj || row.dateObj < states[row.code].loanDateObj)) {
+        states[row.code].loanDateObj = row.dateObj;
+      }
+    });
+
+    // Ưu tiên tuyệt đối mã vay khớp chính xác trước khi đối soát các mã trả nợ bị lệch.
+    resolvedRows.forEach(function (row) {
+      if (row.type !== 'Trả nợ' || !row.code || !states[row.code]) return;
+      row.loanKey = row.code;
+      states[row.code].principalPaid += row.amount;
+    });
+
+    resolvedRows
+      .filter(function (row) {
+        return row.type === 'Trả nợ' && (!row.code || !states[row.code]);
+      })
+      .sort(function (a, b) {
+        return (a.dateObj ? a.dateObj.getTime() : 0) - (b.dateObj ? b.dateObj.getTime() : 0);
+      })
+      .forEach(function (row) {
+        var partnerKey = normalizeHeader_(row.partner);
+        var candidates = Object.keys(states).map(function (key) { return states[key]; }).filter(function (state) {
+          var remaining = state.borrowed - state.principalPaid;
+          var beforePayment = !row.dateObj || !state.loanDateObj || state.loanDateObj <= row.dateObj;
+          return partnerKey && state.partnerKey === partnerKey && beforePayment && Math.abs(remaining - row.amount) < 0.5;
+        });
+        // Chỉ tự ghép khi có đúng một khoản vay cùng đối tác và số dư khớp hoàn toàn.
+        if (candidates.length !== 1) return;
+        var match = candidates[0];
+        row.loanKey = match.code;
+        row.reconciledFromCode = row.code || '';
+        match.principalPaid += row.amount;
+      });
+
+    return resolvedRows;
+  }
+
   function buildLoanSummaryMap_(rows) {
     var loanMap = {};
     (rows || []).forEach(function (row) {
-      var key = row.code || ('row-' + row.rowIndex);
+      var key = row.loanKey || row.code || ('row-' + row.rowIndex);
       if (!loanMap[key]) {
         loanMap[key] = {
           code: row.code,
@@ -848,6 +907,8 @@ var FundService = (function () {
     return {
       rowIndex: row.rowIndex,
       code: row.code,
+      loanKey: row.loanKey || row.code,
+      reconciledFromCode: row.reconciledFromCode || '',
       dateObj: row.dateObj,
       date: row.date,
       dateText: row.dateText,

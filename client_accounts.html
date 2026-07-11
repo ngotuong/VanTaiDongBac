@@ -68,7 +68,7 @@
       const newPassword = el('newPasswordInput')?.value || '';
       const confirmPassword = el('confirmPasswordInput')?.value || '';
       if (!currentPassword) return setAccountStatus('Vui lòng nhập mật khẩu hiện tại.', 'error');
-      if (newPassword.length < 12) return setAccountStatus('Mật khẩu mới phải có ít nhất 12 ký tự.', 'error');
+      if (newPassword.length < 6) return setAccountStatus('Mật khẩu mới phải có ít nhất 6 ký tự.', 'error');
       if (newPassword !== confirmPassword) return setAccountStatus('Mật khẩu xác nhận chưa khớp.', 'error');
       const button = el('changePasswordBtn');
       if (button) {
@@ -138,7 +138,7 @@
       const password = el('newAccountPassword')?.value || '';
       if (!/^[a-z0-9._-]{3,40}$/.test(username)) return setAccountStatus('Tên đăng nhập không hợp lệ.', 'error');
       if (!displayName) return setAccountStatus('Vui lòng nhập tên hiển thị.', 'error');
-      if (password && password.length < 12) return setAccountStatus('Mật khẩu tự nhập phải có ít nhất 12 ký tự.', 'error');
+      if (password && password.length < 6) return setAccountStatus('Mật khẩu tự nhập phải có ít nhất 6 ký tự.', 'error');
       const button = el('createAccountBtn');
       if (button) {
         button.disabled = true;

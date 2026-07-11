@@ -14,7 +14,7 @@ const suffix = Date.now().toString(36);
 const adminName = `smoke_admin_${suffix}`;
 const shareholderName = `smoke_share_${suffix}`;
 const adminPassword = `Adm@${crypto.randomBytes(12).toString('base64url')}8z`;
-const shareholderPassword = `Shr@${crypto.randomBytes(12).toString('base64url')}7x`;
+const shareholderPassword = 'abc123';
 let adminId = '';
 let shareholderId = '';
 
@@ -85,9 +85,18 @@ async function cleanupUser(id) {
     const session = await expectJson(await appCall(shareholderToken, 'GET', 'authSession'), 200, 'shareholder authSession');
     if (session.user.role !== 'shareholder') throw new Error('shareholder role was not returned');
     await expectJson(await appCall(shareholderToken, 'GET', 'getStartupData'), 200, 'shareholder read');
+    const loanData = await expectJson(await fetch(`${appUrl}/api/app?action=getFundLoanOverview&year=2026`, {
+      headers: { Authorization: `Bearer ${shareholderToken}` }
+    }), 200, 'shareholder loan read');
+    const settledCodes = new Set((loanData.loans || [])
+      .filter((item) => item.partner === 'Quang Quân' && Number(item.borrowed) === 5752000 && Number(item.outstanding) === 0)
+      .map((item) => item.code));
+    if (!settledCodes.has('260622145024') || !settledCodes.has('260704114143')) {
+      throw new Error('Quang Quân settlement reconciliation is not reflected in production');
+    }
     await expectJson(await appCall(shareholderToken, 'POST', 'submitRows', { formType: 'vanChuyen', rows: [] }), 403, 'shareholder write denied');
 
-    const changedPassword = `New@${crypto.randomBytes(12).toString('base64url')}6q`;
+    const changedPassword = 'def456';
     await expectJson(await appCall(shareholderToken, 'POST', 'changeOwnPassword', {
       currentPassword: shareholderPassword,
       newPassword: changedPassword
@@ -103,7 +112,7 @@ async function cleanupUser(id) {
     const reset = await expectJson(await appCall(adminToken, 'POST', 'resetUserPassword', { userId: shareholderId }), 200, 'admin reset password');
     await signIn(shareholderName, reset.temporaryPassword);
 
-    console.log(JSON.stringify({ ok: true, checks: ['admin-list', 'admin-create', 'shareholder-read', 'shareholder-write-403', 'change-password', 'update-user', 'reset-password'] }));
+    console.log(JSON.stringify({ ok: true, checks: ['admin-list', 'admin-create', 'shareholder-read', 'loan-reconciliation', 'shareholder-write-403', 'change-password-six-characters', 'update-user', 'reset-password'] }));
   } finally {
     await cleanupUser(shareholderId);
     await cleanupUser(adminId);

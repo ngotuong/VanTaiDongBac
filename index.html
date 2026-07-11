@@ -2431,6 +2431,13 @@
       .account-create-grid { grid-template-columns: 1fr; }
       .account-password-card,
       .account-management-card { padding: 18px; }
+      #settingsView input,
+      #settingsView select,
+      #settingsView textarea,
+      #settingsView .account-inline-input {
+        min-height: 48px;
+        font-size: 16px !important;
+      }
     }
 
     .settings-card-header {
@@ -5393,8 +5400,8 @@
             </div>
             <div class="table-wrap">
               <table class="report-table" style="min-width: auto !important; width: 100%;">
-                <thead><tr><th>Ngày vay</th><th>Đối tác</th><th style="text-align:right;">Số tiền còn nợ</th><th style="text-align:right;" data-write-only>Thao tác</th></tr></thead>
-                <tbody id="fundLoanSummaryBody"><tr><td colspan="4" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                <thead><tr><th>Ngày vay</th><th>Mã vay</th><th>Đối tác</th><th style="text-align:right;">Số tiền còn nợ</th><th style="text-align:right;" data-write-only>Thao tác</th></tr></thead>
+                <tbody id="fundLoanSummaryBody"><tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
             </div>
           </section>
@@ -5417,8 +5424,8 @@
             </div>
             <div class="table-wrap">
               <table class="report-table table-wide">
-                <thead><tr><th>Ngày</th><th>Loại</th><th>Đối tác</th><th style="text-align:right;">Số tiền</th><th>Nội dung</th></tr></thead>
-                <tbody id="fundLoanHistoryBody"><tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
+                <thead><tr><th>Ngày</th><th>Mã vay</th><th>Loại</th><th>Đối tác</th><th style="text-align:right;">Số tiền</th><th>Nội dung</th></tr></thead>
+                <tbody id="fundLoanHistoryBody"><tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Đang tải...</td></tr></tbody>
               </table>
             </div>
             <div id="fundLoanHistoryPager" style="display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding: 12px 16px; border-top: 1px solid var(--line);"></div>
@@ -5473,11 +5480,11 @@
                 <span class="password-field"><input type="password" id="currentPasswordInput" autocomplete="current-password"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('currentPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
               </label>
               <label>Mật khẩu mới
-                <span class="password-field"><input type="password" id="newPasswordInput" autocomplete="new-password" minlength="12"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('newPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
-                <small>Tối thiểu 12 ký tự.</small>
+                <span class="password-field"><input type="password" id="newPasswordInput" autocomplete="new-password" minlength="6"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('newPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
+                <small>Tối thiểu 6 ký tự, không bắt buộc chữ hoa hoặc ký tự đặc biệt.</small>
               </label>
               <label>Xác nhận mật khẩu mới
-                <span class="password-field"><input type="password" id="confirmPasswordInput" autocomplete="new-password" minlength="12"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('confirmPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
+                <span class="password-field"><input type="password" id="confirmPasswordInput" autocomplete="new-password" minlength="6"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('confirmPasswordInput', this)" aria-label="Hiện mật khẩu">Hiện</button></span>
               </label>
             </div>
             <button type="button" class="primary account-submit-btn" id="changePasswordBtn" onclick="changeOwnPassword()">Đổi mật khẩu</button>
@@ -5492,7 +5499,7 @@
               <label>Tên đăng nhập<input type="text" id="newAccountUsername" autocomplete="off" placeholder="vidu: codong01"></label>
               <label>Tên hiển thị<input type="text" id="newAccountDisplayName" autocomplete="name" placeholder="Nguyễn Văn A"></label>
               <label>Vai trò<select id="newAccountRole"><option value="shareholder">Cổ đông (chỉ xem)</option><option value="operator">Nhân viên vận hành</option><option value="admin">Quản trị viên</option></select></label>
-              <label>Mật khẩu ban đầu (tùy chọn)<span class="password-field"><input type="password" id="newAccountPassword" autocomplete="new-password" minlength="12" placeholder="Để trống để tự tạo"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('newAccountPassword', this)" aria-label="Hiện mật khẩu">Hiện</button></span></label>
+              <label>Mật khẩu ban đầu (tùy chọn)<span class="password-field"><input type="password" id="newAccountPassword" autocomplete="new-password" minlength="6" placeholder="Tối thiểu 6 ký tự"><button type="button" class="ghost password-toggle-btn" onclick="togglePasswordVisibility('newAccountPassword', this)" aria-label="Hiện mật khẩu">Hiện</button></span></label>
               <button type="button" class="primary" id="createAccountBtn" onclick="createUserAccount()">Tạo tài khoản</button>
             </div>
             <div id="temporaryPasswordBox" class="temporary-password-box" hidden>
@@ -6681,7 +6688,7 @@
       const newPassword = el('newPasswordInput')?.value || '';
       const confirmPassword = el('confirmPasswordInput')?.value || '';
       if (!currentPassword) return setAccountStatus('Vui lòng nhập mật khẩu hiện tại.', 'error');
-      if (newPassword.length < 12) return setAccountStatus('Mật khẩu mới phải có ít nhất 12 ký tự.', 'error');
+      if (newPassword.length < 6) return setAccountStatus('Mật khẩu mới phải có ít nhất 6 ký tự.', 'error');
       if (newPassword !== confirmPassword) return setAccountStatus('Mật khẩu xác nhận chưa khớp.', 'error');
       const button = el('changePasswordBtn');
       if (button) {
@@ -6751,7 +6758,7 @@
       const password = el('newAccountPassword')?.value || '';
       if (!/^[a-z0-9._-]{3,40}$/.test(username)) return setAccountStatus('Tên đăng nhập không hợp lệ.', 'error');
       if (!displayName) return setAccountStatus('Vui lòng nhập tên hiển thị.', 'error');
-      if (password && password.length < 12) return setAccountStatus('Mật khẩu tự nhập phải có ít nhất 12 ký tự.', 'error');
+      if (password && password.length < 6) return setAccountStatus('Mật khẩu tự nhập phải có ít nhất 6 ký tự.', 'error');
       const button = el('createAccountBtn');
       if (button) {
         button.disabled = true;
@@ -7842,8 +7849,8 @@
     function loadFundLoanOverview(forceRefresh) {
       const month = el('fundLoanMonthFilter')?.value || '';
       renderFundKpiLoading(el('fundLoanMetrics'), 4);
-      renderFundTableLoading(el('fundLoanSummaryBody'), 4, 'Đang tải khoản vay...');
-      renderFundTableLoading(el('fundLoanHistoryBody'), 5, 'Đang tải lịch sử vay/trả...');
+      renderFundTableLoading(el('fundLoanSummaryBody'), 5, 'Đang tải khoản vay...');
+      renderFundTableLoading(el('fundLoanHistoryBody'), 6, 'Đang tải lịch sử vay/trả...');
       const historyPager = el('fundLoanHistoryPager');
       if (historyPager) historyPager.style.display = 'none';
       let fundLoanFallbackReason = '';
@@ -7909,6 +7916,7 @@
       summary.innerHTML = activeLoans.length ? activeLoans.map((item) => `
         <tr>
           <td>${escapeHtml(item.loanDateText || item.loanDate || '')}</td>
+          <td><code>${escapeHtml(item.code || '')}</code></td>
           <td>${escapeHtml(item.partner || '')}</td>
           <td style="text-align:right; font-weight:800; color: var(--red);">${formatFundAmount(item.outstanding, '')}</td>
           ${canWriteData() ? `
@@ -7917,7 +7925,7 @@
           </td>
           ` : ''}
         </tr>
-      `).join('') : `<tr><td colspan="${canWriteData() ? 4 : 3}" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>`;
+      `).join('') : `<tr><td colspan="${canWriteData() ? 5 : 4}" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>`;
 
       const historyType = el('fundLoanHistoryTypeFilter')?.value || '';
       const historyPartner = el('fundLoanHistoryPartnerFilter')?.value || '';
@@ -7937,13 +7945,14 @@
         return `
           <tr>
             <td>${escapeHtml(row.dateText || row.date || '')}</td>
+            <td><code title="${row.reconciledFromCode ? `Đối soát từ mã ghi nhận ${escapeHtml(row.reconciledFromCode)}` : ''}">${escapeHtml(row.loanKey || row.code || '')}</code></td>
             <td>${escapeHtml(row.type || '')}</td>
             <td>${escapeHtml(row.partner || '')}</td>
             <td style="text-align:right; font-weight:800; color: ${amountColor};">${amountSign}${formatFundAmount(row.amount, row.amountText)}</td>
             <td>${escapeHtml(row.content || '')}</td>
           </tr>
         `;
-      }).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
+      }).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
       renderFundLoanHistoryPager(rows.length, totalHistoryPages, historyStart + 1, historyStart + pageRows.length);
     }
 

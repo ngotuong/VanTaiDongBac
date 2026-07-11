@@ -120,6 +120,23 @@ function getFundLoanOverview(year, filter) {
   return FundService.getFundLoanOverview(year, filter);
 }
 
+function auditFundLoanCase(year, partner, amount) {
+  var data = FundService.getFundLoanOverview(year || '2026', {});
+  var partnerKey = String(partner || '').trim().toLowerCase();
+  var targetAmount = Number(amount || 0);
+  return {
+    ok: true,
+    loans: (data.loans || []).filter(function (item) {
+      return (!partnerKey || String(item.partner || '').trim().toLowerCase() === partnerKey) &&
+        (!targetAmount || Math.abs(Number(item.borrowed || 0) - targetAmount) < 0.5);
+    }),
+    history: (data.recentRows || []).filter(function (item) {
+      return (!partnerKey || String(item.partner || '').trim().toLowerCase() === partnerKey) &&
+        (!targetAmount || Math.abs(Number(item.amount || 0) - targetAmount) < 0.5);
+    })
+  };
+}
+
 function addFundLoan(year, loan) {
   return withFundSync_(year, { loan: loan }, function () {
     return FundService.addFundLoan(year, loan);

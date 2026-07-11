@@ -1011,8 +1011,8 @@
     function loadFundLoanOverview(forceRefresh) {
       const month = el('fundLoanMonthFilter')?.value || '';
       renderFundKpiLoading(el('fundLoanMetrics'), 4);
-      renderFundTableLoading(el('fundLoanSummaryBody'), 4, 'Đang tải khoản vay...');
-      renderFundTableLoading(el('fundLoanHistoryBody'), 5, 'Đang tải lịch sử vay/trả...');
+      renderFundTableLoading(el('fundLoanSummaryBody'), 5, 'Đang tải khoản vay...');
+      renderFundTableLoading(el('fundLoanHistoryBody'), 6, 'Đang tải lịch sử vay/trả...');
       const historyPager = el('fundLoanHistoryPager');
       if (historyPager) historyPager.style.display = 'none';
       let fundLoanFallbackReason = '';
@@ -1078,6 +1078,7 @@
       summary.innerHTML = activeLoans.length ? activeLoans.map((item) => `
         <tr>
           <td>${escapeHtml(item.loanDateText || item.loanDate || '')}</td>
+          <td><code>${escapeHtml(item.code || '')}</code></td>
           <td>${escapeHtml(item.partner || '')}</td>
           <td style="text-align:right; font-weight:800; color: var(--red);">${formatFundAmount(item.outstanding, '')}</td>
           ${canWriteData() ? `
@@ -1086,7 +1087,7 @@
           </td>
           ` : ''}
         </tr>
-      `).join('') : `<tr><td colspan="${canWriteData() ? 4 : 3}" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>`;
+      `).join('') : `<tr><td colspan="${canWriteData() ? 5 : 4}" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>`;
 
       const historyType = el('fundLoanHistoryTypeFilter')?.value || '';
       const historyPartner = el('fundLoanHistoryPartnerFilter')?.value || '';
@@ -1106,13 +1107,14 @@
         return `
           <tr>
             <td>${escapeHtml(row.dateText || row.date || '')}</td>
+            <td><code title="${row.reconciledFromCode ? `Đối soát từ mã ghi nhận ${escapeHtml(row.reconciledFromCode)}` : ''}">${escapeHtml(row.loanKey || row.code || '')}</code></td>
             <td>${escapeHtml(row.type || '')}</td>
             <td>${escapeHtml(row.partner || '')}</td>
             <td style="text-align:right; font-weight:800; color: ${amountColor};">${amountSign}${formatFundAmount(row.amount, row.amountText)}</td>
             <td>${escapeHtml(row.content || '')}</td>
           </tr>
         `;
-      }).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
+      }).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px;">Chưa có lịch sử vay/trả.</td></tr>';
       renderFundLoanHistoryPager(rows.length, totalHistoryPages, historyStart + 1, historyStart + pageRows.length);
     }
 

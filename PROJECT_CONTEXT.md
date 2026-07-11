@@ -37,7 +37,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@245 - Account roles and shareholder read-only`
+- Apps Script deployment moi nhat da xac nhan: `@246 - Fix loan settlement reconciliation and password UX`
 - Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @234`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
 - Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
@@ -195,6 +195,14 @@ Commit lien quan:
 - `Cai dat` co doi mat khau bang mat khau hien tai; `admin` co them tao tai khoan, chon role, bat/tat tai khoan va dat lai mat khau tam. `operator` van duoc doc/ghi nghiep vu nhung khong quan ly tai khoan.
 - Bo card `Cau hinh duong dan Web App`; production chi goi proxy `/api/app`, khong cho thay URL backend bang `localStorage`.
 - Bo card va logic Dark mode, production chi dung light mode. App luu username sau lan dang nhap thanh cong va dung Supabase persistent session; mat khau khong luu tho, de password manager cua trinh duyet tu dien qua `autocomplete`.
+- Mat khau do nguoi dung dat chi can toi thieu 6 ky tu, khong bat buoc chu hoa/ky tu dac biet. Input/select trong Cai dat tren mobile co font 16px va min-height 48px de tranh iPhone auto zoom.
+
+## Doi soat Khoan vay (Ngay 2026-07-11)
+
+- Phat hien dong tat toan Quang Quan 5.752.000 ngay 20/06 ghi ma `260622145004`, trong khi ma vay con lai ngay 25/05 la `260704114143`; logic cu chi ghep chinh xac theo ma nen hien sai con no.
+- `FundService` nay uu tien ghep ma chinh xac; dong tra no co ma khong ton tai chi duoc doi soat khi co dung mot khoan vay cung doi tac, phat sinh truoc ngay tra va so du khop hoan toan so tien tra.
+- Da xac nhan hai ma `260622145024` va `260704114143` deu borrowed 5.752.000, principalPaid 5.752.000, outstanding 0. Cache version tang `fund_v7`; sync lai 13 fund bundles thanh cong, failed 0.
+- UI Chi tiet khoan vay va Lich su vay/tra hien them cot Ma vay; lich su dung ma da doi soat va giu `reconciledFromCode` de truy vet ma ghi nhan ban dau.
 
 ## Lo trinh tiep theo
 

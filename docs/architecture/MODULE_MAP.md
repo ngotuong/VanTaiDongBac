@@ -243,9 +243,9 @@ Trách nhiệm:
 
 Source:
 
-- facade: `EntryService.gs`;
+- facade và submit implementation: `EntryService.gs`;
 - validation/row builder: `ValidationService.gs`;
-- implementation Sheet: `SheetService.gs`;
+- submit compatibility adapter, reconciliation và generic CRUD chưa tách: `SheetService.gs`;
 - API orchestration/queue selection: `PublicApi.gs`, `SupabaseService.gs`;
 - frontend: `client_entry.html`, `client_data.html`, `client_config.html`.
 

@@ -47,3 +47,11 @@ Các thay đổi đáng chú ý của repository được ghi tại đây. Trạ
 - Thêm `tests/backend-normalization.test.js` để khóa parity cho null, Unicode whitespace, chuỗi, số, boolean, array và object conversion.
 - Không thay đổi thuật toán ngày/tháng/số, timezone, nghiệp vụ, giao diện, Sheet schema, cache key hoặc queue contract.
 - Đã push Apps Script source và deploy production `@249 - Refactor Step 7 shared clean normalization`; smoke test `health` thành công.
+
+### Phase 4 — Refactor Step 8
+
+- Thêm `SupabaseHttpClient.gs` để cô lập REST/RPC transport, Script Properties, auth headers và HTTP error handling khỏi sync/worker orchestration.
+- Giữ nguyên `readRows_`, `insertRows_`, `updateRows_`, `upsertRows_`, `callRpc_` trong `SupabaseService.gs` dưới dạng compatibility wrapper.
+- Thêm `tests/supabase-http-client.test.js` khóa request snapshots, query encoding, headers, payload, non-2xx messages, invalid JSON và config validation.
+- Không thay đổi table name, query syntax, service-role configuration, schema, repository, cache key, queue hoặc retry behavior.
+- Đã push Apps Script source và deploy production `@250 - Refactor Step 8 extract Supabase HTTP client`; smoke test `health` và `getSupabaseSyncStatus(1)` thành công.

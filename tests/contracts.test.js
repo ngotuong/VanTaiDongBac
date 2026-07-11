@@ -29,11 +29,12 @@ test('Apps Script and browser fragments are syntactically valid JavaScript', () 
 test('queue uses atomic claims and blocks asynchronous physical deletes', () => {
   const service = read('SupabaseService.gs');
   const worker = read('WriteJobWorker.gs');
+  const transportHandler = read('TransportJobHandler.gs');
   const migration = read('supabase/migrations/006_write_queue_hardening.sql');
   assert.match(service, /claimJobs: function \(payload\) \{ return callRpc_\('claim_write_jobs', payload\); \}/);
   assert.match(worker, /p_stale_seconds: STALE_SECONDS/);
   assert.doesNotMatch(service, /status:\s*'in\.\(pending,processing\)'/);
-  assert.match(service, /từ chối deleteRow\(\)/);
+  assert.match(transportHandler, /từ chối deleteRow\(\)/);
   assert.match(migration, /for update skip locked/i);
   assert.match(migration, /write_jobs_module_idempotency_idx/);
 });

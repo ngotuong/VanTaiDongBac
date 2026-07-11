@@ -264,11 +264,14 @@ Commit lien quan:
 - Step 19d tách Fund overview/transaction/loan/catalog bundle upsert, stable keys/status, full-sync, month discovery/fallback/payload parsing và after-write month selection sang `FundSyncService.gs`; `SupabaseService` chỉ giữ public facade/context, feature flags, queue/worker và realtime orchestration.
 - Step 19d hoàn thiện đã pass 121/121 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@269 - Finalize Step 19d fund sync ownership`; không cần migration/schema change.
 - Smoke production Step 19d hoàn thiện thành công: `health` trả `ok=true`; `syncAllFundBundlesToSupabase('2026')` chạy 13 bước, ba tháng `2026-07`/`2026-06`/`2026-05`, failed 0; đủ 18 `sync_status` Fund đều `ok`. Toàn bộ Step 19 đã hoàn thành.
+- Step 20 tách `write_jobs`/`write_job_logs` persistence, idempotency lookup, job/recent reads, retry patches, lifecycle logs và row normalization sang `WriteJobRepository.gs`; RPC `claim_write_jobs` và worker/action execution vẫn ở `SupabaseService`.
+- Step 20 đã pass 125/125 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@270 - Refactor Step 20 extract write job repository`; không cần migration/schema change.
+- Smoke production Step 20 read-only thành công: `health` trả `ok=true`; `getWriteJobStatus('step20-smoke-nonexistent')` giữ đúng contract `{ok:false,error:'Không tìm thấy job: ...'}`. Không enqueue, retry hoặc chạy worker trên production.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: toàn bộ Step 19 đã hoàn thành và checkpoint production đang ở Apps Script `@269`.
-- Bước kế tiếp được đề xuất: Step 20 — tách `WriteJobRepository` theo `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 20.
+- Trạng thái hiện tại: Step 20 đã hoàn thành và checkpoint production đang ở Apps Script `@270`.
+- Bước kế tiếp được đề xuất: Step 21 — tách worker và job handlers theo từng slice trong `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 21.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -315,4 +318,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 20 hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 21 hoặc bất kỳ thay đổi mới nào.

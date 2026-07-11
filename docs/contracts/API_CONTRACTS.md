@@ -1195,7 +1195,7 @@ GET action=getWriteJobStatus&jobId=<ID>
 
 Auth: admin/operator.
 
-Handler: `SupabaseService.getWriteJobStatus()`.
+Handler: `SupabaseService.getWriteJobStatus()`; persistence/read/row normalization delegate sang `WriteJobRepository`.
 
 Response:
 
@@ -1231,6 +1231,8 @@ Response:
 }
 ```
 
+Handler: `SupabaseService.getRecentWriteJobs()`; filtered read và row normalization delegate sang `WriteJobRepository`.
+
 Frontend dùng để khôi phục pending jobs sau reload và hiển thị nhật ký.
 
 ### 13.4. `retryWriteJob`
@@ -1249,7 +1251,7 @@ Body:
 }
 ```
 
-Handler: `SupabaseService.retryWriteJob()`.
+Handler: `SupabaseService.retryWriteJob()`; retry patch, lifecycle log và status read delegate sang `WriteJobRepository`.
 
 Behavior: đưa job đủ điều kiện về trạng thái có thể chạy lại; không trực tiếp bảo đảm worker xử lý ngay.
 

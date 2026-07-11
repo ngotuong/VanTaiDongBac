@@ -1,0 +1,123 @@
+/** Supabase sync implementation for Transport startup and catalog caches. */
+var StartupCatalogSyncService = (function () {
+  var TABLE_STARTUP_BUNDLES = 'startup_bundles';
+  var TABLE_CATALOG_BUNDLES = 'catalog_bundles';
+  var DEFAULT_STARTUP_FORM_TYPE = 'vanChuyen';
+  var CATALOG_FORM_TYPES = ['', 'vanChuyen', 'taiXe', 'dau', 'chamCong', 'phat', 'nghiVanHanh'];
+  var CATALOG_DISPLAY_SHEETS = [
+    'DM_NhanSu',
+    'DM_Xe',
+    'DM_DuAn',
+    'DM_LuongChuyen',
+    'DM_ThamSo_TS',
+    'DM_ThamSo_GD',
+    'DM_DonGiaVanChuyen',
+    'DM_ThuongQuanLy',
+    'DM_PhatNoiBo'
+  ];
+
+  function buildCatalogsKey(formType, clean) {
+    return 'catalogs:' + (clean(formType) || 'all');
+  }
+
+  function buildCatalogDataKey(displaySheetName, clean) {
+    return 'catalog_data:' + clean(displaySheetName);
+  }
+
+  function syncStartupBundle(formType, context) {
+    var safeFormType = context.clean(formType) || DEFAULT_STARTUP_FORM_TYPE;
+    var payload = context.getStartupData(safeFormType);
+    var syncedAt = context.nowISOString();
+    context.upsertRows(TABLE_STARTUP_BUNDLES, [{
+      form_type: safeFormType,
+      payload: payload,
+      synced_at: syncedAt
+    }], 'form_type');
+    context.writeSyncStatus('startup:' + safeFormType, 'startup', 'ok', 'Startup cache synced.', syncedAt);
+    return { ok: true, table: TABLE_STARTUP_BUNDLES, formType: safeFormType, syncedAt: syncedAt };
+  }
+
+  function syncCatalogsBundle(formType, context) {
+    var safeFormType = context.clean(formType);
+    var catalogKey = buildCatalogsKey(safeFormType, context.clean);
+    var payload = context.getCatalogs(safeFormType);
+    var syncedAt = context.nowISOString();
+    context.upsertRows(TABLE_CATALOG_BUNDLES, [{
+      catalog_key: catalogKey,
+      payload: payload,
+      synced_at: syncedAt
+    }], 'catalog_key');
+    context.writeSyncStatus('catalogs:' + (safeFormType || 'all'), 'catalog', 'ok', 'Catalog options cache synced.', syncedAt);
+    return { ok: true, table: TABLE_CATALOG_BUNDLES, catalogKey: catalogKey, syncedAt: syncedAt };
+  }
+
+  function syncCatalogDataBundle(displaySheetName, context) {
+    var safeDisplaySheetName = context.clean(displaySheetName);
+    if (!safeDisplaySheetName) throw new Error('Thiếu tên danh mục cần sync.');
+    var catalogKey = buildCatalogDataKey(safeDisplaySheetName, context.clean);
+    var payload = context.readCatalogData(safeDisplaySheetName);
+    var syncedAt = context.nowISOString();
+    context.upsertRows(TABLE_CATALOG_BUNDLES, [{
+      catalog_key: catalogKey,
+      payload: payload,
+      synced_at: syncedAt
+    }], 'catalog_key');
+    context.writeSyncStatus('catalog_data:' + safeDisplaySheetName, 'catalog', 'ok', 'Catalog table cache synced.', syncedAt);
+    return { ok: true, table: TABLE_CATALOG_BUNDLES, catalogKey: catalogKey, syncedAt: syncedAt };
+  }
+
+  function syncAllStartupAndCatalogs(context) {
+    var results = [];
+    var errors = [];
+    context.runSyncStep(results, errors, 'startup:' + DEFAULT_STARTUP_FORM_TYPE, function () {
+      return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE, context);
+    });
+    CATALOG_FORM_TYPES.forEach(function (formType) {
+      context.runSyncStep(results, errors, 'catalogs:' + (formType || 'all'), function () {
+        return syncCatalogsBundle(formType, context);
+      });
+    });
+    CATALOG_DISPLAY_SHEETS.forEach(function (displaySheetName) {
+      context.runSyncStep(results, errors, 'catalogData:' + displaySheetName, function () {
+        return syncCatalogDataBundle(displaySheetName, context);
+      });
+    });
+    return {
+      ok: errors.length === 0,
+      synced: results.length,
+      failed: errors.length,
+      results: results,
+      errors: errors
+    };
+  }
+
+  function syncCatalogAfterWrite(displaySheetName, context) {
+    var safeDisplaySheetName = context.clean(displaySheetName);
+    var results = [];
+    var errors = [];
+    context.runSyncStep(results, errors, 'startup', function () {
+      return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE, context);
+    });
+    CATALOG_FORM_TYPES.forEach(function (formType) {
+      context.runSyncStep(results, errors, 'catalogs:' + (formType || 'all'), function () {
+        return syncCatalogsBundle(formType, context);
+      });
+    });
+    if (safeDisplaySheetName) {
+      context.runSyncStep(results, errors, 'catalogData:' + safeDisplaySheetName, function () {
+        return syncCatalogDataBundle(safeDisplaySheetName, context);
+      });
+    }
+    return { ok: errors.length === 0, synced: results.length, failed: errors.length, errors: errors };
+  }
+
+  return {
+    syncStartupBundle: syncStartupBundle,
+    syncCatalogsBundle: syncCatalogsBundle,
+    syncCatalogDataBundle: syncCatalogDataBundle,
+    syncAllStartupAndCatalogs: syncAllStartupAndCatalogs,
+    syncCatalogAfterWrite: syncCatalogAfterWrite,
+    buildCatalogsKey: buildCatalogsKey,
+    buildCatalogDataKey: buildCatalogDataKey
+  };
+})();

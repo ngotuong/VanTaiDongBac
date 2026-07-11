@@ -33,6 +33,7 @@ function loadBackendKeyBuilders() {
     }
   });
   new vm.Script(read('NormalizationUtils.gs'), { filename: 'NormalizationUtils.gs#cache-key-test' }).runInContext(context);
+  new vm.Script(read('StartupCatalogSyncService.gs'), { filename: 'StartupCatalogSyncService.gs#cache-key-test' }).runInContext(context);
   new vm.Script(source, { filename: 'SupabaseService.gs#cache-key-test' }).runInContext(context);
   return context.SupabaseService.__cacheKeyTest;
 }

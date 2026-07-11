@@ -252,11 +252,14 @@ Commit lien quan:
 - Step 18d tách latest-trips read/serialization và dashboard payload assembly sang `DashboardService.gs`; `SheetService` giữ compatibility adapters, cache orchestration, report links và các Sheet overview/input readers hiện hữu.
 - Step 18d đã pass 105/105 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@263 - Refactor Step 18d extract dashboard latest trips`.
 - Smoke production Step 18d thành công: HTTP/Execution API `health` trả `ok=true`; dashboard trả đúng payload và latest trips ngày `04/07/2026`; audit `07/2026`/`Tất cả` đều `status=ok`, live/cache hash giữ nguyên. Toàn bộ Step 18 đã hoàn thành.
+- Step 19a tách startup/catalog bundle upsert, stable key/status assembly, full-sync target orchestration và catalog after-write sync sang `StartupCatalogSyncService.gs`; `SupabaseService` giữ nguyên public facade, realtime tick và call sites hiện hữu.
+- Step 19a đã pass 109/109 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@264 - Refactor Step 19a extract startup catalog sync service`; không cần migration/schema change.
+- Smoke production Step 19a thành công: `health` trả `ok=true`; `syncAllStartupAndCatalogsToSupabase()` sync đủ 17 bundle, failed 0; `sync_status` có 1 startup key và 16 catalog keys, tất cả `status=ok`.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: toàn bộ Step 18 đã hoàn thành và checkpoint production đang ở Apps Script `@263`.
-- Bước kế tiếp được đề xuất: Step 19 — tách các module sync service theo `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 19.
+- Trạng thái hiện tại: Step 19a đã hoàn thành và checkpoint production đang ở Apps Script `@264`; toàn bộ Step 19 chưa hoàn thành.
+- Bước kế tiếp được đề xuất: Step 19b — tách `ReportSyncService` theo `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt tiếp tục Step 19.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -303,4 +306,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 19 hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 19b hoặc bất kỳ thay đổi mới nào.

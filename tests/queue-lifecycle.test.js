@@ -12,6 +12,7 @@ const transportHandler = read('TransportJobHandler.gs');
 const sheetService = read('SheetService.gs');
 const entryService = read('EntryService.gs');
 const fundService = read('FundService.gs');
+const fundTransactionService = read('FundTransactionService.gs');
 const migration = read('supabase/migrations/006_write_queue_hardening.sql');
 
 function clone(value) {
@@ -131,8 +132,8 @@ test('fund full replay succeeds while a partial voucher match stops the entire b
     () => evaluateFundReplay(fixture.fundReplay.vouchers, fixture.fundReplay.partialExisting),
     new RegExp(fixture.fundReplay.partialConflictMessage.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
   );
-  assert.match(fundService, /existingCount === rows\.length[\s\S]*?idempotentReplay: true/);
-  assert.match(fundService, /existingCount > 0[\s\S]*?đã tồn tại một phần voucher/);
+  assert.match(fundTransactionService, /existingCount === rows\.length[\s\S]*?idempotentReplay: true/);
+  assert.match(fundTransactionService, /existingCount > 0[\s\S]*?đã tồn tại một phần voucher/);
 });
 
 test('failure after a Sheet write remains retryable and replay guards prevent duplicate rows', () => {
@@ -141,7 +142,7 @@ test('failure after a Sheet write remains retryable and replay guards prevent du
   assert.equal(afterPostWriteFailure.status, 'pending');
   assert.match(worker, /var result = context\.executeJob\(job\);[\s\S]*?status: 'synced'/);
   assert.match(entryService, /var idempotentReplay = Boolean\(reservedRange\)/);
-  assert.match(fundService, /idempotentReplay: true/);
+  assert.match(fundTransactionService, /idempotentReplay: true/);
 });
 
 test('pending never has the synced success shape and synced result keeps its public status shape', () => {

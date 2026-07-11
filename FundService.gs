@@ -411,16 +411,7 @@ var FundService = (function () {
   }
 
   function validateFundTransactions(payloads) {
-    var safePayloads = Array.isArray(payloads) ? payloads : [];
-    if (!safePayloads.length) throw new Error('Chưa có giao dịch thu chi nào để ghi.');
-    safePayloads.forEach(function (payload, index) {
-      try {
-        buildTransactionRow_(payload || {}, 'VALIDATION', index);
-      } catch (err) {
-        throw new Error('Dòng ' + (index + 1) + ': ' + (err && err.message ? err.message : String(err)));
-      }
-    });
-    return { ok: true, count: safePayloads.length };
+    return FundTransactionService.validate(payloads, fundTransactionWriteContext_());
   }
 
   function addFundTransactions(year, payloads, writeContext) {
@@ -434,105 +425,26 @@ var FundService = (function () {
       throw new Error('Không tìm thấy sheet Thu chi: ' + TRANSACTION_SHEET_NAME);
     }
 
-    var voucherSeed = buildVoucherSeed_();
-    var rows = safePayloads.map(function (payload, index) {
-      return buildTransactionRow_(payload || {}, voucherSeed, index);
-    });
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      var existingVoucherRows = findFundVoucherRows_(sheet, rows.map(function (row) { return clean_(row[0]); }));
-      var existingCount = Object.keys(existingVoucherRows).length;
-      if (existingCount === rows.length) {
-        var replayRows = rows.map(function (row) {
-          return {
-            ok: true,
-            rowIndex: existingVoucherRows[clean_(row[0])],
-            voucher: clean_(row[0]),
-            spreadsheetId: ss.getId(),
-            spreadsheetName: ss.getName(),
-            sheetName: TRANSACTION_SHEET_NAME
-          };
-        });
-        return {
-          ok: true,
-          inserted: rows.length,
-          spreadsheetId: ss.getId(),
-          spreadsheetName: ss.getName(),
-          firstRow: Math.min.apply(null, replayRows.map(function (row) { return row.rowIndex; })),
-          lastRow: Math.max.apply(null, replayRows.map(function (row) { return row.rowIndex; })),
-          rows: replayRows,
-          sheetName: TRANSACTION_SHEET_NAME,
-          idempotentReplay: true,
-          jobId: writeContext && writeContext.jobId ? writeContext.jobId : ''
-        };
-      }
-      if (existingCount > 0) {
-        throw new Error('Batch Thu chi đã tồn tại một phần voucher; dừng ghi để tránh nhân đôi dữ liệu.');
-      }
-      var appendRow = getAppendRow_(sheet);
-      var lastNeededRow = appendRow + rows.length - 1;
-      if (sheet.getMaxRows() < lastNeededRow) {
-        sheet.insertRowsAfter(sheet.getMaxRows(), lastNeededRow - sheet.getMaxRows());
-      }
-
-      try {
-        sheet.getRange(appendRow, 1, rows.length, rows[0].length).setValues(rows);
-        sheet.getRange(appendRow, 2, rows.length, 1).setNumberFormat('dd/MM/yyyy');
-        sheet.getRange(appendRow, 6, rows.length, 1).setNumberFormat('#,##0');
-        rows.forEach(function (row, index) {
-          var rowNumber = appendRow + index;
-          if (row[9] === 'Có') {
-            sheet.getRange(rowNumber, 13).setFormula(buildDebtFormula_(rowNumber));
-          }
-          sheet.getRange(rowNumber, 14).setFormula(buildFilterFormula_(rowNumber));
-        });
-        SpreadsheetApp.flush();
-      } catch (writeErr) {
-        rollbackInsertedFundTransactionRows_(sheet, appendRow, rows.length);
-        throw writeErr;
-      }
+      var context = fundTransactionWriteContext_();
+      context.spreadsheet = ss;
+      context.sheet = sheet;
+      context.appendOptions = { getAppendRow: getAppendRow_, buildDebtFormula: buildDebtFormula_, buildFilterFormula: buildFilterFormula_,
+        flush: function () { SpreadsheetApp.flush(); }, rollback: rollbackInsertedFundTransactionRows_ };
+      var result = FundTransactionService.addTransactions(safePayloads, writeContext, context);
+      if (result.idempotentReplay) return result;
       bumpFundDataVersion_();
-
-      return {
-        ok: true,
-        inserted: rows.length,
-        spreadsheetId: ss.getId(),
-        spreadsheetName: ss.getName(),
-        firstRow: appendRow,
-        lastRow: lastNeededRow,
-        rows: rows.map(function (row, index) {
-          return {
-            ok: true,
-            rowIndex: appendRow + index,
-            voucher: row[0],
-            spreadsheetId: ss.getId(),
-            spreadsheetName: ss.getName(),
-            sheetName: TRANSACTION_SHEET_NAME
-          };
-        }),
-        sheetName: TRANSACTION_SHEET_NAME
-      };
+      return result;
     } finally {
       lock.releaseLock();
     }
   }
 
-  function findFundVoucherRows_(sheet, vouchers) {
-    var wanted = {};
-    (vouchers || []).forEach(function (voucher) {
-      var cleanVoucher = clean_(voucher);
-      if (cleanVoucher) wanted[cleanVoucher] = true;
-    });
-    var found = {};
-    var lastRow = sheet.getLastRow();
-    if (!Object.keys(wanted).length || lastRow < 2) return found;
-    var values = sheet.getRange(2, 1, lastRow - 1, 1).getDisplayValues();
-    values.forEach(function (row, index) {
-      var voucher = clean_(row[0]);
-      if (wanted[voucher] && !found[voucher]) found[voucher] = index + 2;
-    });
-    return found;
+  function fundTransactionWriteContext_() {
+    return { repository: FundTransactionRepository, sheetName: TRANSACTION_SHEET_NAME, clean: clean_, parseDate: parseDate_,
+      parseNumber: parseNumber_, buildVoucherSeed: buildVoucherSeed_, buildVoucher: buildVoucher_ };
   }
 
   function rollbackInsertedFundTransactionRows_(sheet, startRow, rowCount) {
@@ -1249,35 +1161,7 @@ var FundService = (function () {
   }
 
   function buildTransactionRow_(payload, voucherSeed, voucherIndex) {
-    var type = clean_(payload.type);
-    var date = parseDate_(payload.date, payload.date);
-    var category = clean_(payload.category);
-    var method = clean_(payload.method);
-    var amount = parseNumber_(payload.amount);
-    var actor = clean_(payload.actor);
-    var partner = clean_(payload.partner);
-    var content = clean_(payload.content);
-    var debt = payload.debt === true || clean_(payload.debt) === 'Có' ? 'Có' : '';
-
-    if (!date) throw new Error('Vui lòng nhập ngày hợp lệ.');
-    if (type !== 'Thu' && type !== 'Chi') throw new Error('Vui lòng chọn loại Thu hoặc Chi.');
-    if (!category) throw new Error('Vui lòng nhập mục thu/chi.');
-    if (!(amount > 0)) throw new Error('Số tiền phải lớn hơn 0.');
-    if (!actor) throw new Error('Vui lòng nhập Người Thu/Chi.');
-    if (debt && !partner) throw new Error('Khoản công nợ cần có Đối tác.');
-
-    return [
-      clean_(payload.voucher) || buildVoucher_(voucherSeed, voucherIndex),
-      date,
-      type === 'Thu' ? category : '',
-      type === 'Chi' ? category : '',
-      method,
-      amount,
-      actor,
-      partner,
-      content,
-      debt
-    ];
+    return FundTransactionService.buildRow(payload || {}, voucherSeed, voucherIndex, fundTransactionWriteContext_());
   }
 
   function buildLoanRow_(payload) {

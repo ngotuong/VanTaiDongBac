@@ -1,5 +1,60 @@
 /** Read-side mapping and filtering for Fund transactions. */
 var FundTransactionService = (function () {
+  function buildRow(payload, voucherSeed, voucherIndex, context) {
+    var item = payload || {};
+    var type = context.clean(item.type);
+    var date = context.parseDate(item.date, item.date);
+    var category = context.clean(item.category);
+    var method = context.clean(item.method);
+    var amount = context.parseNumber(item.amount);
+    var actor = context.clean(item.actor);
+    var partner = context.clean(item.partner);
+    var content = context.clean(item.content);
+    var debt = item.debt === true || context.clean(item.debt) === 'Có' ? 'Có' : '';
+    if (!date) throw new Error('Vui lòng nhập ngày hợp lệ.');
+    if (type !== 'Thu' && type !== 'Chi') throw new Error('Vui lòng chọn loại Thu hoặc Chi.');
+    if (!category) throw new Error('Vui lòng nhập mục thu/chi.');
+    if (!(amount > 0)) throw new Error('Số tiền phải lớn hơn 0.');
+    if (!actor) throw new Error('Vui lòng nhập Người Thu/Chi.');
+    if (debt && !partner) throw new Error('Khoản công nợ cần có Đối tác.');
+    return [context.clean(item.voucher) || context.buildVoucher(voucherSeed, voucherIndex), date,
+      type === 'Thu' ? category : '', type === 'Chi' ? category : '', method, amount, actor, partner, content, debt];
+  }
+
+  function validate(payloads, context) {
+    var items = Array.isArray(payloads) ? payloads : [];
+    if (!items.length) throw new Error('Chưa có giao dịch thu chi nào để ghi.');
+    items.forEach(function (payload, index) {
+      try { buildRow(payload, 'VALIDATION', index, context); }
+      catch (error) { throw new Error('Dòng ' + (index + 1) + ': ' + (error && error.message ? error.message : String(error))); }
+    });
+    return { ok: true, count: items.length };
+  }
+
+  function addTransactions(payloads, writeContext, context) {
+    var items = Array.isArray(payloads) ? payloads : [];
+    if (!items.length) throw new Error('Chưa có giao dịch thu chi nào để ghi.');
+    var seed = context.buildVoucherSeed();
+    var rows = items.map(function (payload, index) { return buildRow(payload, seed, index, context); });
+    var existing = context.repository.findVoucherRows(context.sheet, rows.map(function (row) { return context.clean(row[0]); }), context.clean);
+    var existingCount = Object.keys(existing).length;
+    var spreadsheetId = context.spreadsheet.getId();
+    var spreadsheetName = context.spreadsheet.getName();
+    if (existingCount === rows.length) {
+      var replayRows = rows.map(function (row) { return { ok: true, rowIndex: existing[context.clean(row[0])], voucher: context.clean(row[0]), spreadsheetId: spreadsheetId, spreadsheetName: spreadsheetName, sheetName: context.sheetName }; });
+      return { ok: true, inserted: rows.length, spreadsheetId: spreadsheetId, spreadsheetName: spreadsheetName,
+        firstRow: Math.min.apply(null, replayRows.map(function (row) { return row.rowIndex; })),
+        lastRow: Math.max.apply(null, replayRows.map(function (row) { return row.rowIndex; })), rows: replayRows,
+        sheetName: context.sheetName, idempotentReplay: true, jobId: writeContext && writeContext.jobId ? writeContext.jobId : '' };
+    }
+    if (existingCount > 0) throw new Error('Batch Thu chi đã tồn tại một phần voucher; dừng ghi để tránh nhân đôi dữ liệu.');
+    var range = context.repository.appendRows(context.sheet, rows, context.appendOptions);
+    return { ok: true, inserted: rows.length, spreadsheetId: spreadsheetId, spreadsheetName: spreadsheetName,
+      firstRow: range.firstRow, lastRow: range.lastRow,
+      rows: rows.map(function (row, index) { return { ok: true, rowIndex: range.firstRow + index, voucher: row[0], spreadsheetId: spreadsheetId, spreadsheetName: spreadsheetName, sheetName: context.sheetName }; }),
+      sheetName: context.sheetName };
+  }
+
   function getTransactions(year, filter, context) {
     var options = filter || {};
     var selectedMonth = context.normalizeMonth(options.month);
@@ -55,5 +110,5 @@ var FundTransactionService = (function () {
     };
   }
 
-  return { getTransactions: getTransactions };
+  return { buildRow: buildRow, validate: validate, addTransactions: addTransactions, getTransactions: getTransactions };
 })();

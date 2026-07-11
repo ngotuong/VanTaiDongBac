@@ -976,7 +976,7 @@ Body:
 }
 ```
 
-Handler: direct `FundService.addFundTransaction()` qua `withFundSync_()`.
+Handler: direct `FundService.addFundTransaction()` qua `withFundSync_()`; facade delegate validate/build/append/voucher replay cho `FundTransactionService` và `FundTransactionRepository`.
 
 Response chứa thông tin row/voucher/khoảng ghi tùy service. `supabaseSync` được đánh dấu deferred.
 
@@ -1007,6 +1007,8 @@ Routing:
 
 - `useQueue=true` và `ASYNC_FUND_TRANSACTION_ADD_ENABLED=true`: enqueue `fund/addFundTransactions`;
 - trường hợp khác: direct `FundService.addFundTransactions()`.
+
+Ở cả direct và worker replay, `FundService` giữ resolver/lock/cache bump; `FundTransactionService` sở hữu validate/build row và replay/partial-conflict; `FundTransactionRepository` sở hữu voucher lookup và append/format/helper formulas.
 
 Queued response: `{ok,accepted,queued,jobId,status}`.
 

@@ -47,5 +47,42 @@ var FundTransactionRepository = (function () {
     };
   }
 
-  return { getColumns: getColumns, readSnapshot: readSnapshot };
+  function findVoucherRows(sheet, vouchers, clean) {
+    var wanted = {};
+    (vouchers || []).forEach(function (voucher) {
+      var value = clean(voucher);
+      if (value) wanted[value] = true;
+    });
+    var found = {};
+    var lastRow = sheet.getLastRow();
+    if (!Object.keys(wanted).length || lastRow < 2) return found;
+    sheet.getRange(2, 1, lastRow - 1, 1).getDisplayValues().forEach(function (row, index) {
+      var voucher = clean(row[0]);
+      if (wanted[voucher] && !found[voucher]) found[voucher] = index + 2;
+    });
+    return found;
+  }
+
+  function appendRows(sheet, rows, options) {
+    var appendRow = options.getAppendRow(sheet);
+    var lastRow = appendRow + rows.length - 1;
+    if (sheet.getMaxRows() < lastRow) sheet.insertRowsAfter(sheet.getMaxRows(), lastRow - sheet.getMaxRows());
+    try {
+      sheet.getRange(appendRow, 1, rows.length, rows[0].length).setValues(rows);
+      sheet.getRange(appendRow, 2, rows.length, 1).setNumberFormat('dd/MM/yyyy');
+      sheet.getRange(appendRow, 6, rows.length, 1).setNumberFormat('#,##0');
+      rows.forEach(function (row, index) {
+        var rowNumber = appendRow + index;
+        if (row[9] === 'Có') sheet.getRange(rowNumber, 13).setFormula(options.buildDebtFormula(rowNumber));
+        sheet.getRange(rowNumber, 14).setFormula(options.buildFilterFormula(rowNumber));
+      });
+      options.flush();
+    } catch (error) {
+      options.rollback(sheet, appendRow, rows.length);
+      throw error;
+    }
+    return { firstRow: appendRow, lastRow: lastRow };
+  }
+
+  return { getColumns: getColumns, readSnapshot: readSnapshot, findVoucherRows: findVoucherRows, appendRows: appendRows };
 })();

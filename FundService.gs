@@ -202,11 +202,20 @@ var FundService = (function () {
 
     var loans = Object.keys(loanMap).map(function (key) {
       var item = loanMap[key];
+      var currentState = overallLoanMap[key] || null;
       item.outstanding = item.borrowed - item.principalPaid;
       item.loanDate = item.loanDateObj ? Utilities.formatDate(item.loanDateObj, APP_CONFIG.timezone, 'yyyy-MM-dd') : '';
       item.loanDateText = item.loanDateObj ? Utilities.formatDate(item.loanDateObj, APP_CONFIG.timezone, 'dd/MM/yyyy') : '';
       item.principalLatestDate = item.principalDateObj ? Utilities.formatDate(item.principalDateObj, APP_CONFIG.timezone, 'yyyy-MM-dd') : '';
       item.principalLatestDateText = item.principalDateObj ? Utilities.formatDate(item.principalDateObj, APP_CONFIG.timezone, 'dd/MM/yyyy') : '';
+      item.currentOutstanding = currentState ? currentState.outstanding : item.outstanding;
+      item.isCurrentlySettled = Boolean(currentState && currentState.isSettled);
+      item.currentSettlementDate = currentState && currentState.principalDateObj
+        ? Utilities.formatDate(currentState.principalDateObj, APP_CONFIG.timezone, 'yyyy-MM-dd')
+        : '';
+      item.currentSettlementDateText = currentState && currentState.principalDateObj
+        ? Utilities.formatDate(currentState.principalDateObj, APP_CONFIG.timezone, 'dd/MM/yyyy')
+        : '';
       return item;
     }).sort(function (a, b) {
       return (b.outstanding || 0) - (a.outstanding || 0);
@@ -889,11 +898,17 @@ var FundService = (function () {
         loanMap[key] = {
           code: row.code,
           borrowed: 0,
-          principalPaid: 0
+          principalPaid: 0,
+          principalDateObj: null
         };
       }
       if (row.type === 'Vay') loanMap[key].borrowed += row.amount;
-      if (row.type === 'Trả nợ') loanMap[key].principalPaid += row.amount;
+      if (row.type === 'Trả nợ') {
+        loanMap[key].principalPaid += row.amount;
+        if (row.dateObj && (!loanMap[key].principalDateObj || row.dateObj > loanMap[key].principalDateObj)) {
+          loanMap[key].principalDateObj = row.dateObj;
+        }
+      }
     });
 
     Object.keys(loanMap).forEach(function (key) {

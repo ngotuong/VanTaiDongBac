@@ -142,17 +142,13 @@ test('missing Supabase configuration retains exact validation messages and makes
   assert.equal(missingKey.requests.length, 0);
 });
 
-test('SupabaseService keeps private transport signatures as compatibility wrappers', () => {
+test('SupabaseService keeps RPC transport while write persistence uses WriteJobRepository', () => {
   const source = read('SupabaseService.gs');
-  const wrappers = [
-    ['upsertRows_', 'SupabaseHttpClient.upsertRows'],
-    ['insertRows_', 'SupabaseHttpClient.insertRows'],
-    ['readRows_', 'SupabaseHttpClient.readRows'],
-    ['updateRows_', 'SupabaseHttpClient.updateRows'],
-    ['callRpc_', 'SupabaseHttpClient.callRpc']
-  ];
-  wrappers.forEach(([wrapper, target]) => {
-    assert.match(source, new RegExp(`function ${wrapper}\\([^)]*\\) \\{\\s*return ${target.replace('.', '\\.')}`));
-  });
+  const repository = read('WriteJobRepository.gs');
+  assert.match(source, /function callRpc_\([^)]*\) \{\s*return SupabaseHttpClient\.callRpc/);
+  assert.match(repository, /SupabaseHttpClient\.upsertRows\(TABLE_WRITE_JOBS/);
+  assert.match(repository, /SupabaseHttpClient\.insertRows\(TABLE_WRITE_JOB_LOGS/);
+  assert.match(repository, /SupabaseHttpClient\.readRows\(TABLE_WRITE_JOBS/);
+  assert.match(repository, /SupabaseHttpClient\.updateRows\(TABLE_WRITE_JOBS/);
   assert.doesNotMatch(source, /UrlFetchApp\.fetch/);
 });

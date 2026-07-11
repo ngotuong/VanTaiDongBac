@@ -83,8 +83,9 @@ test('SupabaseService routes only bundle persistence through the bundle reposito
   assert.match(fundSyncSource, /context\.upsertRows\(TABLE_FUND_TRANSACTION_BUNDLES/);
   assert.match(fundSyncSource, /context\.upsertRows\(TABLE_FUND_LOAN_BUNDLES/);
   assert.match(fundSyncSource, /context\.upsertRows\(TABLE_CATALOG_BUNDLES/);
-  assert.match(source, /upsertRows_\(TABLE_WRITE_JOBS/);
-  assert.match(source, /readRows_\(TABLE_WRITE_JOBS/);
+  assert.match(source, /WriteJobRepository\.create\(row\)/);
+  assert.match(source, /WriteJobRepository\.findByIdempotency/);
+  assert.doesNotMatch(source, /SupabaseHttpClient\.(?:upsertRows|insertRows|readRows|updateRows)/);
 });
 
 test('sync status keeps its payload fields, fallback timestamp, error isolation, and response mapping', () => {

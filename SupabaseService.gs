@@ -1,8 +1,6 @@
 var SupabaseService = (function () {
   var TABLE_REPORT_BUNDLES = 'report_bundles';
   var TABLE_MANAGE_DATA_BUNDLES = 'manage_data_bundles';
-  var TABLE_WRITE_JOBS = 'write_jobs';
-  var TABLE_WRITE_JOB_LOGS = 'write_job_logs';
   var DEFAULT_FUND_YEAR = '2026';
   var DEFAULT_STARTUP_FORM_TYPE = 'vanChuyen';
   var MANAGE_SHEET_NAMES = [
@@ -272,14 +270,8 @@ var SupabaseService = (function () {
     }
     var safeIdempotencyKey = clean_(idempotencyKey);
     if (safeIdempotencyKey) {
-      var existing = readRows_(TABLE_WRITE_JOBS, {
-        module: 'eq.' + safeModule,
-        idempotency_key: 'eq.' + safeIdempotencyKey,
-        select: 'id,module,action,status,result,attempts,max_attempts,last_error,created_at,updated_at,synced_at',
-        limit: '1'
-      });
-      if (existing.length) {
-        var existingJob = normalizeWriteJobRow_(existing[0]);
+      var existingJob = WriteJobRepository.findByIdempotency(safeModule, safeIdempotencyKey);
+      if (existingJob) {
         if (existingJob.status === 'synced' && existingJob.result && typeof existingJob.result === 'object') {
           var completedResult = {};
           Object.keys(existingJob.result).forEach(function (key) { completedResult[key] = existingJob.result[key]; });
@@ -307,31 +299,25 @@ var SupabaseService = (function () {
       next_run_at: new Date().toISOString(),
       idempotency_key: safeIdempotencyKey || jobId
     };
-    upsertRows_(TABLE_WRITE_JOBS, [row], 'id');
-    insertRows_(TABLE_WRITE_JOB_LOGS, [{
-      job_id: jobId,
-      status: 'pending',
-      message: 'Write job queued.',
-      details: { action: row.action, module: row.module, idempotencyKey: row.idempotency_key }
-    }]);
+    WriteJobRepository.create(row);
     var triggerResult = null;
     try {
       triggerResult = installWriteJobTrigger();
     } catch (triggerErr) {
-      insertRows_(TABLE_WRITE_JOB_LOGS, [{
+      WriteJobRepository.appendLog({
         job_id: jobId,
         status: 'pending',
         message: 'Không cài được trigger worker tự động: ' + (triggerErr && triggerErr.message ? triggerErr.message : triggerErr)
-      }]);
+      });
     }
     try {
       installManageDataSyncTrigger();
     } catch (manageTriggerErr) {
-      insertRows_(TABLE_WRITE_JOB_LOGS, [{
+      WriteJobRepository.appendLog({
         job_id: jobId,
         status: 'pending',
         message: 'Không cài được trigger sync Vận hành tự động: ' + (manageTriggerErr && manageTriggerErr.message ? manageTriggerErr.message : manageTriggerErr)
-      }]);
+      });
     }
     return {
       ok: true,
@@ -413,33 +399,22 @@ var SupabaseService = (function () {
   function getWriteJobStatus(jobId) {
     var safeJobId = clean_(jobId);
     if (!safeJobId) throw new Error('Thiếu mã job cần kiểm tra.');
-    var rows = readRows_(TABLE_WRITE_JOBS, {
-      id: 'eq.' + safeJobId,
-      select: 'id,module,action,status,result,attempts,max_attempts,last_error,idempotency_key,worker_id,claimed_at,created_at,updated_at,synced_at',
-      limit: '1'
-    });
-    if (!rows.length) {
+    var job = WriteJobRepository.get(safeJobId);
+    if (!job) {
       return { ok: false, error: 'Không tìm thấy job: ' + safeJobId };
     }
-    return normalizeWriteJobRow_(rows[0]);
+    return job;
   }
 
   function getRecentWriteJobs(moduleName, actionName, limit) {
     var safeLimit = Math.min(Math.max(parseInt(limit || 20, 10) || 20, 1), 100);
-    var query = {
-      select: 'id,module,action,status,payload,result,attempts,max_attempts,last_error,idempotency_key,worker_id,claimed_at,created_at,updated_at,synced_at',
-      order: 'created_at.desc',
-      limit: String(safeLimit)
-    };
     var safeModule = clean_(moduleName);
     var safeAction = clean_(actionName);
-    if (safeModule) query.module = 'eq.' + safeModule;
-    if (safeAction) query.action = 'eq.' + safeAction;
-    var rows = readRows_(TABLE_WRITE_JOBS, query);
+    var jobs = WriteJobRepository.listRecent(safeModule, safeAction, safeLimit);
     return {
       ok: true,
-      jobs: (rows || []).map(normalizeWriteJobRow_),
-      count: rows.length,
+      jobs: jobs,
+      count: jobs.length,
       checkedAt: new Date().toISOString()
     };
   }
@@ -507,20 +482,7 @@ var SupabaseService = (function () {
   function retryWriteJob(jobId) {
     var safeJobId = clean_(jobId);
     if (!safeJobId) throw new Error('Thiếu mã job cần retry.');
-    updateRows_(TABLE_WRITE_JOBS, {
-      status: 'pending',
-      attempts: 0,
-      last_error: '',
-      next_run_at: new Date().toISOString(),
-      locked_at: null,
-      claimed_at: null,
-      worker_id: null
-    }, { id: 'eq.' + safeJobId });
-    insertRows_(TABLE_WRITE_JOB_LOGS, [{
-      job_id: safeJobId,
-      status: 'pending',
-      message: 'Write job manually retried.'
-    }]);
+    WriteJobRepository.retry(safeJobId, new Date().toISOString());
     return getWriteJobStatus(safeJobId);
   }
 
@@ -635,44 +597,27 @@ var SupabaseService = (function () {
   function processWriteJob_(job, workerId) {
     var attempts = Number(job.attempts || 0);
     var jobId = clean_(job.id);
-    insertRows_(TABLE_WRITE_JOB_LOGS, [{
-      job_id: jobId,
-      status: 'processing',
-      message: 'Write job processing started.',
-      details: { attempt: attempts, workerId: workerId || job.worker_id || '', claimedAt: job.claimed_at || '', idempotencyKey: job.idempotency_key || '' }
-    }]);
+    WriteJobRepository.markProcessing(jobId, {
+      attempt: attempts,
+      workerId: workerId || job.worker_id || '',
+      claimedAt: job.claimed_at || '',
+      idempotencyKey: job.idempotency_key || ''
+    });
 
     try {
       var result = executeWriteJob_(job);
-      updateRows_(TABLE_WRITE_JOBS, {
-        status: 'synced',
-        result: result,
-        synced_at: new Date().toISOString(),
-        locked_at: null,
-        last_error: ''
-      }, { id: 'eq.' + jobId });
-      insertRows_(TABLE_WRITE_JOB_LOGS, [{
-        job_id: jobId,
-        status: 'synced',
-        message: 'Write job synced to Google Sheet.',
-        details: result
-      }]);
+      WriteJobRepository.markSynced(jobId, result, new Date().toISOString());
       return { ok: true, jobId: jobId, status: 'synced', result: result };
     } catch (err) {
       var errorMessage = err && err.message ? err.message : String(err);
       var failedPermanently = attempts >= Number(job.max_attempts || 3);
-      updateRows_(TABLE_WRITE_JOBS, {
-        status: failedPermanently ? 'failed' : 'pending',
-        last_error: errorMessage,
-        locked_at: null,
-        next_run_at: new Date(new Date().getTime() + attempts * 60000).toISOString()
-      }, { id: 'eq.' + jobId });
-      insertRows_(TABLE_WRITE_JOB_LOGS, [{
-        job_id: jobId,
-        status: failedPermanently ? 'failed' : 'pending',
-        message: errorMessage,
-        details: { attempt: attempts, retryable: !failedPermanently }
-      }]);
+      WriteJobRepository.markFailure(
+        jobId,
+        failedPermanently ? 'failed' : 'pending',
+        errorMessage,
+        new Date(new Date().getTime() + attempts * 60000).toISOString(),
+        { attempt: attempts, retryable: !failedPermanently }
+      );
       return { ok: false, jobId: jobId, status: failedPermanently ? 'failed' : 'pending', error: errorMessage };
     }
   }
@@ -775,27 +720,6 @@ var SupabaseService = (function () {
     throw new Error(errorMessage || fallbackMessage || 'Write job thất bại.');
   }
 
-  function normalizeWriteJobRow_(row) {
-    return {
-      ok: true,
-      jobId: row.id,
-      module: row.module,
-      action: row.action,
-      idempotencyKey: row.idempotency_key || '',
-      workerId: row.worker_id || '',
-      claimedAt: row.claimed_at || '',
-      status: row.status,
-      result: row.result || null,
-      payload: row.payload || null,
-      attempts: row.attempts || 0,
-      maxAttempts: row.max_attempts || 0,
-      lastError: row.last_error || '',
-      createdAt: row.created_at || '',
-      updatedAt: row.updated_at || '',
-      syncedAt: row.synced_at || ''
-    };
-  }
-
   function buildRealtimeTickSteps_() {
     var steps = [
       { name: 'dashboard' },
@@ -896,22 +820,6 @@ var SupabaseService = (function () {
       intervalMinutes: REALTIME_TICK_INTERVAL_MINUTES,
       mode: 'tick'
     };
-  }
-
-  function upsertRows_(tableName, rows, onConflict) {
-    return SupabaseHttpClient.upsertRows(tableName, rows, onConflict);
-  }
-
-  function insertRows_(tableName, rows) {
-    return SupabaseHttpClient.insertRows(tableName, rows);
-  }
-
-  function readRows_(tableName, query) {
-    return SupabaseHttpClient.readRows(tableName, query);
-  }
-
-  function updateRows_(tableName, patch, filters) {
-    return SupabaseHttpClient.updateRows(tableName, patch, filters);
   }
 
   function callRpc_(functionName, payload) {

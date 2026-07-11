@@ -295,15 +295,13 @@ var FundService = (function () {
     if (optionsCached) return optionsCached;
     var ss = getFundSpreadsheet_(year);
     var settings = readFundSettings_(ss);
-    var catalogs = readFundCatalogGroups_(ss);
-    var result = {
-      ok: true,
-      incomeCategories: mergeUniqueValues_(catalogs.incomeCategories, getFallbackFundIncomeCategories_(ss, settings)),
-      expenseCategories: mergeUniqueValues_(catalogs.expenseCategories, getFallbackFundExpenseCategories_(ss)),
-      actors: mergeUniqueValues_(catalogs.actors, getFallbackFundActors_(ss)),
-      partners: mergeUniqueValues_(catalogs.partners, getFallbackFundPartners_(ss)),
-      loanPartners: mergeUniqueValues_(catalogs.loanPartners, getFallbackFundLoanPartners_(ss))
-    };
+    var context = fundCatalogReadContext_(ss, ensureFundCatalogSheet_(ss));
+    context.fallbackIncome = function () { return getFallbackFundIncomeCategories_(ss, settings); };
+    context.fallbackExpense = function () { return getFallbackFundExpenseCategories_(ss); };
+    context.fallbackActors = function () { return getFallbackFundActors_(ss); };
+    context.fallbackPartners = function () { return getFallbackFundPartners_(ss); };
+    context.fallbackLoanPartners = function () { return getFallbackFundLoanPartners_(ss); };
+    var result = FundCatalogService.getFormOptions(context);
     putFundCache_(optionsCacheKey, result, FUND_CATALOG_TTL_SECONDS);
     return result;
   }
@@ -313,22 +311,18 @@ var FundService = (function () {
     var catalogCached = getFundCache_(catalogCacheKey);
     if (catalogCached) return catalogCached;
     var ss = getFundSpreadsheet_(year);
-    var catalogSheet = ensureFundCatalogSheet_(ss);
-    var rows = readFundCatalogRows_(catalogSheet).concat(readNativeFundCatalogRows_(ss));
-    var normalizedGroup = normalizeFundCatalogGroup_(group);
-    var displayRows = normalizedGroup
-      ? rows.filter(function (row) { return row.groupKey === normalizedGroup; })
-      : rows;
-    var groups = getFundCatalogGroupSummary_(rows);
-    var result = {
-      ok: true,
-      sheetName: CATALOG_SHEET_NAME,
-      groups: groups,
-      selectedGroup: normalizedGroup,
-      rows: displayRows
-    };
+    var result = FundCatalogService.getCatalog(group, fundCatalogReadContext_(ss, ensureFundCatalogSheet_(ss)));
     putFundCache_(catalogCacheKey, result, FUND_CATALOG_TTL_SECONDS);
     return result;
+  }
+
+  function fundCatalogReadContext_(ss, sheet) {
+    return { repository: FundCatalogRepository, spreadsheet: ss, sheet: sheet, sheetName: CATALOG_SHEET_NAME,
+      groups: CATALOG_GROUPS, nativeSpecs: {
+        incomeCategories: { rangeName: 'MUCTHU', column: 5, startRow: 3 },
+        expenseCategories: { rangeName: 'MUCCHI', column: 8, startRow: 3 },
+        actors: { column: 15, startRow: 3 }, partners: { column: 13, startRow: 3 }, loanPartners: { column: 11, startRow: 3 }
+      }, clean: clean_, normalizeHeader: normalizeHeader_ };
   }
 
   function saveFundCatalogItem(year, payload) {

@@ -1051,7 +1051,7 @@ Body:
 }
 ```
 
-Handler: direct `FundService.updateFundTransaction()`.
+Handler: direct `FundService.updateFundTransaction()`; facade giữ resolver/lock/cache bump và delegate validation/update A:J + format B/F + formulas M:N cho `FundTransactionService`/`FundTransactionRepository`.
 
 Side effect: bump fund cache version; fund sync deferred theo wrapper hiện tại.
 
@@ -1072,7 +1072,7 @@ Body:
 }
 ```
 
-Handler: direct `FundService.deleteFundTransaction()`.
+Handler: direct `FundService.deleteFundTransaction()`; facade giữ resolver/lock/cache bump và delegate row validation/physical delete cho `FundTransactionService`/`FundTransactionRepository`.
 
 ### 12.5. `addFundLoan`
 

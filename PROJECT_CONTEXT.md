@@ -282,11 +282,14 @@ Commit lien quan:
 - Step 22b tách validate/build row, stable voucher generation usage, voucher replay/partial-conflict orchestration và append A:J + format B/F + helper formulas M:N sang `FundTransactionService.gs`/`FundTransactionRepository.gs`; `FundService` giữ public facade, spreadsheet resolver, lock, cache-version bump và rollback adapter. Update/delete chưa chuyển.
 - Step 22b đã pass 146/146 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@275 - Step 22b - Fund transaction append extraction`; không cần migration/schema change.
 - Smoke production Step 22b an toàn thành công: `health` trả `ok=true`; worker idle `processed=0`; read-back tháng `2026-07` vẫn trả `totalRows=67` và đúng hai giao dịch mới nhất. Không enqueue hoặc append giao dịch production.
+- Step 22c tách update/delete orchestration sang `FundTransactionService.gs`, range update/delete và batch rollback A:N sang `FundTransactionRepository.gs`; `FundService` chỉ giữ public facade, spreadsheet resolver, lock và cache-version bump cho Fund transaction.
+- Step 22c đã pass 148/148 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@276 - Step 22c - Fund transaction update delete extraction`; không cần migration/schema change.
+- Smoke production Step 22c an toàn thành công: `health` trả `ok=true`; worker idle `processed=0`; read-back tháng `2026-07` vẫn trả `totalRows=67` và đúng hai giao dịch mới nhất. Không update/delete dữ liệu production. Toàn bộ Step 22 đã hoàn thành.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 22a và 22b đã hoàn thành; Step 22 tổng thể chưa hoàn thành và checkpoint production đang ở Apps Script `@275`.
-- Bước kế tiếp được đề xuất: Step 22c — tách update/delete và hoàn tất ownership batch rollback của Fund transaction; chưa được tự bắt đầu nếu chưa có phê duyệt Step 22c.
+- Trạng thái hiện tại: toàn bộ Step 22 đã hoàn thành và checkpoint production đang ở Apps Script `@276`.
+- Bước kế tiếp được đề xuất: Step 23 — tách FundCatalogRepository/Service theo `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 23.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -333,4 +336,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 22c hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 23 hoặc bất kỳ thay đổi mới nào.

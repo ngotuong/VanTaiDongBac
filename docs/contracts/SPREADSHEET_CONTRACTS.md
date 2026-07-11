@@ -828,7 +828,7 @@ Transaction object chứa các field logic như:
 - content/note;
 - debt flag.
 
-Mapping chính xác do `FundTransactionService.buildRow()` sở hữu; `FundService.buildTransactionRow_()` chỉ là compatibility wrapper cho update hiện hữu. Append A:J, format B/F và helper formulas M:N do `FundTransactionRepository.appendRows()` thực hiện. Không duplicate mapping theo index ở frontend.
+Mapping chính xác do `FundTransactionService.buildRow()` sở hữu; `FundService.buildTransactionRow_()` chỉ là compatibility wrapper nội bộ. Append/update A:J, format B/F, helper formulas M:N, physical delete và batch rollback A:N do `FundTransactionRepository` thực hiện. Không duplicate mapping theo index ở frontend.
 
 ## 15. `NHAP_VAY` contract
 

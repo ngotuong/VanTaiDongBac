@@ -153,18 +153,20 @@ test('repository append preserves formats, helper formulas, growth, flush, and r
   const ranges = {};
   const targetSheet = {
     getMaxRows: () => 10,
+    getLastColumn: () => 14,
     insertRowsAfter: (...args) => calls.push(['grow', ...args]),
     getRange(row, column, height, width) {
       const key = [row, column, height || 1, width || 1].join(':');
       return ranges[key] || (ranges[key] = {
         setValues: (value) => calls.push(['values', key, value]),
         setNumberFormat: (value) => calls.push(['format', key, value]),
-        setFormula: (value) => calls.push(['formula', key, value])
+        setFormula: (value) => calls.push(['formula', key, value]),
+        clearContent: () => calls.push(['clear', key])
       });
     }
   };
   const options = { getAppendRow: () => 10, buildDebtFormula: (row) => `DEBT-${row}`, buildFilterFormula: (row) => `FILTER-${row}`,
-    flush: () => calls.push(['flush']), rollback: (...args) => calls.push(['rollback', ...args]) };
+    flush: () => calls.push(['flush']), warn: (...args) => calls.push(['warn', ...args]) };
   const result = repository.appendRows(targetSheet, [['V1', new Date(), '', 'Chi', '', 100, 'An', '', '', 'Có'], ['V2', new Date(), 'Thu', '', '', 200, 'Bình', '', '', '']], options);
   assert.deepEqual(JSON.parse(JSON.stringify(result)), { firstRow: 10, lastRow: 11 });
   assert.deepEqual(calls.filter((call) => call[0] === 'grow'), [['grow', 10, 1]]);
@@ -172,14 +174,53 @@ test('repository append preserves formats, helper formulas, growth, flush, and r
   assert.equal(calls.at(-1)[0], 'flush');
   ranges['10:1:1:10'] = { setValues() { throw new Error('synthetic write failure'); } };
   assert.throws(() => repository.appendRows(targetSheet, [['V3', new Date(), 'Thu', '', '', 1, 'An', '', '', '']], options), /synthetic write failure/);
-  assert.equal(calls.at(-1)[0], 'rollback');
+  assert.equal(calls.some((call) => call[0] === 'clear' && call[1] === '10:1:1:14'), true);
+});
+
+test('update and delete preserve existing voucher/method, helper formulas, result shape, and row validation', () => {
+  const { FundTransactionService: service } = load();
+  const calls = [];
+  const repository = {
+    readRow: () => ['OLD-VOUCHER', '', '', '', 'Chuyển khoản'],
+    updateRow(sheetValue, rowNumber, row, options) { calls.push(['update', rowNumber, row, options]); },
+    deleteRow(sheetValue, rowNumber) { calls.push(['delete', rowNumber]); }
+  };
+  const context = writeContext({ repository, headers: Array(10).fill(''), writeOptions: { marker: true } });
+  const updated = service.updateTransaction('12', { date: '11/07/2026', type: 'Chi', category: 'Dầu', amount: 500, actor: 'An' }, context);
+  assert.deepEqual(JSON.parse(JSON.stringify(updated)), { ok: true, rowIndex: 12, voucher: 'OLD-VOUCHER', sheetName: 'NHAP_THUCHI' });
+  assert.equal(calls[0][2][4], 'Chuyển khoản');
+  assert.deepEqual(JSON.parse(JSON.stringify(service.deleteTransaction(12, context))), { ok: true, rowIndex: 12, sheetName: 'NHAP_THUCHI' });
+  assert.deepEqual(calls[1], ['delete', 12]);
+  assert.throws(() => service.updateTransaction(1, {}, context), /Số dòng thu chi không hợp lệ/);
+  assert.throws(() => service.deleteTransaction('x', context), /Số dòng thu chi không hợp lệ/);
+});
+
+test('repository update/delete write only A:J plus formats and M:N helper cells', () => {
+  const { FundTransactionRepository: repository } = load();
+  const calls = [];
+  const range = (key) => ({
+    setValues: (value) => calls.push(['values', key, value]), setNumberFormat: (value) => calls.push(['format', key, value]),
+    setFormula: (value) => calls.push(['formula', key, value]), clearContent: () => calls.push(['clear', key])
+  });
+  const targetSheet = { getRange: (row, column, height, width) => range([row, column, height || 1, width || 1].join(':')),
+    deleteRow: (row) => calls.push(['delete', row]) };
+  const options = { buildDebtFormula: (row) => `DEBT-${row}`, buildFilterFormula: (row) => `FILTER-${row}`, flush: () => calls.push(['flush']) };
+  repository.updateRow(targetSheet, 8, ['V', new Date(), 'Thu', '', '', 100, 'An', '', '', 'Có'], options);
+  assert.equal(calls.find((call) => call[0] === 'values')[1], '8:1:1:10');
+  assert.deepEqual(calls.filter((call) => call[0] === 'formula').map((call) => [call[1], call[2]]), [['8:13:1:1', 'DEBT-8'], ['8:14:1:1', 'FILTER-8']]);
+  repository.updateRow(targetSheet, 9, ['V', new Date(), 'Thu', '', '', 100, 'An', '', '', ''], options);
+  assert.equal(calls.some((call) => call[0] === 'clear' && call[1] === '9:13:1:1'), true);
+  repository.deleteRow(targetSheet, 9, options);
+  assert.equal(calls.some((call) => call[0] === 'delete' && call[1] === 9), true);
 });
 
 test('FundService delegates transaction validation and append ownership while retaining lock, cache bump, and rollback adapter', () => {
   const facade = read('FundService.gs');
   assert.match(facade, /FundTransactionService\.validate\(payloads, fundTransactionWriteContext_\(\)\)/);
   assert.match(facade, /FundTransactionService\.addTransactions\(safePayloads, writeContext, context\)/);
-  assert.match(facade, /rollback: rollbackInsertedFundTransactionRows_/);
+  assert.doesNotMatch(facade, /function rollbackInsertedFundTransactionRows_/);
   assert.match(facade, /if \(result\.idempotentReplay\) return result;\s+bumpFundDataVersion_\(\)/);
   assert.doesNotMatch(facade, /function findFundVoucherRows_/);
+  assert.match(facade, /FundTransactionService\.updateTransaction\(rowIndex, payload, context\)/);
+  assert.match(facade, /FundTransactionService\.deleteTransaction\(rowIndex, context\)/);
 });

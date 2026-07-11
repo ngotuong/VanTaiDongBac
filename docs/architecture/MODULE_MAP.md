@@ -378,8 +378,8 @@ Phạm vi:
 Source:
 
 - facade: `ReportService.gs`;
-- month resolution và KPI parsing: `DashboardService.gs`;
-- detail aggregation/report tables/latest trips và Sheet adapters chưa tách: `SheetService.gs`;
+- month resolution, KPI parsing và detail aggregation: `DashboardService.gs`;
+- report tables/latest trips và Sheet adapters chưa tách: `SheetService.gs`;
 - temp-sheet lifecycle: `ReportTempSheetService.gs`;
 - `SYS_ReportCache` version/read/write: `SheetReportCacheRepository.gs`;
 - Supabase bundle sync/audit: `SupabaseService.gs`;

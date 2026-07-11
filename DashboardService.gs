@@ -113,6 +113,55 @@ var DashboardService = (function () {
     };
   }
 
+  function aggregateDetailMatrices(matrices) {
+    var base = matrices[0] || [];
+    var result = [];
+    if (base.length) result.push(base[0]);
+    var totals = [];
+    (matrices || []).forEach(function (matrix) {
+      for (var rowIndex = 1; rowIndex < matrix.length; rowIndex++) {
+        var row = matrix[rowIndex];
+        var category = clean_(row[0]);
+        if (!category) continue;
+        if (!totals[rowIndex]) {
+          totals[rowIndex] = {
+            category: category,
+            colB: 0,
+            colC: 0,
+            colD: 0,
+            colE: clean_(row[4]),
+            template: row
+          };
+        }
+        if (totals[rowIndex].category === category) {
+          totals[rowIndex].colB += parseNumber_(row[1]) || 0;
+          totals[rowIndex].colC += parseNumber_(row[2]) || 0;
+          totals[rowIndex].colD += parseNumber_(row[3]) || 0;
+        }
+      }
+    });
+    for (var i = 1; i < totals.length; i++) {
+      var item = totals[i];
+      if (!item) continue;
+      result.push([
+        item.category,
+        formatAggregateDetailCell_(item.colB, item.template[1]),
+        formatAggregateDetailCell_(item.colC, item.template[2]),
+        formatAggregateDetailCell_(item.colD, item.template[3]),
+        item.colE
+      ]);
+    }
+    return result;
+  }
+
+  function formatAggregateDetailCell_(value, template) {
+    var text = clean_(template);
+    if (text.indexOf('₫') !== -1 || text.indexOf('đ') !== -1) {
+      return Math.round(value).toLocaleString('vi-VN') + ' ₫';
+    }
+    return Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+  }
+
   function readDetailNumber_(rows, label, explanationContains) {
     var normalizedLabel = normalizeText_(label);
     var normalizedExplanation = normalizeText_(explanationContains || '');
@@ -156,6 +205,7 @@ var DashboardService = (function () {
     getActiveReportMonths: getActiveReportMonths,
     resolveReportMonth: resolveReportMonth,
     parseMonthKpis: parseMonthKpis,
-    parseDetailKpis: parseDetailKpis
+    parseDetailKpis: parseDetailKpis,
+    aggregateDetailMatrices: aggregateDetailMatrices
   };
 })();

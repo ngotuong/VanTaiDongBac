@@ -68,10 +68,11 @@ flowchart TD
 | `PLATFORM_ROUTING` | HTTP routing và public API | Nền tảng | `Router.gs`, `PublicApi.gs` | API request/response |
 | `PLATFORM_SECURITY` | Auth, proxy và RBAC | Nền tảng | `SecurityService.gs`, `api/app.js` | Supabase Auth, `app_users` |
 | `PLATFORM_SUPABASE` | Cache, sync, queue và worker | Nền tảng | `SupabaseService.gs` | Supabase bundle/queue tables |
+| `PLATFORM_SHEET_INFRA` | Runtime cache và bảo toàn ghi Sheet | Nền tảng | `RuntimeCacheService.gs`, `SheetWritePreserver.gs` | Apps Script CacheService, Google Sheet ranges |
 | `TRANSPORT_ENTRY` | Nhập liệu Vận tải | Nghiệp vụ | `EntryService.gs`, `SheetService.gs`, `ValidationService.gs` | `NL_*` |
 | `TRANSPORT_MANAGE` | Vận hành và CRUD dữ liệu | Nghiệp vụ | `ManageService.gs`, `SheetReadService.gs`, `EntryService.gs`, `SheetService.gs` | `NL_*` |
 | `TRANSPORT_CATALOG` | Danh mục Vận tải | Nghiệp vụ | `CatalogService.gs`; cache compatibility trong `SheetService.gs` | `DM_*` |
-| `TRANSPORT_REPORT` | Tổng quan và Báo cáo | Nghiệp vụ | `ReportService.gs`, `SheetService.gs` | `BC_*`, `XL_*`, `SYS_ReportCache` |
+| `TRANSPORT_REPORT` | Tổng quan và Báo cáo | Nghiệp vụ | `ReportService.gs`, `SheetService.gs`, `ReportTempSheetService.gs`, `SheetReportCacheRepository.gs` | `BC_*`, `XL_*`, `SYS_ReportCache` |
 | `TRANSPORT_RECONCILIATION` | Đối soát chuyến | Nghiệp vụ | `TransportReconciliationService.gs`; facade `EntryService.gs` | `NL_VanChuyen`, `NL_TaiXe`, `XL_DoiSoatChuyen` |
 | `FUND_TRANSACTIONS` | Giao dịch Thu chi | Nghiệp vụ | `FundService.gs` | `NHAP_THUCHI` |
 | `FUND_OVERVIEW` | Tổng quan Thu chi | Nghiệp vụ | `FundService.gs` | `NHAP_THUCHI`, cấu hình Thu chi |
@@ -218,6 +219,26 @@ Ranh giới quan trọng:
 - queue chỉ áp dụng cho action được allowlist và feature flag cho phép;
 - physical row delete không được queue.
 
+### 5.5. `PLATFORM_SHEET_INFRA` — Cache runtime và bảo toàn ghi
+
+Trách nhiệm:
+
+- chunked runtime cache, cache-key assembly và batch invalidation;
+- ghi row segment, bảo toàn/copy formula và format;
+- mở rộng row và tìm dòng cuối theo cột.
+
+Source:
+
+- runtime cache: `RuntimeCacheService.gs`;
+- low-level Sheet write preservation: `SheetWritePreserver.gs`;
+- compatibility wrappers/call sites: `SheetService.gs`.
+
+Ranh giới quan trọng:
+
+- không sở hữu mapping nghiệp vụ hoặc cache key domain;
+- không đổi TTL/version/formula semantics tại utility layer;
+- write range vẫn do service nghiệp vụ quyết định.
+
 ## 6. Module nghiệp vụ Vận tải
 
 ### 6.1. `TRANSPORT_ENTRY` — Nhập liệu
@@ -357,7 +378,9 @@ Phạm vi:
 Source:
 
 - facade: `ReportService.gs`;
-- implementation/parser/cache Sheet: `SheetService.gs`;
+- parser/dashboard implementation: `SheetService.gs`;
+- temp-sheet lifecycle: `ReportTempSheetService.gs`;
+- `SYS_ReportCache` version/read/write: `SheetReportCacheRepository.gs`;
 - Supabase bundle sync/audit: `SupabaseService.gs`;
 - frontend: `client_dashboard.html`, `client_reports.html`, `client_data.html`.
 
@@ -395,12 +418,7 @@ Source:
 
 - implementation: `TransportReconciliationService.gs`;
 - public facade: `EntryService.gs`;
-- compatibility adapter: `SheetService.gs`.
-
-Source:
-
-- facade: `EntryService.gs`;
-- implementation/API: `SheetService.gs`;
+- compatibility adapter: `SheetService.gs`;
 - frontend call: `client_data.html`;
 - công thức/đối soát Sheet: `XL_DoiSoatChuyen`.
 

@@ -84,7 +84,7 @@ test('sync status keeps its payload fields, fallback timestamp, error isolation,
   const source = read('SupabaseService.gs');
   const writeStart = source.indexOf('  function writeSyncStatus_');
   const readStart = source.indexOf('  function getSupabaseSyncStatus', writeStart);
-  const readEnd = source.indexOf('\n  function normalizeReportAuditMonths_', readStart);
+  const readEnd = source.indexOf('\n  function buildIdempotentJobId_', readStart);
   assert.ok(writeStart >= 0 && readStart > writeStart && readEnd > readStart);
   const writeBlock = source.slice(writeStart, readStart);
   const readBlock = source.slice(readStart, readEnd);

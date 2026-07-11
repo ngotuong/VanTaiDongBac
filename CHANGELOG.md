@@ -63,3 +63,11 @@ Các thay đổi đáng chú ý của repository được ghi tại đây. Trạ
 - Thêm `tests/supabase-repositories.test.js` để khóa delegation, row/query parity, status key/timestamp và ranh giới với write-job repository chưa tách.
 - Không thay đổi schema, primary key, payload shape, sync scope, cache audit logic, worker hoặc queue behavior.
 - Đã push Apps Script source và deploy production `@251 - Refactor Step 9 extract Supabase repositories`; smoke test `health` và `getSupabaseSyncStatus(1)` thành công.
+
+### Phase 4 — Refactor Step 10
+
+- Thêm `CacheAuditService.gs` để cô lập input normalization, Supabase `in` encoding, payload sanitization, stable hashing và audit result formatting.
+- Giữ repository reads, Google Sheet live reads và public `getReportCacheAudit`/`getManageCacheAudit` orchestration trong `SupabaseService.gs`.
+- Thêm `tests/cache-audit-service.test.js` khóa deterministic hash, volatile-field exclusion và các result shape `ok`, `stale`, `missing` hiện hữu.
+- Không thay đổi live-read scope, cache key, table/query, audit messages, source of truth hoặc sync behavior.
+- Đã push Apps Script source và deploy production `@252 - Refactor Step 10 extract cache audit service`; smoke test `health` và `getManageCacheAudit(['NL_VanChuyen'], 1)` thành công.

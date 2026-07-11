@@ -255,11 +255,14 @@ Commit lien quan:
 - Step 19a tách startup/catalog bundle upsert, stable key/status assembly, full-sync target orchestration và catalog after-write sync sang `StartupCatalogSyncService.gs`; `SupabaseService` giữ nguyên public facade, realtime tick và call sites hiện hữu.
 - Step 19a đã pass 109/109 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@264 - Refactor Step 19a extract startup catalog sync service`; không cần migration/schema change.
 - Smoke production Step 19a thành công: `health` trả `ok=true`; `syncAllStartupAndCatalogsToSupabase()` sync đủ 17 bundle, failed 0; `sync_status` có 1 startup key và 16 catalog keys, tất cả `status=ok`.
+- Step 19b tách report/dashboard bundle upsert, report month discovery/resolution và transport report-after-write month selection sang `ReportSyncService.gs`; `SupabaseService` giữ public facade, realtime tick, worker và audit call sites.
+- Step 19b đã pass 113/113 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@265 - Refactor Step 19b extract report sync service`; không cần migration/schema change.
+- Smoke production Step 19b thành công: `health` và dashboard sync `__dashboard_latest__` đều `ok`; report-after-write chọn đúng `2026-07`, sync 2 target `07/2026`/`Tất cả`, failed 0; audit hai kỳ đều `status=ok`, live/cache hash giữ nguyên.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 19a đã hoàn thành và checkpoint production đang ở Apps Script `@264`; toàn bộ Step 19 chưa hoàn thành.
-- Bước kế tiếp được đề xuất: Step 19b — tách `ReportSyncService` theo `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt tiếp tục Step 19.
+- Trạng thái hiện tại: Step 19b đã hoàn thành và checkpoint production đang ở Apps Script `@265`; toàn bộ Step 19 chưa hoàn thành.
+- Bước kế tiếp được đề xuất: Step 19c — tách `ManageSyncService` theo `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt tiếp tục Step 19.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -306,4 +309,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 19b hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 19c hoặc bất kỳ thay đổi mới nào.

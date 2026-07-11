@@ -7,7 +7,6 @@ var SupabaseService = (function () {
   var TABLE_MANAGE_DATA_BUNDLES = 'manage_data_bundles';
   var TABLE_WRITE_JOBS = 'write_jobs';
   var TABLE_WRITE_JOB_LOGS = 'write_job_logs';
-  var DASHBOARD_REPORT_MONTH = '__dashboard_latest__';
   var DEFAULT_FUND_YEAR = '2026';
   var DEFAULT_FUND_TRANSACTION_FILTER_KEY = 'recent_500';
   var DEFAULT_STARTUP_FORM_TYPE = 'vanChuyen';
@@ -34,25 +33,7 @@ var SupabaseService = (function () {
   var TRANSPORT_SHEET_SYNC_RUNNING_TTL_SECONDS = 120;
 
   function syncReportBundle(month) {
-    var targetMonth = clean_(month) || 'latest';
-    var bundle = ReportService.getReportBundle(targetMonth, true);
-    var resolvedMonth = resolveBundleMonth_(targetMonth, bundle);
-    var payload = {
-      spreadsheet_id: APP_CONFIG.spreadsheetId,
-      report_month: resolvedMonth,
-      source_sheet_names: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe'],
-      payload: bundle,
-      synced_at: new Date().toISOString()
-    };
-
-    SupabaseBundleRepository.upsertRows(TABLE_REPORT_BUNDLES, [payload], 'spreadsheet_id,report_month');
-    return {
-      ok: true,
-      table: TABLE_REPORT_BUNDLES,
-      spreadsheetId: APP_CONFIG.spreadsheetId,
-      reportMonth: resolvedMonth,
-      syncedAt: payload.synced_at
-    };
+    return ReportSyncService.syncReportBundle(month, reportSyncContext_());
   }
 
   function testReportSync() {
@@ -60,54 +41,11 @@ var SupabaseService = (function () {
   }
 
   function syncDashboard() {
-    var dashboard = ReportService.getDashboard('', true);
-    var payload = {
-      spreadsheet_id: APP_CONFIG.spreadsheetId,
-      report_month: DASHBOARD_REPORT_MONTH,
-      source_sheet_names: ['BC_TongQuan', 'NL_VanChuyen'],
-      payload: dashboard,
-      synced_at: new Date().toISOString()
-    };
-    SupabaseBundleRepository.upsertRows(TABLE_REPORT_BUNDLES, [payload], 'spreadsheet_id,report_month');
-    writeSyncStatus_('dashboard', 'transport', 'ok', 'Dashboard cache synced.', payload.synced_at);
-    return {
-      ok: true,
-      table: TABLE_REPORT_BUNDLES,
-      reportMonth: DASHBOARD_REPORT_MONTH,
-      syncedAt: payload.synced_at
-    };
+    return ReportSyncService.syncDashboard(reportSyncContext_());
   }
 
   function syncAllReportBundles() {
-    var months = getReportMonths_();
-    if (!months.length) {
-      throw new Error('Không tìm thấy tháng báo cáo trong BC_TongQuan.');
-    }
-
-    var targets = months.slice();
-    targets.push('Tất cả');
-
-    var results = [];
-    var errors = [];
-    targets.forEach(function (month) {
-      try {
-        results.push(syncReportBundle(month));
-      } catch (err) {
-        errors.push({
-          reportMonth: month,
-          error: err && err.message ? err.message : String(err)
-        });
-      }
-    });
-
-    return {
-      ok: errors.length === 0,
-      spreadsheetId: APP_CONFIG.spreadsheetId,
-      synced: results.length,
-      failed: errors.length,
-      months: results.map(function (item) { return item.reportMonth; }),
-      errors: errors
-    };
+    return ReportSyncService.syncAllReportBundles(reportSyncContext_());
   }
 
   function syncFundOverview(year, month) {
@@ -430,42 +368,7 @@ var SupabaseService = (function () {
   }
 
   function syncTransportReportsAfterWrite(sheetName, rows, options) {
-    var safeSheetName = clean_(sheetName);
-    var results = [];
-    var errors = [];
-    if (!isManageSheetName_(safeSheetName)) {
-      return { ok: true, skipped: true, synced: 0, failed: 0, reason: 'Sheet is not a transport manage sheet.' };
-    }
-
-    var monthKeys = getTransportRowsMonthKeys_(rows);
-    if (!monthKeys.length) monthKeys = getRecentReportMonthKeysForSync_(2);
-    monthKeys.forEach(function (monthKey) {
-      runSyncStep_(results, errors, 'report:' + monthKey, function () {
-        return syncReportBundle(formatMonthKeyForReport_(monthKey));
-      });
-    });
-    if (options && options.includeAll === true) {
-      runSyncStep_(results, errors, 'report:Tất cả', function () {
-        return syncReportBundle('Tất cả');
-      });
-    }
-    var syncedAt = new Date().toISOString();
-    writeSyncStatus_(
-      'transport_reports_after_write:' + safeSheetName,
-      'transport',
-      errors.length ? 'error' : 'ok',
-      errors.length ? JSON.stringify(errors) : 'Transport report cache synced after write.',
-      syncedAt
-    );
-    return {
-      ok: errors.length === 0,
-      sheetName: safeSheetName,
-      months: monthKeys,
-      synced: results.length,
-      failed: errors.length,
-      results: results,
-      errors: errors
-    };
+    return ReportSyncService.syncTransportReportsAfterWrite(sheetName, rows, options, reportSyncContext_());
   }
 
   function syncTransportSheetChange(eventType, sheetName, editedRange) {
@@ -1293,16 +1196,11 @@ var SupabaseService = (function () {
   }
 
   function getRecentReportMonths_(maxCount) {
-    var months = getReportMonths_();
-    return months.slice(Math.max(0, months.length - Math.max(1, maxCount || 1))).reverse();
+    return ReportSyncService.getRecentReportMonths(maxCount, reportSyncContext_());
   }
 
   function getRecentReportMonthKeysForSync_(maxCount) {
-    return getRecentReportMonths_(maxCount).map(function (month) {
-      return normalizeYearMonthKey_(month);
-    }).filter(function (monthKey) {
-      return monthKey;
-    });
+    return ReportSyncService.getRecentReportMonthKeys(maxCount, reportSyncContext_());
   }
 
   function installSupabaseSyncTriggers() {
@@ -1374,6 +1272,32 @@ var SupabaseService = (function () {
     };
   }
 
+  function reportSyncContext_() {
+    return {
+      spreadsheetId: APP_CONFIG.spreadsheetId,
+      clean: clean_,
+      nowISOString: function () { return new Date().toISOString(); },
+      getReportBundle: function (month, forceRefresh) {
+        return ReportService.getReportBundle(month, forceRefresh);
+      },
+      getDashboard: function (month, forceRefresh) {
+        return ReportService.getDashboard(month, forceRefresh);
+      },
+      getReportSheet: function () {
+        return SpreadsheetApp.openById(APP_CONFIG.spreadsheetId).getSheetByName('BC_TongQuan');
+      },
+      upsertRows: function (tableName, rows, onConflict) {
+        return SupabaseBundleRepository.upsertRows(tableName, rows, onConflict);
+      },
+      writeSyncStatus: writeSyncStatus_,
+      runSyncStep: runSyncStep_,
+      isManageSheetName: isManageSheetName_,
+      getTransportRowsMonthKeys: getTransportRowsMonthKeys_,
+      normalizeYearMonthKey: normalizeYearMonthKey_,
+      formatMonthKeyForReport: formatMonthKeyForReport_
+    };
+  }
+
   function getSupabaseSyncStatus(limit, moduleName) {
     var safeLimit = Math.min(Math.max(parseInt(limit || 30, 10) || 30, 1), 100);
     var query = {
@@ -1422,31 +1346,8 @@ var SupabaseService = (function () {
     }
   }
 
-  function resolveBundleMonth_(requestedMonth, bundle) {
-    if (requestedMonth && requestedMonth !== 'latest') return requestedMonth;
-    var rows = parseOverviewRows_(bundle && bundle.overview && bundle.overview.months);
-    return rows.length ? rows[rows.length - 1] : 'latest';
-  }
-
   function getReportMonths_() {
-    var ss = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
-    var sheet = ss.getSheetByName('BC_TongQuan');
-    if (!sheet) return [];
-    var rowCount = Math.min(sheet.getLastRow(), 24);
-    if (rowCount < 2) return [];
-    var lastColumn = sheet.getLastColumn();
-    var numColumns = Math.max(11, lastColumn - 7 + 1);
-    var matrix = sheet.getRange(1, 7, rowCount, numColumns).getDisplayValues();
-    return parseOverviewRows_(matrix);
-  }
-
-  function parseOverviewRows_(matrix) {
-    if (!matrix || matrix.length < 2) return [];
-    return matrix.slice(1).map(function (row) {
-      return clean_(row && row[0]);
-    }).filter(function (month) {
-      return month && month !== 'Tháng';
-    });
+    return ReportSyncService.getReportMonths(reportSyncContext_());
   }
 
   function normalizeFundMonthKey_(month) {

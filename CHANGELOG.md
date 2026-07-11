@@ -4,6 +4,13 @@ Các thay đổi đáng chú ý của repository được ghi tại đây. Trạ
 
 ## Unreleased
 
+### Documentation — Target architecture and Agent handoff
+
+- Thêm `TARGET_ARCHITECTURE.md` làm nguồn chuẩn cho layered target architecture, dependency direction, refactor principles và approval gate.
+- Chuẩn hóa prompt dùng khi bắt đầu cuộc trò chuyện mới để Agent chỉ báo cáo trạng thái rồi chờ phê duyệt.
+- Cập nhật `AI_START_HERE.md` và `PROJECT_CONTEXT.md` để bắt buộc đọc kiến trúc đích và không tự bắt đầu Step 11.
+- Không thay đổi code, runtime, schema, nghiệp vụ hoặc deployment.
+
 ### Phase 4 — Refactor Step 1
 
 - Thêm `tests/fixtures/baseline-characterization.json` để ghi nhận public API actions, runtime source surfaces, mapping form Vận tải, Supabase cache/queue tables và feature flag defaults hiện tại.

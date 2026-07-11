@@ -7,6 +7,7 @@ const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const fixture = JSON.parse(read('tests/fixtures/queue-lifecycle.synthetic.json'));
 const service = read('SupabaseService.gs');
+const worker = read('WriteJobWorker.gs');
 const sheetService = read('SheetService.gs');
 const entryService = read('EntryService.gs');
 const fundService = read('FundService.gs');
@@ -135,7 +136,7 @@ test('failure after a Sheet write remains retryable and replay guards prevent du
   const claimed = claim(fixture.jobs.pending, 'worker-test-1');
   const afterPostWriteFailure = finishFailure(claimed, 'sync failed after Sheet write');
   assert.equal(afterPostWriteFailure.status, 'pending');
-  assert.match(service, /var result = executeWriteJob_\(job\);[\s\S]*?status: 'synced'/);
+  assert.match(worker, /var result = context\.executeJob\(job\);[\s\S]*?status: 'synced'/);
   assert.match(entryService, /var idempotentReplay = Boolean\(reservedRange\)/);
   assert.match(fundService, /idempotentReplay: true/);
 });
@@ -146,8 +147,8 @@ test('pending never has the synced success shape and synced result keeps its pub
   assert.equal(fixture.syncedShape.status, 'synced');
   assert.equal(fixture.syncedShape.ok, true);
   assert.notDeepEqual(fixture.pendingShape, fixture.syncedShape);
-  assert.match(service, /return \{ ok: false, jobId: jobId, status: failedPermanently \? 'failed' : 'pending'/);
-  assert.match(service, /return \{ ok: true, jobId: jobId, status: 'synced', result: result \}/);
+  assert.match(worker, /return \{ ok: false, jobId: jobId, status: failedPermanently \? 'failed' : 'pending'/);
+  assert.match(worker, /return \{ ok: true, jobId: jobId, status: 'synced', result: result \}/);
 });
 
 test('runtime and migration retain atomic claim, stale reclaim, max-attempt and unique-idempotency guards', () => {
@@ -155,6 +156,7 @@ test('runtime and migration retain atomic claim, stale reclaim, max-attempt and 
   assert.match(migration, /attempts < max_attempts/i);
   assert.match(migration, /status = 'processing'[\s\S]*?p_stale_seconds/i);
   assert.match(migration, /create unique index[\s\S]*?on public\.write_jobs \(module, idempotency_key\)/i);
-  assert.match(service, /callRpc_\('claim_write_jobs',[\s\S]*?p_stale_seconds: 300/);
-  assert.match(service, /failedPermanently = attempts >= Number\(job\.max_attempts \|\| 3\)/);
+  assert.match(worker, /p_stale_seconds: STALE_SECONDS/);
+  assert.match(worker, /STALE_SECONDS = 300/);
+  assert.match(worker, /failedPermanently = attempts >= Number\(job\.max_attempts \|\| 3\)/);
 });

@@ -12,7 +12,6 @@ var SupabaseService = (function () {
     'NL_NghiVanHanh'
   ];
   var DEFAULT_MANAGE_FILTER_KEY = 'recent_500';
-  var DEFAULT_WRITE_JOB_LIMIT = 5;
   var ASYNC_WRITE_ENABLED = false;
   var ASYNC_TRANSPORT_WRITE_ENABLED = true;
   var ASYNC_FUND_TRANSACTION_ADD_ENABLED = readBooleanProperty_('ASYNC_FUND_TRANSACTION_ADD_ENABLED', false);
@@ -487,26 +486,7 @@ var SupabaseService = (function () {
   }
 
   function processWriteJobs(maxJobs) {
-    if (!isWriteJobEnabled_()) {
-      return { ok: true, disabled: true, processed: 0, message: 'Async write queue is disabled.' };
-    }
-    var limit = Math.max(1, Math.min(parseInt(maxJobs, 10) || DEFAULT_WRITE_JOB_LIMIT, 20));
-    var workerId = 'gas-' + Utilities.getUuid();
-    var jobs = callRpc_('claim_write_jobs', {
-      p_limit: limit,
-      p_worker_id: workerId,
-      p_stale_seconds: 300
-    });
-    var results = [];
-    (jobs || []).forEach(function (job) {
-      results.push(processWriteJob_(job, workerId));
-    });
-    return {
-      ok: results.every(function (item) { return item && item.ok !== false; }),
-      workerId: workerId,
-      processed: results.length,
-      results: results
-    };
+    return WriteJobWorker.process(maxJobs, writeJobWorkerContext_());
   }
 
   function installWriteJobTrigger() {
@@ -592,34 +572,6 @@ var SupabaseService = (function () {
       removed: removed,
       handlers: Object.keys(handlers)
     };
-  }
-
-  function processWriteJob_(job, workerId) {
-    var attempts = Number(job.attempts || 0);
-    var jobId = clean_(job.id);
-    WriteJobRepository.markProcessing(jobId, {
-      attempt: attempts,
-      workerId: workerId || job.worker_id || '',
-      claimedAt: job.claimed_at || '',
-      idempotencyKey: job.idempotency_key || ''
-    });
-
-    try {
-      var result = executeWriteJob_(job);
-      WriteJobRepository.markSynced(jobId, result, new Date().toISOString());
-      return { ok: true, jobId: jobId, status: 'synced', result: result };
-    } catch (err) {
-      var errorMessage = err && err.message ? err.message : String(err);
-      var failedPermanently = attempts >= Number(job.max_attempts || 3);
-      WriteJobRepository.markFailure(
-        jobId,
-        failedPermanently ? 'failed' : 'pending',
-        errorMessage,
-        new Date(new Date().getTime() + attempts * 60000).toISOString(),
-        { attempt: attempts, retryable: !failedPermanently }
-      );
-      return { ok: false, jobId: jobId, status: failedPermanently ? 'failed' : 'pending', error: errorMessage };
-    }
   }
 
   function executeWriteJob_(job) {
@@ -926,6 +878,21 @@ var SupabaseService = (function () {
       },
       writeSyncStatus: writeSyncStatus_,
       runSyncStep: runSyncStep_
+    };
+  }
+
+  function writeJobWorkerContext_() {
+    return {
+      isEnabled: isWriteJobEnabled_,
+      createUuid: function () { return Utilities.getUuid(); },
+      claimJobs: function (payload) { return callRpc_('claim_write_jobs', payload); },
+      executeJob: executeWriteJob_,
+      repository: WriteJobRepository,
+      clean: clean_,
+      nowISOString: function () { return new Date().toISOString(); },
+      nextRunISOString: function (attempts) {
+        return new Date(new Date().getTime() + attempts * 60000).toISOString();
+      }
     };
   }
 

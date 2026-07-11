@@ -88,13 +88,14 @@ test('retry and worker lifecycle preserve patches, filters, logs, and retry stat
   ]);
 });
 
-test('SupabaseService delegates repository persistence but retains RPC claim and worker execution', () => {
+test('SupabaseService delegates repository persistence and retains action execution', () => {
   const source = read('SupabaseService.gs');
+  const worker = read('WriteJobWorker.gs');
   assert.match(source, /WriteJobRepository\.retry\(safeJobId/);
-  assert.match(source, /WriteJobRepository\.markProcessing\(jobId/);
-  assert.match(source, /WriteJobRepository\.markSynced\(jobId/);
-  assert.match(source, /WriteJobRepository\.markFailure\(/);
-  assert.match(source, /callRpc_\('claim_write_jobs'/);
+  assert.match(worker, /context\.repository\.markProcessing\(jobId/);
+  assert.match(worker, /context\.repository\.markSynced\(jobId/);
+  assert.match(worker, /context\.repository\.markFailure\(/);
+  assert.match(source, /claimJobs: function \(payload\) \{ return callRpc_\('claim_write_jobs', payload\); \}/);
   assert.match(source, /function executeWriteJob_\(job\)/);
   assert.doesNotMatch(source, /function normalizeWriteJobRow_/);
 });

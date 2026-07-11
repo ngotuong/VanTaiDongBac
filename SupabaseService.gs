@@ -8,7 +8,6 @@ var SupabaseService = (function () {
   var TABLE_MANAGE_DATA_BUNDLES = 'manage_data_bundles';
   var TABLE_WRITE_JOBS = 'write_jobs';
   var TABLE_WRITE_JOB_LOGS = 'write_job_logs';
-  var TABLE_SYNC_STATUS = 'sync_status';
   var DASHBOARD_REPORT_MONTH = '__dashboard_latest__';
   var DEFAULT_FUND_YEAR = '2026';
   var DEFAULT_FUND_TRANSACTION_FILTER_KEY = 'recent_500';
@@ -59,7 +58,7 @@ var SupabaseService = (function () {
       synced_at: new Date().toISOString()
     };
 
-    upsertRows_(TABLE_REPORT_BUNDLES, [payload], 'spreadsheet_id,report_month');
+    SupabaseBundleRepository.upsertRows(TABLE_REPORT_BUNDLES, [payload], 'spreadsheet_id,report_month');
     return {
       ok: true,
       table: TABLE_REPORT_BUNDLES,
@@ -82,7 +81,7 @@ var SupabaseService = (function () {
       payload: dashboard,
       synced_at: new Date().toISOString()
     };
-    upsertRows_(TABLE_REPORT_BUNDLES, [payload], 'spreadsheet_id,report_month');
+    SupabaseBundleRepository.upsertRows(TABLE_REPORT_BUNDLES, [payload], 'spreadsheet_id,report_month');
     writeSyncStatus_('dashboard', 'transport', 'ok', 'Dashboard cache synced.', payload.synced_at);
     return {
       ok: true,
@@ -129,7 +128,7 @@ var SupabaseService = (function () {
     var monthKey = normalizeFundMonthKey_(month);
     var payload = FundService.getFundOverview(safeYear, { month: monthKey });
     var syncedAt = new Date().toISOString();
-    upsertRows_(TABLE_FUND_OVERVIEW_BUNDLES, [{
+    SupabaseBundleRepository.upsertRows(TABLE_FUND_OVERVIEW_BUNDLES, [{
       year: safeYear,
       month_key: monthKey,
       payload: payload,
@@ -152,7 +151,7 @@ var SupabaseService = (function () {
     var filterKey = buildFundTransactionFilterKey_(normalized);
     var payload = FundService.getFundTransactions(safeYear, normalized);
     var syncedAt = new Date().toISOString();
-    upsertRows_(TABLE_FUND_TRANSACTION_BUNDLES, [{
+    SupabaseBundleRepository.upsertRows(TABLE_FUND_TRANSACTION_BUNDLES, [{
       year: safeYear,
       filter_key: filterKey,
       payload: payload,
@@ -173,7 +172,7 @@ var SupabaseService = (function () {
     var monthKey = normalizeFundMonthKey_(month);
     var payload = FundService.getFundLoanOverview(safeYear, { month: monthKey });
     var syncedAt = new Date().toISOString();
-    upsertRows_(TABLE_FUND_LOAN_BUNDLES, [{
+    SupabaseBundleRepository.upsertRows(TABLE_FUND_LOAN_BUNDLES, [{
       year: safeYear,
       month_key: monthKey,
       payload: payload,
@@ -229,7 +228,7 @@ var SupabaseService = (function () {
     var safeFormType = clean_(formType) || DEFAULT_STARTUP_FORM_TYPE;
     var payload = SheetService.getStartupData(safeFormType);
     var syncedAt = new Date().toISOString();
-    upsertRows_(TABLE_STARTUP_BUNDLES, [{
+    SupabaseBundleRepository.upsertRows(TABLE_STARTUP_BUNDLES, [{
       form_type: safeFormType,
       payload: payload,
       synced_at: syncedAt
@@ -243,7 +242,7 @@ var SupabaseService = (function () {
     var catalogKey = buildCatalogsKey_(safeFormType);
     var payload = CatalogService.getCatalogs(safeFormType);
     var syncedAt = new Date().toISOString();
-    upsertRows_(TABLE_CATALOG_BUNDLES, [{
+    SupabaseBundleRepository.upsertRows(TABLE_CATALOG_BUNDLES, [{
       catalog_key: catalogKey,
       payload: payload,
       synced_at: syncedAt
@@ -258,7 +257,7 @@ var SupabaseService = (function () {
     var catalogKey = buildCatalogDataKey_(safeDisplaySheetName);
     var payload = CatalogService.readCatalogData(safeDisplaySheetName);
     var syncedAt = new Date().toISOString();
-    upsertRows_(TABLE_CATALOG_BUNDLES, [{
+    SupabaseBundleRepository.upsertRows(TABLE_CATALOG_BUNDLES, [{
       catalog_key: catalogKey,
       payload: payload,
       synced_at: syncedAt
@@ -272,7 +271,7 @@ var SupabaseService = (function () {
     var catalogKey = buildFundFormOptionsKey_(safeYear);
     var payload = FundService.getFundFormOptions(safeYear);
     var syncedAt = new Date().toISOString();
-    upsertRows_(TABLE_CATALOG_BUNDLES, [{
+    SupabaseBundleRepository.upsertRows(TABLE_CATALOG_BUNDLES, [{
       catalog_key: catalogKey,
       payload: payload,
       synced_at: syncedAt
@@ -287,7 +286,7 @@ var SupabaseService = (function () {
     var catalogKey = buildFundCatalogKey_(safeYear, safeGroup);
     var payload = FundService.getFundCatalog(safeYear, safeGroup);
     var syncedAt = new Date().toISOString();
-    upsertRows_(TABLE_CATALOG_BUNDLES, [{
+    SupabaseBundleRepository.upsertRows(TABLE_CATALOG_BUNDLES, [{
       catalog_key: catalogKey,
       payload: payload,
       synced_at: syncedAt
@@ -341,7 +340,7 @@ var SupabaseService = (function () {
     if (!safeSheetName) throw new Error('Thiếu tên sheet vận hành cần sync.');
     var payload = ManageService.readManageData(safeSheetName, '', '', 500);
     var syncedAt = new Date().toISOString();
-    upsertRows_(TABLE_MANAGE_DATA_BUNDLES, [{
+    SupabaseBundleRepository.upsertRows(TABLE_MANAGE_DATA_BUNDLES, [{
       sheet_name: safeSheetName,
       filter_key: DEFAULT_MANAGE_FILTER_KEY,
       payload: payload,
@@ -360,7 +359,7 @@ var SupabaseService = (function () {
     var filterKey = buildManageMonthFilterKey_(safeMonthKey);
     var payload = ManageService.readManageData(safeSheetName, period.startDate, period.endDate, 500);
     var syncedAt = new Date().toISOString();
-    upsertRows_(TABLE_MANAGE_DATA_BUNDLES, [{
+    SupabaseBundleRepository.upsertRows(TABLE_MANAGE_DATA_BUNDLES, [{
       sheet_name: safeSheetName,
       filter_key: filterKey,
       payload: payload,
@@ -934,7 +933,7 @@ var SupabaseService = (function () {
 
   function getReportCacheAudit(months) {
     var requestedMonths = normalizeReportAuditMonths_(months);
-    var rows = readRows_(TABLE_REPORT_BUNDLES, {
+    var rows = SupabaseBundleRepository.readRows(TABLE_REPORT_BUNDLES, {
       spreadsheet_id: 'eq.' + APP_CONFIG.spreadsheetId,
       report_month: 'in.(' + requestedMonths.map(encodeSupabaseInValue_).join(',') + ')',
       select: 'report_month,payload,synced_at,updated_at',
@@ -986,7 +985,7 @@ var SupabaseService = (function () {
   function getManageCacheAudit(sheetNames, limit) {
     var requestedSheets = normalizeManageAuditSheets_(sheetNames);
     var auditLimit = Math.min(Math.max(parseInt(limit || 50, 10) || 50, 1), 500);
-    var rows = readRows_(TABLE_MANAGE_DATA_BUNDLES, {
+    var rows = SupabaseBundleRepository.readRows(TABLE_MANAGE_DATA_BUNDLES, {
       sheet_name: 'in.(' + requestedSheets.map(encodeSupabaseInValue_).join(',') + ')',
       filter_key: 'eq.' + DEFAULT_MANAGE_FILTER_KEY,
       select: 'sheet_name,payload,synced_at,updated_at',
@@ -1471,13 +1470,13 @@ var SupabaseService = (function () {
 
   function writeSyncStatus_(syncKey, moduleName, status, message, syncedAt) {
     try {
-      upsertRows_(TABLE_SYNC_STATUS, [{
+      SupabaseSyncStatusRepository.upsert({
         sync_key: syncKey,
         module: moduleName,
         status: status,
         message: message || '',
         synced_at: syncedAt || new Date().toISOString()
-      }], 'sync_key');
+      });
     } catch (err) {
       console.log('sync_status_failed: ' + (err && err.message ? err.message : err));
     }
@@ -1492,7 +1491,7 @@ var SupabaseService = (function () {
     };
     var safeModule = clean_(moduleName);
     if (safeModule) query.module = 'eq.' + safeModule;
-    var rows = readRows_(TABLE_SYNC_STATUS, query);
+    var rows = SupabaseSyncStatusRepository.readRows(query);
     var now = new Date().getTime();
     rows = (rows || []).map(function (row) {
       var syncedAt = row.synced_at || '';

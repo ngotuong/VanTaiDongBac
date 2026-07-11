@@ -55,3 +55,11 @@ Các thay đổi đáng chú ý của repository được ghi tại đây. Trạ
 - Thêm `tests/supabase-http-client.test.js` khóa request snapshots, query encoding, headers, payload, non-2xx messages, invalid JSON và config validation.
 - Không thay đổi table name, query syntax, service-role configuration, schema, repository, cache key, queue hoặc retry behavior.
 - Đã push Apps Script source và deploy production `@250 - Refactor Step 8 extract Supabase HTTP client`; smoke test `health` và `getSupabaseSyncStatus(1)` thành công.
+
+### Phase 4 — Refactor Step 9
+
+- Thêm `SupabaseBundleRepository.gs` làm persistence boundary cho các bảng cache bundle, giữ table/query/row/conflict key tại call site orchestration.
+- Thêm `SupabaseSyncStatusRepository.gs` sở hữu table `sync_status` và conflict key `sync_key`; payload, timestamp và response mapping vẫn ở `SupabaseService`.
+- Thêm `tests/supabase-repositories.test.js` để khóa delegation, row/query parity, status key/timestamp và ranh giới với write-job repository chưa tách.
+- Không thay đổi schema, primary key, payload shape, sync scope, cache audit logic, worker hoặc queue behavior.
+- Đã push Apps Script source và deploy production `@251 - Refactor Step 9 extract Supabase repositories`; smoke test `health` và `getSupabaseSyncStatus(1)` thành công.

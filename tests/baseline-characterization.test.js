@@ -68,7 +68,11 @@ test('transport form-to-sheet configuration matches the baseline', () => {
 });
 
 test('Supabase tables and stable cache/job keys remain represented in runtime and migrations', () => {
-  const service = read('SupabaseService.gs');
+  const service = [
+    read('SupabaseService.gs'),
+    read('SupabaseBundleRepository.gs'),
+    read('SupabaseSyncStatusRepository.gs')
+  ].join('\n');
   const migrations = fs.readdirSync(path.join(root, 'supabase', 'migrations'))
     .filter((file) => file.endsWith('.sql'))
     .map((file) => read(path.join('supabase', 'migrations', file)))

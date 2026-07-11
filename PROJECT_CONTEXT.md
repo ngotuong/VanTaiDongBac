@@ -37,7 +37,7 @@ File nay la handoff/living roadmap chinh cua du an. Khi bat dau mot cuoc tro chu
 - Frontend production: `https://dongbac.vercel.app`
 - Apps Script deployment URL:
   `https://script.google.com/macros/s/AKfycby6kfup2sXJruP8lnxwW_qzl064qvTLx94JItkBoJV-I14DNY9Ml35q44Gko9knuOBRCQ/exec`
-- Apps Script deployment moi nhat da xac nhan: `@250 - Refactor Step 8 extract Supabase HTTP client`
+- Apps Script deployment moi nhat da xac nhan: `@251 - Refactor Step 9 extract Supabase repositories`
 - Apps Script deployments da don ngay 2026-07-06: chi con `@HEAD` va production `AKfycby6... @234`; cac deployment cu `@145`, `@212`, `@213` da undeploy de tranh goi nham URL.
 - Vercel production env `VITE_APP_SERVICE_URL` da cap nhat ve URL `AKfycby6...`; production `https://dongbac.vercel.app` da xac nhan khong con tro URL `@212`.
 - Supabase project da link va frontend dang doc bang anon key.
@@ -214,6 +214,9 @@ Commit lien quan:
 - Step 7 đã pass 54/54 test, build thành công, deploy Apps Script production `@249` và smoke test `health` thành công.
 - Step 8 tách Supabase REST/RPC transport sang `SupabaseHttpClient.gs`, giữ compatibility wrapper trong `SupabaseService`; chưa tách repository của Step 9.
 - Step 8 đã pass 62/62 test, build thành công, deploy Apps Script production `@250`; smoke test `health` và `getSupabaseSyncStatus(1)` đều thành công.
+- Step 9 tách bundle persistence sang `SupabaseBundleRepository.gs` và `sync_status` sang `SupabaseSyncStatusRepository.gs`; orchestration/public sync functions vẫn ở `SupabaseService`.
+- Step 9 đã pass 66/66 test, build thành công, deploy Apps Script production `@251`; smoke test `health` và `getSupabaseSyncStatus(1)` đều thành công.
+- Chưa thực hiện Step 10 (tách cache audit service).
 - Các bước tách service tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`; chưa thực hiện Step 9.
 
 ### 1. Dong bang do dung cua Bao cao

@@ -33,6 +33,7 @@ Quy tắc quan trọng:
 Tài liệu dự án:
 - `docs/ai/AI_START_HERE.md` là điểm bắt đầu bắt buộc và quy định Agent phải đọc tài liệu nào theo từng loại tác vụ. Không cần đọc toàn bộ thư mục `docs/` trong mọi cuộc trò chuyện.
 - `PROJECT_CONTEXT.md` là file handoff/lộ trình sống. Khi bắt đầu một cuộc trò chuyện mới hoặc sau khi mất ngữ cảnh, phải đọc file này để nắm trạng thái hiện tại trước khi đề xuất/sửa tiếp.
+- `TARGET_ARCHITECTURE.md` là kiến trúc đích dài hạn và chứa prompt khởi động chuẩn/cổng phê duyệt. Agent không được tự bắt đầu step kế tiếp nếu người dùng mới chỉ yêu cầu đọc hoặc báo trạng thái.
 - `PROJECT_SCHEMA.md` là schema index ngắn, dẫn tới schema snapshot và contract chi tiết.
 - `SUPABASE_SCHEMA.md`, `SUPABASE_SETUP.md`, `WORKFLOW.md`, `ROLLBACK.md` là tài liệu schema/vận hành Supabase, deploy và rollback; chỉ đọc khi tác vụ liên quan.
 - Khi có quyết định kiến trúc hoặc trạng thái lộ trình mới, cập nhật `PROJECT_CONTEXT.md`.

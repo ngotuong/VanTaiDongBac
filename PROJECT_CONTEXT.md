@@ -225,7 +225,7 @@ Commit lien quan:
 - Trạng thái hiện tại: đã hoàn thành và checkpoint Step 10; production đang ở Apps Script `@252`.
 - Bước kế tiếp được đề xuất: Step 11 trong `REFACTOR_PLAN.md` — tách runtime cache helpers khỏi `SheetService`.
 - Coding Agent mới không được tự bắt đầu Step 11. Sau khi đọc tài liệu bắt buộc, Agent chỉ được tóm tắt dự án, trạng thái, mục tiêu cuối và bước kế tiếp, sau đó chờ người dùng phê duyệt rõ ràng.
-- Các bước tách service tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`; chưa thực hiện Step 9.
+- Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`; chưa thực hiện Step 11.
 
 ### 1. Dong bang do dung cua Bao cao
 
@@ -268,12 +268,6 @@ Commit lien quan:
 
 ## Cach tiep tuc o cuoc tro chuyen moi
 
-Nguoi dung chi can noi: "Doc `PROJECT_CONTEXT.md` va tiep tuc lo trinh." Codex moi phai:
+Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-1. Doc `AGENTS.md`.
-2. Doc `PROJECT_CONTEXT.md`.
-3. Neu sua schema/cache, doc `SUPABASE_SCHEMA.md`.
-4. Neu deploy/rollback, doc `WORKFLOW.md` va `ROLLBACK.md`.
-5. Kiem tra `git status --short` truoc khi sua.
-6. Giai thich ke hoach ngan bang tieng Viet truoc khi edit.
-7. Neu nguoi dung chua phe duyet mot step cu the, chi bao cao trang thai/buoc ke tiep va dung; khong sua code, deploy hoac push.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 11 hoặc bất kỳ thay đổi nào.

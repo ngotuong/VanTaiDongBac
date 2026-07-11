@@ -43,10 +43,14 @@ Không được hiểu Thu chi chỉ là nguồn import của Vận tải. Hai m
 1. `AGENTS.md`
 2. `docs/ai/AI_START_HERE.md`
 3. `PROJECT_CONTEXT.md`
-4. `PROJECT_SCHEMA.md`
-5. Các file source trực tiếp liên quan đến tác vụ
+4. `TARGET_ARCHITECTURE.md`
+5. `PROJECT_SCHEMA.md`
+6. `REFACTOR_PLAN.md` nếu tác vụ liên quan roadmap/refactor
+7. Các file source trực tiếp liên quan đến tác vụ
 
 Không chỉ dựa vào tên file hoặc tài liệu tóm tắt để suy đoán hành vi. Trước khi đề xuất thay đổi, phải kiểm tra source đang chạy.
+
+Nếu người dùng chỉ yêu cầu khởi động, đọc dự án hoặc báo trạng thái, Agent chỉ được tóm tắt dự án, checkpoint, kiến trúc đích và step kế tiếp rồi dừng. Không được sửa file, migration, deploy, commit hoặc push cho đến khi người dùng phê duyệt rõ ràng một step cụ thể.
 
 ### 3.2. Khi liên quan Supabase, cache hoặc write queue
 

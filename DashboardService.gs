@@ -154,6 +154,82 @@ var DashboardService = (function () {
     return result;
   }
 
+  function buildDashboard(options) {
+    var dashboard = {
+      updatedAt: options.updatedAt,
+      overview: options.overview,
+      inputs: options.inputs || [],
+      latestTrips: options.latestTrips || { date: '', trips: [] },
+      links: options.links,
+      cached: false
+    };
+    if (options.partial) dashboard.partial = true;
+    return dashboard;
+  }
+
+  function readLatestTrips(ss, context) {
+    var sheet = ss.getSheetByName('NL_VanChuyen');
+    if (!sheet) return { date: '', trips: [] };
+    var lastDataRow = context.getLastNonEmptyRow(sheet, 1, 3, true);
+    if (lastDataRow < 3) return { date: '', trips: [] };
+    var sampleRows = Math.min(lastDataRow - 2, 500);
+    var startRow = lastDataRow - sampleRows + 1;
+    var values = sheet.getRange(startRow, 1, sampleRows, 6).getValues();
+    var maxTime = 0;
+    var maxDate = null;
+    values.forEach(function (row) {
+      var date = row[0];
+      if (Object.prototype.toString.call(date) !== '[object Date]') return;
+      var time = date.getTime();
+      if (time > maxTime) {
+        maxTime = time;
+        maxDate = date;
+      }
+    });
+    if (!maxDate) return { date: '', trips: [] };
+
+    var maxDateKey = Utilities.formatDate(maxDate, context.timezone, 'yyyy-MM-dd');
+    var tripsMap = {};
+    var ticketMap = {};
+    var projectMap = {};
+    values.forEach(function (row) {
+      var date = row[0];
+      if (Object.prototype.toString.call(date) !== '[object Date]') return;
+      if (Utilities.formatDate(date, context.timezone, 'yyyy-MM-dd') !== maxDateKey) return;
+      var plate = clean_(row[2]);
+      var project = clean_(row[3]);
+      var count = parseNumber_(row[4]);
+      var ticket = clean_(row[5]);
+      if (!plate || count <= 0) return;
+      var key = project + '|' + plate;
+      tripsMap[key] = (tripsMap[key] || 0) + count;
+      projectMap[key] = project;
+      if (ticket) {
+        if (!ticketMap[key]) ticketMap[key] = [];
+        if (ticketMap[key].indexOf(ticket) === -1) ticketMap[key].push(ticket);
+      }
+    });
+
+    var trips = Object.keys(tripsMap).map(function (key) {
+      var parts = key.split('|');
+      return {
+        project: projectMap[key] || parts[0] || '-',
+        vehicle: parts[1] || '',
+        count: tripsMap[key],
+        ticket: ticketMap[key] ? ticketMap[key].join(', ') : '-'
+      };
+    });
+    trips.sort(function (left, right) {
+      if (left.project !== right.project) return left.project.localeCompare(right.project);
+      if (right.count !== left.count) return right.count - left.count;
+      return left.vehicle.localeCompare(right.vehicle);
+    });
+    return {
+      date: Utilities.formatDate(maxDate, context.timezone, 'dd/MM/yyyy'),
+      trips: trips
+    };
+  }
+
   function formatAggregateDetailCell_(value, template) {
     var text = clean_(template);
     if (text.indexOf('₫') !== -1 || text.indexOf('đ') !== -1) {
@@ -206,6 +282,8 @@ var DashboardService = (function () {
     resolveReportMonth: resolveReportMonth,
     parseMonthKpis: parseMonthKpis,
     parseDetailKpis: parseDetailKpis,
-    aggregateDetailMatrices: aggregateDetailMatrices
+    aggregateDetailMatrices: aggregateDetailMatrices,
+    buildDashboard: buildDashboard,
+    readLatestTrips: readLatestTrips
   };
 })();

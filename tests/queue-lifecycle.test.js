@@ -8,6 +8,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const fixture = JSON.parse(read('tests/fixtures/queue-lifecycle.synthetic.json'));
 const service = read('SupabaseService.gs');
 const sheetService = read('SheetService.gs');
+const entryService = read('EntryService.gs');
 const fundService = read('FundService.gs');
 const migration = read('supabase/migrations/006_write_queue_hardening.sql');
 
@@ -115,8 +116,8 @@ test('transport retry reuses WRITE_JOB_ID metadata and preserves the original ro
   assert.equal(fixture.transportReplay.replayResult.inserted, fixture.transportReplay.firstResult.inserted);
   assert.equal(fixture.transportReplay.replayResult.idempotentReplay, true);
   assert.match(service, /EntryService\.submitRows\(payload\.formType, payload\.rows \|\| \[\], \{ jobId: job\.id, idempotencyKey: job\.idempotency_key \}\)/);
-  assert.match(sheetService, /addDeveloperMetadata\('WRITE_JOB_ID'/);
-  assert.match(sheetService, /withKey\('WRITE_JOB_ID'\)[\s\S]*?withValue\(jobId\)/);
+  assert.match(entryService, /addDeveloperMetadata\([\s\S]*?'WRITE_JOB_ID'/);
+  assert.match(entryService, /withKey\('WRITE_JOB_ID'\)[\s\S]*?withValue\(jobId\)/);
 });
 
 test('fund full replay succeeds while a partial voucher match stops the entire batch', () => {
@@ -135,7 +136,7 @@ test('failure after a Sheet write remains retryable and replay guards prevent du
   const afterPostWriteFailure = finishFailure(claimed, 'sync failed after Sheet write');
   assert.equal(afterPostWriteFailure.status, 'pending');
   assert.match(service, /var result = executeWriteJob_\(job\);[\s\S]*?status: 'synced'/);
-  assert.match(sheetService, /var idempotentReplay = Boolean\(reservedRange\)/);
+  assert.match(entryService, /var idempotentReplay = Boolean\(reservedRange\)/);
   assert.match(fundService, /idempotentReplay: true/);
 });
 

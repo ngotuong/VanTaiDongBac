@@ -730,7 +730,7 @@ Behavior:
 
 - validate form/action được queue;
 - enqueue `transport/submitRows` khi queue configuration cho phép;
-- worker gọi `EntryService.submitRows()`/`SheetService.submitRows()`;
+- worker gọi `EntryService.submitRows()`; compatibility adapter `SheetService.submitRows()` truyền spreadsheet/config/write callbacks về implementation trong `EntryService`;
 - sync manage cache và report/dashboard liên quan sau ghi.
 
 Response queued logic:

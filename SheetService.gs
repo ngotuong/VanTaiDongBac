@@ -199,77 +199,15 @@ var SheetService = (function () {
   }
 
   function submitRows(formType, rows, writeContext) {
-    if (!APP_CONFIG.sheets[formType]) {
-      throw new Error('Loai form khong hop le: ' + formType);
-    }
-    if (!Array.isArray(rows) || rows.length === 0) {
-      throw new Error('Chua co dong nao de ghi.');
-    }
-
-    var lock = LockService.getScriptLock();
-    lock.waitLock(30000);
-    try {
-      var ss = getSpreadsheet_();
-      var catalogs = getCatalogs(formType);
-      var result = ValidationService.buildRows(formType, rows, catalogs);
-      if (writeContext && writeContext.jobId && result.errors && result.errors.length) {
-        return {
-          ok: false,
-          inserted: 0,
-          errors: result.errors,
-          warnings: result.warnings
-        };
-      }
-      if (!result.values.length) {
-        return {
-          ok: false,
-          inserted: 0,
-          errors: result.errors,
-          warnings: result.warnings
-        };
-      }
-
-      var cfg = APP_CONFIG.sheets[formType];
-      var sheet = ss.getSheetByName(cfg.name);
-      if (!sheet) {
-        throw new Error('Khong tim thay sheet ' + cfg.name);
-      }
-
-      var reservedRange = findWriteJobRange_(sheet, writeContext);
-      var idempotentReplay = Boolean(reservedRange);
-      var appendRow = reservedRange ? reservedRange.getRow() : getAppendRow_(sheet, cfg.headerRow);
-      ensureRows_(sheet, appendRow + result.values.length - 1);
-      if (!reservedRange && writeContext && writeContext.jobId) {
-        reservedRange = sheet.getRange(appendRow, 1, result.values.length, Math.max(1, result.values[0].length));
-        reservedRange.addDeveloperMetadata('WRITE_JOB_ID', String(writeContext.jobId), SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT);
-      }
-      
-      if (formType === 'dau') {
-        var dauHeaders = sheet.getRange(cfg.headerRow, 1, 1, sheet.getLastColumn()).getValues()[0].map(function (h) {
-          return String(h).trim();
-        });
-        var totalColIdx = dauHeaders.indexOf('Thành tiền');
-        if (totalColIdx === -1) totalColIdx = 6;
-        var ownerColIdx = dauHeaders.indexOf('Công ty sở hữu');
-        if (ownerColIdx === -1) ownerColIdx = 8;
-        var skipped = [totalColIdx, ownerColIdx];
-        writeRowsPreservingSheetState_(sheet, appendRow, result.values, skipped);
-      } else {
-        writeRowsPreservingSheetState_(sheet, appendRow, result.values, []);
-      }
-      clearAfterSubmitCache_();
-      return {
-        ok: result.errors.length === 0,
-        inserted: result.values.length,
-        startRow: appendRow,
-        sheetName: cfg.name,
-        idempotentReplay: idempotentReplay,
-        errors: result.errors,
-        warnings: result.warnings
-      };
-    } finally {
-      lock.releaseLock();
-    }
+    return EntryService.submitRowsWithContext(formType, rows, writeContext, {
+      sheets: APP_CONFIG.sheets,
+      getSpreadsheet: getSpreadsheet_,
+      getCatalogs: getCatalogs,
+      getAppendRow: getAppendRow_,
+      ensureRows: ensureRows_,
+      writeRows: writeRowsPreservingSheetState_,
+      clearAfterSubmitCache: clearAfterSubmitCache_
+    });
   }
 
   function checkTripReconciliation(rows) {
@@ -1318,18 +1256,6 @@ var SheetService = (function () {
     } finally {
       lock.releaseLock();
     }
-  }
-
-  function findWriteJobRange_(sheet, writeContext) {
-    var jobId = writeContext && writeContext.jobId ? String(writeContext.jobId).trim() : '';
-    if (!jobId) return null;
-    var metadata = sheet.createDeveloperMetadataFinder()
-      .withKey('WRITE_JOB_ID')
-      .withValue(jobId)
-      .find();
-    if (!metadata || !metadata.length) return null;
-    var location = metadata[0].getLocation();
-    return location && location.getRange ? location.getRange() : null;
   }
 
   function rowObjectMatchesValues_(headers, values, rowData) {

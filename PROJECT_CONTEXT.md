@@ -230,11 +230,14 @@ Commit lien quan:
 - Step 14 chuyển generic/manage read, header/date range/limit/order/row serialization sang implementation thật trong `SheetReadService.gs`; `SheetService.readSheetData()` chỉ còn compatibility adapter truyền spreadsheet/cache/config context. Update/delete không thay đổi.
 - Step 14 đã pass 87/87 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@256 - Refactor Step 14 implement transport read manage facade`.
 - Smoke production Step 14 thành công: HTTP/Execution API `health`, recent read cho cả sáu `NL_*` và date-range `NL_VanChuyen` đều trả `ok=true`, đúng header/rowIndex/order/isLimited; không ghi dữ liệu production.
+- Step 15 chuyển validation/append orchestration, `WRITE_JOB_ID` replay, formula skip và cache invalidation callback của `submitRows` sang implementation thật trong `EntryService.gs`; `SheetService.submitRows()` chỉ còn compatibility adapter. Reconciliation và generic save/delete chưa thay đổi.
+- Step 15 đã pass 91/91 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@257 - Refactor Step 15 implement transport entry facade`.
+- Smoke production Step 15 thành công: HTTP/Execution API `health`, recent read `NL_VanChuyen` trả `ok=true`; submit payload rỗng bị chặn đúng với `Chua co dong nao de ghi.` trước khi tạo job/ghi Sheet. Không chạy write test production.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 14 đã hoàn thành và checkpoint production đang ở Apps Script `@256`.
-- Bước kế tiếp được đề xuất: Step 15 — làm thật `TransportEntryService` facade; chưa được phê duyệt và không được tự bắt đầu.
+- Trạng thái hiện tại: Step 15 đã hoàn thành và checkpoint production đang ở Apps Script `@257`.
+- Bước kế tiếp được đề xuất: Step 16 — tách `TransportReconciliationService`; chưa được phê duyệt và không được tự bắt đầu.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 

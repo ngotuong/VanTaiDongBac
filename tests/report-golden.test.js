@@ -106,6 +106,8 @@ test('DashboardService owns month resolution and KPI parsing while SheetService 
   assert.match(source, /DashboardService\.parseMonthKpis/);
   assert.match(source, /DashboardService\.parseDetailKpis/);
   assert.match(source, /DashboardService\.resolveReportMonth/);
+  assert.match(source, /DashboardService\.aggregateDetailMatrices/);
   assert.doesNotMatch(source, /function readDetailNumber_/);
   assert.doesNotMatch(source, /function hasDetailFormulaError_/);
+  assert.doesNotMatch(source, /function formatAggregateDetailCell_/);
 });

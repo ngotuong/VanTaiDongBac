@@ -321,54 +321,7 @@ var SheetService = (function () {
   }
 
   function aggregateOverviewDetailMatrices_(matrices) {
-    var base = matrices[0] || [];
-    var result = [];
-    if (base.length) result.push(base[0]);
-
-    var totals = [];
-    matrices.forEach(function (matrix) {
-      for (var r = 1; r < matrix.length; r++) {
-        var row = matrix[r];
-        var category = clean_(row[0]);
-        if (!category) continue;
-        if (!totals[r]) {
-          totals[r] = {
-            category: category,
-            colB: 0,
-            colC: 0,
-            colD: 0,
-            colE: clean_(row[4]),
-            template: row
-          };
-        }
-        if (totals[r].category === category) {
-          totals[r].colB += parseNumberLoose_(row[1]) || 0;
-          totals[r].colC += parseNumberLoose_(row[2]) || 0;
-          totals[r].colD += parseNumberLoose_(row[3]) || 0;
-        }
-      }
-    });
-
-    for (var i = 1; i < totals.length; i++) {
-      var item = totals[i];
-      if (!item) continue;
-      result.push([
-        item.category,
-        formatAggregateDetailCell_(item.colB, item.template[1]),
-        formatAggregateDetailCell_(item.colC, item.template[2]),
-        formatAggregateDetailCell_(item.colD, item.template[3]),
-        item.colE
-      ]);
-    }
-    return result;
-  }
-
-  function formatAggregateDetailCell_(value, template) {
-    var text = clean_(template);
-    if (text.indexOf('₫') !== -1 || text.indexOf('đ') !== -1) {
-      return Math.round(value).toLocaleString('vi-VN') + ' ₫';
-    }
-    return Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+    return DashboardService.aggregateDetailMatrices(matrices);
   }
 
   function computeAndCacheOverviewDetails_(ss, sheet, months, dataVersion) {

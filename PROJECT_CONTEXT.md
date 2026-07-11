@@ -267,11 +267,14 @@ Commit lien quan:
 - Step 20 tách `write_jobs`/`write_job_logs` persistence, idempotency lookup, job/recent reads, retry patches, lifecycle logs và row normalization sang `WriteJobRepository.gs`; RPC `claim_write_jobs` và worker/action execution vẫn ở `SupabaseService`.
 - Step 20 đã pass 125/125 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@270 - Refactor Step 20 extract write job repository`; không cần migration/schema change.
 - Smoke production Step 20 read-only thành công: `health` trả `ok=true`; `getWriteJobStatus('step20-smoke-nonexistent')` giữ đúng contract `{ok:false,error:'Không tìm thấy job: ...'}`. Không enqueue, retry hoặc chạy worker trên production.
+- Step 21a tách batch limit, worker ID, atomic RPC claim parameters, per-job lifecycle transitions, retry timing và worker response assembly sang `WriteJobWorker.gs`; transport/fund action execution vẫn ở `SupabaseService` cho Step 21b/21c.
+- Step 21a đã pass 129/129 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@271 - Refactor Step 21a extract write job worker lifecycle`; không cần migration/schema change.
+- Smoke production Step 21a thành công: `health` trả `ok=true`; `processWriteJobs(1)` trả `processed=0`, `ok=true`, `results=[]`, xác nhận worker idle và không ghi dữ liệu nghiệp vụ.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 20 đã hoàn thành và checkpoint production đang ở Apps Script `@270`.
-- Bước kế tiếp được đề xuất: Step 21 — tách worker và job handlers theo từng slice trong `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 21.
+- Trạng thái hiện tại: Step 21a đã hoàn thành và checkpoint production đang ở Apps Script `@271`; toàn bộ Step 21 chưa hoàn thành.
+- Bước kế tiếp được đề xuất: Step 21b — tách `TransportJobHandler`; chưa được tự bắt đầu nếu chưa có phê duyệt tiếp tục Step 21.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -318,4 +321,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 21 hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 21b hoặc bất kỳ thay đổi mới nào.

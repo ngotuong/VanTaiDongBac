@@ -203,7 +203,8 @@ Source:
 - manage bundle/sheet-change sync implementation: `ManageSyncService.gs`;
 - Fund bundle/catalog, month discovery/fallback và after-write sync implementation: `FundSyncService.gs`;
 - write-job persistence và normalization: `WriteJobRepository.gs`;
-- facade, trigger/realtime orchestration, RPC claim và worker/action execution: `SupabaseService.gs`;
+- atomic claim/lifecycle wrapper: `WriteJobWorker.gs`;
+- facade, trigger/realtime orchestration và transport/fund action execution: `SupabaseService.gs`;
 - public wrapper: `PublicApi.gs`;
 - database contract: `supabase/migrations/*.sql`;
 - frontend reader: `client_api.html`;

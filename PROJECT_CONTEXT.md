@@ -240,11 +240,14 @@ Commit lien quan:
 - Step 17 đã pass 98/98 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@259 - Refactor Step 17 extract report temp sheet cache infrastructure`.
 - Smoke production Step 17 thành công: report bundle `07/2026` và `Tất cả` trả đầy đủ; audit hai kỳ `status=ok` với live/cache hash khớp; cleanup temp trước/sau đều `count=0`, `BC_TongQuan!B1` gốc không bị mutation theo test contract.
 - Audit tài liệu sau Step 11-17 đã xác nhận checkpoint nằm trong `PROJECT_CONTEXT`, ownership/API contracts của Step 13-17 đã cập nhật; bổ sung `PLATFORM_SHEET_INFRA` cho `RuntimeCacheService`/`SheetWritePreserver`, xóa ownership reconciliation cũ bị lặp và sửa handoff stale từ Step 12 sang Step 18.
+- Step 18a tách active/selected month resolution, month-table KPI parsing và detail KPI parsing thuần sang `DashboardService.gs`; `SheetService` giữ compatibility wrappers. Detail aggregation, report tables và latest trips chưa chuyển.
+- Step 18a đã pass 99/99 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@260 - Refactor Step 18a extract dashboard month KPI parsing`.
+- Smoke production Step 18a thành công: dashboard và report bundle `07/2026` trả đầy đủ; audit `07/2026`/`Tất cả` đều `status=ok`, live/cache hash giữ nguyên.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 17 đã hoàn thành và checkpoint production đang ở Apps Script `@259`.
-- Bước kế tiếp được đề xuất: Step 18 — tách report parsing và `DashboardService`; rủi ro cao, phải chia thành slice nhỏ và chưa được phê duyệt.
+- Trạng thái hiện tại: Step 18a đã hoàn thành và checkpoint production đang ở Apps Script `@260`; toàn bộ Step 18 chưa hoàn thành.
+- Bước kế tiếp được đề xuất: Step 18b — tách detail parsing/aggregation sang `DashboardService`; chưa được tự bắt đầu nếu chưa có phê duyệt tiếp tục Step 18.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -291,4 +294,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 18 hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 18b hoặc bất kỳ thay đổi mới nào.

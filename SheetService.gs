@@ -246,23 +246,11 @@ var SheetService = (function () {
   }
 
   function getActiveReportMonths_(months) {
-    var activeMonths = [];
-    if (months && months.length > 1) {
-      for (var i = 1; i < months.length; i++) {
-        var mName = clean_(months[i][0]);
-        if (mName && mName !== 'Tháng') activeMonths.push(mName);
-      }
-    }
-    return activeMonths;
+    return DashboardService.getActiveReportMonths(months);
   }
 
   function resolveReportMonth_(months, month) {
-    var targetMonth = clean_(month);
-    if (!targetMonth || targetMonth === 'latest' || targetMonth === 'all') {
-      var activeMonths = getActiveReportMonths_(months);
-      targetMonth = activeMonths.length ? activeMonths[activeMonths.length - 1] : '';
-    }
-    return targetMonth;
+    return DashboardService.resolveReportMonth(months, month);
   }
 
   function readOverviewDetailsWithCache_(ss, sheet, months, month) {
@@ -291,122 +279,13 @@ var SheetService = (function () {
   }
 
   function readOverviewKpisFromMonthTable_(months) {
-    if (!months || !months.length) return [];
-    var headerIndex = -1;
-    for (var i = 0; i < months.length; i++) {
-      if (normalizeText_(months[i] && months[i][0]) === 'thang') {
-        headerIndex = i;
-        break;
-      }
-    }
-    var headers = (months[headerIndex >= 0 ? headerIndex : 0] || []).map(function (header) {
-      return normalizeText_(header);
+    return DashboardService.parseMonthKpis(months, function (month) {
+      return normalizeDisplayMonth_(month) || normalizeMonthKey_(month);
     });
-    var dataRows = headerIndex >= 0 ? months.slice(headerIndex + 1) : months.slice(1);
-
-    function colIndex(names, fallback) {
-      for (var col = 0; col < headers.length; col++) {
-        var header = headers[col];
-        for (var idx = 0; idx < names.length; idx++) {
-          if (header.indexOf(normalizeText_(names[idx])) !== -1) return col;
-        }
-      }
-      return fallback;
-    }
-
-    var monthCol = colIndex(['tháng'], 0);
-    var revenueCol = colIndex(['doanh thu'], 2);
-    var taxTndnCol = colIndex(['thuế tndn', 'tndn'], 3);
-    var taxVatCol = colIndex(['thuế vat', 'vat'], 4);
-    var fuelQmCol = colIndex(['dầu qm', 'quang minh'], 5);
-    var fuelOutCol = colIndex(['dầu ngoài', 'đổ ngoài'], 6);
-    var tollCol = colIndex(['cầu đường', 'phí cầu đường'], 7);
-    var grossCol = colIndex(['lợi nhuận gộp'], 8);
-    var payrollCol = colIndex(['chi phí lương', 'tổng lương'], -1);
-    var fundCol = colIndex(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 9);
-    var finalCol = colIndex(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận thực'], 10);
-
-    return dataRows.map(function (row) {
-      var month = clean_(row && row[monthCol]);
-      if (!month || month === 'Tháng') return null;
-      var revenue = parseNumberLoose_(row[revenueCol]);
-      var taxTndn = parseNumberLoose_(row[taxTndnCol]);
-      var taxVat = parseNumberLoose_(row[taxVatCol]);
-      var fuelQm = parseNumberLoose_(row[fuelQmCol]);
-      var fuelOut = parseNumberLoose_(row[fuelOutCol]);
-      var toll = parseNumberLoose_(row[tollCol]);
-      var fund = parseNumberLoose_(row[fundCol]);
-      var finalProfit = parseNumberLoose_(row[finalCol]);
-      var calculatedGross = revenue - taxTndn - taxVat - fuelQm - toll;
-      var gross = grossCol >= 0 ? parseNumberLoose_(row[grossCol]) : calculatedGross;
-      var operatingCost = revenue - gross;
-      var cashCost = gross - finalProfit;
-      var payroll = payrollCol >= 0 ? parseNumberLoose_(row[payrollCol]) : cashCost - fuelOut - fund;
-      return {
-        month: month,
-        monthKey: normalizeDisplayMonth_(month) || normalizeMonthKey_(month),
-        revenue: revenue,
-        taxTndn: taxTndn,
-        taxVat: taxVat,
-        fuelQm: fuelQm,
-        toll: toll,
-        gross: gross,
-        operatingCost: operatingCost,
-        final: finalProfit,
-        cashCost: cashCost,
-        fuelOut: fuelOut,
-        payroll: payroll,
-        fund: fund,
-        totalCost: operatingCost + cashCost
-      };
-    }).filter(function (item) { return item; });
   }
 
   function parseOverviewKpiDetails_(details) {
-    var rows = details || [];
-    var gross = readDetailNumber_(rows, 'Lợi nhuận gộp');
-    var outsideFuel = readDetailNumber_(rows, 'Chi phí dầu', 'đổ ngoài');
-    var payroll = readDetailNumber_(rows, 'Chi phí lương');
-    var fund = readDetailNumber_(rows, 'Chi quỹ thực tế');
-    var finalProfit = readDetailNumber_(rows, 'Lợi nhuận thực');
-    if (!finalProfit && hasDetailFormulaError_(rows, 'Lợi nhuận thực')) {
-      finalProfit = gross - outsideFuel - payroll - fund;
-    }
-    var cashCost = gross - finalProfit;
-    return {
-      gross: gross,
-      final: finalProfit,
-      cashCost: cashCost,
-      fuelOut: outsideFuel,
-      payroll: payroll,
-      fund: fund,
-      totalCost: cashCost
-    };
-  }
-
-  function readDetailNumber_(rows, label, explanationContains) {
-    var normalizedLabel = normalizeText_(label);
-    var normalizedExplanation = normalizeText_(explanationContains || '');
-    var fallback = null;
-    for (var i = 0; i < rows.length; i++) {
-      var row = rows[i] || [];
-      if (normalizeText_(row[0]) !== normalizedLabel) continue;
-      if (!normalizedExplanation || normalizeText_(row[4]).indexOf(normalizedExplanation) !== -1) {
-        return parseNumberLoose_(row[1]);
-      }
-      if (fallback === null) fallback = parseNumberLoose_(row[1]);
-    }
-    return fallback === null ? 0 : fallback;
-  }
-
-  function hasDetailFormulaError_(rows, label) {
-    var normalizedLabel = normalizeText_(label);
-    for (var i = 0; i < rows.length; i++) {
-      var row = rows[i] || [];
-      if (normalizeText_(row[0]) !== normalizedLabel) continue;
-      return /^#/.test(clean_(row[1]));
-    }
-    return false;
+    return DashboardService.parseDetailKpis(details);
   }
 
   function readAggregatedOverviewDetails_(ss, sheet, activeMonths) {

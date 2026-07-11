@@ -24,6 +24,7 @@ function loadBackendReportFunctions() {
   const context = vm.createContext({ console });
   new vm.Script(read('NormalizationUtils.gs'), { filename: 'NormalizationUtils.gs#report-golden-test' }).runInContext(context);
   new vm.Script(read('ValidationService.gs'), { filename: 'ValidationService.gs#report-golden-test' }).runInContext(context);
+  new vm.Script(read('DashboardService.gs'), { filename: 'DashboardService.gs#report-golden-test' }).runInContext(context);
   new vm.Script(source, { filename: 'SheetService.gs#report-golden-test' }).runInContext(context);
   return context.SheetService.__reportGoldenTest;
 }
@@ -89,4 +90,22 @@ test('removing the explicit payroll header does not allow Khối lượng to bec
   const actual = plain(backend.readOverviewKpisFromMonthTable(matrix));
   assert.deepEqual(actual.map((row) => row.payroll), [50, 100, 150]);
   assert.notDeepEqual(actual.map((row) => row.payroll), [5000, 7000, 9000]);
+});
+
+test('DashboardService owns month resolution and KPI parsing while SheetService keeps compatibility wrappers', () => {
+  const context = vm.createContext({ Utilities: { formatDate: () => '2026-07' } });
+  new vm.Script(read('NormalizationUtils.gs'), { filename: 'NormalizationUtils.gs#dashboard-owner-test' }).runInContext(context);
+  new vm.Script(read('ValidationService.gs'), { filename: 'ValidationService.gs#dashboard-owner-test' }).runInContext(context);
+  new vm.Script(read('DashboardService.gs'), { filename: 'DashboardService.gs#owner-test' }).runInContext(context);
+  const service = context.DashboardService;
+  assert.deepEqual(plain(service.getActiveReportMonths(fixture.overviewMonths)), ['05/2026', '06/2026', '07/2026']);
+  assert.equal(service.resolveReportMonth(fixture.overviewMonths, 'latest'), '07/2026');
+  assert.equal(service.resolveReportMonth(fixture.overviewMonths, '06/2026'), '06/2026');
+
+  const source = read('SheetService.gs');
+  assert.match(source, /DashboardService\.parseMonthKpis/);
+  assert.match(source, /DashboardService\.parseDetailKpis/);
+  assert.match(source, /DashboardService\.resolveReportMonth/);
+  assert.doesNotMatch(source, /function readDetailNumber_/);
+  assert.doesNotMatch(source, /function hasDetailFormulaError_/);
 });

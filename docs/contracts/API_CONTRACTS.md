@@ -566,7 +566,7 @@ Params:
 - `month`: optional, giá trị tháng theo contract báo cáo;
 - `forceRefresh`: boolean/string `true` để bỏ qua cache backend phù hợp.
 
-Handler: `ReportService.getDashboard()` → `SheetService.getDashboard()`.
+Handler: `ReportService.getDashboard()` → `SheetService.getDashboard()`; month/KPI parsing delegate sang `DashboardService`.
 
 Response chứa KPI/dashboard, bảng overview và latest trips theo implementation.
 

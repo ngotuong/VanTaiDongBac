@@ -1,0 +1,1 @@
+import ManageEntry from '../../components/ManageEntry.jsx';export const metadata={title:'Vận hành · Vận tải Đông Bắc'};export default function Page(){return <main className="next-accounts-shell"><ManageEntry flags={{filters:true,entryRender:true,entrySubmit:false}}/></main>}

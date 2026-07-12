@@ -34,6 +34,7 @@
     window.__REACT_CATALOG_WRITE_ENABLED = <?!= JSON.stringify(reactCatalogWriteEnabled || '') ?>;
     window.__REACT_FUND_CATALOG_ENABLED = <?!= JSON.stringify(reactFundCatalogEnabled || '') ?>;
     window.__REACT_DASHBOARD_ENABLED = <?!= JSON.stringify(reactDashboardEnabled || '') ?>;
+    window.__REACT_REPORTS_ENABLED = <?!= JSON.stringify(reactReportsEnabled || '') ?>;
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
@@ -232,6 +233,7 @@
 
       <!-- View: Detailed Reports -->
       <section id="reportsView" class="view">
+        <div id="reportsLegacyRoot" style="display:contents;">
         <!-- Sub-tabs to switch report subcategories -->
         <div class="sub-tabs-bar app-sticky-tabs" id="reportTabsBar">
           <button type="button" class="sub-tab active" data-report-tab="all" onclick="setReportTab('all')">Tất Cả</button>
@@ -254,6 +256,8 @@
           <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
           <div class="table-card"><div class="panel-body"><div class="shimmer shimmer-table"></div></div></div>
         </div>
+        </div>
+        <div id="reportsReactRoot" style="display:contents;" hidden></div>
       </section>
 
       <!-- View: Manage Sheet Data (Transaction Logs CRUD) -->
@@ -1000,5 +1004,6 @@
   <script src="/public/static/catalog-react.js" defer></script>
   <script src="/public/static/fund-catalog-react.js" defer></script>
   <script src="/public/static/dashboard-react.js" defer></script>
+  <script src="/public/static/reports-react.js" defer></script>
 </body>
 </html>

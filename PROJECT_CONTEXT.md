@@ -358,7 +358,8 @@ Commit lien quan:
 
 - Trạng thái hiện tại: Step 28-33 đã hoàn thành. Apps Script `@281`, Vercel production `dpl_EpNhPEzx1yqHpXgSU52yX3jrHzsT`; các React flag mặc định tắt.
 - Step 34a bổ sung React Dashboard read-only island và Next static canary route `/next-accounts/dashboard/`. Island giữ nguyên các DOM ID, nhãn KPI/chart, bảng chuyến mới nhất, bảng kết quả tháng, image-export callback và tiếp tục giao toàn bộ phép tính/pending/cache cho `client_dashboard.html`. `REACT_DASHBOARD_ENABLED`/`VITE_REACT_DASHBOARD_ENABLED` mặc định tắt; legacy Dashboard là rollback tức thời. Không đổi API, schema, Sheet, công thức hoặc dữ liệu.
-- Bước kế tiếp sau khi Step 34a deploy ổn định: Step 34b — React/Next.js Reports, bằng flag độc lập và giữ nguyên golden matrix/subtotal/CSV/sticky-responsive contracts.
+- Step 34a đã pass 275/275 test, full build và responsive QA 375px/1440px không có overflow/console error; commit `cf39a68`, Vercel production `dpl_FpAj1yoJNAdqEVtWUSsnuQzZE3dW`. Page/route/bundle `200`, flag rỗng/tắt và legacy root active; Apps Script vẫn `@281`, không có business mutation.
+- Step 34b bổ sung React Reports read-only island và Next static canary route `/next-accounts/reports/`. Island giữ nguyên năm tab, search/month IDs và delegate render/filter/CSV cho `client_reports.html`, nên golden matrix, labels, subtotal, sticky/responsive và cache contract không đổi. `REACT_REPORTS_ENABLED` mặc định tắt độc lập; legacy Reports là rollback.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 

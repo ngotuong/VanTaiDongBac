@@ -29,3 +29,17 @@ test('Next shell exports the independent Dashboard canary route', () => {
   assert.match(read('next-shell/app/dashboard/page.jsx'), /<Dashboard/);
   assert.match(read('package.json'), /build-dashboard-react\.js/);
 });
+
+test('React Reports defaults off and preserves tabs, filters, renderer, and CSV export', () => {
+  const component = read('next-shell/components/Reports.jsx');
+  const entry = read('react-reports/entry.jsx');
+  const legacy = read('client_reports.html');
+  assert.match(entry, /if \(!enabled\(window\.__REACT_REPORTS_ENABLED\)\) return false/);
+  for (const type of ['all','finance','details','payroll','vehicles']) assert.match(component, new RegExp(`'${type}'`));
+  for (const id of ['reportTabsBar','reportSearchInput','reportMonthFilter','reports']) assert.match(component, new RegExp(`id="${id}"`));
+  assert.match(legacy, /function exportReportTableAsCsv/);
+  assert.match(legacy, /function filterOverviewMatrix/);
+  assert.match(read('.env.example'), /VITE_REACT_REPORTS_ENABLED=false/);
+  assert.match(read('next-shell/app/reports/page.jsx'), /<Reports/);
+  assert.match(read('package.json'), /build-reports-react\.js/);
+});

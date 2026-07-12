@@ -856,6 +856,7 @@ Header row: 1.
 ### 15.2. Quy tắc mã vay
 
 - Row `Vay` tạo mã khoản vay.
+- Loan/payment mapping, validation và công thức lọc N do `FundLoanService` sở hữu; append A:K và định dạng B/F do `FundLoanRepository` thực hiện qua facade/lock của `FundService`.
 - Row `Trả nợ`/`Trả lãi` phải tham chiếu mã vay tương ứng.
 - Ưu tiên ghép chính xác theo mã.
 - Chỉ reconcile mã orphan khi có duy nhất một khoản cùng đối tác, phát sinh trước ngày trả và outstanding khớp hoàn toàn số tiền trả.

@@ -1,5 +1,11 @@
 # KNOWN_RISKS
 
+## Phase 6 — Next.js Report TODO
+
+- Route `/next-accounts/reports/` dùng API `getReportBundle` hiện có và không tạo API mới.
+- API hiện chưa có action bootstrap trả về workbook Vận tải đang được chọn cho standalone Next Report. Vì vậy route gửi `spreadsheetId` khi caller có context; nếu không có, Report API chọn bundle mới nhất theo `report_month`. Trước khi hỗ trợ nhiều workbook cùng tháng trên route độc lập, cần thiết kế contract workbook context riêng và phê duyệt ngoài Phase 6.
+- Session đăng nhập được tái sử dụng từ Supabase Auth cùng origin. Nếu chưa có session, route chỉ hướng người dùng quay lại ứng dụng chính để đăng nhập; Phase 6 không tạo auth API hoặc module đăng nhập mới.
+
 ## 1. Mục đích và phạm vi
 
 Tài liệu này là risk register hiện trạng của hệ thống Vận tải Đông Bắc.

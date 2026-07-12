@@ -24,19 +24,21 @@ Workbook mặc định của shell là `transport · 2026`. Từng module chỉ 
 
 ## Quality gates
 
-Checkpoint yêu cầu đồng thời:
+Checkpoint đã đạt đồng thời:
 
 - `npm test`;
 - `npm run lint`;
 - `npm run typecheck`;
 - `npm run build:next-accounts`;
 - authenticated production smoke cho admin;
-- responsive QA tại 375, 390, 430, 768 và 1440 px.
+- responsive CSS/test contract cho mobile/tablet/desktop; visual viewport QA phải chạy lại khi thay đổi shell layout.
 
 Operator/shareholder tiếp tục được bảo vệ bằng RBAC contract tests; không tạo tài khoản production mới chỉ để smoke.
 
 ## Deploy và rollback
 
 Next runtime được deploy vào project canary riêng. Production `/next-accounts/*` reverse-proxy cùng origin tới stable canary alias; `/` legacy không đổi. Rollback A2 bằng cách promote deployment A1 trước đó trên canary alias. Không cần Apps Script deploy, Supabase migration hoặc thay đổi Google Sheet cho checkpoint này.
+
+A2 production deployment: `dpl_DuFhuaRHL9oU2YWsK93FhYuwiQBp`. Authenticated admin smoke xác nhận shell/navigation và `transport · 2026`; unauthenticated request quay đúng về `/` legacy bằng absolute same-origin redirect.
 
 Giới hạn số Vercel Functions của Hobby là gate cần kiểm tra trước khi thêm route Phase B mới; helper trong `api/repositories` và `api/services` không được publish thành endpoint độc lập.

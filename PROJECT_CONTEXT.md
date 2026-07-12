@@ -118,13 +118,17 @@ Phạm vi hoàn thành:
 - ESLint và TypeScript type-check độc lập;
 - không chuyển business module Phase B, không migration hoặc ghi Google Sheet.
 
-Verification A2 trước deploy:
+Verification A2:
 
 - `npm test`: 316/316 pass;
 - `npm run lint`: pass;
 - `npm run typecheck`: pass;
 - `npm run build:next-accounts`: pass; toàn bộ route shell dynamic server-rendered;
-- deployment ID, authenticated smoke và responsive QA được ghi sau khi canary production hoàn tất;
+- branch `codex/next-foundation-a2` đã push GitHub; commit chốt runtime `ea42744`;
+- Next canary production: `dpl_DuFhuaRHL9oU2YWsK93FhYuwiQBp`, alias `vantaidongbac-next-canary.vercel.app`;
+- production same-origin `https://dongbac.vercel.app/next-accounts/` đã xác nhận unauthenticated quay đúng một redirect về `/` legacy, không còn vòng lặp basePath;
+- authenticated production smoke bằng tài khoản admin đạt: session `200`, shell `200`, đầy đủ navigation, `Vận tải · 2026` và sign-out `200`;
+- responsive behavior được bảo vệ bằng A2 CSS/test contract cho touch target, focus, breakpoint 900 px, reduced motion và không dùng overflow-x hidden; browser viewport visual QA cần chạy lại nếu thay đổi shell layout;
 - operator/shareholder parity tiếp tục được bảo vệ bằng API/RBAC contract tests.
 
 Checkpoint nền tảng trước đó A1 đã hoàn thành ngày 2026-07-12, branch `codex/next-foundation-a1` đã push; Next canary A1 là `dpl_FPfWQJauYCf64iF2W5FY4rfL3GCq`, production legacy + rewrite là `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`.
@@ -214,6 +218,9 @@ Các điều kiện bắt buộc phải làm rõ trước khi code B1:
 6. **Phạm vi**
    - B1 chỉ hoàn thiện Report; không kéo Dashboard, Entry, Manage, Catalog hoặc Cashflow vào cùng checkpoint;
    - không migration Sheet/Supabase và không chạy business write production.
+7. **Legacy runtimeContext environment**
+   - shell A2 resolve `transport · 2026` thành công trên canary env;
+   - cùng action `runtimeContext` qua project legacy hiện trả `404` do legacy deployment không có workbook mapping; B1 phải dùng shared shell/canary server context, hoặc cấu hình env legacy bằng checkpoint deploy riêng nếu còn cần endpoint này.
 
 Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
@@ -227,7 +234,7 @@ Baseline mã nguồn đã xác nhận trong A2:
 - `npm run typecheck`: pass.
 - Production `/`: frontend legacy, chưa đăng nhập sẽ dừng ở auth gate.
 - Production `/next-accounts/reports/`: được reverse-proxy sang Next runtime canary.
-- Authenticated production smoke và responsive shell QA được ghi sau khi A2 canary production hoàn tất.
+- Authenticated admin shell smoke đạt; responsive shell rules được khóa bằng CSS/test contract, visual viewport QA cần chạy lại khi thay đổi layout.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

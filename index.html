@@ -5707,6 +5707,110 @@
   <nav class="bottom-nav" id="bottomNav"></nav>
 
   <script>
+    function escapeHtml(value) {
+      return String(value === undefined || value === null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function removeAccents(str) {
+      if (!str) return '';
+      return str.normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/Đ/g, 'D');
+    }
+
+    function parseLocaleNumber(value) {
+      if (value === null || value === undefined || value === '') return 0;
+      if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+      let text = String(value).replace(/[₫đĐ\s]/g, '').trim();
+      if (!text) return 0;
+      const comma = text.lastIndexOf(',');
+      const dot = text.lastIndexOf('.');
+      if (comma >= 0 && dot >= 0) {
+        text = text.replace(/\./g, '').replace(',', '.');
+      } else if (comma >= 0) {
+        text = text.replace(/\./g, '').replace(',', '.');
+      } else if (dot >= 0) {
+        const decimals = text.length - dot - 1;
+        if (decimals === 3) text = text.replace(/\./g, '');
+      }
+      text = text.replace(/,/g, '');
+      const number = Number(text);
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function formatTableDate(val, isMonthOnly) {
+      if (!val) return '';
+      let d = null;
+      if (typeof val === 'string') {
+        const m = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (m) {
+          d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        } else {
+          const parts = val.split(/[\/\-]/);
+          if (parts.length === 3) {
+            if (parts[0].length === 4) {
+              d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            } else if (parts[2].length === 4) {
+              d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            } else if (parts[2].length === 2) {
+              d = new Date(2000 + Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            }
+          }
+        }
+      } else if (val instanceof Date && !isNaN(val.getTime())) {
+        d = val;
+      }
+
+      if (!d) return val;
+
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yy = String(d.getFullYear()).slice(-2);
+
+      if (isMonthOnly) {
+        return `${mm}/${yy}`;
+      } else {
+        return `${dd}/${mm}/${yy}`;
+      }
+    }
+
+    function formatIsoDateForDisplay(value) {
+      const text = String(value || '').trim();
+      const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+      const vn = text.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+      if (vn) {
+        const day = vn[1].padStart(2, '0');
+        const month = vn[2].padStart(2, '0');
+        const year = vn[3].length === 2 ? `20${vn[3]}` : vn[3];
+        return `${day}/${month}/${year}`;
+      }
+      return text;
+    }
+
+    function parseDisplayDateToIso(value) {
+      const text = String(value || '').trim();
+      if (!text) return '';
+      const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (iso) return text;
+      const digits = text.replace(/\D/g, '');
+      if (digits.length !== 8) return '';
+      const day = digits.slice(0, 2);
+      const month = digits.slice(2, 4);
+      const year = digits.slice(4, 8);
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+      if (date.getFullYear() !== Number(year) || date.getMonth() !== Number(month) - 1 || date.getDate() !== Number(day)) return '';
+      return `${year}-${month}-${day}`;
+    }
+</script>
+
+  <script>
     // System Navigation Configuration
     const NAV = [
       ['home', 'Tổng quan', 'KPI & Biểu đồ', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`],
@@ -5867,42 +5971,6 @@
       document.querySelector(`#catalogTabsBar .sub-tab[data-sheet="${sheetName}"]`)
         ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       loadCatalogSheetData();
-    }
-
-    function formatTableDate(val, isMonthOnly) {
-      if (!val) return '';
-      let d = null;
-      if (typeof val === 'string') {
-        const m = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if (m) {
-          d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-        } else {
-          const parts = val.split(/[\/\-]/);
-          if (parts.length === 3) {
-            if (parts[0].length === 4) {
-              d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-            } else if (parts[2].length === 4) {
-              d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-            } else if (parts[2].length === 2) {
-              d = new Date(2000 + Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-            }
-          }
-        }
-      } else if (val instanceof Date && !isNaN(val.getTime())) {
-        d = val;
-      }
-      
-      if (!d) return val;
-      
-      const dd = String(d.getDate()).padStart(2, '0');
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const yy = String(d.getFullYear()).slice(-2);
-      
-      if (isMonthOnly) {
-        return `${mm}/${yy}`;
-      } else {
-        return `${dd}/${mm}/${yy}`;
-      }
     }
 
     // Dynamic autocomplete select builder
@@ -11793,14 +11861,6 @@
     }
 
     // Helper functions for filtering and calculating subtotals
-    function removeAccents(str) {
-      if (!str) return '';
-      return str.normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/đ/g, 'd')
-                .replace(/Đ/g, 'D');
-    }
-
     function parseCellValue(text) {
       if (!text || text === '-' || text === '0') return 0;
       let clean = text.replace(/[đ₫\s]/g, '');
@@ -12361,26 +12421,6 @@
       const fromDate = from ? new Date(from + 'T00:00:00') : null;
       const toDate = to ? new Date(to + 'T00:00:00') : null;
       return (!fromDate || date >= fromDate) && (!toDate || date <= toDate);
-    }
-
-    function parseLocaleNumber(value) {
-      if (value === null || value === undefined || value === '') return 0;
-      if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
-      let text = String(value).replace(/[₫đĐ\s]/g, '').trim();
-      if (!text) return 0;
-      const comma = text.lastIndexOf(',');
-      const dot = text.lastIndexOf('.');
-      if (comma >= 0 && dot >= 0) {
-        text = text.replace(/\./g, '').replace(',', '.');
-      } else if (comma >= 0) {
-        text = text.replace(/\./g, '').replace(',', '.');
-      } else if (dot >= 0) {
-        const decimals = text.length - dot - 1;
-        if (decimals === 3) text = text.replace(/\./g, '');
-      }
-      text = text.replace(/,/g, '');
-      const number = Number(text);
-      return Number.isFinite(number) ? number : 0;
     }
 
     function getEmptyCatalogs() {
@@ -13267,15 +13307,6 @@
       setView('settings');
     };
 
-    function escapeHtml(value) {
-      return String(value === undefined || value === null ? '' : value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
     // Trigger binding
     el('refreshBtn').onclick = () => refreshReports(true);
     el('menuBtn').onclick = openDrawer;
@@ -13353,35 +13384,6 @@
       } catch (err) {
         // Tránh lỗi trên các trình duyệt cũ hoặc kiểu input đặc biệt
       }
-    }
-
-    function formatIsoDateForDisplay(value) {
-      const text = String(value || '').trim();
-      const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
-      const vn = text.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-      if (vn) {
-        const day = vn[1].padStart(2, '0');
-        const month = vn[2].padStart(2, '0');
-        const year = vn[3].length === 2 ? `20${vn[3]}` : vn[3];
-        return `${day}/${month}/${year}`;
-      }
-      return text;
-    }
-
-    function parseDisplayDateToIso(value) {
-      const text = String(value || '').trim();
-      if (!text) return '';
-      const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if (iso) return text;
-      const digits = text.replace(/\D/g, '');
-      if (digits.length !== 8) return '';
-      const day = digits.slice(0, 2);
-      const month = digits.slice(2, 4);
-      const year = digits.slice(4, 8);
-      const date = new Date(Number(year), Number(month) - 1, Number(day));
-      if (date.getFullYear() !== Number(year) || date.getMonth() !== Number(month) - 1 || date.getDate() !== Number(day)) return '';
-      return `${year}-${month}-${day}`;
     }
 
     function formatDateInputText(inputElement) {

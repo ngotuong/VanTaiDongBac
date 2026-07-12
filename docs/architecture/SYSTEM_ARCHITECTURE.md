@@ -177,6 +177,7 @@ Frontend được chia theo fragment nhưng cùng chạy trong một global brow
 
 Các nhóm chính:
 
+- `client_utils.html`: pure HTML escaping, text normalization, locale-number và date conversion dùng chung;
 - `client_config.html`: cấu hình menu, form, mapping và global state;
 - `client_api.html`: Apps Script API, Vercel proxy, Supabase client, Auth và cache phía browser;
 - `client_app.html`: bootstrap, navigation và app lifecycle;

@@ -32,6 +32,7 @@
       "api/repositories/app-user-repository.js"
     ],
     "frontend": [
+      "client_utils.html",
       "client_accounts.html",
       "client_api.html",
       "client_app.html",

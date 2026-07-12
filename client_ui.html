@@ -1,8 +1,8 @@
 <script>
     function setBusy(isBusy) {
       ['submitBtn', 'addBtn', 'cloneBtn'].forEach((id) => el(id).disabled = isBusy);
-      el('submitBtn').innerHTML = isBusy 
-        ? '<div class="spinner" style="width:16px;height:16px;margin:0;"></div> Đang ghi...' 
+      el('submitBtn').innerHTML = isBusy
+        ? '<div class="spinner" style="width:16px;height:16px;margin:0;"></div> Đang ghi...'
         : `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg> Gửi dữ liệu lên Sheets`;
     }
 
@@ -142,7 +142,7 @@
       if (!document.body.classList.contains('drawer-open')) {
         document.body.classList.remove('locked');
       }
-      
+
       // Đóng trên PC (nếu đang hiển thị form nhập nhanh)
       const entryShell = el('entryShell');
       const btn = el('toggleEntryFormBtn');
@@ -155,12 +155,12 @@
       const entryShell = el('entryShell');
       const btn = el('toggleEntryFormBtn');
       if (!entryShell) return;
-      
+
       const isVisible = entryShell.classList.toggle('entry-shell-visible');
       if (btn) {
         btn.classList.toggle('active', isVisible);
       }
-      
+
       // Load form và catalogs tương ứng nếu mở ra
       if (isVisible) {
         renderFormTabs();
@@ -178,238 +178,6 @@
       }
     }
 
-    function loadSupabaseSyncStatus(forceRefresh = false) {
-      const body = el('syncStatusBody');
-      const checkedAt = el('syncStatusCheckedAt');
-      const btn = el('syncStatusRefreshBtn');
-      if (!body) return Promise.resolve(null);
-      if (btn) btn.disabled = true;
-      if (checkedAt) checkedAt.textContent = forceRefresh ? 'Đang làm mới...' : 'Đang tải trạng thái...';
-      body.innerHTML = '<div class="sync-status-empty">Đang tải trạng thái đồng bộ...</div>';
-
-      return Promise.all([
-        callApi('GET', 'getSupabaseSyncStatus', { limit: 24, forceRefresh: forceRefresh ? 'true' : '' }).catch((err) => ({ ok: false, error: err.message || String(err), rows: [] })),
-        callApi('GET', 'getRecentWriteJobs', { module: 'transport', limit: 12, forceRefresh: forceRefresh ? 'true' : '' }).catch((err) => ({ ok: false, error: err.message || String(err), jobs: [] }))
-      ])
-        .then(([syncData, jobData]) => {
-          const data = {
-            sync: syncData || {},
-            jobs: jobData || {},
-            manageAudit: { ok: true, skipped: true, results: [] },
-            reportAudit: { ok: true, skipped: true, results: [] },
-            checkedAt: new Date().toISOString()
-          };
-          renderSupabaseSyncStatus(data);
-          return data;
-        })
-        .catch((err) => {
-          if (checkedAt) checkedAt.textContent = 'Không tải được trạng thái.';
-          body.innerHTML = `<div class="sync-status-empty">Không tải được trạng thái: ${escapeHtml(err.message || err)}</div>`;
-          return null;
-        })
-        .finally(() => {
-          if (btn) btn.disabled = false;
-        });
-    }
-
-    function renderSupabaseSyncStatus(data) {
-      const body = el('syncStatusBody');
-      const checkedAt = el('syncStatusCheckedAt');
-      if (!body) return;
-      const syncData = data.sync || data || {};
-      const jobData = data.jobs || {};
-      const manageAuditData = data.manageAudit || {};
-      const reportAuditData = data.reportAudit || data.audit || {};
-      const rows = syncData.rows || [];
-      const jobs = jobData.jobs || [];
-      const manageAuditRows = manageAuditData.results || [];
-      const reportAuditRows = reportAuditData.results || [];
-      const visibleJobs = jobs.filter((job) => job.status === 'pending' || job.status === 'processing' || job.status === 'failed').slice(0, 8);
-      if (checkedAt) checkedAt.textContent = data.checkedAt ? `Kiểm tra lúc ${formatSyncStatusTime(data.checkedAt)}` : 'Đã tải trạng thái.';
-
-      const sections = [];
-      sections.push(renderSyncStatusSection_('Cache Supabase', syncData.ok === false ? syncData.error : '', rows.map(renderSyncStatusRow_).join('') || '<div class="sync-status-empty">Chưa có trạng thái đồng bộ cache.</div>'));
-      sections.push(renderSyncStatusSection_('Write queue Vận hành', jobData.ok === false ? jobData.error : '', renderWriteJobStatusRows_(visibleJobs, jobs)));
-      sections.push(renderSyncStatusSection_('Audit Vận hành', manageAuditData.ok === false ? manageAuditData.error : '', renderManageAuditRows_(manageAuditRows, manageAuditData.skipped)));
-      sections.push(renderSyncStatusSection_('Audit Báo cáo', reportAuditData.ok === false ? reportAuditData.error : '', renderReportAuditRows_(reportAuditRows, reportAuditData.skipped)));
-      body.innerHTML = sections.join('');
-    }
-
-    function renderSyncStatusRow_(row) {
-        const status = String(row.status || '').toLowerCase();
-        const statusClass = status === 'ok' ? 'ok' : (status === 'error' ? 'error' : '');
-        return `
-          <div class="sync-status-row">
-            <div class="sync-status-main">
-              <div class="sync-status-key" title="${escapeHtml(row.syncKey || '')}">${escapeHtml(row.syncKey || '')}</div>
-              <div class="sync-status-note" title="${escapeHtml(row.message || '')}">${escapeHtml(row.module || '')}${row.message ? ' · ' + escapeHtml(row.message) : ''}</div>
-            </div>
-            <span class="sync-status-pill ${statusClass}">${escapeHtml((row.status || '').toUpperCase())}</span>
-            <div class="sync-status-time">${formatSyncStatusAge(row.ageSeconds, row.syncedAt)}</div>
-          </div>
-        `;
-    }
-
-    function renderSyncStatusSection_(title, error, content) {
-      return `
-        <div class="sync-status-section">
-          <div class="sync-status-section-title">
-            <strong>${escapeHtml(title)}</strong>
-            ${error ? `<span>${escapeHtml(error)}</span>` : ''}
-          </div>
-          <div class="sync-status-list">${content}</div>
-        </div>
-      `;
-    }
-
-    function getCurrentManageAuditSheetName_() {
-      const select = el('manageSheetSelect');
-      return select && select.value ? select.value : 'NL_VanChuyen';
-    }
-
-    function setAuditButtonBusy_(id, busy) {
-      const btn = el(id);
-      if (!btn) return;
-      btn.disabled = Boolean(busy);
-    }
-
-    function runManageCacheAudit(allSheets = false, deep = false) {
-      const buttonId = allSheets ? 'manageAllAuditBtn' : (deep ? 'manageDeepAuditBtn' : 'manageAuditBtn');
-      const auditLimit = deep ? 500 : 50;
-      setAuditButtonBusy_(buttonId, true);
-      showSyncToast(allSheets ? 'Đang kiểm tra sâu toàn bộ Vận hành...' : (deep ? 'Đang kiểm tra sâu cache Vận hành...' : 'Đang kiểm tra cache Vận hành...'), 'info', true);
-      return callApi('GET', 'getManageCacheAudit', {
-        sheetNames: allSheets ? '' : getCurrentManageAuditSheetName_(),
-        limit: auditLimit,
-        forceRefresh: 'true'
-      })
-        .then((auditData) => {
-          return loadSupabaseSyncStatus(false).then((data) => {
-            renderSupabaseSyncStatus({ ...(data || {}), manageAudit: auditData || {}, checkedAt: new Date().toISOString() });
-            showSyncToast(auditData && auditData.ok ? `Audit Vận hành OK (${allSheets ? 'tất cả, ' : ''}${auditLimit} dòng).` : `Audit Vận hành phát hiện cache lệch (${allSheets ? 'tất cả, ' : ''}${auditLimit} dòng).`, auditData && auditData.ok ? 'info' : 'error');
-            return auditData;
-          });
-        })
-        .catch((err) => showSyncToast(err.message || String(err), 'error'))
-        .finally(() => setAuditButtonBusy_(buttonId, false));
-    }
-
-    function runReportCacheAudit() {
-      setAuditButtonBusy_('reportAuditBtn', true);
-      showSyncToast('Đang kiểm tra cache Báo cáo...', 'info', true);
-      return callApi('GET', 'getReportCacheAudit', {
-        months: '05/2026,06/2026,07/2026,Tất cả',
-        forceRefresh: 'true'
-      })
-        .then((auditData) => {
-          return loadSupabaseSyncStatus(false).then((data) => {
-            renderSupabaseSyncStatus({ ...(data || {}), reportAudit: auditData || {}, checkedAt: new Date().toISOString() });
-            showSyncToast(auditData && auditData.ok ? 'Audit Báo cáo OK.' : 'Audit Báo cáo phát hiện cache lệch.', auditData && auditData.ok ? 'info' : 'error');
-            return auditData;
-          });
-        })
-        .catch((err) => showSyncToast(err.message || String(err), 'error'))
-        .finally(() => setAuditButtonBusy_('reportAuditBtn', false));
-    }
-
-    function renderWriteJobStatusRows_(visibleJobs, allJobs) {
-      if (!visibleJobs.length) {
-        const total = Array.isArray(allJobs) ? allJobs.length : 0;
-        return `<div class="sync-status-empty">${total ? 'Không có job pending/failed trong các job gần đây.' : 'Chưa có write job gần đây.'}</div>`;
-      }
-      return visibleJobs.map((job) => {
-        const status = String(job.status || '').toLowerCase();
-        const statusClass = status === 'failed' ? 'error' : (status === 'synced' ? 'ok' : 'pending');
-        const payload = job.payload || {};
-        const note = [
-          job.action || '',
-          payload.sheetName || payload.formType || '',
-          payload.rowIndex ? `dòng ${payload.rowIndex}` : ''
-        ].filter(Boolean).join(' · ');
-        const retryHtml = status === 'failed'
-          ? `<button type="button" class="ghost sync-status-retry" onclick="retryPendingWriteJob('${escapeHtml(job.jobId || '')}')">Thử lại</button>`
-          : `<div class="sync-status-time">${formatSyncStatusTime(job.updatedAt || job.createdAt)}</div>`;
-        return `
-          <div class="sync-status-row">
-            <div class="sync-status-main">
-              <div class="sync-status-key" title="${escapeHtml(job.jobId || '')}">${escapeHtml(job.jobId || '')}</div>
-              <div class="sync-status-note" title="${escapeHtml(job.lastError || note)}">${escapeHtml(note)}${job.lastError ? ' · ' + escapeHtml(job.lastError) : ''}</div>
-            </div>
-            <span class="sync-status-pill ${statusClass}">${escapeHtml((job.status || '').toUpperCase())}</span>
-            ${retryHtml}
-          </div>
-        `;
-      }).join('');
-    }
-
-    function renderManageAuditRows_(auditRows, skipped) {
-      if (skipped) {
-        return '<div class="sync-status-empty">Bấm Kiểm tra Vận hành để so cache với Google Sheet.</div>';
-      }
-      if (!auditRows.length) {
-        return '<div class="sync-status-empty">Chưa có kết quả audit Vận hành.</div>';
-      }
-      return auditRows.map((item) => {
-        const status = String(item.status || '').toLowerCase();
-        const statusClass = item.ok ? 'ok' : 'error';
-        return `
-          <div class="sync-status-row">
-            <div class="sync-status-main">
-              <div class="sync-status-key">${escapeHtml(item.sheetName || '')}</div>
-              <div class="sync-status-note" title="${escapeHtml(item.message || '')}">${escapeHtml(item.message || '')}</div>
-            </div>
-            <span class="sync-status-pill ${statusClass}">${escapeHtml((status || 'unknown').toUpperCase())}</span>
-            <div class="sync-status-time">${formatSyncStatusAge(null, item.syncedAt)}</div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function renderReportAuditRows_(auditRows, skipped) {
-      if (skipped) {
-        return '<div class="sync-status-empty">Bấm Kiểm tra Báo cáo khi cần đối chiếu 05/2026, 06/2026, 07/2026 và Tất cả.</div>';
-      }
-      if (!auditRows.length) {
-        return '<div class="sync-status-empty">Chưa có kết quả audit Báo cáo.</div>';
-      }
-      return auditRows.map((item) => {
-        const status = String(item.status || '').toLowerCase();
-        const statusClass = item.ok ? 'ok' : 'error';
-        return `
-          <div class="sync-status-row">
-            <div class="sync-status-main">
-              <div class="sync-status-key">Báo cáo ${escapeHtml(item.month || '')}</div>
-              <div class="sync-status-note" title="${escapeHtml(item.message || '')}">${escapeHtml(item.message || '')}</div>
-            </div>
-            <span class="sync-status-pill ${statusClass}">${escapeHtml((status || 'unknown').toUpperCase())}</span>
-            <div class="sync-status-time">${formatSyncStatusAge(null, item.syncedAt)}</div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function formatSyncStatusTime(value) {
-      if (!value) return '';
-      const date = new Date(value);
-      if (isNaN(date.getTime())) return String(value);
-      return date.toLocaleString('vi-VN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
-    }
-
-    function formatSyncStatusAge(ageSeconds, syncedAt) {
-      const seconds = Number(ageSeconds);
-      if (!isNaN(seconds)) {
-        if (seconds < 60) return `${seconds}s trước`;
-        if (seconds < 3600) return `${Math.round(seconds / 60)} phút trước`;
-        if (seconds < 86400) return `${Math.round(seconds / 3600)} giờ trước`;
-      }
-      return formatSyncStatusTime(syncedAt);
-    }
 
     window.showSettingsFromLoader = () => {
       document.body.classList.remove('locked');
@@ -425,28 +193,28 @@
     el('addBtn').onclick = addRow;
     el('cloneBtn').onclick = cloneRow;
     el('submitBtn').onclick = submitAll;
-    
+
     // Scroll handling for bottom-nav visibility on mobile
     let lastScrollY = window.scrollY;
     let accumulatedDelta = 0;
     const threshold = 15; // Minimum scroll delta in px to trigger toggle
-    
+
     window.addEventListener('scroll', () => {
       const bottomNav = el('bottomNav');
       if (!bottomNav) return;
-      
+
       const currentScrollY = window.scrollY;
       const delta = currentScrollY - lastScrollY;
-      
+
       // Ignore elastic bounce scroll on iOS/Safari
       const maxScrollY = document.documentElement.scrollHeight - window.innerHeight;
       if (currentScrollY < 0 || currentScrollY > maxScrollY) {
         lastScrollY = currentScrollY;
         return;
       }
-      
+
       accumulatedDelta += delta;
-      
+
       if (accumulatedDelta > threshold) {
         // Scroll down -> hide bottomNav
         if (currentScrollY > 80) {
@@ -458,37 +226,37 @@
         bottomNav.classList.remove('nav-hidden');
         accumulatedDelta = 0;
       }
-      
+
       // Always hide bottomNav when close to the bottom of the page (to avoid blocking content)
       if (currentScrollY >= maxScrollY - 60) {
         bottomNav.classList.add('nav-hidden');
       }
-      
+
       // Always show bottomNav when close to the top of the page
       if (currentScrollY <= 10) {
         bottomNav.classList.remove('nav-hidden');
       }
-      
+
       lastScrollY = currentScrollY;
     }, { passive: true });
-    
+
     function formatMoneyInput(inputElement) {
       const selectionStart = inputElement.selectionStart;
       const selectionEnd = inputElement.selectionEnd;
       const originalLength = inputElement.value.length;
-      
+
       let rawValue = inputElement.value.replace(/\D/g, '');
       if (rawValue === '') {
         inputElement.value = '';
         return;
       }
-      
+
       const formattedValue = Number(rawValue).toLocaleString('vi-VN').replace(/,/g, '.');
       inputElement.value = formattedValue;
-      
+
       const newLength = formattedValue.length;
       const cursorOffset = newLength - originalLength;
-      
+
       try {
         inputElement.setSelectionRange(selectionStart + cursorOffset, selectionEnd + cursorOffset);
       } catch (err) {
@@ -581,7 +349,7 @@
       const target = e.target;
       const isStaticMoney = ['fundAmountInput', 'loanAmountInput', 'loanPaymentAmountInput'].includes(target.id);
       const isDynamicMoney = target.classList.contains('format-money-input');
-      
+
       if (isStaticMoney || isDynamicMoney) {
         formatMoneyInput(target);
       }
@@ -624,7 +392,7 @@
       e.preventDefault();
       openNativeDatePicker(target);
     }, true);
-    
+
     // Run initial boot after the deferred Supabase SDK is available.
     window.addEventListener('DOMContentLoaded', bootstrapAuthenticatedApp, { once: true });
 </script>

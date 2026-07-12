@@ -47,6 +47,7 @@
       "client_data.html",
       "client_entry.html",
       "client_manage.html",
+      "client_observability.html",
       "client_reports.html",
       "client_ui.html"
     ]

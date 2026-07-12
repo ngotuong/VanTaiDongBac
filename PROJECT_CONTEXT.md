@@ -329,11 +329,13 @@ Commit lien quan:
 - Step 27e tách immutable navigation, form labels/icons/notes, form-Sheet maps, field schema và Fund page-size constants sang `client_config_constants.html`; toàn bộ mutable application state và stateful UI helpers giữ ở `client_config.html`. Global names, initialization order và schema values giữ nguyên.
 - Step 27e đã pass 223/223 test, build thành công, artifact không còn template tag, `git diff --check` sạch và deploy Vercel production `dpl_Bf6fsQ8quEKmkmfsobpmmnUQnYMK`, alias `https://dongbac.vercel.app`; Apps Script vẫn `@281`.
 - Smoke production Step 27e: page/health `200`, built artifact có đúng một owner riêng cho constants và mutable state, unauthenticated `authSession=401`. Không đổi DOM/CSS/text/interaction, không mutation. Toàn bộ Step 27a-27e đã hoàn thành.
+- Step 28 tách sync status, cache audit, write-job rendering và format thời gian sang `client_observability.html`; `client_ui.html` giữ loader, toast, drawer và generic UI utilities. Global names, DOM IDs, API parameters, quick/deep/all audit và retry behavior giữ nguyên; mặc định status load không chạy heavy audit.
+- Step 28 đã pass 226/226 test, build thành công, artifact không còn template tag và `git diff --check` sạch. Local visual QA desktop/mobile 390x844 không có console error mới; local static chỉ trả lỗi proxy auth dự kiến vì không dùng credential production.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 26 và toàn bộ Step 27a-27e đã hoàn thành. Apps Script checkpoint `@281`, Vercel production deployment `dpl_Bf6fsQ8quEKmkmfsobpmmnUQnYMK`.
-- Bước kế tiếp được đề xuất: Step 28 — tách frontend observability module; chưa được tự bắt đầu nếu chưa có phê duyệt Step 28.
+- Trạng thái hiện tại: Step 28 đã hoàn thành ở source và local verification; checkpoint production sẽ được ghi sau khi Vercel deploy/smoke thành công. Apps Script vẫn `@281`.
+- Bước kế tiếp được đề xuất sau khi Step 28 deploy ổn định: Step 29 — tách Cashflow thành các submodule vanilla; chưa được tự bắt đầu nếu chưa có phê duyệt Step 29.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -380,4 +382,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 28 hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 29 hoặc bất kỳ thay đổi mới nào.

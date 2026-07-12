@@ -82,7 +82,7 @@ flowchart TD
 | `FRONTEND_API` | API transport/Auth/Supabase cache client | Giao diện | `client_api_transport.html`, `client_auth.html`, `client_api.html`, `client_supabase_cache.html` | HTTP, Supabase REST/Auth, session cache |
 | `FRONTEND_TRANSPORT` | UI Vận tải | Giao diện | `client_dashboard.html`, `client_entry.html`, `client_manage.html`, `client_catalog.html`, `client_reports.html`, `client_data.html` | API payload, bundle cache |
 | `FRONTEND_FUND` | UI Thu chi/Quỹ | Giao diện | `client_cashflow.html` | Fund API/cache payload |
-| `FRONTEND_ACCOUNTS` | UI tài khoản và role | Giao diện | `client_accounts.html`, `client_ui.html` | Auth user, account API |
+| `FRONTEND_ACCOUNTS` | UI tài khoản và role | Giao diện | `client_accounts.html`, `client_observability.html` | Auth user, account API |
 | `BUILD_STATIC` | Build frontend/PWA | Nền tảng | `scripts/build.js`, `manifest.json` | `index.html`, static assets |
 | `LEGACY_FUND_BOUND` | Bound script Thu chi | Legacy/bound | `docs/source/thu_chi_bound_script/` | Active Thu chi spreadsheet |
 | `SCHEMA_REFERENCE` | Snapshot/schema vận hành | Dữ liệu | `docs/schema/*.json`, `PROJECT_SCHEMA.md` | Google Sheet schema |
@@ -210,7 +210,7 @@ Source:
 - public wrapper: `PublicApi.gs`;
 - database contract: `supabase/migrations/*.sql`;
 - frontend reader: `client_api.html`;
-- frontend trạng thái/audit: `client_ui.html`;
+- frontend trạng thái/audit: `client_observability.html`;
 - frontend pending jobs: `client_entry.html`, `client_manage.html`, `client_dashboard.html`, `client_cashflow.html`.
 
 Dependency:
@@ -703,7 +703,7 @@ Trách nhiệm:
 Source:
 
 - tài khoản/role UI: `client_accounts.html`;
-- trạng thái/audit: `client_ui.html`;
+- trạng thái/audit: `client_observability.html`;
 - API transport: `client_api_transport.html`;
 - Auth/session: `client_auth.html`;
 - server enforcement: `api/app.js`.
@@ -822,7 +822,7 @@ Các điểm dưới đây phải được xem là thuộc tính kiến trúc hi
 - `SupabaseService.gs` vừa là persistence adapter, sync orchestrator, trigger manager, queue repository và worker.
 - `PublicApi.gs` vừa cung cấp wrapper thủ công vừa dispatch API và quyết định direct/queued write.
 - `client_data.html` điều phối dữ liệu cho nhiều view, không chỉ một module.
-- `client_ui.html` vẫn chứa DOM/input utility và màn hình quan sát sync/audit; pure HTML/text/money/date helpers đã thuộc `client_utils.html`.
+- `client_observability.html` sở hữu màn hình quan sát sync/audit và write-job rendering; `client_ui.html` giữ DOM/input, loader, toast và utility UI chung.
 - `client_config.html` chứa cả config, mapping và application state.
 - `client_cashflow.html` chứa nhiều submodule Thu chi trong cùng file.
 - API và permission contract được lặp lại giữa nhiều lớp thay vì có một registry duy nhất.

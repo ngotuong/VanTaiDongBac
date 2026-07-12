@@ -45,3 +45,14 @@ test('Next shell statically exports the Catalog read-only canary route', () => {
   assert.match(read('next-shell/app/catalog/page.jsx'), /<CatalogReadOnly/);
   assert.match(read('package.json'), /build-catalog-react\.js/);
 });
+
+test('React Catalog filter and pagination preserve legacy IDs, page size, and callbacks', () => {
+  const component = read('next-shell/components/CatalogReadOnly.jsx');
+  const entry = read('react-catalog/entry.jsx');
+  const legacy = read('client_catalog.html');
+  for (const id of ['catalogSearchInput', 'catalogPersonnelStatusFilterWrap', 'catalogPersonnelStatusFilter', 'catalogVehicleOwnerFilterWrap', 'catalogVehicleOwnerFilter', 'catalogPaginationBar', 'catalogPaginationInfo', 'catalogPrevPageBtn', 'catalogNextPageBtn']) assert.match(component, new RegExp(`id="${id}"`));
+  for (const callback of ['debounceCatalogSearch', 'filterCatalogRows', 'changeCatalogPage']) assert.match(entry, new RegExp(`window\\.${callback}`));
+  assert.match(legacy, /const catalogPageSize = 20/);
+  assert.match(legacy, /personnelStatus !== 'all'/);
+  assert.match(legacy, /row\.owner !== vehicleOwner/);
+});

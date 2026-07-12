@@ -45,13 +45,15 @@ test('Router-only and disabled actions remain explicit and outside PublicApi', (
 test('proxy authentication and shareholder action surfaces match the baseline', () => {
   const proxy = read('api/app.js');
   const policy = read('api/services/authorization-policy.js');
+  const accountService = read('api/services/account-service.js');
   const shareholderBlock = policy.match(/const SHAREHOLDER_ACTIONS = new Set\(\[([\s\S]*?)\]\);/);
   assert.ok(shareholderBlock, 'Missing SHAREHOLDER_ACTIONS block.');
   const shareholderActions = sorted([...shareholderBlock[1].matchAll(/'([^']+)'/g)].map((match) => match[1]));
   assert.deepEqual(shareholderActions, sorted(baseline.proxy.shareholderActions));
 
   for (const action of baseline.proxy.localAccountActions) {
-    assert.match(proxy, new RegExp(`action === '${action}'|\\['[\\s\\S]*'${action}'`));
+    const owner = action === 'authSession' ? proxy : accountService;
+    assert.match(owner, new RegExp(`'${action}'`));
   }
   for (const action of baseline.proxy.unauthenticatedActions) {
     assert.match(proxy, new RegExp(`action !== '${action}'`));

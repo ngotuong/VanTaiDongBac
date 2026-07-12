@@ -43,3 +43,30 @@ test('AppUserRepository preserves Supabase client errors and masks server errors
     message: 'Không kiểm tra được danh sách người dùng nội bộ.'
   });
 });
+
+test('AppUserRepository preserves account list, create, and update REST contracts', async () => {
+  const requests = [];
+  const responses = [
+    [{ user_id: 'one' }],
+    [{ user_id: 'two' }],
+    [{ user_id: 'three' }]
+  ];
+  const repository = createAppUserRepository({
+    httpError,
+    fetchImpl: async (url, options) => {
+      requests.push({ url, options });
+      return { ok: true, json: async () => responses.shift() };
+    }
+  });
+  assert.deepEqual(await repository.list(config), [{ user_id: 'one' }]);
+  assert.deepEqual(await repository.create(config, { user_id: 'two' }), { user_id: 'two' });
+  assert.deepEqual(await repository.update(config, 'user/three', { role: 'operator' }), { user_id: 'three' });
+
+  assert.match(requests[0].url, /select=user_id,username,display_name,role,active,created_at&order=created_at\.asc/);
+  assert.equal(requests[1].options.method, 'POST');
+  assert.equal(requests[1].options.headers.Prefer, 'return=representation');
+  assert.equal(requests[1].options.body, JSON.stringify({ user_id: 'two' }));
+  assert.match(requests[2].url, /user_id=eq\.user%2Fthree/);
+  assert.equal(requests[2].options.method, 'PATCH');
+  assert.equal(requests[2].options.body, JSON.stringify({ role: 'operator' }));
+});

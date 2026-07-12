@@ -311,11 +311,14 @@ Commit lien quan:
 - Step 26c tách Supabase JWT/session verification sang `api/services/auth-service.js` và active `app_users` allowlist lookup sang `api/repositories/app-user-repository.js`; `api/app.js` giữ nguyên thứ tự authenticate -> authorize -> account/upstream dispatch. Account CRUD/password orchestration và persistence vẫn ở `api/app.js` cho Step 26d.
 - Step 26c đã pass 185/185 test, build thành công, `git diff --check` sạch và deploy Vercel production `dpl_4pERKx7GBMdbxK5sFQtUbxjCpbKq`, alias `https://dongbac.vercel.app`; không cần migration/schema/Apps Script deployment, Apps Script vẫn `@281`.
 - Smoke production Step 26c: public `health=200`; unauthenticated `getDashboard=401`; `PUT health=405`. Không có business write và không dùng credential production trong test.
+- Step 26d tách account action dispatch, username/role/password validation, Supabase Auth admin/password calls, self-protection và create-user rollback sang `api/services/account-service.js`; mở rộng `api/repositories/app-user-repository.js` để sở hữu list/create/update `app_users`. `api/app.js` chỉ còn composition và authenticate -> authorize -> account/upstream dispatch.
+- Step 26d đã pass 194/194 test, build thành công, `git diff --check` sạch và deploy Vercel production `dpl_HUdAiVkqcioNKkR2dgEHMzrPPM8R`, alias `https://dongbac.vercel.app`; không cần migration/schema/Apps Script deployment, Apps Script vẫn `@281`.
+- Smoke production Step 26d: public `health=200`; unauthenticated `getDashboard=401`; unauthenticated `listUsers=401`; `PUT health=405`. Không chạy account mutation production; create/list/update/reset/change-password và rollback đã được kiểm tra bằng local unit/contract tests. Toàn bộ Step 26 đã hoàn thành.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 26a, 26b và 26c đã hoàn thành; Step 26 tổng thể chưa hoàn thành. Apps Script checkpoint `@281`, Vercel production deployment `dpl_4pERKx7GBMdbxK5sFQtUbxjCpbKq`.
-- Bước kế tiếp được đề xuất: Step 26d — tách `AccountService`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 26d.
+- Trạng thái hiện tại: Step 26a-26d và toàn bộ Step 26 đã hoàn thành. Apps Script checkpoint `@281`, Vercel production deployment `dpl_HUdAiVkqcioNKkR2dgEHMzrPPM8R`.
+- Bước kế tiếp được đề xuất: Step 27 — tách frontend utility/API/Auth layers theo từng slice độc lập; chưa được tự bắt đầu nếu chưa có phê duyệt Step 27.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -362,4 +365,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 26d hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 27 hoặc bất kỳ thay đổi mới nào.

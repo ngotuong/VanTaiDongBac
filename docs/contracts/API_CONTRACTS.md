@@ -167,6 +167,7 @@ Mọi action khác nhận HTTP 403 với shareholder, kể cả khi action chỉ
 
 - `changeOwnPassword`: mọi user active.
 - `listUsers`, `createUser`, `updateUser`, `resetUserPassword`: chỉ `admin`.
+- Runtime ownership: `api/services/account-service.js`; persistence bảng `app_users`: `api/repositories/app-user-repository.js`; `api/app.js` chỉ dispatch sau auth/RBAC.
 
 ## 4. Danh mục action tổng hợp
 

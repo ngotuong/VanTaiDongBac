@@ -27,6 +27,7 @@
     ],
     "vercel": [
       "api/app.js",
+      "api/services/account-service.js",
       "api/services/auth-service.js",
       "api/repositories/app-user-repository.js"
     ],

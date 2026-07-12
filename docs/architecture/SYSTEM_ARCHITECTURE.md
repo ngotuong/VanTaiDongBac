@@ -191,7 +191,8 @@ Các nhóm chính:
 - `client_manage.html`: Vận hành;
 - `client_catalog.html`: Danh mục;
 - `client_reports.html`: Báo cáo;
-- `client_cashflow.html`: Thu chi/Quỹ;
+- `client_cashflow.html`: facade/tab và các phần Thu chi/Quỹ chưa tách;
+- `client_cashflow_overview.html`: Tổng quan, báo cáo tài chính và chi tiết hạng mục Quỹ;
 - `client_accounts.html`: tài khoản và role UI;
 - `client_observability.html`: trạng thái sync, write-job rendering và cache audit;
 - `client_ui.html`: drawer, loader, toast và utility UI chung.

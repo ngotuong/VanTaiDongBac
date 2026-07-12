@@ -333,11 +333,11 @@ Commit lien quan:
 - Step 28 đã pass 226/226 test, build thành công, artifact không còn template tag và `git diff --check` sạch; commit `cc0e178`. Đã deploy Vercel production `dpl_JEBMfSWsjNBBTXfghFTD2gZSPRG7`, alias `https://dongbac.vercel.app`; Apps Script vẫn `@281`, không cần migration/schema/backend deploy.
 - Smoke Step 28 thành công: production page/health `200`, unauthenticated dashboard `401`, artifact có đúng một owner observability; auth gate production và local desktop/mobile 390x844 render đúng, không có console error mới. Không chạy audit/retry hoặc business mutation production.
 - Step 29a tách Fund overview/report, KPI growth, category detail và export image sang `client_cashflow_overview.html`; `client_cashflow.html` giữ facade/tab và các submodule còn lại. Global names, DOM, API/cache fallback và interaction giữ nguyên.
-- Step 29a đã pass 230/230 test, build thành công và `git diff --check` sạch. Chưa thay backend/schema/API/feature flag; checkpoint deployment sẽ được ghi sau production smoke.
+- Step 29a đã pass 230/230 test, build thành công và `git diff --check` sạch; commit `c4b1ae5`. Đã deploy Vercel production `dpl_EcffHz9rA8C1P4HXvbUnqxcjSXvV`; page/health `200`, unauthenticated dashboard `401`, production artifact có đúng overview globals. Apps Script vẫn `@281`; không backend/schema/API/feature-flag change hoặc business mutation.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 28 hoàn thành; Step 29a đã hoàn thành ở source/local verification. Apps Script vẫn `@281`.
+- Trạng thái hiện tại: Step 28 và Step 29a đã hoàn thành. Apps Script `@281`, Vercel production `dpl_EcffHz9rA8C1P4HXvbUnqxcjSXvV`.
 - Bước tiếp theo trong Step 29 đã được phê duyệt: sau khi 29a deploy ổn định, thực hiện 29b transaction/entry như change set độc lập.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.

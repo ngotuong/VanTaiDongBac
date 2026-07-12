@@ -41,6 +41,11 @@
     window.__REACT_ENTRY_SUBMIT_ENABLED = "";
     window.__REACT_MANAGE_EDIT_ENABLED = "";
     window.__REACT_MANAGE_DELETE_ENABLED = "";
+    window.__REACT_CASHFLOW_OVERVIEW_ENABLED = "";
+    window.__REACT_CASHFLOW_TRANSACTIONS_ENABLED = "";
+    window.__REACT_CASHFLOW_TRANSACTION_WRITE_ENABLED = "";
+    window.__REACT_CASHFLOW_LOANS_ENABLED = "";
+    window.__REACT_CASHFLOW_LOAN_WRITE_ENABLED = "";
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
@@ -5253,6 +5258,7 @@
 
       <!-- View: Cashflow Module Placeholder -->
       <section id="cashflowView" class="view">
+        <div id="cashflowLegacyRoot" style="display:contents;">
         <div class="sub-tabs-bar app-sticky-tabs" style="width: 100%; margin-bottom: 12px;">
           <button type="button" class="sub-tab active" data-cashflow-tab="overview" onclick="setCashflowTab('overview')">Tổng quan</button>
           <button type="button" class="sub-tab" data-cashflow-tab="transactions" onclick="setCashflowTab('transactions')">Danh sách thu chi</button>
@@ -5495,6 +5501,8 @@
         </div>
         </div>
         <div id="fundCatalogReactRoot" style="display:contents;" hidden></div>
+        </div>
+        <div id="cashflowReactRoot" style="display:contents;" hidden></div>
       </section>
 
       <!-- View: Mobile Settings / Manual -->
@@ -7525,6 +7533,9 @@
 </script>
 
   <script>
+    function cashflowTransactionWriteAllowed_() {
+      return canWriteData() && (!window.__REACT_CASHFLOW_ACTIVE || Boolean(window.__REACT_CASHFLOW_FLAGS?.transactionWrite));
+    }
     function loadFundFormOptions() {
       if (fundFormOptions) return Promise.resolve(fundFormOptions);
       const supabaseStatus = getSupabaseReportStatus();
@@ -8170,7 +8181,7 @@
           <td>${escapeHtml(item.actor || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>
           <td>${escapeHtml(item.content || '')}</td>
-          ${canWriteData() ? `<td style="text-align: center; white-space: nowrap;" class="sticky-col-right">
+          ${cashflowTransactionWriteAllowed_() ? `<td style="text-align: center; white-space: nowrap;" class="sticky-col-right">
             ${item._pending ? (item._jobStatus === 'failed'
               ? `<button type="button" class="btn-table-action delete" title="Thử lại" aria-label="Thử lại giao dịch lỗi" onclick="retryFundWriteJob('${escapeHtml(item._jobId)}')">!</button>`
               : `<span class="fund-pending-status" role="status">Đang đồng bộ</span>`) : `
@@ -8293,6 +8304,9 @@
 </script>
 
   <script>
+    function cashflowLoanWriteAllowed_() {
+      return canWriteData() && (!window.__REACT_CASHFLOW_ACTIVE || Boolean(window.__REACT_CASHFLOW_FLAGS?.loanWrite));
+    }
     function loadFundLoanOverview(forceRefresh) {
       const month = el('fundLoanMonthFilter')?.value || '';
       renderFundKpiLoading(el('fundLoanMetrics'), 4);
@@ -8365,7 +8379,7 @@
           <td>${escapeHtml(item.loanDateText || item.loanDate || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>
           <td style="text-align:right; font-weight:800; color: var(--red);">${formatFundAmount(item.outstanding, '')}</td>
-          ${canWriteData() ? `
+          ${cashflowLoanWriteAllowed_() ? `
           <td style="text-align:right; white-space:nowrap;">
             ${item.isCurrentlySettled
               ? `<span class="preview-badge info">Đã tất toán${item.currentSettlementDateText ? ` ${escapeHtml(item.currentSettlementDateText)}` : ''}</span>`
@@ -8373,7 +8387,7 @@
           </td>
           ` : ''}
         </tr>
-      `).join('') : `<tr><td colspan="${canWriteData() ? 4 : 3}" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>`;
+      `).join('') : `<tr><td colspan="${cashflowLoanWriteAllowed_() ? 4 : 3}" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>`;
 
       const historyType = el('fundLoanHistoryTypeFilter')?.value || '';
       const historyPartner = el('fundLoanHistoryPartnerFilter')?.value || '';
@@ -13687,5 +13701,6 @@
   <script src="/public/static/dashboard-react.js" defer></script>
   <script src="/public/static/reports-react.js" defer></script>
   <script src="/public/static/manage-react.js" defer></script>
+  <script src="/public/static/cashflow-react.js" defer></script>
 </body>
 </html>

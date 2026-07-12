@@ -1,0 +1,1 @@
+import Cashflow from'../../components/Cashflow.jsx';export const metadata={title:'Thu chi · Vận tải Đông Bắc'};export default function Page(){return <main className="next-accounts-shell"><Cashflow flags={{overview:true,transactions:true,transactionWrite:false,loans:true,loanWrite:false,catalog:false}}/></main>}

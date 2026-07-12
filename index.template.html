@@ -41,6 +41,11 @@
     window.__REACT_ENTRY_SUBMIT_ENABLED = <?!= JSON.stringify(reactEntrySubmitEnabled || '') ?>;
     window.__REACT_MANAGE_EDIT_ENABLED = <?!= JSON.stringify(reactManageEditEnabled || '') ?>;
     window.__REACT_MANAGE_DELETE_ENABLED = <?!= JSON.stringify(reactManageDeleteEnabled || '') ?>;
+    window.__REACT_CASHFLOW_OVERVIEW_ENABLED = <?!= JSON.stringify(reactCashflowOverviewEnabled || '') ?>;
+    window.__REACT_CASHFLOW_TRANSACTIONS_ENABLED = <?!= JSON.stringify(reactCashflowTransactionsEnabled || '') ?>;
+    window.__REACT_CASHFLOW_TRANSACTION_WRITE_ENABLED = <?!= JSON.stringify(reactCashflowTransactionWriteEnabled || '') ?>;
+    window.__REACT_CASHFLOW_LOANS_ENABLED = <?!= JSON.stringify(reactCashflowLoansEnabled || '') ?>;
+    window.__REACT_CASHFLOW_LOAN_WRITE_ENABLED = <?!= JSON.stringify(reactCashflowLoanWriteEnabled || '') ?>;
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
@@ -497,6 +502,7 @@
 
       <!-- View: Cashflow Module Placeholder -->
       <section id="cashflowView" class="view">
+        <div id="cashflowLegacyRoot" style="display:contents;">
         <div class="sub-tabs-bar app-sticky-tabs" style="width: 100%; margin-bottom: 12px;">
           <button type="button" class="sub-tab active" data-cashflow-tab="overview" onclick="setCashflowTab('overview')">Tổng quan</button>
           <button type="button" class="sub-tab" data-cashflow-tab="transactions" onclick="setCashflowTab('transactions')">Danh sách thu chi</button>
@@ -739,6 +745,8 @@
         </div>
         </div>
         <div id="fundCatalogReactRoot" style="display:contents;" hidden></div>
+        </div>
+        <div id="cashflowReactRoot" style="display:contents;" hidden></div>
       </section>
 
       <!-- View: Mobile Settings / Manual -->
@@ -1015,5 +1023,6 @@
   <script src="/public/static/dashboard-react.js" defer></script>
   <script src="/public/static/reports-react.js" defer></script>
   <script src="/public/static/manage-react.js" defer></script>
+  <script src="/public/static/cashflow-react.js" defer></script>
 </body>
 </html>

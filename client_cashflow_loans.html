@@ -1,4 +1,7 @@
 <script>
+    function cashflowLoanWriteAllowed_() {
+      return canWriteData() && (!window.__REACT_CASHFLOW_ACTIVE || Boolean(window.__REACT_CASHFLOW_FLAGS?.loanWrite));
+    }
     function loadFundLoanOverview(forceRefresh) {
       const month = el('fundLoanMonthFilter')?.value || '';
       renderFundKpiLoading(el('fundLoanMetrics'), 4);
@@ -71,7 +74,7 @@
           <td>${escapeHtml(item.loanDateText || item.loanDate || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>
           <td style="text-align:right; font-weight:800; color: var(--red);">${formatFundAmount(item.outstanding, '')}</td>
-          ${canWriteData() ? `
+          ${cashflowLoanWriteAllowed_() ? `
           <td style="text-align:right; white-space:nowrap;">
             ${item.isCurrentlySettled
               ? `<span class="preview-badge info">Đã tất toán${item.currentSettlementDateText ? ` ${escapeHtml(item.currentSettlementDateText)}` : ''}</span>`
@@ -79,7 +82,7 @@
           </td>
           ` : ''}
         </tr>
-      `).join('') : `<tr><td colspan="${canWriteData() ? 4 : 3}" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>`;
+      `).join('') : `<tr><td colspan="${cashflowLoanWriteAllowed_() ? 4 : 3}" style="text-align:center; color:var(--muted); padding:24px;">Không có khoản vay nào đang nợ.</td></tr>`;
 
       const historyType = el('fundLoanHistoryTypeFilter')?.value || '';
       const historyPartner = el('fundLoanHistoryPartnerFilter')?.value || '';

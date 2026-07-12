@@ -23,8 +23,10 @@ test('Catalog read-only client preserves GET action, display sheet, and force-re
 test('Catalog read-only canary removes all transport Catalog write controls', () => {
   const legacy = read('client_catalog.html');
   const component = read('next-shell/components/CatalogReadOnly.jsx');
-  assert.match(legacy, /if \(!window\.__REACT_CATALOG_READONLY_ACTIVE\)/);
-  assert.doesNotMatch(component, /openCatalogAddModal|openManageEditModal|deleteManageRow|Thêm dòng mới|Thao tác/);
+  assert.match(legacy, /if \(!window\.__REACT_CATALOG_READONLY_ACTIVE/);
+  assert.match(component, /writeEnabled &&/);
+  assert.doesNotMatch(component, /openManageEditModal|deleteManageRow|Thao tác/);
+  assert.match(read('next-shell/app/catalog/page.jsx'), /writeEnabled=\{false\}/);
   assert.match(legacy, /row\.rowIndex/);
 });
 
@@ -55,4 +57,18 @@ test('React Catalog filter and pagination preserve legacy IDs, page size, and ca
   assert.match(legacy, /const catalogPageSize = 20/);
   assert.match(legacy, /personnelStatus !== 'all'/);
   assert.match(legacy, /row\.owner !== vehicleOwner/);
+});
+
+test('React Catalog write controls require a second independent flag and preserve legacy CRUD rowIndex', () => {
+  const component = read('next-shell/components/CatalogReadOnly.jsx');
+  const entry = read('react-catalog/entry.jsx');
+  const legacy = read('client_catalog.html');
+  assert.match(component, /writeEnabled &&/);
+  assert.match(component, /openCatalogAddModal/);
+  assert.match(component, /data-write-only="true"/);
+  assert.match(entry, /__REACT_CATALOG_WRITE_ACTIVE = enabled\(window\.__REACT_CATALOG_WRITE_ENABLED\)/);
+  assert.match(legacy, /__REACT_CATALOG_WRITE_ACTIVE/);
+  assert.match(legacy, /openManageEditModal\(row\)/);
+  assert.match(legacy, /deleteManageRow\(row\.rowIndex\)/);
+  assert.match(read('.env.example'), /VITE_REACT_CATALOG_WRITE_ENABLED=false/);
 });

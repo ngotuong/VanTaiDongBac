@@ -103,7 +103,7 @@
         }
       });
       
-      if (!window.__REACT_CATALOG_READONLY_ACTIVE) {
+      if (!window.__REACT_CATALOG_READONLY_ACTIVE || window.__REACT_CATALOG_WRITE_ACTIVE) {
         const thActions = document.createElement('th');
         thActions.textContent = 'Thao tác';
         thActions.style.textAlign = 'center';
@@ -302,7 +302,7 @@
           }
         });
 
-        if (!window.__REACT_CATALOG_READONLY_ACTIVE) {
+        if (!window.__REACT_CATALOG_READONLY_ACTIVE || window.__REACT_CATALOG_WRITE_ACTIVE) {
         const tdActions = document.createElement('td');
         tdActions.className = 'sticky-col-right';
         tdActions.dataset.label = '';

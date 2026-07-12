@@ -31,6 +31,7 @@
     window.__REACT_ACCOUNTS_ENABLED = "";
     window.__REACT_OBSERVABILITY_ENABLED = "";
     window.__REACT_CATALOG_READONLY_ENABLED = "";
+    window.__REACT_CATALOG_WRITE_ENABLED = "";
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
@@ -10001,7 +10002,7 @@
         }
       });
       
-      if (!window.__REACT_CATALOG_READONLY_ACTIVE) {
+      if (!window.__REACT_CATALOG_READONLY_ACTIVE || window.__REACT_CATALOG_WRITE_ACTIVE) {
         const thActions = document.createElement('th');
         thActions.textContent = 'Thao tác';
         thActions.style.textAlign = 'center';
@@ -10200,7 +10201,7 @@
           }
         });
 
-        if (!window.__REACT_CATALOG_READONLY_ACTIVE) {
+        if (!window.__REACT_CATALOG_READONLY_ACTIVE || window.__REACT_CATALOG_WRITE_ACTIVE) {
         const tdActions = document.createElement('td');
         tdActions.className = 'sticky-col-right';
         tdActions.dataset.label = '';

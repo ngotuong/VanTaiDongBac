@@ -6040,6 +6040,12 @@
       ]
     };
 
+    const FUND_TRANSACTIONS_PAGE_SIZE = 20;
+    const FUND_LOAN_HISTORY_PAGE_SIZE = 20;
+</script>
+
+  <script>
+
     let appData = null;
     let currentAuthUser = null;
     let catalogsByForm = {};
@@ -6062,9 +6068,7 @@
     let activeCashflowTab = 'overview';
     let fundTransactionsData = null;
     let fundTransactionsPage = 1;
-    const FUND_TRANSACTIONS_PAGE_SIZE = 20;
     let fundLoanHistoryPage = 1;
-    const FUND_LOAN_HISTORY_PAGE_SIZE = 20;
     let fundFormOptions = null;
     let fundOverviewData = null;
     let fundLoanData = null;

@@ -178,7 +178,8 @@ Frontend được chia theo fragment nhưng cùng chạy trong một global brow
 Các nhóm chính:
 
 - `client_utils.html`: pure HTML escaping, text normalization, locale-number và date conversion dùng chung;
-- `client_config.html`: cấu hình menu, form, mapping và global state;
+- `client_config_constants.html`: navigation, form labels/icons/notes, Sheet mappings, field schema và page sizes bất biến;
+- `client_config.html`: mutable application state và stateful UI helpers;
 - `client_api_transport.html`: chọn Apps Script runtime hay fetch `/api/app`, dựng request và map transport errors;
 - `client_supabase_cache.html`: Supabase REST bundle readers, payload mapping và stable cache keys;
 - `client_auth.html`: Supabase config/client, access token, auth gate, sign-in/sign-out và session bootstrap;

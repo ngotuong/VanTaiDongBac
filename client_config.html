@@ -1,89 +1,4 @@
 <script>
-    // System Navigation Configuration
-    const NAV = [
-      ['home', 'Tổng quan', 'KPI & Biểu đồ', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`],
-      ['reports', 'Báo cáo', 'Bảng chi tiết', `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`],
-      ['manage', 'Vận hành', 'Nhập & quản lý', `<svg class="btn-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>`],
-      ['catalog', 'Danh mục', 'Danh mục hệ thống', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`],
-      ['cashflow', 'Quỹ', 'Quản lý dòng tiền', `<svg class="btn-svg" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"></path></svg>`],
-      ['settings', 'Cài đặt', 'Cấu hình App', `<svg class="btn-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.52 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`]
-    ];
-
-    const BOTTOM_NAV_KEYS = ['home', 'reports', 'manage', 'catalog', 'cashflow'];
-    
-    const FORM_LABELS = {
-      vanChuyen: 'Vận chuyển',
-      taiXe: 'Tài xế',
-      dau: 'Dầu lẻ',
-      chamCong: 'Chấm công',
-      phat: 'Phạt nội bộ',
-      nghiVanHanh: 'Nghỉ vận hành'
-    };
-    
-    const FORM_ICONS = {
-      vanChuyen: 'VC',
-      taiXe: 'TX',
-      dau: 'DA',
-      chamCong: 'CC',
-      phat: 'PH',
-      nghiVanHanh: 'NV'
-    };
-    
-    const FORM_NOTES = {
-      vanChuyen: 'Số chuyến theo xe & dự án',
-      taiXe: 'Số chuyến theo tài xế chạy',
-      dau: 'Nhiên liệu và giá dầu áp dụng',
-      chamCong: 'Nghỉ phép, trừ công, nghỉ việc',
-      phat: 'Khấu trừ vi phạm nội bộ',
-      nghiVanHanh: 'Báo nghỉ mỏ & giảm KPI'
-    };
-
-    const FORM_SHEET_MAP = {
-      vanChuyen: 'NL_VanChuyen',
-      taiXe: 'NL_TaiXe',
-      dau: 'NL_Dau',
-      chamCong: 'NL_ChamCong',
-      phat: 'NL_Phat',
-      nghiVanHanh: 'NL_NghiVanHanh'
-    };
-
-    const SHEET_FORM_MAP = Object.keys(FORM_SHEET_MAP).reduce((map, formType) => {
-      map[FORM_SHEET_MAP[formType]] = formType;
-      return map;
-    }, {});
-    
-    // Field structure for each entry form
-    const FIELD_SETS = {
-      vanChuyen: [
-        ['date', 'Ngày chạy', 'date'], ['vehicle', 'Biển số xe', 'select:vehicles'],
-        ['project', 'Dự án chạy', 'select:projects'], ['trips', 'Số chuyến chạy', 'number'],
-        ['tickets', 'Số phiếu/Chứng từ', 'text'], ['note', 'Ghi chú thêm', 'textarea']
-      ],
-      taiXe: [
-        ['date', 'Ngày chạy', 'date'], ['vehicle', 'Biển số xe', 'select:vehicles'],
-        ['driver', 'Tài xế cầm lái', 'select:drivers'], ['trips', 'Số chuyến chạy', 'number'],
-        ['note', 'Ghi chú thêm', 'textarea']
-      ],
-      dau: [
-        ['date', 'Ngày tiếp dầu', 'date'], ['vehicle', 'Biển số xe nhận', 'select:vehicles'],
-        ['source', 'Nguồn cung cấp', 'select:fuelSources'], ['liters', 'Số lít dầu', 'number'],
-        ['price', 'Giá dầu / lít', 'number'], ['sourcePay', 'Nguồn chi', 'select:fuelPaymentSources']
-      ],
-      chamCong: [
-        ['fromDate', 'Từ ngày', 'date'], ['toDate', 'Đến ngày (Gồm cả)', 'date'],
-        ['person', 'Nhân sự nghỉ', 'select:people'], ['workdayType', 'Loại ngày nghỉ', 'select:chamCongTypes'],
-        ['note', 'Ghi chú thêm', 'textarea']
-      ],
-      phat: [
-        ['date', 'Ngày lập biên bản', 'date'], ['person', 'Nhân sự vi phạm', 'select:people'],
-        ['penaltyCode', 'Mã vi phạm nội bộ', 'select:penalties'], ['note', 'Ghi chú nội dung', 'textarea']
-      ],
-      nghiVanHanh: [
-        ['date', 'Ngày báo nghỉ', 'date'], ['vehicle', 'Biển số xe nghỉ', 'select:vehicles'],
-        ['project', 'Dự án ảnh hưởng', 'select:projects'], ['stopType', 'Lý do dừng máy', 'select:nghiVanHanhTypes'],
-        ['hours', 'Số giờ dừng máy', 'number'], ['note', 'Ghi chú chi tiết', 'textarea']
-      ]
-    };
 
     let appData = null;
     let currentAuthUser = null;
@@ -107,9 +22,7 @@
     let activeCashflowTab = 'overview';
     let fundTransactionsData = null;
     let fundTransactionsPage = 1;
-    const FUND_TRANSACTIONS_PAGE_SIZE = 20;
     let fundLoanHistoryPage = 1;
-    const FUND_LOAN_HISTORY_PAGE_SIZE = 20;
     let fundFormOptions = null;
     let fundOverviewData = null;
     let fundLoanData = null;

@@ -44,7 +44,8 @@ test('Router-only and disabled actions remain explicit and outside PublicApi', (
 
 test('proxy authentication and shareholder action surfaces match the baseline', () => {
   const proxy = read('api/app.js');
-  const shareholderBlock = proxy.match(/const SHAREHOLDER_ACTIONS = new Set\(\[([\s\S]*?)\]\);/);
+  const policy = read('api/services/authorization-policy.js');
+  const shareholderBlock = policy.match(/const SHAREHOLDER_ACTIONS = new Set\(\[([\s\S]*?)\]\);/);
   assert.ok(shareholderBlock, 'Missing SHAREHOLDER_ACTIONS block.');
   const shareholderActions = sorted([...shareholderBlock[1].matchAll(/'([^']+)'/g)].map((match) => match[1]));
   assert.deepEqual(shareholderActions, sorted(baseline.proxy.shareholderActions));

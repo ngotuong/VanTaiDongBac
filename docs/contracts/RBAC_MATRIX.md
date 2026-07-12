@@ -176,8 +176,8 @@ Trách nhiệm:
 - xác minh Bearer token;
 - đọc `app_users` bằng service role;
 - kiểm tra active/role;
-- chạy `assertAuthorized(user, action)`;
-- chạy `assertAdmin(user)` cho account admin actions;
+- chạy `AuthorizationPolicy.assertAuthorized(user, action)`;
+- chạy `AuthorizationPolicy.assertAdmin(user)` cho account admin actions;
 - chỉ sau đó mới forward Apps Script.
 
 Đây là role enforcement chính cho frontend Vercel.

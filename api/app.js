@@ -1,6 +1,6 @@
 const crypto = require('crypto');
+const { createAppsScriptClient } = require('./services/apps-script-client');
 
-const MAX_BODY_BYTES = 1024 * 1024;
 const INTERNAL_EMAIL_DOMAIN = 'dongbac.internal';
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,40}$/;
 const ROLES = new Set(['admin', 'operator', 'shareholder']);
@@ -92,7 +92,7 @@ async function getAuthenticatedUser(req, config) {
 }
 
 function assertAuthorized(user, action) {
-  if (user.role === 'shareholder' && !SHAREHOLDER_ACTIONS.has(action)) {
+  if (user && user.role === 'shareholder' && !SHAREHOLDER_ACTIONS.has(action)) {
     throw httpError(403, 'Tài khoản cổ đông chỉ có quyền xem dữ liệu.');
   }
 }
@@ -263,7 +263,9 @@ module.exports = async function handler(req, res) {
     const body = req.method === 'POST' ? { ...(req.body || {}) } : {};
     delete body.action;
     delete body.params;
-    const payload = JSON.stringify({
+    const client = createAppsScriptClient();
+    const result = await client.forward({
+      url: config.appsScriptUrl,
       action,
       method: req.method,
       params,
@@ -271,18 +273,7 @@ module.exports = async function handler(req, res) {
       proxySecret: config.proxySecret,
       requestUser: user
     });
-    if (Buffer.byteLength(payload, 'utf8') > MAX_BODY_BYTES) return send(res, 413, { ok: false, error: 'Payload quá lớn.' });
-    const upstream = await fetch(config.appsScriptUrl, {
-      method: 'POST',
-      redirect: 'follow',
-      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: payload
-    });
-    const text = await upstream.text();
-    if (!upstream.ok) return send(res, 502, { ok: false, error: `Apps Script trả status ${upstream.status}.` });
-    let data;
-    try { data = JSON.parse(text); } catch (err) { return send(res, 502, { ok: false, error: 'Apps Script trả dữ liệu không hợp lệ.' }); }
-    return send(res, data && data.ok === false ? 400 : 200, data);
+    return send(res, result.status, result.body);
   } catch (err) {
     return send(res, err.status || 500, { ok: false, error: err.message || 'Lỗi API proxy.' });
   }

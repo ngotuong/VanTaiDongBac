@@ -332,11 +332,13 @@ Commit lien quan:
 - Step 28 tách sync status, cache audit, write-job rendering và format thời gian sang `client_observability.html`; `client_ui.html` giữ loader, toast, drawer và generic UI utilities. Global names, DOM IDs, API parameters, quick/deep/all audit và retry behavior giữ nguyên; mặc định status load không chạy heavy audit.
 - Step 28 đã pass 226/226 test, build thành công, artifact không còn template tag và `git diff --check` sạch; commit `cc0e178`. Đã deploy Vercel production `dpl_JEBMfSWsjNBBTXfghFTD2gZSPRG7`, alias `https://dongbac.vercel.app`; Apps Script vẫn `@281`, không cần migration/schema/backend deploy.
 - Smoke Step 28 thành công: production page/health `200`, unauthenticated dashboard `401`, artifact có đúng một owner observability; auth gate production và local desktop/mobile 390x844 render đúng, không có console error mới. Không chạy audit/retry hoặc business mutation production.
+- Step 29a tách Fund overview/report, KPI growth, category detail và export image sang `client_cashflow_overview.html`; `client_cashflow.html` giữ facade/tab và các submodule còn lại. Global names, DOM, API/cache fallback và interaction giữ nguyên.
+- Step 29a đã pass 230/230 test, build thành công và `git diff --check` sạch. Chưa thay backend/schema/API/feature flag; checkpoint deployment sẽ được ghi sau production smoke.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 28 đã hoàn thành. Apps Script checkpoint `@281`, Vercel production deployment `dpl_JEBMfSWsjNBBTXfghFTD2gZSPRG7`.
-- Bước kế tiếp được đề xuất sau khi Step 28 deploy ổn định: Step 29 — tách Cashflow thành các submodule vanilla; chưa được tự bắt đầu nếu chưa có phê duyệt Step 29.
+- Trạng thái hiện tại: Step 28 hoàn thành; Step 29a đã hoàn thành ở source/local verification. Apps Script vẫn `@281`.
+- Bước tiếp theo trong Step 29 đã được phê duyệt: sau khi 29a deploy ổn định, thực hiện 29b transaction/entry như change set độc lập.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 

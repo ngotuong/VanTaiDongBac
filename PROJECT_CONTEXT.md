@@ -343,11 +343,11 @@ Commit lien quan:
 - Step 29e tách Fund catalog read/filter/CRUD/status sang `client_cashflow_catalog.html`; facade còn tab routing và shared date/money/loading utilities. Global names, permissions, row token, API/cache fallback và UI giữ nguyên.
 - Step 29e đã pass 246/246 test, build thành công và `git diff --check` sạch; commit `7f2e102`. Đã deploy Vercel production `dpl_5D9Zpafspm15jySiL8zsp3Mt83uH`; page/health `200`, unauthenticated dashboard `401`, artifact có đúng catalog globals. Final visual QA auth gate desktop/mobile 375x812 không có console error mới. Apps Script vẫn `@281`; không backend/schema/API/feature-flag change hoặc business mutation. Toàn bộ Step 29a-29e đã hoàn thành.
 - Step 30 tạo `client_pending_job_store.html` làm owner duy nhất của pending Transport/Fund state, với read/replace/upsert/update/remove/mergeRecent/subscribe và compatibility globals `pendingWriteJobs`/`pendingFundWriteJobs`. Transport/Fund mutations delegate vào store; Dashboard/Manage/Transactions consumers giữ call site cũ.
-- Step 30 đồng bộ lại `client.html` HtmlService include graph với các fragment Step 28-30 để giữ compatibility. Step 30 đã pass 251/251 test, build thành công và `git diff --check` sạch; chưa đổi polling/status/overlay/API/backend/schema/feature flag. Checkpoint deployment sẽ được ghi sau production smoke.
+- Step 30 đồng bộ lại `client.html` HtmlService include graph với các fragment Step 28-30 để giữ compatibility. Step 30 đã pass 251/251 test, build thành công và `git diff --check` sạch; commit `d087ae1`. Đã deploy Vercel production `dpl_Eg3FRMBiz5EkuC7SH8FsfkyAmQ7Z`; page/health `200`, unauthenticated dashboard `401`, artifact có store cùng Transport/Fund delegates. Visual QA auth gate desktop/mobile 375x812 không có console error mới. Apps Script vẫn `@281`; không đổi polling/status/overlay/API/backend/schema/feature flag hoặc business mutation.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 28 và Step 29 hoàn thành; Step 30 đã hoàn thành source/local verification. Apps Script vẫn `@281`.
+- Trạng thái hiện tại: Step 28, Step 29 và Step 30 đã hoàn thành. Apps Script `@281`, Vercel production `dpl_Eg3FRMBiz5EkuC7SH8FsfkyAmQ7Z`.
 - Bước kế tiếp được đề xuất sau khi Step 30 deploy ổn định: Step 31 — React/Next.js Accounts vertical slice; chưa được tự bắt đầu nếu chưa có phê duyệt Step 31.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.

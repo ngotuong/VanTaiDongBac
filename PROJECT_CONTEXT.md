@@ -346,11 +346,13 @@ Commit lien quan:
 - Step 30 đồng bộ lại `client.html` HtmlService include graph với các fragment Step 28-30 để giữ compatibility. Step 30 đã pass 251/251 test, build thành công và `git diff --check` sạch; commit `d087ae1`. Đã deploy Vercel production `dpl_Eg3FRMBiz5EkuC7SH8FsfkyAmQ7Z`; page/health `200`, unauthenticated dashboard `401`, artifact có store cùng Transport/Fund delegates. Visual QA auth gate desktop/mobile 375x812 không có console error mới. Apps Script vẫn `@281`; không đổi polling/status/overlay/API/backend/schema/feature flag hoặc business mutation.
 - Step 31 bổ sung Next.js static shell chạy song song tại `/next-accounts/`, React Accounts island cho route Cài đặt hiện hữu và typed account client giữ nguyên năm proxy-local actions. Markup/label/field/validation/RBAC boundary được characterization test; legacy `client_accounts.html` vẫn tồn tại và bridge chỉ mount React khi `REACT_ACCOUNTS_ENABLED`/`VITE_REACT_ACCOUNTS_ENABLED` bật. Flag mặc định tắt, vì vậy production tiếp tục dùng Accounts legacy và có thể rollback tức thời bằng flag/Vercel rollback. Không đổi account API, backend, schema, Google Sheet hoặc business data.
 - Step 31 đã pass 257/257 test, full legacy + React + Next static build thành công, `git diff --check` sạch; commit `446f78b`. Đã deploy Vercel production `dpl_ENM9UszKPanmvb55aj4mBKiSJUuF`, alias `https://dongbac.vercel.app`; page/health, `/next-accounts/` và React bundle đều `200`, unauthenticated dashboard `401`, production artifact xác nhận flag rỗng/tắt và legacy root còn active. Visual QA shell desktop 1280x720/mobile 375x812 không có console warning/error hoặc tràn ngang. Apps Script vẫn `@281`; không chạy account/business mutation.
+- Step 32 bổ sung React Sync Status/Audit island và Next static canary route `/next-accounts/observability/`. Typed observability client giữ chính xác status limit 24, Transport jobs limit 12, quick/deep/all audit 50/500 dòng, report months cố định và retry action; default load không chạy audit nặng. `REACT_OBSERVABILITY_ENABLED`/`VITE_REACT_OBSERVABILITY_ENABLED` mặc định tắt độc lập, legacy `client_observability.html` và markup vẫn tồn tại để rollback. Không đổi API/backend/schema/Sheet hoặc queue behavior.
+- Step 32 local verification: 262/262 test pass, full legacy + hai React island + Next static build thành công, `git diff --check` sạch. Deployment/commit production sẽ được ghi sau smoke cuối.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 28, Step 29, Step 30 và Step 31 đã hoàn thành. Apps Script `@281`, Vercel production `dpl_ENM9UszKPanmvb55aj4mBKiSJUuF`; React Accounts flag vẫn mặc định tắt.
-- Bước kế tiếp sau khi Step 31 deploy ổn định: Step 32 — React/Next.js Sync Status/Audit slice; không tự bắt đầu nếu chưa có phê duyệt Step 32.
+- Trạng thái hiện tại: Step 28-31 đã hoàn thành; Step 32 đã hoàn tất local verification và đang chờ production smoke/checkpoint. Apps Script vẫn `@281`; các React flag mặc định tắt.
+- Bước kế tiếp sau khi Step 32 deploy ổn định: Step 33 — React/Next.js Catalog slice; không tự bắt đầu nếu chưa có phê duyệt Step 33.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -397,4 +399,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 32 hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 33 hoặc bất kỳ thay đổi mới nào.

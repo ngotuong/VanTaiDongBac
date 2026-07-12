@@ -12,4 +12,14 @@ button { cursor: pointer; font-weight: 700; } .primary { background: #0f766e; co
 th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
 .account-row-actions { display: flex; gap: 8px; } .account-settings-status { min-height: 24px; }
 .temporary-password-box { margin-top: 12px; padding: 12px; background: #ecfdf5; border-radius: 10px; }
-@media (max-width: 640px) { .next-accounts-shell { padding: 12px; } .account-row-actions { min-width: 220px; } }
+.settings-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.settings-card-header h2 { margin: 0 0 6px; } .settings-card-header p { margin: 0; color: #64748b; }
+.sync-status-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.icon-text-btn { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; background: #fff; }
+.btn-svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sync-status-list, .sync-status-section { display: grid; gap: 8px; }
+.sync-status-section + .sync-status-section { padding-top: 12px; margin-top: 4px; border-top: 1px solid #dbe3ef; }
+.sync-status-section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 800; }
+.sync-status-row { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(92px,auto) minmax(126px,auto); gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid #dbe3ef; border-radius: 12px; background: #f8fafc; }
+.sync-status-empty { padding: 18px; border: 1px dashed #dbe3ef; border-radius: 12px; color: #64748b; background: #f8fafc; text-align: center; font-size: 13px; font-weight: 700; }
+@media (max-width: 640px) { .next-accounts-shell { padding: 12px; } .account-row-actions { min-width: 220px; } .settings-card-header { display: grid; } .sync-status-actions { justify-content: stretch; } .sync-status-actions button { width: 100%; justify-content: center; } .sync-status-row { grid-template-columns: 1fr; } }

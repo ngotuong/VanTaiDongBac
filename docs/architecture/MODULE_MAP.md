@@ -82,8 +82,8 @@ flowchart TD
 | `FRONTEND_API` | API transport/Auth/Supabase cache client | Giao diện | `client_api_transport.html`, `client_auth.html`, `client_api.html`, `client_supabase_cache.html` | HTTP, Supabase REST/Auth, session cache |
 | `FRONTEND_TRANSPORT` | UI Vận tải | Giao diện | `client_dashboard.html`, `client_entry.html`, `client_manage.html`, `client_catalog.html`, `client_reports.html`, `client_data.html` | API payload, bundle cache |
 | `FRONTEND_FUND` | UI Thu chi/Quỹ | Giao diện | `client_cashflow.html`, `client_cashflow_overview.html`, `client_cashflow_transactions.html`, `client_cashflow_pending.html`, `client_cashflow_loans.html`, `client_cashflow_catalog.html` | Fund API/cache payload |
-| `FRONTEND_ACCOUNTS` | UI tài khoản và role | Giao diện | Legacy: `client_accounts.html`; React: `next-shell/components/Accounts.jsx`, `react-accounts/entry.jsx`; trạng thái: `client_observability.html` | Auth user, account API |
-| `BUILD_STATIC` | Build frontend/PWA | Nền tảng | `scripts/build.js`, `scripts/build-accounts-react.js`, `scripts/copy-next-accounts.js`, `next-shell/`, `manifest.json` | `index.html`, React bundle, Next static export, static assets |
+| `FRONTEND_ACCOUNTS` | UI tài khoản và role | Giao diện | Legacy: `client_accounts.html`; React: `next-shell/components/Accounts.jsx`, `react-accounts/entry.jsx`; trạng thái legacy/React: `client_observability.html`, `next-shell/components/Observability.jsx`, `react-observability/entry.jsx` | Auth user, account API, sync/audit API |
+| `BUILD_STATIC` | Build frontend/PWA | Nền tảng | `scripts/build.js`, `scripts/build-accounts-react.js`, `scripts/build-observability-react.js`, `scripts/copy-next-accounts.js`, `next-shell/`, `manifest.json` | `index.html`, React bundles, Next static export, static assets |
 | `LEGACY_FUND_BOUND` | Bound script Thu chi | Legacy/bound | `docs/source/thu_chi_bound_script/` | Active Thu chi spreadsheet |
 | `SCHEMA_REFERENCE` | Snapshot/schema vận hành | Dữ liệu | `docs/schema/*.json`, `PROJECT_SCHEMA.md` | Google Sheet schema |
 
@@ -713,6 +713,8 @@ Source:
 - typed account client: `next-shell/lib/account-client.js`;
 - legacy-shell mount/feature-flag bridge: `react-accounts/entry.jsx`;
 - trạng thái/audit: `client_observability.html`;
+- React trạng thái/audit: `next-shell/components/Observability.jsx`, `next-shell/lib/observability-client.js`;
+- legacy-shell observability mount/flag bridge: `react-observability/entry.jsx`;
 - API transport: `client_api_transport.html`;
 - Auth/session: `client_auth.html`;
 - server enforcement: `api/app.js`.
@@ -723,6 +725,7 @@ Ranh giới quan trọng:
 - account administration chỉ dành cho admin;
 - shareholder là read-only ở API, không chỉ trong UI.
 - `REACT_ACCOUNTS_ENABLED`/`VITE_REACT_ACCOUNTS_ENABLED` mặc định tắt; legacy markup và behavior bridge vẫn là rollback tức thời trong giai đoạn canary.
+- `REACT_OBSERVABILITY_ENABLED`/`VITE_REACT_OBSERVABILITY_ENABLED` mặc định tắt độc lập; default status load không gọi audit nặng và legacy `client_observability.html` vẫn là fallback.
 
 ## 9. Module build và asset
 

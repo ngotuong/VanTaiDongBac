@@ -29,6 +29,7 @@
       authEnabled: ""
     };
     window.__REACT_ACCOUNTS_ENABLED = "";
+    window.__REACT_OBSERVABILITY_ENABLED = "";
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
@@ -5521,6 +5522,7 @@
           </div>
           <div id="accountsReactRoot" style="display:contents;" hidden></div>
 
+          <div id="observabilityLegacyRoot" style="display:contents;">
           <article class="info-card sync-status-card" data-hide-shareholder style="grid-column: 1 / -1;">
             <div class="settings-card-header">
               <div>
@@ -5554,6 +5556,8 @@
               <div class="sync-status-empty">Chọn Cài đặt để tải trạng thái.</div>
             </div>
           </article>
+          </div>
+          <div id="observabilityReactRoot" style="display:contents;" hidden></div>
 
         </div>
       </section>
@@ -13642,5 +13646,6 @@
 </script>
 
   <script src="/public/static/accounts-react.js" defer></script>
+  <script src="/public/static/observability-react.js" defer></script>
 </body>
 </html>

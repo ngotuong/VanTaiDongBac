@@ -30,6 +30,7 @@
     };
     window.__REACT_ACCOUNTS_ENABLED = <?!= JSON.stringify(reactAccountsEnabled || '') ?>;
     window.__REACT_OBSERVABILITY_ENABLED = <?!= JSON.stringify(reactObservabilityEnabled || '') ?>;
+    window.__REACT_CATALOG_READONLY_ENABLED = <?!= JSON.stringify(reactCatalogReadOnlyEnabled || '') ?>;
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
@@ -408,6 +409,7 @@
 
       <!-- View: Catalog Management (System Category CRUD) -->
       <section id="catalogView" class="view">
+        <div id="catalogLegacyRoot" style="display:contents;">
         <!-- Nút trượt ngang chọn Danh mục -->
         <div class="sub-tabs-bar app-sticky-tabs" id="catalogTabsBar" style="width: 100%; margin-bottom: 12px;">
           <button type="button" class="sub-tab active" data-sheet="DM_NhanSu" onclick="setCatalogSheetTab('DM_NhanSu')">Nhân sự</button>
@@ -470,6 +472,8 @@
             </div>
           </div>
         </div>
+        </div>
+        <div id="catalogReactRoot" style="display:contents;" hidden></div>
       </section>
 
       <!-- View: Cashflow Module Placeholder -->
@@ -984,5 +988,6 @@
   <?!= include('client_observability'); ?>
   <script src="/public/static/accounts-react.js" defer></script>
   <script src="/public/static/observability-react.js" defer></script>
+  <script src="/public/static/catalog-react.js" defer></script>
 </body>
 </html>

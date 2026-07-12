@@ -25,3 +25,4 @@ next-shell/out/
 next-accounts/
 public/static/accounts-react.js
 public/static/observability-react.js
+public/static/catalog-react.js

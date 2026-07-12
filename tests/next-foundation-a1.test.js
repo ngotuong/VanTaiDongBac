@@ -14,6 +14,7 @@ test('A1 selects dynamic Next runtime while legacy root remains outside the cana
   assert.doesNotMatch(config, /output:\s*['"]export['"]/);
   assert.match(config, /basePath:\s*['"]\/next-accounts['"]/);
   assert.doesNotMatch(build, /copy-next-accounts/);
+  assert.match(build, /clean-next-accounts/);
   assert.match(legacyVercel, /"outputDirectory": "\."/);
   assert.match(nextVercel, /"framework": "nextjs"/);
   assert.doesNotMatch(nextVercel, /outputDirectory/);

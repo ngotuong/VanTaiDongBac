@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "node scripts/build.js && node scripts/build-accounts-react.js && node scripts/build-observability-react.js && node scripts/build-catalog-react.js && node scripts/build-fund-catalog-react.js && node scripts/build-dashboard-react.js && node scripts/build-reports-react.js && node scripts/build-manage-react.js && node scripts/build-cashflow-react.js && next build",
+    "build": "node scripts/clean-next-accounts.js && node scripts/build.js && node scripts/build-accounts-react.js && node scripts/build-observability-react.js && node scripts/build-catalog-react.js && node scripts/build-fund-catalog-react.js && node scripts/build-dashboard-react.js && node scripts/build-reports-react.js && node scripts/build-manage-react.js && node scripts/build-cashflow-react.js && next build",
     "build:legacy": "node scripts/build.js",
     "build:accounts": "node scripts/build-accounts-react.js",
     "build:observability": "node scripts/build-observability-react.js",

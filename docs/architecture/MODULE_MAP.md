@@ -81,7 +81,7 @@ flowchart TD
 | `FRONTEND_CORE` | App shell, constants, pure utilities, state và navigation | Giao diện | `index.template.html`, `client_config_constants.html`, `client_utils.html`, `client_config.html`, `client_app.html` | Browser global state, DOM |
 | `FRONTEND_API` | API transport/Auth/Supabase cache client | Giao diện | `client_api_transport.html`, `client_auth.html`, `client_api.html`, `client_supabase_cache.html` | HTTP, Supabase REST/Auth, session cache |
 | `FRONTEND_TRANSPORT` | UI Vận tải | Giao diện | `client_dashboard.html`, `client_entry.html`, `client_manage.html`, `client_catalog.html`, `client_reports.html`, `client_data.html` | API payload, bundle cache |
-| `FRONTEND_FUND` | UI Thu chi/Quỹ | Giao diện | `client_cashflow.html`, `client_cashflow_overview.html` | Fund API/cache payload |
+| `FRONTEND_FUND` | UI Thu chi/Quỹ | Giao diện | `client_cashflow.html`, `client_cashflow_overview.html`, `client_cashflow_transactions.html` | Fund API/cache payload |
 | `FRONTEND_ACCOUNTS` | UI tài khoản và role | Giao diện | `client_accounts.html`, `client_observability.html` | Auth user, account API |
 | `BUILD_STATIC` | Build frontend/PWA | Nền tảng | `scripts/build.js`, `manifest.json` | `index.html`, static assets |
 | `LEGACY_FUND_BOUND` | Bound script Thu chi | Legacy/bound | `docs/source/thu_chi_bound_script/` | Active Thu chi spreadsheet |
@@ -683,6 +683,7 @@ Source:
 
 - facade và các submodule chưa tách: `client_cashflow.html`;
 - overview/report: `client_cashflow_overview.html`;
+- transaction/entry: `client_cashflow_transactions.html`;
 - API/cache helper trong `client_api.html`.
 
 Ranh giới quan trọng:
@@ -825,7 +826,7 @@ Các điểm dưới đây phải được xem là thuộc tính kiến trúc hi
 - `client_data.html` điều phối dữ liệu cho nhiều view, không chỉ một module.
 - `client_observability.html` sở hữu màn hình quan sát sync/audit và write-job rendering; `client_ui.html` giữ DOM/input, loader, toast và utility UI chung.
 - `client_config.html` chứa cả config, mapping và application state.
-- `client_cashflow.html` vẫn chứa transaction/entry, pending jobs, loan và catalog; overview/report đã thuộc `client_cashflow_overview.html`.
+- `client_cashflow.html` vẫn chứa pending jobs, loan và catalog; overview/report và transaction/entry đã có fragment riêng.
 - API và permission contract được lặp lại giữa nhiều lớp thay vì có một registry duy nhất.
 
 Vì vậy, “file ownership” trong tài liệu này có nghĩa là điểm bắt đầu truy vết, không có nghĩa thay đổi chỉ ảnh hưởng một file.

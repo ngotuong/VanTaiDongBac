@@ -6957,329 +6957,6 @@
       tbody.innerHTML = `<tr><td colspan="${colspan}" style="padding:16px;"><div class="shimmer shimmer-table"></div></td></tr>`;
     }
 
-    function loadFundFormOptions() {
-      if (fundFormOptions) return Promise.resolve(fundFormOptions);
-      const supabaseStatus = getSupabaseReportStatus();
-      const loadFromAppsScript = () => callApi('GET', 'getFundFormOptions', { year: '2026' });
-      const loader = supabaseStatus.ok
-        ? readFundFormOptionsFromSupabase('2026').catch((err) => {
-            console.warn('Không đọc được danh mục nhập Quỹ từ Supabase, quay về Apps Script:', err);
-            return loadFromAppsScript();
-          })
-        : loadFromAppsScript();
-      return loader
-        .then((data) => {
-          fundFormOptions = data;
-          renderFundFormOptions();
-          return data;
-        })
-        .catch((err) => {
-          console.warn('Không thể tải danh mục Thu chi:', err);
-          renderFundFormOptions();
-          return null;
-        });
-    }
-
-    function renderFundFormOptions() {
-      const options = fundFormOptions || {};
-      renderFundCategoryOptions();
-      fillSelect('fundActorInput', options.actors || [], 'Chọn người thu/chi');
-      fillSelect('fundPartnerInput', options.partners || [], 'Chọn đối tác');
-      fillSelect('loanPartnerInput', options.loanPartners || [], 'Chọn nơi vay');
-      fillSelect('loanPaymentPartnerInput', options.loanPartners || [], 'Chọn đối tác');
-    }
-
-    function fillSelect(id, values, placeholder) {
-      const list = el(id);
-      if (!list) return;
-      const currentValue = list.value || '';
-      const unique = [];
-      const seen = new Set();
-      (values || []).forEach((value) => {
-        const text = String(value || '').trim();
-        if (!text) return;
-        const key = text.toLowerCase();
-        if (seen.has(key)) return;
-        seen.add(key);
-        unique.push(text);
-      });
-      list.innerHTML = '';
-      const placeholderOption = document.createElement('option');
-      placeholderOption.value = '';
-      placeholderOption.textContent = placeholder || 'Chọn danh mục';
-      placeholderOption.disabled = true;
-      placeholderOption.selected = !currentValue;
-      list.appendChild(placeholderOption);
-      unique.forEach((value) => {
-        const option = document.createElement('option');
-        option.value = value;
-        option.textContent = value;
-        list.appendChild(option);
-      });
-      if (currentValue && !unique.some((item) => item === currentValue)) {
-        const option = document.createElement('option');
-        option.value = currentValue;
-        option.textContent = currentValue;
-        list.appendChild(option);
-      }
-      if (currentValue) list.value = currentValue;
-    }
-
-    function renderFundCategoryOptions() {
-      const options = fundFormOptions || {};
-      const type = el('fundTypeInput')?.value || 'Chi';
-      const categorySelect = el('fundCategoryInput');
-      if (!categorySelect) return;
-      const source = type === 'Thu' ? (options.incomeCategories || []) : (options.expenseCategories || []);
-      fillSelect('fundCategoryInput', source, type === 'Thu' ? 'Chọn mục thu' : 'Chọn mục chi');
-      categorySelect.value = categorySelect.dataset.selected || categorySelect.value || '';
-    }
-
-    function fillDatalist(id, values) {
-      const list = el(id);
-      if (!list) return;
-      list.innerHTML = '';
-      values.forEach((value) => {
-        const option = document.createElement('option');
-        option.value = value;
-        list.appendChild(option);
-      });
-    }
-
-    function handleFundTypeChange() {
-      const category = el('fundCategoryInput');
-      if (category) category.value = '';
-      renderFundCategoryOptions();
-    }
-
-    function newBlankFundTransaction(seed = {}) {
-      return {
-        date: seed.date || appData?.today || new Date().toISOString().slice(0, 10),
-        type: seed.type || 'Chi',
-        category: seed.category || '',
-        amount: stripCurrencySymbolText(seed.amountText || seed.amount || ''),
-        actor: seed.actor || '',
-        partner: seed.partner || '',
-        content: seed.content || '',
-        debt: seed.debt === true || seed.debt === 'Có'
-      };
-    }
-
-    function getFundCategoryValues(type) {
-      const options = fundFormOptions || {};
-      return type === 'Thu' ? (options.incomeCategories || []) : (options.expenseCategories || []);
-    }
-
-    function buildFundOptionHtml(values, currentValue, placeholder) {
-      const unique = [];
-      const seen = new Set();
-      (values || []).forEach((value) => {
-        const text = String(value || '').trim();
-        const key = text.toLowerCase();
-        if (!text || seen.has(key)) return;
-        seen.add(key);
-        unique.push(text);
-      });
-      if (currentValue && !unique.includes(currentValue)) unique.push(currentValue);
-      return [`<option value="">${escapeHtml(placeholder || 'Chọn')}</option>`].concat(unique.map((value) => {
-        const selected = value === currentValue ? ' selected' : '';
-        return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(value)}</option>`;
-      })).join('');
-    }
-
-    function renderFundTransactionRows(options = {}) {
-      const holder = el('fundTransactionRows');
-      if (!holder) return;
-      if (!fundTransactionRows.length) {
-        fundTransactionRows = [newBlankFundTransaction()];
-      }
-      const isEdit = Boolean(fundTransactionEditRowIndex);
-      holder.innerHTML = fundTransactionRows.map((row, index) => {
-        const categories = getFundCategoryValues(row.type);
-        const categoryOptions = ['<option value="">Chọn mục thu/chi</option>'].concat(categories.map((value) => {
-          const selected = value === row.category ? ' selected' : '';
-          return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(value)}</option>`;
-        })).join('');
-        const actorOptions = buildFundOptionHtml(fundFormOptions?.actors || [], row.actor, 'Chọn người thu/chi');
-        const partnerOptions = buildFundOptionHtml(fundFormOptions?.partners || [], row.partner, 'Chọn đối tác');
-        return `
-          <article class="entry-row fund-transaction-row" data-fund-row="${index}">
-            <div class="entry-row-head">
-              <div class="entry-row-title"><span class="row-number">${index + 1}</span><span>Dòng thu chi</span></div>
-              <button type="button" class="danger" onclick="removeFundTransactionRow(${index})" ${fundTransactionRows.length === 1 || (isEdit && index === 0) ? 'disabled' : ''}>Xóa</button>
-            </div>
-            <div class="fields">
-              <label class="full">Ngày<input type="text" class="vi-date-input" inputmode="numeric" placeholder="dd/mm/yyyy" data-iso="${escapeHtml(row.date || '')}" value="${escapeHtml(formatIsoDateForDisplay(row.date || ''))}" oninput="updateFundTransactionRow(${index}, 'date', getDateInputIso(this))" onchange="updateFundTransactionRow(${index}, 'date', getDateInputIso(this))" required></label>
-              <label>Loại<select onchange="updateFundTransactionRow(${index}, 'type', this.value)"><option value="Chi"${row.type === 'Chi' ? ' selected' : ''}>Chi</option><option value="Thu"${row.type === 'Thu' ? ' selected' : ''}>Thu</option></select></label>
-              <label>Mục thu/chi<select onchange="updateFundTransactionRow(${index}, 'category', this.value)" required>${categoryOptions}</select></label>
-              <label class="full">Số tiền<input type="text" class="format-money-input" inputmode="numeric" value="${escapeHtml(row.amount || '')}" placeholder="0" oninput="updateFundTransactionRow(${index}, 'amount', this.value)" required></label>
-              <label>Người Thu/Chi<select onchange="updateFundTransactionRow(${index}, 'actor', this.value)" required>${actorOptions}</select></label>
-              <label>Đối tác<select onchange="updateFundTransactionRow(${index}, 'partner', this.value)">${partnerOptions}</select></label>
-              <label class="full fund-debt-toggle"><input type="checkbox" ${row.debt ? 'checked' : ''} onchange="updateFundTransactionRow(${index}, 'debt', this.checked)"> Đánh dấu là công nợ</label>
-              <label class="full">Nội dung<textarea rows="2" placeholder="Nội dung thu/chi" oninput="updateFundTransactionRow(${index}, 'content', this.value)">${escapeHtml(row.content || '')}</textarea></label>
-            </div>
-          </article>
-        `;
-      }).join('');
-      if (Number.isInteger(options.scrollIndex)) {
-        requestAnimationFrame(() => scrollFundTransactionRowIntoView(options.scrollIndex, options.focusFirst));
-      }
-      if (!holder.dataset.focusBound) {
-        holder.dataset.focusBound = '1';
-        holder.addEventListener('focusin', (event) => {
-          const rowEl = event.target.closest('[data-fund-row]');
-          if (!rowEl) return;
-          const index = Number(rowEl.dataset.fundRow);
-          if (Number.isInteger(index)) {
-            setTimeout(() => scrollFundTransactionRowIntoView(index, false), 80);
-          }
-        });
-      }
-    }
-
-    function scrollFundTransactionRowIntoView(index, focusFirst) {
-      const row = document.querySelector(`[data-fund-row="${index}"]`);
-      if (!row) return;
-      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      if (focusFirst) {
-        const input = row.querySelector('input, select, textarea');
-        if (input) {
-          setTimeout(() => input.focus({ preventScroll: true }), 120);
-        }
-      }
-    }
-
-    window.updateFundTransactionRow = function(index, key, value) {
-      if (!fundTransactionRows[index]) return;
-      fundTransactionRows[index][key] = value;
-      if (key === 'type') {
-        fundTransactionRows[index].category = '';
-        renderFundTransactionRows();
-      }
-    };
-
-    window.addFundTransactionRow = function() {
-      fundTransactionRows.push(newBlankFundTransaction());
-      renderFundTransactionRows({ scrollIndex: fundTransactionRows.length - 1, focusFirst: true });
-    };
-
-    window.cloneFundTransactionRow = function() {
-      const last = fundTransactionRows[fundTransactionRows.length - 1] || newBlankFundTransaction();
-      fundTransactionRows.push(newBlankFundTransaction({ ...last }));
-      renderFundTransactionRows({ scrollIndex: fundTransactionRows.length - 1, focusFirst: false });
-    };
-
-    window.removeFundTransactionRow = function(index) {
-      if (fundTransactionRows.length === 1) return;
-      if (fundTransactionEditRowIndex && index === 0) return;
-      fundTransactionRows.splice(index, 1);
-      renderFundTransactionRows({ scrollIndex: Math.max(0, index - 1), focusFirst: false });
-    };
-
-    function submitFundTransaction() {
-      if (!requireWritePermission()) return;
-      const btn = el('fundSaveBtn');
-      const transactions = fundTransactionRows.map((row) => ({ ...row }));
-      const error = validateFundTransactions(transactions);
-      if (error) {
-        showFundEntryStatus('error', error);
-        return;
-      }
-
-      if (btn) btn.disabled = true;
-
-      if (fundTransactionEditRowIndex) {
-        if (transactions.length > 1) {
-          showFundEntryStatus('error', 'Khi sửa một giao dịch, vui lòng chỉ lưu dòng đang sửa. Hãy thêm giao dịch mới ở lượt riêng.');
-          if (btn) btn.disabled = false;
-          return;
-        }
-        showFundEntryStatus('info', transactions.length > 1 ? `Đang cập nhật 1 khoản và lưu thêm ${transactions.length - 1} khoản mới...` : 'Đang cập nhật khoản thu/chi...');
-        const oldItem = currentEditingTransaction || {};
-        const transaction = transactions[0];
-        const extraTransactions = transactions.slice(1);
-
-        callApi('POST', 'updateFundTransaction', {}, {
-          year: '2026',
-          rowIndex: fundTransactionEditRowIndex,
-          transaction: {
-            ...transaction,
-            voucher: oldItem.voucher || '',
-            method: oldItem.method || ''
-          }
-        })
-          .then(() => {
-            if (!extraTransactions.length) return null;
-            return callApi('POST', 'addFundTransactions', {}, {
-              year: '2026',
-              transactions: extraTransactions
-            });
-          })
-          .then((res) => {
-            const addResult = res || {};
-            const inserted = Number(addResult.inserted ?? addResult.rows?.length ?? 0);
-            if (extraTransactions.length && inserted < extraTransactions.length) {
-              throw new Error(`Google Sheets chỉ xác nhận ghi ${inserted}/${extraTransactions.length} khoản mới.`);
-            }
-            return addResult;
-          })
-          .then((addResult) => {
-            clearFundEntryForm();
-            const rowRange = formatFundWriteRowRange(addResult);
-            showFundEntryStatus('success', transactions.length > 1
-              ? `Đã cập nhật 1 khoản và lưu thêm ${transactions.length - 1} khoản mới${rowRange}.`
-              : 'Đã cập nhật khoản thu/chi thành công.');
-            loadFundTransactions(true);
-            loadFundOverview(true);
-            setTimeout(closeFundTransactionAddDrawer, 1000);
-          })
-          .catch((err) => {
-            showFundEntryStatus('error', 'Không thể cập nhật khoản thu/chi: ' + err.message);
-          })
-          .finally(() => {
-            if (btn) btn.disabled = false;
-          });
-      } else {
-        showFundEntryStatus('info', `Đang lưu ${transactions.length} khoản thu/chi...`);
-        fundSubmitRequestId = fundSubmitRequestId || (window.crypto?.randomUUID?.() || `fund-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-        callApi('POST', 'addFundTransactions', {}, {
-          year: '2026',
-          transactions: transactions,
-          clientRequestId: fundSubmitRequestId,
-          useQueue: true
-        })
-          .then((res) => {
-            if (res && res.queued && res.jobId) {
-              trackPendingFundWriteJob(res, transactions);
-              clearFundEntryForm();
-              showFundEntryStatus('success', `Đã nhận ${transactions.length} khoản. Dữ liệu đang chờ Google Sheet xác nhận và chưa được cộng vào KPI.`);
-              if (typeof kickWriteJobWorker === 'function') kickWriteJobWorker();
-              pollFundWriteJob(res.jobId);
-              setTimeout(closeFundTransactionAddDrawer, 1000);
-              return null;
-            }
-            const addResult = res || {};
-            const inserted = Number(addResult.inserted ?? addResult.rows?.length ?? 0);
-            if (inserted < transactions.length) {
-              throw new Error(`Google Sheets chỉ xác nhận ghi ${inserted}/${transactions.length} khoản.`);
-            }
-            clearFundEntryForm();
-            showFundEntryStatus('success', `Đã lưu ${inserted} khoản thu/chi vào ${addResult.sheetName || 'file Thu chi'}${formatFundWriteRowRange(addResult)}.`);
-            loadFundTransactions(true);
-            loadFundOverview(true);
-            fundSubmitRequestId = '';
-            setTimeout(closeFundTransactionAddDrawer, 1000);
-            return addResult;
-          })
-          .catch((err) => {
-            showFundEntryStatus('error', 'Không thể lưu khoản thu/chi: ' + err.message);
-          })
-          .finally(() => {
-            if (btn) btn.disabled = false;
-          });
-      }
-    }
-
     function normalizePendingFundJob(job, fallbackTransactions) {
       const payload = job?.payload || {};
       return {
@@ -7344,45 +7021,6 @@
           pollFundWriteJob(jobId);
         })
         .catch((err) => showSyncToast('Không thể thử lại giao dịch Quỹ: ' + err.message, 'error'));
-    }
-
-    function formatFundWriteRowRange(result) {
-      const data = result || {};
-      const first = Number(data.firstRow || data.rows?.[0]?.rowIndex || 0);
-      const last = Number(data.lastRow || data.rows?.[data.rows.length - 1]?.rowIndex || first || 0);
-      if (!first) return '';
-      return first === last ? `, dòng ${first}` : `, dòng ${first}-${last}`;
-    }
-
-    function validateFundTransactions(transactions) {
-      for (let i = 0; i < transactions.length; i++) {
-        const error = validateFundTransaction(transactions[i]);
-        if (error) return `Dòng ${i + 1}: ${error}`;
-      }
-      return '';
-    }
-
-    function validateFundTransaction(transaction) {
-      if (!transaction.date) return 'Vui lòng nhập ngày.';
-      if (transaction.type !== 'Thu' && transaction.type !== 'Chi') return 'Vui lòng chọn loại Thu hoặc Chi.';
-      if (!transaction.category.trim()) return 'Vui lòng nhập mục thu/chi.';
-      if (!(parseLocaleNumber(transaction.amount) > 0)) return 'Số tiền phải lớn hơn 0.';
-      if (!transaction.actor.trim()) return 'Vui lòng nhập Người Thu/Chi.';
-      if (transaction.debt && !transaction.partner.trim()) return 'Khoản công nợ cần có Đối tác.';
-      return '';
-    }
-
-    function showFundEntryStatus(type, message) {
-      const status = el('fundEntryStatus');
-      if (!status) return;
-      status.className = 'status ' + (type === 'error' ? 'error' : 'success');
-      status.textContent = message;
-      status.style.display = 'block';
-    }
-
-    function clearFundEntryForm() {
-      fundTransactionRows = [newBlankFundTransaction()];
-      renderFundTransactionRows();
     }
 
     function loadFundCatalog(forceRefresh) {
@@ -7807,48 +7445,6 @@
       document.body.classList.remove('locked');
     }
 
-    function openFundTransactionAddDrawer(isEdit = false) {
-      if (!requireWritePermission()) return;
-      const drawer = el('fundTransactionAddDrawer');
-      const backdrop = el('fundTransactionAddBackdrop');
-      if (!drawer || !backdrop) return;
-      
-      const title = el('fundTransactionDrawerTitle');
-      const saveBtn = el('fundSaveBtn');
-      const cloneBtn = el('fundCloneRowBtn');
-      const addRowBtn = el('fundAddRowBtn');
-      
-      if (!isEdit) {
-        fundTransactionRows = [newBlankFundTransaction()];
-        fundTransactionEditRowIndex = null;
-        currentEditingTransaction = null;
-        if (title) title.textContent = 'Thêm khoản thu/chi';
-        if (saveBtn) saveBtn.textContent = 'Lưu vào Thu chi';
-        if (cloneBtn) cloneBtn.classList.remove('hidden');
-        if (addRowBtn) addRowBtn.classList.remove('hidden');
-      } else if (saveBtn) {
-        saveBtn.textContent = 'Cập nhật';
-        if (title) title.textContent = 'Sửa khoản thu/chi';
-        if (cloneBtn) cloneBtn.classList.add('hidden');
-        if (addRowBtn) addRowBtn.classList.add('hidden');
-      }
-      renderFundTransactionRows();
-      loadFundFormOptions().then(renderFundTransactionRows);
-      
-      drawer.classList.add('open');
-      backdrop.classList.add('active');
-      document.body.classList.add('locked');
-      showFundEntryStatus('', '');
-    }
-
-    function closeFundTransactionAddDrawer() {
-      const drawer = el('fundTransactionAddDrawer');
-      const backdrop = el('fundTransactionAddBackdrop');
-      if (drawer) drawer.classList.remove('open');
-      if (backdrop) backdrop.classList.remove('active');
-      document.body.classList.remove('locked');
-    }
-
     function openFundLoanAddDrawer() {
       if (!requireWritePermission()) return;
       loadFundFormOptions();
@@ -8039,299 +7635,6 @@
           if (field.classList.contains('vi-date-input')) field.dataset.iso = '';
         }
       });
-    }
-
-    function loadFundTransactions(forceRefresh) {
-      const tableBody = el('fundTransactionsTableBody');
-      const empty = el('fundTransactionsEmpty');
-      const notice = el('fundTransactionsNotice');
-      const pager = el('fundTransactionsPager');
-      if (!tableBody || !empty || !notice) return Promise.resolve();
-
-      renderFundTableLoading(tableBody, 8, 'Đang tải dữ liệu thu chi...');
-      empty.style.display = 'none';
-      if (pager) pager.style.display = 'none';
-      notice.textContent = '';
-      notice.style.display = 'none';
-
-      const startDate = getDateInputIso('fundStartDate');
-      const endDate = getDateInputIso('fundEndDate');
-      const search = el('fundSearchInput')?.value || '';
-      const requestParams = {
-        year: '2026',
-        startDate: startDate,
-        endDate: endDate,
-        search: search,
-        limit: 500,
-        forceRefresh: forceRefresh ? 'true' : ''
-      };
-      let fundTransactionsFallbackReason = '';
-      const supabaseStatus = getSupabaseReportStatus();
-      const loadFundTransactionsFromAppsScript = () => callApi('GET', 'getFundTransactions', requestParams);
-      const loader = (!forceRefresh && supabaseStatus.ok)
-        ? readFundTransactionsRangeFromSupabase('2026', requestParams).catch((err) => {
-            fundTransactionsFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
-            console.warn('Không đọc được giao dịch Quỹ từ Supabase, quay về Apps Script:', err);
-            return loadFundTransactionsFromAppsScript();
-          })
-        : (() => {
-            fundTransactionsFallbackReason = supabaseStatus.reason;
-            return loadFundTransactionsFromAppsScript();
-          })();
-      return loader
-        .then((data) => {
-          fundTransactionsData = data;
-          fundTransactionsPage = 1;
-          renderFundTransactions(data);
-          showSyncToast(data.supabaseCached
-            ? (data.supabaseMonthlyCached ? 'Giao dịch Quỹ đang đọc cache tháng từ Supabase.' : 'Giao dịch Quỹ đang đọc từ Supabase cache.')
-            : 'Giao dịch Quỹ đã quay về Apps Script. ' + (fundTransactionsFallbackReason || ''));
-        })
-        .catch((err) => {
-          tableBody.innerHTML = '';
-          empty.style.display = 'block';
-          empty.textContent = 'Không thể tải dữ liệu thu chi: ' + err.message;
-          throw err;
-        });
-    }
-
-    function readFundTransactionsRangeFromSupabase(year, params) {
-      const startDate = String(params.startDate || '').trim();
-      const endDate = String(params.endDate || '').trim();
-      if (startDate && endDate) {
-        const monthKeys = getFundMonthKeysForRange(startDate, endDate);
-        if (monthKeys.length) {
-          return Promise.all(monthKeys.map((monthKey) => readFundTransactionMonthFromSupabase(year, monthKey)))
-            .then((payloads) => filterFundTransactionsPayload(combineFundTransactionPayloads(payloads), params));
-        }
-      }
-      return readFundTransactionsFromSupabase(year, params);
-    }
-
-    function getFundMonthKeysForRange(startDate, endDate) {
-      const startTime = parseFundDateValue(startDate);
-      const endTime = parseFundDateValue(endDate);
-      if (!startTime || !endTime || startTime > endTime) return [];
-      const start = new Date(startTime);
-      const end = new Date(endTime);
-      const keys = [];
-      const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
-      const endCursor = new Date(end.getFullYear(), end.getMonth(), 1);
-      while (cursor <= endCursor && keys.length < 24) {
-        keys.push(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`);
-        cursor.setMonth(cursor.getMonth() + 1);
-      }
-      return keys;
-    }
-
-    function combineFundTransactionPayloads(payloads) {
-      const validPayloads = (payloads || []).filter(Boolean);
-      const first = validPayloads[0] || { ok: true, year: '2026', sheetName: '', headers: [], months: [], transactions: [] };
-      const seen = new Set();
-      const transactions = [];
-      const monthMap = {};
-      validPayloads.forEach((payload) => {
-        (payload.months || []).forEach((month) => {
-          if (month && month.key) monthMap[month.key] = month.label || month.key;
-        });
-        (payload.transactions || []).forEach((item) => {
-          const key = String(item.rowIndex || '') + '|' + String(item.voucher || '') + '|' + String(item.date || '');
-          if (seen.has(key)) return;
-          seen.add(key);
-          transactions.push(item);
-        });
-      });
-      transactions.sort((a, b) => {
-        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-        return Number(b.rowIndex || 0) - Number(a.rowIndex || 0);
-      });
-      return {
-        ...first,
-        months: Object.keys(monthMap).sort().reverse().map((key) => ({ key, label: monthMap[key] })),
-        transactions,
-        totalRows: transactions.length,
-        limited: validPayloads.some((payload) => payload.limited),
-        supabaseCached: true,
-        supabaseMonthlyCached: true,
-        supabaseSyncedAt: validPayloads.map((payload) => payload.supabaseSyncedAt).filter(Boolean).sort().pop() || first.supabaseSyncedAt
-      };
-    }
-
-    function filterFundTransactionsPayload(data, params) {
-      const startDate = String(params.startDate || '').trim();
-      const endDate = String(params.endDate || '').trim();
-      const search = removeAccents(String(params.search || params.query || '').trim().toLowerCase());
-      const start = startDate ? parseFundDateValue(startDate) : null;
-      const end = endDate ? parseFundDateValue(endDate) : null;
-      const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 500, 1000));
-      const transactions = (data.transactions || []).filter((item) => {
-        const date = parseFundDateValue(item.date || item.dateText || '');
-        if (start && (!date || date < start)) return false;
-        if (end && (!date || date > end)) return false;
-        if (search) {
-          const haystack = removeAccents([
-            item.voucher,
-            item.dateText || item.date,
-            item.type,
-            item.category,
-            item.amountText,
-            item.actor,
-            item.partner,
-            item.content,
-            item.debt
-          ].join(' ').toLowerCase());
-          if (!haystack.includes(search)) return false;
-        }
-        return true;
-      });
-      return {
-        ...data,
-        transactions: transactions.slice(0, limit),
-        totalRows: transactions.length,
-        limited: transactions.length > limit
-      };
-    }
-
-    function toFundIsoDate(date) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-
-    function setFundQuickDate(mode, skipLoad) {
-      const start = el('fundStartDate');
-      const end = el('fundEndDate');
-      const quick = el('fundQuickDateFilter');
-      if (quick && quick.value !== mode) quick.value = mode;
-      const today = new Date();
-      if (mode === 'recent') {
-        setDateInputValue(start, '');
-        setDateInputValue(end, '');
-      } else if (mode === 'today') {
-        setDateInputValue(start, toFundIsoDate(today));
-        setDateInputValue(end, toFundIsoDate(today));
-      } else if (mode === '7days') {
-        const from = new Date(today);
-        from.setDate(today.getDate() - 6);
-        setDateInputValue(start, toFundIsoDate(from));
-        setDateInputValue(end, toFundIsoDate(today));
-      } else if (mode === 'thisMonth') {
-        setDateInputValue(start, toFundIsoDate(new Date(today.getFullYear(), today.getMonth(), 1)));
-        setDateInputValue(end, toFundIsoDate(today));
-      } else if (mode === 'lastMonth') {
-        setDateInputValue(start, toFundIsoDate(new Date(today.getFullYear(), today.getMonth() - 1, 1)));
-        setDateInputValue(end, toFundIsoDate(new Date(today.getFullYear(), today.getMonth(), 0)));
-      }
-      if (!skipLoad && mode !== 'custom') loadFundTransactions(false);
-    }
-
-    function setFundCustomDate() {
-      const quick = el('fundQuickDateFilter');
-      if (quick) quick.value = 'custom';
-      loadFundTransactions(false);
-    }
-
-    let fundTransactionSearchTimeout = null;
-    function debounceFundTransactionSearch() {
-      clearTimeout(fundTransactionSearchTimeout);
-      fundTransactionSearchTimeout = setTimeout(() => loadFundTransactions(false), 180);
-    }
-
-    function renderFundTransactions(data) {
-      const tableBody = el('fundTransactionsTableBody');
-      const empty = el('fundTransactionsEmpty');
-      const notice = el('fundTransactionsNotice');
-      const pager = el('fundTransactionsPager');
-      if (!tableBody || !empty || !notice) return;
-
-      const pendingRows = pendingFundWriteJobs.flatMap((job) => (job.transactions || []).map((transaction, index) => ({
-        ...transaction,
-        rowIndex: 0,
-        amountText: transaction.amount,
-        dateText: formatTableDate(transaction.date, false),
-        _pending: true,
-        _jobId: job.jobId,
-        _jobStatus: job.status,
-        _pendingIndex: index
-      })));
-      const rows = pendingRows.concat(data.transactions || []);
-      tableBody.innerHTML = '';
-      if (!rows.length) {
-        empty.style.display = 'block';
-        empty.textContent = 'Không có dữ liệu thu chi phù hợp.';
-        if (pager) pager.style.display = 'none';
-        return;
-      }
-
-      empty.style.display = 'none';
-      const totalPages = Math.max(1, Math.ceil(rows.length / FUND_TRANSACTIONS_PAGE_SIZE));
-      fundTransactionsPage = Math.min(Math.max(1, fundTransactionsPage), totalPages);
-      const start = (fundTransactionsPage - 1) * FUND_TRANSACTIONS_PAGE_SIZE;
-      const pageRows = rows.slice(start, start + FUND_TRANSACTIONS_PAGE_SIZE);
-      const fragment = document.createDocumentFragment();
-      pageRows.forEach((item) => {
-        const tr = document.createElement('tr');
-        if (item._pending) tr.classList.add('fund-pending-row');
-        const typeColor = item.type === 'Thu' ? 'var(--green)' : (item.type === 'Chi' ? 'var(--red)' : 'var(--muted)');
-        tr.innerHTML = `
-          <td>${escapeHtml(item.dateText || formatTableDate(item.date, false))}</td>
-          <td><span style="font-weight: 800; color: ${typeColor};">${escapeHtml(item.type || '-')}</span></td>
-          <td>${escapeHtml(item.category || '')}</td>
-          <td style="text-align: right; font-weight: 800; color: ${typeColor};">${item.type === 'Thu' ? '+' : (item.type === 'Chi' ? '-' : '')}${formatFundAmount(item.amount, item.amountText)}</td>
-          <td>${escapeHtml(item.actor || '')}</td>
-          <td>${escapeHtml(item.partner || '')}</td>
-          <td>${escapeHtml(item.content || '')}</td>
-          ${canWriteData() ? `<td style="text-align: center; white-space: nowrap;" class="sticky-col-right">
-            ${item._pending ? (item._jobStatus === 'failed'
-              ? `<button type="button" class="btn-table-action delete" title="Thử lại" aria-label="Thử lại giao dịch lỗi" onclick="retryFundWriteJob('${escapeHtml(item._jobId)}')">!</button>`
-              : `<span class="fund-pending-status" role="status">Đang đồng bộ</span>`) : `
-            <button type="button" class="btn-table-action edit" title="Sửa" style="margin-right: 4px;" onclick="editFundTransaction(${item.rowIndex})">
-              <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-            </button>
-            <button type="button" class="btn-table-action delete" title="Xóa" onclick="deleteFundTransaction(${item.rowIndex})">
-              <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-            </button>
-            `}
-          </td>` : ''}
-        `;
-        fragment.appendChild(tr);
-      });
-      tableBody.appendChild(fragment);
-      renderFundTransactionsPager(rows.length, totalPages, start + 1, start + pageRows.length);
-
-      if (data.limited) {
-        notice.textContent = `Đang tải ${rows.length}/${data.totalRows} dòng mới nhất. Bảng đang chia ${FUND_TRANSACTIONS_PAGE_SIZE} dòng/trang.`;
-        notice.style.display = 'none';
-      } else {
-        notice.textContent = `Có ${rows.length} dòng, đang chia ${FUND_TRANSACTIONS_PAGE_SIZE} dòng/trang.`;
-        notice.style.display = 'none';
-      }
-    }
-
-    function renderFundTransactionsPager(totalRows, totalPages, startRow, endRow) {
-      const pager = el('fundTransactionsPager');
-      if (!pager) return;
-      if (totalRows <= FUND_TRANSACTIONS_PAGE_SIZE) {
-        pager.style.display = 'none';
-        return;
-      }
-      pager.style.display = 'flex';
-      pager.innerHTML = `
-        <div style="font-size:12.5px; font-weight:700; color:var(--muted);">Dòng ${startRow}-${endRow}/${totalRows}</div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button type="button" class="ghost" style="min-height:34px; height:34px; padding:0 12px;" onclick="setFundTransactionsPage(${fundTransactionsPage - 1})" ${fundTransactionsPage <= 1 ? 'disabled' : ''}>Trước</button>
-          <span style="font-size:12.5px; font-weight:800; color:var(--deep);">Trang ${fundTransactionsPage}/${totalPages}</span>
-          <button type="button" class="ghost" style="min-height:34px; height:34px; padding:0 12px;" onclick="setFundTransactionsPage(${fundTransactionsPage + 1})" ${fundTransactionsPage >= totalPages ? 'disabled' : ''}>Sau</button>
-        </div>
-      `;
-    }
-
-    function setFundTransactionsPage(page) {
-      if (!fundTransactionsData) return;
-      fundTransactionsPage = page;
-      renderFundTransactions(fundTransactionsData);
-      el('fundTransactionsTable')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function formatFundAmount(amount, fallbackText) {
@@ -8753,6 +8056,706 @@
         document.body.classList.remove('locked');
       }
     };
+
+</script>
+
+  <script>
+    function loadFundFormOptions() {
+      if (fundFormOptions) return Promise.resolve(fundFormOptions);
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadFromAppsScript = () => callApi('GET', 'getFundFormOptions', { year: '2026' });
+      const loader = supabaseStatus.ok
+        ? readFundFormOptionsFromSupabase('2026').catch((err) => {
+            console.warn('Không đọc được danh mục nhập Quỹ từ Supabase, quay về Apps Script:', err);
+            return loadFromAppsScript();
+          })
+        : loadFromAppsScript();
+      return loader
+        .then((data) => {
+          fundFormOptions = data;
+          renderFundFormOptions();
+          return data;
+        })
+        .catch((err) => {
+          console.warn('Không thể tải danh mục Thu chi:', err);
+          renderFundFormOptions();
+          return null;
+        });
+    }
+
+    function renderFundFormOptions() {
+      const options = fundFormOptions || {};
+      renderFundCategoryOptions();
+      fillSelect('fundActorInput', options.actors || [], 'Chọn người thu/chi');
+      fillSelect('fundPartnerInput', options.partners || [], 'Chọn đối tác');
+      fillSelect('loanPartnerInput', options.loanPartners || [], 'Chọn nơi vay');
+      fillSelect('loanPaymentPartnerInput', options.loanPartners || [], 'Chọn đối tác');
+    }
+
+    function fillSelect(id, values, placeholder) {
+      const list = el(id);
+      if (!list) return;
+      const currentValue = list.value || '';
+      const unique = [];
+      const seen = new Set();
+      (values || []).forEach((value) => {
+        const text = String(value || '').trim();
+        if (!text) return;
+        const key = text.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        unique.push(text);
+      });
+      list.innerHTML = '';
+      const placeholderOption = document.createElement('option');
+      placeholderOption.value = '';
+      placeholderOption.textContent = placeholder || 'Chọn danh mục';
+      placeholderOption.disabled = true;
+      placeholderOption.selected = !currentValue;
+      list.appendChild(placeholderOption);
+      unique.forEach((value) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        list.appendChild(option);
+      });
+      if (currentValue && !unique.some((item) => item === currentValue)) {
+        const option = document.createElement('option');
+        option.value = currentValue;
+        option.textContent = currentValue;
+        list.appendChild(option);
+      }
+      if (currentValue) list.value = currentValue;
+    }
+
+    function renderFundCategoryOptions() {
+      const options = fundFormOptions || {};
+      const type = el('fundTypeInput')?.value || 'Chi';
+      const categorySelect = el('fundCategoryInput');
+      if (!categorySelect) return;
+      const source = type === 'Thu' ? (options.incomeCategories || []) : (options.expenseCategories || []);
+      fillSelect('fundCategoryInput', source, type === 'Thu' ? 'Chọn mục thu' : 'Chọn mục chi');
+      categorySelect.value = categorySelect.dataset.selected || categorySelect.value || '';
+    }
+
+    function fillDatalist(id, values) {
+      const list = el(id);
+      if (!list) return;
+      list.innerHTML = '';
+      values.forEach((value) => {
+        const option = document.createElement('option');
+        option.value = value;
+        list.appendChild(option);
+      });
+    }
+
+    function handleFundTypeChange() {
+      const category = el('fundCategoryInput');
+      if (category) category.value = '';
+      renderFundCategoryOptions();
+    }
+
+    function newBlankFundTransaction(seed = {}) {
+      return {
+        date: seed.date || appData?.today || new Date().toISOString().slice(0, 10),
+        type: seed.type || 'Chi',
+        category: seed.category || '',
+        amount: stripCurrencySymbolText(seed.amountText || seed.amount || ''),
+        actor: seed.actor || '',
+        partner: seed.partner || '',
+        content: seed.content || '',
+        debt: seed.debt === true || seed.debt === 'Có'
+      };
+    }
+
+    function getFundCategoryValues(type) {
+      const options = fundFormOptions || {};
+      return type === 'Thu' ? (options.incomeCategories || []) : (options.expenseCategories || []);
+    }
+
+    function buildFundOptionHtml(values, currentValue, placeholder) {
+      const unique = [];
+      const seen = new Set();
+      (values || []).forEach((value) => {
+        const text = String(value || '').trim();
+        const key = text.toLowerCase();
+        if (!text || seen.has(key)) return;
+        seen.add(key);
+        unique.push(text);
+      });
+      if (currentValue && !unique.includes(currentValue)) unique.push(currentValue);
+      return [`<option value="">${escapeHtml(placeholder || 'Chọn')}</option>`].concat(unique.map((value) => {
+        const selected = value === currentValue ? ' selected' : '';
+        return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(value)}</option>`;
+      })).join('');
+    }
+
+    function renderFundTransactionRows(options = {}) {
+      const holder = el('fundTransactionRows');
+      if (!holder) return;
+      if (!fundTransactionRows.length) {
+        fundTransactionRows = [newBlankFundTransaction()];
+      }
+      const isEdit = Boolean(fundTransactionEditRowIndex);
+      holder.innerHTML = fundTransactionRows.map((row, index) => {
+        const categories = getFundCategoryValues(row.type);
+        const categoryOptions = ['<option value="">Chọn mục thu/chi</option>'].concat(categories.map((value) => {
+          const selected = value === row.category ? ' selected' : '';
+          return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(value)}</option>`;
+        })).join('');
+        const actorOptions = buildFundOptionHtml(fundFormOptions?.actors || [], row.actor, 'Chọn người thu/chi');
+        const partnerOptions = buildFundOptionHtml(fundFormOptions?.partners || [], row.partner, 'Chọn đối tác');
+        return `
+          <article class="entry-row fund-transaction-row" data-fund-row="${index}">
+            <div class="entry-row-head">
+              <div class="entry-row-title"><span class="row-number">${index + 1}</span><span>Dòng thu chi</span></div>
+              <button type="button" class="danger" onclick="removeFundTransactionRow(${index})" ${fundTransactionRows.length === 1 || (isEdit && index === 0) ? 'disabled' : ''}>Xóa</button>
+            </div>
+            <div class="fields">
+              <label class="full">Ngày<input type="text" class="vi-date-input" inputmode="numeric" placeholder="dd/mm/yyyy" data-iso="${escapeHtml(row.date || '')}" value="${escapeHtml(formatIsoDateForDisplay(row.date || ''))}" oninput="updateFundTransactionRow(${index}, 'date', getDateInputIso(this))" onchange="updateFundTransactionRow(${index}, 'date', getDateInputIso(this))" required></label>
+              <label>Loại<select onchange="updateFundTransactionRow(${index}, 'type', this.value)"><option value="Chi"${row.type === 'Chi' ? ' selected' : ''}>Chi</option><option value="Thu"${row.type === 'Thu' ? ' selected' : ''}>Thu</option></select></label>
+              <label>Mục thu/chi<select onchange="updateFundTransactionRow(${index}, 'category', this.value)" required>${categoryOptions}</select></label>
+              <label class="full">Số tiền<input type="text" class="format-money-input" inputmode="numeric" value="${escapeHtml(row.amount || '')}" placeholder="0" oninput="updateFundTransactionRow(${index}, 'amount', this.value)" required></label>
+              <label>Người Thu/Chi<select onchange="updateFundTransactionRow(${index}, 'actor', this.value)" required>${actorOptions}</select></label>
+              <label>Đối tác<select onchange="updateFundTransactionRow(${index}, 'partner', this.value)">${partnerOptions}</select></label>
+              <label class="full fund-debt-toggle"><input type="checkbox" ${row.debt ? 'checked' : ''} onchange="updateFundTransactionRow(${index}, 'debt', this.checked)"> Đánh dấu là công nợ</label>
+              <label class="full">Nội dung<textarea rows="2" placeholder="Nội dung thu/chi" oninput="updateFundTransactionRow(${index}, 'content', this.value)">${escapeHtml(row.content || '')}</textarea></label>
+            </div>
+          </article>
+        `;
+      }).join('');
+      if (Number.isInteger(options.scrollIndex)) {
+        requestAnimationFrame(() => scrollFundTransactionRowIntoView(options.scrollIndex, options.focusFirst));
+      }
+      if (!holder.dataset.focusBound) {
+        holder.dataset.focusBound = '1';
+        holder.addEventListener('focusin', (event) => {
+          const rowEl = event.target.closest('[data-fund-row]');
+          if (!rowEl) return;
+          const index = Number(rowEl.dataset.fundRow);
+          if (Number.isInteger(index)) {
+            setTimeout(() => scrollFundTransactionRowIntoView(index, false), 80);
+          }
+        });
+      }
+    }
+
+    function scrollFundTransactionRowIntoView(index, focusFirst) {
+      const row = document.querySelector(`[data-fund-row="${index}"]`);
+      if (!row) return;
+      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (focusFirst) {
+        const input = row.querySelector('input, select, textarea');
+        if (input) {
+          setTimeout(() => input.focus({ preventScroll: true }), 120);
+        }
+      }
+    }
+
+    window.updateFundTransactionRow = function(index, key, value) {
+      if (!fundTransactionRows[index]) return;
+      fundTransactionRows[index][key] = value;
+      if (key === 'type') {
+        fundTransactionRows[index].category = '';
+        renderFundTransactionRows();
+      }
+    };
+
+    window.addFundTransactionRow = function() {
+      fundTransactionRows.push(newBlankFundTransaction());
+      renderFundTransactionRows({ scrollIndex: fundTransactionRows.length - 1, focusFirst: true });
+    };
+
+    window.cloneFundTransactionRow = function() {
+      const last = fundTransactionRows[fundTransactionRows.length - 1] || newBlankFundTransaction();
+      fundTransactionRows.push(newBlankFundTransaction({ ...last }));
+      renderFundTransactionRows({ scrollIndex: fundTransactionRows.length - 1, focusFirst: false });
+    };
+
+    window.removeFundTransactionRow = function(index) {
+      if (fundTransactionRows.length === 1) return;
+      if (fundTransactionEditRowIndex && index === 0) return;
+      fundTransactionRows.splice(index, 1);
+      renderFundTransactionRows({ scrollIndex: Math.max(0, index - 1), focusFirst: false });
+    };
+
+    function submitFundTransaction() {
+      if (!requireWritePermission()) return;
+      const btn = el('fundSaveBtn');
+      const transactions = fundTransactionRows.map((row) => ({ ...row }));
+      const error = validateFundTransactions(transactions);
+      if (error) {
+        showFundEntryStatus('error', error);
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+
+      if (fundTransactionEditRowIndex) {
+        if (transactions.length > 1) {
+          showFundEntryStatus('error', 'Khi sửa một giao dịch, vui lòng chỉ lưu dòng đang sửa. Hãy thêm giao dịch mới ở lượt riêng.');
+          if (btn) btn.disabled = false;
+          return;
+        }
+        showFundEntryStatus('info', transactions.length > 1 ? `Đang cập nhật 1 khoản và lưu thêm ${transactions.length - 1} khoản mới...` : 'Đang cập nhật khoản thu/chi...');
+        const oldItem = currentEditingTransaction || {};
+        const transaction = transactions[0];
+        const extraTransactions = transactions.slice(1);
+
+        callApi('POST', 'updateFundTransaction', {}, {
+          year: '2026',
+          rowIndex: fundTransactionEditRowIndex,
+          transaction: {
+            ...transaction,
+            voucher: oldItem.voucher || '',
+            method: oldItem.method || ''
+          }
+        })
+          .then(() => {
+            if (!extraTransactions.length) return null;
+            return callApi('POST', 'addFundTransactions', {}, {
+              year: '2026',
+              transactions: extraTransactions
+            });
+          })
+          .then((res) => {
+            const addResult = res || {};
+            const inserted = Number(addResult.inserted ?? addResult.rows?.length ?? 0);
+            if (extraTransactions.length && inserted < extraTransactions.length) {
+              throw new Error(`Google Sheets chỉ xác nhận ghi ${inserted}/${extraTransactions.length} khoản mới.`);
+            }
+            return addResult;
+          })
+          .then((addResult) => {
+            clearFundEntryForm();
+            const rowRange = formatFundWriteRowRange(addResult);
+            showFundEntryStatus('success', transactions.length > 1
+              ? `Đã cập nhật 1 khoản và lưu thêm ${transactions.length - 1} khoản mới${rowRange}.`
+              : 'Đã cập nhật khoản thu/chi thành công.');
+            loadFundTransactions(true);
+            loadFundOverview(true);
+            setTimeout(closeFundTransactionAddDrawer, 1000);
+          })
+          .catch((err) => {
+            showFundEntryStatus('error', 'Không thể cập nhật khoản thu/chi: ' + err.message);
+          })
+          .finally(() => {
+            if (btn) btn.disabled = false;
+          });
+      } else {
+        showFundEntryStatus('info', `Đang lưu ${transactions.length} khoản thu/chi...`);
+        fundSubmitRequestId = fundSubmitRequestId || (window.crypto?.randomUUID?.() || `fund-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+        callApi('POST', 'addFundTransactions', {}, {
+          year: '2026',
+          transactions: transactions,
+          clientRequestId: fundSubmitRequestId,
+          useQueue: true
+        })
+          .then((res) => {
+            if (res && res.queued && res.jobId) {
+              trackPendingFundWriteJob(res, transactions);
+              clearFundEntryForm();
+              showFundEntryStatus('success', `Đã nhận ${transactions.length} khoản. Dữ liệu đang chờ Google Sheet xác nhận và chưa được cộng vào KPI.`);
+              if (typeof kickWriteJobWorker === 'function') kickWriteJobWorker();
+              pollFundWriteJob(res.jobId);
+              setTimeout(closeFundTransactionAddDrawer, 1000);
+              return null;
+            }
+            const addResult = res || {};
+            const inserted = Number(addResult.inserted ?? addResult.rows?.length ?? 0);
+            if (inserted < transactions.length) {
+              throw new Error(`Google Sheets chỉ xác nhận ghi ${inserted}/${transactions.length} khoản.`);
+            }
+            clearFundEntryForm();
+            showFundEntryStatus('success', `Đã lưu ${inserted} khoản thu/chi vào ${addResult.sheetName || 'file Thu chi'}${formatFundWriteRowRange(addResult)}.`);
+            loadFundTransactions(true);
+            loadFundOverview(true);
+            fundSubmitRequestId = '';
+            setTimeout(closeFundTransactionAddDrawer, 1000);
+            return addResult;
+          })
+          .catch((err) => {
+            showFundEntryStatus('error', 'Không thể lưu khoản thu/chi: ' + err.message);
+          })
+          .finally(() => {
+            if (btn) btn.disabled = false;
+          });
+      }
+    }
+
+    function formatFundWriteRowRange(result) {
+      const data = result || {};
+      const first = Number(data.firstRow || data.rows?.[0]?.rowIndex || 0);
+      const last = Number(data.lastRow || data.rows?.[data.rows.length - 1]?.rowIndex || first || 0);
+      if (!first) return '';
+      return first === last ? `, dòng ${first}` : `, dòng ${first}-${last}`;
+    }
+
+    function validateFundTransactions(transactions) {
+      for (let i = 0; i < transactions.length; i++) {
+        const error = validateFundTransaction(transactions[i]);
+        if (error) return `Dòng ${i + 1}: ${error}`;
+      }
+      return '';
+    }
+
+    function validateFundTransaction(transaction) {
+      if (!transaction.date) return 'Vui lòng nhập ngày.';
+      if (transaction.type !== 'Thu' && transaction.type !== 'Chi') return 'Vui lòng chọn loại Thu hoặc Chi.';
+      if (!transaction.category.trim()) return 'Vui lòng nhập mục thu/chi.';
+      if (!(parseLocaleNumber(transaction.amount) > 0)) return 'Số tiền phải lớn hơn 0.';
+      if (!transaction.actor.trim()) return 'Vui lòng nhập Người Thu/Chi.';
+      if (transaction.debt && !transaction.partner.trim()) return 'Khoản công nợ cần có Đối tác.';
+      return '';
+    }
+
+    function showFundEntryStatus(type, message) {
+      const status = el('fundEntryStatus');
+      if (!status) return;
+      status.className = 'status ' + (type === 'error' ? 'error' : 'success');
+      status.textContent = message;
+      status.style.display = 'block';
+    }
+
+    function clearFundEntryForm() {
+      fundTransactionRows = [newBlankFundTransaction()];
+      renderFundTransactionRows();
+    }
+
+    function openFundTransactionAddDrawer(isEdit = false) {
+      if (!requireWritePermission()) return;
+      const drawer = el('fundTransactionAddDrawer');
+      const backdrop = el('fundTransactionAddBackdrop');
+      if (!drawer || !backdrop) return;
+
+      const title = el('fundTransactionDrawerTitle');
+      const saveBtn = el('fundSaveBtn');
+      const cloneBtn = el('fundCloneRowBtn');
+      const addRowBtn = el('fundAddRowBtn');
+
+      if (!isEdit) {
+        fundTransactionRows = [newBlankFundTransaction()];
+        fundTransactionEditRowIndex = null;
+        currentEditingTransaction = null;
+        if (title) title.textContent = 'Thêm khoản thu/chi';
+        if (saveBtn) saveBtn.textContent = 'Lưu vào Thu chi';
+        if (cloneBtn) cloneBtn.classList.remove('hidden');
+        if (addRowBtn) addRowBtn.classList.remove('hidden');
+      } else if (saveBtn) {
+        saveBtn.textContent = 'Cập nhật';
+        if (title) title.textContent = 'Sửa khoản thu/chi';
+        if (cloneBtn) cloneBtn.classList.add('hidden');
+        if (addRowBtn) addRowBtn.classList.add('hidden');
+      }
+      renderFundTransactionRows();
+      loadFundFormOptions().then(renderFundTransactionRows);
+
+      drawer.classList.add('open');
+      backdrop.classList.add('active');
+      document.body.classList.add('locked');
+      showFundEntryStatus('', '');
+    }
+
+    function closeFundTransactionAddDrawer() {
+      const drawer = el('fundTransactionAddDrawer');
+      const backdrop = el('fundTransactionAddBackdrop');
+      if (drawer) drawer.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('active');
+      document.body.classList.remove('locked');
+    }
+
+    function loadFundTransactions(forceRefresh) {
+      const tableBody = el('fundTransactionsTableBody');
+      const empty = el('fundTransactionsEmpty');
+      const notice = el('fundTransactionsNotice');
+      const pager = el('fundTransactionsPager');
+      if (!tableBody || !empty || !notice) return Promise.resolve();
+
+      renderFundTableLoading(tableBody, 8, 'Đang tải dữ liệu thu chi...');
+      empty.style.display = 'none';
+      if (pager) pager.style.display = 'none';
+      notice.textContent = '';
+      notice.style.display = 'none';
+
+      const startDate = getDateInputIso('fundStartDate');
+      const endDate = getDateInputIso('fundEndDate');
+      const search = el('fundSearchInput')?.value || '';
+      const requestParams = {
+        year: '2026',
+        startDate: startDate,
+        endDate: endDate,
+        search: search,
+        limit: 500,
+        forceRefresh: forceRefresh ? 'true' : ''
+      };
+      let fundTransactionsFallbackReason = '';
+      const supabaseStatus = getSupabaseReportStatus();
+      const loadFundTransactionsFromAppsScript = () => callApi('GET', 'getFundTransactions', requestParams);
+      const loader = (!forceRefresh && supabaseStatus.ok)
+        ? readFundTransactionsRangeFromSupabase('2026', requestParams).catch((err) => {
+            fundTransactionsFallbackReason = err && err.message ? err.message : String(err || 'Không rõ lỗi Supabase.');
+            console.warn('Không đọc được giao dịch Quỹ từ Supabase, quay về Apps Script:', err);
+            return loadFundTransactionsFromAppsScript();
+          })
+        : (() => {
+            fundTransactionsFallbackReason = supabaseStatus.reason;
+            return loadFundTransactionsFromAppsScript();
+          })();
+      return loader
+        .then((data) => {
+          fundTransactionsData = data;
+          fundTransactionsPage = 1;
+          renderFundTransactions(data);
+          showSyncToast(data.supabaseCached
+            ? (data.supabaseMonthlyCached ? 'Giao dịch Quỹ đang đọc cache tháng từ Supabase.' : 'Giao dịch Quỹ đang đọc từ Supabase cache.')
+            : 'Giao dịch Quỹ đã quay về Apps Script. ' + (fundTransactionsFallbackReason || ''));
+        })
+        .catch((err) => {
+          tableBody.innerHTML = '';
+          empty.style.display = 'block';
+          empty.textContent = 'Không thể tải dữ liệu thu chi: ' + err.message;
+          throw err;
+        });
+    }
+
+    function readFundTransactionsRangeFromSupabase(year, params) {
+      const startDate = String(params.startDate || '').trim();
+      const endDate = String(params.endDate || '').trim();
+      if (startDate && endDate) {
+        const monthKeys = getFundMonthKeysForRange(startDate, endDate);
+        if (monthKeys.length) {
+          return Promise.all(monthKeys.map((monthKey) => readFundTransactionMonthFromSupabase(year, monthKey)))
+            .then((payloads) => filterFundTransactionsPayload(combineFundTransactionPayloads(payloads), params));
+        }
+      }
+      return readFundTransactionsFromSupabase(year, params);
+    }
+
+    function getFundMonthKeysForRange(startDate, endDate) {
+      const startTime = parseFundDateValue(startDate);
+      const endTime = parseFundDateValue(endDate);
+      if (!startTime || !endTime || startTime > endTime) return [];
+      const start = new Date(startTime);
+      const end = new Date(endTime);
+      const keys = [];
+      const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+      const endCursor = new Date(end.getFullYear(), end.getMonth(), 1);
+      while (cursor <= endCursor && keys.length < 24) {
+        keys.push(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`);
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+      return keys;
+    }
+
+    function combineFundTransactionPayloads(payloads) {
+      const validPayloads = (payloads || []).filter(Boolean);
+      const first = validPayloads[0] || { ok: true, year: '2026', sheetName: '', headers: [], months: [], transactions: [] };
+      const seen = new Set();
+      const transactions = [];
+      const monthMap = {};
+      validPayloads.forEach((payload) => {
+        (payload.months || []).forEach((month) => {
+          if (month && month.key) monthMap[month.key] = month.label || month.key;
+        });
+        (payload.transactions || []).forEach((item) => {
+          const key = String(item.rowIndex || '') + '|' + String(item.voucher || '') + '|' + String(item.date || '');
+          if (seen.has(key)) return;
+          seen.add(key);
+          transactions.push(item);
+        });
+      });
+      transactions.sort((a, b) => {
+        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+        return Number(b.rowIndex || 0) - Number(a.rowIndex || 0);
+      });
+      return {
+        ...first,
+        months: Object.keys(monthMap).sort().reverse().map((key) => ({ key, label: monthMap[key] })),
+        transactions,
+        totalRows: transactions.length,
+        limited: validPayloads.some((payload) => payload.limited),
+        supabaseCached: true,
+        supabaseMonthlyCached: true,
+        supabaseSyncedAt: validPayloads.map((payload) => payload.supabaseSyncedAt).filter(Boolean).sort().pop() || first.supabaseSyncedAt
+      };
+    }
+
+    function filterFundTransactionsPayload(data, params) {
+      const startDate = String(params.startDate || '').trim();
+      const endDate = String(params.endDate || '').trim();
+      const search = removeAccents(String(params.search || params.query || '').trim().toLowerCase());
+      const start = startDate ? parseFundDateValue(startDate) : null;
+      const end = endDate ? parseFundDateValue(endDate) : null;
+      const limit = Math.max(1, Math.min(parseInt(params.limit, 10) || 500, 1000));
+      const transactions = (data.transactions || []).filter((item) => {
+        const date = parseFundDateValue(item.date || item.dateText || '');
+        if (start && (!date || date < start)) return false;
+        if (end && (!date || date > end)) return false;
+        if (search) {
+          const haystack = removeAccents([
+            item.voucher,
+            item.dateText || item.date,
+            item.type,
+            item.category,
+            item.amountText,
+            item.actor,
+            item.partner,
+            item.content,
+            item.debt
+          ].join(' ').toLowerCase());
+          if (!haystack.includes(search)) return false;
+        }
+        return true;
+      });
+      return {
+        ...data,
+        transactions: transactions.slice(0, limit),
+        totalRows: transactions.length,
+        limited: transactions.length > limit
+      };
+    }
+
+    function toFundIsoDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function setFundQuickDate(mode, skipLoad) {
+      const start = el('fundStartDate');
+      const end = el('fundEndDate');
+      const quick = el('fundQuickDateFilter');
+      if (quick && quick.value !== mode) quick.value = mode;
+      const today = new Date();
+      if (mode === 'recent') {
+        setDateInputValue(start, '');
+        setDateInputValue(end, '');
+      } else if (mode === 'today') {
+        setDateInputValue(start, toFundIsoDate(today));
+        setDateInputValue(end, toFundIsoDate(today));
+      } else if (mode === '7days') {
+        const from = new Date(today);
+        from.setDate(today.getDate() - 6);
+        setDateInputValue(start, toFundIsoDate(from));
+        setDateInputValue(end, toFundIsoDate(today));
+      } else if (mode === 'thisMonth') {
+        setDateInputValue(start, toFundIsoDate(new Date(today.getFullYear(), today.getMonth(), 1)));
+        setDateInputValue(end, toFundIsoDate(today));
+      } else if (mode === 'lastMonth') {
+        setDateInputValue(start, toFundIsoDate(new Date(today.getFullYear(), today.getMonth() - 1, 1)));
+        setDateInputValue(end, toFundIsoDate(new Date(today.getFullYear(), today.getMonth(), 0)));
+      }
+      if (!skipLoad && mode !== 'custom') loadFundTransactions(false);
+    }
+
+    function setFundCustomDate() {
+      const quick = el('fundQuickDateFilter');
+      if (quick) quick.value = 'custom';
+      loadFundTransactions(false);
+    }
+
+    let fundTransactionSearchTimeout = null;
+    function debounceFundTransactionSearch() {
+      clearTimeout(fundTransactionSearchTimeout);
+      fundTransactionSearchTimeout = setTimeout(() => loadFundTransactions(false), 180);
+    }
+
+    function renderFundTransactions(data) {
+      const tableBody = el('fundTransactionsTableBody');
+      const empty = el('fundTransactionsEmpty');
+      const notice = el('fundTransactionsNotice');
+      const pager = el('fundTransactionsPager');
+      if (!tableBody || !empty || !notice) return;
+
+      const pendingRows = pendingFundWriteJobs.flatMap((job) => (job.transactions || []).map((transaction, index) => ({
+        ...transaction,
+        rowIndex: 0,
+        amountText: transaction.amount,
+        dateText: formatTableDate(transaction.date, false),
+        _pending: true,
+        _jobId: job.jobId,
+        _jobStatus: job.status,
+        _pendingIndex: index
+      })));
+      const rows = pendingRows.concat(data.transactions || []);
+      tableBody.innerHTML = '';
+      if (!rows.length) {
+        empty.style.display = 'block';
+        empty.textContent = 'Không có dữ liệu thu chi phù hợp.';
+        if (pager) pager.style.display = 'none';
+        return;
+      }
+
+      empty.style.display = 'none';
+      const totalPages = Math.max(1, Math.ceil(rows.length / FUND_TRANSACTIONS_PAGE_SIZE));
+      fundTransactionsPage = Math.min(Math.max(1, fundTransactionsPage), totalPages);
+      const start = (fundTransactionsPage - 1) * FUND_TRANSACTIONS_PAGE_SIZE;
+      const pageRows = rows.slice(start, start + FUND_TRANSACTIONS_PAGE_SIZE);
+      const fragment = document.createDocumentFragment();
+      pageRows.forEach((item) => {
+        const tr = document.createElement('tr');
+        if (item._pending) tr.classList.add('fund-pending-row');
+        const typeColor = item.type === 'Thu' ? 'var(--green)' : (item.type === 'Chi' ? 'var(--red)' : 'var(--muted)');
+        tr.innerHTML = `
+          <td>${escapeHtml(item.dateText || formatTableDate(item.date, false))}</td>
+          <td><span style="font-weight: 800; color: ${typeColor};">${escapeHtml(item.type || '-')}</span></td>
+          <td>${escapeHtml(item.category || '')}</td>
+          <td style="text-align: right; font-weight: 800; color: ${typeColor};">${item.type === 'Thu' ? '+' : (item.type === 'Chi' ? '-' : '')}${formatFundAmount(item.amount, item.amountText)}</td>
+          <td>${escapeHtml(item.actor || '')}</td>
+          <td>${escapeHtml(item.partner || '')}</td>
+          <td>${escapeHtml(item.content || '')}</td>
+          ${canWriteData() ? `<td style="text-align: center; white-space: nowrap;" class="sticky-col-right">
+            ${item._pending ? (item._jobStatus === 'failed'
+              ? `<button type="button" class="btn-table-action delete" title="Thử lại" aria-label="Thử lại giao dịch lỗi" onclick="retryFundWriteJob('${escapeHtml(item._jobId)}')">!</button>`
+              : `<span class="fund-pending-status" role="status">Đang đồng bộ</span>`) : `
+            <button type="button" class="btn-table-action edit" title="Sửa" style="margin-right: 4px;" onclick="editFundTransaction(${item.rowIndex})">
+              <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </button>
+            <button type="button" class="btn-table-action delete" title="Xóa" onclick="deleteFundTransaction(${item.rowIndex})">
+              <svg class="btn-svg" viewBox="0 0 24 24" style="width: 15px; height: 15px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </button>
+            `}
+          </td>` : ''}
+        `;
+        fragment.appendChild(tr);
+      });
+      tableBody.appendChild(fragment);
+      renderFundTransactionsPager(rows.length, totalPages, start + 1, start + pageRows.length);
+
+      if (data.limited) {
+        notice.textContent = `Đang tải ${rows.length}/${data.totalRows} dòng mới nhất. Bảng đang chia ${FUND_TRANSACTIONS_PAGE_SIZE} dòng/trang.`;
+        notice.style.display = 'none';
+      } else {
+        notice.textContent = `Có ${rows.length} dòng, đang chia ${FUND_TRANSACTIONS_PAGE_SIZE} dòng/trang.`;
+        notice.style.display = 'none';
+      }
+    }
+
+    function renderFundTransactionsPager(totalRows, totalPages, startRow, endRow) {
+      const pager = el('fundTransactionsPager');
+      if (!pager) return;
+      if (totalRows <= FUND_TRANSACTIONS_PAGE_SIZE) {
+        pager.style.display = 'none';
+        return;
+      }
+      pager.style.display = 'flex';
+      pager.innerHTML = `
+        <div style="font-size:12.5px; font-weight:700; color:var(--muted);">Dòng ${startRow}-${endRow}/${totalRows}</div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="ghost" style="min-height:34px; height:34px; padding:0 12px;" onclick="setFundTransactionsPage(${fundTransactionsPage - 1})" ${fundTransactionsPage <= 1 ? 'disabled' : ''}>Trước</button>
+          <span style="font-size:12.5px; font-weight:800; color:var(--deep);">Trang ${fundTransactionsPage}/${totalPages}</span>
+          <button type="button" class="ghost" style="min-height:34px; height:34px; padding:0 12px;" onclick="setFundTransactionsPage(${fundTransactionsPage + 1})" ${fundTransactionsPage >= totalPages ? 'disabled' : ''}>Sau</button>
+        </div>
+      `;
+    }
+
+    function setFundTransactionsPage(page) {
+      if (!fundTransactionsData) return;
+      fundTransactionsPage = page;
+      renderFundTransactions(fundTransactionsData);
+      el('fundTransactionsTable')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
 </script>
 

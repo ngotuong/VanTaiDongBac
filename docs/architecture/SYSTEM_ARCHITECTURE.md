@@ -193,7 +193,8 @@ Các nhóm chính:
 - `client_reports.html`: Báo cáo;
 - `client_cashflow.html`: Thu chi/Quỹ;
 - `client_accounts.html`: tài khoản và role UI;
-- `client_ui.html`: drawer, trạng thái, loader, audit và utility UI.
+- `client_observability.html`: trạng thái sync, write-job rendering và cache audit;
+- `client_ui.html`: drawer, loader, toast và utility UI chung.
 
 Các fragment phụ thuộc vào thứ tự include, global variables, global functions và DOM ID. Không có import graph hoặc type system kiểm tra dependency giữa chúng.
 

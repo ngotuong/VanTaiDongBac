@@ -12901,8 +12901,8 @@
   <script>
     function setBusy(isBusy) {
       ['submitBtn', 'addBtn', 'cloneBtn'].forEach((id) => el(id).disabled = isBusy);
-      el('submitBtn').innerHTML = isBusy 
-        ? '<div class="spinner" style="width:16px;height:16px;margin:0;"></div> Đang ghi...' 
+      el('submitBtn').innerHTML = isBusy
+        ? '<div class="spinner" style="width:16px;height:16px;margin:0;"></div> Đang ghi...'
         : `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg> Gửi dữ liệu lên Sheets`;
     }
 
@@ -13042,7 +13042,7 @@
       if (!document.body.classList.contains('drawer-open')) {
         document.body.classList.remove('locked');
       }
-      
+
       // Đóng trên PC (nếu đang hiển thị form nhập nhanh)
       const entryShell = el('entryShell');
       const btn = el('toggleEntryFormBtn');
@@ -13055,12 +13055,12 @@
       const entryShell = el('entryShell');
       const btn = el('toggleEntryFormBtn');
       if (!entryShell) return;
-      
+
       const isVisible = entryShell.classList.toggle('entry-shell-visible');
       if (btn) {
         btn.classList.toggle('active', isVisible);
       }
-      
+
       // Load form và catalogs tương ứng nếu mở ra
       if (isVisible) {
         renderFormTabs();
@@ -13078,6 +13078,226 @@
       }
     }
 
+
+    window.showSettingsFromLoader = () => {
+      document.body.classList.remove('locked');
+      el('loader').classList.add('hidden');
+      setView('settings');
+    };
+
+    // Trigger binding
+    el('refreshBtn').onclick = () => refreshReports(true);
+    el('menuBtn').onclick = openDrawer;
+    el('drawerClose').onclick = closeDrawer;
+    el('drawerBackdrop').onclick = closeDrawer;
+    el('addBtn').onclick = addRow;
+    el('cloneBtn').onclick = cloneRow;
+    el('submitBtn').onclick = submitAll;
+
+    // Scroll handling for bottom-nav visibility on mobile
+    let lastScrollY = window.scrollY;
+    let accumulatedDelta = 0;
+    const threshold = 15; // Minimum scroll delta in px to trigger toggle
+
+    window.addEventListener('scroll', () => {
+      const bottomNav = el('bottomNav');
+      if (!bottomNav) return;
+
+      const currentScrollY = window.scrollY;
+      const delta = currentScrollY - lastScrollY;
+
+      // Ignore elastic bounce scroll on iOS/Safari
+      const maxScrollY = document.documentElement.scrollHeight - window.innerHeight;
+      if (currentScrollY < 0 || currentScrollY > maxScrollY) {
+        lastScrollY = currentScrollY;
+        return;
+      }
+
+      accumulatedDelta += delta;
+
+      if (accumulatedDelta > threshold) {
+        // Scroll down -> hide bottomNav
+        if (currentScrollY > 80) {
+          bottomNav.classList.add('nav-hidden');
+        }
+        accumulatedDelta = 0;
+      } else if (accumulatedDelta < -threshold) {
+        // Scroll up -> show bottomNav
+        bottomNav.classList.remove('nav-hidden');
+        accumulatedDelta = 0;
+      }
+
+      // Always hide bottomNav when close to the bottom of the page (to avoid blocking content)
+      if (currentScrollY >= maxScrollY - 60) {
+        bottomNav.classList.add('nav-hidden');
+      }
+
+      // Always show bottomNav when close to the top of the page
+      if (currentScrollY <= 10) {
+        bottomNav.classList.remove('nav-hidden');
+      }
+
+      lastScrollY = currentScrollY;
+    }, { passive: true });
+
+    function formatMoneyInput(inputElement) {
+      const selectionStart = inputElement.selectionStart;
+      const selectionEnd = inputElement.selectionEnd;
+      const originalLength = inputElement.value.length;
+
+      let rawValue = inputElement.value.replace(/\D/g, '');
+      if (rawValue === '') {
+        inputElement.value = '';
+        return;
+      }
+
+      const formattedValue = Number(rawValue).toLocaleString('vi-VN').replace(/,/g, '.');
+      inputElement.value = formattedValue;
+
+      const newLength = formattedValue.length;
+      const cursorOffset = newLength - originalLength;
+
+      try {
+        inputElement.setSelectionRange(selectionStart + cursorOffset, selectionEnd + cursorOffset);
+      } catch (err) {
+        // Tránh lỗi trên các trình duyệt cũ hoặc kiểu input đặc biệt
+      }
+    }
+
+    function formatDateInputText(inputElement) {
+      const digits = String(inputElement.value || '').replace(/\D/g, '').slice(0, 8);
+      const parts = [];
+      if (digits.length > 0) parts.push(digits.slice(0, 2));
+      if (digits.length > 2) parts.push(digits.slice(2, 4));
+      if (digits.length > 4) parts.push(digits.slice(4, 8));
+      inputElement.value = parts.filter(Boolean).join('/');
+    }
+
+    function getDateInputIso(idOrElement) {
+      const input = typeof idOrElement === 'string' ? el(idOrElement) : idOrElement;
+      if (!input) return '';
+      return input.dataset.iso || parseDisplayDateToIso(input.value) || '';
+    }
+
+    function setDateInputValue(idOrElement, isoValue) {
+      const input = typeof idOrElement === 'string' ? el(idOrElement) : idOrElement;
+      if (!input) return;
+      attachNativeDatePicker(input);
+      const iso = parseDisplayDateToIso(isoValue) || String(isoValue || '').slice(0, 10);
+      input.dataset.iso = iso;
+      input.value = formatIsoDateForDisplay(iso);
+      const nativeInput = input.parentElement?.querySelector?.('.vi-date-native');
+      if (nativeInput) nativeInput.value = iso;
+    }
+
+    function attachNativeDatePicker(inputElement) {
+      if (!inputElement || inputElement.dataset.datePickerAttached === 'true') return;
+      if (!inputElement.parentNode) return;
+      inputElement.dataset.datePickerAttached = 'true';
+      inputElement.readOnly = true;
+      inputElement.setAttribute('aria-label', inputElement.getAttribute('aria-label') || inputElement.placeholder || 'Chọn ngày');
+
+      let wrapper = inputElement.parentElement;
+      if (!wrapper || !wrapper.classList.contains('vi-date-field')) {
+        wrapper = document.createElement('span');
+        wrapper.className = 'vi-date-field';
+        inputElement.parentNode.insertBefore(wrapper, inputElement);
+        wrapper.appendChild(inputElement);
+      }
+
+      const nativeInput = document.createElement('input');
+      nativeInput.type = 'date';
+      nativeInput.className = 'vi-date-native';
+      nativeInput.tabIndex = -1;
+      nativeInput.setAttribute('aria-hidden', 'true');
+      nativeInput.value = inputElement.dataset.iso || parseDisplayDateToIso(inputElement.value) || '';
+      nativeInput.addEventListener('change', function() {
+        setDateInputValue(inputElement, nativeInput.value);
+        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+        inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      wrapper.appendChild(nativeInput);
+    }
+
+    function openNativeDatePicker(inputElement) {
+      attachNativeDatePicker(inputElement);
+      const nativeInput = inputElement.parentElement?.querySelector?.('.vi-date-native');
+      if (!nativeInput) return;
+      nativeInput.value = inputElement.dataset.iso || parseDisplayDateToIso(inputElement.value) || '';
+      try {
+        if (typeof nativeInput.showPicker === 'function') {
+          nativeInput.showPicker();
+          return;
+        }
+      } catch (err) {
+        // iOS Safari có thể chặn showPicker nếu không phải gesture trực tiếp.
+      }
+      nativeInput.focus();
+      nativeInput.click();
+    }
+
+    function setupViDateInput(inputElement, isoValue) {
+      inputElement.type = 'text';
+      inputElement.inputMode = 'numeric';
+      inputElement.placeholder = 'dd/mm/yyyy';
+      inputElement.autocomplete = 'off';
+      inputElement.classList.add('vi-date-input');
+      setDateInputValue(inputElement, isoValue || inputElement.value || '');
+    }
+
+    document.addEventListener('input', function(e) {
+      const target = e.target;
+      const isStaticMoney = ['fundAmountInput', 'loanAmountInput', 'loanPaymentAmountInput'].includes(target.id);
+      const isDynamicMoney = target.classList.contains('format-money-input');
+
+      if (isStaticMoney || isDynamicMoney) {
+        formatMoneyInput(target);
+      }
+      if (target.classList.contains('vi-date-input')) {
+        attachNativeDatePicker(target);
+        formatDateInputText(target);
+        target.dataset.iso = parseDisplayDateToIso(target.value);
+        const nativeInput = target.parentElement?.querySelector?.('.vi-date-native');
+        if (nativeInput) nativeInput.value = target.dataset.iso || '';
+      }
+    }, true);
+
+    document.addEventListener('blur', function(e) {
+      const target = e.target;
+      if (target.classList?.contains('vi-date-input')) {
+        attachNativeDatePicker(target);
+        const iso = parseDisplayDateToIso(target.value);
+        if (iso) setDateInputValue(target, iso);
+      }
+    }, true);
+
+    document.addEventListener('change', function(e) {
+      const target = e.target;
+      if (target.classList?.contains('vi-date-input')) {
+        attachNativeDatePicker(target);
+        target.dataset.iso = parseDisplayDateToIso(target.value);
+        const nativeInput = target.parentElement?.querySelector?.('.vi-date-native');
+        if (nativeInput) nativeInput.value = target.dataset.iso || '';
+      }
+    });
+
+    document.addEventListener('focusin', function(e) {
+      const target = e.target;
+      if (target.classList?.contains('vi-date-input')) attachNativeDatePicker(target);
+    });
+
+    document.addEventListener('pointerdown', function(e) {
+      const target = e.target;
+      if (!target.classList?.contains('vi-date-input')) return;
+      e.preventDefault();
+      openNativeDatePicker(target);
+    }, true);
+
+    // Run initial boot after the deferred Supabase SDK is available.
+    window.addEventListener('DOMContentLoaded', bootstrapAuthenticatedApp, { once: true });
+</script>
+
+  <script>
     function loadSupabaseSyncStatus(forceRefresh = false) {
       const body = el('syncStatusBody');
       const checkedAt = el('syncStatusCheckedAt');
@@ -13310,223 +13530,6 @@
       }
       return formatSyncStatusTime(syncedAt);
     }
-
-    window.showSettingsFromLoader = () => {
-      document.body.classList.remove('locked');
-      el('loader').classList.add('hidden');
-      setView('settings');
-    };
-
-    // Trigger binding
-    el('refreshBtn').onclick = () => refreshReports(true);
-    el('menuBtn').onclick = openDrawer;
-    el('drawerClose').onclick = closeDrawer;
-    el('drawerBackdrop').onclick = closeDrawer;
-    el('addBtn').onclick = addRow;
-    el('cloneBtn').onclick = cloneRow;
-    el('submitBtn').onclick = submitAll;
-    
-    // Scroll handling for bottom-nav visibility on mobile
-    let lastScrollY = window.scrollY;
-    let accumulatedDelta = 0;
-    const threshold = 15; // Minimum scroll delta in px to trigger toggle
-    
-    window.addEventListener('scroll', () => {
-      const bottomNav = el('bottomNav');
-      if (!bottomNav) return;
-      
-      const currentScrollY = window.scrollY;
-      const delta = currentScrollY - lastScrollY;
-      
-      // Ignore elastic bounce scroll on iOS/Safari
-      const maxScrollY = document.documentElement.scrollHeight - window.innerHeight;
-      if (currentScrollY < 0 || currentScrollY > maxScrollY) {
-        lastScrollY = currentScrollY;
-        return;
-      }
-      
-      accumulatedDelta += delta;
-      
-      if (accumulatedDelta > threshold) {
-        // Scroll down -> hide bottomNav
-        if (currentScrollY > 80) {
-          bottomNav.classList.add('nav-hidden');
-        }
-        accumulatedDelta = 0;
-      } else if (accumulatedDelta < -threshold) {
-        // Scroll up -> show bottomNav
-        bottomNav.classList.remove('nav-hidden');
-        accumulatedDelta = 0;
-      }
-      
-      // Always hide bottomNav when close to the bottom of the page (to avoid blocking content)
-      if (currentScrollY >= maxScrollY - 60) {
-        bottomNav.classList.add('nav-hidden');
-      }
-      
-      // Always show bottomNav when close to the top of the page
-      if (currentScrollY <= 10) {
-        bottomNav.classList.remove('nav-hidden');
-      }
-      
-      lastScrollY = currentScrollY;
-    }, { passive: true });
-    
-    function formatMoneyInput(inputElement) {
-      const selectionStart = inputElement.selectionStart;
-      const selectionEnd = inputElement.selectionEnd;
-      const originalLength = inputElement.value.length;
-      
-      let rawValue = inputElement.value.replace(/\D/g, '');
-      if (rawValue === '') {
-        inputElement.value = '';
-        return;
-      }
-      
-      const formattedValue = Number(rawValue).toLocaleString('vi-VN').replace(/,/g, '.');
-      inputElement.value = formattedValue;
-      
-      const newLength = formattedValue.length;
-      const cursorOffset = newLength - originalLength;
-      
-      try {
-        inputElement.setSelectionRange(selectionStart + cursorOffset, selectionEnd + cursorOffset);
-      } catch (err) {
-        // Tránh lỗi trên các trình duyệt cũ hoặc kiểu input đặc biệt
-      }
-    }
-
-    function formatDateInputText(inputElement) {
-      const digits = String(inputElement.value || '').replace(/\D/g, '').slice(0, 8);
-      const parts = [];
-      if (digits.length > 0) parts.push(digits.slice(0, 2));
-      if (digits.length > 2) parts.push(digits.slice(2, 4));
-      if (digits.length > 4) parts.push(digits.slice(4, 8));
-      inputElement.value = parts.filter(Boolean).join('/');
-    }
-
-    function getDateInputIso(idOrElement) {
-      const input = typeof idOrElement === 'string' ? el(idOrElement) : idOrElement;
-      if (!input) return '';
-      return input.dataset.iso || parseDisplayDateToIso(input.value) || '';
-    }
-
-    function setDateInputValue(idOrElement, isoValue) {
-      const input = typeof idOrElement === 'string' ? el(idOrElement) : idOrElement;
-      if (!input) return;
-      attachNativeDatePicker(input);
-      const iso = parseDisplayDateToIso(isoValue) || String(isoValue || '').slice(0, 10);
-      input.dataset.iso = iso;
-      input.value = formatIsoDateForDisplay(iso);
-      const nativeInput = input.parentElement?.querySelector?.('.vi-date-native');
-      if (nativeInput) nativeInput.value = iso;
-    }
-
-    function attachNativeDatePicker(inputElement) {
-      if (!inputElement || inputElement.dataset.datePickerAttached === 'true') return;
-      if (!inputElement.parentNode) return;
-      inputElement.dataset.datePickerAttached = 'true';
-      inputElement.readOnly = true;
-      inputElement.setAttribute('aria-label', inputElement.getAttribute('aria-label') || inputElement.placeholder || 'Chọn ngày');
-
-      let wrapper = inputElement.parentElement;
-      if (!wrapper || !wrapper.classList.contains('vi-date-field')) {
-        wrapper = document.createElement('span');
-        wrapper.className = 'vi-date-field';
-        inputElement.parentNode.insertBefore(wrapper, inputElement);
-        wrapper.appendChild(inputElement);
-      }
-
-      const nativeInput = document.createElement('input');
-      nativeInput.type = 'date';
-      nativeInput.className = 'vi-date-native';
-      nativeInput.tabIndex = -1;
-      nativeInput.setAttribute('aria-hidden', 'true');
-      nativeInput.value = inputElement.dataset.iso || parseDisplayDateToIso(inputElement.value) || '';
-      nativeInput.addEventListener('change', function() {
-        setDateInputValue(inputElement, nativeInput.value);
-        inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-        inputElement.dispatchEvent(new Event('change', { bubbles: true }));
-      });
-      wrapper.appendChild(nativeInput);
-    }
-
-    function openNativeDatePicker(inputElement) {
-      attachNativeDatePicker(inputElement);
-      const nativeInput = inputElement.parentElement?.querySelector?.('.vi-date-native');
-      if (!nativeInput) return;
-      nativeInput.value = inputElement.dataset.iso || parseDisplayDateToIso(inputElement.value) || '';
-      try {
-        if (typeof nativeInput.showPicker === 'function') {
-          nativeInput.showPicker();
-          return;
-        }
-      } catch (err) {
-        // iOS Safari có thể chặn showPicker nếu không phải gesture trực tiếp.
-      }
-      nativeInput.focus();
-      nativeInput.click();
-    }
-
-    function setupViDateInput(inputElement, isoValue) {
-      inputElement.type = 'text';
-      inputElement.inputMode = 'numeric';
-      inputElement.placeholder = 'dd/mm/yyyy';
-      inputElement.autocomplete = 'off';
-      inputElement.classList.add('vi-date-input');
-      setDateInputValue(inputElement, isoValue || inputElement.value || '');
-    }
-
-    document.addEventListener('input', function(e) {
-      const target = e.target;
-      const isStaticMoney = ['fundAmountInput', 'loanAmountInput', 'loanPaymentAmountInput'].includes(target.id);
-      const isDynamicMoney = target.classList.contains('format-money-input');
-      
-      if (isStaticMoney || isDynamicMoney) {
-        formatMoneyInput(target);
-      }
-      if (target.classList.contains('vi-date-input')) {
-        attachNativeDatePicker(target);
-        formatDateInputText(target);
-        target.dataset.iso = parseDisplayDateToIso(target.value);
-        const nativeInput = target.parentElement?.querySelector?.('.vi-date-native');
-        if (nativeInput) nativeInput.value = target.dataset.iso || '';
-      }
-    }, true);
-
-    document.addEventListener('blur', function(e) {
-      const target = e.target;
-      if (target.classList?.contains('vi-date-input')) {
-        attachNativeDatePicker(target);
-        const iso = parseDisplayDateToIso(target.value);
-        if (iso) setDateInputValue(target, iso);
-      }
-    }, true);
-
-    document.addEventListener('change', function(e) {
-      const target = e.target;
-      if (target.classList?.contains('vi-date-input')) {
-        attachNativeDatePicker(target);
-        target.dataset.iso = parseDisplayDateToIso(target.value);
-        const nativeInput = target.parentElement?.querySelector?.('.vi-date-native');
-        if (nativeInput) nativeInput.value = target.dataset.iso || '';
-      }
-    });
-
-    document.addEventListener('focusin', function(e) {
-      const target = e.target;
-      if (target.classList?.contains('vi-date-input')) attachNativeDatePicker(target);
-    });
-
-    document.addEventListener('pointerdown', function(e) {
-      const target = e.target;
-      if (!target.classList?.contains('vi-date-input')) return;
-      e.preventDefault();
-      openNativeDatePicker(target);
-    }, true);
-    
-    // Run initial boot after the deferred Supabase SDK is available.
-    window.addEventListener('DOMContentLoaded', bootstrapAuthenticatedApp, { once: true });
 </script>
 
 </body>

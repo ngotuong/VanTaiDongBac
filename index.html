@@ -12919,7 +12919,7 @@
           reportBundlePrefetching = false;
           return;
         }
-        callApi('GET', 'getReportBundle', { month })
+        callApi('GET', 'getReportBundle', { month, spreadsheetId: getCurrentSpreadsheetIdForSupabase() })
           .then((bundle) => {
             if (epoch === reportCacheEpoch) {
               sessionStorage.setItem(getReportBundleCacheKey(month), JSON.stringify(bundle));

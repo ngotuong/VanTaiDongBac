@@ -115,6 +115,8 @@ Source tác giả gồm:
 
 `api/app.js` là boundary composition/dispatch giữa browser và Apps Script khi Auth được bật. Việc xác thực Supabase session được delegate cho `api/services/auth-service.js`, `app_users` persistence cho `api/repositories/app-user-repository.js`, policy role cho `api/services/authorization-policy.js`, và account CRUD/password cho `api/services/account-service.js`.
 
+Từ Phase 5, module Report có application boundary riêng tại `api/services/report-service.js` và persistence adapter `api/repositories/report-bundle-repository.js`. Browser Report chỉ gọi `/api/app`; Vercel đọc `report_bundles` bằng server credential và fallback Apps Script khi cache thiếu/lỗi hoặc cần refresh. `getReports` và `getReport` đi qua cùng Report boundary rồi forward Apps Script. Dashboard, Entry và Manage không nằm trong cutover này và giữ nguyên data flow hiện hữu.
+
 Proxy chịu trách nhiệm:
 
 - đọc Bearer token;
@@ -123,6 +125,7 @@ Proxy chịu trách nhiệm:
 - kiểm tra tài khoản còn active;
 - áp dụng quyền theo role và API action;
 - xử lý API quản trị tài khoản;
+- phục vụ Report bundle từ Supabase read model qua server-side Report service;
 - chuyển tiếp action nghiệp vụ đến Apps Script;
 - đính kèm `APP_PROXY_SECRET` ở phía server.
 

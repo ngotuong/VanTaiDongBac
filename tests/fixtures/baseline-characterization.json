@@ -33,6 +33,7 @@
     ],
     "frontend": [
       "client_utils.html",
+      "client_api_transport.html",
       "client_accounts.html",
       "client_api.html",
       "client_app.html",

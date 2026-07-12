@@ -5811,6 +5811,149 @@
 </script>
 
   <script>
+    function hasAppsScriptRuntime() {
+      return typeof google !== 'undefined'
+        && google.script
+        && google.script.run
+        && typeof google.script.run.withSuccessHandler === 'function';
+    }
+
+    function normalizeWebAppUrl(rawUrl) {
+      if (!rawUrl) return '';
+      try {
+        const url = new URL(rawUrl);
+        url.search = '';
+        url.hash = '';
+        return url.toString();
+      } catch (err) {
+        return '';
+      }
+    }
+
+    const DEFAULT_BACKEND_URL = normalizeWebAppUrl(window.__DEFAULT_APP_SERVICE_URL);
+
+    const getBackendUrl = () => {
+      return normalizeWebAppUrl(window.__APP_SERVICE_URL)
+        || DEFAULT_BACKEND_URL;
+    };
+
+    function getBackendUrlSource() {
+      const appUrl = normalizeWebAppUrl(window.__APP_SERVICE_URL);
+      if (appUrl) return 'app';
+      return DEFAULT_BACKEND_URL ? 'default' : '';
+    }
+
+    function getApiEndpoint() {
+      return isAuthEnabled() && !hasAppsScriptRuntime() ? '/api/app' : getBackendUrl();
+    }
+
+    function callAppsScriptAction(method, action, params = {}, bodyData = null) {
+      if (!hasAppsScriptRuntime()) {
+        return Promise.reject(new Error('google.script.run unavailable'));
+      }
+
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler((data) => {
+            if (data && data.ok === false) {
+              reject(new Error(data.error || 'Lỗi API hệ thống.'));
+              return;
+            }
+            resolve(data);
+          })
+          .withFailureHandler((err) => {
+            reject(new Error(err && err.message ? err.message : String(err || 'Lỗi gọi Apps Script.')));
+          })
+          .invokeApi(method, action, params || {}, bodyData || null);
+      });
+    }
+
+    function callFetchApi(method, action, params = {}, bodyData = null) {
+      const backendUrl = getApiEndpoint();
+      if (!backendUrl) {
+        return Promise.reject(new Error('Chưa cấu hình đường dẫn Web App trong Cài đặt!'));
+      }
+
+      let url = new URL(backendUrl, window.location.origin);
+      url.searchParams.set('action', action);
+      Object.keys(params).forEach(k => {
+        url.searchParams.set(k, params[k]);
+      });
+      if (params.forceRefresh === true || params.forceRefresh === 'true') {
+        url.searchParams.set('_ts', Date.now());
+      }
+
+      return getSupabaseAccessToken().then((accessToken) => {
+        const usingProxy = isAuthEnabled() && !hasAppsScriptRuntime();
+        const options = {
+          method: method,
+          headers: {
+            'Content-Type': usingProxy ? 'application/json;charset=UTF-8' : 'text/plain;charset=UTF-8'
+          }
+        };
+        if (accessToken) options.headers.Authorization = 'Bearer ' + accessToken;
+        if (bodyData) options.body = JSON.stringify({ action: action, ...bodyData });
+        return fetch(url.toString(), options);
+      })
+        .then(async (res) => {
+          const data = await res.json().catch(() => null);
+          if (!res.ok) {
+            if (res.status === 401 && isAuthEnabled()) {
+              const client = getSupabaseClient();
+              if (client) await client.auth.signOut();
+              sessionStorage.clear();
+              showAuthGate('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            }
+            throw new Error(data?.error || `Kết nối API thất bại, status: ${res.status}. URL: ${backendUrl}`);
+          }
+          return data;
+        })
+        .then(data => {
+          if (data && data.ok === false) {
+            throw new Error(data.error || 'Lỗi API hệ thống.');
+          }
+          return data;
+        })
+        .catch((err) => {
+          const fallbackResult = buildFetchPostFallbackResult_(method, action, bodyData, backendUrl, err);
+          if (fallbackResult) return fallbackResult;
+          throw err;
+        });
+    }
+
+    function callApi(method, action, params = {}, bodyData = null) {
+      const normalizedMethod = String(method || '').toUpperCase();
+      if (hasAppsScriptRuntime()) {
+        return callAppsScriptAction(normalizedMethod, action, params, bodyData);
+      }
+      return callFetchApi(normalizedMethod, action, params, bodyData);
+    }
+
+    function buildFetchPostFallbackResult_(method, action, bodyData, backendUrl, err) {
+      if (String(method || '').toUpperCase() !== 'POST') return null;
+      if (!/script\.google\.com$/i.test((new URL(backendUrl)).hostname)) return null;
+      const message = String(err && err.message ? err.message : err || '');
+      if (!/Failed to fetch|NetworkError|Load failed/i.test(message)) return null;
+      if (action === 'submitRows') return null;
+
+      const warning = 'Yêu cầu đã được gửi tới Apps Script nhưng trình duyệt không đọc được phản hồi. Nếu dữ liệu đã xuất hiện trong Google Sheet thì có thể bỏ qua cảnh báo này.';
+      if (action === 'submitRows') {
+        return {
+          ok: true,
+          inserted: Array.isArray(bodyData && bodyData.rows) ? bodyData.rows.length : 0,
+          sheetName: '',
+          errors: [],
+          warnings: [warning]
+        };
+      }
+      return {
+        ok: true,
+        warnings: [warning]
+      };
+    }
+</script>
+
+  <script>
     // System Navigation Configuration
     const NAV = [
       ['home', 'Tổng quan', 'KPI & Biểu đồ', `<svg class="btn-svg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`],
@@ -6122,133 +6265,14 @@
 </script>
 
   <script>
-    // API REST Request Layer
-    function hasAppsScriptRuntime() {
-      return typeof google !== 'undefined'
-        && google.script
-        && google.script.run
-        && typeof google.script.run.withSuccessHandler === 'function';
-    }
-
-    function normalizeWebAppUrl(rawUrl) {
-      if (!rawUrl) return '';
-      try {
-        const url = new URL(rawUrl);
-        url.search = '';
-        url.hash = '';
-        return url.toString();
-      } catch (err) {
-        return '';
-      }
-    }
-
-    const DEFAULT_BACKEND_URL = normalizeWebAppUrl(window.__DEFAULT_APP_SERVICE_URL);
-    
-    const getBackendUrl = () => {
-      return normalizeWebAppUrl(window.__APP_SERVICE_URL)
-        || DEFAULT_BACKEND_URL;
-    };
-
-    function getBackendUrlSource() {
-      const appUrl = normalizeWebAppUrl(window.__APP_SERVICE_URL);
-      if (appUrl) return 'app';
-      return DEFAULT_BACKEND_URL ? 'default' : '';
-    }
-
     function isAuthEnabled() {
       return normalizeSupabaseEnabledFlag((window.__SUPABASE_CONFIG || {}).authEnabled);
-    }
-
-    function getApiEndpoint() {
-      return isAuthEnabled() && !hasAppsScriptRuntime() ? '/api/app' : getBackendUrl();
     }
 
     function getSupabaseAccessToken() {
       const client = getSupabaseClient();
       if (!client || !isAuthEnabled()) return Promise.resolve('');
       return client.auth.getSession().then(({ data }) => data?.session?.access_token || '');
-    }
-
-    function callAppsScriptAction(method, action, params = {}, bodyData = null) {
-      if (!hasAppsScriptRuntime()) {
-        return Promise.reject(new Error('google.script.run unavailable'));
-      }
-
-      return new Promise((resolve, reject) => {
-        google.script.run
-          .withSuccessHandler((data) => {
-            if (data && data.ok === false) {
-              reject(new Error(data.error || 'Lỗi API hệ thống.'));
-              return;
-            }
-            resolve(data);
-          })
-          .withFailureHandler((err) => {
-            reject(new Error(err && err.message ? err.message : String(err || 'Lỗi gọi Apps Script.')));
-          })
-          .invokeApi(method, action, params || {}, bodyData || null);
-      });
-    }
-
-    function callFetchApi(method, action, params = {}, bodyData = null) {
-      const backendUrl = getApiEndpoint();
-      if (!backendUrl) {
-        return Promise.reject(new Error('Chưa cấu hình đường dẫn Web App trong Cài đặt!'));
-      }
-      
-      let url = new URL(backendUrl, window.location.origin);
-      url.searchParams.set('action', action);
-      Object.keys(params).forEach(k => {
-        url.searchParams.set(k, params[k]);
-      });
-      if (params.forceRefresh === true || params.forceRefresh === 'true') {
-        url.searchParams.set('_ts', Date.now());
-      }
-      
-      return getSupabaseAccessToken().then((accessToken) => {
-        const usingProxy = isAuthEnabled() && !hasAppsScriptRuntime();
-        const options = {
-          method: method,
-          headers: {
-            'Content-Type': usingProxy ? 'application/json;charset=UTF-8' : 'text/plain;charset=UTF-8'
-          }
-        };
-        if (accessToken) options.headers.Authorization = 'Bearer ' + accessToken;
-        if (bodyData) options.body = JSON.stringify({ action: action, ...bodyData });
-        return fetch(url.toString(), options);
-      })
-        .then(async (res) => {
-          const data = await res.json().catch(() => null);
-          if (!res.ok) {
-            if (res.status === 401 && isAuthEnabled()) {
-              const client = getSupabaseClient();
-              if (client) await client.auth.signOut();
-              sessionStorage.clear();
-              showAuthGate('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-            }
-            throw new Error(data?.error || `Kết nối API thất bại, status: ${res.status}. URL: ${backendUrl}`);
-          }
-          return data;
-        })
-        .then(data => {
-          if (data && data.ok === false) {
-            throw new Error(data.error || 'Lỗi API hệ thống.');
-          }
-          return data;
-        })
-        .catch((err) => {
-          const fallbackResult = buildFetchPostFallbackResult_(method, action, bodyData, backendUrl, err);
-          if (fallbackResult) return fallbackResult;
-          throw err;
-        });
-    }
-
-    function callApi(method, action, params = {}, bodyData = null) {
-      const normalizedMethod = String(method || '').toUpperCase();
-      if (hasAppsScriptRuntime()) {
-        return callAppsScriptAction(normalizedMethod, action, params, bodyData);
-      }
-      return callFetchApi(normalizedMethod, action, params, bodyData);
     }
 
     function normalizeSupabaseEnabledFlag(value) {
@@ -6599,29 +6623,6 @@
       const link = getLinks()?.spreadsheet || '';
       const match = String(link).match(/\/spreadsheets\/d\/([^/]+)/);
       return match ? match[1] : '';
-    }
-
-    function buildFetchPostFallbackResult_(method, action, bodyData, backendUrl, err) {
-      if (String(method || '').toUpperCase() !== 'POST') return null;
-      if (!/script\.google\.com$/i.test((new URL(backendUrl)).hostname)) return null;
-      const message = String(err && err.message ? err.message : err || '');
-      if (!/Failed to fetch|NetworkError|Load failed/i.test(message)) return null;
-      if (action === 'submitRows') return null;
-
-      const warning = 'Yêu cầu đã được gửi tới Apps Script nhưng trình duyệt không đọc được phản hồi. Nếu dữ liệu đã xuất hiện trong Google Sheet thì có thể bỏ qua cảnh báo này.';
-      if (action === 'submitRows') {
-        return {
-          ok: true,
-          inserted: Array.isArray(bodyData && bodyData.rows) ? bodyData.rows.length : 0,
-          sheetName: '',
-          errors: [],
-          warnings: [warning]
-        };
-      }
-      return {
-        ok: true,
-        warnings: [warning]
-      };
     }
 
     function removeSessionKeysByPrefix(prefix) {

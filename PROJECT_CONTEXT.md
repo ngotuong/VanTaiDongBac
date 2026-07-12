@@ -323,11 +323,14 @@ Commit lien quan:
 - Step 27c tách Supabase cache readiness, REST row/payload reads, report/startup/catalog/manage/fund bundle mapping, spreadsheet scope và stable cache-key builders sang `client_supabase_cache.html`; Supabase client/access token/Auth/session và browser sessionStorage cache vẫn ở `client_api.html`. Global names/call sites/table/filter/select/payload giữ nguyên.
 - Step 27c đã pass 211/211 test, build thành công, artifact không còn template tag, `git diff --check` sạch và deploy Vercel production `dpl_E2bjf5XBc9UfoCRHj6R4MmK61LpP`, alias `https://dongbac.vercel.app`; Apps Script vẫn `@281`.
 - Smoke production Step 27c: page/health `200`, built artifact có đúng một owner cho Supabase cache globals, unauthenticated dashboard `401`. Không dùng credential để đọc cache authenticated production; REST URL/header/payload/error/fallback và cache-key parity được kiểm tra local, không có mutation.
+- Step 27d tách Supabase config/client singleton, access token, auth gate/inert, remembered username, sign-in/sign-out và authenticated session/allowlist bootstrap sang `client_auth.html`; `client_api.html` chỉ còn browser session cache/invalidation. DOM IDs/text, persistent session options, internal email mapping, role UI và global call sites giữ nguyên.
+- Step 27d đã pass 218/218 test, build thành công, artifact không còn template tag, `git diff --check` sạch và deploy Vercel production `dpl_4Qw9GaPFWf8ezXUuiZStf9x6iUPL`, alias `https://dongbac.vercel.app`; Apps Script vẫn `@281`.
+- Smoke production Step 27d: page/health `200`, auth markup đầy đủ và built artifact có đúng một owner cho Auth globals, unauthenticated `authSession=401`. Không dùng credential production; sign-in/session/allowlist branches được kiểm tra local, không có mutation.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 26 hoàn thành; Step 27a-27c hoàn thành, Step 27 tổng thể chưa hoàn thành. Apps Script checkpoint `@281`, Vercel production deployment `dpl_E2bjf5XBc9UfoCRHj6R4MmK61LpP`.
-- Bước kế tiếp được đề xuất: Step 27d — tách Auth client/session; chưa được tự bắt đầu nếu chưa có phê duyệt Step 27d.
+- Trạng thái hiện tại: Step 26 hoàn thành; Step 27a-27d hoàn thành, Step 27 tổng thể chưa hoàn thành. Apps Script checkpoint `@281`, Vercel production deployment `dpl_4Qw9GaPFWf8ezXUuiZStf9x6iUPL`.
+- Bước kế tiếp được đề xuất: Step 27e — tách config constants khỏi mutable frontend state; chưa được tự bắt đầu nếu chưa có phê duyệt Step 27e.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -374,4 +377,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 27d hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 27e hoặc bất kỳ thay đổi mới nào.

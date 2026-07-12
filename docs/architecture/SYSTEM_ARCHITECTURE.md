@@ -181,7 +181,8 @@ Các nhóm chính:
 - `client_config.html`: cấu hình menu, form, mapping và global state;
 - `client_api_transport.html`: chọn Apps Script runtime hay fetch `/api/app`, dựng request và map transport errors;
 - `client_supabase_cache.html`: Supabase REST bundle readers, payload mapping và stable cache keys;
-- `client_api.html`: Supabase client, Auth, access token và browser session cache;
+- `client_auth.html`: Supabase config/client, access token, auth gate, sign-in/sign-out và session bootstrap;
+- `client_api.html`: browser session cache/invalidation;
 - `client_app.html`: bootstrap, navigation và app lifecycle;
 - `client_data.html`: điều phối load dữ liệu, submit và report bundle;
 - `client_dashboard.html`: Tổng quan;

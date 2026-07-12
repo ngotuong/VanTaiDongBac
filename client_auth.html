@@ -1,0 +1,154 @@
+<script>
+    function isAuthEnabled() {
+      return normalizeSupabaseEnabledFlag((window.__SUPABASE_CONFIG || {}).authEnabled);
+    }
+
+    function getSupabaseAccessToken() {
+      const client = getSupabaseClient();
+      if (!client || !isAuthEnabled()) return Promise.resolve('');
+      return client.auth.getSession().then(({ data }) => data?.session?.access_token || '');
+    }
+
+    function normalizeSupabaseEnabledFlag(value) {
+      const text = String(value || '').trim().toLowerCase();
+      return ['1', 'true', 'yes', 'on'].includes(text);
+    }
+
+    function getSupabaseConfig() {
+      const cfg = window.__SUPABASE_CONFIG || {};
+      return {
+        url: String(cfg.url || '').trim(),
+        anonKey: String(cfg.anonKey || '').trim(),
+        reportsEnabled: normalizeSupabaseEnabledFlag(cfg.reportsEnabled),
+        authEnabled: normalizeSupabaseEnabledFlag(cfg.authEnabled)
+      };
+    }
+
+    let supabaseClientInstance = null;
+    function getSupabaseClient() {
+      const cfg = getSupabaseConfig();
+      if (!cfg.url || !cfg.anonKey) return null;
+      if (!window.supabase || !window.supabase.createClient) return null;
+      if (!supabaseClientInstance) {
+        supabaseClientInstance = window.supabase.createClient(cfg.url, cfg.anonKey, {
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        });
+      }
+      return supabaseClientInstance;
+    }
+
+    function setAuthStatus(message, isError) {
+      const status = document.getElementById('authStatus');
+      if (!status) return;
+      status.textContent = message || '';
+      status.style.color = isError ? 'var(--red)' : 'var(--muted)';
+    }
+
+    function showAuthGate(message) {
+      document.getElementById('authGate')?.classList.remove('hidden');
+      document.querySelector('.app')?.classList.add('hidden');
+      document.getElementById('loader')?.classList.add('hidden');
+      setApplicationInert_(true);
+      document.body.classList.add('auth-locked');
+      document.body.classList.remove('locked');
+      setAuthStatus(message || '', Boolean(message));
+      restoreRememberedUsername();
+      document.getElementById('authUsername')?.focus();
+    }
+
+    function restoreRememberedUsername() {
+      try {
+        const input = document.getElementById('authUsername');
+        const saved = localStorage.getItem('dongbac_auth_username') || '';
+        if (input && !input.value && saved) input.value = saved;
+      } catch (err) {}
+    }
+
+    function hideAuthGate(user) {
+      currentAuthUser = user || null;
+      try {
+        if (user?.username) localStorage.setItem('dongbac_auth_username', String(user.username));
+      } catch (err) {}
+      document.body.dataset.role = getCurrentRole();
+      setApplicationInert_(false);
+      document.body.classList.remove('auth-locked');
+      document.getElementById('authGate')?.classList.add('hidden');
+      document.querySelector('.app')?.classList.remove('hidden');
+      const panel = document.getElementById('authUserPanel');
+      if (panel) panel.classList.remove('hidden');
+      const email = document.getElementById('authUserEmail');
+      if (email) email.textContent = `${user?.displayName || user?.username || ''} · ${getRoleLabel(getCurrentRole())}`;
+      applyRoleUi();
+    }
+
+    function setApplicationInert_(isInert) {
+      Array.from(document.body.children).forEach((element) => {
+        if (element.id === 'authGate' || element.tagName === 'SCRIPT') return;
+        if (isInert) {
+          element.setAttribute('inert', '');
+          element.setAttribute('aria-hidden', 'true');
+          element.dataset.authInert = 'true';
+        } else if (element.dataset.authInert === 'true') {
+          element.removeAttribute('inert');
+          element.removeAttribute('aria-hidden');
+          delete element.dataset.authInert;
+        }
+      });
+    }
+
+    async function signInWithUsername() {
+      const client = getSupabaseClient();
+      if (!client) return setAuthStatus('Thiếu cấu hình Supabase Auth.', true);
+      const username = String(document.getElementById('authUsername')?.value || '').trim().toLowerCase();
+      const password = String(document.getElementById('authPassword')?.value || '');
+      if (!/^[a-z0-9._-]{3,40}$/.test(username)) return setAuthStatus('Tên đăng nhập không hợp lệ.', true);
+      if (!password) return setAuthStatus('Vui lòng nhập mật khẩu.', true);
+      const button = document.getElementById('usernameSignInBtn');
+      if (button) button.disabled = true;
+      setAuthStatus('Đang xác thực...', false);
+      const { error } = await client.auth.signInWithPassword({
+        email: username + '@dongbac.internal',
+        password: password
+      });
+      if (error) {
+        if (button) button.disabled = false;
+        setAuthStatus('Tên đăng nhập hoặc mật khẩu không đúng.', true);
+        return;
+      }
+      try { localStorage.setItem('dongbac_auth_username', username); } catch (err) {}
+      window.location.reload();
+    }
+
+    async function signOutCurrentUser() {
+      const client = getSupabaseClient();
+      if (client) await client.auth.signOut();
+      sessionStorage.clear();
+      showAuthGate('Bạn đã đăng xuất.');
+    }
+
+    async function bootstrapAuthenticatedApp() {
+      if (!isAuthEnabled()) {
+        document.getElementById('authGate')?.classList.add('hidden');
+        init();
+        return;
+      }
+      const client = getSupabaseClient();
+      if (!client) {
+        showAuthGate('Supabase Auth chưa được cấu hình trên frontend.');
+        return;
+      }
+      const { data, error } = await client.auth.getSession();
+      if (error || !data?.session) {
+        showAuthGate(error?.message || '');
+        return;
+      }
+      try {
+        const result = await callFetchApi('GET', 'authSession');
+        hideAuthGate(result.user || data.session.user);
+        init();
+      } catch (err) {
+        await client.auth.signOut();
+        showAuthGate(err.message || 'Tài khoản chưa được cấp quyền.');
+      }
+    }
+</script>

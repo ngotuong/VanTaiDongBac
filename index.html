@@ -6957,72 +6957,6 @@
       tbody.innerHTML = `<tr><td colspan="${colspan}" style="padding:16px;"><div class="shimmer shimmer-table"></div></td></tr>`;
     }
 
-    function normalizePendingFundJob(job, fallbackTransactions) {
-      const payload = job?.payload || {};
-      return {
-        ...job,
-        jobId: job.jobId || job.id || '',
-        transactions: payload.transactions || fallbackTransactions || [],
-        status: job.status || 'pending'
-      };
-    }
-
-    function trackPendingFundWriteJob(job, transactions) {
-      const normalized = normalizePendingFundJob(job, transactions);
-      pendingFundWriteJobs = pendingFundWriteJobs.filter((item) => item.jobId !== normalized.jobId);
-      pendingFundWriteJobs.unshift(normalized);
-      if (fundTransactionsData) renderFundTransactions(fundTransactionsData);
-    }
-
-    function loadRecentFundWriteJobs() {
-      return callApi('GET', 'getRecentWriteJobs', { module: 'fund', actionName: 'addFundTransactions', limit: 12 })
-        .then((result) => {
-          pendingFundWriteJobs = (result.jobs || [])
-            .filter((job) => ['pending', 'processing', 'failed'].includes(job.status))
-            .map((job) => normalizePendingFundJob(job));
-          return result;
-        })
-        .catch((err) => {
-          console.warn('Không tải được write_jobs Quỹ:', err);
-          return { ok: false, jobs: [] };
-        });
-    }
-
-    function pollFundWriteJob(jobId, attemptsLeft = 40) {
-      if (!jobId || attemptsLeft <= 0) return;
-      setTimeout(() => {
-        callApi('GET', 'getWriteJobStatus', { jobId })
-          .then((job) => {
-            const current = pendingFundWriteJobs.find((item) => item.jobId === jobId);
-            trackPendingFundWriteJob({ ...current, ...job }, current?.transactions || []);
-            if (job.status === 'synced') {
-              pendingFundWriteJobs = pendingFundWriteJobs.filter((item) => item.jobId !== jobId);
-              fundSubmitRequestId = '';
-              showSyncToast('Giao dịch Quỹ đã được Google Sheet xác nhận.', 'info');
-              return Promise.all([loadFundTransactions(true), loadFundOverview(true)]);
-            }
-            if (job.status === 'failed') {
-              showSyncToast('Giao dịch Quỹ đồng bộ lỗi. Bạn có thể bấm thử lại tại dòng chờ.', 'error');
-              if (fundTransactionsData) renderFundTransactions(fundTransactionsData);
-              return null;
-            }
-            pollFundWriteJob(jobId, attemptsLeft - 1);
-            return null;
-          })
-          .catch(() => pollFundWriteJob(jobId, attemptsLeft - 1));
-      }, 1500);
-    }
-
-    function retryFundWriteJob(jobId) {
-      callApi('POST', 'retryWriteJob', {}, { jobId })
-        .then((job) => {
-          trackPendingFundWriteJob(job, pendingFundWriteJobs.find((item) => item.jobId === jobId)?.transactions || []);
-          if (typeof kickWriteJobWorker === 'function') kickWriteJobWorker();
-          pollFundWriteJob(jobId);
-        })
-        .catch((err) => showSyncToast('Không thể thử lại giao dịch Quỹ: ' + err.message, 'error'));
-    }
-
     function loadFundCatalog(forceRefresh) {
       const group = activeFundCatalogGroup || 'incomeCategories';
       const tableBody = el('fundCatalogTableBody');
@@ -8755,6 +8689,75 @@
       fundTransactionsPage = page;
       renderFundTransactions(fundTransactionsData);
       el('fundTransactionsTable')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+</script>
+
+  <script>
+    function normalizePendingFundJob(job, fallbackTransactions) {
+      const payload = job?.payload || {};
+      return {
+        ...job,
+        jobId: job.jobId || job.id || '',
+        transactions: payload.transactions || fallbackTransactions || [],
+        status: job.status || 'pending'
+      };
+    }
+
+    function trackPendingFundWriteJob(job, transactions) {
+      const normalized = normalizePendingFundJob(job, transactions);
+      pendingFundWriteJobs = pendingFundWriteJobs.filter((item) => item.jobId !== normalized.jobId);
+      pendingFundWriteJobs.unshift(normalized);
+      if (fundTransactionsData) renderFundTransactions(fundTransactionsData);
+    }
+
+    function loadRecentFundWriteJobs() {
+      return callApi('GET', 'getRecentWriteJobs', { module: 'fund', actionName: 'addFundTransactions', limit: 12 })
+        .then((result) => {
+          pendingFundWriteJobs = (result.jobs || [])
+            .filter((job) => ['pending', 'processing', 'failed'].includes(job.status))
+            .map((job) => normalizePendingFundJob(job));
+          return result;
+        })
+        .catch((err) => {
+          console.warn('Không tải được write_jobs Quỹ:', err);
+          return { ok: false, jobs: [] };
+        });
+    }
+
+    function pollFundWriteJob(jobId, attemptsLeft = 40) {
+      if (!jobId || attemptsLeft <= 0) return;
+      setTimeout(() => {
+        callApi('GET', 'getWriteJobStatus', { jobId })
+          .then((job) => {
+            const current = pendingFundWriteJobs.find((item) => item.jobId === jobId);
+            trackPendingFundWriteJob({ ...current, ...job }, current?.transactions || []);
+            if (job.status === 'synced') {
+              pendingFundWriteJobs = pendingFundWriteJobs.filter((item) => item.jobId !== jobId);
+              fundSubmitRequestId = '';
+              showSyncToast('Giao dịch Quỹ đã được Google Sheet xác nhận.', 'info');
+              return Promise.all([loadFundTransactions(true), loadFundOverview(true)]);
+            }
+            if (job.status === 'failed') {
+              showSyncToast('Giao dịch Quỹ đồng bộ lỗi. Bạn có thể bấm thử lại tại dòng chờ.', 'error');
+              if (fundTransactionsData) renderFundTransactions(fundTransactionsData);
+              return null;
+            }
+            pollFundWriteJob(jobId, attemptsLeft - 1);
+            return null;
+          })
+          .catch(() => pollFundWriteJob(jobId, attemptsLeft - 1));
+      }, 1500);
+    }
+
+    function retryFundWriteJob(jobId) {
+      callApi('POST', 'retryWriteJob', {}, { jobId })
+        .then((job) => {
+          trackPendingFundWriteJob(job, pendingFundWriteJobs.find((item) => item.jobId === jobId)?.transactions || []);
+          if (typeof kickWriteJobWorker === 'function') kickWriteJobWorker();
+          pollFundWriteJob(jobId);
+        })
+        .catch((err) => showSyncToast('Không thể thử lại giao dịch Quỹ: ' + err.message, 'error'));
     }
 
 </script>

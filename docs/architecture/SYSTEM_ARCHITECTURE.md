@@ -194,6 +194,7 @@ Các nhóm chính:
 - `client_cashflow.html`: facade/tab và các phần Thu chi/Quỹ chưa tách;
 - `client_cashflow_overview.html`: Tổng quan, báo cáo tài chính và chi tiết hạng mục Quỹ;
 - `client_cashflow_transactions.html`: form, danh sách, filter và submit giao dịch Quỹ;
+- `client_cashflow_pending.html`: restore, poll, retry và lifecycle pending Fund write jobs;
 - `client_accounts.html`: tài khoản và role UI;
 - `client_observability.html`: trạng thái sync, write-job rendering và cache audit;
 - `client_ui.html`: drawer, loader, toast và utility UI chung.

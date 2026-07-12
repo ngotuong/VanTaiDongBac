@@ -1,8 +1,9 @@
 {
   "scripts": {
-    "build": "node scripts/build.js && node scripts/build-accounts-react.js && next build next-shell && node scripts/copy-next-accounts.js",
+    "build": "node scripts/build.js && node scripts/build-accounts-react.js && node scripts/build-observability-react.js && next build next-shell && node scripts/copy-next-accounts.js",
     "build:legacy": "node scripts/build.js",
     "build:accounts": "node scripts/build-accounts-react.js",
+    "build:observability": "node scripts/build-observability-react.js",
     "build:next-accounts": "next build next-shell && node scripts/copy-next-accounts.js",
     "test": "node --test tests/*.test.js"
   },

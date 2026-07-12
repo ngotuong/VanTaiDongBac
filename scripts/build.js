@@ -12,6 +12,7 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPA
 const SUPABASE_REPORTS_ENABLED = process.env.VITE_SUPABASE_REPORTS_ENABLED || process.env.SUPABASE_REPORTS_ENABLED || '';
 const AUTH_ENABLED = process.env.VITE_AUTH_ENABLED || process.env.AUTH_ENABLED || '';
 const REACT_ACCOUNTS_ENABLED = process.env.VITE_REACT_ACCOUNTS_ENABLED || process.env.REACT_ACCOUNTS_ENABLED || '';
+const REACT_OBSERVABILITY_ENABLED = process.env.VITE_REACT_OBSERVABILITY_ENABLED || process.env.REACT_OBSERVABILITY_ENABLED || '';
 
 console.log('🔄 Bắt đầu quá trình build index.html...');
 
@@ -25,6 +26,10 @@ try {
   templateContent = templateContent.replace(
     /<\?!=\s*JSON\.stringify\(serviceUrl\s*\|\|\s*''\)\s*\?>/g,
     JSON.stringify(DEFAULT_SERVICE_URL)
+  );
+  templateContent = templateContent.replace(
+    /<\?!=\s*JSON\.stringify\(reactObservabilityEnabled\s*\|\|\s*''\)\s*\?>/g,
+    JSON.stringify(REACT_OBSERVABILITY_ENABLED)
   );
   templateContent = templateContent.replace(
     /<\?!=\s*JSON\.stringify\(supabaseUrl\s*\|\|\s*''\)\s*\?>/g,

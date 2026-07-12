@@ -445,14 +445,6 @@
     }
 
     // Helper functions for filtering and calculating subtotals
-    function removeAccents(str) {
-      if (!str) return '';
-      return str.normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/đ/g, 'd')
-                .replace(/Đ/g, 'D');
-    }
-
     function parseCellValue(text) {
       if (!text || text === '-' || text === '0') return 0;
       let clean = text.replace(/[đ₫\s]/g, '');

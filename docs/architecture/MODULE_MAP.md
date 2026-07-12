@@ -78,7 +78,7 @@ flowchart TD
 | `FUND_OVERVIEW` | Tổng quan Thu chi | Nghiệp vụ | `FundService.gs` | `NHAP_THUCHI`, cấu hình Thu chi |
 | `FUND_LOANS` | Vay nợ và đối soát khoản vay | Nghiệp vụ | Repository/service: `FundLoanRepository.gs`, `FundLoanService.gs`; public facade/cache/lock: `FundService.gs` | `NHAP_VAY` |
 | `FUND_CATALOG` | Danh mục Thu chi | Nghiệp vụ | Repository/service: `FundCatalogRepository.gs`, `FundCatalogService.gs`; public facade/cache/lock: `FundService.gs` | named ranges, `CAIDAT`, catalog hỗ trợ |
-| `FRONTEND_CORE` | App shell, state và navigation | Giao diện | `index.template.html`, `client_config.html`, `client_app.html` | Browser global state, DOM |
+| `FRONTEND_CORE` | App shell, pure utilities, state và navigation | Giao diện | `index.template.html`, `client_utils.html`, `client_config.html`, `client_app.html` | Browser global state, DOM |
 | `FRONTEND_API` | API/Auth/Supabase client | Giao diện | `client_api.html` | HTTP, Supabase REST/Auth, session cache |
 | `FRONTEND_TRANSPORT` | UI Vận tải | Giao diện | `client_dashboard.html`, `client_entry.html`, `client_manage.html`, `client_catalog.html`, `client_reports.html`, `client_data.html` | API payload, bundle cache |
 | `FRONTEND_FUND` | UI Thu chi/Quỹ | Giao diện | `client_cashflow.html` | Fund API/cache payload |
@@ -593,6 +593,7 @@ Trách nhiệm:
 Source:
 
 - shell/template: `index.template.html`;
+- pure HTML/text/money/date utilities: `client_utils.html`;
 - state/config: `client_config.html`;
 - lifecycle/navigation: `client_app.html`;
 - utility UI: `client_ui.html`.
@@ -816,7 +817,7 @@ Các điểm dưới đây phải được xem là thuộc tính kiến trúc hi
 - `SupabaseService.gs` vừa là persistence adapter, sync orchestrator, trigger manager, queue repository và worker.
 - `PublicApi.gs` vừa cung cấp wrapper thủ công vừa dispatch API và quyết định direct/queued write.
 - `client_data.html` điều phối dữ liệu cho nhiều view, không chỉ một module.
-- `client_ui.html` chứa cả utility UI và màn hình quan sát sync/audit.
+- `client_ui.html` vẫn chứa DOM/input utility và màn hình quan sát sync/audit; pure HTML/text/money/date helpers đã thuộc `client_utils.html`.
 - `client_config.html` chứa cả config, mapping và application state.
 - `client_cashflow.html` chứa nhiều submodule Thu chi trong cùng file.
 - API và permission contract được lặp lại giữa nhiều lớp thay vì có một registry duy nhất.

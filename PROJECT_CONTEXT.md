@@ -339,11 +339,11 @@ Commit lien quan:
 - Step 29c tách restore/poll/retry/lifecycle của pending Fund write jobs sang `client_cashflow_pending.html`; transaction renderer vẫn chỉ overlay pending/processing/failed và loại job khi synced. API/status/poll interval/toast giữ nguyên.
 - Step 29c đã pass 238/238 test, build thành công và `git diff --check` sạch; commit `cb3a395`. Đã deploy Vercel production `dpl_Be32N3tPTnZJJnW6jSYwRujmd6YT`; page/health `200`, unauthenticated dashboard `401`, artifact có đúng pending-job globals. Apps Script vẫn `@281`; không backend/schema/API/feature-flag change hoặc business mutation.
 - Step 29d tách loan overview/history/filter/pager, add/payment drawers, validation và submit sang `client_cashflow_loans.html`; shared date/money/loader utilities giữ ở facade. Global names, settlement labels/rules, API/cache fallback và UI giữ nguyên.
-- Step 29d đã pass 242/242 test, build thành công và `git diff --check` sạch. Chưa thay backend/schema/API/feature flag; checkpoint deployment sẽ được ghi sau production smoke.
+- Step 29d đã pass 242/242 test, build thành công và `git diff --check` sạch; commit `0d54915`. Đã deploy Vercel production `dpl_H2vfnkzWoFmxdGxxKetzFhVSNTwr`; page/health `200`, unauthenticated dashboard `401`, artifact có đúng loan globals. Apps Script vẫn `@281`; không backend/schema/API/feature-flag change hoặc business mutation.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 28 và Step 29a-29c hoàn thành; Step 29d đã hoàn thành source/local verification. Apps Script vẫn `@281`.
+- Trạng thái hiện tại: Step 28 và Step 29a-29d đã hoàn thành. Apps Script `@281`, Vercel production `dpl_H2vfnkzWoFmxdGxxKetzFhVSNTwr`.
 - Bước tiếp theo trong Step 29 đã được phê duyệt: sau khi 29d deploy ổn định, thực hiện 29e Fund catalog như change set độc lập.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.

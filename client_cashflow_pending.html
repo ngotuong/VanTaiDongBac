@@ -11,17 +11,16 @@
 
     function trackPendingFundWriteJob(job, transactions) {
       const normalized = normalizePendingFundJob(job, transactions);
-      pendingFundWriteJobs = pendingFundWriteJobs.filter((item) => item.jobId !== normalized.jobId);
-      pendingFundWriteJobs.unshift(normalized);
+      PendingJobStore.upsert('fund', normalized, { replaceExisting: true });
       if (fundTransactionsData) renderFundTransactions(fundTransactionsData);
     }
 
     function loadRecentFundWriteJobs() {
       return callApi('GET', 'getRecentWriteJobs', { module: 'fund', actionName: 'addFundTransactions', limit: 12 })
         .then((result) => {
-          pendingFundWriteJobs = (result.jobs || [])
+          PendingJobStore.replace('fund', (result.jobs || [])
             .filter((job) => ['pending', 'processing', 'failed'].includes(job.status))
-            .map((job) => normalizePendingFundJob(job));
+            .map((job) => normalizePendingFundJob(job)));
           return result;
         })
         .catch((err) => {
@@ -38,7 +37,7 @@
             const current = pendingFundWriteJobs.find((item) => item.jobId === jobId);
             trackPendingFundWriteJob({ ...current, ...job }, current?.transactions || []);
             if (job.status === 'synced') {
-              pendingFundWriteJobs = pendingFundWriteJobs.filter((item) => item.jobId !== jobId);
+              PendingJobStore.remove('fund', jobId);
               fundSubmitRequestId = '';
               showSyncToast('Giao dịch Quỹ đã được Google Sheet xác nhận.', 'info');
               return Promise.all([loadFundTransactions(true), loadFundOverview(true)]);

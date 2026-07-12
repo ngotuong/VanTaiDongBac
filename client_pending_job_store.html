@@ -1,0 +1,97 @@
+<script>
+    const PendingJobStore = (() => {
+      const state = {
+        transport: [],
+        fund: []
+      };
+      const listeners = {
+        transport: new Set(),
+        fund: new Set()
+      };
+
+      function normalizeChannel_(channel) {
+        if (channel !== 'transport' && channel !== 'fund') {
+          throw new Error(`Pending job channel không hợp lệ: ${channel}`);
+        }
+        return channel;
+      }
+
+      function notify_(channel) {
+        listeners[channel].forEach((listener) => {
+          try {
+            listener(state[channel]);
+          } catch (err) {
+            console.warn(`Pending job subscriber lỗi (${channel}):`, err);
+          }
+        });
+      }
+
+      function read(channel) {
+        return state[normalizeChannel_(channel)];
+      }
+
+      function replace(channel, jobs) {
+        const key = normalizeChannel_(channel);
+        state[key] = Array.isArray(jobs) ? jobs : [];
+        notify_(key);
+        return state[key];
+      }
+
+      function upsert(channel, job, options = {}) {
+        const key = normalizeChannel_(channel);
+        if (!job || !job.jobId) return state[key];
+        const current = state[key];
+        const existing = current.find((item) => item.jobId === job.jobId) || {};
+        const nextJob = options.replaceExisting ? job : { ...existing, ...job };
+        let next = [nextJob].concat(current.filter((item) => item.jobId !== job.jobId));
+        if (options.limit) next = next.slice(0, options.limit);
+        return replace(key, next);
+      }
+
+      function update(channel, jobId, patch) {
+        const key = normalizeChannel_(channel);
+        if (!jobId) return state[key];
+        return replace(key, state[key].map((item) => (
+          item.jobId === jobId ? { ...item, ...(patch || {}) } : item
+        )));
+      }
+
+      function remove(channel, jobId) {
+        const key = normalizeChannel_(channel);
+        if (!jobId) return state[key];
+        return replace(key, state[key].filter((item) => item.jobId !== jobId));
+      }
+
+      function mergeRecent(channel, jobs, options = {}) {
+        const key = normalizeChannel_(channel);
+        const current = state[key];
+        const existing = new Set(current.map((job) => job.jobId));
+        let next = (Array.isArray(jobs) ? jobs : [])
+          .filter((job) => job && job.jobId && !existing.has(job.jobId))
+          .concat(current);
+        if (options.limit) next = next.slice(0, options.limit);
+        return replace(key, next);
+      }
+
+      function subscribe(channel, listener) {
+        const key = normalizeChannel_(channel);
+        if (typeof listener !== 'function') return () => {};
+        listeners[key].add(listener);
+        return () => listeners[key].delete(listener);
+      }
+
+      return { read, replace, upsert, update, remove, mergeRecent, subscribe };
+    })();
+
+    Object.defineProperty(window, 'pendingWriteJobs', {
+      configurable: true,
+      get: () => PendingJobStore.read('transport'),
+      set: (jobs) => PendingJobStore.replace('transport', jobs)
+    });
+
+    Object.defineProperty(window, 'pendingFundWriteJobs', {
+      configurable: true,
+      get: () => PendingJobStore.read('fund'),
+      set: (jobs) => PendingJobStore.replace('fund', jobs)
+    });
+</script>

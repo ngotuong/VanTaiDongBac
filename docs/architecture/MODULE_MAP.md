@@ -78,7 +78,7 @@ flowchart TD
 | `FUND_OVERVIEW` | Tổng quan Thu chi | Nghiệp vụ | `FundService.gs` | `NHAP_THUCHI`, cấu hình Thu chi |
 | `FUND_LOANS` | Vay nợ và đối soát khoản vay | Nghiệp vụ | Repository/service: `FundLoanRepository.gs`, `FundLoanService.gs`; public facade/cache/lock: `FundService.gs` | `NHAP_VAY` |
 | `FUND_CATALOG` | Danh mục Thu chi | Nghiệp vụ | Repository/service: `FundCatalogRepository.gs`, `FundCatalogService.gs`; public facade/cache/lock: `FundService.gs` | named ranges, `CAIDAT`, catalog hỗ trợ |
-| `FRONTEND_CORE` | App shell, constants, pure utilities, state và navigation | Giao diện | `index.template.html`, `client_config_constants.html`, `client_utils.html`, `client_config.html`, `client_app.html` | Browser global state, DOM |
+| `FRONTEND_CORE` | App shell, constants, pure utilities, state và navigation | Giao diện | `index.template.html`, `client_config_constants.html`, `client_utils.html`, `client_config.html`, `client_pending_job_store.html`, `client_app.html` | Browser global state, DOM |
 | `FRONTEND_API` | API transport/Auth/Supabase cache client | Giao diện | `client_api_transport.html`, `client_auth.html`, `client_api.html`, `client_supabase_cache.html` | HTTP, Supabase REST/Auth, session cache |
 | `FRONTEND_TRANSPORT` | UI Vận tải | Giao diện | `client_dashboard.html`, `client_entry.html`, `client_manage.html`, `client_catalog.html`, `client_reports.html`, `client_data.html` | API payload, bundle cache |
 | `FRONTEND_FUND` | UI Thu chi/Quỹ | Giao diện | `client_cashflow.html`, `client_cashflow_overview.html`, `client_cashflow_transactions.html`, `client_cashflow_pending.html`, `client_cashflow_loans.html`, `client_cashflow_catalog.html` | Fund API/cache payload |
@@ -596,6 +596,7 @@ Source:
 - immutable navigation/form/schema/page-size constants: `client_config_constants.html`;
 - pure HTML/text/money/date utilities: `client_utils.html`;
 - mutable application state và stateful UI helpers: `client_config.html`;
+- shared pending-job state/compatibility globals: `client_pending_job_store.html`;
 - lifecycle/navigation: `client_app.html`;
 - utility UI: `client_ui.html`.
 
@@ -656,7 +657,7 @@ Các submodule:
 
 Dependency chéo đáng chú ý:
 
-- pending write jobs được dùng ở Nhập liệu, Vận hành và Tổng quan;
+- pending write jobs được sở hữu bởi `client_pending_job_store.html` và đọc ở Nhập liệu, Vận hành, Tổng quan, Quỹ;
 - catalog state được dùng để render form, filter và label;
 - selected month ảnh hưởng dashboard/report bundle;
 - role helper quyết định quyền ghi;
@@ -830,6 +831,7 @@ Các điểm dưới đây phải được xem là thuộc tính kiến trúc hi
 - `client_observability.html` sở hữu màn hình quan sát sync/audit và write-job rendering; `client_ui.html` giữ DOM/input, loader, toast và utility UI chung.
 - `client_config.html` chứa cả config, mapping và application state.
 - `client_cashflow.html` chỉ giữ tab facade và shared date/money/loading utilities; năm submodule Cashflow đã có fragment riêng.
+- `client_pending_job_store.html` là owner duy nhất của arrays pending Transport/Fund; compatibility properties giữ tên global cũ cho consumer trong giai đoạn chuyển tiếp.
 - API và permission contract được lặp lại giữa nhiều lớp thay vì có một registry duy nhất.
 
 Vì vậy, “file ownership” trong tài liệu này có nghĩa là điểm bắt đầu truy vết, không có nghĩa thay đổi chỉ ảnh hưởng một file.

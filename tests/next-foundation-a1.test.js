@@ -7,17 +7,17 @@ const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('A1 selects dynamic Next runtime while legacy root remains outside the canary basePath', () => {
-  const config = read('next-shell/next.config.mjs');
+  const config = read('next.config.mjs');
   const build = read('package.json');
   const legacyVercel = read('vercel.json');
   const nextVercel = read('vercel.next.json');
   assert.doesNotMatch(config, /output:\s*['"]export['"]/);
-  assert.match(config, /distDir:\s*['"]\.\.\/\.next['"]/);
   assert.match(config, /basePath:\s*['"]\/next-accounts['"]/);
   assert.doesNotMatch(build, /copy-next-accounts/);
   assert.match(legacyVercel, /"outputDirectory": "\."/);
   assert.match(nextVercel, /"framework": "nextjs"/);
   assert.match(nextVercel, /"outputDirectory": "\.next"/);
+  assert.match(read('app/foundation/page.jsx'), /next-shell\/app\/foundation\/page\.jsx/);
 });
 
 test('A1 server slice reads HttpOnly cookie context without rendering spreadsheet id', () => {

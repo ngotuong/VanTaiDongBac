@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function NotFound() { return <main className="next-accounts-shell"><section className="platform-boundary"><p className="platform-eyebrow">404</p><h1>Không tìm thấy trang</h1><p>Route này chưa được đưa vào nền tảng Next.js hoặc đã thay đổi.</p><div className="platform-boundary-actions"><Link className="platform-primary-link" href="/">Về nền tảng</Link><a className="platform-secondary-link" href="/">Ứng dụng chính</a></div></section></main>; }

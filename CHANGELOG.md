@@ -4,6 +4,13 @@ Các thay đổi đáng chú ý của repository được ghi tại đây. Trạ
 
 ## Unreleased
 
+### Next Foundation A2 — Application shell và shared platform
+
+- Thêm dynamic root layout với server auth guard, role-aware navigation và rollback link về `/` legacy.
+- Thêm workbook context provider, typed server/client API clients, correlation logging và loading/error/not-found boundaries.
+- Chuẩn hóa semantic design tokens, focus/touch/responsive/dark/reduced-motion states cho shared shell.
+- Thêm ESLint, TypeScript quality gates và A2 characterization tests; chưa chuyển business module nào của Phase B.
+
 ### Next Foundation A1 — Runtime, cookie auth và workbook context
 
 - Chuyển Next canary sang Vercel Next runtime động và reverse-proxy `/next-accounts/*` cùng origin, giữ `/` legacy.

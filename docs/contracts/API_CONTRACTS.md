@@ -168,6 +168,8 @@ Mọi action khác nhận HTTP 403 với shareholder, kể cả khi action chỉ
 
 ## 4. Danh mục action tổng hợp
 
+Inventory nội bộ được biểu diễn tại `ApiActionRegistry.gs` với `method`, `kind` và `permission`; tên action/URL/payload bên ngoài không thay đổi. Registry guard được gọi bởi `PublicApi.invokeApi()` và Router GET, còn compatibility handlers hiện hữu vẫn thực thi nghiệp vụ. Vercel proxy tiếp tục là lớp RBAC bắt buộc và contract tests đối chiếu registry với allowlist proxy.
+
 | Action | Method | Module | Shareholder | Queue/ghi |
 | --- | --- | --- | --- | --- |
 | `health` | GET | Hệ thống | Không cần Auth | Không |

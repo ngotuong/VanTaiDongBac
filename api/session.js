@@ -22,7 +22,7 @@ function httpError(status, message) { return Object.assign(new Error(message), {
 module.exports = async function handler(req, res) {
   if (!['GET', 'POST', 'DELETE'].includes(req.method)) return send(res, 405, { ok: false, error: 'Method not allowed.' });
   const config = runtimeConfig();
-  if (!config.supabaseUrl || !config.anonKey || !config.serviceRoleKey) return send(res, 503, { ok: false, error: 'Session server chưa được cấu hình đầy đủ.' });
+  if (!config.supabaseUrl || !config.anonKey) return send(res, 503, { ok: false, error: 'Session server chưa được cấu hình đầy đủ.' });
   const repository = createAppUserRepository({ httpError });
   const auth = createAuthService({ appUserRepository: repository, httpError });
   try {

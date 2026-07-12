@@ -15,7 +15,9 @@ function createAuthService({ fetchImpl = fetch, appUserRepository, httpError }) 
     if (!response.ok) throw httpError(401, 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.');
     const authUser = await response.json();
 
-    const profile = await appUserRepository.findActiveByUserId(config, authUser.id);
+    const profile = appUserRepository.findActiveByUserIdWithToken
+      ? await appUserRepository.findActiveByUserIdWithToken(config, authUser.id, token)
+      : await appUserRepository.findActiveByUserId(config, authUser.id);
     if (!profile) throw httpError(403, 'Tài khoản này chưa được cấp quyền sử dụng hệ thống.');
     return {
       id: authUser.id,

@@ -31,10 +31,11 @@ const workbookContextService = createWorkbookContextService({ httpError });
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return send(res, 405, { ok: false, error: 'Method not allowed.' });
   const config = runtimeConfig();
-  if (Object.values(config).some((value) => !value)) return send(res, 503, { ok: false, error: 'API proxy chưa được cấu hình đầy đủ.' });
-
   const action = String(req.query?.action || req.body?.action || '').trim();
   if (!action) return send(res, 400, { ok: false, error: 'Thiếu action.' });
+  if (!config.supabaseUrl || !config.anonKey) return send(res, 503, { ok: false, error: 'API proxy chưa được cấu hình Auth.' });
+  const foundationAction = action === 'authSession' || action === 'runtimeContext';
+  if (!foundationAction && Object.values(config).some((value) => !value)) return send(res, 503, { ok: false, error: 'API proxy chưa được cấu hình đầy đủ.' });
   try {
     let user = null;
     if (action !== 'health') user = await getAuthenticatedUser(req, config);

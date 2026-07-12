@@ -26,6 +26,15 @@ function createAppUserRepository({ fetchImpl = fetch, httpError }) {
     return rows[0] || null;
   }
 
+  async function findActiveByUserIdWithToken(config, userId, accessToken) {
+    const response = await fetchImpl(
+      `${config.supabaseUrl}/rest/v1/app_users?select=user_id,username,email,role,active,display_name&user_id=eq.${encodeURIComponent(userId)}&active=eq.true&limit=1`,
+      { headers: { apikey: config.anonKey, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
+    );
+    const rows = await parseJsonResponse(response, 'Không kiểm tra được hồ sơ người dùng hiện tại.');
+    return rows[0] || null;
+  }
+
   async function list(config) {
     const response = await fetchImpl(
       `${config.supabaseUrl}/rest/v1/app_users?select=user_id,username,display_name,role,active,created_at&order=created_at.asc`,
@@ -54,7 +63,7 @@ function createAppUserRepository({ fetchImpl = fetch, httpError }) {
     return rows[0] || null;
   }
 
-  return { findActiveByUserId, list, create, update };
+  return { findActiveByUserId, findActiveByUserIdWithToken, list, create, update };
 }
 
 module.exports = { createAppUserRepository };

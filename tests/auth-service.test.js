@@ -76,3 +76,20 @@ test('AuthService accepts the server HttpOnly cookie when bearer header is absen
   const user = await service.getAuthenticatedUser({ headers: { cookie: 'vtdb_access_token=cookie-token' } }, config);
   assert.equal(user.username, 'tester');
 });
+
+test('AuthService prefers authenticated RLS profile lookup for the current user', async () => {
+  let lookup;
+  const service = createAuthService({
+    httpError,
+    fetchImpl: async () => ({ ok: true, json: async () => ({ id: 'user-1' }) }),
+    appUserRepository: {
+      findActiveByUserIdWithToken: async (...args) => {
+        lookup = args;
+        return { username: 'tester', email: 'tester@dongbac.internal', role: 'operator' };
+      },
+      findActiveByUserId: async () => { throw new Error('service-role lookup must not run'); }
+    }
+  });
+  await service.getAuthenticatedUser({ headers: { authorization: 'Bearer user-jwt' } }, config);
+  assert.deepEqual(lookup, [config, 'user-1', 'user-jwt']);
+});

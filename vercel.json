@@ -1,4 +1,10 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "."
+  "outputDirectory": ".",
+  "rewrites": [
+    {
+      "source": "/next-accounts/:path*",
+      "destination": "https://vantaidongbac-next-canary.vercel.app/next-accounts/:path*"
+    }
+  ]
 }

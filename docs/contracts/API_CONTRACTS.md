@@ -919,7 +919,7 @@ GET action=getFundLoanOverview&year=2026&month=2026-07
 
 Auth: admin/operator/shareholder.
 
-Handler: `FundService.getFundLoanOverview()`.
+Handler: `FundService.getFundLoanOverview()` giữ resolver/cache facade và delegate Sheet read, reconciliation, current/historical aggregation và history mapping cho `FundLoanRepository`/`FundLoanService`.
 
 Response chứa:
 

@@ -293,11 +293,14 @@ Commit lien quan:
 - Smoke production Step 23b an toàn thành công: `health` trả `ok=true`; worker idle `processed=0`; catalog group counts và form options giữ nguyên so với `@277`. Không save/delete catalog production. Toàn bộ Step 23 đã hoàn thành.
 - Step 24a hoàn thành điều kiện tiên quyết full loan characterization bằng workbook giả lập local: current/historical overview, exact/safe-orphan/ambiguous/no-balance reconciliation, partial/full settlement, interest, type variants, row mapping, add loan/payment, format B/F, formula N, growth/lock/response và validation errors.
 - Step 24a đã pass 165/165 test, build thành công và `git diff --check` sạch. Không đổi runtime nên không tạo Apps Script deployment mới; production vẫn ở `@278`, không có dữ liệu production bị đọc/ghi bởi test.
+- Step 24b tách `NHAP_VAY` snapshot read sang `FundLoanRepository.gs`; type normalization, row mapping, exact/safe-orphan reconciliation, current/historical aggregation và history/status mapping sang `FundLoanService.gs`. `FundService.getFundLoanOverview()` giữ cache/resolver facade; Fund overview dùng compatibility loan reader; add loan/payment chưa chuyển.
+- Step 24b đã pass 165/165 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@279 - Step 24b - Fund loan read extraction`; không cần migration/schema/UI change.
+- Smoke production Step 24b: `health` và `auditFundLoanCase` no-match đều `ok=true`, sync status `ok`. `clasp run getFundLoanOverview` chạy xong nhưng Execution API từ chối serialize payload vì `recentRows.dateObj` là `Date` (contract hiện hữu); không phải service exception. Không ghi dữ liệu production.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 24a safety baseline đã hoàn thành; Step 24 tổng thể chưa hoàn thành và checkpoint production vẫn ở Apps Script `@278`.
-- Bước kế tiếp được đề xuất: Step 24b — tách loan row read, type normalization, reconciliation và aggregation/history mapping sang FundLoanRepository/Service dưới characterization baseline; chưa được tự bắt đầu nếu chưa có phê duyệt Step 24b.
+- Trạng thái hiện tại: Step 24a và 24b đã hoàn thành; Step 24 tổng thể chưa hoàn thành và checkpoint production ở Apps Script `@279`.
+- Bước kế tiếp được đề xuất: Step 24c — tách build/validate/add loan và payment, append/format/formula N sang FundLoanRepository/Service; chưa được tự bắt đầu nếu chưa có phê duyệt Step 24c.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -344,4 +347,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 24b hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 24c hoặc bất kỳ thay đổi mới nào.

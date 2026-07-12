@@ -1,4 +1,7 @@
 <script>
+    function cashflowTransactionWriteAllowed_() {
+      return canWriteData() && (!window.__REACT_CASHFLOW_ACTIVE || Boolean(window.__REACT_CASHFLOW_FLAGS?.transactionWrite));
+    }
     function loadFundFormOptions() {
       if (fundFormOptions) return Promise.resolve(fundFormOptions);
       const supabaseStatus = getSupabaseReportStatus();
@@ -644,7 +647,7 @@
           <td>${escapeHtml(item.actor || '')}</td>
           <td>${escapeHtml(item.partner || '')}</td>
           <td>${escapeHtml(item.content || '')}</td>
-          ${canWriteData() ? `<td style="text-align: center; white-space: nowrap;" class="sticky-col-right">
+          ${cashflowTransactionWriteAllowed_() ? `<td style="text-align: center; white-space: nowrap;" class="sticky-col-right">
             ${item._pending ? (item._jobStatus === 'failed'
               ? `<button type="button" class="btn-table-action delete" title="Thử lại" aria-label="Thử lại giao dịch lỗi" onclick="retryFundWriteJob('${escapeHtml(item._jobId)}')">!</button>`
               : `<span class="fund-pending-status" role="status">Đang đồng bộ</span>`) : `

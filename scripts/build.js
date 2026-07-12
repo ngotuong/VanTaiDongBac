@@ -19,6 +19,7 @@ const REACT_FUND_CATALOG_ENABLED = process.env.VITE_REACT_FUND_CATALOG_ENABLED |
 const REACT_DASHBOARD_ENABLED = process.env.VITE_REACT_DASHBOARD_ENABLED || process.env.REACT_DASHBOARD_ENABLED || '';
 const REACT_REPORTS_ENABLED = process.env.VITE_REACT_REPORTS_ENABLED || process.env.REACT_REPORTS_ENABLED || '';
 const MANAGE_FLAGS = ['MANAGE_READONLY','MANAGE_FILTERS','ENTRY_RENDER','ENTRY_SUBMIT','MANAGE_EDIT','MANAGE_DELETE'];
+const CASHFLOW_FLAGS = ['OVERVIEW','TRANSACTIONS','TRANSACTION_WRITE','LOANS','LOAN_WRITE'];
 
 console.log('🔄 Bắt đầu quá trình build index.html...');
 
@@ -52,6 +53,11 @@ try {
   MANAGE_FLAGS.forEach((name) => {
     const value = process.env[`VITE_REACT_${name}_ENABLED`] || process.env[`REACT_${name}_ENABLED`] || '';
     templateContent = templateContent.replace(new RegExp(`<\\?!=\\s*JSON\\.stringify\\(${manageTemplateNames[name]}\\s*\\|\\|\\s*''\\)\\s*\\?>`, 'g'), JSON.stringify(value));
+  });
+  const cashflowTemplateNames = { OVERVIEW:'reactCashflowOverviewEnabled', TRANSACTIONS:'reactCashflowTransactionsEnabled', TRANSACTION_WRITE:'reactCashflowTransactionWriteEnabled', LOANS:'reactCashflowLoansEnabled', LOAN_WRITE:'reactCashflowLoanWriteEnabled' };
+  CASHFLOW_FLAGS.forEach((name) => {
+    const value = process.env[`VITE_REACT_CASHFLOW_${name}_ENABLED`] || process.env[`REACT_CASHFLOW_${name}_ENABLED`] || '';
+    templateContent = templateContent.replace(new RegExp(`<\\?!=\\s*JSON\\.stringify\\(${cashflowTemplateNames[name]}\\s*\\|\\|\\s*''\\)\\s*\\?>`, 'g'), JSON.stringify(value));
   });
   templateContent = templateContent.replace(
     /<\?!=\s*JSON\.stringify\(supabaseUrl\s*\|\|\s*''\)\s*\?>/g,

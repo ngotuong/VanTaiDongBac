@@ -135,6 +135,11 @@ function renderIndex_() {
   template.reactEntrySubmitEnabled = props.getProperty('REACT_ENTRY_SUBMIT_ENABLED') || '';
   template.reactManageEditEnabled = props.getProperty('REACT_MANAGE_EDIT_ENABLED') || '';
   template.reactManageDeleteEnabled = props.getProperty('REACT_MANAGE_DELETE_ENABLED') || '';
+  template.reactCashflowOverviewEnabled = props.getProperty('REACT_CASHFLOW_OVERVIEW_ENABLED') || '';
+  template.reactCashflowTransactionsEnabled = props.getProperty('REACT_CASHFLOW_TRANSACTIONS_ENABLED') || '';
+  template.reactCashflowTransactionWriteEnabled = props.getProperty('REACT_CASHFLOW_TRANSACTION_WRITE_ENABLED') || '';
+  template.reactCashflowLoansEnabled = props.getProperty('REACT_CASHFLOW_LOANS_ENABLED') || '';
+  template.reactCashflowLoanWriteEnabled = props.getProperty('REACT_CASHFLOW_LOAN_WRITE_ENABLED') || '';
   return template
     .evaluate()
     .setTitle('Vận tải Đông Bắc - Hệ thống điều hành nội bộ')

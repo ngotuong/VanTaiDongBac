@@ -137,110 +137,15 @@ var FundService = (function () {
     var loanCacheKey = fundCacheKey_(year, 'loan_overview', normalizeMonthKey_((filter || {}).month) || 'all');
     var loanCached = getFundCache_(loanCacheKey);
     if (loanCached) return loanCached;
-    var ss = getFundSpreadsheet_(year);
-    var rows = resolveLoanPaymentCodes_(readLoanRows_(ss));
-    var months = buildMonths_(rows);
-    var monthKey = normalizeMonthKey_((filter || {}).month);
-    var period = monthKey ? monthPeriod_(monthKey) : null;
-    var overallLoanMap = buildLoanSummaryMap_(rows);
-    var filteredRows = period ? rows.filter(function (row) {
-      return row.dateObj && row.dateObj >= period.start && row.dateObj <= period.end;
-    }) : rows;
-    var summaryRows = period ? rows.filter(function (row) {
-      return row.dateObj && row.dateObj <= period.end;
-    }) : rows;
-    var totalBorrowed = 0;
-    var totalPrincipalPaid = 0;
-    var totalInterestPaid = 0;
-    var totalOutstandingBorrowed = 0;
-    var totalOutstandingPrincipalPaid = 0;
-    var loanMap = {};
-
-    var metricSourceRows = filteredRows;
-    metricSourceRows.forEach(function (row) {
-      if (row.type === 'Vay') totalBorrowed += row.amount;
-      if (row.type === 'Trả nợ') totalPrincipalPaid += row.amount;
-      if (row.type === 'Trả lãi') totalInterestPaid += row.amount;
-    });
-
-    summaryRows.forEach(function (row) {
-      var key = row.loanKey || row.code || ('row-' + row.rowIndex);
-      if (!loanMap[key]) {
-        loanMap[key] = {
-          code: row.code,
-          partner: row.partner,
-          borrowed: 0,
-          principalPaid: 0,
-          interestPaid: 0,
-          loanDateObj: null,
-          principalDateObj: null,
-          latestDate: row.date,
-          content: row.content,
-          termMonths: row.termMonths,
-          annualRate: row.annualRate,
-          interestPeriodMonths: row.interestPeriodMonths,
-          firstInterestDate: row.firstInterestDate
-        };
-      }
-      if (row.type === 'Vay') {
-        loanMap[key].borrowed += row.amount;
-        totalOutstandingBorrowed += row.amount;
-        if (!loanMap[key].loanDateObj || row.dateObj < loanMap[key].loanDateObj) {
-          loanMap[key].loanDateObj = row.dateObj;
-        }
-      }
-      if (row.type === 'Trả nợ') {
-        loanMap[key].principalPaid += row.amount;
-        totalOutstandingPrincipalPaid += row.amount;
-        if (!loanMap[key].principalDateObj || row.dateObj > loanMap[key].principalDateObj) {
-          loanMap[key].principalDateObj = row.dateObj;
-        }
-      }
-      if (row.type === 'Trả lãi') loanMap[key].interestPaid += row.amount;
-      if (row.date > loanMap[key].latestDate) loanMap[key].latestDate = row.date;
-    });
-
-    var loans = Object.keys(loanMap).map(function (key) {
-      var item = loanMap[key];
-      var currentState = overallLoanMap[key] || null;
-      item.outstanding = item.borrowed - item.principalPaid;
-      item.loanDate = item.loanDateObj ? Utilities.formatDate(item.loanDateObj, APP_CONFIG.timezone, 'yyyy-MM-dd') : '';
-      item.loanDateText = item.loanDateObj ? Utilities.formatDate(item.loanDateObj, APP_CONFIG.timezone, 'dd/MM/yyyy') : '';
-      item.principalLatestDate = item.principalDateObj ? Utilities.formatDate(item.principalDateObj, APP_CONFIG.timezone, 'yyyy-MM-dd') : '';
-      item.principalLatestDateText = item.principalDateObj ? Utilities.formatDate(item.principalDateObj, APP_CONFIG.timezone, 'dd/MM/yyyy') : '';
-      item.currentOutstanding = currentState ? currentState.outstanding : item.outstanding;
-      item.isCurrentlySettled = Boolean(currentState && currentState.isSettled);
-      item.currentSettlementDate = currentState && currentState.principalDateObj
-        ? Utilities.formatDate(currentState.principalDateObj, APP_CONFIG.timezone, 'yyyy-MM-dd')
-        : '';
-      item.currentSettlementDateText = currentState && currentState.principalDateObj
-        ? Utilities.formatDate(currentState.principalDateObj, APP_CONFIG.timezone, 'dd/MM/yyyy')
-        : '';
-      return item;
-    }).sort(function (a, b) {
-      return (b.outstanding || 0) - (a.outstanding || 0);
-    });
-
-    var result = {
-      ok: true,
-      months: months,
-      selectedMonth: monthKey,
-      metrics: [
-        { key: 'borrowed', label: 'Tổng khoản vay', value: totalBorrowed },
-        { key: 'principalPaid', label: 'Đã trả nợ gốc', value: totalPrincipalPaid },
-        { key: 'interestPaid', label: 'Đã trả lãi', value: totalInterestPaid },
-        { key: 'outstanding', label: period ? 'Dư nợ cuối kỳ' : 'Dư nợ hiện tại', value: totalOutstandingBorrowed - totalOutstandingPrincipalPaid }
-      ],
-      loans: loans,
-      recentRows: filteredRows.slice().sort(function (a, b) {
-        return a.date < b.date ? 1 : -1;
-      }).map(function (row) {
-        var overallLoan = overallLoanMap[row.loanKey || row.code || ('row-' + row.rowIndex)] || null;
-        return extendLoanHistoryRow_(row, overallLoan);
-      })
-    };
+    var result = FundLoanService.getOverview(filter || {}, fundLoanReadContext_(getFundSpreadsheet_(year)));
     putFundCache_(loanCacheKey, result, FUND_TTL_SECONDS);
     return result;
+  }
+
+  function fundLoanReadContext_(ss) {
+    return { repository: FundLoanRepository, spreadsheet: ss, sheetName: LOAN_SHEET_NAME, clean: clean_, normalizeHeader: normalizeHeader_,
+      parseDate: parseDate_, parseNumber: parseNumber_, normalizeMonth: normalizeMonthKey_, monthPeriod: monthPeriod_, buildMonths: buildMonths_,
+      formatDate: function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); } };
   }
 
   function addFundLoan(year, payload) {

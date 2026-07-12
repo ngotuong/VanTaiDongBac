@@ -50,6 +50,8 @@ function loadFund(rows, options = {}) {
     console: { warn() {} }
   });
   new vm.Script(read('NormalizationUtils.gs')).runInContext(sandbox);
+  new vm.Script(read('FundLoanRepository.gs')).runInContext(sandbox);
+  new vm.Script(read('FundLoanService.gs')).runInContext(sandbox);
   new vm.Script(read('FundService.gs')).runInContext(sandbox);
   return { service: sandbox.FundService, sheet, calls };
 }
@@ -149,6 +151,6 @@ test('loan filter formula contract and FundService ownership markers remain expl
   assert.match(source, /BC_VAY!\$P\$9/);
   assert.match(source, /BC_VAY!\$R\$9/);
   assert.match(source, /BC_VAY!\$S\$9/);
-  assert.match(source, /function resolveLoanPaymentCodes_\(rows\)/);
-  assert.match(source, /function getFundLoanOverview\(year, filter\)/);
+  assert.match(source, /FundLoanService\.getOverview\(filter \|\| \{\}/);
+  assert.match(read('FundLoanService.gs'), /function reconcile\(rows, context\)/);
 });

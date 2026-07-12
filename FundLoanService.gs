@@ -1,0 +1,110 @@
+/** Read, reconciliation, and aggregation rules for Fund loans. */
+var FundLoanService = (function () {
+  function normalizeType(value, context) {
+    var text = context.clean(value);
+    var normalized = context.normalizeHeader(text);
+    if (!normalized) return '';
+    if (normalized === 'vay' || normalized.indexOf('vay ') === 0) return 'Vay';
+    if (normalized.indexOf('lai') !== -1) return 'Trả lãi';
+    if (normalized.indexOf('tra') !== -1 && (normalized.indexOf('no') !== -1 || normalized.indexOf('goc') !== -1)) return 'Trả nợ';
+    return text;
+  }
+
+  function readRows(context) {
+    var snapshot = context.repository.readSnapshot(context.spreadsheet, context.sheetName);
+    var rows = [];
+    snapshot.displayValues.forEach(function (row, index) {
+      if (!row.slice(0, 11).some(function (cell) { return context.clean(cell); })) return;
+      var dateObj = context.parseDate(snapshot.rawDateValues[index][0], row[1]);
+      rows.push({ rowIndex: index + 2, code: context.clean(row[0]), dateObj: dateObj,
+        date: dateObj ? context.formatDate(dateObj, 'yyyy-MM-dd') : context.clean(row[1]), dateText: context.clean(row[1]),
+        month: dateObj ? context.formatDate(dateObj, 'yyyy-MM') : '', monthLabel: dateObj ? context.formatDate(dateObj, 'MM/yyyy') : '',
+        type: normalizeType(row[2], context), rawType: context.clean(row[2]), method: context.clean(row[3]), partner: context.clean(row[4]),
+        amount: context.parseNumber(row[5]), amountText: context.clean(row[5]), termMonths: context.parseNumber(row[6]),
+        annualRate: context.parseNumber(row[7]), interestPeriodMonths: context.parseNumber(row[8]), firstInterestDate: context.clean(row[9]), content: context.clean(row[10]) });
+    });
+    return rows;
+  }
+
+  function reconcile(rows, context) {
+    var resolved = (rows || []).map(function (row) { var copy = {}; Object.keys(row).forEach(function (key) { copy[key] = row[key]; }); copy.loanKey = row.code || ('row-' + row.rowIndex); copy.reconciledFromCode = ''; return copy; });
+    var states = {};
+    resolved.forEach(function (row) {
+      if (row.type !== 'Vay' || !row.code) return;
+      if (!states[row.code]) states[row.code] = { code: row.code, partnerKey: context.normalizeHeader(row.partner), borrowed: 0, principalPaid: 0, loanDateObj: row.dateObj || null };
+      states[row.code].borrowed += row.amount;
+      if (row.dateObj && (!states[row.code].loanDateObj || row.dateObj < states[row.code].loanDateObj)) states[row.code].loanDateObj = row.dateObj;
+    });
+    resolved.forEach(function (row) { if (row.type === 'Trả nợ' && row.code && states[row.code]) { row.loanKey = row.code; states[row.code].principalPaid += row.amount; } });
+    resolved.filter(function (row) { return row.type === 'Trả nợ' && (!row.code || !states[row.code]); })
+      .sort(function (a, b) { return (a.dateObj ? a.dateObj.getTime() : 0) - (b.dateObj ? b.dateObj.getTime() : 0); })
+      .forEach(function (row) {
+        var partnerKey = context.normalizeHeader(row.partner);
+        var candidates = Object.keys(states).map(function (key) { return states[key]; }).filter(function (state) {
+          var beforePayment = !row.dateObj || !state.loanDateObj || state.loanDateObj <= row.dateObj;
+          return partnerKey && state.partnerKey === partnerKey && beforePayment && Math.abs(state.borrowed - state.principalPaid - row.amount) < 0.5;
+        });
+        if (candidates.length !== 1) return;
+        row.loanKey = candidates[0].code; row.reconciledFromCode = row.code || ''; candidates[0].principalPaid += row.amount;
+      });
+    return resolved;
+  }
+
+  function buildSummaryMap(rows) {
+    var map = {};
+    (rows || []).forEach(function (row) {
+      var key = row.loanKey || row.code || ('row-' + row.rowIndex);
+      if (!map[key]) map[key] = { code: row.code, borrowed: 0, principalPaid: 0, principalDateObj: null };
+      if (row.type === 'Vay') map[key].borrowed += row.amount;
+      if (row.type === 'Trả nợ') { map[key].principalPaid += row.amount; if (row.dateObj && (!map[key].principalDateObj || row.dateObj > map[key].principalDateObj)) map[key].principalDateObj = row.dateObj; }
+    });
+    Object.keys(map).forEach(function (key) { map[key].outstanding = map[key].borrowed - map[key].principalPaid; map[key].isSettled = map[key].borrowed > 0 && map[key].outstanding <= 0; });
+    return map;
+  }
+
+  function historyRow(row, overallLoan) {
+    return { rowIndex: row.rowIndex, code: row.code, loanKey: row.loanKey || row.code, reconciledFromCode: row.reconciledFromCode || '',
+      dateObj: row.dateObj, date: row.date, dateText: row.dateText, month: row.month, monthLabel: row.monthLabel, type: row.type,
+      method: row.method, partner: row.partner, amount: row.amount, amountText: row.amountText, termMonths: row.termMonths,
+      annualRate: row.annualRate, interestPeriodMonths: row.interestPeriodMonths, firstInterestDate: row.firstInterestDate, content: row.content,
+      isSettled: Boolean(overallLoan && overallLoan.isSettled), statusLabel: overallLoan && overallLoan.isSettled ? 'Đã trả gốc' : '' };
+  }
+
+  function getOverview(filter, context) {
+    var rows = reconcile(readRows(context), context);
+    var months = context.buildMonths(rows);
+    var monthKey = context.normalizeMonth((filter || {}).month);
+    var period = monthKey ? context.monthPeriod(monthKey) : null;
+    var overallMap = buildSummaryMap(rows);
+    var filtered = period ? rows.filter(function (row) { return row.dateObj && row.dateObj >= period.start && row.dateObj <= period.end; }) : rows;
+    var summary = period ? rows.filter(function (row) { return row.dateObj && row.dateObj <= period.end; }) : rows;
+    var totalBorrowed = 0, totalPrincipalPaid = 0, totalInterestPaid = 0, outstandingBorrowed = 0, outstandingPaid = 0, loanMap = {};
+    filtered.forEach(function (row) { if (row.type === 'Vay') totalBorrowed += row.amount; if (row.type === 'Trả nợ') totalPrincipalPaid += row.amount; if (row.type === 'Trả lãi') totalInterestPaid += row.amount; });
+    summary.forEach(function (row) {
+      var key = row.loanKey || row.code || ('row-' + row.rowIndex);
+      if (!loanMap[key]) loanMap[key] = { code: row.code, partner: row.partner, borrowed: 0, principalPaid: 0, interestPaid: 0, loanDateObj: null, principalDateObj: null,
+        latestDate: row.date, content: row.content, termMonths: row.termMonths, annualRate: row.annualRate, interestPeriodMonths: row.interestPeriodMonths, firstInterestDate: row.firstInterestDate };
+      var item = loanMap[key];
+      if (row.type === 'Vay') { item.borrowed += row.amount; outstandingBorrowed += row.amount; if (!item.loanDateObj || row.dateObj < item.loanDateObj) item.loanDateObj = row.dateObj; }
+      if (row.type === 'Trả nợ') { item.principalPaid += row.amount; outstandingPaid += row.amount; if (!item.principalDateObj || row.dateObj > item.principalDateObj) item.principalDateObj = row.dateObj; }
+      if (row.type === 'Trả lãi') item.interestPaid += row.amount;
+      if (row.date > item.latestDate) item.latestDate = row.date;
+    });
+    var loans = Object.keys(loanMap).map(function (key) {
+      var item = loanMap[key], current = overallMap[key] || null;
+      item.outstanding = item.borrowed - item.principalPaid;
+      item.loanDate = item.loanDateObj ? context.formatDate(item.loanDateObj, 'yyyy-MM-dd') : ''; item.loanDateText = item.loanDateObj ? context.formatDate(item.loanDateObj, 'dd/MM/yyyy') : '';
+      item.principalLatestDate = item.principalDateObj ? context.formatDate(item.principalDateObj, 'yyyy-MM-dd') : ''; item.principalLatestDateText = item.principalDateObj ? context.formatDate(item.principalDateObj, 'dd/MM/yyyy') : '';
+      item.currentOutstanding = current ? current.outstanding : item.outstanding; item.isCurrentlySettled = Boolean(current && current.isSettled);
+      item.currentSettlementDate = current && current.principalDateObj ? context.formatDate(current.principalDateObj, 'yyyy-MM-dd') : '';
+      item.currentSettlementDateText = current && current.principalDateObj ? context.formatDate(current.principalDateObj, 'dd/MM/yyyy') : '';
+      return item;
+    }).sort(function (a, b) { return (b.outstanding || 0) - (a.outstanding || 0); });
+    return { ok: true, months: months, selectedMonth: monthKey,
+      metrics: [{ key: 'borrowed', label: 'Tổng khoản vay', value: totalBorrowed }, { key: 'principalPaid', label: 'Đã trả nợ gốc', value: totalPrincipalPaid },
+        { key: 'interestPaid', label: 'Đã trả lãi', value: totalInterestPaid }, { key: 'outstanding', label: period ? 'Dư nợ cuối kỳ' : 'Dư nợ hiện tại', value: outstandingBorrowed - outstandingPaid }],
+      loans: loans, recentRows: filtered.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).map(function (row) { return historyRow(row, overallMap[row.loanKey || row.code || ('row-' + row.rowIndex)] || null); }) };
+  }
+
+  return { normalizeType: normalizeType, readRows: readRows, reconcile: reconcile, buildSummaryMap: buildSummaryMap, historyRow: historyRow, getOverview: getOverview };
+})();

@@ -6290,18 +6290,6 @@
       };
     }
 
-    function getSupabaseReportStatus() {
-      const cfg = getSupabaseConfig();
-      if (!cfg.reportsEnabled) return { ok: false, reason: 'VITE_SUPABASE_REPORTS_ENABLED chưa bật hoặc chưa được build vào frontend.' };
-      if (!cfg.url) return { ok: false, reason: 'Thiếu VITE_SUPABASE_URL trên frontend.' };
-      if (!cfg.anonKey) return { ok: false, reason: 'Thiếu VITE_SUPABASE_ANON_KEY trên frontend.' };
-      return { ok: true, reason: '' };
-    }
-
-    function canUseSupabaseReports() {
-      return getSupabaseReportStatus().ok;
-    }
-
     let supabaseClientInstance = null;
     function getSupabaseClient() {
       const cfg = getSupabaseConfig();
@@ -6428,6 +6416,81 @@
         await client.auth.signOut();
         showAuthGate(err.message || 'Tài khoản chưa được cấp quyền.');
       }
+    }
+
+    function removeSessionKeysByPrefix(prefix) {
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.indexOf(prefix) === 0) sessionStorage.removeItem(key);
+      });
+    }
+
+    function invalidateReportSessionCache(options) {
+      options = options || {};
+      reportCacheEpoch += 1;
+      reportBundlePrefetching = false;
+      removeSessionKeysByPrefix('eb_report_bundle_');
+      removeSessionKeysByPrefix('eb_sheet_data_');
+      if (options.catalogs) removeSessionKeysByPrefix('eb_catalogs_');
+      sessionStorage.removeItem('eb_dashboard_v3');
+      sessionStorage.removeItem('eb_startup_data');
+    }
+
+    function getSheetDataCacheKey(params) {
+      const safeParams = params || {};
+      return [
+        'eb_sheet_data_v2',
+        safeParams.sheetName || '',
+        safeParams.startDate || '',
+        safeParams.endDate || '',
+        safeParams.limit || ''
+      ].join('|');
+    }
+
+    function getCachedSheetData(params) {
+      try {
+        const raw = sessionStorage.getItem(getSheetDataCacheKey(params));
+        if (!raw) return null;
+        const cached = JSON.parse(raw);
+        if (!cached || !cached.savedAt || !cached.data) return null;
+        if (cached.data.ok === false) {
+          sessionStorage.removeItem(getSheetDataCacheKey(params));
+          return null;
+        }
+        return cached;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function setCachedSheetData(params, data) {
+      try {
+        sessionStorage.setItem(getSheetDataCacheKey(params), JSON.stringify({
+          savedAt: Date.now(),
+          data: data
+        }));
+      } catch (err) {
+        removeSessionKeysByPrefix('eb_sheet_data_');
+      }
+    }
+
+    function invalidateServerCaches() {
+      return callApi('GET', 'invalidateCaches', { _ts: Date.now() }).catch((err) => {
+        console.warn('Không thể xoá cache server trước khi làm mới:', err);
+      });
+    }
+</script>
+
+  <script>
+    function getSupabaseReportStatus() {
+      const cfg = getSupabaseConfig();
+      if (!cfg.reportsEnabled) return { ok: false, reason: 'VITE_SUPABASE_REPORTS_ENABLED chưa bật hoặc chưa được build vào frontend.' };
+      if (!cfg.url) return { ok: false, reason: 'Thiếu VITE_SUPABASE_URL trên frontend.' };
+      if (!cfg.anonKey) return { ok: false, reason: 'Thiếu VITE_SUPABASE_ANON_KEY trên frontend.' };
+      return { ok: true, reason: '' };
+    }
+
+    function canUseSupabaseReports() {
+      return getSupabaseReportStatus().ok;
     }
 
     function readSupabaseRows(tableName, filters, selectColumns) {
@@ -6623,67 +6686,6 @@
       const link = getLinks()?.spreadsheet || '';
       const match = String(link).match(/\/spreadsheets\/d\/([^/]+)/);
       return match ? match[1] : '';
-    }
-
-    function removeSessionKeysByPrefix(prefix) {
-      Object.keys(sessionStorage).forEach((key) => {
-        if (key.indexOf(prefix) === 0) sessionStorage.removeItem(key);
-      });
-    }
-
-    function invalidateReportSessionCache(options) {
-      options = options || {};
-      reportCacheEpoch += 1;
-      reportBundlePrefetching = false;
-      removeSessionKeysByPrefix('eb_report_bundle_');
-      removeSessionKeysByPrefix('eb_sheet_data_');
-      if (options.catalogs) removeSessionKeysByPrefix('eb_catalogs_');
-      sessionStorage.removeItem('eb_dashboard_v3');
-      sessionStorage.removeItem('eb_startup_data');
-    }
-
-    function getSheetDataCacheKey(params) {
-      const safeParams = params || {};
-      return [
-        'eb_sheet_data_v2',
-        safeParams.sheetName || '',
-        safeParams.startDate || '',
-        safeParams.endDate || '',
-        safeParams.limit || ''
-      ].join('|');
-    }
-
-    function getCachedSheetData(params) {
-      try {
-        const raw = sessionStorage.getItem(getSheetDataCacheKey(params));
-        if (!raw) return null;
-        const cached = JSON.parse(raw);
-        if (!cached || !cached.savedAt || !cached.data) return null;
-        if (cached.data.ok === false) {
-          sessionStorage.removeItem(getSheetDataCacheKey(params));
-          return null;
-        }
-        return cached;
-      } catch (err) {
-        return null;
-      }
-    }
-
-    function setCachedSheetData(params, data) {
-      try {
-        sessionStorage.setItem(getSheetDataCacheKey(params), JSON.stringify({
-          savedAt: Date.now(),
-          data: data
-        }));
-      } catch (err) {
-        removeSessionKeysByPrefix('eb_sheet_data_');
-      }
-    }
-
-    function invalidateServerCaches() {
-      return callApi('GET', 'invalidateCaches', { _ts: Date.now() }).catch((err) => {
-        console.warn('Không thể xoá cache server trước khi làm mới:', err);
-      });
     }
 </script>
 

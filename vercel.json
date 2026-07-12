@@ -3,6 +3,14 @@
   "outputDirectory": ".",
   "rewrites": [
     {
+      "source": "/next-accounts/",
+      "destination": "https://vantaidongbac-next-canary.vercel.app/next-accounts/"
+    },
+    {
+      "source": "/next-accounts/:path*/",
+      "destination": "https://vantaidongbac-next-canary.vercel.app/next-accounts/:path*/"
+    },
+    {
       "source": "/next-accounts/:path*",
       "destination": "https://vantaidongbac-next-canary.vercel.app/next-accounts/:path*"
     }

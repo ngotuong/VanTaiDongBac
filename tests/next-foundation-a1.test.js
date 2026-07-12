@@ -48,8 +48,9 @@ test('runtime context remains a proxy-local read-only action', () => {
 test('legacy production keeps root output and same-origin proxies only the Next canary path', () => {
   const config = JSON.parse(read('vercel.json'));
   assert.equal(config.outputDirectory, '.');
-  assert.deepEqual(config.rewrites, [{
-    source: '/next-accounts/:path*',
-    destination: 'https://vantaidongbac-next-canary.vercel.app/next-accounts/:path*'
-  }]);
+  assert.deepEqual(config.rewrites, [
+    { source: '/next-accounts/', destination: 'https://vantaidongbac-next-canary.vercel.app/next-accounts/' },
+    { source: '/next-accounts/:path*/', destination: 'https://vantaidongbac-next-canary.vercel.app/next-accounts/:path*/' },
+    { source: '/next-accounts/:path*', destination: 'https://vantaidongbac-next-canary.vercel.app/next-accounts/:path*' }
+  ]);
 });

@@ -79,7 +79,7 @@ flowchart TD
 | `FUND_LOANS` | Vay nợ và đối soát khoản vay | Nghiệp vụ | Repository/service: `FundLoanRepository.gs`, `FundLoanService.gs`; public facade/cache/lock: `FundService.gs` | `NHAP_VAY` |
 | `FUND_CATALOG` | Danh mục Thu chi | Nghiệp vụ | Repository/service: `FundCatalogRepository.gs`, `FundCatalogService.gs`; public facade/cache/lock: `FundService.gs` | named ranges, `CAIDAT`, catalog hỗ trợ |
 | `FRONTEND_CORE` | App shell, pure utilities, state và navigation | Giao diện | `index.template.html`, `client_utils.html`, `client_config.html`, `client_app.html` | Browser global state, DOM |
-| `FRONTEND_API` | API transport/Auth/Supabase cache client | Giao diện | `client_api_transport.html`, `client_api.html`, `client_supabase_cache.html` | HTTP, Supabase REST/Auth, session cache |
+| `FRONTEND_API` | API transport/Auth/Supabase cache client | Giao diện | `client_api_transport.html`, `client_auth.html`, `client_api.html`, `client_supabase_cache.html` | HTTP, Supabase REST/Auth, session cache |
 | `FRONTEND_TRANSPORT` | UI Vận tải | Giao diện | `client_dashboard.html`, `client_entry.html`, `client_manage.html`, `client_catalog.html`, `client_reports.html`, `client_data.html` | API payload, bundle cache |
 | `FRONTEND_FUND` | UI Thu chi/Quỹ | Giao diện | `client_cashflow.html` | Fund API/cache payload |
 | `FRONTEND_ACCOUNTS` | UI tài khoản và role | Giao diện | `client_accounts.html`, `client_ui.html` | Auth user, account API |
@@ -626,7 +626,8 @@ Source:
 
 - transport Apps Script/fetch và backend URL selection: `client_api_transport.html`;
 - Supabase REST bundle readers và stable key builders: `client_supabase_cache.html`;
-- Supabase client/Auth/session và browser session cache: `client_api.html`.
+- Supabase client/Auth/access token/session: `client_auth.html`;
+- browser session cache/invalidation: `client_api.html`.
 
 Dependency:
 
@@ -703,7 +704,7 @@ Source:
 - tài khoản/role UI: `client_accounts.html`;
 - trạng thái/audit: `client_ui.html`;
 - API transport: `client_api_transport.html`;
-- Auth/session: `client_api.html`;
+- Auth/session: `client_auth.html`;
 - server enforcement: `api/app.js`.
 
 Ranh giới quan trọng:

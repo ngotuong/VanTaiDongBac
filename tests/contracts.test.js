@@ -85,8 +85,8 @@ test('shareholder role is read-only and account administration stays admin-only'
   assert.doesNotMatch(template, /Cấu hình đường dẫn Web App/);
   assert.doesNotMatch(template, /darkModeToggle/);
   assert.match(accounts, /function requireWritePermission/);
-  assert.match(read('client_api.html'), /dongbac_auth_username/);
-  assert.doesNotMatch(read('client_api.html'), /setItem\([^\n]*password/i);
+  assert.match(read('client_auth.html'), /dongbac_auth_username/);
+  assert.doesNotMatch(read('client_auth.html'), /setItem\([^\n]*password/i);
 });
 
 test('loan reconciliation safely matches one orphan settlement by partner and exact balance', () => {

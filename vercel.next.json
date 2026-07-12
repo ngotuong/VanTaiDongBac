@@ -2,5 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "buildCommand": "npm run build:next-accounts",
-  "outputDirectory": "next-shell/.next"
+  "outputDirectory": ".next"
 }

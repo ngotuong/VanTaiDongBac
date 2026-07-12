@@ -179,7 +179,8 @@ Các nhóm chính:
 
 - `client_utils.html`: pure HTML escaping, text normalization, locale-number và date conversion dùng chung;
 - `client_config.html`: cấu hình menu, form, mapping và global state;
-- `client_api.html`: Apps Script API, Vercel proxy, Supabase client, Auth và cache phía browser;
+- `client_api_transport.html`: chọn Apps Script runtime hay fetch `/api/app`, dựng request và map transport errors;
+- `client_api.html`: Supabase client, Auth, access token và cache phía browser;
 - `client_app.html`: bootstrap, navigation và app lifecycle;
 - `client_data.html`: điều phối load dữ liệu, submit và report bundle;
 - `client_dashboard.html`: Tổng quan;

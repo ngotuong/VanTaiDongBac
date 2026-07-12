@@ -317,11 +317,14 @@ Commit lien quan:
 - Step 27a tách sáu pure frontend globals `escapeHtml`, `removeAccents`, `parseLocaleNumber`, `formatTableDate`, `formatIsoDateForDisplay`, `parseDisplayDateToIso` sang `client_utils.html`, được include trước config/API và giữ nguyên tên/call site/output. DOM/cursor/date-picker utilities vẫn ở `client_ui.html`.
 - Step 27a đã pass 199/199 test, build thành công, không còn Apps Script template tag trong artifact, `git diff --check` sạch và deploy Vercel production `dpl_F9KTw4iRFipcsQAM84LGnAZp9Hkb`, alias `https://dongbac.vercel.app`; Apps Script vẫn `@281`.
 - Smoke production Step 27a: page/health `200`, built artifact có đúng một owner cho utility đã tách, unauthenticated dashboard `401`; browser visual xác nhận auth gate desktop render đúng. Kết nối browser bị ngắt trước mobile viewport/console pass nên hai kiểm tra visual này chưa được tái xác nhận trong lát cắt; không có markup/CSS/text/interaction hoặc backend mutation.
+- Step 27b tách Apps Script runtime adapter, backend/proxy URL selection, fetch request/envelope/header/error mapping, `callApi` routing và direct Apps Script network fallback sang `client_api_transport.html`; Supabase token/client/cache và Auth/session vẫn ở `client_api.html` cho các lát cắt kế tiếp. Tên global/call site/payload/error text giữ nguyên.
+- Step 27b đã pass 205/205 test, build thành công, artifact không còn template tag, `git diff --check` sạch và deploy Vercel production `dpl_8TyiuFtGWG9REvQvhyZR8zYAS41o`, alias `https://dongbac.vercel.app`; Apps Script vẫn `@281`.
+- Smoke production Step 27b: page/health `200`, built artifact có đúng một owner cho transport globals, unauthenticated dashboard/listUsers đều `401`. Không chạy business POST và không đổi DOM/CSS/text/interaction.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 26 hoàn thành; Step 27a hoàn thành, Step 27 tổng thể chưa hoàn thành. Apps Script checkpoint `@281`, Vercel production deployment `dpl_F9KTw4iRFipcsQAM84LGnAZp9Hkb`.
-- Bước kế tiếp được đề xuất: Step 27b — tách frontend API transport client; chưa được tự bắt đầu nếu chưa có phê duyệt Step 27b.
+- Trạng thái hiện tại: Step 26 hoàn thành; Step 27a-27b hoàn thành, Step 27 tổng thể chưa hoàn thành. Apps Script checkpoint `@281`, Vercel production deployment `dpl_8TyiuFtGWG9REvQvhyZR8zYAS41o`.
+- Bước kế tiếp được đề xuất: Step 27c — tách Supabase cache client; chưa được tự bắt đầu nếu chưa có phê duyệt Step 27c.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -368,4 +371,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 27b hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 27c hoặc bất kỳ thay đổi mới nào.

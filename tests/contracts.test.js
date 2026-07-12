@@ -107,7 +107,7 @@ test('loan reconciliation safely matches one orphan settlement by partner and ex
   assert.match(source, /isCurrentlySettled/);
   assert.match(source, /currentSettlementDateText/);
   assert.doesNotMatch(read('index.template.html'), /<th>Mã vay<\/th>/);
-  assert.match(read('client_cashflow.html'), /Đã tất toán/);
+  assert.match(read('client_cashflow_loans.html'), /Đã tất toán/);
 });
 
 test('password policy accepts any value with at least six characters', () => {

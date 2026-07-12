@@ -1,25 +1,10 @@
 const crypto = require('crypto');
 const { createAppsScriptClient } = require('./services/apps-script-client');
+const { createAuthorizationPolicy } = require('./services/authorization-policy');
 
 const INTERNAL_EMAIL_DOMAIN = 'dongbac.internal';
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,40}$/;
 const ROLES = new Set(['admin', 'operator', 'shareholder']);
-const SHAREHOLDER_ACTIONS = new Set([
-  'authSession',
-  'changeOwnPassword',
-  'getStartupData',
-  'getDashboard',
-  'getReports',
-  'getReport',
-  'getReportBundle',
-  'getCatalogs',
-  'readManageData',
-  'getFundTransactions',
-  'getFundOverview',
-  'getFundLoanOverview',
-  'getFundFormOptions',
-  'checkTripReconciliation'
-]);
 
 function send(res, status, body) {
   res.statusCode = status;
@@ -91,15 +76,7 @@ async function getAuthenticatedUser(req, config) {
   };
 }
 
-function assertAuthorized(user, action) {
-  if (user && user.role === 'shareholder' && !SHAREHOLDER_ACTIONS.has(action)) {
-    throw httpError(403, 'Tài khoản cổ đông chỉ có quyền xem dữ liệu.');
-  }
-}
-
-function assertAdmin(user) {
-  if (user.role !== 'admin') throw httpError(403, 'Chỉ quản trị viên được quản lý tài khoản.');
-}
+const { assertAuthorized, assertAdmin } = createAuthorizationPolicy({ httpError });
 
 async function listUsers(config) {
   const response = await fetch(

@@ -305,11 +305,14 @@ Commit lien quan:
 - Step 26a tách Apps Script envelope forwarding, 1 MB payload guard, upstream POST/redirect/header, non-2xx/invalid-JSON và business-error status mapping sang `api/services/apps-script-client.js`; `/api/app` giữ auth/RBAC/account orchestration và response send.
 - Step 26a đã pass 175/175 test, build thành công, `git diff --check` sạch và deploy Vercel production `dpl_HBaedmJa8Mfd5LfNnb5prRqrGtrc`, alias `https://dongbac.vercel.app`; Apps Script vẫn ở `@281`.
 - Smoke Step 26a phát hiện/fix public `health` null-user guard trong `assertAuthorized`: production hiện `health=200`, unauthenticated `getDashboard=401`, `PUT health=405`. Upstream/client errors không log hoặc phản chiếu proxy secret.
+- Step 26b tách shareholder allowlist, deny-by-default và account admin guard sang `api/services/authorization-policy.js`; `api/app.js` giữ đúng thứ tự authenticate -> authorize -> account/upstream dispatch. Role-value validation cho account mutations chưa chuyển.
+- Step 26b đã pass 178/178 test, build thành công, `git diff --check` sạch và deploy Vercel production `dpl_HjEEVJJYg2uQoZ6V4cHm2Je5opip`, alias `https://dongbac.vercel.app`; Apps Script vẫn `@281`.
+- Smoke production Step 26b: public `health=200`; unauthenticated `getDashboard=401`; unauthenticated `submitRows=401`, không có business write.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 26a đã hoàn thành; Step 26 tổng thể chưa hoàn thành. Apps Script checkpoint `@281`, Vercel production deployment `dpl_HBaedmJa8Mfd5LfNnb5prRqrGtrc`.
-- Bước kế tiếp được đề xuất: Step 26b — tách `AuthorizationPolicy` khỏi `api/app.js`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 26b.
+- Trạng thái hiện tại: Step 26a và 26b đã hoàn thành; Step 26 tổng thể chưa hoàn thành. Apps Script checkpoint `@281`, Vercel production deployment `dpl_HjEEVJJYg2uQoZ6V4cHm2Je5opip`.
+- Bước kế tiếp được đề xuất: Step 26c — tách `AuthService`/`AppUserRepository`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 26c.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -356,4 +359,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 26b hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 26c hoặc bất kỳ thay đổi mới nào.

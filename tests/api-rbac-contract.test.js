@@ -106,14 +106,15 @@ test('shareholder allowlist contains no write, account-admin or operational acti
 test('proxy enforces shareholder deny-by-default before account and upstream dispatch', () => {
   const proxy = read('api/app.js');
   const appsScriptClient = read('api/services/apps-script-client.js');
+  const authorizationPolicy = read('api/services/authorization-policy.js');
   const authorizeCall = proxy.indexOf('assertAuthorized(user, action);');
   const accountDispatch = proxy.indexOf("['changeOwnPassword', 'listUsers', 'createUser', 'updateUser', 'resetUserPassword'].includes(action)");
   const upstreamFetch = proxy.indexOf('await client.forward');
   assert.ok(authorizeCall >= 0, 'Missing proxy authorization call.');
   assert.ok(accountDispatch > authorizeCall, 'Account dispatch must happen after role authorization.');
   assert.ok(upstreamFetch > accountDispatch, 'Apps Script forwarding must happen after authorization/account dispatch.');
-  assert.match(proxy, /user && user\.role === 'shareholder' && !SHAREHOLDER_ACTIONS\.has\(action\)/);
-  assert.match(proxy, /throw httpError\(403, 'Tài khoản cổ đông chỉ có quyền xem dữ liệu\.'\)/);
+  assert.match(authorizationPolicy, /user && user\.role === 'shareholder' && !SHAREHOLDER_ACTIONS\.has\(action\)/);
+  assert.match(authorizationPolicy, /throw httpError\(403, 'Tài khoản cổ đông chỉ có quyền xem dữ liệu\.'\)/);
   assert.match(appsScriptClient, /await fetchImpl\(url/);
 });
 
@@ -137,12 +138,13 @@ test('account administration remains admin-only while own-password change remain
 test('proxy authenticates every action except health and forwards only after proxy-secret injection', () => {
   const proxy = read('api/app.js');
   const appsScriptClient = read('api/services/apps-script-client.js');
+  const authorizationPolicy = read('api/services/authorization-policy.js');
   assert.match(proxy, /if \(action !== 'health'\) user = await getAuthenticatedUser\(req, config\);/);
   assert.match(proxy, /proxySecret: config\.proxySecret/);
   assert.match(proxy, /requestUser: user/);
   assert.match(proxy, /method: req\.method/);
   assert.match(appsScriptClient, /Buffer\.byteLength\(payload, 'utf8'\) > maxBodyBytes/);
-  assert.match(proxy, /if \(user && user\.role === 'shareholder'/);
+  assert.match(authorizationPolicy, /if \(user && user\.role === 'shareholder'/);
 });
 
 test('Apps Script continues to enforce the proxy secret at both Router and invokeApi boundaries', () => {

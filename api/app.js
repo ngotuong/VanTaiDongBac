@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const { createAppsScriptClient } = require('./services/apps-script-client');
 const { createAuthorizationPolicy } = require('./services/authorization-policy');
+const { createAuthService } = require('./services/auth-service');
+const { createAppUserRepository } = require('./repositories/app-user-repository');
 
 const INTERNAL_EMAIL_DOMAIN = 'dongbac.internal';
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,40}$/;
@@ -15,11 +17,6 @@ function send(res, status, body) {
 
 function httpError(status, message) {
   return Object.assign(new Error(message), { status });
-}
-
-function bearerToken(req) {
-  const value = String(req.headers.authorization || '');
-  return value.startsWith('Bearer ') ? value.slice(7).trim() : '';
 }
 
 function normalizeUsername(value) {
@@ -52,31 +49,9 @@ async function parseJsonResponse(response, fallbackMessage) {
   return data;
 }
 
-async function getAuthenticatedUser(req, config) {
-  const token = bearerToken(req);
-  if (!token) throw httpError(401, 'Vui lòng đăng nhập để tiếp tục.');
-  const response = await fetch(`${config.supabaseUrl}/auth/v1/user`, {
-    headers: { apikey: config.anonKey, Authorization: `Bearer ${token}` }
-  });
-  if (!response.ok) throw httpError(401, 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.');
-  const authUser = await response.json();
-
-  const allowlistResponse = await fetch(
-    `${config.supabaseUrl}/rest/v1/app_users?select=user_id,username,email,role,active,display_name&user_id=eq.${encodeURIComponent(authUser.id)}&active=eq.true&limit=1`,
-    { headers: serviceHeaders(config) }
-  );
-  const rows = await parseJsonResponse(allowlistResponse, 'Không kiểm tra được danh sách người dùng nội bộ.');
-  if (!rows.length) throw httpError(403, 'Tài khoản này chưa được cấp quyền sử dụng hệ thống.');
-  return {
-    id: authUser.id,
-    username: rows[0].username,
-    email: rows[0].email,
-    role: rows[0].role,
-    displayName: rows[0].display_name || rows[0].username
-  };
-}
-
 const { assertAuthorized, assertAdmin } = createAuthorizationPolicy({ httpError });
+const appUserRepository = createAppUserRepository({ httpError });
+const { getAuthenticatedUser } = createAuthService({ appUserRepository, httpError });
 
 async function listUsers(config) {
   const response = await fetch(

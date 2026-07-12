@@ -108,7 +108,7 @@ Source tác giả gồm:
 
 ### 4.2. Vercel API proxy
 
-`api/app.js` là boundary bảo mật giữa browser và Apps Script khi Auth được bật.
+`api/app.js` là boundary bảo mật/orchestration giữa browser và Apps Script khi Auth được bật. Việc xác thực Supabase session được delegate cho `api/services/auth-service.js`, active allowlist lookup cho `api/repositories/app-user-repository.js`, còn policy role nằm tại `api/services/authorization-policy.js`.
 
 Proxy chịu trách nhiệm:
 
@@ -445,7 +445,7 @@ Mọi thay đổi tương lai phải xác định rõ nó tác động đến bo
 | Service facade Vận tải | `EntryService.gs`, `ManageService.gs`, `CatalogService.gs`, `ReportService.gs`, `SheetReadService.gs` |
 | Nghiệp vụ Thu chi/Quỹ | `FundService.gs` |
 | Cache, queue, worker, trigger | `SupabaseService.gs` |
-| Vercel proxy và RBAC | `api/app.js` |
+| Vercel proxy và RBAC | `api/app.js`, `api/services/auth-service.js`, `api/services/authorization-policy.js`, `api/repositories/app-user-repository.js` |
 | Frontend source | `index.template.html`, `client_*.html`, `styles_*.html` |
 | Frontend artifact | `index.html` |
 | Supabase schema | `supabase/migrations/*.sql`, `SUPABASE_SCHEMA.md` |

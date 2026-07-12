@@ -575,7 +575,7 @@ Ranh giới quan trọng:
 
 `ApiActionRegistry.gs` là metadata nội bộ cho method, query/command kind và permission class của public Apps Script actions, Router-only/disabled actions và proxy-local actions. `PublicApi`/Router dùng registry để guard method/action trước compatibility dispatcher; proxy vẫn enforce RBAC tại `api/app.js` và được đối chiếu bằng contract tests.
 
-Vercel `/api/app` delegate Apps Script payload/upstream transport và response mapping cho `api/services/apps-script-client.js`, shareholder/admin policy cho `api/services/authorization-policy.js`; authentication và account persistence/actions vẫn ở `api/app.js` cho các lát cắt Step 26 tiếp theo.
+Vercel `/api/app` delegate Apps Script payload/upstream transport và response mapping cho `api/services/apps-script-client.js`, shareholder/admin policy cho `api/services/authorization-policy.js`, xác thực Supabase session cho `api/services/auth-service.js` và active allowlist lookup cho `api/repositories/app-user-repository.js`. Account CRUD/password orchestration và phần persistence tương ứng vẫn ở `api/app.js` cho Step 26d.
 
 ## 8. Module frontend
 

@@ -137,9 +137,11 @@ test('account administration remains admin-only while own-password change remain
 
 test('proxy authenticates every action except health and forwards only after proxy-secret injection', () => {
   const proxy = read('api/app.js');
+  const authService = read('api/services/auth-service.js');
   const appsScriptClient = read('api/services/apps-script-client.js');
   const authorizationPolicy = read('api/services/authorization-policy.js');
   assert.match(proxy, /if \(action !== 'health'\) user = await getAuthenticatedUser\(req, config\);/);
+  assert.match(authService, /Vui lòng đăng nhập để tiếp tục/);
   assert.match(proxy, /proxySecret: config\.proxySecret/);
   assert.match(proxy, /requestUser: user/);
   assert.match(proxy, /method: req\.method/);

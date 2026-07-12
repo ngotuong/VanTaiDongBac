@@ -54,11 +54,14 @@ test('auth migration revokes anon and API proxy validates allowlist', () => {
   const allowlistMigration = read('supabase/migrations/007_auth_hardening.sql');
   const cutoverMigration = read('supabase/migrations/008_authenticated_read_cutover.sql');
   const proxy = read('api/app.js');
+  const authService = read('api/services/auth-service.js');
+  const appUserRepository = read('api/repositories/app-user-repository.js');
   assert.match(cutoverMigration, /'write_jobs'/);
   assert.match(cutoverMigration, /revoke all on public\.%I from anon/i);
   assert.match(allowlistMigration, /is_active_app_user\(\)/);
-  assert.match(proxy, /auth\/v1\/user/);
-  assert.match(proxy, /app_users\?select=/);
+  assert.match(proxy, /createAuthService/);
+  assert.match(authService, /auth\/v1\/user/);
+  assert.match(appUserRepository, /app_users\?select=/);
   assert.doesNotMatch(proxy, /console\.log/);
 });
 

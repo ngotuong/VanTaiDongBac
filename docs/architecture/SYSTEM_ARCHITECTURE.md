@@ -94,7 +94,7 @@ Service role key chỉ tồn tại ở môi trường server như Vercel serverl
 
 ### 4.1. Frontend Vercel
 
-Frontend production mặc định vẫn là ứng dụng HTML/CSS/JavaScript legacy. Từ Step 31-33a, repository có thêm Next.js static shell chạy song song tại `/next-accounts/`, các React island Accounts, Sync Status/Audit và Catalog read-only được chọn bằng feature flag độc lập; các flag mặc định tắt nên route/menu và UI production hiện hữu không đổi.
+Frontend production mặc định vẫn là ứng dụng HTML/CSS/JavaScript legacy. Từ Step 31-33, repository có thêm Next.js static shell chạy song song tại `/next-accounts/`, các React island Accounts, Sync Status/Audit, Catalog Vận tải và Fund Catalog được chọn bằng feature flag độc lập; các flag mặc định tắt nên route/menu và UI production hiện hữu không đổi.
 
 Source tác giả gồm:
 
@@ -105,6 +105,7 @@ Source tác giả gồm:
 - `react-accounts/entry.jsx` cho compatibility island trong legacy shell.
 - `react-observability/entry.jsx` cho Sync Status/Audit compatibility island.
 - `react-catalog/entry.jsx` cho Catalog read-only compatibility island.
+- `react-fund-catalog/entry.jsx` cho Fund Catalog compatibility island.
 
 `npm run build` tạo đồng thời `index.html`, các bundle React island và static export `next-accounts/`. Vercel phục vụ repository như static site và dùng `api/app.js` làm serverless API proxy.
 
@@ -462,12 +463,12 @@ Mọi thay đổi tương lai phải xác định rõ nó tác động đến bo
 | Nghiệp vụ Thu chi/Quỹ | `FundService.gs` |
 | Cache, queue, worker, trigger | `SupabaseService.gs` |
 | Vercel proxy và RBAC | `api/app.js`, `api/services/apps-script-client.js`, `api/services/auth-service.js`, `api/services/authorization-policy.js`, `api/services/account-service.js`, `api/repositories/app-user-repository.js` |
-| Frontend source | `index.template.html`, `client_*.html`, `styles_*.html`, `next-shell/`, `react-accounts/`, `react-observability/`, `react-catalog/` |
+| Frontend source | `index.template.html`, `client_*.html`, `styles_*.html`, `next-shell/`, `react-accounts/`, `react-observability/`, `react-catalog/`, `react-fund-catalog/` |
 | Frontend artifact | `index.html`, `public/static/*-react.js`, `next-accounts/` |
 | Supabase schema | `supabase/migrations/*.sql`, `SUPABASE_SCHEMA.md` |
 | Schema Google Sheets | `docs/schema/*.json`, `PROJECT_SCHEMA.md` |
 | Bound script Thu chi | `docs/source/thu_chi_bound_script/` |
-| Build frontend | `scripts/build.js`, `scripts/build-accounts-react.js`, `scripts/build-observability-react.js`, `scripts/build-catalog-react.js`, `scripts/copy-next-accounts.js` |
+| Build frontend | `scripts/build.js`, `scripts/build-accounts-react.js`, `scripts/build-observability-react.js`, `scripts/build-catalog-react.js`, `scripts/build-fund-catalog-react.js`, `scripts/copy-next-accounts.js` |
 | Contract test | `tests/contracts.test.js` |
 | Production RBAC smoke test | `tests/production-rbac-smoke.js` |
 

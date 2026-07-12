@@ -32,6 +32,7 @@
     window.__REACT_OBSERVABILITY_ENABLED = "";
     window.__REACT_CATALOG_READONLY_ENABLED = "";
     window.__REACT_CATALOG_WRITE_ENABLED = "";
+    window.__REACT_FUND_CATALOG_ENABLED = "";
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
@@ -5439,6 +5440,7 @@
           </section>
         </div>
 
+        <div id="fundCatalogLegacyRoot" style="display:contents;">
         <div class="table-card fund-catalog-card" data-cashflow-panel="catalog" data-write-only style="display: none;">
           <div class="panel-body">
             <div class="fund-catalog-head">
@@ -5474,6 +5476,8 @@
             </div>
           </div>
         </div>
+        </div>
+        <div id="fundCatalogReactRoot" style="display:contents;" hidden></div>
       </section>
 
       <!-- View: Mobile Settings / Manual -->
@@ -13657,5 +13661,6 @@
   <script src="/public/static/accounts-react.js" defer></script>
   <script src="/public/static/observability-react.js" defer></script>
   <script src="/public/static/catalog-react.js" defer></script>
+  <script src="/public/static/fund-catalog-react.js" defer></script>
 </body>
 </html>

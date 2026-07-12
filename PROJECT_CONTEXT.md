@@ -344,11 +344,13 @@ Commit lien quan:
 - Step 29e đã pass 246/246 test, build thành công và `git diff --check` sạch; commit `7f2e102`. Đã deploy Vercel production `dpl_5D9Zpafspm15jySiL8zsp3Mt83uH`; page/health `200`, unauthenticated dashboard `401`, artifact có đúng catalog globals. Final visual QA auth gate desktop/mobile 375x812 không có console error mới. Apps Script vẫn `@281`; không backend/schema/API/feature-flag change hoặc business mutation. Toàn bộ Step 29a-29e đã hoàn thành.
 - Step 30 tạo `client_pending_job_store.html` làm owner duy nhất của pending Transport/Fund state, với read/replace/upsert/update/remove/mergeRecent/subscribe và compatibility globals `pendingWriteJobs`/`pendingFundWriteJobs`. Transport/Fund mutations delegate vào store; Dashboard/Manage/Transactions consumers giữ call site cũ.
 - Step 30 đồng bộ lại `client.html` HtmlService include graph với các fragment Step 28-30 để giữ compatibility. Step 30 đã pass 251/251 test, build thành công và `git diff --check` sạch; commit `d087ae1`. Đã deploy Vercel production `dpl_Eg3FRMBiz5EkuC7SH8FsfkyAmQ7Z`; page/health `200`, unauthenticated dashboard `401`, artifact có store cùng Transport/Fund delegates. Visual QA auth gate desktop/mobile 375x812 không có console error mới. Apps Script vẫn `@281`; không đổi polling/status/overlay/API/backend/schema/feature flag hoặc business mutation.
+- Step 31 bổ sung Next.js static shell chạy song song tại `/next-accounts/`, React Accounts island cho route Cài đặt hiện hữu và typed account client giữ nguyên năm proxy-local actions. Markup/label/field/validation/RBAC boundary được characterization test; legacy `client_accounts.html` vẫn tồn tại và bridge chỉ mount React khi `REACT_ACCOUNTS_ENABLED`/`VITE_REACT_ACCOUNTS_ENABLED` bật. Flag mặc định tắt, vì vậy production tiếp tục dùng Accounts legacy và có thể rollback tức thời bằng flag/Vercel rollback. Không đổi account API, backend, schema, Google Sheet hoặc business data.
+- Step 31 local verification: 257/257 test pass, full legacy + React + Next static build thành công, `git diff --check` sạch. Deployment/commit production sẽ được ghi sau smoke cuối.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 28, Step 29 và Step 30 đã hoàn thành. Apps Script `@281`, Vercel production `dpl_Eg3FRMBiz5EkuC7SH8FsfkyAmQ7Z`.
-- Bước kế tiếp được đề xuất sau khi Step 30 deploy ổn định: Step 31 — React/Next.js Accounts vertical slice; chưa được tự bắt đầu nếu chưa có phê duyệt Step 31.
+- Trạng thái hiện tại: Step 28, Step 29 và Step 30 đã hoàn thành; Step 31 đã hoàn tất local verification và đang chờ production smoke/checkpoint. Apps Script vẫn `@281`.
+- Bước kế tiếp sau khi Step 31 deploy ổn định: Step 32 — React/Next.js Sync Status/Audit slice; không tự bắt đầu nếu chưa có phê duyệt Step 32.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -395,4 +397,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 31 hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 32 hoặc bất kỳ thay đổi mới nào.

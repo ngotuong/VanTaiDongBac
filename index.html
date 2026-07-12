@@ -28,6 +28,7 @@
       reportsEnabled: "",
       authEnabled: ""
     };
+    window.__REACT_ACCOUNTS_ENABLED = "";
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
@@ -5472,6 +5473,7 @@
       <!-- View: Mobile Settings / Manual -->
       <section id="settingsView" class="view">
         <div class="settings-grid">
+          <div id="accountsLegacyRoot" style="display:contents;">
           <article class="info-card account-password-card">
             <h2>Đổi mật khẩu</h2>
             <p id="currentAccountIdentity" class="account-card-note"></p>
@@ -5516,6 +5518,8 @@
           </article>
 
           <div id="accountSettingsStatus" class="account-settings-status" role="status" aria-live="polite"></div>
+          </div>
+          <div id="accountsReactRoot" style="display:contents;" hidden></div>
 
           <article class="info-card sync-status-card" data-hide-shareholder style="grid-column: 1 / -1;">
             <div class="settings-card-header">
@@ -13637,5 +13641,6 @@
     }
 </script>
 
+  <script src="/public/static/accounts-react.js" defer></script>
 </body>
 </html>

@@ -103,11 +103,13 @@
         }
       });
       
-      const thActions = document.createElement('th');
-      thActions.textContent = 'Thao tác';
-      thActions.style.textAlign = 'center';
-      thActions.className = 'sticky-col-right';
-      thead.appendChild(thActions);
+      if (!window.__REACT_CATALOG_READONLY_ACTIVE) {
+        const thActions = document.createElement('th');
+        thActions.textContent = 'Thao tác';
+        thActions.style.textAlign = 'center';
+        thActions.className = 'sticky-col-right';
+        thead.appendChild(thActions);
+      }
 
       const vehiclesByPlate = buildVehicleOwnerMap();
       filteredCatalogRowsData = rawRows.map(row => {
@@ -300,6 +302,7 @@
           }
         });
 
+        if (!window.__REACT_CATALOG_READONLY_ACTIVE) {
         const tdActions = document.createElement('td');
         tdActions.className = 'sticky-col-right';
         tdActions.dataset.label = '';
@@ -326,6 +329,7 @@
         tdActions.appendChild(btnEdit);
         tdActions.appendChild(btnDelete);
         tr.appendChild(tdActions);
+        }
         
         fragment.appendChild(tr);
       });

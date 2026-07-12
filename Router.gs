@@ -124,6 +124,7 @@ function renderIndex_() {
   template.authEnabled = props.getProperty('AUTH_ENABLED') || '';
   template.reactAccountsEnabled = props.getProperty('REACT_ACCOUNTS_ENABLED') || '';
   template.reactObservabilityEnabled = props.getProperty('REACT_OBSERVABILITY_ENABLED') || '';
+  template.reactCatalogReadOnlyEnabled = props.getProperty('REACT_CATALOG_READONLY_ENABLED') || '';
   return template
     .evaluate()
     .setTitle('Vận tải Đông Bắc - Hệ thống điều hành nội bộ')

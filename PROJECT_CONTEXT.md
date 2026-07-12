@@ -348,11 +348,13 @@ Commit lien quan:
 - Step 31 đã pass 257/257 test, full legacy + React + Next static build thành công, `git diff --check` sạch; commit `446f78b`. Đã deploy Vercel production `dpl_ENM9UszKPanmvb55aj4mBKiSJUuF`, alias `https://dongbac.vercel.app`; page/health, `/next-accounts/` và React bundle đều `200`, unauthenticated dashboard `401`, production artifact xác nhận flag rỗng/tắt và legacy root còn active. Visual QA shell desktop 1280x720/mobile 375x812 không có console warning/error hoặc tràn ngang. Apps Script vẫn `@281`; không chạy account/business mutation.
 - Step 32 bổ sung React Sync Status/Audit island và Next static canary route `/next-accounts/observability/`. Typed observability client giữ chính xác status limit 24, Transport jobs limit 12, quick/deep/all audit 50/500 dòng, report months cố định và retry action; default load không chạy audit nặng. `REACT_OBSERVABILITY_ENABLED`/`VITE_REACT_OBSERVABILITY_ENABLED` mặc định tắt độc lập, legacy `client_observability.html` và markup vẫn tồn tại để rollback. Không đổi API/backend/schema/Sheet hoặc queue behavior.
 - Step 32 đã pass 262/262 test, full legacy + hai React island + Next static build thành công, `git diff --check` sạch; commit `4283600`. Đã deploy Vercel production `dpl_8JCGdpHU8wNxqJbzZP88aQtmGye3`, alias `https://dongbac.vercel.app`; page/health, `/next-accounts/observability/` và Observability bundle đều `200`, unauthenticated dashboard `401`, production artifact xác nhận flag rỗng/tắt và legacy root còn active. Visual QA desktop 1280x720, mobile portrait 375x812 và landscape 812x375 có touch target 44px, không tràn ngang hoặc console warning/error. Apps Script vẫn `@281`; không chạy audit/retry/business mutation.
+- Step 33a bổ sung React Catalog Vận tải read-only island và Next static canary route `/next-accounts/catalog/`. Slice giữ đủ chín dynamic/virtual sheet tabs, GET `readCatalogData`, `displaySheetName`, `forceRefresh`, dynamic headers và rowIndex rendering qua compatibility implementation; khi canary bật thì không render nút thêm/cột thao tác/sửa/xóa. Filter/pagination, Catalog CRUD Vận tải và Fund Catalog chưa migrate. `REACT_CATALOG_READONLY_ENABLED`/`VITE_REACT_CATALOG_READONLY_ENABLED` mặc định tắt, legacy Catalog vẫn là rollback.
+- Step 33a local verification: 267/267 test pass, full legacy + ba React island + Next static build thành công, `git diff --check` sạch. Deployment/commit production sẽ được ghi sau smoke cuối.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 28-32 đã hoàn thành. Apps Script `@281`, Vercel production `dpl_8JCGdpHU8wNxqJbzZP88aQtmGye3`; các React flag mặc định tắt.
-- Bước kế tiếp sau khi Step 32 deploy ổn định: Step 33 — React/Next.js Catalog slice; không tự bắt đầu nếu chưa có phê duyệt Step 33.
+- Trạng thái hiện tại: Step 28-32 đã hoàn thành; Step 33a đã hoàn tất local verification và đang chờ production smoke/checkpoint. Apps Script vẫn `@281`; các React flag mặc định tắt.
+- Bước kế tiếp sau khi Step 33a deploy ổn định: Step 33b — React Catalog filter/pagination; thực hiện trong phạm vi phê duyệt Step 33 nhưng chỉ sau checkpoint 33a ổn định.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -399,4 +401,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 33 hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 33b hoặc bất kỳ thay đổi mới nào nếu checkpoint 33a chưa ổn định.

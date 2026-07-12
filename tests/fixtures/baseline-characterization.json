@@ -41,6 +41,8 @@
       "next-shell/components/Accounts.jsx",
       "next-shell/components/Observability.jsx",
       "next-shell/lib/observability-client.js",
+      "next-shell/components/CatalogReadOnly.jsx",
+      "next-shell/lib/catalog-client.js",
       "next-shell/lib/account-client.js",
       "client_api.html",
       "client_app.html",

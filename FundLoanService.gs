@@ -10,6 +10,43 @@ var FundLoanService = (function () {
     return text;
   }
 
+  function buildLoanRow(payload, context) {
+    var item = payload || {}, date = context.parseDate(item.date, item.date), partner = context.clean(item.partner), amount = context.parseNumber(item.amount);
+    var firstInterestDate = context.parseDate(item.firstInterestDate, item.firstInterestDate);
+    if (!date) throw new Error('Vui lòng nhập ngày vay hợp lệ.');
+    if (!partner) throw new Error('Vui lòng nhập đối tác cho khoản vay.');
+    if (!(amount > 0)) throw new Error('Số tiền vay phải lớn hơn 0.');
+    return [context.buildVoucher(), date, 'Vay', context.clean(item.method), partner, amount, context.parseNumber(item.termMonths) || '',
+      context.parseNumber(item.annualRate) || '', context.parseNumber(item.interestPeriodMonths) || '', firstInterestDate || '', context.clean(item.content)];
+  }
+
+  function buildPaymentRow(payload, context) {
+    var item = payload || {}, date = context.parseDate(item.date, item.date), code = context.clean(item.code), type = context.clean(item.type);
+    var partner = context.clean(item.partner), amount = context.parseNumber(item.amount);
+    if (!date) throw new Error('Vui lòng nhập ngày thanh toán hợp lệ.');
+    if (!code) throw new Error('Thiếu mã khoản vay cần thanh toán.');
+    if (type !== 'Trả nợ' && type !== 'Trả lãi') throw new Error('Vui lòng chọn Trả nợ hoặc Trả lãi.');
+    if (!partner) throw new Error('Vui lòng nhập đối tác cho khoản vay.');
+    if (!(amount > 0)) throw new Error('Số tiền thanh toán phải lớn hơn 0.');
+    return [code, date, type, '', partner, amount, '', '', '', '', context.clean(item.content)];
+  }
+
+  function buildFilterFormula(rowNumber) {
+    return '=IF(BC_VAY!$P$9="";"";A' + rowNumber + ')&IF(BC_VAY!$R$9="";"";C' + rowNumber + ')&IF(BC_VAY!$S$9="";"";E' + rowNumber + ')';
+  }
+
+  function addLoan(payload, context) {
+    var row = buildLoanRow(payload, context);
+    var rowNumber = context.repository.appendRow(context.sheet, row, context.appendOptions);
+    return { ok: true, rowIndex: rowNumber, code: row[0], sheetName: context.sheetName };
+  }
+
+  function addPayment(payload, context) {
+    var row = buildPaymentRow(payload, context);
+    var rowNumber = context.repository.appendRow(context.sheet, row, context.appendOptions);
+    return { ok: true, rowIndex: rowNumber, code: row[0], sheetName: context.sheetName };
+  }
+
   function readRows(context) {
     var snapshot = context.repository.readSnapshot(context.spreadsheet, context.sheetName);
     var rows = [];
@@ -106,5 +143,6 @@ var FundLoanService = (function () {
       loans: loans, recentRows: filtered.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).map(function (row) { return historyRow(row, overallMap[row.loanKey || row.code || ('row-' + row.rowIndex)] || null); }) };
   }
 
-  return { normalizeType: normalizeType, readRows: readRows, reconcile: reconcile, buildSummaryMap: buildSummaryMap, historyRow: historyRow, getOverview: getOverview };
+  return { normalizeType: normalizeType, buildLoanRow: buildLoanRow, buildPaymentRow: buildPaymentRow, buildFilterFormula: buildFilterFormula,
+    addLoan: addLoan, addPayment: addPayment, readRows: readRows, reconcile: reconcile, buildSummaryMap: buildSummaryMap, historyRow: historyRow, getOverview: getOverview };
 })();

@@ -1091,7 +1091,7 @@ Body:
 }
 ```
 
-Handler: direct `FundService.addFundLoan()`.
+Handler: direct `FundService.addFundLoan()`; facade giữ resolver/lock/cache bump và delegate validation/build/append/format/formula N cho `FundLoanService`/`FundLoanRepository`.
 
 Response chứa kết quả thêm khoản vay và metadata dòng tùy implementation.
 
@@ -1116,7 +1116,7 @@ Body:
 }
 ```
 
-Handler: direct `FundService.addFundLoanPayment()`.
+Handler: direct `FundService.addFundLoanPayment()`; facade giữ resolver/lock/cache bump và delegate payment validation/build/append/format/formula N cho `FundLoanService`/`FundLoanRepository`.
 
 Backend phải bảo toàn mã khoản vay, công thức và các rule thanh toán.
 

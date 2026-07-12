@@ -147,10 +147,13 @@ test('add payment preserves loan code/type and rejects invalid loan/payment payl
 
 test('loan filter formula contract and FundService ownership markers remain explicit before extraction', () => {
   const source = read('FundService.gs');
-  assert.match(source, /function buildLoanFilterFormula_\(rowNumber\)/);
-  assert.match(source, /BC_VAY!\$P\$9/);
-  assert.match(source, /BC_VAY!\$R\$9/);
-  assert.match(source, /BC_VAY!\$S\$9/);
+  const implementation = read('FundLoanService.gs');
+  assert.match(implementation, /function buildFilterFormula\(rowNumber\)/);
+  assert.match(implementation, /BC_VAY!\$P\$9/);
+  assert.match(implementation, /BC_VAY!\$R\$9/);
+  assert.match(implementation, /BC_VAY!\$S\$9/);
   assert.match(source, /FundLoanService\.getOverview\(filter \|\| \{\}/);
-  assert.match(read('FundLoanService.gs'), /function reconcile\(rows, context\)/);
+  assert.match(implementation, /function reconcile\(rows, context\)/);
+  assert.match(source, /FundLoanService\.addLoan\(payload, context\)/);
+  assert.match(source, /FundLoanService\.addPayment\(payload, context\)/);
 });

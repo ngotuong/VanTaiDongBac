@@ -152,20 +152,13 @@ var FundService = (function () {
     var ss = getFundSpreadsheet_(year);
     var sheet = ss.getSheetByName(LOAN_SHEET_NAME);
     if (!sheet) throw new Error('Không tìm thấy sheet khoản vay: ' + LOAN_SHEET_NAME);
-    var row = buildLoanRow_(payload || {});
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      var appendRow = getAppendRow_(sheet);
-      if (sheet.getMaxRows() < appendRow) {
-        sheet.insertRowsAfter(sheet.getMaxRows(), appendRow - sheet.getMaxRows());
-      }
-      sheet.getRange(appendRow, 1, 1, row.length).setValues([row]);
-      sheet.getRange(appendRow, 2).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(appendRow, 6).setNumberFormat('#,##0');
-      sheet.getRange(appendRow, 14).setFormula(buildLoanFilterFormula_(appendRow));
+      var context = fundLoanWriteContext_(sheet);
+      var result = FundLoanService.addLoan(payload, context);
       bumpFundDataVersion_();
-      return { ok: true, rowIndex: appendRow, code: row[0], sheetName: LOAN_SHEET_NAME };
+      return result;
     } finally {
       lock.releaseLock();
     }
@@ -175,23 +168,21 @@ var FundService = (function () {
     var ss = getFundSpreadsheet_(year);
     var sheet = ss.getSheetByName(LOAN_SHEET_NAME);
     if (!sheet) throw new Error('Không tìm thấy sheet khoản vay: ' + LOAN_SHEET_NAME);
-    var row = buildLoanPaymentRow_(payload || {});
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      var appendRow = getAppendRow_(sheet);
-      if (sheet.getMaxRows() < appendRow) {
-        sheet.insertRowsAfter(sheet.getMaxRows(), appendRow - sheet.getMaxRows());
-      }
-      sheet.getRange(appendRow, 1, 1, row.length).setValues([row]);
-      sheet.getRange(appendRow, 2).setNumberFormat('dd/MM/yyyy');
-      sheet.getRange(appendRow, 6).setNumberFormat('#,##0');
-      sheet.getRange(appendRow, 14).setFormula(buildLoanFilterFormula_(appendRow));
+      var context = fundLoanWriteContext_(sheet);
+      var result = FundLoanService.addPayment(payload, context);
       bumpFundDataVersion_();
-      return { ok: true, rowIndex: appendRow, code: row[0], sheetName: LOAN_SHEET_NAME };
+      return result;
     } finally {
       lock.releaseLock();
     }
+  }
+
+  function fundLoanWriteContext_(sheet) {
+    return { repository: FundLoanRepository, sheet: sheet, sheetName: LOAN_SHEET_NAME, clean: clean_, parseDate: parseDate_, parseNumber: parseNumber_, buildVoucher: buildVoucher_,
+      appendOptions: { getAppendRow: getAppendRow_, buildFilterFormula: FundLoanService.buildFilterFormula } };
   }
 
   function getFundFormOptions(year) {
@@ -774,61 +765,6 @@ var FundService = (function () {
     return FundTransactionService.buildRow(payload || {}, voucherSeed, voucherIndex, fundTransactionWriteContext_());
   }
 
-  function buildLoanRow_(payload) {
-    var date = parseDate_(payload.date, payload.date);
-    var method = clean_(payload.method);
-    var partner = clean_(payload.partner);
-    var amount = parseNumber_(payload.amount);
-    var termMonths = parseNumber_(payload.termMonths);
-    var annualRate = parseNumber_(payload.annualRate);
-    var interestPeriodMonths = parseNumber_(payload.interestPeriodMonths);
-    var firstInterestDate = parseDate_(payload.firstInterestDate, payload.firstInterestDate);
-    var content = clean_(payload.content);
-    if (!date) throw new Error('Vui lòng nhập ngày vay hợp lệ.');
-    if (!partner) throw new Error('Vui lòng nhập đối tác cho khoản vay.');
-    if (!(amount > 0)) throw new Error('Số tiền vay phải lớn hơn 0.');
-    return [
-      buildVoucher_(),
-      date,
-      'Vay',
-      method,
-      partner,
-      amount,
-      termMonths || '',
-      annualRate || '',
-      interestPeriodMonths || '',
-      firstInterestDate || '',
-      content
-    ];
-  }
-
-  function buildLoanPaymentRow_(payload) {
-    var date = parseDate_(payload.date, payload.date);
-    var code = clean_(payload.code);
-    var type = clean_(payload.type);
-    var partner = clean_(payload.partner);
-    var amount = parseNumber_(payload.amount);
-    var content = clean_(payload.content);
-    if (!date) throw new Error('Vui lòng nhập ngày thanh toán hợp lệ.');
-    if (!code) throw new Error('Thiếu mã khoản vay cần thanh toán.');
-    if (type !== 'Trả nợ' && type !== 'Trả lãi') throw new Error('Vui lòng chọn Trả nợ hoặc Trả lãi.');
-    if (!partner) throw new Error('Vui lòng nhập đối tác cho khoản vay.');
-    if (!(amount > 0)) throw new Error('Số tiền thanh toán phải lớn hơn 0.');
-    return [
-      code,
-      date,
-      type,
-      '',
-      partner,
-      amount,
-      '',
-      '',
-      '',
-      '',
-      content
-    ];
-  }
-
   function getAppendRow_(sheet) {
     var lastRow = sheet.getLastRow();
     if (lastRow < 2) return 2;
@@ -858,10 +794,6 @@ var FundService = (function () {
 
   function buildFilterFormula_(rowNumber) {
     return '=IF(BC_THUCHI!$C$15="";"";A' + rowNumber + ')&IF(BC_THUCHI!$J$15="";"";G' + rowNumber + ')&IF(BC_THUCHI!$K$15="";"";H' + rowNumber + ')';
-  }
-
-  function buildLoanFilterFormula_(rowNumber) {
-    return '=IF(BC_VAY!$P$9="";"";A' + rowNumber + ')&IF(BC_VAY!$R$9="";"";C' + rowNumber + ')&IF(BC_VAY!$S$9="";"";E' + rowNumber + ')';
   }
 
   function readNamedRangeValues_(ss, name) {

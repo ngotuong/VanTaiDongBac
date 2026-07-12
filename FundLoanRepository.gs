@@ -9,5 +9,15 @@ var FundLoanRepository = (function () {
       rawDateValues: sheet.getRange(2, 2, lastRow - 1, 1).getValues()
     };
   }
-  return { readSnapshot: readSnapshot };
+
+  function appendRow(sheet, row, options) {
+    var targetRow = options.getAppendRow(sheet);
+    if (sheet.getMaxRows() < targetRow) sheet.insertRowsAfter(sheet.getMaxRows(), targetRow - sheet.getMaxRows());
+    sheet.getRange(targetRow, 1, 1, row.length).setValues([row]);
+    sheet.getRange(targetRow, 2).setNumberFormat('dd/MM/yyyy');
+    sheet.getRange(targetRow, 6).setNumberFormat('#,##0');
+    sheet.getRange(targetRow, 14).setFormula(options.buildFilterFormula(targetRow));
+    return targetRow;
+  }
+  return { readSnapshot: readSnapshot, appendRow: appendRow };
 })();

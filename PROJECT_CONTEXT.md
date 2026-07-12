@@ -296,11 +296,14 @@ Commit lien quan:
 - Step 24b tách `NHAP_VAY` snapshot read sang `FundLoanRepository.gs`; type normalization, row mapping, exact/safe-orphan reconciliation, current/historical aggregation và history/status mapping sang `FundLoanService.gs`. `FundService.getFundLoanOverview()` giữ cache/resolver facade; Fund overview dùng compatibility loan reader; add loan/payment chưa chuyển.
 - Step 24b đã pass 165/165 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@279 - Step 24b - Fund loan read extraction`; không cần migration/schema/UI change.
 - Smoke production Step 24b: `health` và `auditFundLoanCase` no-match đều `ok=true`, sync status `ok`. `clasp run getFundLoanOverview` chạy xong nhưng Execution API từ chối serialize payload vì `recentRows.dateObj` là `Date` (contract hiện hữu); không phải service exception. Không ghi dữ liệu production.
+- Step 24c tách build/validate loan/payment và filter formula N sang `FundLoanService.gs`; append A:K, row growth, format B/F và set formula N sang `FundLoanRepository.gs`. `FundService` chỉ giữ public facade, spreadsheet resolver, lock và cache-version bump.
+- Step 24c đã pass 165/165 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@280 - Step 24c - Fund loan write extraction`; không cần migration/schema/UI change.
+- Smoke production Step 24c an toàn thành công: `health` và loan audit no-match `ok=true`; worker idle `processed=0`. Không add loan/payment production. Toàn bộ Step 24 đã hoàn thành.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: Step 24a và 24b đã hoàn thành; Step 24 tổng thể chưa hoàn thành và checkpoint production ở Apps Script `@279`.
-- Bước kế tiếp được đề xuất: Step 24c — tách build/validate/add loan và payment, append/format/formula N sang FundLoanRepository/Service; chưa được tự bắt đầu nếu chưa có phê duyệt Step 24c.
+- Trạng thái hiện tại: toàn bộ Step 24 đã hoàn thành và checkpoint production ở Apps Script `@280`.
+- Bước kế tiếp được đề xuất: Step 25 — chuẩn hóa API command/query registry nội bộ theo `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 25.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -347,4 +350,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 24c hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 25 hoặc bất kỳ thay đổi mới nào.

@@ -43,6 +43,7 @@
       "client_cashflow.html",
       "client_cashflow_overview.html",
       "client_cashflow_transactions.html",
+      "client_cashflow_pending.html",
       "client_catalog.html",
       "client_config.html",
       "client_dashboard.html",

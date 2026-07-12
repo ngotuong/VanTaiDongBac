@@ -27,6 +27,22 @@ test('AppUserRepository returns null for an empty allowlist result', async () =>
   assert.equal(await repository.findActiveByUserId(config, 'missing'), null);
 });
 
+test('AppUserRepository reads the current active profile with authenticated RLS token', async () => {
+  let request;
+  const repository = createAppUserRepository({
+    httpError,
+    fetchImpl: async (...args) => {
+      request = args;
+      return { ok: true, json: async () => [{ user_id: 'u1', username: 'operator' }] };
+    }
+  });
+  const row = await repository.findActiveByUserIdWithToken(config, 'u1', 'user-jwt');
+  assert.equal(row.username, 'operator');
+  assert.equal(request[1].headers.apikey, config.anonKey);
+  assert.equal(request[1].headers.Authorization, 'Bearer user-jwt');
+  assert.notEqual(request[1].headers.Authorization, `Bearer ${config.serviceRoleKey}`);
+});
+
 test('AppUserRepository preserves Supabase client errors and masks server errors', async () => {
   const clientRepository = createAppUserRepository({
     httpError,

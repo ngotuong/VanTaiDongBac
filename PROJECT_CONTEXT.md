@@ -299,11 +299,14 @@ Commit lien quan:
 - Step 24c tách build/validate loan/payment và filter formula N sang `FundLoanService.gs`; append A:K, row growth, format B/F và set formula N sang `FundLoanRepository.gs`. `FundService` chỉ giữ public facade, spreadsheet resolver, lock và cache-version bump.
 - Step 24c đã pass 165/165 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@280 - Step 24c - Fund loan write extraction`; không cần migration/schema/UI change.
 - Smoke production Step 24c an toàn thành công: `health` và loan audit no-match `ok=true`; worker idle `processed=0`. Không add loan/payment production. Toàn bộ Step 24 đã hoàn thành.
+- Step 25 thêm `ApiActionRegistry.gs` làm registry nội bộ cho action/method/query-command/permission class, gồm public Apps Script, Router-only/disabled và proxy-local metadata. `PublicApi.invokeApi()` và Router GET dùng registry guard nhưng giữ nguyên compatibility `if` handlers, URL/action/payload và proxy enforcement.
+- Step 25 đã pass 170/170 test, build thành công, `git diff --check` sạch và deploy Apps Script production `@281 - Step 25 - Internal API action registry`; không cần migration/schema/frontend/proxy deploy.
+- Smoke production Step 25 thành công: `invokeApi('GET','health')` và direct `health` đều `ok=true`; `invokeApi('PATCH','health')` giữ đúng lỗi `Phương thức không hợp lệ: PATCH`. Không mutation production.
 
 ### Cổng phê duyệt hiện tại
 
-- Trạng thái hiện tại: toàn bộ Step 24 đã hoàn thành và checkpoint production ở Apps Script `@280`.
-- Bước kế tiếp được đề xuất: Step 25 — chuẩn hóa API command/query registry nội bộ theo `REFACTOR_PLAN.md`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 25.
+- Trạng thái hiện tại: toàn bộ Step 25 đã hoàn thành và checkpoint production ở Apps Script `@281`.
+- Bước kế tiếp được đề xuất: Step 26 — tách Vercel proxy services theo từng lát cắt độc lập, bắt đầu với `AppsScriptClient`; chưa được tự bắt đầu nếu chưa có phê duyệt Step 26.
 - Từ Step 12 trở đi, user cho phép Agent chủ động deploy và push GitHub sau khi toàn bộ verification của step thành công; vẫn phải dừng nếu test thất bại hoặc có rủi ro/điều kiện production chưa được thỏa mãn.
 - Các bước tiếp theo vẫn phải thực hiện độc lập theo `REFACTOR_PLAN.md`.
 
@@ -350,4 +353,4 @@ Commit lien quan:
 
 Prompt chuẩn được quản lý tại `TARGET_ARCHITECTURE.md`, mục **Prompt chuẩn cho cuộc trò chuyện mới**.
 
-Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 25 hoặc bất kỳ thay đổi mới nào.
+Agent mới phải đọc `AGENTS.md`, `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `TARGET_ARCHITECTURE.md`, `PROJECT_SCHEMA.md` và `REFACTOR_PLAN.md`; sau đó chỉ báo cáo trạng thái và chờ phê duyệt. Không được tự bắt đầu Step 26 hoặc bất kỳ thay đổi mới nào.

@@ -9,6 +9,7 @@ function doGet(e) {
     }
 
     SecurityService.assertProxyRequest(action, e.parameter.proxySecret);
+    ApiActionRegistry.assertRouterGetAction(action);
 
     if (action === 'debugSheet') {
       var ss = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);

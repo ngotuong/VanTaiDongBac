@@ -310,6 +310,7 @@ function invokeApi(method, action, params, bodyData) {
     spreadsheetId: safeBody.spreadsheetId || safeBody.ssId || safeParams.spreadsheetId || safeParams.ssId,
     year: safeBody.year || safeParams.year
   });
+  ApiActionRegistry.assertPublicAction(normalizedMethod, action);
 
   if (normalizedMethod === 'GET') {
     if (action === 'health') return SheetService.health();

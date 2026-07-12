@@ -571,6 +571,10 @@ Ranh giới quan trọng:
 - phải kiểm tra giới hạn vùng trước khi ghi;
 - không được mở rộng hoặc di chuyển named range ngoài migration được duyệt.
 
+### 7.5. API action registry
+
+`ApiActionRegistry.gs` là metadata nội bộ cho method, query/command kind và permission class của public Apps Script actions, Router-only/disabled actions và proxy-local actions. `PublicApi`/Router dùng registry để guard method/action trước compatibility dispatcher; proxy vẫn enforce RBAC tại `api/app.js` và được đối chiếu bằng contract tests.
+
 ## 8. Module frontend
 
 ### 8.1. `FRONTEND_CORE` — App shell và state

@@ -105,10 +105,11 @@ test('shareholder allowlist contains no write, account-admin or operational acti
 
 test('proxy enforces shareholder deny-by-default before account and upstream dispatch', () => {
   const proxy = read('api/app.js');
+  const accountService = read('api/services/account-service.js');
   const appsScriptClient = read('api/services/apps-script-client.js');
   const authorizationPolicy = read('api/services/authorization-policy.js');
   const authorizeCall = proxy.indexOf('assertAuthorized(user, action);');
-  const accountDispatch = proxy.indexOf("['changeOwnPassword', 'listUsers', 'createUser', 'updateUser', 'resetUserPassword'].includes(action)");
+  const accountDispatch = proxy.indexOf('accountService.handles(action)');
   const upstreamFetch = proxy.indexOf('await client.forward');
   assert.ok(authorizeCall >= 0, 'Missing proxy authorization call.');
   assert.ok(accountDispatch > authorizeCall, 'Account dispatch must happen after role authorization.');
@@ -119,14 +120,10 @@ test('proxy enforces shareholder deny-by-default before account and upstream dis
 });
 
 test('account administration remains admin-only while own-password change remains available', () => {
-  const proxy = read('api/app.js');
-  const handlerStart = proxy.indexOf('async function handleAccountAction');
-  const moduleExport = proxy.indexOf('module.exports = async function handler', handlerStart);
-  assert.ok(handlerStart >= 0 && moduleExport > handlerStart, 'Could not locate account action handler.');
-  const handler = proxy.slice(handlerStart, moduleExport);
+  const handler = read('api/services/account-service.js');
 
   const ownPasswordBranch = handler.indexOf("action === 'changeOwnPassword'");
-  const adminGuard = handler.indexOf('assertAdmin(user);');
+  const adminGuard = handler.indexOf('assertAdmin(user);', ownPasswordBranch);
   assert.ok(ownPasswordBranch >= 0 && adminGuard > ownPasswordBranch, 'Own-password branch must execute before the admin guard.');
 
   for (const action of ['listUsers', 'createUser', 'updateUser', 'resetUserPassword']) {

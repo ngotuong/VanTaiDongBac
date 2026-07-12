@@ -26,7 +26,35 @@ function createAppUserRepository({ fetchImpl = fetch, httpError }) {
     return rows[0] || null;
   }
 
-  return { findActiveByUserId };
+  async function list(config) {
+    const response = await fetchImpl(
+      `${config.supabaseUrl}/rest/v1/app_users?select=user_id,username,display_name,role,active,created_at&order=created_at.asc`,
+      { headers: serviceHeaders(config) }
+    );
+    return parseJsonResponse(response, 'Không tải được danh sách tài khoản.');
+  }
+
+  async function create(config, profile) {
+    const response = await fetchImpl(`${config.supabaseUrl}/rest/v1/app_users`, {
+      method: 'POST',
+      headers: serviceHeaders(config, { Prefer: 'return=representation' }),
+      body: JSON.stringify(profile)
+    });
+    const rows = await parseJsonResponse(response, 'Không tạo được hồ sơ phân quyền.');
+    return rows[0] || null;
+  }
+
+  async function update(config, userId, changes) {
+    const response = await fetchImpl(`${config.supabaseUrl}/rest/v1/app_users?user_id=eq.${encodeURIComponent(userId)}`, {
+      method: 'PATCH',
+      headers: serviceHeaders(config, { Prefer: 'return=representation' }),
+      body: JSON.stringify(changes)
+    });
+    const rows = await parseJsonResponse(response, 'Không cập nhật được tài khoản.');
+    return rows[0] || null;
+  }
+
+  return { findActiveByUserId, list, create, update };
 }
 
 module.exports = { createAppUserRepository };

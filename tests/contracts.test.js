@@ -54,6 +54,7 @@ test('auth migration revokes anon and API proxy validates allowlist', () => {
   const allowlistMigration = read('supabase/migrations/007_auth_hardening.sql');
   const cutoverMigration = read('supabase/migrations/008_authenticated_read_cutover.sql');
   const proxy = read('api/app.js');
+  const accountService = read('api/services/account-service.js');
   const authService = read('api/services/auth-service.js');
   const appUserRepository = read('api/repositories/app-user-repository.js');
   assert.match(cutoverMigration, /'write_jobs'/);
@@ -68,6 +69,7 @@ test('auth migration revokes anon and API proxy validates allowlist', () => {
 test('shareholder role is read-only and account administration stays admin-only', () => {
   const migration = read('supabase/migrations/009_shareholder_role.sql');
   const proxy = read('api/app.js');
+  const accountService = read('api/services/account-service.js');
   const authorizationPolicy = read('api/services/authorization-policy.js');
   const template = read('index.template.html');
   const accounts = read('client_accounts.html');
@@ -75,8 +77,9 @@ test('shareholder role is read-only and account administration stays admin-only'
   assert.match(authorizationPolicy, /SHAREHOLDER_ACTIONS/);
   assert.match(authorizationPolicy, /Tài khoản cổ đông chỉ có quyền xem dữ liệu/);
   assert.match(authorizationPolicy, /function assertAdmin/);
-  assert.match(proxy, /changeOwnPassword/);
-  assert.match(proxy, /resetUserPassword/);
+  assert.match(proxy, /createAccountService/);
+  assert.match(accountService, /changeOwnPassword/);
+  assert.match(accountService, /resetUserPassword/);
   assert.match(template, /data-write-only/);
   assert.match(template, /Quản lý tài khoản/);
   assert.doesNotMatch(template, /Cấu hình đường dẫn Web App/);
@@ -108,11 +111,11 @@ test('loan reconciliation safely matches one orphan settlement by partner and ex
 });
 
 test('password policy accepts any value with at least six characters', () => {
-  const proxy = read('api/app.js');
+  const accountService = read('api/services/account-service.js');
   const accounts = read('client_accounts.html');
   const template = read('index.template.html');
-  assert.match(proxy, /newPassword\.length < 6/);
+  assert.match(accountService, /newPassword\.length < 6/);
   assert.match(accounts, /newPassword\.length < 6/);
   assert.match(template, /minlength="6"/);
-  assert.doesNotMatch(proxy, /newPassword\.length < 12/);
+  assert.doesNotMatch(accountService, /newPassword\.length < 12/);
 });

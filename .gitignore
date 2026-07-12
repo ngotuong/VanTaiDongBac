@@ -17,3 +17,10 @@ supabase/.temp/
 !.env.example
 .clasp.json
 client_secret.json
+
+# Reproducible frontend dependencies and generated React/Next artifacts
+node_modules/
+next-shell/.next/
+next-shell/out/
+next-accounts/
+public/static/accounts-react.js

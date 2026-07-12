@@ -122,6 +122,7 @@ function renderIndex_() {
   template.supabaseAnonKey = props.getProperty('SUPABASE_ANON_KEY') || '';
   template.supabaseReportsEnabled = props.getProperty('SUPABASE_REPORTS_ENABLED') || '';
   template.authEnabled = props.getProperty('AUTH_ENABLED') || '';
+  template.reactAccountsEnabled = props.getProperty('REACT_ACCOUNTS_ENABLED') || '';
   return template
     .evaluate()
     .setTitle('Vận tải Đông Bắc - Hệ thống điều hành nội bộ')

@@ -38,6 +38,8 @@
       "client_auth.html",
       "client_supabase_cache.html",
       "client_accounts.html",
+      "next-shell/components/Accounts.jsx",
+      "next-shell/lib/account-client.js",
       "client_api.html",
       "client_app.html",
       "client_cashflow.html",

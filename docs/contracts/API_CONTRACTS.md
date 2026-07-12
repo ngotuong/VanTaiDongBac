@@ -585,7 +585,7 @@ GET action=getReports&forceRefresh=true
 
 Auth: admin/operator/shareholder.
 
-Handler: `ReportService.getReports()`.
+Public edge handler: `api/services/report-service.js`; action được xác thực/RBAC tại Vercel rồi forward tới `ReportService.getReports()` trong Apps Script để giữ compatibility.
 
 Mục đích: trả tập báo cáo tổng hợp/legacy response. Frontend hiện ưu tiên `getReportBundle` cho màn hình Báo cáo.
 
@@ -603,7 +603,7 @@ Params:
 - `month`: kỳ báo cáo;
 - `forceRefresh`: bỏ cache nếu true.
 
-Handler: `ReportService.getReport()` → `SheetService.getReport()`; payroll/vehicles table read/filter delegate sang `ReportTableService`.
+Public edge handler: `api/services/report-service.js`; action được forward tới `ReportService.getReport()` → `SheetService.getReport()` trong Apps Script; payroll/vehicles table read/filter delegate sang `ReportTableService`.
 
 Side effect có thể có: tính và ghi `SYS_ReportCache` khi cần chi tiết tháng.
 
@@ -619,8 +619,16 @@ Params:
 
 - `month`: label/key mà báo cáo hỗ trợ; rỗng/latest được resolve về kỳ phù hợp;
 - `forceRefresh`: boolean/string.
+- `spreadsheetId`: optional nhưng frontend Report hiện gửi ID workbook Vận tải đang chọn để API đọc đúng composite key `spreadsheet_id + report_month`.
 
-Handler: `ReportService.getReportBundle()` → `SheetService.getReportBundle()`.
+Handler Phase 5:
+
+1. Vercel `api/services/report-service.js` nhận request sau Auth/RBAC.
+2. Khi không `forceRefresh`, `api/repositories/report-bundle-repository.js` đọc một row mới nhất trong Supabase `report_bundles`, ưu tiên đúng `spreadsheet_id + report_month`.
+3. Nếu có payload, API trả bundle và bổ sung `apiCached=true`, `supabaseCached=true`, `supabaseSyncedAt`.
+4. Nếu cache thiếu/lỗi hoặc `forceRefresh=true`, API forward tới Apps Script `ReportService.getReportBundle()` → `SheetService.getReportBundle()`.
+
+Frontend Report luôn gọi public API cho action này; không còn đọc `report_bundles` trực tiếp từ browser. Dashboard không thuộc cutover này và vẫn giữ loader/cache path cũ.
 
 Response logic:
 

@@ -3,6 +3,8 @@ const { createAuthorizationPolicy } = require('./services/authorization-policy')
 const { createAuthService } = require('./services/auth-service');
 const { createAccountService } = require('./services/account-service');
 const { createAppUserRepository } = require('./repositories/app-user-repository');
+const { createReportBundleRepository } = require('./repositories/report-bundle-repository');
+const { createReportService } = require('./services/report-service');
 
 function send(res, status, body) {
   res.statusCode = status;
@@ -19,6 +21,9 @@ const { assertAuthorized, assertAdmin } = createAuthorizationPolicy({ httpError 
 const appUserRepository = createAppUserRepository({ httpError });
 const { getAuthenticatedUser } = createAuthService({ appUserRepository, httpError });
 const accountService = createAccountService({ appUserRepository, assertAdmin, httpError, send });
+const appsScriptClient = createAppsScriptClient();
+const reportBundleRepository = createReportBundleRepository({ httpError });
+const reportService = createReportService({ reportBundleRepository, appsScriptClient, httpError, send });
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return send(res, 405, { ok: false, error: 'Method not allowed.' });
@@ -41,13 +46,16 @@ module.exports = async function handler(req, res) {
     if (accountService.handles(action)) {
       return accountService.handle(action, req, res, config, user);
     }
+    if (reportService.handles(action)) {
+      return reportService.handle(action, req, res, config, user);
+    }
 
     const params = req.method === 'GET' ? { ...req.query } : { ...(req.body?.params || {}) };
     delete params.action;
     const body = req.method === 'POST' ? { ...(req.body || {}) } : {};
     delete body.action;
     delete body.params;
-    const client = createAppsScriptClient();
+    const client = appsScriptClient;
     const result = await client.forward({
       url: config.appsScriptUrl,
       action,

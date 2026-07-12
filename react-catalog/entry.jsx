@@ -11,7 +11,12 @@ function mountReactCatalogReadOnly() {
   window.__REACT_CATALOG_READONLY_ACTIVE = true;
   legacy.remove();
   target.hidden = false;
-  createRoot(target).render(<CatalogReadOnly bridge={{ setCatalogSheetTab: window.setCatalogSheetTab }}/>);
+  createRoot(target).render(<CatalogReadOnly bridge={{
+    setCatalogSheetTab: window.setCatalogSheetTab,
+    debounceCatalogSearch: window.debounceCatalogSearch,
+    filterCatalogRows: window.filterCatalogRows,
+    changeCatalogPage: window.changeCatalogPage
+  }}/>);
   queueMicrotask(() => window.loadCatalogSheetData?.(false));
   return true;
 }

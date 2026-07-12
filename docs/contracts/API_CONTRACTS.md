@@ -112,6 +112,8 @@ HTTP status thường dùng:
 | `413` | Payload proxy vượt 1 MiB |
 | `500` | Lỗi proxy/Auth/account operation |
 | `502` | Apps Script upstream lỗi hoặc trả JSON không hợp lệ |
+
+`api/services/apps-script-client.js` sở hữu envelope forward, payload-size guard và upstream/status/JSON mapping; `/api/app` giữ endpoint và gửi lại đúng HTTP/body contract. Public `health` không tạo user session và authorization guard phải chấp nhận `user=null` cho action này.
 | `503` | Proxy thiếu biến môi trường bắt buộc |
 
 Apps Script HTTP endpoint có thể trả HTTP 200 với payload `{ok:false}`; proxy chuyển payload đó thành HTTP 400.

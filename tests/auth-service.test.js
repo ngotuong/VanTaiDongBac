@@ -63,3 +63,16 @@ test('AuthService returns the existing request-user shape and display-name fallb
     id: 'user-1', username: 'tester', email: 'tester@dongbac.internal', role: 'operator', displayName: 'tester'
   });
 });
+
+test('AuthService accepts the server HttpOnly cookie when bearer header is absent', async () => {
+  const service = createAuthService({
+    httpError,
+    fetchImpl: async (_url, options) => {
+      assert.equal(options.headers.Authorization, 'Bearer cookie-token');
+      return { ok: true, json: async () => ({ id: 'user-1' }) };
+    },
+    appUserRepository: { findActiveByUserId: async () => ({ username: 'tester', email: 'tester@dongbac.internal', role: 'operator' }) }
+  });
+  const user = await service.getAuthenticatedUser({ headers: { cookie: 'vtdb_access_token=cookie-token' } }, config);
+  assert.equal(user.username, 'tester');
+});

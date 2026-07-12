@@ -4,6 +4,14 @@ Các thay đổi đáng chú ý của repository được ghi tại đây. Trạ
 
 ## Unreleased
 
+### Documentation — Bounded Next.js migration handoff
+
+- Thêm `NEXTJS_MIGRATION_PLAN.md` với 12 checkpoint hữu hạn từ foundation đến legacy removal và Definition of Done rõ cho từng module.
+- Viết lại `PROJECT_CONTEXT.md` thành current-state handoff duy nhất trả lời sáu câu hỏi khởi động.
+- Rút `docs/ai/AI_START_HERE.md` thành router tài liệu theo tác vụ và cập nhật `AGENTS.md` để mặc định chỉ bắt buộc đọc `AGENTS.md` + `PROJECT_CONTEXT.md`.
+- Đánh dấu `REFACTOR_PLAN.md` Step 1–36 và `AUDIT_REPORT.md` là historical; không còn dùng để suy ra bước tiếp theo.
+- Cập nhật documentation ownership; không thay đổi code, runtime, API, schema, Google Sheet hoặc deployment.
+
 ### Documentation — Target architecture and Agent handoff
 
 - Thêm `TARGET_ARCHITECTURE.md` làm nguồn chuẩn cho layered target architecture, dependency direction, refactor principles và approval gate.

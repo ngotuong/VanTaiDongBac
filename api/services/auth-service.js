@@ -1,7 +1,9 @@
+const { accessTokenFromRequest } = require('./session-cookie-service');
+
 function createAuthService({ fetchImpl = fetch, appUserRepository, httpError }) {
   function bearerToken(req) {
-    const value = String(req.headers.authorization || '');
-    return value.startsWith('Bearer ') ? value.slice(7).trim() : '';
+    const value = String(req.headers?.authorization || '');
+    return value.startsWith('Bearer ') ? value.slice(7).trim() : accessTokenFromRequest(req);
   }
 
   async function getAuthenticatedUser(req, config) {

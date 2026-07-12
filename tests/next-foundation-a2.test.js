@@ -12,7 +12,7 @@ test('A2 root layout is a dynamic server auth guard around the shared shell', ()
   assert.match(rootLayout, /dynamic = 'force-dynamic'/);
   assert.match(layout, /loadPlatformContext/);
   assert.match(layout, /error\?\.status === 401 \|\| error\?\.status === 403/);
-  assert.match(layout, /redirect\('\/'\)/);
+  assert.match(layout, /redirect\(`\$\{protocol\}:\/\/\$\{host\}\/`\)/);
   assert.match(layout, /<WorkbookContextProvider value=\{context\}>/);
   assert.match(layout, /<AppShell context=\{context\}>/);
 });

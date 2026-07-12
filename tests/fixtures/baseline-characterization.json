@@ -127,8 +127,12 @@
       "resetUserPassword",
       "updateUser"
     ],
+    "localFoundationActions": [
+      "runtimeContext"
+    ],
     "shareholderActions": [
       "authSession",
+      "runtimeContext",
       "changeOwnPassword",
       "checkTripReconciliation",
       "getCatalogs",

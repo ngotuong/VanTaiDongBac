@@ -6,10 +6,10 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('Next Accounts shell is static-exported under an isolated base path', () => {
+test('Next Accounts shell uses the A1 runtime under an isolated base path', () => {
   const config = read('next-shell/next.config.mjs');
   const page = read('next-shell/app/page.jsx');
-  assert.match(config, /output: 'export'/);
+  assert.doesNotMatch(config, /output: 'export'/);
   assert.match(config, /basePath: '\/next-accounts'/);
   assert.match(page, /<Accounts/);
   assert.match(read('package.json'), /build:next-accounts/);

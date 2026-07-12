@@ -55,6 +55,7 @@ test('proxy authentication and shareholder action surfaces match the baseline', 
     const owner = action === 'authSession' ? proxy : accountService;
     assert.match(owner, new RegExp(`'${action}'`));
   }
+  for (const action of baseline.proxy.localFoundationActions) assert.match(proxy, new RegExp(`'${action}'`));
   for (const action of baseline.proxy.unauthenticatedActions) {
     assert.match(proxy, new RegExp(`action !== '${action}'`));
   }

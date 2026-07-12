@@ -38,7 +38,7 @@ function frontendApiCalls() {
 test('literal frontend API calls resolve to a characterized method and handler surface', () => {
   const getActions = new Set(baseline.publicApi.getActions);
   const postActions = new Set(baseline.publicApi.postActions);
-  const proxyLocalActions = new Set(baseline.proxy.localAccountActions);
+  const proxyLocalActions = new Set([...baseline.proxy.localAccountActions, ...baseline.proxy.localFoundationActions]);
   const calls = frontendApiCalls();
   assert.ok(calls.length > 0, 'No literal frontend API calls were found.');
 

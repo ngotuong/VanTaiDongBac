@@ -129,6 +129,7 @@ Mục đích: cổ đông/chủ sở hữu chỉ xem dữ liệu được cho ph
 Quyền hiện tại:
 
 - đăng nhập và xem session;
+- đọc `runtimeContext` đã được resolve từ allowlist server;
 - đổi mật khẩu cá nhân;
 - đọc startup;
 - xem Tổng quan và Báo cáo;
@@ -269,6 +270,7 @@ Ký hiệu:
 | --- | --- | --- | --- | --- | --- |
 | `health` | GET | R | R | R | Không yêu cầu Auth tại proxy |
 | `authSession` | GET | R | R | R | Session + allowlist |
+| `runtimeContext` | GET | R | R | R | Session + allowlist workbook server |
 | `changeOwnPassword` | POST | W | W | W | Proxy account handler |
 | `listUsers` | GET | A | — | — | `assertAdmin` |
 | `createUser` | POST | A | — | — | `assertAdmin` |

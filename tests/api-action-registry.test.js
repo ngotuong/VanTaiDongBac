@@ -26,7 +26,7 @@ test('registry public GET/POST surfaces exactly match the characterized API', ()
 
 test('registry proxy-local and shareholder permission metadata match the proxy baseline', () => {
   const rows = loadRegistry().list().map((row) => JSON.parse(JSON.stringify(row)));
-  assert.deepEqual(sorted(rows.filter((row) => row.proxyLocal).map((row) => row.action)), sorted(baseline.proxy.localAccountActions));
+  assert.deepEqual(sorted(rows.filter((row) => row.proxyLocal).map((row) => row.action)), sorted([...baseline.proxy.localAccountActions, ...baseline.proxy.localFoundationActions]));
   assert.deepEqual(sorted(rows.filter((row) => row.permission === 'shareholder').map((row) => row.action)), sorted(baseline.proxy.shareholderActions));
   assert.deepEqual(sorted(rows.filter((row) => row.proxyLocal && row.permission === 'admin').map((row) => row.action)),
     ['createUser', 'listUsers', 'resetUserPassword', 'updateUser']);

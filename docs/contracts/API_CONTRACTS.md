@@ -1,5 +1,12 @@
 # API_CONTRACTS
 
+## Next Foundation A1 session/context boundary
+
+- `POST /api/session`: nhận Supabase session từ same-origin browser sau sign-in; bắt buộc `X-VTDB-CSRF: session`; xác minh Auth và active allowlist trước khi đặt cookie `HttpOnly`.
+- `GET /api/session`: đọc cookie server, xác minh request user và refresh qua Supabase khi access token hết hạn; không trả token trong response.
+- `DELETE /api/session`: yêu cầu same-origin và CSRF header, sau đó xóa access/refresh cookie.
+- `GET /api/app?action=runtimeContext&module=<transport|cashflow>&year=<YYYY>`: action read-only; resolve workbook từ `WORKBOOK_CONTEXTS_JSON`; chỉ trả user, module và year; không trả Spreadsheet ID, không fallback bundle mới nhất và không gọi Apps Script.
+
 ## 1. Mục đích và phạm vi
 
 Tài liệu này mô tả contract API hiện trạng giữa:

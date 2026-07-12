@@ -9,6 +9,24 @@
       return client.auth.getSession().then(({ data }) => data?.session?.access_token || '');
     }
 
+    async function syncServerSession(session) {
+      if (typeof fetch !== 'function' || !session?.access_token || !session?.refresh_token) return null;
+      const response = await fetch('/api/session', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-VTDB-CSRF': 'session' },
+        body: JSON.stringify({ session: { access_token: session.access_token, refresh_token: session.refresh_token, expires_in: session.expires_in } })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result?.ok === false) throw new Error(result?.error || 'Không tạo được server session.');
+      return result;
+    }
+
+    async function clearServerSession() {
+      if (typeof fetch !== 'function') return;
+      await fetch('/api/session', { method: 'DELETE', credentials: 'same-origin', headers: { 'X-VTDB-CSRF': 'session' } }).catch(() => null);
+    }
+
     function normalizeSupabaseEnabledFlag(value) {
       const text = String(value || '').trim().toLowerCase();
       return ['1', 'true', 'yes', 'on'].includes(text);
@@ -106,7 +124,7 @@
       const button = document.getElementById('usernameSignInBtn');
       if (button) button.disabled = true;
       setAuthStatus('Đang xác thực...', false);
-      const { error } = await client.auth.signInWithPassword({
+      const { data, error } = await client.auth.signInWithPassword({
         email: username + '@dongbac.internal',
         password: password
       });
@@ -115,12 +133,21 @@
         setAuthStatus('Tên đăng nhập hoặc mật khẩu không đúng.', true);
         return;
       }
+      try {
+        await syncServerSession(data?.session);
+      } catch (sessionError) {
+        await client.auth.signOut();
+        if (button) button.disabled = false;
+        setAuthStatus(sessionError.message || 'Không tạo được phiên đăng nhập server.', true);
+        return;
+      }
       try { localStorage.setItem('dongbac_auth_username', username); } catch (err) {}
       window.location.reload();
     }
 
     async function signOutCurrentUser() {
       const client = getSupabaseClient();
+      await clearServerSession();
       if (client) await client.auth.signOut();
       sessionStorage.clear();
       showAuthGate('Bạn đã đăng xuất.');
@@ -143,6 +170,7 @@
         return;
       }
       try {
+        await syncServerSession(data.session);
         const result = await callFetchApi('GET', 'authSession');
         hideAuthGate(result.user || data.session.user);
         init();

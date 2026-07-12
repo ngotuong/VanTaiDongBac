@@ -1,5 +1,6 @@
 const SHAREHOLDER_ACTIONS = new Set([
   'authSession',
+  'runtimeContext',
   'changeOwnPassword',
   'getStartupData',
   'getDashboard',

@@ -79,10 +79,10 @@ Vai trò dữ liệu hiện tại:
 ### 3.2. Trạng thái Next.js thực tế
 
 - Next.js `16.2.10`, React `19.2.7`.
-- Dùng App Router trong `next-shell/app/`.
-- `next-shell/next.config.mjs` giữ `basePath: '/next-accounts'` nhưng đã bỏ `output: 'export'` trong A1.
-- Source có Vercel Next runtime canary riêng qua `vercel.next.json`; route `/foundation` được server-render theo request.
-- Production hiện tại chưa deploy runtime canary mới; các route Next production cũ vẫn là artifact tĩnh của deployment gần nhất.
+- Source route/component tiếp tục nằm trong `next-shell/`; root `app/` là Vercel App Router entrypoint mỏng.
+- `next.config.mjs` giữ `basePath: '/next-accounts'` và không dùng `output: 'export'`.
+- Vercel Next runtime canary riêng đã deploy; route `/foundation` được server-render theo request.
+- Production reverse-proxy `/next-accounts/*` cùng origin sang canary; `/` vẫn là legacy static.
 - `/` vẫn do frontend legacy render; Next.js chưa phải application shell chính.
 - Các React island trong trang legacy vẫn phụ thuộc feature flag và DOM bridge; production flag mặc định tắt tại checkpoint gần nhất.
 - Route `/next-accounts/reports/` là frontend Next độc lập đầu tiên dùng API Report hiện có.
@@ -106,7 +106,7 @@ Dashboard không dùng Report service mới; Entry và Manage cũng chưa chuy�
 
 ### Documentation checkpoint — Next.js migration handoff
 
-Trạng thái: **hoàn thành local, đang chờ commit cùng A1 ngày 2026-07-12**.
+Trạng thái: **hoàn thành và đã commit cùng source A1 ngày 2026-07-12**.
 
 Phạm vi:
 
@@ -114,12 +114,16 @@ Phạm vi:
 - đánh dấu tài liệu refactor/audit cũ là historical;
 - không thay đổi runtime, API, schema hoặc deployment trong documentation checkpoint.
 
-Implementation A1 đã có trong worktree nhưng checkpoint chưa hoàn tất vận hành:
+Trạng thái A1: **IN PROGRESS — chỉ còn authenticated smoke**.
 
-- `npm test`: 306/306 pass;
+- `npm test`: 309/309 pass tại gate gần nhất;
 - `npm run build`: pass; `/foundation` được xác nhận dynamic server-rendered, các canary route còn lại vẫn prerender tĩnh;
 - `git diff --check`: pass;
-- chưa commit/push/deploy hoặc smoke canary tại thời điểm cập nhật này.
+- branch `codex/next-foundation-a1` đã push GitHub;
+- Next canary production: `dpl_FPfWQJauYCf64iF2W5FY4rfL3GCq`, alias `vantaidongbac-next-canary.vercel.app`;
+- production legacy + same-origin rewrite: `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`;
+- smoke đạt: `/` legacy `200`, Next shell/Report/Foundation `200`, session/runtimeContext không token `401`, same-origin session thiếu payload `400`, sai origin `403`;
+- chưa smoke cookie exchange, authenticated workbook context và ba role vì trình duyệt không có session và không có credential test.
 
 Checkpoint runtime gần nhất trước đó:
 
@@ -141,12 +145,11 @@ Người dùng đã phê duyệt tiếp tục hoàn tất A1. Chưa bắt đầu
 
 Mục tiêu còn lại của A1:
 
-1. Commit và push source đã qua local gates.
-2. Deploy Next runtime canary tách khỏi deployment legacy.
-3. Cấu hình workbook context server.
-4. Thiết lập same-origin reverse proxy hoặc chứng minh cookie flow tương đương an toàn.
-5. Smoke Auth/RBAC/workbook context và rollback.
-6. Chỉ sau khi đạt mới đánh dấu A1 `DONE` và đề xuất A2.
+1. Đăng nhập bằng tài khoản test đã được cấp quyền trên `dongbac.vercel.app`.
+2. Xác nhận `POST /api/session` tạo cookie server và `/next-accounts/foundation/` render user/context.
+3. Xác nhận shareholder vẫn read-only; admin/operator không bị giảm quyền.
+4. Sign out và xác nhận cookie bị xóa.
+5. Sau khi đạt mới đánh dấu A1 `DONE` và đề xuất A2.
 
 A1 không chuyển Dashboard, Entry, Manage, Catalog hoặc Cashflow.
 
@@ -213,14 +216,14 @@ Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 ## 8. Verification baseline hiện tại
 
-Baseline đã xác nhận sau A1:
+Baseline đã xác nhận trong A1:
 
 - `npm run build`: pass; `/foundation` dynamic, các route canary còn lại được prerender.
-- `npm test`: 306/306 pass.
+- `npm test`: 309/309 pass.
 - `npm run lint`: chưa tồn tại.
 - TypeScript check độc lập: chưa cấu hình; source Next hiện là JS/JSX.
 - Production `/`: frontend legacy, chưa đăng nhập sẽ dừng ở auth gate.
-- Production `/next-accounts/reports/`: hydrate Next và gọi Report API; chưa có session trả 401 phù hợp.
+- Production `/next-accounts/reports/`: được reverse-proxy sang Next runtime canary.
 - Responsive auth gate không horizontal overflow tại 375, 390, 430, 768 và 1440 px.
 - Next Report dùng tab cuộn ngang tại mobile; không làm tràn document.
 

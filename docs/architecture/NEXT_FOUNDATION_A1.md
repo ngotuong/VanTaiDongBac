@@ -7,9 +7,9 @@ Next.js canary dùng Vercel Next.js runtime, không còn `output: 'export'`. Rou
 Hai deployment boundary được tách rõ trong giai đoạn foundation:
 
 - `vercel.json`: deployment legacy hiện tại, output tĩnh tại repository root;
-- `vercel.next.json`: deployment canary Next runtime, build `next-shell/.next`.
+- `vercel.next.json`: deployment canary Next runtime; root `app/` re-export route source từ `next-shell/app/` để dùng Vercel adapter chuẩn.
 
-Không dùng cấu hình Next runtime để deploy đè production legacy. Canary phải được liên kết với Vercel project/deployment riêng và được reverse-proxy dưới cùng origin `/next-accounts/*`; cookie host-only không được chia sẻ bằng cách mở trực tiếp domain canary khác. Rollback là bỏ rewrite canary và giữ nguyên deployment legacy đang chạy. A1 chưa deploy hoặc đổi route production.
+Không dùng cấu hình Next runtime để deploy đè production legacy. Canary thuộc project `vantaidongbac-next-canary` và được reverse-proxy dưới cùng origin `/next-accounts/*`; cookie host-only không được chia sẻ bằng cách mở trực tiếp domain canary khác. Build legacy xóa artifact tĩnh `next-accounts/` trước khi deploy để filesystem không che rewrite. Rollback là promote deployment legacy trước A1 hoặc bỏ rewrite và phục hồi static artifact.
 
 ## 2. Cookie session và threat model
 
@@ -17,7 +17,7 @@ Browser vẫn đăng nhập bằng Supabase SDK. Sau khi Supabase trả session,
 
 Server kiểm tra same-origin và CSRF header, xác minh access token bằng Supabase Auth, kiểm tra `app_users` đang active, rồi mới đặt cookie. Cookie dùng `HttpOnly`, `SameSite=Strict`, `Secure` ở production và `Path=/`. Access cookie tối đa một giờ; refresh cookie tối đa 30 ngày. `GET /api/session` refresh session khi access token hết hạn; `DELETE /api/session` xóa cả hai cookie.
 
-Service role key, Apps Script proxy secret và refresh token không được render vào React props, HTML hoặc JavaScript bundle. Server Components và Vercel API có thể xác thực bằng cookie; Bearer JWT cũ vẫn được hỗ trợ trong giai đoạn compatibility.
+Service role key, Apps Script proxy secret và refresh token không được render vào React props, HTML hoặc JavaScript bundle. Auth foundation dùng JWT người dùng để đọc chính row `app_users` qua RLS `Read own app user`; không cần service role. Các API nghiệp vụ khác vẫn giữ server credential và proxy secret hiện có. Server Components và Vercel API có thể xác thực bằng cookie; Bearer JWT cũ vẫn được hỗ trợ trong giai đoạn compatibility.
 
 ## 3. Request user và RBAC
 
@@ -39,6 +39,6 @@ Resolver chỉ nhận `module` (`transport` hoặc `cashflow`) và năm bốn ch
 
 Local gate: `npm test`, `npm run build`, `git diff --check`.
 
-Smoke canary sau khi được phê duyệt deploy riêng: đăng nhập legacy; mở `/next-accounts/foundation/?module=transport&year=2026`; kiểm tra ba role; thử module/year ngoài allowlist; sign out rồi reload route.
+Smoke chưa đăng nhập đã đạt trên production: `/`, shell, Report và Foundation `200`; session/runtimeContext không token `401`; CSRF/origin sai bị chặn. Smoke đăng nhập, ba role và sign-out còn chờ tài khoản test được đăng nhập trong trình duyệt.
 
-Rollback source: phục hồi static export/copy artifact và bỏ canary runtime config. Rollback production hiện tại không cần hành động vì A1 không deploy hoặc đổi `/`.
+Deployment canary đã xác nhận: `dpl_FPfWQJauYCf64iF2W5FY4rfL3GCq`. Deployment production chứa same-origin rewrite: `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`. Rollback production gần nhất trước rewrite ổn định: `dpl_HPz42VCJUgQdGH1KsKvA1D1cz1kq` hoặc checkpoint Phase 6 `dpl_y3oddZTTtfmFewyQyTwYjwTnRDtV`.

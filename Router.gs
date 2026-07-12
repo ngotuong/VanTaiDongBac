@@ -129,6 +129,12 @@ function renderIndex_() {
   template.reactFundCatalogEnabled = props.getProperty('REACT_FUND_CATALOG_ENABLED') || '';
   template.reactDashboardEnabled = props.getProperty('REACT_DASHBOARD_ENABLED') || '';
   template.reactReportsEnabled = props.getProperty('REACT_REPORTS_ENABLED') || '';
+  template.reactManageReadOnlyEnabled = props.getProperty('REACT_MANAGE_READONLY_ENABLED') || '';
+  template.reactManageFiltersEnabled = props.getProperty('REACT_MANAGE_FILTERS_ENABLED') || '';
+  template.reactEntryRenderEnabled = props.getProperty('REACT_ENTRY_RENDER_ENABLED') || '';
+  template.reactEntrySubmitEnabled = props.getProperty('REACT_ENTRY_SUBMIT_ENABLED') || '';
+  template.reactManageEditEnabled = props.getProperty('REACT_MANAGE_EDIT_ENABLED') || '';
+  template.reactManageDeleteEnabled = props.getProperty('REACT_MANAGE_DELETE_ENABLED') || '';
   return template
     .evaluate()
     .setTitle('Vận tải Đông Bắc - Hệ thống điều hành nội bộ')

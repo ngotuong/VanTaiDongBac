@@ -14,6 +14,7 @@ const AUTH_ENABLED = process.env.VITE_AUTH_ENABLED || process.env.AUTH_ENABLED |
 const REACT_ACCOUNTS_ENABLED = process.env.VITE_REACT_ACCOUNTS_ENABLED || process.env.REACT_ACCOUNTS_ENABLED || '';
 const REACT_OBSERVABILITY_ENABLED = process.env.VITE_REACT_OBSERVABILITY_ENABLED || process.env.REACT_OBSERVABILITY_ENABLED || '';
 const REACT_CATALOG_READONLY_ENABLED = process.env.VITE_REACT_CATALOG_READONLY_ENABLED || process.env.REACT_CATALOG_READONLY_ENABLED || '';
+const REACT_CATALOG_WRITE_ENABLED = process.env.VITE_REACT_CATALOG_WRITE_ENABLED || process.env.REACT_CATALOG_WRITE_ENABLED || '';
 
 console.log('🔄 Bắt đầu quá trình build index.html...');
 
@@ -35,6 +36,10 @@ try {
   templateContent = templateContent.replace(
     /<\?!=\s*JSON\.stringify\(reactCatalogReadOnlyEnabled\s*\|\|\s*''\)\s*\?>/g,
     JSON.stringify(REACT_CATALOG_READONLY_ENABLED)
+  );
+  templateContent = templateContent.replace(
+    /<\?!=\s*JSON\.stringify\(reactCatalogWriteEnabled\s*\|\|\s*''\)\s*\?>/g,
+    JSON.stringify(REACT_CATALOG_WRITE_ENABLED)
   );
   templateContent = templateContent.replace(
     /<\?!=\s*JSON\.stringify\(supabaseUrl\s*\|\|\s*''\)\s*\?>/g,

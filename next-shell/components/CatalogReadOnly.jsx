@@ -8,7 +8,7 @@ const sheets = [
   ['DM_ThuongQuanLy', 'Thưởng quản lý'], ['DM_PhatNoiBo', 'Quy định phạt']
 ];
 
-export default function CatalogReadOnly({ bridge }) {
+export default function CatalogReadOnly({ bridge, writeEnabled = false }) {
   const selectSheet = (sheetName) => bridge && typeof bridge.setCatalogSheetTab === 'function' && bridge.setCatalogSheetTab(sheetName);
   const call = (name, ...args) => bridge && typeof bridge[name] === 'function' ? bridge[name](...args) : undefined;
   return <div data-react-catalog-readonly="true">
@@ -21,6 +21,7 @@ export default function CatalogReadOnly({ bridge }) {
         <label className="catalog-search-control">Tìm kiếm:<input type="text" id="catalogSearchInput" placeholder="Tìm kiếm trong danh mục..." onInput={() => call('debounceCatalogSearch')}/></label>
         <label id="catalogPersonnelStatusFilterWrap" className="catalog-compact-filter" style={{ display: 'none' }}><select id="catalogPersonnelStatusFilter" defaultValue="active" onChange={() => call('filterCatalogRows')}><option value="active">Đang làm</option><option value="inactive">Đã nghỉ</option><option value="all">Tất cả</option></select></label>
         <label id="catalogVehicleOwnerFilterWrap" className="catalog-compact-filter" style={{ display: 'none' }}><select id="catalogVehicleOwnerFilter" aria-label="Lọc công ty xe" defaultValue="" onChange={() => call('filterCatalogRows')}><option value="">Tất cả</option></select></label>
+        {writeEnabled && <button type="button" className="primary icon-button catalog-react-add" data-write-only="true" title="Thêm dòng mới" aria-label="Thêm dòng mới" onClick={() => call('openCatalogAddModal')}><svg className="btn-svg" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>}
       </div>
     </div>
     <div className="table-card">

@@ -4,6 +4,14 @@ Các thay đổi đáng chú ý của repository được ghi tại đây. Trạ
 
 ## Unreleased
 
+### Next Foundation A1 — Runtime, cookie auth và workbook context
+
+- Chuyển Next canary sang Vercel Next runtime động và reverse-proxy `/next-accounts/*` cùng origin, giữ `/` legacy.
+- Thêm Supabase server cookie session, CSRF/origin guard, refresh và sign-out cleanup.
+- Dùng authenticated JWT + RLS cho active user profile và server allowlist cho workbook `module + year`.
+- Thêm vertical slice read-only `/next-accounts/foundation/`; không migration hoặc ghi Google Sheet.
+- Production smoke đạt cho admin sign-in/context/sign-out; RBAC parity còn lại được bảo vệ bằng contract tests.
+
 ### Documentation — Bounded Next.js migration handoff
 
 - Thêm `NEXTJS_MIGRATION_PLAN.md` với 12 checkpoint hữu hạn từ foundation đến legacy removal và Definition of Done rõ cho từng module.

@@ -68,7 +68,7 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 
 | ID | Checkpoint | Trạng thái ban đầu | Dependency |
 | --- | --- | --- | --- |
-| A1 | Runtime, cookie auth và workbook context | IN PROGRESS | Documentation checkpoint |
+| A1 | Runtime, cookie auth và workbook context | DONE | Documentation checkpoint |
 | A2 | Next application shell và shared platform | NOT STARTED | A1 |
 | B1 | Hoàn thiện Report | NOT STARTED | A2 |
 | B2 | Migrate Dashboard | NOT STARTED | B1 |

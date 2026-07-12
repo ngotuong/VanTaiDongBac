@@ -39,6 +39,6 @@ Resolver chỉ nhận `module` (`transport` hoặc `cashflow`) và năm bốn ch
 
 Local gate: `npm test`, `npm run build`, `git diff --check`.
 
-Smoke chưa đăng nhập đã đạt trên production: `/`, shell, Report và Foundation `200`; session/runtimeContext không token `401`; CSRF/origin sai bị chặn. Smoke đăng nhập, ba role và sign-out còn chờ tài khoản test được đăng nhập trong trình duyệt.
+Smoke chưa đăng nhập đã đạt trên production: `/`, shell, Report và Foundation `200`; session/runtimeContext không token `401`; CSRF/origin sai bị chặn. Authenticated smoke admin cũng đạt: legacy nhận đúng role, Foundation render `transport · 2026`, năm ngoài allowlist bị chặn, sign-out xóa server cookie và route quay về trạng thái yêu cầu đăng nhập. Operator/shareholder parity được kiểm tra bằng contract tests, không tạo user production mới để smoke.
 
 Deployment canary đã xác nhận: `dpl_FPfWQJauYCf64iF2W5FY4rfL3GCq`. Deployment production chứa same-origin rewrite: `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`. Rollback production gần nhất trước rewrite ổn định: `dpl_HPz42VCJUgQdGH1KsKvA1D1cz1kq` hoặc checkpoint Phase 6 `dpl_y3oddZTTtfmFewyQyTwYjwTnRDtV`.

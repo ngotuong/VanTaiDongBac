@@ -104,17 +104,20 @@ Dashboard không dùng Report service mới; Entry và Manage cũng chưa chuy�
 
 ## 4. Checkpoint gần nhất đã hoàn thành
 
-### Documentation checkpoint — Next.js migration handoff
+### Next Foundation A1 — Runtime, cookie auth và workbook context
 
-Trạng thái: **hoàn thành và đã commit cùng source A1 ngày 2026-07-12**.
+Trạng thái: **hoàn thành ngày 2026-07-12**.
 
 Phạm vi:
 
-- tạo roadmap Next.js hữu hạn, rút gọn current-state handoff và router tài liệu;
-- đánh dấu tài liệu refactor/audit cũ là historical;
-- không thay đổi runtime, API, schema hoặc deployment trong documentation checkpoint.
+- chuyển source Next khỏi static-export-only và deploy Vercel Next runtime canary riêng;
+- reverse-proxy `/next-accounts/*` cùng origin trong khi giữ `/` legacy;
+- thêm Supabase server cookie session với same-origin/CSRF guard, refresh và sign-out cleanup;
+- dùng JWT người dùng + RLS để đọc chính active `app_users` profile, không cần service role trong foundation auth;
+- resolve workbook theo server allowlist `module + year`, không nhận Spreadsheet ID tùy ý;
+- chứng minh bằng vertical slice server-rendered `/next-accounts/foundation/`, không đọc/ghi Google Sheet.
 
-Trạng thái A1: **IN PROGRESS — chỉ còn authenticated smoke**.
+Verification A1:
 
 - `npm test`: 309/309 pass tại gate gần nhất;
 - `npm run build`: pass; `/foundation` được xác nhận dynamic server-rendered, các canary route còn lại vẫn prerender tĩnh;
@@ -123,7 +126,9 @@ Trạng thái A1: **IN PROGRESS — chỉ còn authenticated smoke**.
 - Next canary production: `dpl_FPfWQJauYCf64iF2W5FY4rfL3GCq`, alias `vantaidongbac-next-canary.vercel.app`;
 - production legacy + same-origin rewrite: `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`;
 - smoke đạt: `/` legacy `200`, Next shell/Report/Foundation `200`, session/runtimeContext không token `401`, same-origin session thiếu payload `400`, sai origin `403`;
-- chưa smoke cookie exchange, authenticated workbook context và ba role vì trình duyệt không có session và không có credential test.
+- authenticated production smoke bằng tài khoản admin đạt: sign-in, role, cookie server, `transport · 2026`, reject năm `2027`, sign-out và cookie cleanup;
+- operator/shareholder parity được giữ bằng API/RBAC contract tests; không tạo tài khoản production mới chỉ để smoke;
+- không migration Sheet/Supabase, không thay đổi Apps Script deployment và không chạy business write.
 
 Checkpoint runtime gần nhất trước đó:
 
@@ -139,19 +144,20 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### Hoàn tất Next Foundation A1 — Commit, canary deployment và smoke
+### Next Foundation A2 — Application shell và shared platform
 
-Người dùng đã phê duyệt tiếp tục hoàn tất A1. Chưa bắt đầu A2.
+Chỉ bắt đầu sau khi người dùng phê duyệt rõ ràng checkpoint A2 trong `NEXTJS_MIGRATION_PLAN.md`.
 
-Mục tiêu còn lại của A1:
+Mục tiêu A2:
 
-1. Đăng nhập bằng tài khoản test đã được cấp quyền trên `dongbac.vercel.app`.
-2. Xác nhận `POST /api/session` tạo cookie server và `/next-accounts/foundation/` render user/context.
-3. Xác nhận shareholder vẫn read-only; admin/operator không bị giảm quyền.
-4. Sign out và xác nhận cookie bị xóa.
-5. Sau khi đạt mới đánh dấu A1 `DONE` và đề xuất A2.
+1. Tạo root layout, navigation và role-aware application shell.
+2. Chuẩn hóa server/client API clients và auth guard.
+3. Tạo loading/error/not-found boundaries và workbook/year context provider.
+4. Thiết lập shared design tokens/components và correlation logging cơ bản.
+5. Định nghĩa quality gates `lint` và type-check.
+6. Giữ `/` legacy và chưa chuyển business module ngoài placeholder/navigation cần thiết.
 
-A1 không chuyển Dashboard, Entry, Manage, Catalog hoặc Cashflow.
+A2 không tự động chuyển Dashboard, Entry, Manage, Catalog hoặc Cashflow.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 

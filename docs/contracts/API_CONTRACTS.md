@@ -1,5 +1,12 @@
 # API_CONTRACTS
 
+## Next Foundation A2 shared client boundary
+
+- Server Components gọi API qua `serverPlatformApi()`: forward cookie server, dùng `cache: 'no-store'` và gắn `X-Correlation-ID` cho mỗi request.
+- Client Components gọi API qua `clientPlatformApi()`: same-origin, `credentials: 'same-origin'`, cùng error envelope với server client.
+- `PlatformApiError` chuẩn hóa `status`, `code`, `correlationId` và payload lỗi; không đưa service role, proxy secret, refresh token hoặc Spreadsheet ID xuống browser.
+- Shared shell chỉ truyền request user và workbook `module + year` đã resolve. API/RBAC boundary vẫn là nơi enforce quyền; việc ẩn navigation không thay thế authorization.
+
 ## Next Foundation A1 session/context boundary
 
 - `POST /api/session`: nhận Supabase session từ same-origin browser sau sign-in; bắt buộc `X-VTDB-CSRF: session`; xác minh Auth và active allowlist trước khi đặt cookie `HttpOnly`.

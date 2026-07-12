@@ -83,7 +83,7 @@ Vai trò dữ liệu hiện tại:
 - `next.config.mjs` giữ `basePath: '/next-accounts'` và không dùng `output: 'export'`.
 - Vercel Next runtime canary riêng đã deploy; route `/foundation` được server-render theo request.
 - Production reverse-proxy `/next-accounts/*` cùng origin sang canary; `/` vẫn là legacy static.
-- `/` vẫn do frontend legacy render; Next.js chưa phải application shell chính.
+- `/` vẫn do frontend legacy render; `/next-accounts/*` đã có shared application shell A2 nhưng chưa phải application shell production tại `/`.
 - Các React island trong trang legacy vẫn phụ thuộc feature flag và DOM bridge; production flag mặc định tắt tại checkpoint gần nhất.
 - Route `/next-accounts/reports/` là frontend Next độc lập đầu tiên dùng API Report hiện có.
 - Các route Next khác chủ yếu là canary/compatibility surface, chưa phải module độc lập hoàn chỉnh.
@@ -104,31 +104,30 @@ Dashboard không dùng Report service mới; Entry và Manage cũng chưa chuy�
 
 ## 4. Checkpoint gần nhất đã hoàn thành
 
-### Next Foundation A1 — Runtime, cookie auth và workbook context
+### Next Foundation A2 — Application shell và shared platform
 
 Trạng thái: **hoàn thành ngày 2026-07-12**.
 
-Phạm vi:
+Phạm vi hoàn thành:
 
-- chuyển source Next khỏi static-export-only và deploy Vercel Next runtime canary riêng;
-- reverse-proxy `/next-accounts/*` cùng origin trong khi giữ `/` legacy;
-- thêm Supabase server cookie session với same-origin/CSRF guard, refresh và sign-out cleanup;
-- dùng JWT người dùng + RLS để đọc chính active `app_users` profile, không cần service role trong foundation auth;
-- resolve workbook theo server allowlist `module + year`, không nhận Spreadsheet ID tùy ý;
-- chứng minh bằng vertical slice server-rendered `/next-accounts/foundation/`, không đọc/ghi Google Sheet.
+- root layout động với server auth guard, role-aware application shell và rollback link về `/` legacy;
+- workbook/year context provider dùng context server đã resolve;
+- typed server/client API clients với cookie forwarding, same-origin credentials và correlation ID;
+- loading/error/not-found boundaries và structured server error logging cơ bản;
+- semantic design tokens cho focus, touch, responsive, dark mode và reduced motion;
+- ESLint và TypeScript type-check độc lập;
+- không chuyển business module Phase B, không migration hoặc ghi Google Sheet.
 
-Verification A1:
+Verification A2 trước deploy:
 
-- `npm test`: 309/309 pass tại gate gần nhất;
-- `npm run build`: pass; `/foundation` được xác nhận dynamic server-rendered, các canary route còn lại vẫn prerender tĩnh;
-- `git diff --check`: pass;
-- branch `codex/next-foundation-a1` đã push GitHub;
-- Next canary production: `dpl_FPfWQJauYCf64iF2W5FY4rfL3GCq`, alias `vantaidongbac-next-canary.vercel.app`;
-- production legacy + same-origin rewrite: `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`;
-- smoke đạt: `/` legacy `200`, Next shell/Report/Foundation `200`, session/runtimeContext không token `401`, same-origin session thiếu payload `400`, sai origin `403`;
-- authenticated production smoke bằng tài khoản admin đạt: sign-in, role, cookie server, `transport · 2026`, reject năm `2027`, sign-out và cookie cleanup;
-- operator/shareholder parity được giữ bằng API/RBAC contract tests; không tạo tài khoản production mới chỉ để smoke;
-- không migration Sheet/Supabase, không thay đổi Apps Script deployment và không chạy business write.
+- `npm test`: 316/316 pass;
+- `npm run lint`: pass;
+- `npm run typecheck`: pass;
+- `npm run build:next-accounts`: pass; toàn bộ route shell dynamic server-rendered;
+- deployment ID, authenticated smoke và responsive QA được ghi sau khi canary production hoàn tất;
+- operator/shareholder parity tiếp tục được bảo vệ bằng API/RBAC contract tests.
+
+Checkpoint nền tảng trước đó A1 đã hoàn thành ngày 2026-07-12, branch `codex/next-foundation-a1` đã push; Next canary A1 là `dpl_FPfWQJauYCf64iF2W5FY4rfL3GCq`, production legacy + rewrite là `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`.
 
 Checkpoint runtime gần nhất trước đó:
 
@@ -144,20 +143,19 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### Next Foundation A2 — Application shell và shared platform
+### Phase B1 — Hoàn thiện Report
 
-Chỉ bắt đầu sau khi người dùng phê duyệt rõ ràng checkpoint A2 trong `NEXTJS_MIGRATION_PLAN.md`.
+Chỉ bắt đầu sau khi người dùng phê duyệt rõ ràng checkpoint B1 trong `NEXTJS_MIGRATION_PLAN.md`.
 
-Mục tiêu A2:
+Mục tiêu B1:
 
-1. Tạo root layout, navigation và role-aware application shell.
-2. Chuẩn hóa server/client API clients và auth guard.
-3. Tạo loading/error/not-found boundaries và workbook/year context provider.
-4. Thiết lập shared design tokens/components và correlation logging cơ bản.
-5. Định nghĩa quality gates `lint` và type-check.
-6. Giữ `/` legacy và chưa chuyển business module ngoài placeholder/navigation cần thiết.
+1. Chuyển initial Report read khỏi mount-only waterfall khi auth/runtime cho phép.
+2. Truyền đúng workbook/year context vào Report.
+3. Giữ nguyên bốn matrix chuẩn từ backend/Google Sheet.
+4. Giữ tab, search, month và export hiện có.
+5. Không tự tính lại KPI hoặc ý nghĩa báo cáo.
 
-A2 không tự động chuyển Dashboard, Entry, Manage, Catalog hoặc Cashflow.
+B1 không tự động chuyển Dashboard, Entry, Manage, Catalog hoặc Cashflow.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -194,44 +192,42 @@ Google Sheets source of truth / Supabase read model, cache, queue
 
 Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_PLAN.md`. Kiến trúc đích tổng quát thuộc `TARGET_ARCHITECTURE.md`.
 
-## 7. Rủi ro và điều kiện trước A2
+## 7. Rủi ro và điều kiện trước B1
 
-Các điều kiện bắt buộc phải làm rõ trước khi code A2:
+Các điều kiện bắt buộc phải làm rõ trước khi code B1:
 
-1. **Canary deployment boundary**
-   - runtime Next phải deploy bằng project/config riêng, không dùng `vercel.next.json` để đè deployment legacy;
-   - cần reverse-proxy `/next-accounts/*` dưới cùng origin để dùng host-only cookie; domain/route và rollback canary cần được duyệt trước deploy.
-2. **Shared shell chưa được phép thành module migration**
-   - navigation chỉ là placeholder/compatibility;
-   - không kéo business data hoặc write lifecycle vào A2.
-3. **Workbook context consumer**
-   - provider chỉ truyền context đã resolve;
-   - từng module chỉ chuyển sang context mới tại checkpoint B tương ứng.
+1. **Initial read và auth**
+   - tận dụng server auth/context A2 để tránh mount-only waterfall;
+   - không tạo duplicate Report request giữa server và client hydration.
+2. **Report contract**
+   - giữ nguyên bốn matrix chuẩn do backend/Sheet trả về;
+   - không tự tính lại KPI, payroll matching hoặc ý nghĩa số liệu ở Next.
+3. **Workbook context**
+   - Report phải dùng đúng `transport + year` đã resolve;
+   - không nhận Spreadsheet ID tùy ý từ browser và không fallback workbook mơ hồ.
 4. **RBAC và secret**
-   - role-aware UI không thay thế proxy enforcement;
+   - server/client API client A2 không thay thế proxy enforcement;
    - không render service role, proxy secret, refresh token hoặc Spreadsheet ID.
-5. **Quality gates đang thiếu**
-   - repository chưa có `npm run lint`;
-   - chưa có TypeScript/project type-check độc lập;
-   - cần quyết định thêm gate mà không trộn migration source lớn.
-6. **Không đụng dữ liệu production**
-   - A2 chỉ xây shared platform;
-   - không migration Sheet/Supabase, không test ghi production nếu chưa duyệt riêng.
+5. **Vercel Functions**
+   - kiểm tra giới hạn Functions của project Hobby trước khi thêm route/server boundary;
+   - helper repository/service không được publish thành endpoint độc lập.
+6. **Phạm vi**
+   - B1 chỉ hoàn thiện Report; không kéo Dashboard, Entry, Manage, Catalog hoặc Cashflow vào cùng checkpoint;
+   - không migration Sheet/Supabase và không chạy business write production.
 
 Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 ## 8. Verification baseline hiện tại
 
-Baseline đã xác nhận trong A1:
+Baseline mã nguồn đã xác nhận trong A2:
 
-- `npm run build`: pass; `/foundation` dynamic, các route canary còn lại được prerender.
-- `npm test`: 309/309 pass.
-- `npm run lint`: chưa tồn tại.
-- TypeScript check độc lập: chưa cấu hình; source Next hiện là JS/JSX.
+- `npm run build:next-accounts`: pass; mọi route shell dynamic server-rendered.
+- `npm test`: 316/316 pass.
+- `npm run lint`: pass.
+- `npm run typecheck`: pass.
 - Production `/`: frontend legacy, chưa đăng nhập sẽ dừng ở auth gate.
 - Production `/next-accounts/reports/`: được reverse-proxy sang Next runtime canary.
-- Responsive auth gate không horizontal overflow tại 375, 390, 430, 768 và 1440 px.
-- Next Report dùng tab cuộn ngang tại mobile; không làm tràn document.
+- Authenticated production smoke và responsive shell QA được ghi sau khi A2 canary production hoàn tất.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

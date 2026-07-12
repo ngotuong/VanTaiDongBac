@@ -1,0 +1,1 @@
+export default function Loading() { return <main className="next-accounts-shell"><section className="platform-boundary" aria-busy="true" aria-label="Đang tải nền tảng"><div className="platform-skeleton"><span/><span/><span/></div></section></main>; }

@@ -48,6 +48,7 @@
       "client_cashflow_catalog.html",
       "client_catalog.html",
       "client_config.html",
+      "client_pending_job_store.html",
       "client_dashboard.html",
       "client_data.html",
       "client_entry.html",

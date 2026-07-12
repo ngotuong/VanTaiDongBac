@@ -35,7 +35,7 @@ test('pending module preserves restore, polling, retry, and synced refresh contr
 test('pending overlay remains excluded after synced and keeps failure visible', () => {
   const source = read('client_cashflow_pending.html');
   assert.match(source, /job\.status === 'synced'/);
-  assert.match(source, /pendingFundWriteJobs = pendingFundWriteJobs\.filter/);
+  assert.match(source, /PendingJobStore\.remove\('fund', jobId\)/);
   assert.match(source, /job\.status === 'failed'/);
   assert.match(source, /renderFundTransactions\(fundTransactionsData\)/);
 });

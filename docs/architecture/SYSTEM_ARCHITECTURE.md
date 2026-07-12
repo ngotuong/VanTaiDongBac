@@ -180,6 +180,7 @@ Các nhóm chính:
 - `client_utils.html`: pure HTML escaping, text normalization, locale-number và date conversion dùng chung;
 - `client_config_constants.html`: navigation, form labels/icons/notes, Sheet mappings, field schema và page sizes bất biến;
 - `client_config.html`: mutable application state và stateful UI helpers;
+- `client_pending_job_store.html`: shared transport/fund pending-job state, restore và subscription boundary;
 - `client_api_transport.html`: chọn Apps Script runtime hay fetch `/api/app`, dựng request và map transport errors;
 - `client_supabase_cache.html`: Supabase REST bundle readers, payload mapping và stable cache keys;
 - `client_auth.html`: Supabase config/client, access token, auth gate, sign-in/sign-out và session bootstrap;
@@ -201,7 +202,7 @@ Các nhóm chính:
 - `client_observability.html`: trạng thái sync, write-job rendering và cache audit;
 - `client_ui.html`: drawer, loader, toast và utility UI chung.
 
-Các fragment phụ thuộc vào thứ tự include, global variables, global functions và DOM ID. Không có import graph hoặc type system kiểm tra dependency giữa chúng.
+Các fragment phụ thuộc vào thứ tự include, global variables, global functions và DOM ID. Pending-job state đã có store chung nhưng phần còn lại chưa có import graph hoặc type system kiểm tra dependency.
 
 Frontend hỗ trợ hai môi trường gọi backend:
 

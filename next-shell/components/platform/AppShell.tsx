@@ -21,7 +21,7 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
   return <div className="platform-shell">
     <a className="platform-skip-link" href="#platform-content">Bỏ qua điều hướng</a>
     <aside className="platform-sidebar">
-      <Link className="platform-brand" href="/" aria-label="Vận tải Đông Bắc - Nền tảng Next.js">
+      <Link className="platform-brand" href="/dashboard" prefetch={false} aria-label="Vận tải Đông Bắc - Tổng quan">
         <span className="platform-brand-mark" aria-hidden="true">ĐB</span>
         <span><strong>Vận tải Đông Bắc</strong><small>Next platform</small></span>
       </Link>

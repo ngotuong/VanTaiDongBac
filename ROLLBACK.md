@@ -90,6 +90,24 @@ clasp push
 
 ## Rollback C1 từ Next về frontend legacy
 
+### Trạng thái recovery UI ngày 2026-07-13
+
+Production hiện trỏ tới deployment recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` (`vantaidongbac-jgy6r6mjj-ngotuong2105.vercel.app`). Deployment này vẫn chạy Next API/runtime nhưng redirect `/` tới generated legacy shell; `/public/static/*` được rewrite tương thích sang `/static/*`.
+
+Rollback ngay trước recovery nếu cần:
+
+```bash
+vercel alias set vantaidongbac-g7ux1n4mi-ngotuong2105.vercel.app dongbac.vercel.app
+```
+
+Deployment rollback ngay trước recovery là `dpl_5qua6YTqNS1GPkWE1YGP1f1v9ouU`. Sau khi rollback phải kiểm tra root, logo, Report, Cashflow, health và authenticated `getReportBundle`; deployment này chưa có bản sửa latest-cache nên Report có thể fallback chậm sang Apps Script.
+
+Cut forward lại recovery:
+
+```bash
+vercel alias set vantaidongbac-jgy6r6mjj-ngotuong2105.vercel.app dongbac.vercel.app
+```
+
 Legacy C1 được giữ nguyên tại deployment `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS` và alias `https://vantaidongbac-legacy.vercel.app`.
 
 Rollback route production:

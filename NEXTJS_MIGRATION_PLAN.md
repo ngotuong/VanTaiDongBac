@@ -73,7 +73,7 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | B1 | Hoàn thiện Report | DONE | A2 |
 | B2 | Migrate Dashboard | DONE | B1 |
 | B3 | Migrate Manage read-only | DONE | A2 |
-| B4 | Migrate Entry/write lifecycle | NOT STARTED | B3 |
+| B4 | Migrate Entry/write lifecycle | DONE | B3 |
 | B5 | Migrate Catalog | NOT STARTED | A2 |
 | B6 | Migrate Cashflow/Quỹ | NOT STARTED | A2; có thể sau B4 |
 | B7 | Migrate Accounts, Settings và Observability | NOT STARTED | A2 |

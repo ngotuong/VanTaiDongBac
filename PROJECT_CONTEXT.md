@@ -85,7 +85,7 @@ Vai trò dữ liệu hiện tại:
 - Production reverse-proxy `/next-accounts/*` cùng origin sang canary; `/` vẫn là legacy static.
 - `/` vẫn do frontend legacy render; `/next-accounts/*` đã có shared application shell A2 nhưng chưa phải application shell production tại `/`.
 - Các React island trong trang legacy vẫn phụ thuộc feature flag và DOM bridge; production flag mặc định tắt tại checkpoint gần nhất.
-- Route `/next-accounts/reports/`, `/next-accounts/dashboard/` và `/next-accounts/manage/` là các frontend Next độc lập.
+- Route `/next-accounts/reports/`, `/next-accounts/dashboard/`, `/next-accounts/manage/` và `/next-accounts/entry/` là các frontend Next độc lập.
 - Các route Next khác chủ yếu là canary/compatibility surface, chưa phải module độc lập hoàn chỉnh.
 
 ### 3.3. Luồng Report hiện tại
@@ -100,33 +100,33 @@ Server Component / Next report-data -> GET /api/app?action=getReportBundle
         -> Google Sheet/report cache
 ```
 
-Dashboard B2 đọc bundle cache `__dashboard_latest__` theo workbook ở server và fallback Apps Script `getDashboard`. Manage B3 đọc sáu sheet `NL_*` theo `recent_500`/`month:YYYY-MM`, fallback `readManageData`; route Next này chỉ đọc và giữ write lifecycle cho B4.
+Dashboard B2 và Manage B3 giữ cache/fallback hiện hành. Entry B4 dùng catalog server-first, enqueue `submitRows`, kick worker, poll/retry write job và giữ Apps Script/Sheet services làm nơi validate/ghi có thẩm quyền.
 
 ## 4. Checkpoint gần nhất đã hoàn thành
 
-### Phase B3 — Migrate Manage read-only
+### Phase B4 — Migrate Entry/write lifecycle
 
 Trạng thái: **hoàn thành ngày 2026-07-13**.
 
 Phạm vi hoàn thành:
 
-- Manage route Next độc lập, initial read ở Server Component và không dùng DOM bridge;
-- allowlist đúng sáu sheet `NL_*`, giữ `rowIndex`, recent/month cache, giới hạn 50/500 và fallback Apps Script;
-- giữ sáu tab, kỳ nhanh/custom date, tìm kiếm, filter dầu và pagination 20 dòng;
-- UI/API route B3 không chứa nhập/sửa/xóa, queue action hoặc pending-write overlay;
+- Entry route Next độc lập cho sáu form, initial catalog read ở Server Component và không dùng DOM bridge;
+- giữ đúng field schema, multi-row add/clone/remove, trường bắt buộc và catalog options;
+- giữ `submitRows` queue, `processWriteJobs`, status polling, recent jobs và manual retry;
+- shareholder không thấy menu Entry và nhận permission state nếu truy cập trực tiếp;
 - không thay đổi Apps Script, Google Sheet, công thức, Sheet/Supabase schema hoặc dữ liệu.
 
-Verification B3:
+Verification B4:
 
-- `npm test`: 325/325 pass;
+- `npm test`: 330/330 pass;
 - `npm run lint`: pass;
 - `npm run typecheck`: pass;
 - `npm run build:next-accounts`: pass; toàn bộ route shell dynamic server-rendered;
-- branch `codex/next-manage-b3` đã push; code `b8700aa`;
-- Next canary production: `dpl_64mcFX2dwjCJ7T9MgvVaSqPEa7Gf`, alias `vantaidongbac-next-canary.vercel.app`;
-- authenticated smoke đạt đủ sáu tab: Vận chuyển 50, Tài xế 50, Xăng dầu 50, Chấm công 10, Phạt nội bộ 0, Nghỉ vận hành 50 dòng trong recent fallback;
-- kỳ `Tháng trước` trả 118 dòng Vận chuyển tháng 06/2026; pagination 21–40/118; search `20H05602` trả 29 dòng và reset trang 1;
-- DOM smoke xác nhận không có control nhập/sửa/xóa/lưu; CSS/test gate bảo vệ responsive và scroll-contained table;
+- branch `codex/next-entry-b4` đã push; code `d850b62`;
+- Next canary production: `dpl_2jpX6upeFwn96HbDJViAfw5gspYa`, alias `vantaidongbac-next-canary.vercel.app`;
+- authenticated admin smoke đạt sáu form và catalog options; multi-row add → clone → remove đạt 1→2→3→2;
+- submit vẫn disabled khi thiếu trường bắt buộc; smoke không bấm gửi và không tạo production write job/Sheet row;
+- queue/idempotency/formula-preservation được xác nhận bằng fixture/contract tests, gồm duplicate enqueue, `WRITE_JOB_ID` replay và skipped helper columns;
 - operator/shareholder parity tiếp tục được bảo vệ bằng API/RBAC contract tests.
 
 Checkpoint nền tảng trước đó A2 đã hoàn thành ngày 2026-07-12; rollback deployment là `dpl_DuFhuaRHL9oU2YWsK93FhYuwiQBp`.
@@ -145,18 +145,18 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### Phase B4 — Migrate Entry/write lifecycle
+### Phase B5 — Migrate Catalog
 
-Chỉ bắt đầu sau khi người dùng phê duyệt rõ checkpoint B4.
+Chỉ bắt đầu sau khi người dùng phê duyệt rõ checkpoint B5.
 
-Mục tiêu B4:
+Mục tiêu B5:
 
-1. Chuyển form Entry và write lifecycle sang Next theo schema hiện hành.
-2. Giữ direct/queue semantics, idempotency và trạng thái pending/processing/synced/failed.
-3. Bảo toàn formula/validation và sync manage/report/dashboard sau ghi.
-4. Không test business write production nếu chưa có phê duyệt riêng tại thời điểm smoke.
+1. Chuyển catalog read/write sang Next theo role hiện hành.
+2. Giữ virtual `DM_ThamSo_TS`/`DM_ThamSo_GD` và mapping nguồn vật lý.
+3. Giữ effective-date/history semantics và cache invalidation/sync sau ghi.
+4. Không test business write production nếu chưa có phê duyệt riêng.
 
-B4 không tự động chuyển Catalog, Cashflow hoặc Accounts.
+B5 không tự động chuyển Cashflow hoặc Accounts.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -193,18 +193,18 @@ Google Sheets source of truth / Supabase read model, cache, queue
 
 Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_PLAN.md`. Kiến trúc đích tổng quát thuộc `TARGET_ARCHITECTURE.md`.
 
-## 7. Rủi ro và điều kiện trước B4
+## 7. Rủi ro và điều kiện trước B5
 
-Các điều kiện B3 đã được kiểm soát. Trước B4 cần audit riêng form schema, queue lifecycle, idempotency và formula preservation:
+Các điều kiện B4 đã được kiểm soát. Trước B5 cần audit catalog physical/virtual mapping, native bounds và effective-date semantics:
 
-1. **Write authorization**
-   - admin/operator được ghi; shareholder phải bị chặn cả UI và API;
-   - server auth không thay thế Apps Script proxy-secret/request-user enforcement.
-2. **Queue và idempotency**
-   - giữ job id, retry, replay guard và trạng thái pending/processing/synced/failed;
-   - không tạo duplicate Sheet row khi request hoặc worker retry.
+1. **Catalog authorization**
+   - chỉ role được phép mới thấy/read/write Catalog theo RBAC hiện hành;
+   - không nới shareholder allowlist ngoài contract.
+2. **Virtual/native mapping**
+   - `DM_ThamSo_TS`/`DM_ThamSo_GD` phải giữ display key và nguồn vật lý;
+   - không ghi vượt native named-range bounds hoặc phá history/effective date.
 3. **Workbook context**
-   - Entry/write phải dùng đúng `transport + year` đã resolve;
+   - Catalog phải dùng đúng `transport + year` đã resolve;
    - không nhận Spreadsheet ID tùy ý từ browser và không fallback workbook mơ hồ.
 4. **RBAC và secret**
    - server/client API client A2 không thay thế proxy enforcement;
@@ -213,7 +213,7 @@ Các điều kiện B3 đã được kiểm soát. Trước B4 cần audit riên
    - kiểm tra giới hạn Functions của project Hobby trước khi thêm route/server boundary;
    - helper repository/service không được publish thành endpoint độc lập.
 6. **Phạm vi**
-   - B3 chỉ hoàn thiện Manage read-only; không kéo Entry write, Catalog hoặc Cashflow vào cùng checkpoint;
+   - B4 chỉ hoàn thiện Entry/write lifecycle; không kéo Catalog hoặc Cashflow vào cùng checkpoint;
    - không migration Sheet/Supabase và không chạy business write production.
 7. **Legacy runtimeContext environment**
    - shell A2 resolve `transport · 2026` thành công trên canary env;
@@ -226,10 +226,10 @@ Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 ## 8. Verification baseline hiện tại
 
-Baseline đã xác nhận trong B3:
+Baseline đã xác nhận trong B4:
 
 - `npm run build:next-accounts`: pass; mọi route shell dynamic server-rendered.
-- `npm test`: 325/325 pass.
+- `npm test`: 330/330 pass.
 - `npm run lint`: pass.
 - `npm run typecheck`: pass.
 - Production `/`: frontend legacy, chưa đăng nhập sẽ dừng ở auth gate.

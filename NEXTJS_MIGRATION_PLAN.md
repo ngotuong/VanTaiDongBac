@@ -78,7 +78,7 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | B6 | Migrate Cashflow/Quỹ | DONE | A2; có thể sau B4 |
 | B7 | Migrate Accounts, Settings và Observability | DONE | A2 |
 | C1 | Cutover `/` sang Next.js | DONE | B1–B7 |
-| C2 | Ổn định production và xác nhận rollback | NOT STARTED | C1 |
+| C2 | Ổn định production và xác nhận rollback | DONE | C1 |
 | D1 | Xóa legacy frontend/HtmlService presentation | NOT STARTED | C2 + thời gian ổn định |
 
 Kế hoạch hiện có **12 checkpoint**. Chỉ được chia một checkpoint nếu audit trước implementation chứng minh không thể deploy/rollback an toàn trong một change set. Mọi split phải cập nhật bảng này và `PROJECT_CONTEXT.md`, không tạo chuỗi step mở không có điểm kết thúc.
@@ -205,6 +205,8 @@ Hoàn thành ngày 2026-07-13. Production `https://dongbac.vercel.app/` chạy N
 - kiểm tra queue, worker và sync status;
 - sửa regression trong scope nhỏ;
 - xác nhận rollback và go/no-go cho D1.
+
+Hoàn thành ngày 2026-07-13. Production regression `/favicon.ico` đã được sửa bằng redirect cùng-origin tới asset PNG hiện hữu. Apps Script web app được khôi phục quyền truy cập bằng deployment mới từ đúng version bất biến `@281` sau khi owner cấp lại quyền; Vercel `APPS_SCRIPT_URL` đã trỏ sang deployment này. Smoke xác thực admin và các request read-only đều trả 200; sync status có dữ liệu, queue không có job active, Dashboard dùng Supabase cache và audit tháng `07/2026` xác nhận cache/live Google Sheet cùng hash. Deployment Next hiện tại là `dpl_HtiB9PFutzyXhoUcKJPo4hQvMMJu`; legacy rollback `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS` vẫn READY. Không chạy account/business write, retry hoặc worker. Kết luận C2 là **NO-GO tạm thời cho D1** cho đến khi người dùng chấp thuận thời gian ổn định và có representative production smoke cho operator/shareholder; warning Node 24 `DEP0169 url.parse()` vẫn được theo dõi vì request liên quan vẫn trả 200.
 
 ## 9. Phase D — Legacy removal
 

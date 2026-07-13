@@ -20,7 +20,8 @@ export async function loadDashboardData(forceRefresh = false): Promise<Dashboard
     try {
       const config = runtimeConfig();
       if (config.supabaseUrl && config.serviceRoleKey) {
-        const row = await createReportBundleRepository({ httpError }).findLatest(config, DASHBOARD_CACHE_KEY, workbook.spreadsheetId);
+        const fetchWithTimeout: typeof fetch = (input, init = {}) => fetch(input, { ...init, signal: AbortSignal.timeout(5000) });
+        const row = await createReportBundleRepository({ httpError, fetchImpl: fetchWithTimeout }).findLatest(config, DASHBOARD_CACHE_KEY, workbook.spreadsheetId);
         if (row?.payload && typeof row.payload === 'object') {
           return { dashboard: publicDashboard({ ...(row.payload as DashboardBundle), supabaseCached: true, supabaseSyncedAt: row.synced_at }) };
         }

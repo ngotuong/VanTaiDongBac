@@ -1,5 +1,13 @@
 # API_CONTRACTS
 
+## Phase B1 Next Report boundary
+
+- Server Component `/next-accounts/reports/` gọi `getReportBundle` qua shared server API client và truyền workbook ID do server allowlist resolve; initial read không chạy trong `useEffect`.
+- `GET /next-accounts/report-data/?month=<latest|Tất cả|MM/YYYY>&forceRefresh=<true|false>` là same-origin interaction boundary cho đổi tháng/làm mới.
+- Route B1 forward cookie server, validate month, resolve đúng workbook `transport + year` và gọi action `getReportBundle` hiện có; không tạo Apps Script action mới.
+- Response B1 chỉ trả bundle bốn matrix và cache metadata; loại `links`, không trả workbook ID, service role hoặc proxy secret.
+- `getReportBundle` tiếp tục cho phép `admin`, `operator`, `shareholder`; UI role không thay thế proxy RBAC.
+
 ## Next Foundation A2 shared client boundary
 
 - Server Components gọi API qua `serverPlatformApi()`: forward cookie server, dùng `cache: 'no-store'` và gắn `X-Correlation-ID` cho mỗi request.

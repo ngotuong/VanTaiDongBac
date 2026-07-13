@@ -6,7 +6,7 @@ const test = require('node:test');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('C1 dynamic Next runtime remains intact during C2 presentation recovery', () => {
+test('C1 dynamic Next runtime remains intact after C3 cut-forward', () => {
   const config = read('next.config.mjs');
   const build = read('package.json');
   const legacyVercel = read('vercel.json');
@@ -17,7 +17,7 @@ test('C1 dynamic Next runtime remains intact during C2 presentation recovery', (
   assert.match(legacyVercel, /"framework": "nextjs"/);
   assert.match(legacyVercel, /"buildCommand": "npm run build:next-accounts"/);
   assert.doesNotMatch(legacyVercel, /outputDirectory/);
-  assert.match(legacyVercel, /legacy-index\.html/);
+  assert.doesNotMatch(legacyVercel, /legacy-index\.html/);
   assert.match(read('app/foundation/page.jsx'), /next-shell\/app\/foundation\/page\.jsx/);
 });
 
@@ -45,11 +45,11 @@ test('runtime context remains a proxy-local read-only action', () => {
   assert.match(proxy, /workbookContextService\.publicContext/);
 });
 
-test('C2 recovery keeps Next runtime and adds only bounded legacy presentation routing', () => {
+test('C3 cut-forward keeps Next runtime and removes the temporary root recovery redirect', () => {
   const config = JSON.parse(read('vercel.json'));
   assert.equal(config.framework, 'nextjs');
   assert.equal(config.buildCommand, 'npm run build:next-accounts');
   assert.equal(config.outputDirectory, undefined);
-  assert.deepEqual(config.redirects, [{ source: '/', destination: '/legacy-index.html', permanent: false }]);
+  assert.equal(config.redirects, undefined);
   assert.deepEqual(config.rewrites, [{ source: '/public/static/:path*', destination: '/static/:path*' }]);
 });

@@ -78,10 +78,11 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | B6 | Migrate Cashflow/Quỹ | DONE | A2; có thể sau B4 |
 | B7 | Migrate Accounts, Settings và Observability | DONE | A2 |
 | C1 | Cutover `/` sang Next.js | DONE | B1–B7 |
-| C2 | Ổn định production và xác nhận rollback | IN PROGRESS | C1 |
-| D1 | Xóa legacy frontend/HtmlService presentation | NOT STARTED | C2 + thời gian ổn định |
+| C2 | Ổn định production và xác nhận rollback | DONE | C1 |
+| C3 | Next visual parity và controlled cut-forward | DONE | C2 + phê duyệt người dùng |
+| D1 | Xóa legacy frontend/HtmlService presentation | NOT STARTED | C3 + thời gian ổn định |
 
-Kế hoạch hiện có **12 checkpoint**. Chỉ được chia một checkpoint nếu audit trước implementation chứng minh không thể deploy/rollback an toàn trong một change set. Mọi split phải cập nhật bảng này và `PROJECT_CONTEXT.md`, không tạo chuỗi step mở không có điểm kết thúc.
+Kế hoạch hiện có **13 checkpoint**. C3 được thêm sau regression C2 chứng minh recovery production và cut forward UI không thể deploy/rollback an toàn trong cùng một change set. Chỉ được chia thêm checkpoint nếu audit trước implementation chứng minh không thể deploy/rollback an toàn trong một change set. Mọi split phải cập nhật bảng này và `PROJECT_CONTEXT.md`, không tạo chuỗi step mở không có điểm kết thúc.
 
 ## 6. Phase A — Foundation
 
@@ -206,13 +207,24 @@ Hoàn thành ngày 2026-07-13. Production `https://dongbac.vercel.app/` chạy N
 - sửa regression trong scope nhỏ;
 - xác nhận rollback và go/no-go cho D1.
 
-C2 được mở lại ngày 2026-07-13 sau phản hồi production: Next shell đã thay đổi UI/UX ngoài phạm vi migration được duyệt, navigation prefetch tạo request đồng thời và Report `latest` cache miss do truy vấn literal `report_month=latest`. Production presentation hiện rollback tạm thời về generated legacy shell trong deployment Next `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; Next API/module routes được giữ làm preview. Recovery đã tắt data-heavy prefetch, sửa latest cache lookup và thêm static-path compatibility. Root/assets/health trả 200; authenticated Report latest dùng Supabase cache trong khoảng 2,8 giây. Chỉ đóng C2 sau khi người dùng xác nhận click-through production và Next preview đạt UI/navigation parity trước cut forward mới. D1 là **NO-GO**.
+C2 được mở lại ngày 2026-07-13 sau phản hồi production: Next shell đã thay đổi UI/UX ngoài phạm vi migration được duyệt, navigation prefetch tạo request đồng thời và Report `latest` cache miss do truy vấn literal `report_month=latest`. Production presentation đã recovery về generated legacy shell trong deployment Next `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; Next API/module routes được giữ làm preview. Recovery đã tắt data-heavy prefetch, sửa latest cache lookup và thêm static-path compatibility. Root/assets/health trả 200; authenticated Report latest dùng Supabase cache trong khoảng 2,8 giây. Người dùng xác nhận giao diện cũ đã quay trở lại ngày 2026-07-13; verification đóng checkpoint đạt 359/359 test, lint, typecheck, build, deployment READY và không có HTTP 500 trong log 30 phút. C2 được đóng với legacy presentation là production posture an toàn; parity và cut forward Next chuyển sang C3. D1 vẫn **NO-GO**.
+
+### C3 — Next visual parity và controlled cut-forward
+
+- audit visual/navigation parity của toàn bộ Next shell so với giao diện legacy đã duyệt;
+- sửa preview mà không thay đổi nghiệp vụ, Sheet, cache/queue contract hoặc source of truth;
+- chạy responsive QA và representative role smoke trên preview;
+- chỉ cut forward `/` sau xác nhận trực tiếp của người dùng;
+- giữ deployment recovery C2, legacy alias và Apps Script `@281` làm rollback;
+- không xóa legacy trong cùng checkpoint.
+
+C3 **DONE ngày 2026-07-13**. Người dùng đã xác nhận preview giữ giao diện quen thuộc, phê duyệt cut-forward và sau khoảng theo dõi đã yêu cầu tiếp tục D1. Production Next là `dpl_9vU7mJfGCbtPwGT3aKJLACS4hXx6`, alias `https://dongbac.vercel.app`; root, health và các route chính trả 200, không có HTTP 500 trong smoke/log kiểm tra lại. Verification đạt 363/363 test, lint, typecheck và build. Recovery C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, legacy alias/source và Apps Script `@281` được giữ làm rollback khi chuyển sang D1.
 
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy
 
-Chỉ thực hiện sau C2 và thời gian ổn định được người dùng chấp thuận:
+Chỉ thực hiện sau C3 và thời gian ổn định production Next được người dùng chấp thuận:
 
 - dừng build `index.template.html`, `client_*.html`, `styles_*.html`;
 - xóa React island bundles, bridge và feature flags không còn consumer;
@@ -241,7 +253,7 @@ Mỗi checkpoint phải chọn gate theo rủi ro, tối thiểu:
 ## 11. Quy tắc quản lý roadmap
 
 - `PROJECT_CONTEXT.md` chỉ ghi checkpoint gần nhất và checkpoint tiếp theo.
-- File này ghi toàn bộ roadmap và trạng thái 12 checkpoint.
+- File này ghi toàn bộ roadmap và trạng thái 13 checkpoint.
 - Không đánh dấu `DONE` chỉ vì có markup/canary route.
 - Không bắt đầu checkpoint kế tiếp nếu người dùng chưa phê duyệt rõ.
 - Không trộn foundation, module migration, cutover và legacy deletion.

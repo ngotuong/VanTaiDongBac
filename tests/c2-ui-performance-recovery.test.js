@@ -6,11 +6,9 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('C2 recovery redirects to the approved legacy shell while retaining the Next API deployment', () => {
+test('C2 recovery artifact remains available after C3 removes its temporary root redirect', () => {
   const config = JSON.parse(read('vercel.json'));
-  assert.deepEqual(config.redirects, [
-    { source: '/', destination: '/legacy-index.html', permanent: false }
-  ]);
+  assert.equal(config.redirects, undefined);
   assert.deepEqual(config.rewrites, [
     { source: '/public/static/:path*', destination: '/static/:path*' }
   ]);

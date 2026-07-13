@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 
 type LoginGateProps = { supabaseUrl: string; anonKey: string };
@@ -52,7 +53,7 @@ export function LoginGate({ supabaseUrl, anonKey }: LoginGateProps) {
 
   return <main className="platform-auth-shell">
     <section className="platform-auth-card" aria-labelledby="platform-auth-title">
-      <div className="platform-auth-brand" aria-hidden="true">ĐB</div>
+      <Image className="platform-auth-brand" src="/static/assets/apple-touch-icon.png" alt="Logo Vận tải Đông Bắc" width={80} height={80} priority />
       <p className="platform-eyebrow">NỀN TẢNG NỘI BỘ</p>
       <h1 id="platform-auth-title">Đăng nhập Đông Bắc</h1>
       <p className="platform-auth-copy">Sử dụng tài khoản nội bộ để truy cập Vận tải và Thu chi.</p>

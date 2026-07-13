@@ -6,13 +6,13 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('Next application shell remains available while C2 recovery redirects the production root', () => {
+test('Next application shell owns the production root after C3 cut-forward', () => {
   const config = read('next-shell/next.config.mjs');
   const page = read('next-shell/app/page.jsx');
   assert.doesNotMatch(config, /output: 'export'/);
   assert.doesNotMatch(config, /basePath/);
   assert.match(page, /redirect\('\/dashboard'\)/);
-  assert.match(read('vercel.json'), /legacy-index\.html/);
+  assert.doesNotMatch(read('vercel.json'), /legacy-index\.html/);
   assert.match(read('package.json'), /build:next-accounts/);
 });
 

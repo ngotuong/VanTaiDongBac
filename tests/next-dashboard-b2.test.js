@@ -17,6 +17,7 @@ test('B2 dashboard loader scopes Supabase cache by workbook and falls back to Ap
   const loader = read('next-shell/lib/dashboard-server.ts');
   assert.match(loader, /DASHBOARD_CACHE_KEY = '__dashboard_latest__'/);
   assert.match(loader, /findLatest\(config, DASHBOARD_CACHE_KEY, workbook\.spreadsheetId\)/);
+  assert.match(loader, /AbortSignal\.timeout\(5000\)/);
   assert.match(loader, /api\.get<[^>]+>\('getDashboard'/);
   assert.match(loader, /forceRefresh: forceRefresh \? 'true' : ''/);
   assert.match(loader, /delete dashboard\.links/);

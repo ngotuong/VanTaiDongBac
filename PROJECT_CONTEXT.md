@@ -216,7 +216,7 @@ Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 Baseline recovery đã xác nhận:
 
 - `npm run build:next-accounts`: pass; mọi route shell dynamic server-rendered.
-- Targeted recovery tests, lint, type-check và Next build pass; full `npm test` phải chạy lại trước commit checkpoint.
+- `npm test`: 359/359 pass; `npm run lint`, `npm run typecheck`, `npm run build:next-accounts` và `git diff --check` pass.
 - `npm run lint`: pass.
 - `npm run typecheck`: pass.
 - Production `/`: redirect 307 tới generated legacy shell; UI Next chưa được cut forward lại.

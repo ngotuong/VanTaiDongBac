@@ -101,8 +101,8 @@ a, button, input, select { touch-action: manipulation; }
 @keyframes report-pulse { to { opacity: .45; } }
 @media (max-width: 640px) {
   .report-module { padding: 16px 12px; }
-  .report-module-header { align-items: stretch; }
-  .report-module-header > button { flex: 0 0 auto; }
+  .report-module-header { align-items: flex-start; }
+  .report-module-header > button { min-height: 44px; height: 44px; flex: 0 0 auto; }
   .report-module-filters { grid-template-columns: 1fr; padding: 12px; }
   .report-module-card-head { align-items: flex-start; }
   .report-module-card-head .report-module-secondary { padding-inline: 10px; }

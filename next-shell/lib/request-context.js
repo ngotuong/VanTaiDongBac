@@ -17,6 +17,8 @@ export async function loadPlatformContext(input = {}) {
   const auth = createAuthService({ appUserRepository: repository, httpError });
   const workbookService = createWorkbookContextService({ httpError });
   const user = await auth.getAuthenticatedUser({ headers: { cookie: cookieStore.toString() } }, config);
-  const workbook = workbookService.publicContext({ module: input.module, year: input.year });
+  const matchedPath = headerStore.get('x-matched-path') || headerStore.get('x-invoke-path') || '';
+  const routeModule = /^\/cashflow(?:\/|$)/.test(matchedPath) ? 'cashflow' : input.module;
+  const workbook = workbookService.publicContext({ module: routeModule, year: input.year });
   return { user, workbook, correlationId: correlationIdFromHeaders(headerStore) };
 }

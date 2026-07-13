@@ -12,6 +12,11 @@ test('B6 exposes one independent Next cashflow route without a legacy bridge',()
   for(const tab of ['overview','transactions','loans','catalog'])assert.match(module,new RegExp(`'${tab}'`));
 });
 
+test('B6 resolves cashflow workbook context from the matched Next route',()=>{
+  const context=read('next-shell/lib/request-context.js');
+  assert.match(context,/x-matched-path/);assert.match(context,/\/\^\\\/cashflow/);assert.match(context,/\? 'cashflow' : input\.module/);
+});
+
 test('B6 shares manage-data boundary and reads every fund cache server-first with fallback',()=>{
   const route=read('next-shell/app/manage-data/route.ts');const server=read('next-shell/lib/cashflow-server.ts');
   assert.match(route,/surface.*cashflow/);assert.match(route,/loadCashflowSurface/);

@@ -72,14 +72,15 @@ test('A2 adds real lint and independent TypeScript quality gates', () => {
   assert.equal(fs.existsSync(path.join(root, 'tsconfig.platform.json')), true);
 });
 
-test('A2 foundation and B1-B5 are complete while B6-B7 are not started', () => {
+test('A2 foundation and B1-B6 are complete while B7 is not started', () => {
   const roadmap = read('NEXTJS_MIGRATION_PLAN.md');
   assert.match(roadmap, /\| B1 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| B2 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| B3 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| B4 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| B5 \|[^\n]+\| DONE \|/);
-  for (const checkpoint of ['B6', 'B7']) {
+  for (const checkpoint of ['B7']) {
     assert.match(roadmap, new RegExp(`\\| ${checkpoint} \\|[^\\n]+\\| NOT STARTED \\|`));
   }
+  assert.match(roadmap, /\| B6 \|[^\n]+\| DONE \|/);
 });

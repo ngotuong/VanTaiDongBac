@@ -30,7 +30,7 @@ function display(value: unknown, header: string) {
 }
 function column(headers: string[], names: string[]) { return headers.findIndex((header) => names.includes(normalize(header))); }
 async function requestManage(sheetName: ManageSheetName, startDate: string, endDate: string, forceRefresh = false): Promise<ManageDataResponse> {
-  const url = new URL('/next-accounts/manage-data/', window.location.origin);
+  const url = new URL('/manage-data/', window.location.origin);
   url.searchParams.set('sheetName', sheetName); if (startDate) url.searchParams.set('startDate', startDate); if (endDate) url.searchParams.set('endDate', endDate); if (forceRefresh) url.searchParams.set('forceRefresh','true');
   const response = await fetch(url, { credentials:'same-origin', cache:'no-store' });
   const payload = await response.json().catch(() => ({}));

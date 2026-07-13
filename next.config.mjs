@@ -1,5 +1,4 @@
 const nextConfig = {
-  basePath: '/next-accounts',
   trailingSlash: true,
   images: { unoptimized: true },
   env: {

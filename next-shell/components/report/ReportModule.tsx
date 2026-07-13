@@ -35,7 +35,7 @@ function reportMonths(bundle: ReportBundle | null) {
 }
 
 async function requestReport(month: string, forceRefresh: boolean) {
-  const url = new URL('/next-accounts/report-data/', window.location.origin);
+  const url = new URL('/report-data/', window.location.origin);
   url.searchParams.set('month', month);
   if (forceRefresh) url.searchParams.set('forceRefresh', 'true');
   const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-VTDB-Client': 'next-report' } });

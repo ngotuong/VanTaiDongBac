@@ -6,11 +6,11 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('Next application shell uses the A2 runtime under an isolated base path', () => {
+test('Next application shell is promoted to the C1 production root', () => {
   const config = read('next-shell/next.config.mjs');
   const page = read('next-shell/app/page.jsx');
   assert.doesNotMatch(config, /output: 'export'/);
-  assert.match(config, /basePath: '\/next-accounts'/);
+  assert.doesNotMatch(config, /basePath/);
   assert.match(page, /<PlatformHome/);
   assert.match(read('package.json'), /build:next-accounts/);
 });
@@ -63,5 +63,5 @@ test('legacy and React implementations remain available for immediate rollback',
 
 test('Vercel runs the complete legacy, React island, and Next shell build', () => {
   const config = JSON.parse(read('vercel.json'));
-  assert.equal(config.buildCommand, 'npm run build');
+  assert.equal(config.buildCommand, 'npm run build:next-accounts');
 });

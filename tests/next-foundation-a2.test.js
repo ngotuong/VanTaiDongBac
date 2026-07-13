@@ -12,16 +12,17 @@ test('A2 root layout is a dynamic server auth guard around the shared shell', ()
   assert.match(rootLayout, /dynamic = 'force-dynamic'/);
   assert.match(layout, /loadPlatformContext/);
   assert.match(layout, /error\?\.status === 401 \|\| error\?\.status === 403/);
-  assert.match(layout, /redirect\(`\$\{protocol\}:\/\/\$\{host\}\/`\)/);
+  assert.match(layout, /<LoginGate/);
+  assert.doesNotMatch(layout, /redirectToLegacyRoot/);
   assert.match(layout, /<WorkbookContextProvider value=\{context\}>/);
   assert.match(layout, /<AppShell context=\{context\}>/);
 });
 
-test('A2 shell is role-aware accessible and keeps legacy root as rollback', () => {
+test('A2 shell remains role-aware and accessible after the C1 root cutover', () => {
   const shell = read('next-shell/components/platform/AppShell.tsx');
   const navigation = read('next-shell/components/platform/ShellNavigation.tsx');
   assert.match(shell, /platform-skip-link/);
-  assert.match(shell, /href="\/" className="platform-legacy-link"/);
+  assert.match(shell, /<SignOutButton \/>/);
   assert.match(shell, /shareholder/);
   assert.match(shell, /WRITE_ROLES/);
   assert.match(navigation, /items\.filter\(\(item\) => item\.roles\.includes\(role\)\)/);
@@ -72,7 +73,7 @@ test('A2 adds real lint and independent TypeScript quality gates', () => {
   assert.equal(fs.existsSync(path.join(root, 'tsconfig.platform.json')), true);
 });
 
-test('A2 foundation and B1-B7 are complete while C1 is not started', () => {
+test('A2 foundation, B1-B7 and C1 are complete while C2 is not started', () => {
   const roadmap = read('NEXTJS_MIGRATION_PLAN.md');
   assert.match(roadmap, /\| B1 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| B2 \|[^\n]+\| DONE \|/);
@@ -81,5 +82,6 @@ test('A2 foundation and B1-B7 are complete while C1 is not started', () => {
   assert.match(roadmap, /\| B5 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| B6 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| B7 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| C1 \|[^\n]+\| NOT STARTED \|/);
+  assert.match(roadmap, /\| C1 \|[^\n]+\| DONE \|/);
+  assert.match(roadmap, /\| C2 \|[^\n]+\| NOT STARTED \|/);
 });

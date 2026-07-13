@@ -52,8 +52,7 @@ Các surface người dùng hiện có:
 
 ```text
 Browser
-  ├─ /                         -> frontend legacy HTML/CSS/JavaScript trên Vercel
-  └─ /next-accounts/*         -> Next.js App Router server runtime/canary
+  └─ /                         -> Next.js App Router application shell production
           ↓
 Vercel /api/app
   - xác thực Supabase session
@@ -80,17 +79,16 @@ Vai trò dữ liệu hiện tại:
 
 - Next.js `16.2.10`, React `19.2.7`.
 - Source route/component tiếp tục nằm trong `next-shell/`; root `app/` là Vercel App Router entrypoint mỏng.
-- `next.config.mjs` giữ `basePath: '/next-accounts'` và không dùng `output: 'export'`.
-- Vercel Next runtime canary riêng đã deploy; route `/foundation` được server-render theo request.
-- Production reverse-proxy `/next-accounts/*` cùng origin sang canary; `/` vẫn là legacy static.
-- `/` vẫn do frontend legacy render; `/next-accounts/*` đã có shared application shell A2 nhưng chưa phải application shell production tại `/`.
+- `next.config.mjs` không còn `basePath` và không dùng `output: 'export'`; App Router phục vụ trực tiếp tại `/`.
+- Vercel production dùng framework Next.js và build `npm run build:next-accounts`; rewrite proxy canary đã được gỡ.
+- Root layout server-render auth/workbook context; chưa đăng nhập render LoginGate cùng-origin, đăng nhập tạo HttpOnly cookie qua `/api/session`.
 - Các React island trong trang legacy vẫn phụ thuộc feature flag và DOM bridge; production flag mặc định tắt tại checkpoint gần nhất.
-- Route `/next-accounts/reports/`, `/next-accounts/dashboard/`, `/next-accounts/manage/`, `/next-accounts/entry/`, `/next-accounts/catalog/`, `/next-accounts/cashflow/`, `/next-accounts/settings/` và `/next-accounts/observability/` là các frontend Next độc lập.
-- Toàn bộ module thuộc Phase B đã có route Next độc lập; `/` chưa cutover và vẫn là legacy frontend.
+- Route `/reports/`, `/dashboard/`, `/manage/`, `/entry/`, `/catalog/`, `/cashflow/`, `/settings/` và `/observability/` là các frontend Next production độc lập.
+- Legacy source vẫn còn trong repo nhưng chỉ được phục vụ qua deployment rollback riêng; chưa xóa trong C1.
 
 ### 3.3. Luồng Report hiện tại
 
-`/next-accounts/reports/` tải initial bundle ở Server Component; tương tác đổi tháng/làm mới đi qua Next same-origin boundary:
+`/reports/` tải initial bundle ở Server Component; tương tác đổi tháng/làm mới đi qua Next same-origin boundary:
 
 ```text
 Server Component / Next report-data -> GET /api/app?action=getReportBundle
@@ -104,28 +102,27 @@ Dashboard B2, Manage B3, Catalog B5 và Cashflow B6 giữ cache/fallback hiện 
 
 ## 4. Checkpoint gần nhất đã hoàn thành
 
-### Phase B7 — Migrate Accounts, Settings và Observability
+### Phase C1 — Cutover `/` sang Next.js
 
 Trạng thái: **hoàn thành ngày 2026-07-13**.
 
 Phạm vi hoàn thành:
 
-- `/next-accounts/settings/` là route Next độc lập cho đổi mật khẩu và quản trị tài khoản; `/next-accounts/observability/` độc lập cho sync status, write queue, audit và retry;
-- mọi user active giữ `changeOwnPassword`; `listUsers`/`createUser`/`updateUser`/`resetUserPassword` vẫn sau admin guard tại proxy;
-- account list chỉ tải client-side qua same-origin `/api/app`, không cache/render ở shared edge; temporary password chỉ giữ trong React state phiên hiện tại;
-- admin/operator được xem sync status và write queue; shareholder không thấy navigation Observability và bị proxy deny-by-default;
-- default Observability chỉ gọi `getSupabaseSyncStatus` và `getRecentWriteJobs`; quick/deep/all/report audit và retry chỉ chạy sau thao tác chủ động;
-- legacy Accounts/Observability islands và frontend `/` được giữ nguyên làm rollback cho C1/C2;
-- không thay đổi Apps Script, Google Sheet, công thức, Supabase schema hoặc dữ liệu; không chạy account write, audit nặng, retry hoặc worker trong smoke.
+- production `/` đã chuyển từ legacy static sang Next.js App Router; mọi route module dùng path root, không còn proxy `/next-accounts/*`;
+- auth chưa đăng nhập render LoginGate Next, đăng nhập/đăng xuất dùng same-origin `/api/session`, HttpOnly cookie, SameSite Strict và CSRF header hiện hữu;
+- manifest/icon được phục vụ từ Next `public/`, start/scope `/`; viewport metadata và navigation root đã được kiểm chứng;
+- Vercel production bổ sung `DEFAULT_WORKBOOK_YEAR=2026` và `WORKBOOK_CONTEXTS_JSON` cho hai workbook độc lập;
+- legacy source không bị xóa; deployment `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS` được giữ tại `https://vantaidongbac-legacy.vercel.app` làm rollback;
+- không thay đổi Apps Script, Google Sheet, công thức, Supabase schema hoặc dữ liệu; smoke không chạy account/business write, audit nặng, retry hoặc worker.
 
-Verification B7:
+Verification C1:
 
-- `npm test`: 352/352 pass; `npm run lint`, `npm run typecheck` và full build pass;
-- implementation `9f5ddc1` trên branch `codex/next-accounts-observability-b7`;
-- Next canary production: `dpl_EdeGUSVAc2AftDr138XXVsABduGV`, alias `vantaidongbac-next-canary.vercel.app`, trạng thái READY;
-- authenticated admin smoke qua same-origin đạt Settings, 2 account rows, 24 sync status rows, queue không có pending/failed và audit vẫn chưa chạy;
-- responsive DOM QA đạt 375×667, 390×844, 430×932, 768×1024, 1440×900; không body overflow, control 44px và table scroll-contained; browser console không có error/warning;
-- smoke không đổi mật khẩu, tạo/sửa/reset user, audit, retry hoặc process worker.
+- `npm test`: 355/355 pass; `npm run lint`, `npm run typecheck` và `npm run build:next-accounts` pass;
+- branch `codex/next-root-cutover-c1`;
+- Next production deployment `dpl_6z9jo6PWmpZDXPxtc3sfHhniTXSq`, alias `https://dongbac.vercel.app`, trạng thái READY;
+- unauthenticated LoginGate, authenticated admin shell và tám module production đều smoke read-only, không có server error;
+- responsive DOM QA đạt 375×812 và 1440×900, body không overflow và control nhỏ nhất 44px;
+- PWA manifest/icon trả HTTP 200; rollback alias legacy đã kiểm tra trước cutover.
 
 Checkpoint nền tảng trước đó A2 đã hoàn thành ngày 2026-07-12; rollback deployment là `dpl_DuFhuaRHL9oU2YWsK93FhYuwiQBp`.
 
@@ -143,18 +140,18 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### Phase C1 — Cutover `/` sang Next.js
+### Phase C2 — Production stabilization
 
-Chỉ bắt đầu sau khi người dùng phê duyệt rõ checkpoint C1.
+Chỉ bắt đầu sau khi người dùng phê duyệt rõ checkpoint C2.
 
-Mục tiêu C1:
+Mục tiêu C2:
 
-1. Chuyển production `/` sang Next.js App Router.
-2. Giữ legacy tại URL/deployment rollback rõ ràng; không xóa legacy trong C1.
-3. Giữ PWA manifest/icon, auth cookie, API routing và navigation của mọi module.
-4. Smoke theo role và module trước khi xác nhận cutover.
+1. Theo dõi auth failures, API errors, request duplication và cache fallback trên production Next.
+2. Đối chiếu dữ liệu đại diện với Google Sheet và kiểm tra queue/worker/sync status theo scope được duyệt.
+3. Sửa regression nhỏ nếu phát hiện và xác nhận rollback còn khả dụng.
+4. Đưa ra go/no-go cho D1 sau thời gian ổn định được người dùng chấp thuận.
 
-C1 không xóa legacy frontend; ổn định production thuộc C2.
+C2 không tự động xóa legacy frontend; việc xóa chỉ thuộc D1 và cần phê duyệt riêng.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -191,31 +188,32 @@ Google Sheets source of truth / Supabase read model, cache, queue
 
 Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_PLAN.md`. Kiến trúc đích tổng quát thuộc `TARGET_ARCHITECTURE.md`.
 
-## 7. Rủi ro và điều kiện trước C1
+## 7. Rủi ro và điều kiện trước C2
 
-Các điều kiện B7 đã được kiểm soát. Trước C1 cần audit cutover và rollback:
+Cutover C1 đã hoàn thành. Trước và trong C2 cần kiểm soát:
 
-1. **Root/output contract**: production legacy đang dùng `vercel.json outputDirectory: '.'`, còn canary Next cần `.next`; C1 phải đổi cấu hình đích có chủ ý và lưu rollback deployment, không deploy nhầm target.
-2. **Routing loop**: xóa/đổi rewrite `/next-accounts/*` đúng thời điểm để không tự proxy vòng khi `/` và Next cùng project.
-3. **Auth/session**: giữ same-origin HttpOnly cookie, CSRF/session endpoints và redirect chưa đăng nhập; direct canary không chia sẻ host-only cookie.
-4. **PWA/static assets**: kiểm tra manifest, icon, service worker/cache cũ và basePath khi Next chuyển từ `/next-accounts` sang `/`.
-5. **Role/module smoke**: admin/operator/shareholder navigation và API enforcement phải pass; không dùng ẩn nút thay cho RBAC.
-6. **Rollback**: lưu deployment legacy đang phục vụ `/`, URL rollback và trình tự promote/rollback trước cutover; C1 không xóa source legacy.
-7. **Production writes**: cutover smoke mặc định read-only; account/business write hoặc heavy audit vẫn cần phê duyệt riêng.
+1. **Quan sát runtime**: theo dõi 401/403/5xx, cache miss/fallback và request duplication sau cutover.
+2. **Role coverage**: browser smoke C1 dùng admin; operator/shareholder tiếp tục có contract/unit gate nhưng cần representative production smoke khi có tài khoản test phù hợp.
+3. **Dữ liệu**: đối chiếu read-only representative với Sheet; không biến Supabase thành source of truth.
+4. **Queue/worker**: không retry/process hoặc tạo business write chỉ để smoke nếu chưa được duyệt riêng.
+5. **Rollback**: giữ alias `vantaidongbac-legacy.vercel.app` và deployment legacy; không xóa source trước D1.
+6. **PWA/cache cũ**: theo dõi client đã cài PWA/service worker legacy và cache path cũ trong thời gian ổn định.
+7. **Runtime warning**: Vercel Node 24 ghi `DEP0169 url.parse()` trên request `/api/app/` dù HTTP 200; source project không có call site trực tiếp, cần theo dõi/nâng dependency trong C2 nếu warning còn lặp lại.
 
 Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 ## 8. Verification baseline hiện tại
 
-Baseline đã xác nhận trong B7:
+Baseline đã xác nhận trong C1:
 
 - `npm run build:next-accounts`: pass; mọi route shell dynamic server-rendered.
-- `npm test`: 352/352 pass.
+- `npm test`: 355/355 pass.
 - `npm run lint`: pass.
 - `npm run typecheck`: pass.
-- Production `/`: frontend legacy, chưa đăng nhập sẽ dừng ở auth gate.
-- Production `/next-accounts/reports/`: được reverse-proxy sang Next runtime canary.
-- Authenticated Settings/Observability smoke đạt account list và status nhẹ; không có account/business write hoặc heavy audit production.
+- Production `/`: Next.js App Router; chưa đăng nhập render Next LoginGate.
+- Authenticated admin smoke đạt `/`, Dashboard, Report, Manage, Entry, Catalog, Cashflow, Observability và Settings.
+- Production deployment hiện tại: `dpl_6z9jo6PWmpZDXPxtc3sfHhniTXSq`; legacy rollback: `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`.
+- Không có account/business write hoặc heavy audit production trong C1.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

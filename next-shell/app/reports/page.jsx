@@ -1,6 +1,6 @@
 import { ReportModule } from '../../components/report/ReportModule';
 import { loadReportData } from '../../lib/report-server';
-export const metadata = { title: 'Báo cáo · Vận tải Đông Bắc' };
+export const metadata = { title: 'Báo cáo' };
 export default async function ReportsPage() {
   try {
     const data = await loadReportData('latest');

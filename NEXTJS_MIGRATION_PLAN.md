@@ -77,7 +77,7 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | B5 | Migrate Catalog | DONE | A2 |
 | B6 | Migrate Cashflow/Quỹ | DONE | A2; có thể sau B4 |
 | B7 | Migrate Accounts, Settings và Observability | DONE | A2 |
-| C1 | Cutover `/` sang Next.js | NOT STARTED | B1–B7 |
+| C1 | Cutover `/` sang Next.js | DONE | B1–B7 |
 | C2 | Ổn định production và xác nhận rollback | NOT STARTED | C1 |
 | D1 | Xóa legacy frontend/HtmlService presentation | NOT STARTED | C2 + thời gian ổn định |
 
@@ -195,6 +195,8 @@ Hoàn thành ngày 2026-07-13. Route `/settings` và `/observability` là hai mo
 - PWA manifest/icon/navigation vẫn đúng;
 - smoke theo từng role và module;
 - không xóa legacy trong cùng checkpoint.
+
+Hoàn thành ngày 2026-07-13. Production `https://dongbac.vercel.app/` chạy Next.js App Router trực tiếp, không còn `basePath` hoặc rewrite canary. Root auth gate dùng same-origin session cookie; PWA manifest/icon và toàn bộ route module đã chuyển về path root. Deployment hiện tại là `dpl_6z9jo6PWmpZDXPxtc3sfHhniTXSq`. Legacy không bị xóa và được giữ tại `https://vantaidongbac-legacy.vercel.app` (`dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`). Smoke C1 chỉ đọc; không chạy business/account write hoặc audit/worker nặng.
 
 ### C2 — Production stabilization
 

@@ -6,18 +6,17 @@ const test = require('node:test');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('A1 selects dynamic Next runtime while legacy root remains outside the canary basePath', () => {
+test('C1 promotes the dynamic Next runtime to production root', () => {
   const config = read('next.config.mjs');
   const build = read('package.json');
   const legacyVercel = read('vercel.json');
-  const nextVercel = read('vercel.next.json');
   assert.doesNotMatch(config, /output:\s*['"]export['"]/);
-  assert.match(config, /basePath:\s*['"]\/next-accounts['"]/);
+  assert.doesNotMatch(config, /basePath/);
   assert.doesNotMatch(build, /copy-next-accounts/);
   assert.match(build, /clean-next-accounts/);
-  assert.match(legacyVercel, /"outputDirectory": "\."/);
-  assert.match(nextVercel, /"framework": "nextjs"/);
-  assert.doesNotMatch(nextVercel, /outputDirectory/);
+  assert.match(legacyVercel, /"framework": "nextjs"/);
+  assert.match(legacyVercel, /"buildCommand": "npm run build:next-accounts"/);
+  assert.doesNotMatch(legacyVercel, /outputDirectory|rewrites/);
   assert.match(read('app/foundation/page.jsx'), /next-shell\/app\/foundation\/page\.jsx/);
 });
 
@@ -45,12 +44,10 @@ test('runtime context remains a proxy-local read-only action', () => {
   assert.match(proxy, /workbookContextService\.publicContext/);
 });
 
-test('legacy production keeps root output and same-origin proxies only the Next canary path', () => {
+test('C1 production configuration serves Next directly without canary proxy routing', () => {
   const config = JSON.parse(read('vercel.json'));
-  assert.equal(config.outputDirectory, '.');
-  assert.deepEqual(config.rewrites, [
-    { source: '/next-accounts/', destination: 'https://vantaidongbac-next-canary.vercel.app/next-accounts/' },
-    { source: '/next-accounts/:path*/', destination: 'https://vantaidongbac-next-canary.vercel.app/next-accounts/:path*/' },
-    { source: '/next-accounts/:path*', destination: 'https://vantaidongbac-next-canary.vercel.app/next-accounts/:path*' }
-  ]);
+  assert.equal(config.framework, 'nextjs');
+  assert.equal(config.buildCommand, 'npm run build:next-accounts');
+  assert.equal(config.outputDirectory, undefined);
+  assert.equal(config.rewrites, undefined);
 });

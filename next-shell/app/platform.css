@@ -26,7 +26,20 @@ a, button, input, select { touch-action: manipulation; }
 .platform-nav-link[aria-current="page"] .platform-nav-dot { background: #2dd4bf; box-shadow: 0 0 0 4px rgba(45,212,191,.15); }
 .platform-sidebar-footer { margin-top: auto; display: grid; gap: 2px; padding: 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: rgba(255,255,255,.04); }
 .platform-sidebar-footer small { color: #94a3b8; text-transform: capitalize; }
-.platform-legacy-link { min-height: 44px; display: inline-flex; align-items: center; margin-top: 8px; color: #99f6e4; font-weight: 700; }
+.platform-signout { min-height: 44px; display: inline-flex; align-items: center; justify-content: flex-start; margin-top: 8px; padding: 0; border: 0; color: #99f6e4; background: transparent; font: inherit; font-weight: 700; cursor: pointer; }
+.platform-signout:disabled { cursor: wait; opacity: .65; }
+.platform-auth-shell { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at top, color-mix(in srgb, var(--platform-primary) 16%, var(--platform-bg)), var(--platform-bg) 52%); }
+.platform-auth-card { width: min(100%, 440px); padding: clamp(24px, 6vw, 40px); border: 1px solid var(--platform-border); border-radius: 20px; background: var(--platform-surface); box-shadow: var(--platform-shadow); }
+.platform-auth-brand { width: 52px; height: 52px; display: grid; place-items: center; margin-bottom: 20px; border-radius: 15px; color: #fff; background: var(--platform-primary); font-weight: 800; }
+.platform-auth-card h1 { margin: 4px 0 8px; font-size: clamp(1.75rem, 6vw, 2.25rem); line-height: 1.2; }
+.platform-auth-copy { margin: 0 0 24px; color: var(--platform-muted); }
+.platform-auth-form { display: grid; gap: 8px; }
+.platform-auth-form label { margin-top: 8px; color: var(--platform-muted); font-size: .875rem; font-weight: 700; }
+.platform-auth-form input { width: 100%; min-height: 48px; padding: 0 13px; border: 1px solid var(--platform-border); border-radius: 11px; color: var(--platform-text); background: var(--platform-surface); font: inherit; font-size: 1rem; }
+.platform-auth-form button { min-height: 48px; margin-top: 16px; border: 0; border-radius: 11px; color: #fff; background: var(--platform-primary); font: inherit; font-weight: 800; cursor: pointer; transition: background-color .18s ease; }
+.platform-auth-form button:hover { background: var(--platform-primary-strong); }
+.platform-auth-form button:disabled { cursor: wait; opacity: .65; }
+.platform-auth-status { min-height: 24px; margin: 14px 0 0; color: var(--platform-danger); }
 .platform-workspace { min-width: 0; }
 .platform-topbar { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 24px; border-bottom: 1px solid var(--platform-border); background: rgba(255,255,255,.92); backdrop-filter: blur(12px); }
 .platform-eyebrow { margin: 0 0 2px; color: var(--platform-primary); font-size: 12px; font-weight: 800; letter-spacing: .1em; }

@@ -75,7 +75,7 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | B3 | Migrate Manage read-only | DONE | A2 |
 | B4 | Migrate Entry/write lifecycle | DONE | B3 |
 | B5 | Migrate Catalog | DONE | A2 |
-| B6 | Migrate Cashflow/Quỹ | NOT STARTED | A2; có thể sau B4 |
+| B6 | Migrate Cashflow/Quỹ | DONE | A2; có thể sau B4 |
 | B7 | Migrate Accounts, Settings và Observability | NOT STARTED | A2 |
 | C1 | Cutover `/` sang Next.js | NOT STARTED | B1–B7 |
 | C2 | Ổn định production và xác nhận rollback | NOT STARTED | C1 |
@@ -173,6 +173,8 @@ Hoàn thành ngày 2026-07-13. Route Next độc lập giữ chín display catal
 - giữ bound script ngoài web architecture nhưng tài liệu hóa đường bypass.
 
 Checkpoint này có thể split thành B6a/B6b nếu preflight chứng minh write path quá lớn; split tối đa phải được xác định trước khi code B6.
+
+Hoàn thành ngày 2026-07-13, không cần split. Route `/cashflow` là module Next độc lập cho Overview, Transactions, Loans và Fund Catalog; giữ Supabase cache → Apps Script fallback, queue/idempotency/pending overlay cho giao dịch, reconciliation cho khoản vay và encoded native-range row identity cho danh mục. Shell resolve đúng workbook `cashflow · 2026`. Bound script vẫn là đường ghi ngoài web/RBAC và không được sửa/deploy trong checkpoint này. Không chạy business write production. Helper server-only được chuyển khỏi `api/` để Vercel chỉ publish hai API entrypoint và nhóm Next runtime, đạt Hobby gate bằng deploy chuẩn thay vì sửa prebuilt artifact.
 
 ### B7 — Accounts, Settings và Observability
 

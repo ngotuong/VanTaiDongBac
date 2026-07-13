@@ -12,7 +12,6 @@ const NAVIGATION: NavigationItem[] = [
   { href: '/entry', label: 'Nhập liệu', roles: [...WRITE_ROLES] },
   { href: '/catalog', label: 'Danh mục', roles: [...WRITE_ROLES] },
   { href: '/cashflow', label: 'Thu chi', roles: [...ALL_ROLES] },
-  { href: '/fund-catalog', label: 'Danh mục Quỹ', roles: [...WRITE_ROLES] },
   { href: '/observability', label: 'Đồng bộ', roles: [...WRITE_ROLES] }
 ];
 

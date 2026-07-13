@@ -1,3 +1,7 @@
-import CatalogReadOnly from '../../components/CatalogReadOnly.jsx';
-export const metadata = { title: 'Danh mục · Vận tải Đông Bắc' };
-export default function CatalogCanaryPage() { return <main className="next-accounts-shell"><CatalogReadOnly bridge={null} writeEnabled={false}/></main>; }
+import { CatalogModule } from '../../components/catalog/CatalogModule';
+import { loadCatalogData } from '../../lib/catalog-server';
+export const metadata={title:'Danh mục · Vận tải Đông Bắc'};
+export default async function Page(){
+  try{return <CatalogModule initialData={await loadCatalogData()}/>;}
+  catch(error){return <CatalogModule initialData={null} initialError={error?.message||'Không tải được Danh mục.'}/>;}
+}

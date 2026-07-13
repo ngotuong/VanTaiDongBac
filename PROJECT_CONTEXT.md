@@ -53,7 +53,7 @@ Các surface người dùng hiện có:
 ```text
 Browser
   ├─ /                         -> frontend legacy HTML/CSS/JavaScript trên Vercel
-  └─ /next-accounts/*         -> Next.js App Router static export/canary
+  └─ /next-accounts/*         -> Next.js App Router server runtime/canary
           ↓
 Vercel /api/app
   - xác thực Supabase session
@@ -85,7 +85,7 @@ Vai trò dữ liệu hiện tại:
 - Production reverse-proxy `/next-accounts/*` cùng origin sang canary; `/` vẫn là legacy static.
 - `/` vẫn do frontend legacy render; `/next-accounts/*` đã có shared application shell A2 nhưng chưa phải application shell production tại `/`.
 - Các React island trong trang legacy vẫn phụ thuộc feature flag và DOM bridge; production flag mặc định tắt tại checkpoint gần nhất.
-- Route `/next-accounts/reports/` là frontend Next độc lập đầu tiên dùng API Report hiện có.
+- Route `/next-accounts/reports/` và `/next-accounts/dashboard/` là các frontend Next độc lập.
 - Các route Next khác chủ yếu là canary/compatibility surface, chưa phải module độc lập hoàn chỉnh.
 
 ### 3.3. Luồng Report hiện tại
@@ -100,33 +100,33 @@ Server Component / Next report-data -> GET /api/app?action=getReportBundle
         -> Google Sheet/report cache
 ```
 
-Dashboard không dùng Report service mới; Entry và Manage cũng chưa chuyển sang frontend Next độc lập.
+Dashboard B2 đọc bundle cache `__dashboard_latest__` theo workbook ở server và fallback Apps Script `getDashboard`; nó không còn trộn payload vào Report. Entry và Manage vẫn chưa chuyển sang frontend Next độc lập.
 
 ## 4. Checkpoint gần nhất đã hoàn thành
 
-### Phase B1 — Hoàn thiện Report
+### Phase B2 — Migrate Dashboard
 
 Trạng thái: **hoàn thành ngày 2026-07-13**.
 
 Phạm vi hoàn thành:
 
-- initial Report read chuyển sang Server Component;
-- browser interaction đi qua `/next-accounts/report-data/`, workbook chỉ resolve phía server;
-- render nguyên bốn matrix backend, giữ tab/search/month/CSV và legacy rollback;
-- payload B1 loại Sheet links, không nhận Spreadsheet ID tùy ý từ browser;
-- thêm loading/empty/error/retry và accessible responsive table/tab states;
-- không thay đổi Apps Script action, report calculation, Sheet/Supabase schema hoặc dữ liệu.
+- Dashboard route Next độc lập, initial read ở Server Component và không dùng DOM bridge;
+- đọc Supabase `report_bundles` bằng khóa `__dashboard_latest__` + workbook server-resolved, có timeout và fallback Apps Script `getDashboard`;
+- browser refresh đi qua `/next-accounts/dashboard-data/`; payload public loại Sheet links và không nhận Spreadsheet ID từ browser;
+- bỏ phép trộn Dashboard vào Report; giữ KPI, biểu đồ lợi nhuận, chuyến gần nhất, bảng tháng, filter và loading/error/empty states;
+- không thay đổi Apps Script, Google Sheet, công thức, Sheet/Supabase schema hoặc dữ liệu.
 
-Verification B1:
+Verification B2:
 
-- `npm test`: 317/317 pass;
+- `npm test`: 321/321 pass;
 - `npm run lint`: pass;
 - `npm run typecheck`: pass;
 - `npm run build:next-accounts`: pass; toàn bộ route shell dynamic server-rendered;
-- branch đã push; code `79b4fab`, mobile fix `f1ffeae`;
-- Next canary production: `dpl_9aGLrM4T8XioF8yiwXxSFG96RHXg`, alias `vantaidongbac-next-canary.vercel.app`;
-- production authenticated smoke đạt cho SSR và bốn matrix tại `latest`, `07/2026`, `Tất cả`; payload không chứa Sheet links;
-- responsive QA đạt tại 375×667, 390×844, 430×932, 768×1024, 1440×900: không document overflow, filter nằm trong viewport, tab/table scroll đúng vùng, nút refresh 44 px;
+- branch `codex/next-dashboard-b2` đã push; code `e28f6b0`, cache timeout `374c75a`, refresh base-path fix `d9b006b`;
+- Next canary production: `dpl_ES2YG5GWKXhC7H9op8mnzzTrvEmN`, alias `vantaidongbac-next-canary.vercel.app`;
+- authenticated smoke đạt: initial read, refresh, filter `06/2026`, 5 KPI, chart, 24 chuyến gần nhất và 3 kỳ báo cáo;
+- đối chiếu payload tháng `07/2026` đạt cho doanh thu `270.513.180`, lợi nhuận gộp `39.600.000`, lợi nhuận thực `113.953.000`;
+- CSS/test gate bảo vệ responsive card, scroll-contained table, touch target, focus và reduced motion;
 - operator/shareholder parity tiếp tục được bảo vệ bằng API/RBAC contract tests.
 
 Checkpoint nền tảng trước đó A2 đã hoàn thành ngày 2026-07-12; rollback deployment là `dpl_DuFhuaRHL9oU2YWsK93FhYuwiQBp`.
@@ -145,18 +145,18 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### Phase B2 — Migrate Dashboard
+### Phase B3 — Migrate Manage read-only
 
-Chỉ bắt đầu sau khi người dùng phê duyệt rõ checkpoint B2.
+Chỉ bắt đầu sau khi người dùng phê duyệt rõ checkpoint B3.
 
-Mục tiêu B2:
+Mục tiêu B3:
 
-1. Tạo Dashboard route Next độc lập hoàn chỉnh.
-2. Loại bỏ startup/dashboard duplicate payload.
-3. Giữ Supabase cache và Apps Script fallback đúng contract.
-4. Đối chiếu số liệu với Sheet/report bundle.
+1. Chuyển read-only cho sáu sheet `NL_*` sang route Next độc lập.
+2. Giữ filter, pagination, row identity và recent/month cache semantics.
+3. Resolve workbook/year phía server và giữ RBAC hiện hành.
+4. Chưa chuyển edit/delete/write lifecycle; phần ghi thuộc B4.
 
-B2 không tự động chuyển Entry, Manage, Catalog, Cashflow hoặc Accounts.
+B3 không tự động chuyển Entry/write, Catalog, Cashflow hoặc Accounts.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -193,18 +193,18 @@ Google Sheets source of truth / Supabase read model, cache, queue
 
 Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_PLAN.md`. Kiến trúc đích tổng quát thuộc `TARGET_ARCHITECTURE.md`.
 
-## 7. Rủi ro và điều kiện trước B2
+## 7. Rủi ro và điều kiện trước B3
 
-Các điều kiện B1 đã được kiểm soát. Trước B2 cần audit riêng Dashboard data flow, duplicate payload, cache fallback và số liệu đối chiếu:
+Các điều kiện B2 đã được kiểm soát. Trước B3 cần audit riêng Manage read path, cache key, row identity và ranh giới read/write:
 
-1. **Initial read và auth**
-   - tận dụng server auth/context A2 để tránh mount-only waterfall;
-   - không tạo duplicate Report request giữa server và client hydration.
-2. **Report contract**
-   - giữ nguyên bốn matrix chuẩn do backend/Sheet trả về;
-   - không tự tính lại KPI, payroll matching hoặc ý nghĩa số liệu ở Next.
+1. **Read-only boundary**
+   - B3 chỉ đọc sáu sheet `NL_*`; không gọi save/delete/queue action;
+   - edit/delete controls phải không xuất hiện hoặc bị tách rõ sang B4.
+2. **Manage contract**
+   - giữ row identity/`rowIndex`, filter tháng và pagination hiện có;
+   - pending overlay không được làm sai dữ liệu nguồn khi write lifecycle chưa migrate.
 3. **Workbook context**
-   - Report phải dùng đúng `transport + year` đã resolve;
+   - Manage phải dùng đúng `transport + year` đã resolve;
    - không nhận Spreadsheet ID tùy ý từ browser và không fallback workbook mơ hồ.
 4. **RBAC và secret**
    - server/client API client A2 không thay thế proxy enforcement;
@@ -213,7 +213,7 @@ Các điều kiện B1 đã được kiểm soát. Trước B2 cần audit riên
    - kiểm tra giới hạn Functions của project Hobby trước khi thêm route/server boundary;
    - helper repository/service không được publish thành endpoint độc lập.
 6. **Phạm vi**
-   - B1 chỉ hoàn thiện Report; không kéo Dashboard, Entry, Manage, Catalog hoặc Cashflow vào cùng checkpoint;
+   - B2 chỉ hoàn thiện Dashboard; không kéo Manage, Entry, Catalog hoặc Cashflow vào cùng checkpoint;
    - không migration Sheet/Supabase và không chạy business write production.
 7. **Legacy runtimeContext environment**
    - shell A2 resolve `transport · 2026` thành công trên canary env;
@@ -226,10 +226,10 @@ Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 ## 8. Verification baseline hiện tại
 
-Baseline đã xác nhận trong B1:
+Baseline đã xác nhận trong B2:
 
 - `npm run build:next-accounts`: pass; mọi route shell dynamic server-rendered.
-- `npm test`: 317/317 pass.
+- `npm test`: 321/321 pass.
 - `npm run lint`: pass.
 - `npm run typecheck`: pass.
 - Production `/`: frontend legacy, chưa đăng nhập sẽ dừng ở auth gate.

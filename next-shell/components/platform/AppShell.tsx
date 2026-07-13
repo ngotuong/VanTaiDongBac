@@ -12,7 +12,8 @@ const NAVIGATION: NavigationItem[] = [
   { href: '/entry', label: 'Nhập liệu', roles: [...WRITE_ROLES] },
   { href: '/catalog', label: 'Danh mục', roles: [...WRITE_ROLES] },
   { href: '/cashflow', label: 'Thu chi', roles: [...ALL_ROLES] },
-  { href: '/observability', label: 'Đồng bộ', roles: [...WRITE_ROLES] }
+  { href: '/observability', label: 'Đồng bộ', roles: [...WRITE_ROLES] },
+  { href: '/settings', label: 'Tài khoản', roles: [...ALL_ROLES] }
 ];
 
 export function AppShell({ context, children }: { context: PlatformContext; children: React.ReactNode }) {

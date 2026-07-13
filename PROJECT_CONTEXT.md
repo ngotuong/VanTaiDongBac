@@ -100,34 +100,34 @@ Server Component / Next report-data -> GET /api/app?action=getReportBundle
         -> Google Sheet/report cache
 ```
 
-Dashboard B2 và Manage B3 giữ cache/fallback hiện hành. Entry B4 dùng catalog server-first, enqueue `submitRows`, kick worker, poll/retry write job và giữ Apps Script/Sheet services làm nơi validate/ghi có thẩm quyền.
+Dashboard B2, Manage B3 và Catalog B5 giữ cache/fallback hiện hành. Entry B4 dùng catalog server-first, enqueue `submitRows`, kick worker, poll/retry write job và giữ Apps Script/Sheet services làm nơi validate/ghi có thẩm quyền. Catalog B5 dùng direct `saveSheetRow`/`deleteSheetRow` theo contract cũ; Apps Script tiếp tục là nơi ghi có thẩm quyền và sync lại cache sau ghi.
 
 ## 4. Checkpoint gần nhất đã hoàn thành
 
-### Phase B4 — Migrate Entry/write lifecycle
+### Phase B5 — Migrate Catalog
 
 Trạng thái: **hoàn thành ngày 2026-07-13**.
 
 Phạm vi hoàn thành:
 
-- Entry route Next độc lập cho sáu form, initial catalog read ở Server Component và không dùng DOM bridge;
-- giữ đúng field schema, multi-row add/clone/remove, trường bắt buộc và catalog options;
-- giữ `submitRows` queue, `processWriteJobs`, status polling, recent jobs và manual retry;
-- shareholder không thấy menu Entry và nhận permission state nếu truy cập trực tiếp;
+- Catalog route Next độc lập, initial read server-first và không dùng DOM bridge;
+- giữ chín display catalog, search/filter/pagination, row identity và modal add/edit/delete;
+- giữ nguồn vật lý `DM_ThamSo` cho `DM_ThamSo_TS`/`DM_ThamSo_GD`; delete hai view ảo chỉ clear đúng nhóm cột;
+- admin/operator giữ read/write; shareholder không thấy menu và bị proxy/RBAC chặn;
+- giữ direct write, cache invalidation và sync-after-write contract hiện hữu;
+- dùng chung Function `manage-data` cho interaction read và bỏ placeholder `/fund-catalog` khỏi canary để giữ giới hạn Vercel Hobby;
 - không thay đổi Apps Script, Google Sheet, công thức, Sheet/Supabase schema hoặc dữ liệu.
 
-Verification B4:
+Verification B5:
 
-- `npm test`: 330/330 pass;
+- `npm test`: 336/336 pass;
 - `npm run lint`: pass;
 - `npm run typecheck`: pass;
-- `npm run build:next-accounts`: pass; toàn bộ route shell dynamic server-rendered;
-- branch `codex/next-entry-b4` đã push; code `d850b62`;
-- Next canary production: `dpl_2jpX6upeFwn96HbDJViAfw5gspYa`, alias `vantaidongbac-next-canary.vercel.app`;
-- authenticated admin smoke đạt sáu form và catalog options; multi-row add → clone → remove đạt 1→2→3→2;
-- submit vẫn disabled khi thiếu trường bắt buộc; smoke không bấm gửi và không tạo production write job/Sheet row;
-- queue/idempotency/formula-preservation được xác nhận bằng fixture/contract tests, gồm duplicate enqueue, `WRITE_JOB_ID` replay và skipped helper columns;
-- operator/shareholder parity tiếp tục được bảo vệ bằng API/RBAC contract tests.
+- full build và `npm run build:next-accounts`: pass; 12-Function Hobby gate đạt sau prebuilt cleanup;
+- branch `codex/next-catalog-b5` đã push; code `47631af`, function fixes `3c69853` và `06ff3dc`;
+- Next canary production: `dpl_6Qv3rsdEiLEEAC7G7ina9j1oC3md`, alias `vantaidongbac-next-canary.vercel.app`;
+- authenticated admin smoke đạt Catalog 2026, chín tab, filter, modal mở/đóng và hai view ảo;
+- smoke không bấm Lưu/Xóa, không tạo production write hoặc thay đổi Sheet.
 
 Checkpoint nền tảng trước đó A2 đã hoàn thành ngày 2026-07-12; rollback deployment là `dpl_DuFhuaRHL9oU2YWsK93FhYuwiQBp`.
 
@@ -145,18 +145,18 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### Phase B5 — Migrate Catalog
+### Phase B6 — Migrate Cashflow/Quỹ
 
-Chỉ bắt đầu sau khi người dùng phê duyệt rõ checkpoint B5.
+Chỉ bắt đầu sau khi người dùng phê duyệt rõ checkpoint B6.
 
-Mục tiêu B5:
+Mục tiêu B6:
 
-1. Chuyển catalog read/write sang Next theo role hiện hành.
-2. Giữ virtual `DM_ThamSo_TS`/`DM_ThamSo_GD` và mapping nguồn vật lý.
-3. Giữ effective-date/history semantics và cache invalidation/sync sau ghi.
-4. Không test business write production nếu chưa có phê duyệt riêng.
+1. Chuyển Overview, Transactions, Loans và Fund Catalog sang Next.
+2. Giữ Thu chi là domain/workbook độc lập theo năm.
+3. Giữ voucher/idempotency, reconciliation, pending-job và native named-range bounds.
+4. Tài liệu hóa bound-script bypass; không test business write production nếu chưa có phê duyệt riêng.
 
-B5 không tự động chuyển Cashflow hoặc Accounts.
+B6 không tự động chuyển Accounts/Settings/Observability.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -193,28 +193,28 @@ Google Sheets source of truth / Supabase read model, cache, queue
 
 Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_PLAN.md`. Kiến trúc đích tổng quát thuộc `TARGET_ARCHITECTURE.md`.
 
-## 7. Rủi ro và điều kiện trước B5
+## 7. Rủi ro và điều kiện trước B6
 
-Các điều kiện B4 đã được kiểm soát. Trước B5 cần audit catalog physical/virtual mapping, native bounds và effective-date semantics:
+Các điều kiện B5 đã được kiểm soát. Trước B6 cần audit toàn bộ Thu chi và quyết định trước nếu phải split B6a/B6b:
 
-1. **Catalog authorization**
-   - chỉ role được phép mới thấy/read/write Catalog theo RBAC hiện hành;
-   - không nới shareholder allowlist ngoài contract.
-2. **Virtual/native mapping**
-   - `DM_ThamSo_TS`/`DM_ThamSo_GD` phải giữ display key và nguồn vật lý;
-   - không ghi vượt native named-range bounds hoặc phá history/effective date.
-3. **Workbook context**
-   - Catalog phải dùng đúng `transport + year` đã resolve;
-   - không nhận Spreadsheet ID tùy ý từ browser và không fallback workbook mơ hồ.
+1. **Thu chi scope và authorization**
+   - Overview/Transactions/Loans/Fund Catalog phải giữ role hiện hành;
+   - không trộn workbook Vận tải với workbook Thu chi theo năm.
+2. **Write/idempotency**
+   - giữ voucher, batch replay, reconciliation, queue flag và pending lifecycle;
+   - không ghi production khi chưa có phê duyệt riêng.
+3. **Fund Catalog bounds**
+   - giữ named-range/native bounds, encoded row index và clear-only delete;
+   - không biến fallback managed range thành schema mới.
 4. **RBAC và secret**
    - server/client API client A2 không thay thế proxy enforcement;
    - không render service role, proxy secret, refresh token hoặc Spreadsheet ID.
 5. **Vercel Functions**
-   - kiểm tra giới hạn Functions của project Hobby trước khi thêm route/server boundary;
-   - helper repository/service không được publish thành endpoint độc lập.
-6. **Phạm vi**
-   - B4 chỉ hoàn thiện Entry/write lifecycle; không kéo Catalog hoặc Cashflow vào cùng checkpoint;
-   - không migration Sheet/Supabase và không chạy business write production.
+   - project Hobby phải giữ không quá 12 Functions;
+   - prebuilt phải loại helper `.func`; B6 tái sử dụng boundary trước khi thêm endpoint.
+6. **Bound script và phạm vi**
+   - audit `docs/legacy/THU_CHI_BOUND_SCRIPT.md` và source snapshot trước code;
+   - không sửa bound script/workbook/schema nếu chưa có checkpoint migration riêng.
 7. **Legacy runtimeContext environment**
    - shell A2 resolve `transport · 2026` thành công trên canary env;
    - cùng action `runtimeContext` qua project legacy hiện trả `404` do legacy deployment không có workbook mapping; B1 phải dùng shared shell/canary server context, hoặc cấu hình env legacy bằng checkpoint deploy riêng nếu còn cần endpoint này.
@@ -226,10 +226,10 @@ Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 ## 8. Verification baseline hiện tại
 
-Baseline đã xác nhận trong B4:
+Baseline đã xác nhận trong B5:
 
 - `npm run build:next-accounts`: pass; mọi route shell dynamic server-rendered.
-- `npm test`: 330/330 pass.
+- `npm test`: 336/336 pass.
 - `npm run lint`: pass.
 - `npm run typecheck`: pass.
 - Production `/`: frontend legacy, chưa đăng nhập sẽ dừng ở auth gate.

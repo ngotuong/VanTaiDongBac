@@ -74,7 +74,7 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | B2 | Migrate Dashboard | DONE | B1 |
 | B3 | Migrate Manage read-only | DONE | A2 |
 | B4 | Migrate Entry/write lifecycle | DONE | B3 |
-| B5 | Migrate Catalog | NOT STARTED | A2 |
+| B5 | Migrate Catalog | DONE | A2 |
 | B6 | Migrate Cashflow/Quỹ | NOT STARTED | A2; có thể sau B4 |
 | B7 | Migrate Accounts, Settings và Observability | NOT STARTED | A2 |
 | C1 | Cutover `/` sang Next.js | NOT STARTED | B1–B7 |
@@ -162,6 +162,8 @@ Không chuyển business module trong A2 ngoài placeholder/navigation cần thi
 - virtual `DM_ThamSo_TS`/`DM_ThamSo_GD` giữ mapping;
 - không đổi effective-date/history semantics;
 - cache invalidation/sync sau ghi đúng contract.
+
+Hoàn thành ngày 2026-07-13. Route Next độc lập giữ chín display catalog, server-first cache/fallback, direct CRUD contract hiện hữu và mapping clear-only cho hai view ảo. Không chạy business write production. Để giữ giới hạn Vercel Hobby, Catalog dùng chung read boundary `manage-data`; prebuilt chỉ publish endpoint thật, không publish helper repository/service. Placeholder `/fund-catalog` riêng được bỏ khỏi canary; Fund Catalog vẫn thuộc B6 trong module Thu chi.
 
 ### B6 — Cashflow/Quỹ
 

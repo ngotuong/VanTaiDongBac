@@ -47,7 +47,7 @@ test('typed Account client preserves all five stable proxy-local action contract
   const client = read('next-shell/lib/account-client.js');
   for (const action of ['changeOwnPassword', 'listUsers', 'createUser', 'updateUser', 'resetUserPassword']) {
     assert.match(client, new RegExp(`'${action}'`));
-    assert.match(read('api/services/account-service.js'), new RegExp(`'${action}'`));
+    assert.match(read('server/services/account-service.js'), new RegExp(`'${action}'`));
   }
   assert.match(client, /@typedef/);
   assert.match(client, /AccountTransport/);

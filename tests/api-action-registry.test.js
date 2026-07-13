@@ -54,7 +54,7 @@ test('dispatchers consume registry guards while retaining compatibility handlers
   const publicApi = read('PublicApi.gs');
   const router = read('Router.gs');
   const proxy = read('api/app.js');
-  const policy = read('api/services/authorization-policy.js');
+  const policy = read('server/services/authorization-policy.js');
   assert.match(publicApi, /ApiActionRegistry\.assertPublicAction\(normalizedMethod, action\)/);
   assert.match(publicApi, /if \(action === 'getDashboard'\)/);
   assert.match(publicApi, /if \(action === 'addFundTransactions'\)/);

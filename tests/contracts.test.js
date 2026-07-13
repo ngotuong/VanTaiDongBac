@@ -54,9 +54,9 @@ test('auth migration revokes anon and API proxy validates allowlist', () => {
   const allowlistMigration = read('supabase/migrations/007_auth_hardening.sql');
   const cutoverMigration = read('supabase/migrations/008_authenticated_read_cutover.sql');
   const proxy = read('api/app.js');
-  const accountService = read('api/services/account-service.js');
-  const authService = read('api/services/auth-service.js');
-  const appUserRepository = read('api/repositories/app-user-repository.js');
+  const accountService = read('server/services/account-service.js');
+  const authService = read('server/services/auth-service.js');
+  const appUserRepository = read('server/repositories/app-user-repository.js');
   assert.match(cutoverMigration, /'write_jobs'/);
   assert.match(cutoverMigration, /revoke all on public\.%I from anon/i);
   assert.match(allowlistMigration, /is_active_app_user\(\)/);
@@ -69,8 +69,8 @@ test('auth migration revokes anon and API proxy validates allowlist', () => {
 test('shareholder role is read-only and account administration stays admin-only', () => {
   const migration = read('supabase/migrations/009_shareholder_role.sql');
   const proxy = read('api/app.js');
-  const accountService = read('api/services/account-service.js');
-  const authorizationPolicy = read('api/services/authorization-policy.js');
+  const accountService = read('server/services/account-service.js');
+  const authorizationPolicy = read('server/services/authorization-policy.js');
   const template = read('index.template.html');
   const accounts = read('client_accounts.html');
   assert.match(migration, /'shareholder'/);
@@ -111,7 +111,7 @@ test('loan reconciliation safely matches one orphan settlement by partner and ex
 });
 
 test('password policy accepts any value with at least six characters', () => {
-  const accountService = read('api/services/account-service.js');
+  const accountService = read('server/services/account-service.js');
   const accounts = read('client_accounts.html');
   const template = read('index.template.html');
   assert.match(accountService, /newPassword\.length < 6/);

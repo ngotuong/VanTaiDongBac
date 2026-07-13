@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { createAccountService, ACCOUNT_ACTIONS } = require('../api/services/account-service');
+const { createAccountService, ACCOUNT_ACTIONS } = require('../server/services/account-service');
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 const send = (res, status, body) => ({ status, body });

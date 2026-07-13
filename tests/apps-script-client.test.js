@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { createAppsScriptClient } = require('../api/services/apps-script-client');
+const { createAppsScriptClient } = require('../server/services/apps-script-client');
 
 const request = { url: 'https://script.example/exec', action: 'getDashboard', method: 'GET', params: { month: '2026-07' }, body: {}, proxySecret: 'secret', requestUser: { id: 'u1', role: 'admin' } };
 

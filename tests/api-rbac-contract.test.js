@@ -105,9 +105,9 @@ test('shareholder allowlist contains no write, account-admin or operational acti
 
 test('proxy enforces shareholder deny-by-default before account and upstream dispatch', () => {
   const proxy = read('api/app.js');
-  const accountService = read('api/services/account-service.js');
-  const appsScriptClient = read('api/services/apps-script-client.js');
-  const authorizationPolicy = read('api/services/authorization-policy.js');
+  const accountService = read('server/services/account-service.js');
+  const appsScriptClient = read('server/services/apps-script-client.js');
+  const authorizationPolicy = read('server/services/authorization-policy.js');
   const authorizeCall = proxy.indexOf('assertAuthorized(user, action);');
   const accountDispatch = proxy.indexOf('accountService.handles(action)');
   const upstreamFetch = proxy.indexOf('await client.forward');
@@ -120,7 +120,7 @@ test('proxy enforces shareholder deny-by-default before account and upstream dis
 });
 
 test('account administration remains admin-only while own-password change remains available', () => {
-  const handler = read('api/services/account-service.js');
+  const handler = read('server/services/account-service.js');
 
   const ownPasswordBranch = handler.indexOf("action === 'changeOwnPassword'");
   const adminGuard = handler.indexOf('assertAdmin(user);', ownPasswordBranch);
@@ -134,9 +134,9 @@ test('account administration remains admin-only while own-password change remain
 
 test('proxy authenticates every action except health and forwards only after proxy-secret injection', () => {
   const proxy = read('api/app.js');
-  const authService = read('api/services/auth-service.js');
-  const appsScriptClient = read('api/services/apps-script-client.js');
-  const authorizationPolicy = read('api/services/authorization-policy.js');
+  const authService = read('server/services/auth-service.js');
+  const appsScriptClient = read('server/services/apps-script-client.js');
+  const authorizationPolicy = read('server/services/authorization-policy.js');
   assert.match(proxy, /if \(action !== 'health'\) user = await getAuthenticatedUser\(req, config\);/);
   assert.match(authService, /Vui lòng đăng nhập để tiếp tục/);
   assert.match(proxy, /proxySecret: config\.proxySecret/);

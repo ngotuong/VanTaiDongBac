@@ -51,7 +51,7 @@ test('B5 remains admin/operator-only through existing RBAC contracts',()=>{
 });
 
 test('catalog cache repository uses an exact catalog key and service-side credentials',async()=>{
-  const {createCatalogBundleRepository}=require('../api/repositories/catalog-bundle-repository.js');
+  const {createCatalogBundleRepository}=require('../server/repositories/catalog-bundle-repository.js');
   let request;
   const repository=createCatalogBundleRepository({httpError:(status,message)=>Object.assign(new Error(message),{status}),fetchImpl:async(url,options)=>{request={url,options};return{ok:true,json:async()=>[{catalog_key:'catalog_data:DM_Xe',payload:{headers:[],rows:[]},synced_at:'2026-07-13T00:00:00Z'}]};}});
   const row=await repository.find({supabaseUrl:'https://cache.test',serviceRoleKey:'secret'},'catalog_data:DM_Xe');

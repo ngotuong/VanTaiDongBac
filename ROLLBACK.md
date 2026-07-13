@@ -98,7 +98,9 @@ Rollback route production:
 vercel alias set vantaidongbac-62q4v6vur-ngotuong2105.vercel.app dongbac.vercel.app
 ```
 
-Sau rollback, kiểm tra `/`, `/manifest.json`, `/api/session` và đăng nhập legacy. Không xóa deployment Next; có thể cut forward lại bằng cách gán `dongbac.vercel.app` về deployment C1 đã xác nhận.
+Sau rollback, kiểm tra `/`, `/manifest.json`, `/api/session` và đăng nhập legacy. Không xóa deployment Next; có thể cut forward lại bằng cách gán `dongbac.vercel.app` về deployment C2 `vantaidongbac-mk686g55x-ngotuong2105.vercel.app` (`dpl_HtiB9PFutzyXhoUcKJPo4hQvMMJu`).
+
+C2 đang dùng Apps Script deployment `AKfycbzO8puBHqpuoA9_eYPROuNGoISJM6bI9HT53xigZY_xK-BmQdcRhd_rje4qGFGVPbF3Mg`, được tạo từ cùng code version `@281` sau khi owner cấp lại quyền. Deployment Apps Script cũ vẫn được giữ nhưng đã trả HTTP 403 trong kiểm tra C2; không rollback `APPS_SCRIPT_URL` về URL cũ nếu chưa xác nhận lại quyền truy cập.
 
 ## Dấu hiệu rollback thành công
 

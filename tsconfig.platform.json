@@ -23,6 +23,8 @@
     "next-shell/components/entry/**/*.tsx",
     "next-shell/components/catalog/**/*.tsx",
     "next-shell/components/cashflow/**/*.tsx",
+    "next-shell/components/settings/**/*.tsx",
+    "next-shell/components/observability/**/*.tsx",
     "next-shell/lib/platform/**/*.ts",
     "next-shell/lib/report-server.ts",
     "next-shell/lib/dashboard-server.ts",

@@ -90,15 +90,9 @@ Apps Script `Router.doPost()` parse envelope rồi gọi:
 invokeApi(method, action, params, body)
 ```
 
-### 2.3. HtmlService transport
+### 2.3. Next same-origin transport
 
-Khi frontend chạy trong Apps Script HtmlService, `client_api.html` gọi:
-
-```text
-google.script.run.invokeApi(method, action, params, body)
-```
-
-Contract action giữ nguyên, nhưng không đi qua Vercel proxy. `SecurityService` vẫn có thể yêu cầu proxy secret tùy cấu hình enforcement.
+Frontend Next gọi same-origin `/api/app` bằng client/server API client. Vercel xác thực session, enforce RBAC và thêm `proxySecret` trước khi forward Apps Script. D1 đã loại bỏ transport `google.script.run`/HtmlService.
 
 ### 2.4. Response thành công
 
@@ -1339,7 +1333,7 @@ Response:
 }
 ```
 
-Tên collection có thể theo implementation service; frontend consumer trong `client_ui.html` là contract thực tế cần đối chiếu khi thay đổi.
+Tên collection có thể theo implementation service; consumer hiện tại trong `next-shell/components/observability/ObservabilityModule.tsx` phải được đối chiếu khi thay đổi.
 
 Action chỉ đọc trạng thái đã ghi, không chạy audit nặng.
 

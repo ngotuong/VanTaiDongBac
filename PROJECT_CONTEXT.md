@@ -81,11 +81,11 @@ Vai trò dữ liệu hiện tại:
 - Next.js `16.2.10`, React `19.2.7`.
 - Source route/component tiếp tục nằm trong `next-shell/`; root `app/` là Vercel App Router entrypoint mỏng.
 - `next.config.mjs` không còn `basePath` và không dùng `output: 'export'`; App Router phục vụ trực tiếp tại `/`.
-- Vercel production dùng framework Next.js và build `npm run build:next-accounts`; `/` do App Router phục vụ và đi vào Dashboard/auth gate sau C3 cut-forward.
+- Vercel production dùng framework Next.js và build thuần `next build`; `/` do App Router phục vụ và đi vào Dashboard/auth gate.
 - Root layout server-render auth/workbook context; chưa đăng nhập render LoginGate cùng-origin, đăng nhập tạo HttpOnly cookie qua `/api/session`.
-- Các React island trong trang legacy vẫn phụ thuộc feature flag và DOM bridge; production flag mặc định tắt tại checkpoint gần nhất.
 - Route `/reports/`, `/dashboard/`, `/manage/`, `/entry/`, `/catalog/`, `/cashflow/`, `/settings/` và `/observability/` là các frontend Next production độc lập.
-- Legacy source và `/legacy-index.html` vẫn còn làm rollback nhưng không còn là presentation mặc định. Next shell đã đạt parity được người dùng chấp thuận và là presentation production sau C3 cut-forward ngày 2026-07-13; D1 chưa được phép bắt đầu.
+- Next.js là presentation duy nhất trong source hiện tại. Legacy HtmlService, template/client/style fragments, React islands, DOM bridge, feature flags và compatibility bundles đã được xóa ở D1.
+- Apps Script chỉ còn API/integration/worker/sync; request không có `action` trả JSON hướng người dùng về `https://dongbac.vercel.app/`, không render HTML.
 
 ### 3.3. Luồng Report hiện tại
 
@@ -103,7 +103,19 @@ Dashboard B2, Manage B3, Catalog B5 và Cashflow B6 giữ cache/fallback hiện 
 
 ## 4. Checkpoint gần nhất đã hoàn thành
 
-### Phase C2 — Production stabilization và recovery regression
+### Phase D1 — Xóa presentation legacy
+
+Trạng thái: **DONE ngày 2026-07-13**.
+
+- Audit consumer/call site trước khi xóa; giữ Apps Script API, integration, worker, trigger, cache/queue và contract dữ liệu.
+- Xóa legacy HtmlService presentation, template/client/style fragments, React islands, DOM bridge, feature flags, compatibility bundles và build pipeline tương ứng.
+- Apps Script API-only deploy ở version `@282`, deployment `AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw`.
+- Vercel production `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9`, alias `https://dongbac.vercel.app`.
+- Verification đạt 265/265 test, lint, typecheck, build, `git diff --check`; root/API health và các route chính đạt 200 sau redirect chuẩn hóa, path legacy đạt 404, không có HTTP 500 trong log kiểm tra.
+- Recovery C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, legacy C1 và Apps Script `@281` vẫn được giữ làm rollback.
+- Không migration/thay đổi Google Sheet hoặc Supabase schema, không chạy business/account write production.
+
+### Checkpoint lịch sử: C2 — Production stabilization và recovery regression
 
 Trạng thái: **DONE ngày 2026-07-13; production giữ presentation legacy đã được người dùng xác nhận sau recovery**.
 
@@ -153,20 +165,9 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### Phase D1 — Xóa presentation legacy
+### Không có checkpoint tự động
 
-Trạng thái hiện tại: **APPROVED ngày 2026-07-13; chưa bắt đầu thay đổi D1 tại checkpoint C3 closure**.
-
-Mục tiêu:
-
-1. Audit dead code/call site trước khi xóa để phân biệt presentation legacy với Apps Script API/integration còn sống.
-2. Dừng build và xóa `index.template.html`, `client_*.html`, `styles_*.html`, React islands/DOM bridges/feature flags không còn consumer.
-3. Ngừng HtmlService presentation nhưng giữ Apps Script API, worker, trigger, cache/queue và toàn bộ contract dữ liệu.
-4. Cập nhật architecture, build, workflow, rollback và test; deploy/push chỉ sau toàn bộ gate đạt.
-
-C3 **DONE ngày 2026-07-13**: production Next `dpl_9vU7mJfGCbtPwGT3aKJLACS4hXx6` giữ root/health 200 và không có HTTP 500 trong kiểm tra lại; người dùng đã chấp thuận tiếp tục D1. Deployment recovery C2 và Apps Script `@281` phải được giữ trong suốt D1.
-
-Production C3 hiện tại là deployment `dpl_9vU7mJfGCbtPwGT3aKJLACS4hXx6`, alias `https://dongbac.vercel.app`. Build READY; root có `x-powered-by: Next.js`, health và các route Dashboard/Report/Vận hành/Quỹ/Cài đặt trả 200. Verification local đạt 363/363 test, lint, typecheck, build và `git diff --check`.
+Roadmap migration Next.js hữu hạn đã hoàn thành toàn bộ 13 checkpoint từ A1 đến D1. **Không có checkpoint tiếp theo được tự động phê duyệt.** Công việc mới chỉ bắt đầu khi người dùng nêu mục tiêu/phạm vi cụ thể; thay đổi kiến trúc hoặc dữ liệu vẫn phải qua gate phê duyệt riêng.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -203,32 +204,30 @@ Google Sheets source of truth / Supabase read model, cache, queue
 
 Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_PLAN.md`. Kiến trúc đích tổng quát thuộc `TARGET_ARCHITECTURE.md`.
 
-## 7. Rủi ro và điều kiện trước D1
+## 7. Rủi ro và điều kiện trước công việc tiếp theo
 
-C3 đã đóng sau cut-forward và theo dõi ổn định; D1 đã được người dùng phê duyệt. Cần kiểm soát:
+Roadmap hiện không có checkpoint tiếp theo. Các điều kiện còn phải duy trì:
 
-1. **Thời gian ổn định**: người dùng phải chấp thuận khoảng theo dõi sau lần cut forward C3 trước khi xóa rollback source.
-2. **Role coverage**: admin đã smoke production; operator/shareholder tiếp tục có contract/unit gate nhưng chưa có representative production smoke.
-3. **Rollback**: giữ deployment recovery C2, deployment legacy trước recovery, alias `vantaidongbac-legacy.vercel.app` và Apps Script version `@281` trong suốt khoảng theo dõi C3.
-4. **PWA/cache cũ**: tiếp tục theo dõi client đã cài PWA/service worker legacy và cache path cũ.
-5. **Runtime warning**: Vercel Node 24 còn ghi `DEP0169 url.parse()` trên `/api/app/` dù HTTP 200; source project không có call site trực tiếp.
-6. **Visual parity**: người dùng đã xác nhận preview giữ giao diện quen thuộc và phê duyệt cut-forward; tiếp tục ghi nhận regression thực tế trong khoảng theo dõi.
-7. **Xóa code**: D1 phải bắt đầu bằng dead-code/call-site audit; không suy ra file legacy không còn consumer chỉ từ cutover route.
+1. **Role coverage**: admin đã smoke production; operator/shareholder có contract/unit gate nhưng chưa có representative production smoke.
+2. **Rollback**: không xóa recovery C2, legacy C1/alias hoặc Apps Script `@281` cho đến khi người dùng phê duyệt kết thúc retention.
+3. **PWA/cache cũ**: tiếp tục theo dõi client đã cài PWA/service worker legacy và cache path cũ.
+4. **Runtime warning**: Vercel Node 24 có thể ghi `DEP0169 url.parse()` trên `/api/app/` dù HTTP 200; source project không có call site trực tiếp.
+5. **Dữ liệu**: mọi thay đổi Google Sheet/Supabase schema phải là migration riêng được phê duyệt; Google Sheets vẫn là source of truth.
+6. **Regression thực tế**: tiếp tục ghi nhận lỗi theo module/role/workbook; không suy ra business flow chưa smoke production đã được xác nhận chỉ vì D1 hoàn tất.
 
 Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 ## 8. Verification baseline hiện tại
 
-Baseline recovery đã xác nhận:
+Baseline D1 đã xác nhận:
 
-- `npm run build:next-accounts`: pass; mọi route shell dynamic server-rendered.
-- `npm test`: 359/359 pass; `npm run lint`, `npm run typecheck`, `npm run build:next-accounts` và `git diff --check` pass.
-- `npm run lint`: pass.
-- `npm run typecheck`: pass.
-- Production `/`: redirect 307 tới generated legacy shell; UI Next chưa được cut forward lại.
-- Production deployment hiện tại: `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; rollback ngay trước recovery: `dpl_5qua6YTqNS1GPkWE1YGP1f1v9ouU`; legacy C1: `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`.
-- Production root, health và static module assets trả 200; authenticated Report latest dùng Supabase cache và trả 200 trong khoảng 2,8 giây.
-- Không có account/business write, retry hoặc worker production trong C2.
+- `npm test`: 265/265 pass.
+- `npm run lint`, `npm run typecheck`, `npm run build` và `git diff --check`: pass.
+- Production `/`: 200, header `x-powered-by: Next.js`; các route chính đạt 200 sau redirect trailing slash chuẩn hóa.
+- `/legacy-index.html` và `/public/static/accounts-react.js`: 404.
+- `/api/app/?action=health`: 200, dùng Apps Script API-only `@282`.
+- Production deployment hiện tại: `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9`; recovery C2: `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; legacy C1: `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`.
+- Không có HTTP 500 trong log production sau deploy; không chạy account/business write, retry hoặc worker production.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

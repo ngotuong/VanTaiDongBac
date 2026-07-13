@@ -10,7 +10,7 @@ test('C3 cut-forward routes the production root to the Next Dashboard', () => {
   const config = JSON.parse(read('vercel.json'));
   assert.equal(config.redirects, undefined);
   assert.match(read('next-shell/app/page.jsx'), /redirect\('\/dashboard'\)/);
-  assert.match(read('scripts/prepare-legacy-shell.js'), /legacy-index\.html/);
+  assert.match(read('ROLLBACK.md'), /dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg/);
 });
 
 test('C3 Next shell matches the six approved legacy navigation destinations', () => {

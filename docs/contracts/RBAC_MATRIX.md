@@ -155,9 +155,9 @@ Không có quyền:
 
 Source:
 
-- `client_accounts.html`;
-- các consumer của `canWriteData()`/`requireWritePermission()`;
-- role-dependent navigation/button markup.
+- `next-shell/components/platform/AppShell.tsx`;
+- `next-shell/components/settings/SettingsModule.tsx`;
+- các module Next có role-dependent navigation/button markup.
 
 Trách nhiệm:
 
@@ -558,15 +558,15 @@ Do đó khi thay đổi RLS phải test riêng:
 - authenticated active shareholder;
 - authenticated inactive user.
 
-## 20. Direct Apps Script và HtmlService
+## 20. Direct Apps Script và vận hành nội bộ
 
 ### 20.1. Direct HTTP
 
 Khi enforcement bật, direct request không có proxy secret phải bị từ chối dù có biết deployment URL.
 
-### 20.2. HtmlService UI
+### 20.2. Apps Script root sau D1
 
-HtmlService gọi `invokeApi()` bằng `google.script.run`, không tự đi qua Vercel proxy. Nếu production cần hỗ trợ đồng thời HtmlService UI khi enforcement bật, phải có thiết kế xác thực riêng; không tắt enforcement mặc định chỉ để đường cũ hoạt động.
+Apps Script không còn render UI. Request root trả JSON hướng người dùng sang Next; mọi action production vẫn phải đi qua Vercel proxy và shared secret.
 
 ### 20.3. `clasp run`/Apps Script editor
 
@@ -796,7 +796,7 @@ Rollback theo `ROLLBACK.md`. Không tắt Auth enforcement mà không hiểu dir
 - Một số read action hợp lý với shareholder vẫn bị chặn do allowlist chưa bao gồm; đây là deny-by-default, không phải lỗi nếu UI không cần.
 - Google Sheet direct access nằm ngoài web RBAC.
 - Bound script Thu chi nằm ngoài proxy RBAC.
-- HtmlService path cần xem xét riêng khi enforcement bật.
+- Source frontend legacy/HtmlService đã bị loại bỏ; deployment C2 chỉ còn là rollback presentation bất biến.
 - Permission definitions phân tán giữa proxy, frontend, SQL migration và test.
 
 Các điểm này là mô tả hiện trạng, không phải phê duyệt thay đổi.
@@ -821,6 +821,6 @@ Các điểm này là mô tả hiện trạng, không phải phê duyệt thay �
 
 - Loại tài liệu: Auth/RBAC contract hiện trạng.
 - Phạm vi: Supabase Auth, `app_users`, frontend role UX, Vercel proxy permissions, Supabase RLS và Apps Script proxy-secret enforcement.
-- Nguồn kiểm chứng: `api/app.js`, `client_accounts.html`, `client_api.html`, migrations `007`–`009`, `SecurityService.gs` và RBAC tests.
-- Ngày xác nhận gần nhất: 2026-07-11.
+- Nguồn kiểm chứng: `api/app.js`, `next-shell/components/`, `next-shell/lib/platform/`, migrations `007`–`009`, `SecurityService.gs` và RBAC tests.
+- Ngày xác nhận gần nhất: 2026-07-13 (D1).
 - Cần cập nhật khi: thêm/đổi role, action permission, account operation, RLS policy, Auth flow, proxy secret enforcement hoặc Google Sheet access model.

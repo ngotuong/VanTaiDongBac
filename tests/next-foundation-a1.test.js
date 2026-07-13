@@ -12,8 +12,7 @@ test('C1 dynamic Next runtime remains intact after C3 cut-forward', () => {
   const legacyVercel = read('vercel.json');
   assert.doesNotMatch(config, /output:\s*['"]export['"]/);
   assert.doesNotMatch(config, /basePath/);
-  assert.doesNotMatch(build, /copy-next-accounts/);
-  assert.match(build, /clean-next-accounts/);
+  assert.doesNotMatch(build, /copy-next-accounts|clean-next-accounts|scripts\/build\.js/);
   assert.match(legacyVercel, /"framework": "nextjs"/);
   assert.match(legacyVercel, /"buildCommand": "npm run build:next-accounts"/);
   assert.doesNotMatch(legacyVercel, /outputDirectory/);
@@ -30,9 +29,8 @@ test('A1 server slice reads HttpOnly cookie context without rendering spreadshee
   assert.doesNotMatch(page, /context\.spreadsheetId/);
 });
 
-test('legacy auth synchronizes and clears the server session', () => {
-  const auth = read('client_auth.html');
-  assert.match(auth, /syncServerSession\(data\.session\)/);
+test('Next session controls synchronize and clear the server session', () => {
+  const auth = read('next-shell/components/platform/SessionControls.tsx');
   assert.match(auth, /fetch\('\/api\/session'/);
   assert.match(auth, /method: 'DELETE'/);
   assert.match(auth, /X-VTDB-CSRF/);
@@ -51,5 +49,5 @@ test('C3 cut-forward keeps Next runtime and removes the temporary root recovery 
   assert.equal(config.buildCommand, 'npm run build:next-accounts');
   assert.equal(config.outputDirectory, undefined);
   assert.equal(config.redirects, undefined);
-  assert.deepEqual(config.rewrites, [{ source: '/public/static/:path*', destination: '/static/:path*' }]);
+  assert.equal(config.rewrites, undefined);
 });

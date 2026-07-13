@@ -6,14 +6,12 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('C2 recovery artifact remains available after C3 removes its temporary root redirect', () => {
+test('D1 removes the temporary C2 presentation route while retaining documented deployment rollback', () => {
   const config = JSON.parse(read('vercel.json'));
   assert.equal(config.redirects, undefined);
-  assert.deepEqual(config.rewrites, [
-    { source: '/public/static/:path*', destination: '/static/:path*' }
-  ]);
-  assert.match(JSON.parse(read('package.json')).scripts['build:next-accounts'], /prepare-legacy-shell/);
-  assert.match(read('scripts/prepare-legacy-shell.js'), /public.*legacy-index\.html/s);
+  assert.equal(config.rewrites, undefined);
+  assert.doesNotMatch(JSON.parse(read('package.json')).scripts['build:next-accounts'], /prepare-legacy-shell/);
+  assert.match(read('ROLLBACK.md'), /dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg/);
 });
 
 test('C2 recovery disables data-heavy navigation prefetch', () => {

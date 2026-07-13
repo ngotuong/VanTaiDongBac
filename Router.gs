@@ -5,7 +5,10 @@ function doGet(e) {
   var startedAt = new Date().getTime();
   try {
     if (!action) {
-      return renderIndex_();
+      return timedJsonResponse_('root', startedAt, {
+        ok: false,
+        error: 'Apps Script chỉ phục vụ API. Vui lòng mở ứng dụng Next.js tại https://dongbac.vercel.app/.'
+      });
     }
 
     SecurityService.assertProxyRequest(action, e.parameter.proxySecret);
@@ -112,41 +115,4 @@ function logApiTiming_(action, startedAt, data) {
   } catch (err) {
     console.log('api_timing_log_failed: ' + err.message);
   }
-}
-
-function renderIndex_() {
-  var template = HtmlService.createTemplateFromFile('index');
-  template.serviceUrl = ScriptApp.getService().getUrl() || '';
-  var props = PropertiesService.getScriptProperties();
-  template.supabaseUrl = props.getProperty('SUPABASE_URL') || '';
-  template.supabaseAnonKey = props.getProperty('SUPABASE_ANON_KEY') || '';
-  template.supabaseReportsEnabled = props.getProperty('SUPABASE_REPORTS_ENABLED') || '';
-  template.authEnabled = props.getProperty('AUTH_ENABLED') || '';
-  template.reactAccountsEnabled = props.getProperty('REACT_ACCOUNTS_ENABLED') || '';
-  template.reactObservabilityEnabled = props.getProperty('REACT_OBSERVABILITY_ENABLED') || '';
-  template.reactCatalogReadOnlyEnabled = props.getProperty('REACT_CATALOG_READONLY_ENABLED') || '';
-  template.reactCatalogWriteEnabled = props.getProperty('REACT_CATALOG_WRITE_ENABLED') || '';
-  template.reactFundCatalogEnabled = props.getProperty('REACT_FUND_CATALOG_ENABLED') || '';
-  template.reactDashboardEnabled = props.getProperty('REACT_DASHBOARD_ENABLED') || '';
-  template.reactReportsEnabled = props.getProperty('REACT_REPORTS_ENABLED') || '';
-  template.reactManageReadOnlyEnabled = props.getProperty('REACT_MANAGE_READONLY_ENABLED') || '';
-  template.reactManageFiltersEnabled = props.getProperty('REACT_MANAGE_FILTERS_ENABLED') || '';
-  template.reactEntryRenderEnabled = props.getProperty('REACT_ENTRY_RENDER_ENABLED') || '';
-  template.reactEntrySubmitEnabled = props.getProperty('REACT_ENTRY_SUBMIT_ENABLED') || '';
-  template.reactManageEditEnabled = props.getProperty('REACT_MANAGE_EDIT_ENABLED') || '';
-  template.reactManageDeleteEnabled = props.getProperty('REACT_MANAGE_DELETE_ENABLED') || '';
-  template.reactCashflowOverviewEnabled = props.getProperty('REACT_CASHFLOW_OVERVIEW_ENABLED') || '';
-  template.reactCashflowTransactionsEnabled = props.getProperty('REACT_CASHFLOW_TRANSACTIONS_ENABLED') || '';
-  template.reactCashflowTransactionWriteEnabled = props.getProperty('REACT_CASHFLOW_TRANSACTION_WRITE_ENABLED') || '';
-  template.reactCashflowLoansEnabled = props.getProperty('REACT_CASHFLOW_LOANS_ENABLED') || '';
-  template.reactCashflowLoanWriteEnabled = props.getProperty('REACT_CASHFLOW_LOAN_WRITE_ENABLED') || '';
-  return template
-    .evaluate()
-    .setTitle('Vận tải Đông Bắc - Hệ thống điều hành nội bộ')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
-}
-
-function include(filename) {
-  return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
 }

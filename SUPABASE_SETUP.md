@@ -47,17 +47,17 @@ VITE_SUPABASE_REPORTS_ENABLED=true
 6. Chọn môi trường cần dùng, thường là **Production**, **Preview**, và **Development** nếu anh deploy đủ các môi trường.
 7. Redeploy Vercel sau khi thêm biến.
 
-Repo đã có `package.json` và `vercel.json` để Vercel chạy build:
+Repo đã có `package.json` và `vercel.json` để Vercel chạy Next build:
 
 ```bash
-node scripts/build.js
+npm run build:next-accounts
 ```
 
 Nếu Vercel Project Settings đang override build command, hãy đặt:
 
 ```text
-Build Command: node scripts/build.js
-Output Directory: .
+Build Command: npm run build:next-accounts
+Framework Preset: Next.js
 ```
 
 Muốn rollback nhanh trên frontend:
@@ -86,9 +86,9 @@ SUPABASE_SERVICE_ROLE_KEY=service_role key hoặc secret key
 
 Giải thích:
 
-- `SUPABASE_URL`: dùng cho Apps Script ghi và nếu cần render web app từ Apps Script.
-- `SUPABASE_ANON_KEY`: chỉ là public key, dùng khi render frontend từ Apps Script nếu cần.
-- `SUPABASE_REPORTS_ENABLED=false`: giữ Apps Script-hosted UI không tự đọc Supabase nếu chưa muốn.
+- `SUPABASE_URL`: dùng cho Apps Script ghi/cache sync.
+- `SUPABASE_ANON_KEY`: public key tương thích cho các integration còn cần.
+- `SUPABASE_REPORTS_ENABLED=false`: tắt read-cache compatibility phía Apps Script khi cần.
 - `SUPABASE_SERVICE_ROLE_KEY`: key bí mật để Apps Script ghi dữ liệu sang Supabase.
 
 ## 5. Chạy test sync thủ công

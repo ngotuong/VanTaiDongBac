@@ -1202,6 +1202,6 @@ Queue/cache change phải kiểm tra:
 
 - Loại tài liệu: cache và write queue contract hiện trạng.
 - Phạm vi: Supabase schema, Apps Script sync/worker, frontend cache/pending state và RLS liên quan.
-- Nguồn kiểm chứng: `SupabaseService.gs`, `client_api.html`, pending-job frontend modules, Supabase migrations và contract tests.
-- Ngày xác nhận gần nhất: 2026-07-11.
+- Nguồn kiểm chứng: `SupabaseService.gs`, `next-shell/components/entry/`, `next-shell/components/cashflow/`, `next-shell/lib/platform/`, Supabase migrations và contract tests.
+- Ngày xác nhận gần nhất: 2026-07-13 (D1).
 - Cần cập nhật khi: thêm/đổi bảng, key, payload, sync step, feature flag, job action/status, retry, idempotency, RLS hoặc pending UI behavior.

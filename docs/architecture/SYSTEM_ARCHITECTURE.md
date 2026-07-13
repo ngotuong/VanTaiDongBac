@@ -94,28 +94,23 @@ Service role key chỉ tồn tại ở môi trường server như Vercel serverl
 
 ### 4.1. Frontend Vercel
 
-Frontend production mặc định vẫn là ứng dụng HTML/CSS/JavaScript legacy. Từ Step 31-33, repository có thêm Next.js static shell chạy song song tại `/next-accounts/`, các React island Accounts, Sync Status/Audit, Catalog Vận tải và Fund Catalog được chọn bằng feature flag độc lập; các flag mặc định tắt nên route/menu và UI production hiện hữu không đổi.
+Frontend production là Next.js App Router trên Vercel. `/` và mọi module người dùng chạy bằng route Next độc lập; Auth dùng same-origin HttpOnly session và request nghiệp vụ đi qua `/api/app`.
 
 Source tác giả gồm:
 
-- `index.template.html`;
-- `client_*.html`;
-- `styles_*.html`.
-- `next-shell/` cho Next.js shell và React Accounts component;
-- `react-accounts/entry.jsx` cho compatibility island trong legacy shell.
-- `react-observability/entry.jsx` cho Sync Status/Audit compatibility island.
-- `react-catalog/entry.jsx` cho Catalog read-only compatibility island.
-- `react-fund-catalog/entry.jsx` cho Fund Catalog compatibility island.
+- `next-shell/app/` cho App Router source;
+- `next-shell/components/` cho shell và module UI;
+- `next-shell/lib/` cho server/client API boundary và typed contracts;
+- `app/` cho Vercel entrypoint mỏng;
+- `public/` cho manifest và static assets.
 
-`npm run build` tạo đồng thời `index.html`, các bundle React island và static export `next-accounts/`. Vercel phục vụ repository như static site và dùng `api/app.js` làm serverless API proxy.
-
-`index.html` là artifact build được commit, không phải nơi chỉnh sửa logic gốc.
+`npm run build` chạy `next build`. Vercel phục vụ Next runtime và dùng `api/app.js` làm API proxy. D1 đã xóa template HTML, browser-global fragments, React island bundle và compatibility bridge.
 
 ### 4.2. Vercel API proxy
 
 `api/app.js` là boundary composition/dispatch giữa browser và Apps Script khi Auth được bật. Việc xác thực Supabase session được delegate cho `api/services/auth-service.js`, `app_users` persistence cho `api/repositories/app-user-repository.js`, policy role cho `api/services/authorization-policy.js`, và account CRUD/password cho `api/services/account-service.js`.
 
-Từ Phase 5, module Report có application boundary riêng tại `api/services/report-service.js` và persistence adapter `api/repositories/report-bundle-repository.js`. Browser Report chỉ gọi `/api/app`; Vercel đọc `report_bundles` bằng server credential và fallback Apps Script khi cache thiếu/lỗi hoặc cần refresh. `getReports` và `getReport` đi qua cùng Report boundary rồi forward Apps Script. Dashboard, Entry và Manage không nằm trong cutover này và giữ nguyên data flow hiện hữu.
+Module Report có application boundary riêng tại `server/services/report-service.js` và persistence adapter `server/repositories/report-bundle-repository.js`. Các module Next dùng shared same-origin API clients; Vercel đọc cache bằng server credential và fallback Apps Script theo contract.
 
 Proxy chịu trách nhiệm:
 
@@ -135,7 +130,7 @@ Việc frontend ẩn nút theo role chỉ là lớp UX. Proxy là điểm enforc
 
 Apps Script gồm các lớp trách nhiệm chính:
 
-- `Router.gs`: HTTP entry point và render giao diện Apps Script-hosted.
+- `Router.gs`: HTTP JSON API entry point; không render giao diện.
 - `PublicApi.gs`: public wrapper, action dispatch và orchestration sau ghi.
 - `SecurityService.gs`: xác minh proxy secret khi enforcement được bật.
 - các service nghiệp vụ: Sheet, báo cáo, danh mục, nhập liệu, Vận hành và Thu chi.
@@ -181,43 +176,7 @@ Các migration trong `supabase/migrations/` phản ánh thứ tự phát triển
 
 ## 5. Kiến trúc frontend
 
-Frontend được chia theo fragment nhưng cùng chạy trong một global browser scope.
-
-Các nhóm chính:
-
-- `client_utils.html`: pure HTML escaping, text normalization, locale-number và date conversion dùng chung;
-- `client_config_constants.html`: navigation, form labels/icons/notes, Sheet mappings, field schema và page sizes bất biến;
-- `client_config.html`: mutable application state và stateful UI helpers;
-- `client_pending_job_store.html`: shared transport/fund pending-job state, restore và subscription boundary;
-- `client_api_transport.html`: chọn Apps Script runtime hay fetch `/api/app`, dựng request và map transport errors;
-- `client_supabase_cache.html`: Supabase REST bundle readers, payload mapping và stable cache keys;
-- `client_auth.html`: Supabase config/client, access token, auth gate, sign-in/sign-out và session bootstrap;
-- `client_api.html`: browser session cache/invalidation;
-- `client_app.html`: bootstrap, navigation và app lifecycle;
-- `client_data.html`: điều phối load dữ liệu, submit và report bundle;
-- `client_dashboard.html`: Tổng quan;
-- `client_entry.html`: Nhập liệu;
-- `client_manage.html`: Vận hành;
-- `client_catalog.html`: Danh mục;
-- `client_reports.html`: Báo cáo;
-- `client_cashflow.html`: facade/tab và các phần Thu chi/Quỹ chưa tách;
-- `client_cashflow_overview.html`: Tổng quan, báo cáo tài chính và chi tiết hạng mục Quỹ;
-- `client_cashflow_transactions.html`: form, danh sách, filter và submit giao dịch Quỹ;
-- `client_cashflow_pending.html`: restore, poll, retry và lifecycle pending Fund write jobs;
-- `client_cashflow_loans.html`: overview/history, add/payment và validation khoản vay;
-- `client_cashflow_catalog.html`: read/filter/CRUD danh mục Quỹ;
-- `client_accounts.html`: tài khoản và role UI;
-- `client_observability.html`: trạng thái sync, write-job rendering và cache audit;
-- `client_ui.html`: drawer, loader, toast và utility UI chung.
-
-Các fragment phụ thuộc vào thứ tự include, global variables, global functions và DOM ID. Pending-job state đã có store chung nhưng phần còn lại chưa có import graph hoặc type system kiểm tra dependency.
-
-Frontend hỗ trợ hai môi trường gọi backend:
-
-1. Khi chạy trong HtmlService, dùng `google.script.run` gọi `invokeApi`.
-2. Khi chạy static trên Vercel, dùng `fetch`; nếu Auth bật thì gọi `/api/app`, nếu không thì có thể gọi Apps Script URL trực tiếp.
-
-Production hiện hướng tới Vercel proxy có Auth.
+Frontend dùng Next.js Server Components cho auth/context/initial read và Client Components cho interaction. Shared platform trong `next-shell/components/platform/` sở hữu shell, navigation, theme và session; từng module có component/lib riêng. Browser chỉ gọi same-origin Next/Vercel boundary, không dùng `google.script.run`, DOM bridge hoặc frontend global legacy.
 
 ## 6. Kiến trúc Apps Script backend
 
@@ -230,7 +189,7 @@ Production hiện hướng tới Vercel proxy có Auth.
 - `SecurityService.assertProxyRequest()` bảo vệ action khi auth enforcement được bật.
 - response được ghi timing log cùng action, thời gian và Spreadsheet ID.
 
-Các function global trong `PublicApi.gs` còn phục vụ `google.script.run`, Apps Script editor và `clasp run`.
+Các function global trong `PublicApi.gs` còn phục vụ Apps Script editor, trigger và `clasp run`; không còn consumer HtmlService.
 
 ### 6.2. Service boundaries
 
@@ -466,12 +425,12 @@ Mọi thay đổi tương lai phải xác định rõ nó tác động đến bo
 | Nghiệp vụ Thu chi/Quỹ | `FundService.gs` |
 | Cache, queue, worker, trigger | `SupabaseService.gs` |
 | Vercel proxy và RBAC | `api/app.js`, `api/services/apps-script-client.js`, `api/services/auth-service.js`, `api/services/authorization-policy.js`, `api/services/account-service.js`, `api/repositories/app-user-repository.js` |
-| Frontend source | `index.template.html`, `client_*.html`, `styles_*.html`, `next-shell/`, `react-accounts/`, `react-observability/`, `react-catalog/`, `react-fund-catalog/` |
-| Frontend artifact | `index.html`, `public/static/*-react.js`, `next-accounts/` |
+| Frontend source | `next-shell/app/`, `next-shell/components/`, `next-shell/lib/`, entrypoint `app/` |
+| Frontend artifact | `.next/` do `next build` tạo, không commit |
 | Supabase schema | `supabase/migrations/*.sql`, `SUPABASE_SCHEMA.md` |
 | Schema Google Sheets | `docs/schema/*.json`, `PROJECT_SCHEMA.md` |
 | Bound script Thu chi | `docs/source/thu_chi_bound_script/` |
-| Build frontend | `scripts/build.js`, `scripts/build-accounts-react.js`, `scripts/build-observability-react.js`, `scripts/build-catalog-react.js`, `scripts/build-fund-catalog-react.js`, `scripts/copy-next-accounts.js` |
+| Build frontend | `package.json` (`next build`), `next.config.mjs`, `vercel.json` |
 | Contract test | `tests/contracts.test.js` |
 | Production RBAC smoke test | `tests/production-rbac-smoke.js` |
 
@@ -480,5 +439,5 @@ Mọi thay đổi tương lai phải xác định rõ nó tác động đến bo
 - Loại tài liệu: kiến trúc hiện trạng.
 - Phạm vi: toàn hệ thống.
 - Nguồn kiểm chứng: source repository, schema snapshots, Supabase migrations và tài liệu vận hành.
-- Ngày xác nhận gần nhất: 2026-07-11.
+- Ngày xác nhận gần nhất: 2026-07-13 (D1).
 - Cần cập nhật khi: source of truth, thành phần triển khai, đường đọc/ghi, mô hình Auth/RBAC, queue, cache hoặc ranh giới hai module thay đổi.

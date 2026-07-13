@@ -12,36 +12,33 @@
 
 ## Khi sửa frontend
 
-1. Sửa các file source nhỏ như `client_*.html`, `styles_*.html`, `index.template.html`.
-2. Chạy build:
+1. Sửa route/component/lib trong `next-shell/` hoặc entrypoint mỏng trong `app/`.
+2. Chạy đầy đủ gate:
 
 ```bash
-node scripts/build.js
+npm test
+npm run lint
+npm run typecheck
+npm run build
 ```
 
-3. Kiểm tra `index.html` đã được tạo lại.
-4. Commit lên GitHub.
-5. Vercel tự deploy hoặc bấm redeploy nếu cần.
+3. Kiểm tra các route Next và PWA asset.
+4. Commit/push lên GitHub.
+5. Deploy Vercel và smoke production khi checkpoint cho phép.
 
-Không sửa tay logic trực tiếp trong `index.html` nếu logic đó có ở `client_*.html`, vì `index.html` là file build.
+Không còn build `index.html`, `client_*.html`, `styles_*.html` hoặc React island bundle sau D1.
 
 ## Khi sửa Apps Script
 
 1. Sửa file `.gs` hoặc `.html` trong repo.
-2. Chạy build nếu có sửa frontend source:
-
-```bash
-node scripts/build.js
-```
-
-3. Push lên Apps Script:
+2. Push lên Apps Script:
 
 ```bash
 clasp push
 ```
 
-4. Test function thủ công trong Apps Script editor.
-5. Nếu ổn, deploy phiên bản web app mới trong Apps Script khi cần.
+3. Test API/function phù hợp trong Apps Script editor hoặc qua proxy.
+4. Nếu ổn, tạo deployment Apps Script mới; không cập nhật rollback deployment cũ.
 
 ## Khi sửa Supabase schema
 
@@ -171,7 +168,7 @@ Trang thai source code: queue Vận hành dùng `ASYNC_TRANSPORT_WRITE_ENABLED=t
 Nguyen tac sau khi sua code thanh cong theo yeu cau cua user:
 
 - Neu co sua Apps Script/backend: chay build neu can, `clasp push`, va deploy Apps Script.
-- Neu co sua frontend/static: build lai `index.html`, commit + push GitHub de Vercel tu deploy; neu can thi chay redeploy Vercel thu cong.
+- Neu co sua frontend Next: chay test/lint/typecheck/build, commit + push GitHub va deploy Vercel theo checkpoint.
 - Neu co sua Supabase schema/cache contract: chay migration/sync can thiet va ghi lai tai lieu schema.
 - Luon bao ro da deploy/push thanh cong hay buoc nao bi loi.
 
@@ -189,9 +186,9 @@ VITE_SUPABASE_REPORTS_ENABLED
 
 Apps Script:
 
-1. Chạy `node scripts/build.js` nếu có sửa frontend.
+1. Chạy test liên quan backend.
 2. Chạy `clasp push`.
-3. Deploy web app mới nếu thay đổi cần public ngay.
+3. Tạo deployment web app mới nếu thay đổi cần public ngay; giữ deployment cũ để rollback.
 
 Supabase:
 

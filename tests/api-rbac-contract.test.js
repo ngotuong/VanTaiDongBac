@@ -26,12 +26,19 @@ function literalActions(source) {
 
 function frontendApiCalls() {
   const calls = [];
-  for (const file of fs.readdirSync(root).filter((name) => /^client_.*\.html$/.test(name))) {
-    const source = read(file);
-    for (const match of source.matchAll(/\b(?:callApi|callFetchApi)\(\s*'([A-Z]+)'\s*,\s*'([^']+)'/g)) {
-      calls.push({ file, method: match[1], action: match[2] });
+  const sourceRoot = path.join(root, 'next-shell');
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const target = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(target);
+      if (!entry.isFile() || !/\.(?:ts|tsx|js|jsx)$/.test(entry.name)) continue;
+      const source = fs.readFileSync(target, 'utf8');
+      for (const match of source.matchAll(/\b(?:api|client)\.(get|post)(?:<[^>]+>)?\(\s*'([^']+)'/g)) {
+        calls.push({ file: path.relative(root, target), method: match[1].toUpperCase(), action: match[2] });
+      }
     }
-  }
+  };
+  visit(sourceRoot);
   return calls;
 }
 

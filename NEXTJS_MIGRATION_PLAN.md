@@ -80,7 +80,7 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | C1 | Cutover `/` sang Next.js | DONE | B1–B7 |
 | C2 | Ổn định production và xác nhận rollback | DONE | C1 |
 | C3 | Next visual parity và controlled cut-forward | DONE | C2 + phê duyệt người dùng |
-| D1 | Xóa legacy frontend/HtmlService presentation | NOT STARTED | C3 + thời gian ổn định |
+| D1 | Xóa legacy frontend/HtmlService presentation | DONE | C3 + thời gian ổn định |
 
 Kế hoạch hiện có **13 checkpoint**. C3 được thêm sau regression C2 chứng minh recovery production và cut forward UI không thể deploy/rollback an toàn trong cùng một change set. Chỉ được chia thêm checkpoint nếu audit trước implementation chứng minh không thể deploy/rollback an toàn trong một change set. Mọi split phải cập nhật bảng này và `PROJECT_CONTEXT.md`, không tạo chuỗi step mở không có điểm kết thúc.
 
@@ -232,6 +232,8 @@ Chỉ thực hiện sau C3 và thời gian ổn định production Next được
 - giữ Apps Script API/integration source;
 - cập nhật architecture, workflow, rollback và documentation router;
 - chạy dead-code/call-site audit trước khi xóa.
+
+D1 **DONE ngày 2026-07-13**. Audit xác nhận production chỉ còn consumer Next; HtmlService presentation, source/build React island, DOM/compatibility bridge và feature flag tương ứng đã được xóa. Apps Script API/integration/worker/sync được giữ nguyên và deploy API-only tại `@282` (`AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw`). Vercel production là `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9`, alias `https://dongbac.vercel.app`; root/API health và các route chính đạt 200, path legacy đạt 404, không có HTTP 500 trong log kiểm tra. Verification đạt 265/265 test, lint, typecheck, build và `git diff --check`. Recovery C2, legacy C1/alias và Apps Script `@281` vẫn được giữ làm rollback. Chương trình migration Next.js hữu hạn đã hoàn thành; không có checkpoint kế tiếp tự động.
 
 ## 10. Quality gates chung
 

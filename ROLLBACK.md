@@ -82,43 +82,33 @@ Sau đó app sẽ fallback về Apps Script nếu không tìm thấy dữ liệu
 2. Chạy:
 
 ```bash
-node scripts/build.js
+npm run build
 clasp push
 ```
 
 3. Redeploy Vercel từ commit cũ hoặc revert commit trên GitHub.
 
-## Rollback C1 từ Next về frontend legacy
+## Rollback presentation Next/D1
 
-### Trạng thái recovery UI ngày 2026-07-13
+Production D1 là `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` (`https://vantaidongbac-eqydwsj14-ngotuong2105.vercel.app`). D1 xóa source legacy khỏi nhánh hiện tại nhưng không xóa deployment recovery. Production Next trước D1 là `dpl_9vU7mJfGCbtPwGT3aKJLACS4hXx6`.
 
-Production hiện trỏ tới deployment recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` (`vantaidongbac-jgy6r6mjj-ngotuong2105.vercel.app`). Deployment này vẫn chạy Next API/runtime nhưng redirect `/` tới generated legacy shell; `/public/static/*` được rewrite tương thích sang `/static/*`.
-
-Rollback ngay trước recovery nếu cần:
-
-```bash
-vercel alias set vantaidongbac-g7ux1n4mi-ngotuong2105.vercel.app dongbac.vercel.app
-```
-
-Deployment rollback ngay trước recovery là `dpl_5qua6YTqNS1GPkWE1YGP1f1v9ouU`. Sau khi rollback phải kiểm tra root, logo, Report, Cashflow, health và authenticated `getReportBundle`; deployment này chưa có bản sửa latest-cache nên Report có thể fallback chậm sang Apps Script.
-
-Cut forward lại recovery:
+Rollback nhanh về giao diện legacy đã xác nhận ở C2:
 
 ```bash
 vercel alias set vantaidongbac-jgy6r6mjj-ngotuong2105.vercel.app dongbac.vercel.app
 ```
 
-Legacy C1 được giữ nguyên tại deployment `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS` và alias `https://vantaidongbac-legacy.vercel.app`.
+Deployment recovery là `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. Sau rollback kiểm tra root, logo, Report latest, Cashflow, health và authenticated session. Không build lại legacy từ source D1.
 
-Rollback route production:
+Legacy C1 vẫn được giữ tại `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS` và alias `https://vantaidongbac-legacy.vercel.app`. Nếu recovery C2 không phù hợp, có thể gán alias legacy C1:
 
 ```bash
 vercel alias set vantaidongbac-62q4v6vur-ngotuong2105.vercel.app dongbac.vercel.app
 ```
 
-Sau rollback, kiểm tra `/`, `/manifest.json`, `/api/session` và đăng nhập legacy. Không xóa deployment Next; có thể cut forward lại bằng cách gán `dongbac.vercel.app` về deployment C2 `vantaidongbac-mk686g55x-ngotuong2105.vercel.app` (`dpl_HtiB9PFutzyXhoUcKJPo4hQvMMJu`).
+Sau rollback, không xóa deployment Next/D1. Cut forward lại bằng cách gán `dongbac.vercel.app` về `vantaidongbac-eqydwsj14-ngotuong2105.vercel.app`.
 
-C2 đang dùng Apps Script deployment `AKfycbzO8puBHqpuoA9_eYPROuNGoISJM6bI9HT53xigZY_xK-BmQdcRhd_rje4qGFGVPbF3Mg`, được tạo từ cùng code version `@281` sau khi owner cấp lại quyền. Deployment Apps Script cũ vẫn được giữ nhưng đã trả HTTP 403 trong kiểm tra C2; không rollback `APPS_SCRIPT_URL` về URL cũ nếu chưa xác nhận lại quyền truy cập.
+Apps Script D1 API-only là deployment `AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw`, code version `@282`. Apps Script rollback là deployment `AKfycbzO8puBHqpuoA9_eYPROuNGoISJM6bI9HT53xigZY_xK-BmQdcRhd_rje4qGFGVPbF3Mg`, code version `@281`; rollback backend bằng cách khôi phục `APPS_SCRIPT_URL` về URL `@281` rồi redeploy Vercel.
 
 ## Dấu hiệu rollback thành công
 

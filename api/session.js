@@ -1,6 +1,6 @@
-const { createAppUserRepository } = require('./repositories/app-user-repository');
-const { runtimeConfig } = require('./runtime-config');
-const { createAuthService } = require('./services/auth-service');
+const { createAppUserRepository } = require('../server/repositories/app-user-repository');
+const { runtimeConfig } = require('../server/runtime-config');
+const { createAuthService } = require('../server/services/auth-service');
 const {
   accessTokenFromRequest,
   refreshTokenFromRequest,
@@ -8,7 +8,7 @@ const {
   clearedSessionCookies,
   assertSameOrigin,
   refreshSession
-} = require('./services/session-cookie-service');
+} = require('../server/services/session-cookie-service');
 
 function send(res, status, body) {
   res.statusCode = status;

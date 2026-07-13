@@ -28,7 +28,7 @@ test('B3 UI keeps tabs filters row identity and pagination but exposes no write 
 });
 
 test('B3 Manage repository sends exact Supabase bundle filters with server credentials',async()=>{
-  const calls=[]; const {createManageBundleRepository}=require('../api/repositories/manage-bundle-repository');
+  const calls=[]; const {createManageBundleRepository}=require('../server/repositories/manage-bundle-repository');
   const repository=createManageBundleRepository({httpError:(status,message)=>Object.assign(new Error(message),{status}),fetchImpl:async(url,options)=>{calls.push({url:String(url),options});return{ok:true,json:async()=>[{sheet_name:'NL_Dau',filter_key:'recent_500',payload:{headers:[],rows:[]},synced_at:'now'}]};}});
   const row=await repository.find({supabaseUrl:'https://cache.test',serviceRoleKey:'server-only'},'NL_Dau','recent_500');
   assert.equal(row.sheet_name,'NL_Dau'); assert.match(calls[0].url,/sheet_name=eq\.NL_Dau/); assert.match(calls[0].url,/filter_key=eq\.recent_500/);

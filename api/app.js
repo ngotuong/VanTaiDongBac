@@ -1,12 +1,12 @@
-const { createAppsScriptClient } = require('./services/apps-script-client');
-const { createAuthorizationPolicy } = require('./services/authorization-policy');
-const { createAuthService } = require('./services/auth-service');
-const { createAccountService } = require('./services/account-service');
-const { createAppUserRepository } = require('./repositories/app-user-repository');
-const { createReportBundleRepository } = require('./repositories/report-bundle-repository');
-const { createReportService } = require('./services/report-service');
-const { createWorkbookContextService } = require('./services/workbook-context-service');
-const { runtimeConfig } = require('./runtime-config');
+const { createAppsScriptClient } = require('../server/services/apps-script-client');
+const { createAuthorizationPolicy } = require('../server/services/authorization-policy');
+const { createAuthService } = require('../server/services/auth-service');
+const { createAccountService } = require('../server/services/account-service');
+const { createAppUserRepository } = require('../server/repositories/app-user-repository');
+const { createReportBundleRepository } = require('../server/repositories/report-bundle-repository');
+const { createReportService } = require('../server/services/report-service');
+const { createWorkbookContextService } = require('../server/services/workbook-context-service');
+const { runtimeConfig } = require('../server/runtime-config');
 
 function send(res, status, body) {
   res.statusCode = status;

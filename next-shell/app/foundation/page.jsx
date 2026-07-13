@@ -1,8 +1,8 @@
 import { cookies } from 'next/headers';
-import { createAppUserRepository } from '../../../api/repositories/app-user-repository.js';
-import { runtimeConfig } from '../../../api/runtime-config.js';
-import { createAuthService } from '../../../api/services/auth-service.js';
-import { createWorkbookContextService } from '../../../api/services/workbook-context-service.js';
+import { createAppUserRepository } from '../../../server/repositories/app-user-repository.js';
+import { runtimeConfig } from '../../../server/runtime-config.js';
+import { createAuthService } from '../../../server/services/auth-service.js';
+import { createWorkbookContextService } from '../../../server/services/workbook-context-service.js';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Foundation · Vận tải Đông Bắc' };

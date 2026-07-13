@@ -7,7 +7,7 @@ const {
   clearedSessionCookies,
   assertSameOrigin,
   refreshSession
-} = require('../api/services/session-cookie-service');
+} = require('../server/services/session-cookie-service');
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 

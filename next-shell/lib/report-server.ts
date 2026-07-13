@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createWorkbookContextService } from '../../api/services/workbook-context-service.js';
+import { createWorkbookContextService } from '../../server/services/workbook-context-service.js';
 import { createServerApiClient } from './platform/server-api-client';
 import type { ReportBundle, ReportDataResponse } from './platform/report-types';
 

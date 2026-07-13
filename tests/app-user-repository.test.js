@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { createAppUserRepository } = require('../api/repositories/app-user-repository');
+const { createAppUserRepository } = require('../server/repositories/app-user-repository');
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 const config = { supabaseUrl: 'https://example.supabase.co', serviceRoleKey: 'service-secret' };

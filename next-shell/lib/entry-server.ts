@@ -1,5 +1,5 @@
 import 'server-only';
-import { createWorkbookContextService } from '../../api/services/workbook-context-service.js';
+import { createWorkbookContextService } from '../../server/services/workbook-context-service.js';
 import { createServerApiClient } from './platform/server-api-client';
 import type { EntryCatalogs, EntryFormType } from './platform/entry-types';
 function httpError(status:number,message:string){return Object.assign(new Error(message),{status});}

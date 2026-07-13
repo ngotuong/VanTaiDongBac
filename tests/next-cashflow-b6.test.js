@@ -45,7 +45,7 @@ test('B6 applies existing RBAC: shareholder reads cashflow but cannot see fund c
 });
 
 test('fund cache repository scopes exact server-side keys and credentials',async()=>{
-  const {createFundBundleRepository}=require('../api/repositories/fund-bundle-repository.js');let request;
+  const {createFundBundleRepository}=require('../server/repositories/fund-bundle-repository.js');let request;
   const repository=createFundBundleRepository({httpError:(status,message)=>Object.assign(new Error(message),{status}),fetchImpl:async(url,options)=>{request={url,options};return{ok:true,json:async()=>[{payload:{ok:true},synced_at:'2026-07-13T00:00:00Z'}]};}});
   await repository.find({supabaseUrl:'https://cache.test',serviceRoleKey:'secret'},'fund_transaction_bundles',{year:'2026',filter_key:'month:2026-07'});
   const url=new URL(request.url);assert.equal(url.pathname,'/rest/v1/fund_transaction_bundles');assert.equal(url.searchParams.get('year'),'eq.2026');assert.equal(url.searchParams.get('filter_key'),'eq.month:2026-07');assert.equal(request.options.headers.Authorization,'Bearer secret');

@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { createWorkbookContextService } = require('../api/services/workbook-context-service');
+const { createWorkbookContextService } = require('../server/services/workbook-context-service');
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 const env = {

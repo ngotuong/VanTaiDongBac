@@ -27,9 +27,9 @@
     ],
     "vercel": [
       "api/app.js",
-      "api/services/account-service.js",
-      "api/services/auth-service.js",
-      "api/repositories/app-user-repository.js"
+      "server/services/account-service.js",
+      "server/services/auth-service.js",
+      "server/repositories/app-user-repository.js"
     ],
     "frontend": [
       "client_utils.html",

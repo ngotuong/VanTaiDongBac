@@ -33,6 +33,16 @@ test('B5 reads cache server-first and keeps Apps Script as authoritative fallbac
   assert.doesNotMatch(server,/getActiveSpreadsheet|NEXT_PUBLIC_.*SERVICE|spreadsheetId\?:unknown/);
 });
 
+test('B5 shares the Manage read boundary to remain within the Vercel Hobby function limit',()=>{
+  const route=read('next-shell/app/manage-data/route.ts');
+  const module=read('next-shell/components/catalog/CatalogModule.tsx');
+  assert.match(route,/surface.*catalog/);
+  assert.match(route,/loadCatalogData/);
+  assert.match(module,/manage-data/);
+  assert.doesNotMatch(module,/catalog-data/);
+  assert.equal(fs.existsSync(path.join(root,'app/catalog-data/route.ts')),false);
+});
+
 test('B5 remains admin/operator-only through existing RBAC contracts',()=>{
   const registry=read('ApiActionRegistry.gs');
   const shell=read('next-shell/components/platform/AppShell.tsx');

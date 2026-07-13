@@ -1,0 +1,37 @@
+import 'server-only';
+
+import { createReportBundleRepository } from '../../api/repositories/report-bundle-repository.js';
+import { runtimeConfig } from '../../api/runtime-config.js';
+import { createWorkbookContextService } from '../../api/services/workbook-context-service.js';
+import { createServerApiClient } from './platform/server-api-client';
+import type { DashboardBundle, DashboardDataResponse } from './platform/dashboard-types';
+
+const DASHBOARD_CACHE_KEY = '__dashboard_latest__';
+function httpError(status: number, message: string) { return Object.assign(new Error(message), { status }); }
+function publicDashboard(value: DashboardBundle & { links?: unknown }): DashboardBundle {
+  const dashboard = { ...value };
+  delete dashboard.links;
+  return dashboard;
+}
+
+export async function loadDashboardData(forceRefresh = false): Promise<DashboardDataResponse> {
+  const workbook = createWorkbookContextService({ httpError }).resolve({ module: 'transport' });
+  if (!forceRefresh) {
+    try {
+      const config = runtimeConfig();
+      if (config.supabaseUrl && config.serviceRoleKey) {
+        const row = await createReportBundleRepository({ httpError }).findLatest(config, DASHBOARD_CACHE_KEY, workbook.spreadsheetId);
+        if (row?.payload && typeof row.payload === 'object') {
+          return { dashboard: publicDashboard({ ...(row.payload as DashboardBundle), supabaseCached: true, supabaseSyncedAt: row.synced_at }) };
+        }
+      }
+    } catch {
+      // Cache is an optimization. Apps Script remains the source fallback.
+    }
+  }
+  const api = await createServerApiClient();
+  const dashboard = await api.get<DashboardBundle & { links?: unknown }>('getDashboard', {
+    params: { forceRefresh: forceRefresh ? 'true' : '', spreadsheetId: workbook.spreadsheetId }
+  });
+  return { dashboard: publicDashboard(dashboard) };
+}

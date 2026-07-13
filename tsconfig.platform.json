@@ -19,13 +19,17 @@
     "next-shell/components/platform/**/*.tsx",
     "next-shell/components/report/**/*.tsx",
     "next-shell/components/dashboard/**/*.tsx",
+    "next-shell/components/manage/**/*.tsx",
     "next-shell/lib/platform/**/*.ts",
     "next-shell/lib/report-server.ts",
     "next-shell/lib/dashboard-server.ts",
+    "next-shell/lib/manage-server.ts",
     "next-shell/app/report-data/**/*.ts",
     "app/report-data/**/*.ts",
     "next-shell/app/dashboard-data/**/*.ts",
     "app/dashboard-data/**/*.ts",
+    "next-shell/app/manage-data/**/*.ts",
+    "app/manage-data/**/*.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules"]

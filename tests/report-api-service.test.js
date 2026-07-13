@@ -58,12 +58,9 @@ test('Report API force refresh and cache miss fall back to Apps Script compatibi
   assert.equal(reads, 1); assert.equal(forwards, 2);
 });
 
-test('Only Report frontend moves behind API; Dashboard, Entry and Manage loaders remain unchanged', () => {
-  const data = read('client_data.html');
-  const reportBlock = data.slice(data.indexOf('function loadReportBundle'), data.indexOf('// Refresh reports'));
-  assert.match(reportBlock, /callApi\('GET', 'getReportBundle'/);
-  assert.doesNotMatch(reportBlock, /readReportBundleFromSupabase/);
-  assert.match(data, /readDashboardFromSupabase/);
-  assert.match(read('client_entry.html'), /function renderEntry/);
-  assert.match(read('client_manage.html'), /function loadManageSheetData/);
+test('Report, Dashboard, Entry and Manage use independent Next module boundaries', () => {
+  assert.match(read('next-shell/lib/report-server.ts'), /getReportBundle/);
+  assert.match(read('next-shell/lib/dashboard-server.ts'), /getDashboard/);
+  assert.match(read('next-shell/components/entry/EntryModule.tsx'), /submitRows/);
+  assert.match(read('next-shell/lib/manage-server.ts'), /readManageData/);
 });

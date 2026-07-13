@@ -1,10 +1,4 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build:next-accounts",
-  "rewrites": [
-    {
-      "source": "/public/static/:path*",
-      "destination": "/static/:path*"
-    }
-  ]
+  "buildCommand": "npm run build:next-accounts"
 }

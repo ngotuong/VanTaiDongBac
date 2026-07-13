@@ -65,7 +65,7 @@ Không đánh dấu Closed nếu source/kiến trúc vẫn còn đường tái d
 | R-009 | Service role/proxy secret bị lộ | Critical | Low | Mitigated |
 | R-010 | Apps Script direct API bị mở khi Auth rollback/enforcement tắt | Critical | Medium | Monitor |
 | R-011 | Permission drift giữa UI, proxy và RLS | High | Medium | Mitigated/Monitor |
-| R-012 | Frontend global dependency gây lỗi chéo | High | Medium | Open |
+| R-012 | Frontend global dependency gây lỗi chéo | High | Medium | Removed from current source/Monitor rollback only |
 | R-013 | `SheetService`/`SupabaseService` có blast radius lớn | High | Medium | Accepted |
 | R-014 | Apps Script timeout trong report/full sync | High | High | Mitigated/Accepted |
 | R-015 | Sheet tạm báo cáo còn sót | Medium | Medium | Mitigated |
@@ -514,7 +514,7 @@ Kiểm soát: export live, diff, xác nhận trigger/drawing trước mọi thay
 
 ### R-012 — Frontend global dependency
 
-Tác động: High. Khả năng: Medium. Trạng thái: Open.
+Tác động: High. Khả năng: Medium. Trạng thái: Removed from current source/Monitor rollback only.
 
 Đặc điểm:
 
@@ -532,7 +532,7 @@ Sự cố tiềm năng:
 - event handler gọi helper chưa tồn tại;
 - CSS selector ảnh hưởng nhiều module.
 
-Kiểm soát hiện có: fragment source, syntax test, build test, manual UI test.
+Kiểm soát hiện có: D1 đã xóa browser-global fragments, DOM bridge và island flags; production dùng Next import graph, lint, typecheck và build. Rủi ro chỉ còn trong deployment legacy bất biến dùng cho rollback.
 
 ### R-013 — Service blast radius lớn
 
@@ -626,9 +626,9 @@ Nguồn:
 Kiểm soát:
 
 - workflow chỉ sửa source fragments;
-- `scripts/build.js` deterministic theo env/input;
-- syntax test cả source và built scripts;
-- Vercel build command.
+- `next build` là build frontend duy nhất;
+- lint/typecheck/test chạy trên source Next;
+- Vercel build command khóa tại `npm run build:next-accounts`.
 
 ### R-021 — `node_modules`/binary được track
 

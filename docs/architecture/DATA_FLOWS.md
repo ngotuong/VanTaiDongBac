@@ -41,7 +41,7 @@ Tài liệu này không thay thế API contract hoặc spreadsheet contract chi 
 - Cache server: các bundle JSON trong Supabase.
 - Cache Sheet: `SYS_ReportCache` trong file Vận tải.
 - Cache runtime: Apps Script `CacheService`/Script Properties cache.
-- Cache browser: state trong trang và `sessionStorage`.
+- Cache browser: state trong Client Component; session xác thực nằm trong HttpOnly cookie phía Next boundary.
 - Write intent: job trong `write_jobs`, chưa đồng nghĩa đã ghi vào Sheet.
 - Optimistic row: dòng frontend hiển thị tạm trước khi worker xác nhận.
 
@@ -96,11 +96,9 @@ sequenceDiagram
 - Username được nhớ riêng trong `localStorage` để hỗ trợ form đăng nhập.
 - Proxy là điểm enforce permission cho API từ Vercel.
 
-### 4.2. Khởi động khi chạy trong HtmlService
+### 4.2. Apps Script root sau D1
 
-Khi có `google.script.run`, frontend gọi `invokeApi()` trực tiếp trong Apps Script runtime thay vì HTTP fetch.
-
-Apps Script vẫn chạy `SecurityService.assertProxyRequest()`. Khả năng hoạt động phụ thuộc cấu hình Auth/enforcement của deployment. Production chính hiện hướng tới Vercel frontend và proxy.
+Apps Script không còn khởi động giao diện. Request không có `action` nhận JSON hướng dẫn mở ứng dụng Next; request API hợp lệ tiếp tục qua proxy-secret gate và service hiện hữu.
 
 ### 4.3. Dữ liệu startup
 
@@ -207,13 +205,7 @@ Không được giả định một bundle tháng tự chứa dữ liệu ngoài
 
 ### 7.1. Các tầng
 
-Frontend có thể giữ dữ liệu trong:
-
-- biến global của trang;
-- report bundle cache trong memory;
-- `sessionStorage` cho sheet data và response;
-- Supabase SDK persistent Auth session;
-- `localStorage` cho username và một số preference còn hiệu lực.
+Frontend Next có thể giữ dữ liệu trong state của Client Component. Session server dùng HttpOnly cookie; `localStorage` chỉ dùng cho preference không nhạy cảm như theme.
 
 ### 7.2. Invalidation
 
@@ -802,7 +794,7 @@ Trước khi thay đổi hành vi đọc/ghi:
 
 1. Xác định màn hình và action khởi phát.
 2. Xác định user role cần thiết.
-3. Xác định endpoint: `google.script.run`, Vercel proxy hay Supabase REST.
+3. Xác định endpoint Next same-origin/Vercel proxy và Apps Script action hoặc Supabase repository phía server.
 4. Xác định source được ưu tiên và fallback.
 5. Xác định Spreadsheet ID/year resolution.
 6. Xác định sheet, header row, cột và công thức.

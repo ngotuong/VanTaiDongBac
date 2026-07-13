@@ -12,7 +12,7 @@ Nguồn Google Sheet:
 - `BC_BangLuong`
 - `BC_TongHopXe`
 
-Frontend đọc thử từ Supabase trong hàm `loadReportBundle()` tại `client_data.html`. Nếu Supabase chưa cấu hình, chưa có dữ liệu, hoặc bị lỗi, frontend tự quay về API Apps Script cũ `getReportBundle`.
+Next Report đọc qua server boundary trong `next-shell/lib/report-server.ts`. Nếu Supabase chưa cấu hình, chưa có dữ liệu hoặc lỗi, Vercel service fallback Apps Script action `getReportBundle`.
 
 ## Bảng `public.report_bundles`
 
@@ -59,8 +59,8 @@ RLS:
 - SQL migration realtime cache: `supabase/migrations/002_realtime_cache.sql`
 - Apps Script sync: `SupabaseService.gs`
 - API expose thủ công: `PublicApi.gs`, `Router.gs`
-- Frontend Supabase client: `client_api.html`
-- Frontend đọc báo cáo thử nghiệm: `client_data.html`
+- Next API clients: `next-shell/lib/platform/`
+- Report server boundary: `next-shell/lib/report-server.ts`
 
 ## Bảng cache giai đoạn 2
 
@@ -131,7 +131,7 @@ Nguồn Google Sheet tương ứng:
 
 Frontend đọc:
 
-- `client_app.html` gọi `readStartupFromSupabase('vanChuyen')` trước.
+- Next module server loaders ưu tiên bundle/cache phù hợp trước khi fallback Apps Script.
 - Nếu thiếu cache/lỗi, frontend fallback về Apps Script `getStartupData`.
 
 ### `public.catalog_bundles`
@@ -160,9 +160,9 @@ Nguồn Google Sheet tương ứng:
 
 Frontend đọc:
 
-- `client_data.html` đọc danh mục nhập liệu bằng `readCatalogsFromSupabase(formType)`.
-- `client_catalog.html` đọc bảng Danh mục bằng `readCatalogDataFromSupabase(displaySheetName)`.
-- `client_cashflow.html` đọc form options/danh mục Quỹ bằng `fund_form_options:YYYY` và `fund_catalog:YYYY:group`.
+- `next-shell/lib/entry-server.ts` tải danh mục nhập liệu.
+- `next-shell/lib/catalog-server.ts` tải bảng Danh mục.
+- `next-shell/lib/cashflow-server.ts` tải form options/danh mục Quỹ bằng key theo year/group.
 - `fund_catalog:YYYY:group` chỉ chứa danh mục cấu hình từ `CAIDAT`/catalog sheet, không trộn các giá trị fallback quét từ giao dịch đã nhập.
 - `fund_loan_bundles` nhận payload từ `FundService.getFundLoanOverview`; khi đọc `NHAP_VAY`, backend chuẩn hóa các biến thể loại dòng trả gốc thành `Trả nợ` để KPI `Đã trả nợ gốc` và `Dư nợ` nhất quán.
 - Nếu cache thiếu/lỗi, frontend fallback về Apps Script `getCatalogs` hoặc `readCatalogData`.
@@ -210,7 +210,7 @@ Nguồn Google Sheet tương ứng:
 
 Frontend đọc:
 
-- `client_manage.html` đọc `recent_500` khi người dùng vào Vận hành ở trạng thái mặc định.
+- `next-shell/lib/manage-server.ts` đọc `recent_500` khi người dùng vào Vận hành ở trạng thái mặc định.
 - Khi chọn đủ khoảng ngày, frontend đọc các cache `month:YYYY-MM` tương ứng rồi ghép và lọc ngay trên trình duyệt.
 - Nếu bấm làm mới, cache thiếu hoặc Supabase lỗi, frontend fallback về Apps Script `readManageData`.
 

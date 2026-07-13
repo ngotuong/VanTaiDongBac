@@ -110,6 +110,5 @@ test('feature flag defaults match the characterized baseline', () => {
     new RegExp(`ASYNC_FUND_TRANSACTION_ADD_ENABLED = readBooleanProperty_\\('ASYNC_FUND_TRANSACTION_ADD_ENABLED', ${baseline.featureFlags.ASYNC_FUND_TRANSACTION_ADD_ENABLED}\\)`)
   );
   assert.match(read('SecurityService.gs'), /AUTH_ENFORCEMENT_ENABLED/);
-  assert.match(read('scripts/build.js'), /VITE_AUTH_ENABLED/);
-  assert.match(read('scripts/build.js'), /VITE_SUPABASE_REPORTS_ENABLED/);
+  assert.doesNotMatch(read('package.json'), /build:legacy|build-[a-z-]+-react|scripts\/build\.js/);
 });

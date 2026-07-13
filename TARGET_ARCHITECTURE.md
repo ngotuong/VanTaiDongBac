@@ -46,7 +46,7 @@ Presentation Layer không được:
 - chứa Supabase service role key hoặc server secret;
 - tự vượt qua API/RBAC contract.
 
-Trong giai đoạn migration, frontend vanilla hiện tại có thể tiếp tục hoạt động. Mỗi màn hình chỉ chuyển sang Next.js theo step độc lập đã được phê duyệt.
+Sau D1, Next.js là presentation layer duy nhất trong source hiện hành. Frontend vanilla chỉ còn trong Git/deployment rollback lịch sử, không còn được build hoặc deploy từ nhánh hiện tại.
 
 ## 4. Edge/API Layer
 
@@ -83,9 +83,7 @@ Apps Script chịu trách nhiệm:
 - chạy worker, trigger, đồng bộ cache và audit;
 - bảo toàn idempotency và rollback semantics.
 
-Apps Script không render HTML sau khi migration frontend hoàn tất.
-
-Trong thời gian chuyển đổi, HtmlService và frontend source hiện tại được giữ để bảo đảm compatibility cho đến khi từng consumer đã được thay thế và xác nhận ổn định.
+Apps Script không render HTML sau khi migration frontend hoàn tất; `doGet`/`doPost` chỉ giữ API/integration boundary.
 
 ## 6. Domain Layer
 

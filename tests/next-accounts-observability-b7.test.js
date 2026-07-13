@@ -86,11 +86,8 @@ test('B7 UI provides accessible feedback, touch targets, responsive tables and d
   assert.match(css, /@media\(prefers-color-scheme:dark\).*\.b7-module/);
 });
 
-test('B7 keeps legacy account and observability islands for rollback', () => {
-  assert.match(read('next-shell/components/Accounts.jsx'), /data-react-accounts-root/);
-  assert.match(read('next-shell/components/Observability.jsx'), /data-hide-shareholder/);
-  assert.match(read('react-accounts/entry.jsx'), /window\.mountReactAccounts/);
-  assert.match(read('react-observability/entry.jsx'), /window\.mountReactObservability/);
-  assert.match(read('.env.example'), /VITE_REACT_ACCOUNTS_ENABLED=false/);
-  assert.match(read('.env.example'), /VITE_REACT_OBSERVABILITY_ENABLED=false/);
+test('D1 keeps B7 exclusively on independent Next modules', () => {
+  assert.equal(fs.existsSync(path.join(root, 'next-shell/components/Accounts.jsx')), false);
+  assert.equal(fs.existsSync(path.join(root, 'next-shell/components/Observability.jsx')), false);
+  assert.doesNotMatch(read('.env.example'), /VITE_REACT_/);
 });

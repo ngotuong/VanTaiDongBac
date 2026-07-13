@@ -7,23 +7,11 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('Apps Script and browser fragments are syntactically valid JavaScript', () => {
+test('Apps Script and Vercel API sources are syntactically valid JavaScript', () => {
   for (const file of fs.readdirSync(root).filter((name) => name.endsWith('.gs'))) {
     assert.doesNotThrow(() => new vm.Script(read(file), { filename: file }));
   }
-  for (const file of fs.readdirSync(root).filter((name) => name.startsWith('client_') && name.endsWith('.html'))) {
-    const source = read(file);
-    const scripts = [...source.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)];
-    scripts.forEach((match, index) => {
-      assert.doesNotThrow(() => new vm.Script(match[1], { filename: `${file}#${index + 1}` }));
-    });
-  }
   assert.doesNotThrow(() => new vm.Script(read('api/app.js'), { filename: 'api/app.js' }));
-  const builtScripts = [...read('index.html').matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)];
-  builtScripts.forEach((match, index) => {
-    if (match[0].includes(' src=')) return;
-    assert.doesNotThrow(() => new vm.Script(match[1], { filename: `index.html#${index + 1}` }));
-  });
 });
 
 test('queue uses atomic claims and blocks asynchronous physical deletes', () => {
@@ -71,8 +59,8 @@ test('shareholder role is read-only and account administration stays admin-only'
   const proxy = read('api/app.js');
   const accountService = read('server/services/account-service.js');
   const authorizationPolicy = read('server/services/authorization-policy.js');
-  const template = read('index.template.html');
-  const accounts = read('client_accounts.html');
+  const settings = read('next-shell/components/settings/SettingsModule.tsx');
+  const shell = read('next-shell/components/platform/AppShell.tsx');
   assert.match(migration, /'shareholder'/);
   assert.match(authorizationPolicy, /SHAREHOLDER_ACTIONS/);
   assert.match(authorizationPolicy, /Tài khoản cổ đông chỉ có quyền xem dữ liệu/);
@@ -80,13 +68,10 @@ test('shareholder role is read-only and account administration stays admin-only'
   assert.match(proxy, /createAccountService/);
   assert.match(accountService, /changeOwnPassword/);
   assert.match(accountService, /resetUserPassword/);
-  assert.match(template, /data-write-only/);
-  assert.match(template, /Quản lý tài khoản/);
-  assert.doesNotMatch(template, /Cấu hình đường dẫn Web App/);
-  assert.doesNotMatch(template, /darkModeToggle/);
-  assert.match(accounts, /function requireWritePermission/);
-  assert.match(read('client_auth.html'), /dongbac_auth_username/);
-  assert.doesNotMatch(read('client_auth.html'), /setItem\([^\n]*password/i);
+  assert.match(settings, /Quản lý tài khoản/);
+  assert.match(settings, /const isAdmin = user\.role === 'admin'/);
+  assert.match(shell, /ALL_ROLES/);
+  assert.doesNotMatch(settings + shell, /Cấu hình đường dẫn Web App|setItem\([^\n]*password/i);
 });
 
 test('loan reconciliation safely matches one orphan settlement by partner and exact balance', () => {
@@ -106,16 +91,12 @@ test('loan reconciliation safely matches one orphan settlement by partner and ex
   assert.equal(resolved[3].reconciledFromCode, 'WRONG-CODE');
   assert.match(source, /isCurrentlySettled/);
   assert.match(source, /currentSettlementDateText/);
-  assert.doesNotMatch(read('index.template.html'), /<th>Mã vay<\/th>/);
-  assert.match(read('client_cashflow_loans.html'), /Đã tất toán/);
 });
 
 test('password policy accepts any value with at least six characters', () => {
   const accountService = read('server/services/account-service.js');
-  const accounts = read('client_accounts.html');
-  const template = read('index.template.html');
+  const settings = read('next-shell/components/settings/SettingsModule.tsx');
   assert.match(accountService, /newPassword\.length < 6/);
-  assert.match(accounts, /newPassword\.length < 6/);
-  assert.match(template, /minlength="6"/);
+  assert.match(settings, /minLength=\{6\}/);
   assert.doesNotMatch(accountService, /newPassword\.length < 12/);
 });

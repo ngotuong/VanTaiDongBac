@@ -22,6 +22,19 @@ test('Report repository reads one exact month/workbook bundle with server creden
   assert.deepEqual(row.payload, { ok: true });
 });
 
+test('Report repository resolves latest from the newest synced workbook bundle', async () => {
+  let request;
+  const repository = createReportBundleRepository({ httpError, fetchImpl: async (url, options) => {
+    request = { url, options };
+    return { ok: true, json: async () => [{ spreadsheet_id: 'sheet-1', report_month: '07/2026', payload: { ok: true }, synced_at: 'now' }] };
+  }});
+  await repository.findLatest({ supabaseUrl: 'https://db.example', serviceRoleKey: 'server-secret' }, 'latest', 'sheet-1');
+  const url = new URL(request.url);
+  assert.equal(url.searchParams.has('report_month'), false);
+  assert.equal(url.searchParams.get('order'), 'synced_at.desc');
+  assert.equal(url.searchParams.get('spreadsheet_id'), 'eq.sheet-1');
+});
+
 test('Report API serves cached bundle and does not call Apps Script', async () => {
   let forwarded = 0; let response;
   const service = createReportService({

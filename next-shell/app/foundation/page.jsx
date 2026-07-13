@@ -5,7 +5,7 @@ import { createAuthService } from '../../../server/services/auth-service.js';
 import { createWorkbookContextService } from '../../../server/services/workbook-context-service.js';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Foundation · Vận tải Đông Bắc' };
+export const metadata = { title: 'Foundation' };
 
 function httpError(status, message) { return Object.assign(new Error(message), { status }); }
 

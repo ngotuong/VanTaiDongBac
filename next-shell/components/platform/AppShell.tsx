@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { PlatformContext } from '../../lib/platform/types';
 import { ShellNavigation, type NavigationItem } from './ShellNavigation';
+import { SignOutButton } from './SessionControls';
 
 const ALL_ROLES = ['admin', 'operator', 'shareholder'] as const;
 const WRITE_ROLES = ['admin', 'operator'] as const;
@@ -28,7 +29,7 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
       <div className="platform-sidebar-footer">
         <span>{context.user.displayName}</span>
         <small>{context.user.role}</small>
-        <a href="/" className="platform-legacy-link">Ứng dụng chính</a>
+        <SignOutButton />
       </div>
     </aside>
     <section className="platform-workspace">

@@ -31,7 +31,8 @@ test('B2 dashboard UI owns filters KPIs chart and tables without report payload 
   assert.match(module, /aria-live="polite"/);
   assert.match(module, /role="alert"/);
   assert.match(module, /aria-busy="true"/);
-  assert.match(module, /new URL\('\/next-accounts\/dashboard-data\/', window\.location\.origin\)/);
+  assert.match(module, /new URL\('\/dashboard-data\/', window\.location\.origin\)/);
+  assert.doesNotMatch(module, /\/next-accounts\//);
   assert.doesNotMatch(module, /appData\.reports|reports\s*=|window\.appData|google\.script/);
 });
 

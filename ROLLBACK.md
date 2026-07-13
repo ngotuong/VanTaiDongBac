@@ -88,6 +88,18 @@ clasp push
 
 3. Redeploy Vercel từ commit cũ hoặc revert commit trên GitHub.
 
+## Rollback C1 từ Next về frontend legacy
+
+Legacy C1 được giữ nguyên tại deployment `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS` và alias `https://vantaidongbac-legacy.vercel.app`.
+
+Rollback route production:
+
+```bash
+vercel alias set vantaidongbac-62q4v6vur-ngotuong2105.vercel.app dongbac.vercel.app
+```
+
+Sau rollback, kiểm tra `/`, `/manifest.json`, `/api/session` và đăng nhập legacy. Không xóa deployment Next; có thể cut forward lại bằng cách gán `dongbac.vercel.app` về deployment C1 đã xác nhận.
+
 ## Dấu hiệu rollback thành công
 
 - Màn hình **Báo cáo** vẫn mở được.

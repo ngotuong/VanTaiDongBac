@@ -1,6 +1,6 @@
 import { DashboardModule } from '../../components/dashboard/DashboardModule';
 import { loadDashboardData } from '../../lib/dashboard-server';
-export const metadata = { title: 'Tổng quan · Vận tải Đông Bắc' };
+export const metadata = { title: 'Tổng quan' };
 export default async function DashboardCanaryPage() {
   try {
     const data = await loadDashboardData();

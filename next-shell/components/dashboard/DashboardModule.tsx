@@ -38,7 +38,9 @@ function shortMoney(value: number) {
 const totalTrips = (trips: DashboardTrip[]) => trips.reduce((sum, trip) => sum + Number(trip.count || 0), 0);
 
 async function requestDashboard(): Promise<DashboardDataResponse> {
-  const response = await fetch('/dashboard-data?forceRefresh=true', { credentials: 'same-origin', cache: 'no-store' });
+  const url = new URL('/next-accounts/dashboard-data/', window.location.origin);
+  url.searchParams.set('forceRefresh', 'true');
+  const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
   return payload;

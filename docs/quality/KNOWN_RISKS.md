@@ -5,7 +5,7 @@
 - Route `/next-accounts/reports/` dùng API `getReportBundle` hiện có và không tạo Apps Script action mới.
 - Workbook Vận tải được resolve phía server từ allowlist A2; browser interaction đi qua `/next-accounts/report-data/` và không được gửi workbook ID tùy ý.
 - Initial bundle được tải ở Server Component. Client chỉ giữ interaction state cho tab/search/month/refresh/export.
-- In-app browser backend chưa khả dụng tại gate deployment B1 ngày 2026-07-13; responsive visual viewport QA còn phải xác nhận trước khi đổi B1 từ `IN PROGRESS` sang `DONE`.
+- Responsive visual QA đạt đủ 5 viewport ngày 2026-07-13. Project canary không kết nối Git; các `Error Stale` cũ do build/output root sai không ảnh hưởng stable alias đang `READY`.
 
 ## 1. Mục đích và phạm vi
 

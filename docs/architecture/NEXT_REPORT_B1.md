@@ -27,9 +27,11 @@ B1 không tính lại KPI, payroll matching hoặc report meaning. Google Sheets
 
 ## Deploy và rollback
 
-- Code commit: `79b4fab`.
-- Canary deployment: `dpl_B8boZZ74JoVoYKqaXrCVLbsRLhja`.
+- Code commit: `79b4fab`; mobile fix: `f1ffeae`.
+- Canary deployment: `dpl_9aGLrM4T8XioF8yiwXxSFG96RHXg`.
 - Rollback bằng promote deployment A2 `dpl_DuFhuaRHL9oU2YWsK93FhYuwiQBp`; `/` legacy không đổi.
 - Không Apps Script deploy, Sheet/Supabase migration hoặc business write.
 
-Trạng thái hiện tại là `IN PROGRESS`: data/auth/build gates đạt, visual responsive viewport gate đang chờ browser backend khả dụng.
+Trạng thái: `DONE` ngày 2026-07-13. Responsive QA đạt tại 375×667, 390×844, 430×932, 768×1024 và 1440×900; không document overflow, tab/table scroll đúng vùng và control đạt 44 px.
+
+Project canary không kết nối Git và tiếp tục dùng prebuilt deploy workflow. Các deployment `Error Stale` cũ không giữ stable alias và không ảnh hưởng production active.

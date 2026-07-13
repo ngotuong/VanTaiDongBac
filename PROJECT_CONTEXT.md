@@ -90,10 +90,10 @@ Vai trò dữ liệu hiện tại:
 
 ### 3.3. Luồng Report hiện tại
 
-`/next-accounts/reports/` hydrate ở browser, lấy Supabase session rồi gọi:
+`/next-accounts/reports/` tải initial bundle ở Server Component; tương tác đổi tháng/làm mới đi qua Next same-origin boundary:
 
 ```text
-Browser -> GET /api/app?action=getReportBundle
+Server Component / Next report-data -> GET /api/app?action=getReportBundle
         -> Vercel auth/RBAC
         -> Supabase report_bundles cache
         -> fallback Apps Script nếu miss/forceRefresh
@@ -104,43 +104,32 @@ Dashboard không dùng Report service mới; Entry và Manage cũng chưa chuy�
 
 ## 4. Checkpoint gần nhất đã hoàn thành
 
-### Next Foundation A2 — Application shell và shared platform
+### Phase B1 — Hoàn thiện Report
 
-Trạng thái: **hoàn thành ngày 2026-07-12**.
+Trạng thái: **hoàn thành ngày 2026-07-13**.
 
 Phạm vi hoàn thành:
 
-- root layout động với server auth guard, role-aware application shell và rollback link về `/` legacy;
-- workbook/year context provider dùng context server đã resolve;
-- typed server/client API clients với cookie forwarding, same-origin credentials và correlation ID;
-- loading/error/not-found boundaries và structured server error logging cơ bản;
-- semantic design tokens cho focus, touch, responsive, dark mode và reduced motion;
-- ESLint và TypeScript type-check độc lập;
-- không chuyển business module Phase B, không migration hoặc ghi Google Sheet.
+- initial Report read chuyển sang Server Component;
+- browser interaction đi qua `/next-accounts/report-data/`, workbook chỉ resolve phía server;
+- render nguyên bốn matrix backend, giữ tab/search/month/CSV và legacy rollback;
+- payload B1 loại Sheet links, không nhận Spreadsheet ID tùy ý từ browser;
+- thêm loading/empty/error/retry và accessible responsive table/tab states;
+- không thay đổi Apps Script action, report calculation, Sheet/Supabase schema hoặc dữ liệu.
 
-Verification A2:
+Verification B1:
 
-- `npm test`: 316/316 pass;
+- `npm test`: 317/317 pass;
 - `npm run lint`: pass;
 - `npm run typecheck`: pass;
 - `npm run build:next-accounts`: pass; toàn bộ route shell dynamic server-rendered;
-- branch `codex/next-foundation-a2` đã push GitHub; commit chốt runtime `ea42744`;
-- Next canary production: `dpl_DuFhuaRHL9oU2YWsK93FhYuwiQBp`, alias `vantaidongbac-next-canary.vercel.app`;
-- production same-origin `https://dongbac.vercel.app/next-accounts/` đã xác nhận unauthenticated quay đúng một redirect về `/` legacy, không còn vòng lặp basePath;
-- authenticated production smoke bằng tài khoản admin đạt: session `200`, shell `200`, đầy đủ navigation, `Vận tải · 2026` và sign-out `200`;
-- responsive behavior được bảo vệ bằng A2 CSS/test contract cho touch target, focus, breakpoint 900 px, reduced motion và không dùng overflow-x hidden; browser viewport visual QA cần chạy lại nếu thay đổi shell layout;
+- branch đã push; code `79b4fab`, mobile fix `f1ffeae`;
+- Next canary production: `dpl_9aGLrM4T8XioF8yiwXxSFG96RHXg`, alias `vantaidongbac-next-canary.vercel.app`;
+- production authenticated smoke đạt cho SSR và bốn matrix tại `latest`, `07/2026`, `Tất cả`; payload không chứa Sheet links;
+- responsive QA đạt tại 375×667, 390×844, 430×932, 768×1024, 1440×900: không document overflow, filter nằm trong viewport, tab/table scroll đúng vùng, nút refresh 44 px;
 - operator/shareholder parity tiếp tục được bảo vệ bằng API/RBAC contract tests.
 
-Checkpoint nền tảng trước đó A1 đã hoàn thành ngày 2026-07-12, branch `codex/next-foundation-a1` đã push; Next canary A1 là `dpl_FPfWQJauYCf64iF2W5FY4rfL3GCq`, production legacy + rewrite là `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`.
-
-Checkpoint đang triển khai: **Phase B1 — Hoàn thiện Report (`IN PROGRESS`)**.
-
-- commit code `79b4fab` đã push;
-- canary production `dpl_B8boZZ74JoVoYKqaXrCVLbsRLhja` đã deploy;
-- initial read đã chuyển sang Server Component; browser interaction đi qua same-origin Next boundary và workbook chỉ resolve phía server;
-- production authenticated smoke đạt cho SSR và bốn matrix tại `latest`, `07/2026`, `Tất cả`; payload không chứa Sheet links;
-- 317/317 test, full build, lint và type-check đạt;
-- còn thiếu visual responsive QA 375/390/430/768/1440 vì in-app browser backend không khả dụng; chưa đánh dấu B1 hoàn thành.
+Checkpoint nền tảng trước đó A2 đã hoàn thành ngày 2026-07-12; rollback deployment là `dpl_DuFhuaRHL9oU2YWsK93FhYuwiQBp`.
 
 Checkpoint runtime gần nhất trước đó:
 
@@ -156,17 +145,18 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### Hoàn tất gate còn lại của Phase B1
+### Phase B2 — Migrate Dashboard
 
-Không bắt đầu B2 trước khi B1 được chuyển từ `IN PROGRESS` sang `DONE`.
+Chỉ bắt đầu sau khi người dùng phê duyệt rõ checkpoint B2.
 
-Gate còn lại:
+Mục tiêu B2:
 
-1. Visual QA Report ở 375×667, 390×844, 430×932, 768×1024 và 1440×900.
-2. Xác nhận tab/filter/table không làm tràn document; horizontal scroll chỉ nằm trong table/tab region.
-3. Nếu đạt, cập nhật B1 `DONE`, checkpoint tiếp theo là B2.
+1. Tạo Dashboard route Next độc lập hoàn chỉnh.
+2. Loại bỏ startup/dashboard duplicate payload.
+3. Giữ Supabase cache và Apps Script fallback đúng contract.
+4. Đối chiếu số liệu với Sheet/report bundle.
 
-B1 vẫn không mở rộng sang Dashboard, Entry, Manage, Catalog hoặc Cashflow.
+B2 không tự động chuyển Entry, Manage, Catalog, Cashflow hoặc Accounts.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -203,9 +193,9 @@ Google Sheets source of truth / Supabase read model, cache, queue
 
 Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_PLAN.md`. Kiến trúc đích tổng quát thuộc `TARGET_ARCHITECTURE.md`.
 
-## 7. Rủi ro và điều kiện để đóng B1
+## 7. Rủi ro và điều kiện trước B2
 
-Các điều kiện kỹ thuật B1 đã được kiểm soát trong code/test/deploy; gate còn lại là visual responsive QA:
+Các điều kiện B1 đã được kiểm soát. Trước B2 cần audit riêng Dashboard data flow, duplicate payload, cache fallback và số liệu đối chiếu:
 
 1. **Initial read và auth**
    - tận dụng server auth/context A2 để tránh mount-only waterfall;
@@ -228,23 +218,23 @@ Các điều kiện kỹ thuật B1 đã được kiểm soát trong code/test/d
 7. **Legacy runtimeContext environment**
    - shell A2 resolve `transport · 2026` thành công trên canary env;
    - cùng action `runtimeContext` qua project legacy hiện trả `404` do legacy deployment không có workbook mapping; B1 phải dùng shared shell/canary server context, hoặc cấu hình env legacy bằng checkpoint deploy riêng nếu còn cần endpoint này.
-8. **Responsive visual gate**
-   - in-app browser backend không khả dụng tại lần kiểm tra 2026-07-13;
-   - không dùng browser automation ngoài quy trình để thay thế; B1 giữ `IN PROGRESS` cho tới khi kiểm tra đủ viewport.
+8. **Canary deploy mode**
+   - project `vantaidongbac-next-canary` không kết nối Git; deploy bằng prebuilt workflow riêng;
+   - các `Error Stale` cũ do build root/output sai không phải deployment active; stable alias phải luôn được kiểm tra sau deploy.
 
 Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 ## 8. Verification baseline hiện tại
 
-Baseline mã nguồn đã xác nhận trong A2:
+Baseline đã xác nhận trong B1:
 
 - `npm run build:next-accounts`: pass; mọi route shell dynamic server-rendered.
-- `npm test`: 316/316 pass.
+- `npm test`: 317/317 pass.
 - `npm run lint`: pass.
 - `npm run typecheck`: pass.
 - Production `/`: frontend legacy, chưa đăng nhập sẽ dừng ở auth gate.
 - Production `/next-accounts/reports/`: được reverse-proxy sang Next runtime canary.
-- Authenticated admin shell smoke đạt; responsive shell rules được khóa bằng CSS/test contract, visual viewport QA cần chạy lại khi thay đổi layout.
+- Authenticated Report smoke và responsive visual QA đủ 5 viewport đạt.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import type { ManageBundle, ManageDataResponse, ManageRow, ManageSheetName } from '../../lib/platform/manage-types';
@@ -65,7 +66,7 @@ export function ManageReadOnlyModule({ initialData, initialError = '' }: { initi
   const changePeriod = (mode: string) => { setPeriod(mode); if (mode === 'custom') return; const [start,end]=rangeFor(mode); setStartDate(start); setEndDate(end); void load(sheet,start,end); };
 
   return <section className="manage-module" data-next-manage-readonly="true" aria-labelledby="manage-page-title">
-    <header className="manage-module-header"><div><p className="platform-eyebrow">VẬN TẢI · {context.workbook.year}</p><h1 id="manage-page-title">Vận hành</h1><p className="manage-module-status" role="status" aria-live="polite">{error || (data ? `Chỉ đọc · Nguồn: ${source}${data.supabaseSyncedAt ? ` · đồng bộ ${data.supabaseSyncedAt}` : ''}` : '')}</p></div><button type="button" onClick={() => load(sheet,startDate,endDate,true)} disabled={loading}>{loading?'Đang tải…':'Làm mới'}</button></header>
+    <header className="manage-module-header"><div><p className="platform-eyebrow">VẬN TẢI · {context.workbook.year}</p><h1 id="manage-page-title">Vận hành</h1><p className="manage-module-status" role="status" aria-live="polite">{error || (data ? `Chỉ đọc · Nguồn: ${source}${data.supabaseSyncedAt ? ` · đồng bộ ${data.supabaseSyncedAt}` : ''}` : '')}</p></div><div className="manage-module-header-actions">{context.user.role !== 'shareholder' ? <Link href="/entry" prefetch={false}>Nhập mới</Link> : null}<button type="button" onClick={() => load(sheet,startDate,endDate,true)} disabled={loading}>{loading?'Đang tải…':'Làm mới'}</button></div></header>
     <div className="manage-module-tabs" role="tablist" aria-label="Nhật ký vận hành">{SHEETS.map(([name,label]) => <button type="button" role="tab" aria-selected={sheet===name} className={sheet===name?'active':''} onClick={() => load(name)} disabled={loading} key={name}>{label}</button>)}</div>
     <div className="manage-module-filters">
       <label><span>Kỳ lọc</span><select value={period} onChange={(event)=>changePeriod(event.target.value)} disabled={loading}><option value="recent">Gần đây</option><option value="today">Hôm nay</option><option value="7days">7 ngày qua</option><option value="thisMonth">Tháng này</option><option value="lastMonth">Tháng trước</option><option value="custom">Tùy chọn</option></select></label>

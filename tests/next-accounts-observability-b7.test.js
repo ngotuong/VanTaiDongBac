@@ -34,7 +34,8 @@ test('B7 settings keeps own-password for all roles and account administration ad
   assert.match(source, /current-password/);
   assert.match(source, /new-password/);
   assert.match(shell, /href: '\/settings'.+ALL_ROLES/);
-  assert.match(shell, /href: '\/observability'.+WRITE_ROLES/);
+  assert.match(shell, /href: '\/settings'.+aliases: \['\/observability'\].+ALL_ROLES/);
+  assert.match(source, /user\.role !== 'shareholder'.+href="\/observability"/s);
 });
 
 test('B7 observability default load is light and never invokes an audit or worker', () => {
@@ -79,7 +80,7 @@ test('B7 UI provides accessible feedback, touch targets, responsive tables and d
   assert.match(settings + observability, /aria-live="polite"/);
   assert.match(settings, /role=\{error \? 'alert' : 'status'\}/);
   assert.match(observability, /role=\{error \? 'alert' : 'status'\}/);
-  assert.match(css, /\.b7-module button\{min-height:44px/);
+  assert.match(css, /\.b7-module button,\.b7-header-link\{min-height:44px/);
   assert.match(css, /\.b7-table-wrap\{[^}]*overflow:auto/);
   assert.match(css, /@media\(max-width:640px\).*\.b7-module/);
   assert.match(css, /@media\(prefers-color-scheme:dark\).*\.b7-module/);

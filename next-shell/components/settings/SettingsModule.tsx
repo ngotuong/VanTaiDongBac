@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
@@ -123,9 +124,10 @@ export function SettingsModule() {
     catch { report('Không thể tự sao chép. Hãy chọn và sao chép thủ công.', true); }
   };
 
-  return <main className="b7-module">
+  return <section className="b7-module">
     <header className="b7-header">
-      <div><p className="platform-eyebrow">ACCOUNT SECURITY</p><h1>Tài khoản</h1><p>Đổi mật khẩu cá nhân và quản lý quyền truy cập theo vai trò.</p></div>
+      <div><p className="platform-eyebrow">CÀI ĐẶT</p><h1>Tài khoản</h1><p>Đổi mật khẩu cá nhân và quản lý quyền truy cập theo vai trò.</p></div>
+      {user.role !== 'shareholder' ? <Link className="b7-header-link" href="/observability" prefetch={false}>Trạng thái đồng bộ</Link> : null}
     </header>
     <p className={`b7-message${error ? ' error' : ''}`} role={error ? 'alert' : 'status'} aria-live="polite">{message}</p>
 
@@ -163,5 +165,5 @@ export function SettingsModule() {
         </table>
       </div>
     </section>}
-  </main>;
+  </section>;
 }

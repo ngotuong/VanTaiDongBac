@@ -1,13 +1,6 @@
 {
   "framework": "nextjs",
   "buildCommand": "npm run build:next-accounts",
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/legacy-index.html",
-      "permanent": false
-    }
-  ],
   "rewrites": [
     {
       "source": "/public/static/:path*",

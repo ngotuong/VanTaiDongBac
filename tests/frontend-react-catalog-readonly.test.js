@@ -20,13 +20,13 @@ test('Catalog read-only client preserves GET action, display sheet, and force-re
   assert.match(client, /\{ displaySheetName, forceRefresh: forceRefresh \? 'true' : '' \}/);
 });
 
-test('Catalog read-only canary removes all transport Catalog write controls', () => {
+test('legacy Catalog island remains read-only unless its independent write flag is enabled', () => {
   const legacy = read('client_catalog.html');
   const component = read('next-shell/components/CatalogReadOnly.jsx');
   assert.match(legacy, /if \(!window\.__REACT_CATALOG_READONLY_ACTIVE/);
   assert.match(component, /writeEnabled &&/);
   assert.doesNotMatch(component, /openManageEditModal|deleteManageRow|Thao tác/);
-  assert.match(read('next-shell/app/catalog/page.jsx'), /writeEnabled=\{false\}/);
+  assert.match(read('next-shell/app/catalog/page.jsx'), /CatalogModule/);
   assert.match(legacy, /row\.rowIndex/);
 });
 
@@ -43,8 +43,9 @@ test('Catalog read-only canary defaults off and keeps legacy rollback', () => {
   assert.match(read('client_catalog.html'), /function loadCatalogSheetData/);
 });
 
-test('Next shell statically exports the Catalog read-only canary route', () => {
-  assert.match(read('next-shell/app/catalog/page.jsx'), /<CatalogReadOnly/);
+test('Next shell exports the independent B5 Catalog route while retaining the island build for rollback', () => {
+  assert.match(read('next-shell/app/catalog/page.jsx'), /<CatalogModule/);
+  assert.match(read('next-shell/app/catalog/page.jsx'), /loadCatalogData/);
   assert.match(read('package.json'), /build-catalog-react\.js/);
 });
 

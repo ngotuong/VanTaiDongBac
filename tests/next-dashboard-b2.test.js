@@ -31,7 +31,8 @@ test('B2 dashboard UI owns filters KPIs chart and tables without report payload 
   assert.match(module, /aria-live="polite"/);
   assert.match(module, /role="alert"/);
   assert.match(module, /aria-busy="true"/);
-  assert.doesNotMatch(module, /appData\.reports|reports\s*=|window\.|google\.script/);
+  assert.match(module, /new URL\('\/next-accounts\/dashboard-data\/', window\.location\.origin\)/);
+  assert.doesNotMatch(module, /appData\.reports|reports\s*=|window\.appData|google\.script/);
 });
 
 test('B2 dashboard styles contain responsive cards and scroll-contained tables', () => {

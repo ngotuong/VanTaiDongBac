@@ -76,7 +76,7 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | B4 | Migrate Entry/write lifecycle | DONE | B3 |
 | B5 | Migrate Catalog | DONE | A2 |
 | B6 | Migrate Cashflow/Quỹ | DONE | A2; có thể sau B4 |
-| B7 | Migrate Accounts, Settings và Observability | NOT STARTED | A2 |
+| B7 | Migrate Accounts, Settings và Observability | DONE | A2 |
 | C1 | Cutover `/` sang Next.js | NOT STARTED | B1–B7 |
 | C2 | Ổn định production và xác nhận rollback | NOT STARTED | C1 |
 | D1 | Xóa legacy frontend/HtmlService presentation | NOT STARTED | C2 + thời gian ổn định |
@@ -183,6 +183,8 @@ Hoàn thành ngày 2026-07-13, không cần split. Route `/cashflow` là module 
 - sync status, audit và retry operational actions;
 - heavy audit chỉ chạy do thao tác chủ động;
 - không cache dữ liệu account nhạy cảm ở shared edge.
+
+Hoàn thành ngày 2026-07-13. Route `/settings` và `/observability` là hai module Next độc lập, không dùng DOM bridge. Mọi user active giữ quyền đổi mật khẩu; account list/create/update/reset chỉ admin và chỉ tải client-side qua proxy `no-store`, temporary password chỉ giữ trong state phiên hiện tại. Admin/operator được tải sync status/write queue nhẹ; quick/deep/all/report audit và retry chỉ chạy sau thao tác chủ động. Legacy islands được giữ làm rollback đến C1/C2. Không chạy account write, audit nặng, retry/worker hoặc migration production trong smoke B7.
 
 ## 8. Phase C — Cutover
 

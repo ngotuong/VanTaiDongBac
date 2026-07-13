@@ -34,8 +34,6 @@
     "app/dashboard-data/**/*.ts",
     "next-shell/app/manage-data/**/*.ts",
     "app/manage-data/**/*.ts",
-    "next-shell/app/catalog-data/**/*.ts",
-    "app/catalog-data/**/*.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules"]

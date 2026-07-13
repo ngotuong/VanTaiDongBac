@@ -40,6 +40,6 @@ test('React Reports defaults off and preserves tabs, filters, renderer, and CSV 
   assert.match(legacy, /function exportReportTableAsCsv/);
   assert.match(legacy, /function filterOverviewMatrix/);
   assert.match(read('.env.example'), /VITE_REACT_REPORTS_ENABLED=false/);
-  assert.match(read('next-shell/app/reports/page.jsx'), /<Reports/);
+  assert.match(read('next-shell/app/reports/page.jsx'), /<ReportModule/);
   assert.match(read('package.json'), /build-reports-react\.js/);
 });

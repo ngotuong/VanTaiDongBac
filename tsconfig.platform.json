@@ -17,7 +17,11 @@
     "next-env.d.ts",
     "next-shell/components/platform/**/*.ts",
     "next-shell/components/platform/**/*.tsx",
+    "next-shell/components/report/**/*.tsx",
     "next-shell/lib/platform/**/*.ts",
+    "next-shell/lib/report-server.ts",
+    "next-shell/app/report-data/**/*.ts",
+    "app/report-data/**/*.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules"]

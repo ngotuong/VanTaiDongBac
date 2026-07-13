@@ -70,7 +70,7 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | --- | --- | --- | --- |
 | A1 | Runtime, cookie auth và workbook context | DONE | Documentation checkpoint |
 | A2 | Next application shell và shared platform | DONE | A1 |
-| B1 | Hoàn thiện Report | NOT STARTED | A2 |
+| B1 | Hoàn thiện Report | IN PROGRESS | A2 |
 | B2 | Migrate Dashboard | NOT STARTED | B1 |
 | B3 | Migrate Manage read-only | NOT STARTED | A2 |
 | B4 | Migrate Entry/write lifecycle | NOT STARTED | B3 |

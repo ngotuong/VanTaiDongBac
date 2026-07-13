@@ -133,6 +133,15 @@ Verification A2:
 
 Checkpoint nền tảng trước đó A1 đã hoàn thành ngày 2026-07-12, branch `codex/next-foundation-a1` đã push; Next canary A1 là `dpl_FPfWQJauYCf64iF2W5FY4rfL3GCq`, production legacy + rewrite là `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`.
 
+Checkpoint đang triển khai: **Phase B1 — Hoàn thiện Report (`IN PROGRESS`)**.
+
+- commit code `79b4fab` đã push;
+- canary production `dpl_B8boZZ74JoVoYKqaXrCVLbsRLhja` đã deploy;
+- initial read đã chuyển sang Server Component; browser interaction đi qua same-origin Next boundary và workbook chỉ resolve phía server;
+- production authenticated smoke đạt cho SSR và bốn matrix tại `latest`, `07/2026`, `Tất cả`; payload không chứa Sheet links;
+- 317/317 test, full build, lint và type-check đạt;
+- còn thiếu visual responsive QA 375/390/430/768/1440 vì in-app browser backend không khả dụng; chưa đánh dấu B1 hoàn thành.
+
 Checkpoint runtime gần nhất trước đó:
 
 - Phase 6 chỉ tạo frontend Next.js cho Report tại `/next-accounts/reports/`.
@@ -147,19 +156,17 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### Phase B1 — Hoàn thiện Report
+### Hoàn tất gate còn lại của Phase B1
 
-Chỉ bắt đầu sau khi người dùng phê duyệt rõ ràng checkpoint B1 trong `NEXTJS_MIGRATION_PLAN.md`.
+Không bắt đầu B2 trước khi B1 được chuyển từ `IN PROGRESS` sang `DONE`.
 
-Mục tiêu B1:
+Gate còn lại:
 
-1. Chuyển initial Report read khỏi mount-only waterfall khi auth/runtime cho phép.
-2. Truyền đúng workbook/year context vào Report.
-3. Giữ nguyên bốn matrix chuẩn từ backend/Google Sheet.
-4. Giữ tab, search, month và export hiện có.
-5. Không tự tính lại KPI hoặc ý nghĩa báo cáo.
+1. Visual QA Report ở 375×667, 390×844, 430×932, 768×1024 và 1440×900.
+2. Xác nhận tab/filter/table không làm tràn document; horizontal scroll chỉ nằm trong table/tab region.
+3. Nếu đạt, cập nhật B1 `DONE`, checkpoint tiếp theo là B2.
 
-B1 không tự động chuyển Dashboard, Entry, Manage, Catalog hoặc Cashflow.
+B1 vẫn không mở rộng sang Dashboard, Entry, Manage, Catalog hoặc Cashflow.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -196,9 +203,9 @@ Google Sheets source of truth / Supabase read model, cache, queue
 
 Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_PLAN.md`. Kiến trúc đích tổng quát thuộc `TARGET_ARCHITECTURE.md`.
 
-## 7. Rủi ro và điều kiện trước B1
+## 7. Rủi ro và điều kiện để đóng B1
 
-Các điều kiện bắt buộc phải làm rõ trước khi code B1:
+Các điều kiện kỹ thuật B1 đã được kiểm soát trong code/test/deploy; gate còn lại là visual responsive QA:
 
 1. **Initial read và auth**
    - tận dụng server auth/context A2 để tránh mount-only waterfall;
@@ -221,6 +228,9 @@ Các điều kiện bắt buộc phải làm rõ trước khi code B1:
 7. **Legacy runtimeContext environment**
    - shell A2 resolve `transport · 2026` thành công trên canary env;
    - cùng action `runtimeContext` qua project legacy hiện trả `404` do legacy deployment không có workbook mapping; B1 phải dùng shared shell/canary server context, hoặc cấu hình env legacy bằng checkpoint deploy riêng nếu còn cần endpoint này.
+8. **Responsive visual gate**
+   - in-app browser backend không khả dụng tại lần kiểm tra 2026-07-13;
+   - không dùng browser automation ngoài quy trình để thay thế; B1 giữ `IN PROGRESS` cho tới khi kiểm tra đủ viewport.
 
 Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 

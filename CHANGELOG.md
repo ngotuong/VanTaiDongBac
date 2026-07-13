@@ -4,6 +4,13 @@ Các thay đổi đáng chú ý của repository được ghi tại đây. Trạ
 
 ## Unreleased
 
+### Phase B1 — Next Report
+
+- Chuyển initial Report read sang Server Component và shared server API client với workbook Vận tải được resolve phía server.
+- Thêm same-origin `/next-accounts/report-data/` cho đổi tháng/làm mới; browser không nhận workbook ID hoặc Sheet links.
+- Render nguyên bốn matrix backend, giữ tab, search, month, CSV và legacy Report rollback.
+- Thêm loading/empty/error/retry, accessible tab/table semantics và responsive design-token styles.
+
 ### Next Foundation A2 — Application shell và shared platform
 
 - Thêm dynamic root layout với server auth guard, role-aware navigation và rollback link về `/` legacy.

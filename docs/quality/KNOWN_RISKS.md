@@ -1,10 +1,11 @@
 # KNOWN_RISKS
 
-## Phase 6 — Next.js Report TODO
+## Phase B1 — Next.js Report
 
-- Route `/next-accounts/reports/` dùng API `getReportBundle` hiện có và không tạo API mới.
-- API hiện chưa có action bootstrap trả về workbook Vận tải đang được chọn cho standalone Next Report. Vì vậy route gửi `spreadsheetId` khi caller có context; nếu không có, Report API chọn bundle mới nhất theo `report_month`. Trước khi hỗ trợ nhiều workbook cùng tháng trên route độc lập, cần thiết kế contract workbook context riêng và phê duyệt ngoài Phase 6.
-- Session đăng nhập được tái sử dụng từ Supabase Auth cùng origin. Nếu chưa có session, route chỉ hướng người dùng quay lại ứng dụng chính để đăng nhập; Phase 6 không tạo auth API hoặc module đăng nhập mới.
+- Route `/next-accounts/reports/` dùng API `getReportBundle` hiện có và không tạo Apps Script action mới.
+- Workbook Vận tải được resolve phía server từ allowlist A2; browser interaction đi qua `/next-accounts/report-data/` và không được gửi workbook ID tùy ý.
+- Initial bundle được tải ở Server Component. Client chỉ giữ interaction state cho tab/search/month/refresh/export.
+- In-app browser backend chưa khả dụng tại gate deployment B1 ngày 2026-07-13; responsive visual viewport QA còn phải xác nhận trước khi đổi B1 từ `IN PROGRESS` sang `DONE`.
 
 ## 1. Mục đích và phạm vi
 

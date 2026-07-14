@@ -90,6 +90,8 @@ clasp push
 
 ## Rollback presentation Next/D1
 
+Production C3 hiện tại là `dpl_AHQoJpQEKuDmRz6UtT6UhSfpZWgJ` (`https://vantaidongbac-mrzm3i3bd-ngotuong2105.vercel.app`), đã cut-forward vào `https://dongbac.vercel.app` ngày 2026-07-14.
+
 Production D1 là `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` (`https://vantaidongbac-eqydwsj14-ngotuong2105.vercel.app`). D1 xóa source legacy khỏi nhánh hiện tại nhưng không xóa deployment recovery. Production Next trước D1 là `dpl_9vU7mJfGCbtPwGT3aKJLACS4hXx6`.
 
 Rollback nhanh về giao diện legacy đã xác nhận ở C2:
@@ -106,7 +108,7 @@ Legacy C1 vẫn được giữ tại `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS` và alia
 vercel alias set vantaidongbac-62q4v6vur-ngotuong2105.vercel.app dongbac.vercel.app
 ```
 
-Sau rollback, không xóa deployment Next/D1. Cut forward lại bằng cách gán `dongbac.vercel.app` về `vantaidongbac-eqydwsj14-ngotuong2105.vercel.app`.
+Sau rollback, không xóa deployment Next/D1. Cut forward lại C3 bằng cách gán `dongbac.vercel.app` về `vantaidongbac-mrzm3i3bd-ngotuong2105.vercel.app`.
 
 Apps Script D1 API-only là deployment `AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw`, code version `@282`. Apps Script rollback là deployment `AKfycbzO8puBHqpuoA9_eYPROuNGoISJM6bI9HT53xigZY_xK-BmQdcRhd_rje4qGFGVPbF3Mg`, code version `@281`; rollback backend bằng cách khôi phục `APPS_SCRIPT_URL` về URL `@281` rồi redeploy Vercel.
 

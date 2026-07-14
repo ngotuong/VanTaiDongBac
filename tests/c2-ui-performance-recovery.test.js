@@ -14,7 +14,8 @@ test('D1 removes the temporary C2 presentation route while retaining documented 
   assert.match(read('ROLLBACK.md'), /dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg/);
 });
 
-test('C2 recovery disables data-heavy navigation prefetch', () => {
-  assert.match(read('next-shell/components/platform/ShellNavigation.tsx'), /prefetch=\{false\}/);
-  assert.match(read('next-shell/components/platform/AppShell.tsx'), /prefetch=\{false\}/);
+test('C3 golden shell keeps navigation client-driven without data-heavy Link prefetch', () => {
+  const navigation = read('next-shell/components/platform/ShellNavigation.tsx');
+  assert.match(navigation, /router\.push\(href\)/);
+  assert.doesNotMatch(navigation, /<Link|prefetch=/);
 });

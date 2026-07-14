@@ -6,7 +6,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('C3 cut-forward routes the production root to the Next Dashboard', () => {
+test('C3 candidate routes its root to Next Dashboard while retaining the C2 production rollback', () => {
   const config = JSON.parse(read('vercel.json'));
   assert.equal(config.redirects, undefined);
   assert.match(read('next-shell/app/page.jsx'), /redirect\('\/dashboard'\)/);
@@ -23,16 +23,16 @@ test('C3 Next shell matches the six approved legacy navigation destinations', ()
   assert.match(shell, /aliases: \['\/observability'\]/);
 });
 
-test('C3 keeps the legacy logo, drawer, theme and five-item mobile navigation behavior', () => {
+test('C3 golden shell keeps the exact C2 logo, drawer, SVG and five-item mobile navigation behavior', () => {
   const shell = read('next-shell/components/platform/AppShell.tsx');
   const navigation = read('next-shell/components/platform/ShellNavigation.tsx');
-  const css = read('next-shell/app/platform.css');
+  const css = read('next-shell/app/c2-golden.css');
   assert.match(shell, /apple-touch-icon\.png/);
-  assert.match(shell, /platform-drawer-backdrop/);
-  assert.match(shell, /vtdb-theme/);
+  assert.match(shell, /className="drawer-backdrop"/);
+  assert.match(navigation, /className: 'btn-svg'/);
   assert.match(navigation, /mode === 'bottom'/);
-  assert.match(css, /--platform-sidebar: 260px/);
-  assert.match(css, /grid-template-columns: repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(css, /grid-template-columns: 260px minmax\(0, 1fr\)/);
+  assert.match(css, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
   assert.match(css, /bottom: calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
 });
 

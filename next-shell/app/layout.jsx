@@ -1,5 +1,6 @@
 import './accounts.css';
 import './platform.css';
+import './c2-golden.css';
 import { AppShell } from '../components/platform/AppShell';
 import { LoginGate } from '../components/platform/SessionControls';
 import { WorkbookContextProvider } from '../components/platform/WorkbookContextProvider';
@@ -11,7 +12,7 @@ export const metadata = {
   description: 'Nền tảng nội bộ Vận tải và Thu chi của Vận tải Đông Bắc.',
   manifest: '/manifest.json',
   icons: { icon: '/static/assets/favicon.png', apple: '/static/assets/apple-touch-icon.png' },
-  appleWebApp: { capable: true, title: 'Đông Bắc', statusBarStyle: 'default' }
+  appleWebApp: { capable: true, title: 'Đông Bắc', statusBarStyle: 'black-translucent' }
 };
 export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#062e2b' };
 

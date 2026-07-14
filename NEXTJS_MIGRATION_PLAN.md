@@ -79,8 +79,8 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | B7 | Migrate Accounts, Settings và Observability | DONE | A2 |
 | C1 | Cutover `/` sang Next.js | DONE | B1–B7 |
 | C2 | Ổn định production và xác nhận rollback | DONE | C1 |
-| C3 | Next visual parity và controlled cut-forward | DONE | C2 + phê duyệt người dùng |
-| D1 | Xóa legacy frontend/HtmlService presentation | DONE | C3 + thời gian ổn định |
+| C3 | Next visual parity và controlled cut-forward | REOPENED — golden master | C2 + phê duyệt người dùng |
+| D1 | Xóa legacy frontend/HtmlService presentation | BLOCKED/ROLLED BACK | C3 + thời gian ổn định |
 
 Kế hoạch hiện có **13 checkpoint**. C3 được thêm sau regression C2 chứng minh recovery production và cut forward UI không thể deploy/rollback an toàn trong cùng một change set. Chỉ được chia thêm checkpoint nếu audit trước implementation chứng minh không thể deploy/rollback an toàn trong một change set. Mọi split phải cập nhật bảng này và `PROJECT_CONTEXT.md`, không tạo chuỗi step mở không có điểm kết thúc.
 
@@ -218,7 +218,11 @@ C2 được mở lại ngày 2026-07-13 sau phản hồi production: Next shell 
 - giữ deployment recovery C2, legacy alias và Apps Script `@281` làm rollback;
 - không xóa legacy trong cùng checkpoint.
 
-C3 **DONE ngày 2026-07-13**. Người dùng đã xác nhận preview giữ giao diện quen thuộc, phê duyệt cut-forward và sau khoảng theo dõi đã yêu cầu tiếp tục D1. Production Next là `dpl_9vU7mJfGCbtPwGT3aKJLACS4hXx6`, alias `https://dongbac.vercel.app`; root, health và các route chính trả 200, không có HTTP 500 trong smoke/log kiểm tra lại. Verification đạt 363/363 test, lint, typecheck và build. Recovery C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, legacy alias/source và Apps Script `@281` được giữ làm rollback khi chuyển sang D1.
+C3 được mở lại ngày 2026-07-14 sau khi các candidate Next cho thấy khác biệt lớn ở cả presentation và dữ liệu runtime. Production đã rollback về C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. Candidate parity sai không được tiếp tục vá; nhánh triển khai mới `codex/c3-golden-master` bắt đầu từ nền Next sạch `a5e29bf`.
+
+Nguồn chuẩn và ma trận phê duyệt thuộc `docs/quality/C3_GOLDEN_MASTER.md` và `docs/quality/C3_PARITY_MATRIX.md`. Thứ tự triển khai là Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability. Mỗi module cần data gate, desktop/mobile visual gate và phê duyệt người dùng riêng. D1 giữ trạng thái `BLOCKED/ROLLED BACK`.
+
+C3.0–C3.2a hoàn tất kỹ thuật ngày 2026-07-14 trên nhánh `codex/c3-golden-master`: shell/login/Dashboard port đúng DOM/class/style/runtime C2; Dashboard ưu tiên `overview.kpis`, giữ matrix cho chart/bảng và giữ latest trips/export. Candidate `dpl_5TcZ77CxZskFizUUNCZnT9rrG3hp` được gán riêng tại `https://vantaidongbac-c3-preview.vercel.app`; production vẫn là C2. Gate đạt 267/267 test, lint, typecheck, build và diff check. Trạng thái hiện tại là chờ người dùng duyệt authenticated Dashboard; không bắt đầu Report trước phê duyệt này.
 
 ## 9. Phase D — Legacy removal
 
@@ -233,7 +237,7 @@ Chỉ thực hiện sau C3 và thời gian ổn định production Next được
 - cập nhật architecture, workflow, rollback và documentation router;
 - chạy dead-code/call-site audit trước khi xóa.
 
-D1 **DONE ngày 2026-07-13**. Audit xác nhận production chỉ còn consumer Next; HtmlService presentation, source/build React island, DOM/compatibility bridge và feature flag tương ứng đã được xóa. Apps Script API/integration/worker/sync được giữ nguyên và deploy API-only tại `@282` (`AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw`). Vercel production là `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9`, alias `https://dongbac.vercel.app`; root/API health và các route chính đạt 200, path legacy đạt 404, không có HTTP 500 trong log kiểm tra. Verification đạt 265/265 test, lint, typecheck, build và `git diff --check`. Recovery C2, legacy C1/alias và Apps Script `@281` vẫn được giữ làm rollback. Chương trình migration Next.js hữu hạn đã hoàn thành; không có checkpoint kế tiếp tự động.
+D1 implementation cũ đã bị rollback vì C3 chưa đạt visual/data acceptance. Deployment và Apps Script API-only cũ chỉ được giữ để điều tra, không nằm trên production alias. Không xóa presentation C2 hoặc bắt đầu lại D1 cho đến khi toàn bộ parity matrix C3 đạt `USER_APPROVED`, có thời gian ổn định và phê duyệt checkpoint riêng.
 
 ## 10. Quality gates chung
 
@@ -269,5 +273,5 @@ Mỗi checkpoint phải chọn gate theo rủi ro, tối thiểu:
 - Baseline: Phase 6 Report và audit repository ngày 2026-07-12.
 - Owner current checkpoint: `PROJECT_CONTEXT.md`.
 - Owner target architecture: `TARGET_ARCHITECTURE.md`.
-- Ngày xác nhận: 2026-07-12.
+- Ngày xác nhận: 2026-07-14.
 - Cập nhật khi: checkpoint status/dependency/scope hoặc Definition of Done thay đổi.

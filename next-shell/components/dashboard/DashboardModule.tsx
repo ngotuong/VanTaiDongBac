@@ -1,41 +1,18 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useWorkbookContext } from '../platform/WorkbookContextProvider';
+import { useEffect, useMemo, useState } from 'react';
 import type { DashboardBundle, DashboardDataResponse, DashboardTrip } from '../../lib/platform/dashboard-types';
-import type { ReportCell, ReportMatrix } from '../../lib/platform/report-types';
+import { buildKpiMap, formatCurrencyText, growth, metricValue, parseDashboardRows, type DashboardMetricKey, type DashboardMonthRow } from '../../lib/platform/dashboard-c2';
 
-type MonthRow = { month: string; revenue: number; operatingCost: number; gross: number; cashCost: number; final: number; raw: ReportCell[] };
+type MetricSpec = { key: DashboardMetricKey; label: string; badge: 'blue' | 'red' | 'amber' | 'green'; invert?: boolean; icon: React.ReactNode };
 
-function numberValue(value: unknown) {
-  if (typeof value === 'number') return value;
-  let text = String(value ?? '').trim().replace(/[^0-9,.-]/g, '');
-  if (!text) return 0;
-  if (text.includes('.') && text.includes(',')) text = text.lastIndexOf(',') > text.lastIndexOf('.') ? text.replace(/\./g, '').replace(',', '.') : text.replace(/,/g, '');
-  else if ((text.match(/[.,]/g) || []).length > 1 || /[.,]\d{3}$/.test(text)) text = text.replace(/[.,]/g, '');
-  else text = text.replace(',', '.');
-  return Number(text) || 0;
-}
-
-function parseRows(matrix?: ReportMatrix): MonthRow[] {
-  const rows = matrix || [];
-  const headerIndex = rows.findIndex((row) => String(row?.[0] ?? '').trim().toLowerCase() === 'tháng');
-  return rows.slice(headerIndex >= 0 ? headerIndex + 1 : 2).map((raw) => {
-    const revenue = numberValue(raw?.[2]);
-    const gross = numberValue(raw?.[8]) || revenue - numberValue(raw?.[3]) - numberValue(raw?.[4]) - numberValue(raw?.[5]) - numberValue(raw?.[7]);
-    const final = numberValue(raw?.[10]);
-    return { month: String(raw?.[0] ?? '').trim(), revenue, operatingCost: revenue - gross, gross, cashCost: gross - final, final, raw };
-  }).filter((row) => row.month && row.month !== 'Tháng');
-}
-
-const currency = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value);
-function shortMoney(value: number) {
-  const abs = Math.abs(value);
-  if (abs >= 1e9) return `${(value / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} tỷ`;
-  if (abs >= 1e6) return `${(value / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 0 })} tr`;
-  return value.toLocaleString('vi-VN');
-}
-const totalTrips = (trips: DashboardTrip[]) => trips.reduce((sum, trip) => sum + Number(trip.count || 0), 0);
+const METRICS: MetricSpec[] = [
+  { key: 'revenue', label: 'Tổng doanh thu', badge: 'blue', icon: <svg className="btn-svg" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> },
+  { key: 'operatingCost', label: 'Chi phí vận hành', badge: 'red', invert: true, icon: <svg className="btn-svg" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> },
+  { key: 'gross', label: 'Lợi nhuận gộp', badge: 'amber', icon: <svg className="btn-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+  { key: 'cashCost', label: 'Chi phí sau vận hành', badge: 'red', invert: true, icon: <svg className="btn-svg" viewBox="0 0 24 24"><path d="M3 6h18v12H3z"/><path d="M7 10h.01M17 14h.01M12 12a2 2 0 1 0 0 .01"/></svg> },
+  { key: 'final', label: 'Lợi nhuận thực tế', badge: 'green', icon: <svg className="btn-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> }
+];
 
 async function requestDashboard(): Promise<DashboardDataResponse> {
   const url = new URL('/dashboard-data/', window.location.origin);
@@ -46,21 +23,109 @@ async function requestDashboard(): Promise<DashboardDataResponse> {
   return payload;
 }
 
+function sourceOf(dashboard: DashboardBundle | null): 'supabase' | 'apps-script' | undefined {
+  if (!dashboard) return undefined;
+  return dashboard.supabaseCached ? 'supabase' : 'apps-script';
+}
+
+function MetricCard({ spec, row, previous, kpiMap, time }: { spec: MetricSpec; row: DashboardMonthRow; previous?: DashboardMonthRow; kpiMap: ReturnType<typeof buildKpiMap>; time: string }) {
+  const value = metricValue(row, spec.key, kpiMap);
+  const previousValue = previous ? metricValue(previous, spec.key, kpiMap) : undefined;
+  const comparison = growth(value, previousValue, spec.invert);
+  const badge = spec.key === 'final' ? (value >= 0 ? 'green' : 'red') : spec.badge;
+  return <article className="kpi-card">
+    <div className="kpi-card-header"><div className="kpi-label">{spec.label}</div><div className={`kpi-icon-badge ${badge}`}>{spec.icon}</div></div>
+    <div className={`kpi-value ${badge}`}>{formatCurrencyText(value)} <span className="unit"/></div>
+    <div className="kpi-card-footer"><div className={`kpi-status ${comparison.statusClass}`}><span>{comparison.text}</span></div><div className="kpi-time">{time}</div></div>
+  </article>;
+}
+
+function ProfitChart({ rows }: { rows: DashboardMonthRow[] }) {
+  const data = rows.filter((row) => row.month).slice(-12);
+  if (!data.length) return <div className="panel-note">Chưa có dữ liệu báo cáo lợi nhuận.</div>;
+  const step = 500_000_000;
+  const maxValue = Math.max(...data.map((row) => Math.abs(row.final)), 1);
+  const max = Math.max(step, Math.ceil(maxValue / step) * step);
+  const ticks: number[] = [];
+  for (let value = max; value >= 0; value -= step) ticks.push(value);
+  const short = (value: number) => Math.abs(value) >= 1e9 ? `${(value / 1e9).toFixed(1).replace('.', ',').replace(',0', '')} tỷ` : Math.abs(value) >= 1e6 ? `${(value / 1e6).toFixed(0)} tr` : String(value);
+  return <div className="chart-wrapper" style={{ display: 'flex', alignItems: 'flex-end', position: 'relative', marginTop: 10 }}>
+    <div className="chart-y-axis" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: 130, paddingRight: 12, textAlign: 'right', width: 60, color: 'var(--muted)', fontSize: 10, fontWeight: 600, marginBottom: 23, flexShrink: 0, borderRight: '1px solid var(--line)' }}>{ticks.map((value) => <div key={value}>{short(value)}</div>)}</div>
+    <div className="chart-area" style={{ flex: 1, position: 'relative', overflowX: 'auto' }}>
+      <div className="chart-grid-lines" style={{ position: 'absolute', left: 0, right: 0, height: 130, bottom: 23, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none', zIndex: 1 }}>{ticks.map((value) => <div key={value} style={{ borderBottom: value === 0 ? '2px solid var(--muted)' : '1px dashed var(--line)', width: '100%' }}/>)}</div>
+      <div className="chart-v" style={{ position: 'relative', zIndex: 2, background: 'transparent', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: 190, width: '100%', gap: 8 }}>
+        {data.map((row) => { const percent = Math.max(2, Math.round(Math.abs(row.final) / max * 100)); return <div className="chart-col" key={row.month}>
+          <div className="bar-value">{row.final < 0 ? '-' : ''}{formatCurrencyText(Math.abs(row.final))}</div>
+          <div className="bar-track-v"><div className="bar-fill-v" style={{ height: `${percent}%`, background: row.final < 0 ? 'linear-gradient(180deg, #f87171, var(--red))' : 'linear-gradient(180deg, var(--teal), var(--deep-2))', width: '100%' }}/></div>
+          <div className="bar-label">{row.month}</div>
+        </div>; })}
+      </div>
+    </div>
+  </div>;
+}
+
+type Html2Canvas = (element: HTMLElement, options?: Record<string, unknown>) => Promise<HTMLCanvasElement>;
+let html2CanvasLoader: Promise<Html2Canvas> | null = null;
+function loadHtml2Canvas() {
+  const current = (window as Window & { html2canvas?: Html2Canvas }).html2canvas;
+  if (current) return Promise.resolve(current);
+  if (html2CanvasLoader) return html2CanvasLoader;
+  html2CanvasLoader = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas-pro.min.js';
+    script.async = true;
+    script.onload = () => {
+      const loaded = (window as Window & { html2canvas?: Html2Canvas }).html2canvas;
+      if (loaded) resolve(loaded);
+      else reject(new Error('Không thể tải thư viện xuất ảnh.'));
+    };
+    script.onerror = () => reject(new Error('Không thể tải thư viện xuất ảnh.'));
+    document.head.appendChild(script);
+  });
+  return html2CanvasLoader;
+}
+
+async function exportCardAsImage(button: HTMLButtonElement, title: string) {
+  const card = button.closest<HTMLElement>('.table-card');
+  if (!card) return;
+  button.disabled = true;
+  card.classList.add('is-exporting');
+  try {
+    const html2canvas = await loadHtml2Canvas();
+    const canvas = await html2canvas(card, { backgroundColor: '#ffffff', scale: Math.min(window.devicePixelRatio || 1, 2), useCORS: true });
+    const link = document.createElement('a');
+    link.download = `${title}-${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : 'Không thể xuất ảnh.');
+  } finally {
+    card.classList.remove('is-exporting');
+    button.disabled = false;
+  }
+}
+
+function ExportButton({ title }: { title: string }) {
+  return <button type="button" className="sub-tab" title="Xuất ảnh" aria-label={`Xuất ảnh ${title}`} style={{ minHeight: '28px', width: 28, padding: 0, borderRadius: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={(event) => void exportCardAsImage(event.currentTarget, title)}><svg className="btn-svg" viewBox="0 0 24 24" style={{ width: 16, height: 16 }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>;
+}
+
 export function DashboardModule({ initialDashboard, initialError = '' }: { initialDashboard: DashboardBundle | null; initialError?: string }) {
-  const context = useWorkbookContext();
   const [dashboard, setDashboard] = useState(initialDashboard);
-  const [selectedMonth, setSelectedMonth] = useState('latest');
+  const [selectedMonth, setSelectedMonth] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(initialError);
-  const rows = useMemo(() => parseRows(dashboard?.overview?.months), [dashboard]);
-  const selected = selectedMonth === 'latest' ? rows.at(-1) : rows.find((row) => row.month === selectedMonth);
+  const rows = useMemo(() => parseDashboardRows(dashboard?.overview?.months), [dashboard]);
+  const kpiMap = useMemo(() => buildKpiMap(dashboard?.overview?.kpis), [dashboard]);
+  const effectiveMonth = selectedMonth && rows.some((row) => row.month === selectedMonth) ? selectedMonth : rows[rows.length - 1]?.month || '';
+  const selectedIndex = rows.findIndex((row) => row.month === effectiveMonth);
+  const selected = selectedIndex >= 0 ? rows[selectedIndex] : undefined;
+  const previous = selectedIndex > 0 ? rows[selectedIndex - 1] : undefined;
   const trips = dashboard?.latestTrips?.trips || [];
-  const maxProfit = Math.max(...rows.slice(-12).map((row) => Math.abs(row.final)), 1);
-  const source = dashboard?.supabaseCached ? 'Supabase cache' : 'Apps Script';
-  const metrics = selected ? [
-    ['Tổng doanh thu', selected.revenue], ['Chi phí vận hành', selected.operatingCost], ['Lợi nhuận gộp', selected.gross],
-    ['Chi phí sau vận hành', selected.cashCost], ['Lợi nhuận thực tế', selected.final]
-  ] as const : [];
+  const time = dashboard?.updatedAt?.split(' ')[1] || '';
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('vtdb:dashboard-meta', { detail: { updatedAt: dashboard?.updatedAt, source: sourceOf(dashboard) } }));
+  }, [dashboard]);
 
   const refresh = async () => {
     setLoading(true); setError('');
@@ -69,25 +134,19 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
     finally { setLoading(false); }
   };
 
-  return <section className="dashboard-module" data-next-dashboard="true" aria-labelledby="dashboard-page-title">
-    <header className="dashboard-module-header">
-      <div><p className="platform-eyebrow">VẬN TẢI · {context.workbook.year}</p><h1 id="dashboard-page-title">Tổng quan</h1><p className="dashboard-module-status" role="status" aria-live="polite">{error || (dashboard ? `Nguồn: ${source}${dashboard.updatedAt ? ` · cập nhật ${dashboard.updatedAt}` : ''}` : '')}</p></div>
-      <button type="button" className="dashboard-module-button" onClick={refresh} disabled={loading}>{loading ? 'Đang tải…' : 'Làm mới'}</button>
-    </header>
-    {error && !dashboard ? <div className="dashboard-module-error" role="alert"><h2>Không tải được tổng quan</h2><p>{error}</p><button type="button" onClick={refresh} disabled={loading}>Thử lại</button></div> : null}
-    {loading && !dashboard ? <div className="dashboard-module-skeleton" aria-busy="true" aria-label="Đang tải tổng quan"><span /><span /><span /></div> : null}
-    {dashboard ? <>
-      <div className="dashboard-module-filter"><label><span>Kỳ hiển thị</span><select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}><option value="latest">Tháng gần nhất</option>{rows.map((row) => <option value={row.month} key={row.month}>{row.month}</option>)}</select></label></div>
-      {selected ? <div className="dashboard-module-kpis">{metrics.map(([label, value]) => <article key={label}><span>{label}</span><strong>{currency(value)}</strong><small>{selected.month}</small></article>)}</div> : <div className="dashboard-module-empty">Chưa có dữ liệu KPI.</div>}
-      <section className="dashboard-module-card" aria-labelledby="profit-chart-title"><div className="dashboard-module-card-head"><div><h2 id="profit-chart-title">Lợi nhuận thực tế</h2><p>12 kỳ gần nhất</p></div></div>
-        {rows.length ? <div className="dashboard-profit-chart" role="img" aria-label="Biểu đồ lợi nhuận thực tế theo tháng">{rows.slice(-12).map((row) => <div className="dashboard-profit-column" key={row.month}><strong>{shortMoney(row.final)}</strong><span className={row.final < 0 ? 'negative' : ''} style={{ height: `${Math.max(4, Math.abs(row.final) / maxProfit * 132)}px` }} title={`${row.month}: ${currency(row.final)}`} /><small>{row.month}</small></div>)}</div> : <div className="dashboard-module-empty">Chưa có dữ liệu lợi nhuận.</div>}
-      </section>
-      <section className="dashboard-module-card" aria-labelledby="latest-trips-title"><div className="dashboard-module-card-head"><div><h2 id="latest-trips-title">Dữ liệu chuyến gần đây</h2><p>{dashboard.latestTrips?.date || 'Chưa có ngày dữ liệu'}</p></div><strong>{totalTrips(trips).toLocaleString('vi-VN')} chuyến</strong></div>
-        <div className="dashboard-module-table-wrap" tabIndex={0} aria-label="Dữ liệu chuyến gần đây — cuộn ngang để xem đủ cột"><table><thead><tr><th scope="col">Dự án</th><th scope="col">Biển số xe</th><th scope="col">Số chuyến</th><th scope="col">Số phiếu</th></tr></thead><tbody>{trips.length ? trips.map((trip, index) => <tr key={`${trip.project}-${trip.vehicle}-${index}`}><td>{trip.project || '-'}</td><td>{trip.vehicle || '-'}</td><td>{Number(trip.count || 0).toLocaleString('vi-VN')}</td><td>{trip.ticket || '-'}</td></tr>) : <tr><td colSpan={4} className="dashboard-module-empty">Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>}</tbody></table></div>
-      </section>
-      <section className="dashboard-module-card" aria-labelledby="summary-title"><div className="dashboard-module-card-head"><div><h2 id="summary-title">Kết quả kinh doanh theo tháng</h2><p>{rows.length} kỳ báo cáo</p></div></div>
-        <div className="dashboard-module-table-wrap" tabIndex={0} aria-label="Kết quả kinh doanh — cuộn ngang để xem đủ cột"><table><thead><tr>{['Tháng','Tổng khối lượng','Tổng doanh thu','Thuế TNDN','Thuế VAT','Dầu Quang Minh','Dầu đổ ngoài','Phí đường bộ','Lợi nhuận gộp','Chi quỹ thực tế','Lợi nhuận thực'].map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row) => <tr key={row.month}>{Array.from({ length: 11 }, (_, index) => <td key={index}>{index === 8 ? currency(row.gross) : String(row.raw[index] ?? '')}</td>)}</tr>) : <tr><td colSpan={11} className="dashboard-module-empty">Chưa có dữ liệu báo cáo tài chính.</td></tr>}</tbody></table></div>
-      </section>
-    </> : null}
+  return <section className="view active" data-next-dashboard="true" aria-label="Tổng quan kết quả kinh doanh">
+    <button type="button" data-shell-refresh hidden onClick={refresh} aria-hidden="true" tabIndex={-1}/>
+    <span className="platform-visually-hidden" role="status" aria-live="polite">{loading ? 'Đang cập nhật dữ liệu.' : error}</span>
+    {error ? <div className="panel" role="alert" style={{ padding: 16, marginBottom: 20 }}>{error}{!dashboard ? <button type="button" onClick={refresh} disabled={loading}>Thử lại</button> : null}</div> : null}
+    <div className="panel dashboard-month-panel">
+      <div className="dashboard-month-title"><svg className="btn-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>{effectiveMonth}</div>
+      <select aria-label="Chọn tháng tổng quan" value={effectiveMonth} onChange={(event) => setSelectedMonth(event.target.value)}>{rows.map((row) => <option value={row.month} key={row.month}>{row.month}</option>)}</select>
+    </div>
+    {selected ? <div className="kpi-grid">{METRICS.map((spec) => <MetricCard key={spec.key} spec={spec} row={selected} previous={previous} kpiMap={kpiMap} time={time}/>)}</div> : <div className="kpi-grid" aria-busy="true">{METRICS.map((spec) => <article className="kpi-card" key={spec.key}><div className="shimmer shimmer-text"/><div className="shimmer shimmer-value"/></article>)}</div>}
+    <section className="panel" style={{ marginBottom: 24 }}><div className="panel-head"><div><h2 className="panel-title">Biểu đồ lợi nhuận thực tế</h2><div className="panel-note"/></div></div><div className="panel-body"><div className="chart"><ProfitChart rows={rows}/></div></div></section>
+    <section className="panel table-card" style={{ marginBottom: 24 }}><div className="table-card-head"><div className="table-title" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>Dữ liệu chuyến gần đây <span style={{ color: 'var(--teal)', fontWeight: 700, fontSize: 14 }}>{dashboard?.latestTrips?.date ? `(${dashboard.latestTrips.date})` : ''}</span></div><ExportButton title="Số chuyến xe"/></div>
+      <div className="table-wrap"><table><thead><tr><th style={{ width: '28%' }}>Dự án</th><th style={{ width: '26%' }}>Biển số xe</th><th style={{ width: '20%' }}>Số chuyến chạy</th><th style={{ width: '26%' }}>Số phiếu</th></tr></thead><tbody>{trips.length ? <>{trips.map((trip: DashboardTrip, index) => <tr key={`${trip.project}-${trip.vehicle}-${index}`}><td style={{ fontWeight: 600 }}>{trip.project || '-'}</td><td style={{ fontWeight: 700, color: 'var(--deep)' }}>{trip.vehicle || ''}</td><td style={{ fontWeight: 600 }}>{Number(trip.count || 0).toLocaleString('vi-VN')}</td><td style={{ color: 'var(--muted)' }}>{trip.ticket || '-'}</td></tr>)}<tr className="total-row"><td colSpan={2} style={{ fontWeight: 800, color: 'var(--deep)' }}>Tổng cộng</td><td style={{ fontWeight: 800, color: 'var(--teal)' }}>{trips.reduce((sum, trip) => sum + Number(trip.count || 0), 0).toLocaleString('vi-VN')}</td><td/></tr></> : <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--muted)', padding: 24 }}>Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>}</tbody></table></div>
+    </section>
+    <section className="panel table-card" style={{ marginBottom: 24 }}><div className="table-card-head"><div className="table-title">Kết quả kinh doanh theo tháng</div><ExportButton title="Tổng quan"/></div><div className="table-wrap"><table><thead><tr>{['Tháng','Tổng khối lượng','Tổng doanh thu','Thuế TNDN','Thuế VAT','Dầu Quang Minh','Dầu đổ ngoài','Phí đường bộ','Lợi nhuận gộp','Chi quỹ thực tế','Lợi nhuận thực'].map((label) => <th key={label}>{label}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row) => <tr key={row.month}>{Array.from({ length: 11 }, (_, index) => <td key={index} style={index === 0 ? { fontWeight: 700, color: 'var(--deep)' } : [2,8,10].includes(index) ? { color: 'var(--green)', fontWeight: 600 } : [3,4,5,6,7,9].includes(index) ? { color: 'var(--red)' } : undefined}>{index === 8 ? formatCurrencyText(row.gross) : String(row.raw[index] ?? '')}</td>)}</tr>) : <tr><td colSpan={11} style={{ textAlign: 'center', color: 'var(--muted)', padding: 24 }}>Chưa có dữ liệu báo cáo tài chính.</td></tr>}</tbody></table></div></section>
   </section>;
 }

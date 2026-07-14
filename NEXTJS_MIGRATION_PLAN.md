@@ -79,8 +79,8 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | B7 | Migrate Accounts, Settings và Observability | DONE | A2 |
 | C1 | Cutover `/` sang Next.js | DONE | B1–B7 |
 | C2 | Ổn định production và xác nhận rollback | DONE | C1 |
-| C3 | Next visual parity và controlled cut-forward | DONE | C2 + phê duyệt người dùng |
-| D1 | Xóa legacy frontend/HtmlService presentation | DONE | C3 + thời gian ổn định |
+| C3 | Next visual parity và controlled cut-forward | IN PROGRESS | C2 + phê duyệt người dùng |
+| D1 | Xóa legacy frontend/HtmlService presentation | BLOCKED | C3 + thời gian ổn định |
 
 Kế hoạch hiện có **13 checkpoint**. C3 được thêm sau regression C2 chứng minh recovery production và cut forward UI không thể deploy/rollback an toàn trong cùng một change set. Chỉ được chia thêm checkpoint nếu audit trước implementation chứng minh không thể deploy/rollback an toàn trong một change set. Mọi split phải cập nhật bảng này và `PROJECT_CONTEXT.md`, không tạo chuỗi step mở không có điểm kết thúc.
 
@@ -218,7 +218,11 @@ C2 được mở lại ngày 2026-07-13 sau phản hồi production: Next shell 
 - giữ deployment recovery C2, legacy alias và Apps Script `@281` làm rollback;
 - không xóa legacy trong cùng checkpoint.
 
-C3 **DONE ngày 2026-07-13**. Người dùng đã xác nhận preview giữ giao diện quen thuộc, phê duyệt cut-forward và sau khoảng theo dõi đã yêu cầu tiếp tục D1. Production Next là `dpl_9vU7mJfGCbtPwGT3aKJLACS4hXx6`, alias `https://dongbac.vercel.app`; root, health và các route chính trả 200, không có HTTP 500 trong smoke/log kiểm tra lại. Verification đạt 363/363 test, lint, typecheck và build. Recovery C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, legacy alias/source và Apps Script `@281` được giữ làm rollback khi chuyển sang D1.
+C3 đã được **mở lại ngày 2026-07-13** sau khi D1 làm lộ rằng visual acceptance trước đó không hợp lệ: C3 và D1 có cùng Next CSS/chunk, còn giao diện người dùng đã thấy ở C3 thực tế đến từ legacy cache/fallback. Production đã rollback về recovery C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. Acceptance mới bắt buộc dựng giao diện C2 trên Next.js, đối chiếu screenshot desktop/mobile và được người dùng xác nhận trực tiếp; HTTP/DOM contract không đủ để cut-forward.
+
+Ngày 2026-07-14, người dùng phê duyệt thực hiện lại C3 và cho phép chỉnh các lỗi nhỏ của C2 như ô không đều/căn hàng, nhưng giữ nguyên phong cách C2 thay vì redesign. Baseline hình học và gate được khóa tại `docs/quality/C3_VISUAL_BASELINE.md`; production tiếp tục ở C2 trong toàn bộ quá trình làm preview.
+
+Preview rework đầu tiên là `dpl_EBhjxjJTGJ1ypm9VBHRCQ8fqAkL7` (`https://vantaidongbac-c3-preview.vercel.app`), dùng Apps Script recovery `@281`. Candidate giữ Plus Jakarta Sans, shell/sidebar/bottom navigation C2, sửa dashboard mobile về KPI hai cột bằng nhau, chuẩn hóa filter/card spacing và đưa refresh hiện hữu lên topbar; không đổi API/RBAC/data contract. Candidate không có legacy fallback và chưa được cut-forward. Verification đạt 267/267 test, lint, typecheck và build; còn chờ người dùng kiểm tra authenticated visual trên preview.
 
 ## 9. Phase D — Legacy removal
 
@@ -233,7 +237,7 @@ Chỉ thực hiện sau C3 và thời gian ổn định production Next được
 - cập nhật architecture, workflow, rollback và documentation router;
 - chạy dead-code/call-site audit trước khi xóa.
 
-D1 **DONE ngày 2026-07-13**. Audit xác nhận production chỉ còn consumer Next; HtmlService presentation, source/build React island, DOM/compatibility bridge và feature flag tương ứng đã được xóa. Apps Script API/integration/worker/sync được giữ nguyên và deploy API-only tại `@282` (`AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw`). Vercel production là `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9`, alias `https://dongbac.vercel.app`; root/API health và các route chính đạt 200, path legacy đạt 404, không có HTTP 500 trong log kiểm tra. Verification đạt 265/265 test, lint, typecheck, build và `git diff --check`. Recovery C2, legacy C1/alias và Apps Script `@281` vẫn được giữ làm rollback. Chương trình migration Next.js hữu hạn đã hoàn thành; không có checkpoint kế tiếp tự động.
+D1 implementation đã hoàn thành kỹ thuật nhưng **BLOCKED/ROLLED BACK ngày 2026-07-13** vì visual gate C3 không hợp lệ. Vercel D1 `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` và Apps Script API-only `@282` được giữ để điều tra, không nằm trên production alias. Không tiếp tục/xóa rollback source cho đến khi C3 làm lại đạt visual parity và được người dùng chấp thuận sau thời gian ổn định.
 
 ## 10. Quality gates chung
 

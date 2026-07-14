@@ -24,7 +24,7 @@ button, input, select, textarea { font-family: inherit; }
 .platform-nav-link:hover { color: var(--platform-primary); background: rgba(13,148,136,.05); }
 .platform-nav-link[aria-current="page"] { color: #fff; background: var(--platform-primary-strong); }
 .platform-nav-icon { width: 44px; height: 44px; display: grid; place-items: center; flex: 0 0 44px; border-radius: 12px; color: inherit; }
-.platform-nav-icon svg, .platform-menu-button svg, .platform-theme-button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.platform-nav-icon svg, .platform-menu-button svg, .platform-theme-button svg, .platform-refresh-button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .platform-nav-link[aria-current="page"] .platform-nav-icon { background: rgba(255,255,255,.15); }
 .platform-sidebar-footer { margin-top: auto; display: grid; gap: 2px; padding: 14px; border-top: 1px solid var(--platform-border); color: var(--platform-text); }
 .platform-sidebar-footer small { color: var(--platform-muted); text-transform: capitalize; }
@@ -50,8 +50,8 @@ button, input, select, textarea { font-family: inherit; }
 .platform-page-heading > p:last-child { margin: 6px 0 0; color: var(--platform-muted); font-size: 14px; }
 .platform-eyebrow { margin: 0 0 2px; color: var(--platform-primary); font-size: 11px; font-weight: 800; letter-spacing: .1em; }
 .platform-top-actions { display: flex; align-items: center; gap: 8px; }
-.platform-theme-button, .platform-menu-button { width: 44px; min-height: 44px; place-items: center; padding: 0; border: 1px solid var(--platform-border); border-radius: var(--platform-radius); color: var(--platform-text); background: var(--platform-surface); cursor: pointer; }
-.platform-theme-button { display: grid; }
+.platform-theme-button, .platform-refresh-button, .platform-menu-button { width: 44px; min-height: 44px; place-items: center; padding: 0; border: 1px solid var(--platform-border); border-radius: var(--platform-radius); color: var(--platform-text); background: var(--platform-surface); cursor: pointer; }
+.platform-theme-button, .platform-refresh-button { display: grid; }
 .platform-content { min-width: 0; }
 .platform-home { display: grid; gap: 20px; }
 .platform-hero { max-width: 780px; padding: clamp(24px, 5vw, 48px); border: 1px solid var(--platform-border); border-radius: var(--platform-radius); background: var(--platform-surface); box-shadow: var(--platform-shadow); }
@@ -240,3 +240,62 @@ button, input, select, textarea { font-family: inherit; }
 .platform-content :is(.report-module-header,.dashboard-module-header,.manage-module-header,.entry-module-header,.catalog-header,.cashflow-header,.b7-header) .platform-eyebrow,
 .platform-content :is(.report-module-header,.dashboard-module-header,.manage-module-header,.entry-module-header,.catalog-header,.cashflow-header,.b7-header) h1 { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 @media(max-width:640px){.manage-module-header,.b7-header{align-items:stretch}.manage-module-header-actions{width:100%}.manage-module-header-actions a,.manage-module-header-actions button,.b7-header-link{flex:1}}
+
+/* C3 rework: measured C2 visual baseline, implemented natively in Next.js. */
+.platform-visually-hidden { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0 0 0 0)!important; white-space:nowrap!important; border:0!important; }
+.platform-topbar { margin-bottom: 32px; }
+.platform-content > :is(.report-module,.dashboard-module,.manage-module,.entry-module,.catalog-module,.cashflow-module,.b7-module) { gap: 16px; }
+.platform-content :is(.report-module-header,.dashboard-module-header,.manage-module-header,.entry-module-header,.catalog-header,.cashflow-header) { min-height: 46px; align-items: center; padding: 0 0 4px; }
+.platform-content :is(.report-module-status,.dashboard-module-status,.manage-module-status,.entry-status,.catalog-status,.cashflow-status) { min-height: 22px; margin: 0; font-size: 13px; }
+.platform-content :is(.report-module-secondary,.dashboard-module-button,.manage-module-header-actions button,.catalog-header button,.cashflow-header button) { min-height: 42px; }
+
+.dashboard-module { gap: 24px; }
+.dashboard-module-header { margin-bottom: -8px; }
+.dashboard-module-filter { min-height: 62px; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; border-radius: 12px; background: rgba(255,255,255,.7); box-shadow: 0 1px 2px rgba(0,0,0,.05); backdrop-filter: blur(10px); }
+.dashboard-module-filter > strong { display: inline-flex; align-items: center; gap: 8px; color: var(--platform-primary-strong); font-size: 15px; }
+.dashboard-module-filter > strong::before { content:""; width:18px; height:18px; display:block; background: currentColor; opacity:.8; clip-path: polygon(0 0,100% 0,62% 48%,62% 88%,38% 100%,38% 48%); }
+.dashboard-module-filter label { width: min(100%, 220px); display: block; }
+.dashboard-module-filter select { min-height: 38px; height: 38px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+.dashboard-module-kpis { align-items: stretch; }
+.dashboard-module-kpis article { min-height: 108px; align-content: space-between; gap: 4px; padding: 14px; border-radius: 12px; box-shadow: 0 2px 12px rgba(15,23,42,.02); }
+.dashboard-module-kpis article header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.dashboard-module-kpis article header span { overflow-wrap:anywhere; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+.dashboard-module-kpis article header i { width:28px; height:28px; flex:0 0 28px; border-radius:50%; background:var(--platform-surface-soft); }
+.dashboard-module-kpis article strong { margin-top: 4px; color: var(--platform-text); font-size: 20px; line-height:1.2; }
+.dashboard-module-kpis article small { font-size:11px; }
+.dashboard-module-kpis .dashboard-kpi-blue strong { color:#0284c7; }.dashboard-module-kpis .dashboard-kpi-blue i { background:#f0f9ff; }
+.dashboard-module-kpis .dashboard-kpi-red strong { color:var(--platform-danger); }.dashboard-module-kpis .dashboard-kpi-red i { background:#fee2e2; }
+.dashboard-module-kpis .dashboard-kpi-amber strong { color:#d97706; }.dashboard-module-kpis .dashboard-kpi-amber i { background:#fef3c7; }
+.dashboard-module-kpis .dashboard-kpi-green strong { color:#16a34a; }.dashboard-module-kpis .dashboard-kpi-green i { background:#f0fdfa; }
+.dashboard-module-card { border-radius: 16px; box-shadow: var(--platform-shadow); }
+.dashboard-module-card-head { min-height: 72px; padding: 16px 20px; }
+.dashboard-module-card-head h2 { color:var(--platform-primary-strong); font-size:18px; }
+.dashboard-profit-chart { min-height: 214px; padding: 28px 24px 18px; }
+
+:is(.report-module-tabs,.manage-module-tabs,.catalog-tabs,.cashflow-tabs) button { min-height: 40px; border-radius: 10px; font-size: 13px; }
+:is(.report-module-filters,.manage-module-filters,.catalog-filters,.cashflow-filters) { border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+@media (min-width: 641px) {
+  :is(.report-module-filters,.manage-module-filters,.catalog-filters,.cashflow-filters) input,
+  :is(.report-module-filters,.manage-module-filters,.catalog-filters,.cashflow-filters) select { min-height:38px; height:38px; border-radius:8px; font-size:13px; }
+}
+
+@media (max-width: 1024px) {
+  .dashboard-module-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 640px) {
+  .platform-workspace { padding:16px 12px 96px; }
+  .platform-topbar { margin-bottom:20px; }
+  .platform-content > :is(.report-module,.dashboard-module,.manage-module,.entry-module,.catalog-module,.cashflow-module,.b7-module) { gap:16px; }
+  .platform-content :is(.report-module-header,.dashboard-module-header,.manage-module-header,.entry-module-header,.catalog-header,.cashflow-header) { min-height:44px; margin:0; }
+  .dashboard-module { gap:24px; }
+  .dashboard-module-header { margin-bottom:-8px; }
+  .dashboard-module-filter { min-height:62px; padding:12px 16px; }
+  .dashboard-module-filter label { width:auto; min-width:150px; }
+  .dashboard-module-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .dashboard-module-kpis article { min-height:108px; padding:10px; }
+  .dashboard-module-kpis article header i { width:24px; height:24px; flex-basis:24px; }
+  .dashboard-module-kpis article strong { font-size:16px; }
+  .dashboard-module-card-head { min-height:64px; padding:14px 16px; }
+  .dashboard-module-card-head h2 { font-size:16px; }
+  :is(.report-module-tabs,.manage-module-tabs,.catalog-tabs,.cashflow-tabs) button { min-height:44px; }
+}

@@ -54,6 +54,11 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
     window.localStorage.setItem('vtdb-theme', nextTheme);
   };
 
+  const refreshCurrentModule = () => {
+    const refresh = document.querySelector<HTMLButtonElement>('[data-shell-refresh]');
+    refresh?.click();
+  };
+
   return <div className="platform-shell">
     <a className="platform-skip-link" href="#platform-content">Bỏ qua điều hướng</a>
     <button type="button" className="platform-drawer-backdrop" aria-label="Đóng menu" tabIndex={drawerOpen ? 0 : -1} onClick={() => setDrawerOpen(false)} />
@@ -77,6 +82,9 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
         </button>
         <div className="platform-page-heading"><p className="platform-eyebrow">{pageMeta[0]}</p><h1>{pageMeta[1]}</h1><p>{context.workbook.module === 'cashflow' ? 'Thu chi' : 'Vận tải'} · {context.workbook.year}</p></div>
         <div className="platform-top-actions">
+          <button type="button" className="platform-refresh-button" aria-label="Cập nhật dữ liệu" title="Cập nhật dữ liệu" onClick={refreshCurrentModule}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+          </button>
           <button type="button" className="platform-theme-button" aria-label="Đổi giao diện sáng hoặc tối" title="Đổi giao diện sáng/tối" onClick={toggleTheme}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </button>

@@ -6,7 +6,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('C3 cut-forward routes the production root to the Next Dashboard', () => {
+test('C3 candidate routes its root to the Next Dashboard without changing production alias', () => {
   const config = JSON.parse(read('vercel.json'));
   assert.equal(config.redirects, undefined);
   assert.match(read('next-shell/app/page.jsx'), /redirect\('\/dashboard'\)/);
@@ -34,6 +34,35 @@ test('C3 keeps the legacy logo, drawer, theme and five-item mobile navigation be
   assert.match(css, /--platform-sidebar: 260px/);
   assert.match(css, /grid-template-columns: repeat\(5,minmax\(0,1fr\)\)/);
   assert.match(css, /bottom: calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(shell, /platform-refresh-button/);
+  assert.match(shell, /\[data-shell-refresh\]/);
+});
+
+test('C3 rework encodes measured C2 dashboard geometry instead of the redesign', () => {
+  const layout = read('next-shell/app/layout.jsx');
+  const dashboard = read('next-shell/components/dashboard/DashboardModule.tsx');
+  const css = read('next-shell/app/platform.css');
+  const baseline = read('docs/quality/C3_VISUAL_BASELINE.md');
+  assert.match(layout, /Plus\+Jakarta\+Sans:wght@300;400;500;600;700;800/);
+  assert.match(dashboard, /dashboard-module-filter"><strong>Tháng<\/strong>/);
+  assert.match(dashboard, /dashboard-kpi-\$\{tone\}/);
+  assert.match(css, /\.dashboard-module-filter \{ min-height: 62px/);
+  assert.match(css, /\.dashboard-module-kpis article \{ min-height: 108px/);
+  assert.match(css, /@media \(max-width: 640px\)[\s\S]+\.dashboard-module-kpis \{ grid-template-columns:repeat\(2,minmax\(0,1fr\)\); gap:8px; \}/);
+  assert.match(css, /\.platform-workspace \{ padding:16px 12px 96px; \}/);
+  assert.match(baseline, /Desktop 1440×900/);
+  assert.match(baseline, /Mobile 390×844/);
+  assert.match(baseline, /không phải redesign/);
+});
+
+test('C3 shell refresh delegates to each read module without changing API contracts', () => {
+  for (const file of [
+    'next-shell/components/dashboard/DashboardModule.tsx',
+    'next-shell/components/report/ReportModule.tsx',
+    'next-shell/components/manage/ManageReadOnlyModule.tsx',
+    'next-shell/components/catalog/CatalogModule.tsx',
+    'next-shell/components/cashflow/CashflowModule.tsx'
+  ]) assert.match(read(file), /data-shell-refresh/, `${file} must expose its existing refresh action`);
 });
 
 test('C3 preserves hidden module routes behind their approved parent menus', () => {

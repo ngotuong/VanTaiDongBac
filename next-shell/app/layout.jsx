@@ -21,10 +21,10 @@ export default async function RootLayout({ children }) {
     context = await loadPlatformContext();
   } catch (error) {
     if (error?.status === 401 || error?.status === 403) {
-      return <html lang="vi"><body><LoginGate supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} anonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''} /></body></html>;
+      return <html lang="vi"><head><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" /><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" /></head><body><LoginGate supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} anonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''} /></body></html>;
     }
     logPlatformError('root-layout', error, 'bootstrap');
     throw error;
   }
-  return <html lang="vi"><body><WorkbookContextProvider value={context}><AppShell context={context}>{children}</AppShell></WorkbookContextProvider></body></html>;
+  return <html lang="vi"><head><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" /><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" /></head><body><WorkbookContextProvider value={context}><AppShell context={context}>{children}</AppShell></WorkbookContextProvider></body></html>;
 }

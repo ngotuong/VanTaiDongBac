@@ -102,7 +102,7 @@ export function ReportModule({ initialBundle, initialError = '' }: { initialBund
   return <section className="report-module" data-next-report="true" aria-labelledby="report-page-title">
     <header className="report-module-header">
       <div><p className="platform-eyebrow">VẬN TẢI · {context.workbook.year}</p><h1 id="report-page-title">Báo cáo</h1><p className="report-module-status" role="status" aria-live="polite">{error || status}</p></div>
-      <button type="button" className="report-module-secondary" onClick={() => load(month, true)} disabled={loading}>{loading ? 'Đang tải…' : 'Làm mới'}</button>
+      <button type="button" className="report-module-secondary" data-shell-refresh onClick={() => load(month, true)} disabled={loading}>{loading ? 'Đang tải…' : 'Làm mới'}</button>
     </header>
 
     <div className="report-module-tabs" role="tablist" aria-label="Loại báo cáo">

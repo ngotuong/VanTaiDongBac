@@ -73,7 +73,7 @@ test('A2 adds real lint and independent TypeScript quality gates', () => {
   assert.equal(fs.existsSync(path.join(root, 'tsconfig.platform.json')), true);
 });
 
-test('finite Next migration roadmap A1-D1 is complete', () => {
+test('C3 is reopened and D1 is blocked after visual rollback', () => {
   const roadmap = read('NEXTJS_MIGRATION_PLAN.md');
   assert.match(roadmap, /\| B1 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| B2 \|[^\n]+\| DONE \|/);
@@ -84,6 +84,6 @@ test('finite Next migration roadmap A1-D1 is complete', () => {
   assert.match(roadmap, /\| B7 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| C1 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| C2 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| C3 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| D1 \|[^\n]+\| DONE \|/);
+  assert.match(roadmap, /\| C3 \|[^\n]+\| IN PROGRESS \|/);
+  assert.match(roadmap, /\| D1 \|[^\n]+\| BLOCKED \|/);
 });

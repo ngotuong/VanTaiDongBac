@@ -58,8 +58,8 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
   const maxProfit = Math.max(...rows.slice(-12).map((row) => Math.abs(row.final)), 1);
   const source = dashboard?.supabaseCached ? 'Supabase cache' : 'Apps Script';
   const metrics = selected ? [
-    ['Tổng doanh thu', selected.revenue], ['Chi phí vận hành', selected.operatingCost], ['Lợi nhuận gộp', selected.gross],
-    ['Chi phí sau vận hành', selected.cashCost], ['Lợi nhuận thực tế', selected.final]
+    ['Tổng doanh thu', selected.revenue, 'blue'], ['Chi phí vận hành', selected.operatingCost, 'red'], ['Lợi nhuận gộp', selected.gross, 'amber'],
+    ['Chi phí sau vận hành', selected.cashCost, 'red'], ['Lợi nhuận thực tế', selected.final, 'green']
   ] as const : [];
 
   const refresh = async () => {
@@ -72,13 +72,13 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
   return <section className="dashboard-module" data-next-dashboard="true" aria-labelledby="dashboard-page-title">
     <header className="dashboard-module-header">
       <div><p className="platform-eyebrow">VẬN TẢI · {context.workbook.year}</p><h1 id="dashboard-page-title">Tổng quan</h1><p className="dashboard-module-status" role="status" aria-live="polite">{error || (dashboard ? `Nguồn: ${source}${dashboard.updatedAt ? ` · cập nhật ${dashboard.updatedAt}` : ''}` : '')}</p></div>
-      <button type="button" className="dashboard-module-button" onClick={refresh} disabled={loading}>{loading ? 'Đang tải…' : 'Làm mới'}</button>
+      <button type="button" className="dashboard-module-button" data-shell-refresh onClick={refresh} disabled={loading}>{loading ? 'Đang tải…' : 'Làm mới'}</button>
     </header>
     {error && !dashboard ? <div className="dashboard-module-error" role="alert"><h2>Không tải được tổng quan</h2><p>{error}</p><button type="button" onClick={refresh} disabled={loading}>Thử lại</button></div> : null}
     {loading && !dashboard ? <div className="dashboard-module-skeleton" aria-busy="true" aria-label="Đang tải tổng quan"><span /><span /><span /></div> : null}
     {dashboard ? <>
-      <div className="dashboard-module-filter"><label><span>Kỳ hiển thị</span><select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}><option value="latest">Tháng gần nhất</option>{rows.map((row) => <option value={row.month} key={row.month}>{row.month}</option>)}</select></label></div>
-      {selected ? <div className="dashboard-module-kpis">{metrics.map(([label, value]) => <article key={label}><span>{label}</span><strong>{currency(value)}</strong><small>{selected.month}</small></article>)}</div> : <div className="dashboard-module-empty">Chưa có dữ liệu KPI.</div>}
+      <div className="dashboard-module-filter"><strong>Tháng</strong><label><span className="platform-visually-hidden">Kỳ hiển thị</span><select aria-label="Kỳ hiển thị" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}><option value="latest">Tháng gần nhất</option>{rows.map((row) => <option value={row.month} key={row.month}>{row.month}</option>)}</select></label></div>
+      {selected ? <div className="dashboard-module-kpis">{metrics.map(([label, value, tone]) => <article className={`dashboard-kpi-${tone}`} key={label}><header><span>{label}</span><i aria-hidden="true" /></header><strong>{currency(value)}</strong><small>{selected.month}</small></article>)}</div> : <div className="dashboard-module-empty">Chưa có dữ liệu KPI.</div>}
       <section className="dashboard-module-card" aria-labelledby="profit-chart-title"><div className="dashboard-module-card-head"><div><h2 id="profit-chart-title">Lợi nhuận thực tế</h2><p>12 kỳ gần nhất</p></div></div>
         {rows.length ? <div className="dashboard-profit-chart" role="img" aria-label="Biểu đồ lợi nhuận thực tế theo tháng">{rows.slice(-12).map((row) => <div className="dashboard-profit-column" key={row.month}><strong>{shortMoney(row.final)}</strong><span className={row.final < 0 ? 'negative' : ''} style={{ height: `${Math.max(4, Math.abs(row.final) / maxProfit * 132)}px` }} title={`${row.month}: ${currency(row.final)}`} /><small>{row.month}</small></div>)}</div> : <div className="dashboard-module-empty">Chưa có dữ liệu lợi nhuận.</div>}
       </section>

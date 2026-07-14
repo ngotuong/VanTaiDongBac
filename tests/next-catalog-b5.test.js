@@ -23,6 +23,18 @@ test('B5 preserves the nine display catalogs and virtual DM_ThamSo mapping',()=>
   for(const header of ['Mã tham số','Tên tham số','Giá trị','Ngày áp dụng tham số','Giá dầu áp dụng','Ngày áp dụng giá dầu','Ghi chú']) assert.match(module,new RegExp(header));
 });
 
+test('C3 Catalog restores the C2 golden-master surface instead of redesigning it',()=>{
+  const module=read('next-shell/components/catalog/CatalogModule.tsx');
+  const css=read('next-shell/app/c2-golden.css');
+  assert.match(module,/id="catalogView" className="view active catalog-c2"/);
+  for(const id of ['catalogTabsBar','catalogSheetSelect','catalogSearchInput','catalogPersonnelStatusFilter','catalogVehicleOwnerFilter','catalogTable','catalogTableHeader','catalogTableBody','catalogTableEmpty','catalogPaginationBar','catalogPaginationInfo','catalogPrevPageBtn','catalogNextPageBtn']) assert.match(module,new RegExp(`id="${id}"`));
+  for(const className of ['sub-tabs-bar app-sticky-tabs','filter-bar catalog-sticky-toolbar app-sticky-toolbar sticky-after-tabs','table-card','report-table mobile-record-table','modal-overlay active','modal-container','modal-grid','modal-footer']) assert.match(module,new RegExp(className));
+  assert.match(module,/Công ty\/Chủ xe/);
+  assert.match(module,/previousRowData/);
+  assert.match(css,/C3 Catalog bindings: exact C2 structure/);
+  assert.doesNotMatch(module,/catalog-header|catalog-card-head|catalog-modal-backdrop|platform-eyebrow/);
+});
+
 test('B5 reads cache server-first and keeps Apps Script as authoritative fallback with workbook context',()=>{
   const server=read('next-shell/lib/catalog-server.ts');
   assert.match(server,/catalog_data:\$\{sheetName\}/);

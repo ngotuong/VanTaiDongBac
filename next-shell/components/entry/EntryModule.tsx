@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import type { EntryCatalogs, EntryFormType, EntryRow, WriteJob } from '../../lib/platform/entry-types';
@@ -32,9 +32,11 @@ function normalizeJob(value:unknown):WriteJob{const raw=value as {job?:WriteJob}
 
 export function EntryModule({initialCatalogs,initialError=''}:{initialCatalogs:EntryCatalogs;initialError?:string}){
   const context=useWorkbookContext(); const [form,setForm]=useState<EntryFormType>('vanChuyen'); const [catalogs,setCatalogs]=useState<Record<string,EntryCatalogs>>({vanChuyen:initialCatalogs});
+  const initialCatalogsRequested=useRef(Object.keys(initialCatalogs).length>0);
   const [rows,setRows]=useState<EntryRow[]>([blank('vanChuyen')]); const [jobs,setJobs]=useState<WriteJob[]>([]); const [busy,setBusy]=useState(false); const [message,setMessage]=useState(initialError); const [error,setError]=useState(Boolean(initialError));
   const currentCatalogs=catalogs[form]||{}; const config=FORMS[form];
   const canWrite=context.user.role==='admin'||context.user.role==='operator';
+  useEffect(()=>{if(!canWrite||initialCatalogsRequested.current)return;initialCatalogsRequested.current=true;let active=true;api.get<EntryCatalogs&{catalogs?:EntryCatalogs}>('getCatalogs',{params:{formType:'vanChuyen'}}).then(res=>{if(active)setCatalogs(old=>({...old,vanChuyen:res.catalogs||res}));}).catch(loadError=>{if(active){setMessage(loadError instanceof Error?loadError.message:String(loadError));setError(true);}});return()=>{active=false;};},[canWrite]);
   useEffect(()=>{if(!canWrite)return;let active=true;api.get<{jobs?:WriteJob[]}>('getRecentWriteJobs',{params:{module:'transport',actionName:'submitRows',limit:'12'}}).then(res=>{if(active)setJobs((res.jobs||[]).filter(j=>['pending','processing','failed'].includes(j.status)));}).catch(()=>{});return()=>{active=false;};},[canWrite]);
   useEffect(()=>{const pending=jobs.filter(j=>j.jobId&&['pending','processing'].includes(j.status));if(!pending.length)return;const timer=window.setTimeout(()=>{Promise.all(pending.map(j=>api.get<WriteJob|{job:WriteJob}>('getWriteJobStatus',{params:{jobId:j.jobId}}).then(normalizeJob))).then(updated=>setJobs(old=>old.map(job=>updated.find(item=>item.jobId===job.jobId)||job).filter(job=>job.status!=='synced'))).catch(()=>{});},1800);return()=>window.clearTimeout(timer);},[jobs]);
   const valid=useMemo(()=>rows.every(row=>config.fields.every(([key,,,required=true])=>!required||String(row[key]||'').trim())),[rows,config]);

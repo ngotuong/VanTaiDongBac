@@ -228,6 +228,8 @@ C3.2b Report đạt technical gate ngày 2026-07-14 trên `dpl_7ngtXhSgmejtggAh1
 
 C3.2b được người dùng phê duyệt ngày 2026-07-14. C3.3 Manage/Entry đạt technical gate trên `dpl_4n1fRoecZiXMhtc5hLPebqhY1KeP`: port sáu sheet/bộ lọc/thống kê/bảng ngang/pagination/modal sửa-xóa và sáu form/multi-row/queue lifecycle theo C2; giữ row identity, RBAC, idempotency và formula preservation. Gate đạt 270/270 test, lint, typecheck, build, diff check và visual QA mobile/desktop. Alias C3 preview đã cập nhật, production vẫn là C2; chờ người dùng duyệt Manage/Entry trước Catalog.
 
+Correction C3.3 ngày 2026-07-14 sửa regression `.view` thiếu `.active` làm toàn bộ Manage bị CSS ẩn dù route 200. Đồng thời catalog Entry được chuyển khỏi critical render path, route loading dùng shimmer C2 và navigation prefetch theo intent thay vì đồng loạt. Deployment `dpl_4hT1vCRx88R9LeG2dn716oC6yvV2` đạt 271/271 test, lint, typecheck, build, diff check và smoke session/health; production vẫn C2. Manage/Entry vẫn chờ user approval.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

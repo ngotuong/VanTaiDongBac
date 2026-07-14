@@ -21,10 +21,11 @@ export function ShellNavigation({ items, role, mode = 'side', onNavigate }: { it
   const router = useRouter();
   const visible = items.filter((item) => (mode === 'bottom' ? item.bottomRoles : item.roles).includes(role));
   const navigate = (href: string) => { onNavigate?.(); router.push(href); };
+  const prepare = (href: string) => { if (href !== pathname) router.prefetch(href); };
   return <nav className={mode === 'bottom' ? 'bottom-nav' : 'nav-stack'} aria-label={mode === 'bottom' ? 'Điều hướng nhanh' : 'Điều hướng chính'}>
     {visible.map((item) => {
       const active = pathname === item.href || pathname?.endsWith(`${item.href}/`) || Boolean(item.aliases?.includes(pathname || ''));
-      return <button key={item.href} type="button" className={mode === 'bottom' ? (active ? 'active' : '') : `nav-btn${active ? ' active' : ''}`} aria-current={active ? 'page' : undefined} aria-label={item.label} onClick={() => navigate(item.href)}>
+      return <button key={item.href} type="button" className={mode === 'bottom' ? (active ? 'active' : '') : `nav-btn${active ? ' active' : ''}`} aria-current={active ? 'page' : undefined} aria-label={item.label} onPointerEnter={() => prepare(item.href)} onFocus={() => prepare(item.href)} onClick={() => navigate(item.href)}>
         {mode === 'side' ? <><span className="nav-ico"><NavIcon icon={item.icon}/></span><span className="nav-main">{item.label}</span></> : <><NavIcon icon={item.icon}/><span>{item.label}</span></>}
       </button>;
     })}

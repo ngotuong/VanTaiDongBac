@@ -4766,7 +4766,8 @@
 .dashboard-month-panel select { min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; outline: none; background: var(--paper); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .table-card > .table-wrap { margin-top: 0; }
 .dashboard-export-actions { display: flex; gap: 8px; }
-.dashboard-export-button {
+.dashboard-export-button,
+.c2-card-action-button {
   width: 28px !important;
   min-width: 28px !important;
   height: 28px !important;
@@ -4779,7 +4780,8 @@
   color: var(--muted) !important;
   opacity: 1 !important;
 }
-.dashboard-export-button .btn-svg {
+.dashboard-export-button .btn-svg,
+.c2-card-action-button .btn-svg {
   display: block !important;
   width: 16px !important;
   height: 16px !important;
@@ -4788,6 +4790,17 @@
   stroke-width: 2 !important;
   opacity: 1 !important;
 }
+.report-filter-panel { margin-bottom: 16px; }
+.reports-filter-head { flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
+.reports-filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 500px; box-sizing: border-box; }
+.reports-filter-row input, .reports-filter-row select { height: 38px; width: 100%; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.15s; }
+.reports-filter-row select { font-weight: 600; cursor: pointer; }
+.report-card-actions { display: flex; gap: 8px; align-items: center; }
+.report-month-note { margin-top: 4px; font-weight: 500; font-size: 13px; color: var(--muted); }
+.payroll-summary-filters { display: inline-flex; }
+.payroll-summary-filters select { height: 28px; min-height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--line); font-size: 12px; font-weight: 600; outline: none; background: var(--paper); cursor: pointer; }
+.report-c2-empty { text-align: center; color: var(--muted); padding: 24px; }
+.report-c2-error { margin-bottom: 20px; }
 .platform-skip-link { position: fixed; top: 8px; left: 8px; z-index: 3000; padding: 10px 14px; border-radius: 8px; background: var(--deep); color: #fff; transform: translateY(-150%); }
 .platform-skip-link:focus { transform: translateY(0); }
 .platform-visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }

@@ -78,7 +78,16 @@ Không được suy ra module khác đạt chỉ vì shell hoặc Dashboard đ�
 - Login unauthenticated được kiểm tra tại 390×844: viewport/body 390px, card 342px, Plus Jakarta Sans, không horizontal overflow.
 - Technical gates sau correction ngày 2026-07-14: 268/268 test, lint, typecheck, build, `git diff --check`; preview `https://vantaidongbac-c3-preview.vercel.app` (`dpl_6gdxkLwGnXperukyRtre3iqCTmuz`) trả HTTP 200 qua deployment-authenticated smoke. Alias preview tiếp tục có Vercel Deployment Protection.
 - Computed-style QA 390×844: `document.fonts.check()` xác nhận Plus Jakarta Sans đã tải; header–table gap `0px`; export `28×28px`; SVG `16×16px`, `display:block`, stroke `rgb(100,116,139)`; document không horizontal overflow.
-- Authenticated Dashboard vẫn cần người dùng kiểm tra trực tiếp; technical evidence không tự nâng trạng thái thành `USER_APPROVED`.
+- Người dùng đã phê duyệt correction Dashboard ngày 2026-07-14; Login/Auth, Shell/Nav và Dashboard được khóa `USER_APPROVED` trong parity matrix.
+
+## Bằng chứng triển khai Report C3.2b
+
+- `next-shell/components/report/ReportModule.tsx` port DOM/class/runtime trực tiếp từ `index.template.html` và `client_reports.html` của tree `73a0ede`; không giữ visual `report-module-*` của candidate bị từ chối.
+- Giữ nguyên bốn matrix backend, năm tab, tháng thực tế/`Tất cả`, tìm kiếm accent-insensitive nhiều từ chỉ trên Lương/Xe, filter công ty/biển số, subtotal động, sticky columns, colgroup Chi tiết, màu semantic và trạng thái loading/empty/error C2.
+- Dùng chung dependency `html2canvas-pro@1.5.8` cho export ảnh; export Excel tiếp tục là CSV UTF-8 BOM theo C2. Nút action 28×28px/SVG 16×16px hiện trên desktop và ẩn trên mobile đúng media rule C2.
+- Technical gate ngày 2026-07-14: 270/270 test, lint, typecheck, build và `git diff --check` đạt. Computed style 390px xác nhận body/card đúng chiều rộng, tab gap 4px, header–table margin 0 và action ẩn; 1440px xác nhận Plus Jakarta Sans, tab gap 8px, filter margin 16px, action 28×28px/SVG 16×16px có stroke.
+- Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ `dpl_AaUuAHLhhexV5QfihCqhNu3JTphP` (READY, Deployment Protection). Production vẫn là C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` và redirect `/legacy-index.html` trả 200.
+- Report chỉ ở `TECH_PASS`; cần người dùng duyệt authenticated visual và chức năng trước khi nâng `USER_APPROVED`.
 
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 

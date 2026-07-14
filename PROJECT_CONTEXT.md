@@ -105,14 +105,15 @@ Dashboard B2, Manage B3, Catalog B5 và Cashflow B6 giữ cache/fallback hiện 
 
 ### Phase C3 — Golden-master parity
 
-Trạng thái: **IN PROGRESS ngày 2026-07-14; C3.0–C3.2a đạt TECH_PASS, C3.3a đang chờ người dùng duyệt Dashboard**.
+Trạng thái: **IN PROGRESS ngày 2026-07-14; Shell/Login/Dashboard đã USER_APPROVED, Report đạt TECH_PASS và đang chờ duyệt**.
 
 - Production giữ C2 recovery, không cut-forward.
 - Candidate parity sai đã bị loại khỏi nhánh triển khai mới.
 - Golden source: production C2 sau hydrate và tree `73a0ede`.
 - Baseline/matrix: `docs/quality/C3_GOLDEN_MASTER.md`, `docs/quality/C3_PARITY_MATRIX.md`.
-- Preview Dashboard: `https://vantaidongbac-c3-preview.vercel.app`, correction deployment `dpl_6gdxkLwGnXperukyRtre3iqCTmuz`.
-- Technical gate: 268/268 test, lint, typecheck, build, diff check; computed-style QA 390×844 xác nhận font tải thật, card gap 0px, export/SVG đúng geometry và không overflow; root preview HTTP 200 qua deployment-authenticated smoke. Authenticated visual chưa được phê duyệt.
+- Dashboard correction `dpl_6gdxkLwGnXperukyRtre3iqCTmuz` đã được người dùng phê duyệt; Login/Auth, Shell/Nav và Dashboard là `USER_APPROVED`.
+- Preview Report: `https://vantaidongbac-c3-preview.vercel.app`, deployment `dpl_AaUuAHLhhexV5QfihCqhNu3JTphP`.
+- Report technical gate: 270/270 test, lint, typecheck, build, diff check; computed-style QA 390/1440 xác nhận font, tab/filter/card geometry, header–table margin 0, desktop export 28×28/SVG 16×16 và mobile action ẩn đúng C2. Authenticated Report chưa được phê duyệt.
 - Thứ tự gate: Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability.
 - Mỗi module phải được người dùng duyệt riêng; D1 blocked.
 
@@ -178,9 +179,9 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### C3.3a — Dashboard preview approval
+### C3.3b — Report preview approval
 
-Người dùng kiểm tra authenticated Shell/Login/Dashboard tại preview C3 và xác nhận hoặc chỉ ra sai khác cụ thể. Chưa chuyển sang Report nếu Dashboard chưa đạt `USER_APPROVED`.
+Người dùng kiểm tra authenticated Report tại preview C3: năm tab, đổi tháng/`Tất cả`, tìm kiếm Lương/Xe, filter công ty/biển số, bốn bảng, sticky columns và export desktop. Chưa chuyển sang Manage/Entry nếu Report chưa đạt `USER_APPROVED`.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -217,7 +218,7 @@ Google Sheets source of truth / Supabase read model, cache, queue
 
 Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_PLAN.md`. Kiến trúc đích tổng quát thuộc `TARGET_ARCHITECTURE.md`.
 
-## 7. Rủi ro và điều kiện trước C3.3a
+## 7. Rủi ro và điều kiện trước C3.3b
 
 1. **Role coverage**: admin đã smoke production; operator/shareholder có contract/unit gate nhưng chưa có representative production smoke.
 2. **Rollback**: không xóa recovery C2, legacy C1/alias hoặc Apps Script `@281` cho đến khi người dùng phê duyệt kết thúc retention.
@@ -238,8 +239,8 @@ Baseline hiện tại:
 - Production deployment: `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, Apps Script recovery `@281`.
 - Dashboard golden 07/2026: 270.513.180 / 94.863.960 / 175.649.220 / 341.770.935 / -166.121.715.
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
-- Candidate Dashboard correction `dpl_6gdxkLwGnXperukyRtre3iqCTmuz` đã READY tại `https://vantaidongbac-c3-preview.vercel.app`; chưa được người dùng phê duyệt.
-- Gate candidate: 268/268 test, lint, typecheck, build, `git diff --check`, computed-style QA 390×844; root deployment-authenticated HTTP 200. Alias preview có Vercel Deployment Protection.
+- Candidate Report `dpl_AaUuAHLhhexV5QfihCqhNu3JTphP` đã READY tại `https://vantaidongbac-c3-preview.vercel.app`; chưa được người dùng phê duyệt.
+- Gate candidate: 270/270 test, lint, typecheck, build, `git diff --check`, computed-style QA 390/1440. Alias preview có Vercel Deployment Protection; production vẫn resolve `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` và final `/legacy-index.html` trả 200.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

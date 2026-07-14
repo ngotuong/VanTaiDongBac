@@ -222,7 +222,9 @@ C3 được mở lại ngày 2026-07-14 sau khi các candidate Next cho thấy k
 
 Nguồn chuẩn và ma trận phê duyệt thuộc `docs/quality/C3_GOLDEN_MASTER.md` và `docs/quality/C3_PARITY_MATRIX.md`. Thứ tự triển khai là Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability. Mỗi module cần data gate, desktop/mobile visual gate và phê duyệt người dùng riêng. D1 giữ trạng thái `BLOCKED/ROLLED BACK`.
 
-C3.0–C3.2a hoàn tất kỹ thuật ngày 2026-07-14 trên nhánh `codex/c3-golden-master`: shell/login/Dashboard port đúng DOM/class/style/runtime C2; Dashboard ưu tiên `overview.kpis`, giữ matrix cho chart/bảng và giữ latest trips/export. Sau phản hồi visual đầu tiên, correction đã bổ sung dependency font thật, reset cascade `table-wrap`, khôi phục wrapper header/action và khóa geometry/stroke SVG export. Candidate hiện tại `dpl_6gdxkLwGnXperukyRtre3iqCTmuz` được gán riêng tại `https://vantaidongbac-c3-preview.vercel.app`; production vẫn là C2. Gate đạt 268/268 test, lint, typecheck, build, diff check và computed-style QA 390×844. Trạng thái hiện tại là chờ người dùng duyệt authenticated Dashboard; không bắt đầu Report trước phê duyệt này.
+C3.0–C3.2a hoàn tất và được người dùng phê duyệt ngày 2026-07-14: shell/login/Dashboard port đúng DOM/class/style/runtime C2; Dashboard ưu tiên `overview.kpis`, giữ matrix cho chart/bảng và giữ latest trips/export. Correction đã bổ sung dependency font thật, reset cascade `table-wrap`, khôi phục wrapper header/action và khóa geometry/stroke SVG export.
+
+C3.2b Report đạt technical gate ngày 2026-07-14 trên `dpl_AaUuAHLhhexV5QfihCqhNu3JTphP`, alias riêng `https://vantaidongbac-c3-preview.vercel.app`: port năm tab, filter tháng thực tế, bốn matrix, tìm kiếm/filter chuyên biệt, subtotal, sticky columns và export C2; không tính lại report meaning. Gate đạt 270/270 test, lint, typecheck, build, diff check và computed-style QA 390/1440. Production vẫn là C2. Trạng thái hiện tại là chờ người dùng duyệt authenticated Report; không bắt đầu Manage/Entry trước phê duyệt này.
 
 ## 9. Phase D — Legacy removal
 

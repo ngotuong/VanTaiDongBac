@@ -232,6 +232,8 @@ Correction C3.3 ngày 2026-07-14 sửa regression `.view` thiếu `.active` làm
 
 Người dùng phê duyệt tiếp tục sau correction C3.3; Manage/Entry được nâng `USER_APPROVED`. C3.4 Catalog đạt technical gate trên `dpl_HohfDxtwRWx2AfEnvLgY2qVoAew5`: khôi phục trực tiếp cấu trúc C2 cho chín tab, filter Nhân sự/Công ty xe, cột chủ xe, bảng/pagination và modal CRUD; giữ direct write contract, mapping physical `DM_ThamSo`, clear-only hai view ảo và effective-date/history do backend sở hữu. Gate đạt 272/272 test, lint, typecheck, build, diff check; API health 200, session không cookie trả đúng contract. Browser automation bị Vercel Deployment Protection chặn trước app nên Catalog chờ người dùng duyệt authenticated visual; production vẫn C2 và chưa chuyển Cashflow.
 
+Người dùng kiểm tra và phê duyệt tiếp tục migration ngày 2026-07-14; Catalog được nâng `USER_APPROVED`, đồng thời Manage/Catalog UI debt được ghi nhận để xử lý sau migration. C3.5 Cashflow đạt `TECH_PASS` trên `dpl_DxHVCvzd8Dc1ZZnDM8BGzPcNrrRc`: port lại Overview/report/export, Transactions filters/search/pagination/pending/multi-row drawer, Loans reconciliation/filter/history/payment và Fund Catalog inline theo C2; giữ queue/idempotency, row identity, native bounds, RBAC và Apps Script authoritative writes. Gate đạt 272/272 test, lint, typecheck, build, diff check; session 401/API health 200. Production vẫn C2; chờ người dùng duyệt Cashflow trước Settings/Observability.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

@@ -112,6 +112,16 @@ Người dùng đã phê duyệt tiếp tục checkpoint sau correction Manage/E
 - Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ READY `dpl_HohfDxtwRWx2AfEnvLgY2qVoAew5`; API health 200 và session không cookie trả lỗi hết phiên đúng contract. Production `https://dongbac.vercel.app` vẫn là C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`.
 - Browser automation chuyển tới Vercel Deployment Protection trước app nên không ghi nhận authenticated computed-style/screenshot giả. Catalog ở `TECH_PASS`, chờ người dùng kiểm tra giao diện và chức năng bằng phiên đăng nhập trước khi nâng `USER_APPROVED`.
 
+Người dùng đã kiểm tra và phê duyệt tiếp tục migration ngày 2026-07-14. Catalog được nâng `USER_APPROVED` cho gate migration. Phản hồi đồng thời xác nhận Manage và Catalog còn nhiều UI/UX debt; khoản nợ này được hoãn sang pha thiết kế/chỉnh giao diện sau và không cho phép redesign trong các checkpoint migration còn lại.
+
+## Bằng chứng triển khai Cashflow C3.5
+
+- `next-shell/components/cashflow/CashflowModule.tsx` bỏ toàn bộ root/header/card/modal của candidate redesign và trở lại `cashflowView view active`, `sub-tabs-bar`, sticky toolbar, `fund-kpi-grid`, `fund-export-card`, `table-card`, bảng ngang, pagination và full-screen drawer C2.
+- Tổng quan giữ sáu metric backend và báo cáo ba khối, chi tiết category/filter đối tác và export ảnh. Giao dịch giữ quick/custom date, search accent-insensitive, 20 dòng/trang, pending-job overlay, direct edit/delete và form nhiều dòng/clone/add/remove. Khoản vay giữ current reconciliation metadata, summary/history filters và ba loại trả nợ/gốc/lãi. Fund Catalog giữ năm chip và form inline; native range/bounds/clear-only vẫn do backend sở hữu.
+- UI chỉ thêm binding responsive/touch/accessibility trong `c2-golden.css`; không áp dụng font, màu, hierarchy hoặc style mới từ `ui-ux-pro-max`. Không đổi Sheet, thứ tự cột, công thức, workbook hoặc source of truth.
+- Technical gate ngày 2026-07-14: 272/272 test, lint, typecheck, build và `git diff --check` đạt. Test C3 khóa root `.view active`, bốn tab, report/export, filters, pagination 20, reconciliation, Fund Catalog inline, drawer C2 và cấm class redesign quay lại.
+- Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ READY `dpl_DxHVCvzd8Dc1ZZnDM8BGzPcNrrRc`; session không cookie trả 401 và API health 200 qua deployment bypass. Production `https://dongbac.vercel.app` vẫn trỏ C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. Cashflow ở `TECH_PASS`, chờ người dùng kiểm tra authenticated visual/chức năng.
+
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 
 Phản hồi visual ngày 2026-07-14 chứng minh copy CSS/DOM chưa đủ nếu bỏ sót dependency hoặc để stylesheet khác rò rỉ vào surface golden. Từ Dashboard trở đi, mỗi surface phải thêm đủ các kiểm tra sau trước `TECH_PASS`:

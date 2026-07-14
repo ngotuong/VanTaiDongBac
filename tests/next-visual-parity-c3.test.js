@@ -26,7 +26,7 @@ test('C3 Next shell matches the six approved legacy navigation destinations', ()
 test('C3 keeps the legacy logo, drawer, theme and five-item mobile navigation behavior', () => {
   const shell = read('next-shell/components/platform/AppShell.tsx');
   const navigation = read('next-shell/components/platform/ShellNavigation.tsx');
-  const css = read('next-shell/app/platform.css');
+  const css = read('next-shell/app/c2-parity.css');
   assert.match(shell, /apple-touch-icon\.png/);
   assert.match(shell, /platform-drawer-backdrop/);
   assert.match(shell, /vtdb-theme/);
@@ -35,20 +35,22 @@ test('C3 keeps the legacy logo, drawer, theme and five-item mobile navigation be
   assert.match(css, /grid-template-columns: repeat\(5,minmax\(0,1fr\)\)/);
   assert.match(css, /bottom: calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
   assert.match(shell, /platform-refresh-button/);
+  assert.match(shell, /platform-sheet-button/);
+  assert.match(shell, /\/open-sheet\?module=/);
   assert.match(shell, /\[data-shell-refresh\]/);
 });
 
 test('C3 rework encodes measured C2 dashboard geometry instead of the redesign', () => {
   const layout = read('next-shell/app/layout.jsx');
   const dashboard = read('next-shell/components/dashboard/DashboardModule.tsx');
-  const css = read('next-shell/app/platform.css');
+  const css = read('next-shell/app/c2-parity.css');
   const baseline = read('docs/quality/C3_VISUAL_BASELINE.md');
   assert.match(layout, /Plus\+Jakarta\+Sans:wght@300;400;500;600;700;800/);
   assert.match(dashboard, /dashboard-module-filter"><strong>Tháng<\/strong>/);
   assert.match(dashboard, /dashboard-kpi-\$\{tone\}/);
   assert.match(css, /\.dashboard-module-filter \{ min-height: 62px/);
   assert.match(css, /\.dashboard-module-kpis article \{ min-height: 108px/);
-  assert.match(css, /@media \(max-width: 640px\)[\s\S]+\.dashboard-module-kpis \{ grid-template-columns:repeat\(2,minmax\(0,1fr\)\); gap:8px; \}/);
+  assert.match(css, /@media\(max-width:640px\)[\s\S]+\.dashboard-module-kpis \{ grid-template-columns:repeat\(2,minmax\(0,1fr\)\); gap:8px; \}/);
   assert.match(css, /\.platform-workspace \{ padding:16px 12px 96px; \}/);
   assert.match(baseline, /Desktop 1440×900/);
   assert.match(baseline, /Mobile 390×844/);

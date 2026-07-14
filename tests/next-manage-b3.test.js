@@ -19,12 +19,13 @@ test('B3 loader allowlists six sheets and preserves recent/month cache with Apps
   assert.match(loader,/limit: startDate \|\| endDate \? '500' : '50'/);
 });
 
-test('B3 UI keeps tabs filters row identity and pagination but exposes no write lifecycle',()=>{
+test('C3 parity keeps B3 tabs filters row identity and pagination while restoring approved legacy write controls',()=>{
   const module=read('next-shell/components/manage/ManageReadOnlyModule.tsx');
   assert.match(module,/const PAGE_SIZE = 20/); assert.match(module,/Dòng Sheet/); assert.match(module,/row\.rowIndex/);
   for(const label of ['Gần đây','Hôm nay','7 ngày qua','Tháng này','Tháng trước','Tùy chọn','Nguồn dầu','Nguồn chi']) assert.match(module,new RegExp(label));
   assert.match(module,/data-next-manage-readonly="true"/); assert.match(module,/role="alert"/); assert.match(module,/aria-busy="true"/);
-  assert.doesNotMatch(module,/submitRows|saveSheetRow|deleteSheetRow|openManageEditModal|pendingWrite|google\.script|window\.appData/);
+  assert.match(module,/saveSheetRow/); assert.match(module,/deleteSheetRow/); assert.match(module,/columnsToClear:headers/);
+  assert.match(module,/href="\/entry"/); assert.doesNotMatch(module,/google\.script|window\.appData/);
 });
 
 test('B3 Manage repository sends exact Supabase bundle filters with server credentials',async()=>{

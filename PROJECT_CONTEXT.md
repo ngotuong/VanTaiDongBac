@@ -179,7 +179,7 @@ Trạng thái: **IN PROGRESS ngày 2026-07-14; người dùng đã phê duyệt 
 
 Mục tiêu bắt buộc là giữ nguyên ngôn ngữ thị giác, bố cục, điều hướng, mật độ thông tin và hành vi responsive của giao diện C2 nhưng triển khai bằng Next.js. Không redesign; chỉ chuẩn hóa alignment, equal-height, spacing và responsive theo phản hồi người dùng. Baseline đo trực tiếp nằm tại `docs/quality/C3_VISUAL_BASELINE.md`. Preview phải được đối chiếu bằng ảnh ở desktop/mobile và được người dùng xác nhận trực tiếp trước khi đổi alias production. D1 chỉ được mở lại sau C3 và thời gian ổn định mới.
 
-Preview C3 rework hiện tại là `dpl_EBhjxjJTGJ1ypm9VBHRCQ8fqAkL7` tại `https://vantaidongbac-c3-preview.vercel.app` (Vercel deployment protection áp dụng). Preview dùng Apps Script recovery `@281`, không có legacy fallback (`/legacy-index.html` trả 404); health 200. Production alias vẫn ở C2. Verification local đạt 267/267 test, lint, typecheck, build và `git diff --check`.
+Preview C3 parity hiện tại là `dpl_4458EPGQWHivJ7CQNdcy7fD3VRMc` tại `https://vantaidongbac-c3-preview.vercel.app` (Vercel deployment protection áp dụng). Đây là lần dựng lại lấy trực tiếp `dongbac.vercel.app`/C2 làm đặc tả: dùng Plus Jakarta Sans, logo/icon/PWA hiện hữu, shell/sidebar/topbar/bottom-nav và hình học Dashboard C2; khôi phục nút mở Google Sheet, xuất ảnh Dashboard/Report, Nhập mới và Sửa/Xóa Vận hành theo quyền. Preview dùng production environment nhưng không chiếm alias production; health 200. Production `dongbac.vercel.app` vẫn ở recovery C2 và tiếp tục redirect `/legacy-index.html`. Verification đạt 267/267 test, lint, typecheck, build và `git diff --check`.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 

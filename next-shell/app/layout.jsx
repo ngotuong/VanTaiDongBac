@@ -1,5 +1,6 @@
 import './accounts.css';
 import './platform.css';
+import './c2-parity.css';
 import { AppShell } from '../components/platform/AppShell';
 import { LoginGate } from '../components/platform/SessionControls';
 import { WorkbookContextProvider } from '../components/platform/WorkbookContextProvider';

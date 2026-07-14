@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import type { DashboardBundle, DashboardDataResponse, DashboardTrip } from '../../lib/platform/dashboard-types';
 import type { ReportCell, ReportMatrix } from '../../lib/platform/report-types';
+import { exportCardAsImage, ImageExportIcon } from '../../lib/platform/export-card';
 
 type MonthRow = { month: string; revenue: number; operatingCost: number; gross: number; cashCost: number; final: number; raw: ReportCell[] };
 
@@ -52,6 +53,8 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
   const [selectedMonth, setSelectedMonth] = useState('latest');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(initialError);
+  const latestTripsCard = useRef<HTMLElement>(null);
+  const summaryCard = useRef<HTMLElement>(null);
   const rows = useMemo(() => parseRows(dashboard?.overview?.months), [dashboard]);
   const selected = selectedMonth === 'latest' ? rows.at(-1) : rows.find((row) => row.month === selectedMonth);
   const trips = dashboard?.latestTrips?.trips || [];
@@ -69,6 +72,12 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
     finally { setLoading(false); }
   };
 
+  const exportImage = async (card: HTMLElement | null, name: string) => {
+    setError('');
+    try { await exportCardAsImage(card, name); }
+    catch (exportError) { setError(exportError instanceof Error ? exportError.message : String(exportError)); }
+  };
+
   return <section className="dashboard-module" data-next-dashboard="true" aria-labelledby="dashboard-page-title">
     <header className="dashboard-module-header">
       <div><p className="platform-eyebrow">VẬN TẢI · {context.workbook.year}</p><h1 id="dashboard-page-title">Tổng quan</h1><p className="dashboard-module-status" role="status" aria-live="polite">{error || (dashboard ? `Nguồn: ${source}${dashboard.updatedAt ? ` · cập nhật ${dashboard.updatedAt}` : ''}` : '')}</p></div>
@@ -82,10 +91,10 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
       <section className="dashboard-module-card" aria-labelledby="profit-chart-title"><div className="dashboard-module-card-head"><div><h2 id="profit-chart-title">Lợi nhuận thực tế</h2><p>12 kỳ gần nhất</p></div></div>
         {rows.length ? <div className="dashboard-profit-chart" role="img" aria-label="Biểu đồ lợi nhuận thực tế theo tháng">{rows.slice(-12).map((row) => <div className="dashboard-profit-column" key={row.month}><strong>{shortMoney(row.final)}</strong><span className={row.final < 0 ? 'negative' : ''} style={{ height: `${Math.max(4, Math.abs(row.final) / maxProfit * 132)}px` }} title={`${row.month}: ${currency(row.final)}`} /><small>{row.month}</small></div>)}</div> : <div className="dashboard-module-empty">Chưa có dữ liệu lợi nhuận.</div>}
       </section>
-      <section className="dashboard-module-card" aria-labelledby="latest-trips-title"><div className="dashboard-module-card-head"><div><h2 id="latest-trips-title">Dữ liệu chuyến gần đây</h2><p>{dashboard.latestTrips?.date || 'Chưa có ngày dữ liệu'}</p></div><strong>{totalTrips(trips).toLocaleString('vi-VN')} chuyến</strong></div>
+      <section className="dashboard-module-card" ref={latestTripsCard} aria-labelledby="latest-trips-title"><div className="dashboard-module-card-head"><div><h2 id="latest-trips-title">Dữ liệu chuyến gần đây <span>{dashboard.latestTrips?.date || ''}</span></h2></div><div className="dashboard-card-actions"><strong>{totalTrips(trips).toLocaleString('vi-VN')} chuyến</strong><button type="button" className="c2-image-export" title="Xuất ảnh" aria-label="Xuất ảnh dữ liệu chuyến gần đây" onClick={() => void exportImage(latestTripsCard.current, 'SoChuyenXe')}><ImageExportIcon /></button></div></div>
         <div className="dashboard-module-table-wrap" tabIndex={0} aria-label="Dữ liệu chuyến gần đây — cuộn ngang để xem đủ cột"><table><thead><tr><th scope="col">Dự án</th><th scope="col">Biển số xe</th><th scope="col">Số chuyến</th><th scope="col">Số phiếu</th></tr></thead><tbody>{trips.length ? trips.map((trip, index) => <tr key={`${trip.project}-${trip.vehicle}-${index}`}><td>{trip.project || '-'}</td><td>{trip.vehicle || '-'}</td><td>{Number(trip.count || 0).toLocaleString('vi-VN')}</td><td>{trip.ticket || '-'}</td></tr>) : <tr><td colSpan={4} className="dashboard-module-empty">Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>}</tbody></table></div>
       </section>
-      <section className="dashboard-module-card" aria-labelledby="summary-title"><div className="dashboard-module-card-head"><div><h2 id="summary-title">Kết quả kinh doanh theo tháng</h2><p>{rows.length} kỳ báo cáo</p></div></div>
+      <section className="dashboard-module-card" ref={summaryCard} aria-labelledby="summary-title"><div className="dashboard-module-card-head"><div><h2 id="summary-title">Kết quả kinh doanh theo tháng</h2></div><button type="button" className="c2-image-export" title="Xuất ảnh" aria-label="Xuất ảnh kết quả kinh doanh" onClick={() => void exportImage(summaryCard.current, 'TongQuan')}><ImageExportIcon /></button></div>
         <div className="dashboard-module-table-wrap" tabIndex={0} aria-label="Kết quả kinh doanh — cuộn ngang để xem đủ cột"><table><thead><tr>{['Tháng','Tổng khối lượng','Tổng doanh thu','Thuế TNDN','Thuế VAT','Dầu Quang Minh','Dầu đổ ngoài','Phí đường bộ','Lợi nhuận gộp','Chi quỹ thực tế','Lợi nhuận thực'].map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row) => <tr key={row.month}>{Array.from({ length: 11 }, (_, index) => <td key={index}>{index === 8 ? currency(row.gross) : String(row.raw[index] ?? '')}</td>)}</tr>) : <tr><td colSpan={11} className="dashboard-module-empty">Chưa có dữ liệu báo cáo tài chính.</td></tr>}</tbody></table></div>
       </section>
     </> : null}

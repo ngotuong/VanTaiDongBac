@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import type { ReportBundle, ReportDataResponse, ReportMatrix } from '../../lib/platform/report-types';
+import { exportCardAsImage, ImageExportIcon } from '../../lib/platform/export-card';
 
 const TABS = [
   ['all', 'Tất Cả'],
@@ -18,8 +19,6 @@ const LABELS: Record<ReportType, string> = {
   payroll: 'Tổng hợp lương',
   vehicles: 'Tổng hợp xe'
 };
-
-const escapeCsv = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
 
 export function matrixRows(matrix: ReportMatrix | undefined) {
   const rows = Array.isArray(matrix) ? matrix : [];
@@ -45,22 +44,15 @@ async function requestReport(month: string, forceRefresh: boolean) {
 }
 
 function ReportTable({ type, matrix, query }: { type: ReportType; matrix: ReportMatrix | undefined; query: string }) {
+  const card = useRef<HTMLElement>(null);
   const { head, body } = matrixRows(matrix);
   const normalized = query.trim().toLocaleLowerCase('vi-VN');
   const visible = normalized ? body.filter((row) => row.join(' ').toLocaleLowerCase('vi-VN').includes(normalized)) : body;
-  const exportCsv = () => {
-    const csv = [head, ...visible].map((row) => row.map(escapeCsv).join(',')).join('\r\n');
-    const href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
-    const link = document.createElement('a');
-    link.href = href;
-    link.download = `${type}.csv`;
-    link.click();
-    URL.revokeObjectURL(href);
-  };
-  return <section className="report-module-card" aria-labelledby={`report-title-${type}`}>
+  const exportImage = () => void exportCardAsImage(card.current, type).catch((error) => window.alert(error instanceof Error ? error.message : String(error)));
+  return <section className="report-module-card" ref={card} aria-labelledby={`report-title-${type}`}>
     <div className="report-module-card-head">
       <div><h2 id={`report-title-${type}`}>{LABELS[type]}</h2><p>{visible.length} dòng hiển thị</p></div>
-      <button type="button" className="report-module-secondary" onClick={exportCsv} disabled={!head.length}>Xuất CSV</button>
+      <button type="button" className="c2-image-export" title="Xuất ảnh" aria-label={`Xuất ảnh ${LABELS[type]}`} onClick={exportImage} disabled={!head.length}><ImageExportIcon /></button>
     </div>
     <div className="report-module-table-wrap" tabIndex={0} aria-label={`${LABELS[type]} — cuộn ngang để xem đủ cột`}>
       <table><thead><tr>{head.map((cell, index) => <th scope="col" key={index}>{String(cell ?? '')}</th>)}</tr></thead>

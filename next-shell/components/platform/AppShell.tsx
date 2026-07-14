@@ -48,12 +48,6 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
     return () => document.body.classList.remove('platform-drawer-open');
   }, [drawerOpen]);
 
-  const toggleTheme = () => {
-    const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = nextTheme;
-    window.localStorage.setItem('vtdb-theme', nextTheme);
-  };
-
   const refreshCurrentModule = () => {
     const refresh = document.querySelector<HTMLButtonElement>('[data-shell-refresh]');
     refresh?.click();
@@ -85,9 +79,9 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
           <button type="button" className="platform-refresh-button" aria-label="Cập nhật dữ liệu" title="Cập nhật dữ liệu" onClick={refreshCurrentModule}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
           </button>
-          <button type="button" className="platform-theme-button" aria-label="Đổi giao diện sáng hoặc tối" title="Đổi giao diện sáng/tối" onClick={toggleTheme}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          </button>
+          <a className="platform-sheet-button" href={`/open-sheet?module=${context.workbook.module}&year=${context.workbook.year}`} target="_blank" rel="noreferrer" aria-label="Mở Google Sheet" title="Google Sheet">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
         </div>
       </header>
       <div id="platform-content" className="platform-content" tabIndex={-1}>{children}</div>

@@ -56,7 +56,12 @@ test('fund cache repository scopes exact server-side keys and credentials',async
   const url=new URL(request.url);assert.equal(url.pathname,'/rest/v1/fund_transaction_bundles');assert.equal(url.searchParams.get('year'),'eq.2026');assert.equal(url.searchParams.get('filter_key'),'eq.month:2026-07');assert.equal(request.options.headers.Authorization,'Bearer secret');
 });
 
-test('B6 cashflow UI keeps accessible touch targets and responsive horizontal tables',()=>{
-  const css=read('next-shell/app/platform.css');
-  assert.match(css,/\.cashflow-module button\{min-height:44px/);assert.match(css,/\.cashflow-table-wrap\{[^}]*overflow:auto/);assert.match(css,/\.cashflow-modal[^}]*max-height/);assert.match(css,/@media\(max-width:640px\)/);
+test('C3 Cashflow restores the C2 golden surface instead of the rejected redesign',()=>{
+  const source=read('next-shell/components/cashflow/CashflowModule.tsx');const css=read('next-shell/app/c2-golden.css');
+  assert.match(source,/id="cashflowView" className="view active cashflow-c2"/);
+  for(const token of ['fundTabsBar','sub-tabs-bar app-sticky-tabs','fund-kpi-grid','fund-export-card','fund-transaction-toolbar','fund-transactions-scroll','fund-loan-history-head','fund-catalog-chips','fund-catalog-form','fundTransactionAddDrawer','fundLoanPaymentDrawer','fundCategoryDetailDrawer'])assert.match(source,new RegExp(token));
+  for(const label of ['Tổng quan','Danh sách thu chi','Khoản vay','Danh mục','Báo cáo thu chi','TỔNG THU TRONG KỲ','Số dư hiện tại','Người Thu/Chi','Nơi vay'])assert.match(source,new RegExp(label));
+  assert.match(source,/const PAGE_SIZE = 20/);assert.match(source,/startDate && date < startDate/);assert.match(source,/exportCardAsImage/);assert.match(source,/Trả gốc/);
+  assert.doesNotMatch(source,/className="cashflow-module"|cashflow-header|cashflow-modal-backdrop|cashflow-card/);
+  assert.match(css,/\.cashflow-c2 \.cashflow-icon-button \{ min-width: 44px/);assert.match(css,/\.cashflow-drawer-backdrop \{ display: block/);assert.match(css,/@media \(max-width: 640px\)/);
 });

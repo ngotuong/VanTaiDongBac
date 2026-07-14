@@ -9,22 +9,24 @@ const TABLES={overview:'fund_overview_bundles',transactions:'fund_transaction_bu
 function httpError(status:number,message:string){return Object.assign(new Error(message),{status});}
 function validYear(value:unknown){const year=String(value||'2026').trim();if(!/^20\d{2}$/.test(year))throw httpError(400,'Năm Thu chi không hợp lệ.');return year;}
 function validMonth(value:unknown){const month=String(value||'').trim();if(month&&!/^20\d{2}-(0[1-9]|1[0-2])$/.test(month))throw httpError(400,'Tháng Thu chi không hợp lệ.');return month;}
+function validDate(value:unknown,label:string){const date=String(value||'').trim();if(date&&!/^20\d{2}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(date))throw httpError(400,`${label} không hợp lệ.`);return date;}
 function validGroup(value:unknown){const group=String(value||'incomeCategories').trim();const allowed=['incomeCategories','expenseCategories','actors','partners','loanPartners'];if(!allowed.includes(group))throw httpError(400,'Nhóm danh mục Thu chi không hợp lệ.');return group;}
 function publicPayload<T>(row:{payload:unknown;synced_at:string}|null):T|null{if(!row?.payload||typeof row.payload!=='object'||(row.payload as {ok?:boolean}).ok===false)return null;return {...row.payload as object,supabaseCached:true,supabaseSyncedAt:row.synced_at} as T;}
 
-export async function loadCashflowSurface(input:{year?:unknown;surface?:unknown;month?:unknown;group?:unknown;forceRefresh?:boolean}={}):Promise<unknown>{
-  const year=validYear(input.year);const surface=String(input.surface||'all');const month=validMonth(input.month);const group=validGroup(input.group);
+export async function loadCashflowSurface(input:{year?:unknown;surface?:unknown;month?:unknown;group?:unknown;startDate?:unknown;endDate?:unknown;search?:unknown;forceRefresh?:boolean}={}):Promise<unknown>{
+  const year=validYear(input.year);const surface=String(input.surface||'all');const month=validMonth(input.month);const group=validGroup(input.group);const startDate=validDate(input.startDate,'Ngày bắt đầu');const endDate=validDate(input.endDate,'Ngày kết thúc');const search=String(input.search||'').trim().slice(0,200);
+  if(startDate&&endDate&&startDate>endDate)throw httpError(400,'Khoảng ngày Thu chi không hợp lệ.');
   createWorkbookContextService({httpError}).resolve({module:'cashflow',year});
   const api=await createServerApiClient();
   const fallback=async()=>{
     if(surface==='overview')return api.get<FundOverview>('getFundOverview',{params:{year,month,forceRefresh:input.forceRefresh?'true':''}});
-    if(surface==='transactions')return api.get<FundTransactions>('getFundTransactions',{params:{year,month,limit:'500',forceRefresh:input.forceRefresh?'true':''}});
+    if(surface==='transactions')return api.get<FundTransactions>('getFundTransactions',{params:{year,month,startDate,endDate,search,limit:'500',forceRefresh:input.forceRefresh?'true':''}});
     if(surface==='loans')return api.get<FundLoans>('getFundLoanOverview',{params:{year,month,forceRefresh:input.forceRefresh?'true':''}});
     if(surface==='options')return api.get<FundOptions>('getFundFormOptions',{params:{year}});
     if(surface==='catalog')return api.get<FundCatalog>('getFundCatalog',{params:{year,group,forceRefresh:input.forceRefresh?'true':''}});
     return loadCashflowInitial(year,input.forceRefresh);
   };
-  if(input.forceRefresh||surface==='all')return fallback();
+  if(input.forceRefresh||surface==='all'||(surface==='transactions'&&(startDate||endDate||search)))return fallback();
   try{
     const config=runtimeConfig();if(!config.supabaseUrl||!config.serviceRoleKey)return fallback();
     const repo=createFundBundleRepository({httpError,fetchImpl:(request,init={})=>fetch(request,{...init,signal:AbortSignal.timeout(5000)})});

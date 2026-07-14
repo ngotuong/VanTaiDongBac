@@ -3057,6 +3057,49 @@
       backdrop-filter: blur(4px);
     }
 
+    /* C3 Cashflow React bindings: reuse the C2 visual system without redesign. */
+    .cashflow-c2 { display: block; }
+    .cashflow-c2 > .status { margin: 0 0 12px; }
+    .cashflow-c2 > .table-card,
+    .cashflow-c2 > .panel,
+    .cashflow-c2 > .fund-kpi-grid { margin-bottom: 16px; }
+    .cashflow-c2 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .cashflow-c2 .panel-title { margin: 0; color: var(--deep); font-size: 16px; font-weight: 800; }
+    .cashflow-c2 .panel-note { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .cashflow-c2 .btn-svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .cashflow-c2 .cashflow-icon-button { min-width: 44px !important; width: 44px; height: 44px; padding: 0 !important; border-radius: 12px !important; }
+    .cashflow-c2 .cashflow-report-body,
+    .cashflow-c2 .cashflow-catalog-body { padding: 16px; }
+    .cashflow-c2 .cashflow-loan-history { margin-top: 16px; }
+    .cashflow-c2 .fund-income { color: var(--green); font-weight: 800; }
+    .cashflow-c2 .fund-expense { color: var(--red); font-weight: 800; }
+    .cashflow-c2 .cashflow-empty { padding: 24px; text-align: center; color: var(--muted); }
+    .cashflow-c2 .cashflow-pending-row td { background: rgba(245, 158, 11, 0.08); }
+    .cashflow-c2 .cashflow-pagination { border-top: 1px solid var(--line); }
+    .cashflow-c2 .cashflow-source-badge { display: inline-flex; margin-left: 8px; padding: 2px 7px; border-radius: 999px; background: var(--mint-soft); color: var(--teal); font-size: 10px; font-weight: 800; }
+    .cashflow-drawer-backdrop { display: block; }
+    .cashflow-c2 .cashflow-drawer-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 16px 20px; }
+    .cashflow-c2 .fund-transaction-row { padding: 14px; box-shadow: none; overflow: visible; }
+    .cashflow-c2 .cashflow-transaction-row-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .cashflow-c2 .cashflow-add-row { margin-top: 14px; }
+    .cashflow-c2 .cashflow-category-filter { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+    .cashflow-c2 .fund-detail-drawer .table-wrap { flex: none; }
+    .cashflow-c2 .fund-detail-drawer .modal-grid { align-content: start; }
+
+    @media (max-width: 640px) {
+      .cashflow-c2 .fund-export-grid { grid-template-columns: 1fr; }
+      .cashflow-c2 .cashflow-report-body,
+      .cashflow-c2 .cashflow-catalog-body,
+      .cashflow-c2 .cashflow-drawer-body { padding: 12px; }
+      .cashflow-c2 .fund-transaction-toolbar { align-items: stretch; }
+      .cashflow-c2 .fund-transaction-toolbar-actions { justify-content: flex-end; }
+      .cashflow-c2 #fundDateFilterGroup { min-width: 100%; flex-wrap: wrap; }
+      .cashflow-c2 .fund-transaction-search { min-width: 100%; }
+      .cashflow-c2 .fund-catalog-form { grid-template-columns: 1fr 1fr; }
+      .cashflow-c2 .fund-catalog-form label { grid-column: 1 / -1; }
+      .cashflow-c2 .cashflow-transaction-row-head { align-items: flex-start; }
+    }
+
     /* Mobile Quick Access Shortcuts */
     .mobile-quick {
       display: none;

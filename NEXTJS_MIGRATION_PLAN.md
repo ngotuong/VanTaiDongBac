@@ -230,6 +230,8 @@ C3.2b được người dùng phê duyệt ngày 2026-07-14. C3.3 Manage/Entry �
 
 Correction C3.3 ngày 2026-07-14 sửa regression `.view` thiếu `.active` làm toàn bộ Manage bị CSS ẩn dù route 200. Đồng thời catalog Entry được chuyển khỏi critical render path, route loading dùng shimmer C2 và navigation prefetch theo intent thay vì đồng loạt. Deployment `dpl_4hT1vCRx88R9LeG2dn716oC6yvV2` đạt 271/271 test, lint, typecheck, build, diff check và smoke session/health; production vẫn C2. Manage/Entry vẫn chờ user approval.
 
+Người dùng phê duyệt tiếp tục sau correction C3.3; Manage/Entry được nâng `USER_APPROVED`. C3.4 Catalog đạt technical gate trên `dpl_HohfDxtwRWx2AfEnvLgY2qVoAew5`: khôi phục trực tiếp cấu trúc C2 cho chín tab, filter Nhân sự/Công ty xe, cột chủ xe, bảng/pagination và modal CRUD; giữ direct write contract, mapping physical `DM_ThamSo`, clear-only hai view ảo và effective-date/history do backend sở hữu. Gate đạt 272/272 test, lint, typecheck, build, diff check; API health 200, session không cookie trả đúng contract. Browser automation bị Vercel Deployment Protection chặn trước app nên Catalog chờ người dùng duyệt authenticated visual; production vẫn C2 và chưa chuyển Cashflow.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

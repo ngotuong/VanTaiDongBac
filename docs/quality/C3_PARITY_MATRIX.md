@@ -33,3 +33,5 @@ Trạng thái hợp lệ: `SOURCE_LOCKED`, `IMPLEMENTING`, `TECH_PASS`, `USER_AP
 Chỉ ghi `USER_APPROVED` khi người dùng đã kiểm tra preview tương ứng. HTTP 200, unit test hoặc source regex không thay thế visual approval.
 
 - 2026-07-14: Login/Shell/Dashboard đạt technical gate trên deployment `dpl_5TcZ77CxZskFizUUNCZnT9rrG3hp`; 267/267 test, lint, typecheck, build và diff check đạt. Root preview trả HTTP 200 qua deployment-authenticated smoke. Chưa có authenticated visual approval của người dùng nên chưa surface nào được đánh dấu `USER_APPROVED`.
+- 2026-07-14: người dùng từ chối visual Dashboard của deployment trên: font chưa được tải, `.table-wrap` bị shared CSS chèn margin và nút export bị cascade che SVG. Login/Shell/Dashboard trở lại `IMPLEMENTING`; technical pass cũ không còn hiệu lực.
+- 2026-07-14: correction deployment `dpl_6gdxkLwGnXperukyRtre3iqCTmuz` đạt lại `TECH_PASS`: Plus Jakarta Sans tải thật; header–table gap 0px; export 28×28px/SVG 16×16px có stroke; viewport 390px không overflow; 268/268 test, lint, typecheck, build và diff check đạt. Vẫn chờ người dùng duyệt authenticated visual.

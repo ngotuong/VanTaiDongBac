@@ -16,16 +16,27 @@ export const metadata = {
 };
 export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#062e2b' };
 
+function C2Document({ children }) {
+  return <html lang="vi">
+    <head>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    </head>
+    <body>{children}</body>
+  </html>;
+}
+
 export default async function RootLayout({ children }) {
   let context;
   try {
     context = await loadPlatformContext();
   } catch (error) {
     if (error?.status === 401 || error?.status === 403) {
-      return <html lang="vi"><body><LoginGate supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} anonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''} /></body></html>;
+      return <C2Document><LoginGate supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} anonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''} /></C2Document>;
     }
     logPlatformError('root-layout', error, 'bootstrap');
     throw error;
   }
-  return <html lang="vi"><body><WorkbookContextProvider value={context}><AppShell context={context}>{children}</AppShell></WorkbookContextProvider></body></html>;
+  return <C2Document><WorkbookContextProvider value={context}><AppShell context={context}>{children}</AppShell></WorkbookContextProvider></C2Document>;
 }

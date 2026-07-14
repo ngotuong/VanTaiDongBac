@@ -32,3 +32,17 @@ test('C3 Dashboard source contains the approved C2 header, month and full-value 
   assert.match(dashboard, /formatCurrencyText\(value\)/);
   assert.doesNotMatch(dashboard, /Tháng gần nhất|shortMoney|triệu/);
 });
+
+test('C3 Dashboard loads the C2 font and locks export/table cascade against shared Next CSS', () => {
+  const fs = require('node:fs');
+  const root = path.resolve(__dirname, '..');
+  const layout = fs.readFileSync(path.join(root, 'next-shell/app/layout.jsx'), 'utf8');
+  const dashboard = fs.readFileSync(path.join(root, 'next-shell/components/dashboard/DashboardModule.tsx'), 'utf8');
+  const css = fs.readFileSync(path.join(root, 'next-shell/app/c2-golden.css'), 'utf8');
+  assert.match(layout, /family=Plus\+Jakarta\+Sans:wght@300;400;500;600;700;800&display=swap/);
+  assert.match(css, /\.table-card > \.table-wrap \{ margin-top: 0; \}/);
+  assert.match(css, /\.dashboard-export-button[\s\S]*width: 28px !important;[\s\S]*min-height: 28px !important;/);
+  assert.match(css, /\.dashboard-export-button \.btn-svg[\s\S]*stroke: currentColor !important;/);
+  assert.match(dashboard, /className="sub-tab dashboard-export-button"/);
+  assert.match(dashboard, /className="dashboard-export-actions"/);
+});

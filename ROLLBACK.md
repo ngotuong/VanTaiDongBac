@@ -92,7 +92,7 @@ clasp push
 
 Production hiện tại là C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. D1 `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` và các candidate C3 sai không nằm trên `dongbac.vercel.app`.
 
-Candidate golden-master hiện tại là `dpl_5TcZ77CxZskFizUUNCZnT9rrG3hp` tại `https://vantaidongbac-c3-preview.vercel.app`. Candidate này chỉ phục vụ phê duyệt Dashboard và không nằm trên alias production. Nếu candidate lỗi, bỏ alias preview hoặc gán lại preview cũ; không cần đổi `dongbac.vercel.app`.
+Candidate golden-master hiện tại là correction deployment `dpl_6gdxkLwGnXperukyRtre3iqCTmuz` tại `https://vantaidongbac-c3-preview.vercel.app`. Candidate trước `dpl_5TcZ77CxZskFizUUNCZnT9rrG3hp` bị từ chối vì thiếu font/cascade/icon parity. Candidate hiện tại chỉ phục vụ phê duyệt Dashboard và không nằm trên alias production. Nếu candidate lỗi, bỏ alias preview; không cần đổi `dongbac.vercel.app`.
 
 Rollback nhanh về giao diện legacy đã xác nhận ở C2:
 

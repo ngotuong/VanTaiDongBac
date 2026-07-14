@@ -122,6 +122,14 @@ Người dùng đã kiểm tra và phê duyệt tiếp tục migration ngày 202
 - Technical gate ngày 2026-07-14: 272/272 test, lint, typecheck, build và `git diff --check` đạt. Test C3 khóa root `.view active`, bốn tab, report/export, filters, pagination 20, reconciliation, Fund Catalog inline, drawer C2 và cấm class redesign quay lại.
 - Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ READY `dpl_DxHVCvzd8Dc1ZZnDM8BGzPcNrrRc`; session không cookie trả 401 và API health 200 qua deployment bypass. Production `https://dongbac.vercel.app` vẫn trỏ C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. Cashflow ở `TECH_PASS`, chờ người dùng kiểm tra authenticated visual/chức năng.
 
+### Correction popup/drawer ngày 2026-07-14
+
+- Phản hồi thực tế phát hiện `Quỹ > Danh sách thu chi > Nhập mới` mở menu trái và form Vận hành bị che/khó thao tác trên mobile. Nguyên nhân là AppShell và Cashflow cùng dùng body class `drawer-open`, cộng với các overlay nằm trong `.view` có animation `transform`, tạo stacking context giữ modal dưới navigation cố định.
+- AppShell dùng riêng `shell-drawer-open`; Cashflow dùng `cashflow-modal-open`. Drawer Cashflow và popup Entry/edit của Manage được portal trực tiếp vào `document.body`, có backdrop/z-index độc lập; bottom navigation không nhận tương tác khi modal mở.
+- Form Entry trong Manage trở lại hành vi full-viewport C2 trên mobile, có safe-area, header/submit bar luôn thao tác được và vùng rows cuộn độc lập. Không thay font, màu, icon, hierarchy hoặc nghiệp vụ C2.
+- Regression tests khóa việc popup nghiệp vụ không kích hoạt sidebar, portal body-level, lớp z-index, full-screen mobile và safe-area submit. Gate mới đạt 274/274 test, lint, typecheck, build và `git diff --check`.
+- Preview hiện trỏ READY `dpl_Dw7o14BkbLp77bNuXPZ6Q8ULctf9`; session không cookie 401, API health 200. Production vẫn là C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. Do không có phiên đăng nhập của người dùng trong browser automation, correction vẫn chờ authenticated visual/chức năng approval.
+
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 
 Phản hồi visual ngày 2026-07-14 chứng minh copy CSS/DOM chưa đủ nếu bỏ sót dependency hoặc để stylesheet khác rò rỉ vào surface golden. Từ Dashboard trở đi, mỗi surface phải thêm đủ các kiểm tra sau trước `TECH_PASS`:

@@ -28,7 +28,9 @@ test('C3 golden shell keeps the exact C2 logo, drawer, SVG and five-item mobile 
   const navigation = read('next-shell/components/platform/ShellNavigation.tsx');
   const css = read('next-shell/app/c2-golden.css');
   assert.match(shell, /apple-touch-icon\.png/);
-  assert.match(shell, /className="drawer-backdrop"/);
+  assert.match(shell, /className="drawer-backdrop shell-drawer-backdrop"/);
+  assert.match(shell, /shell-drawer-open/);
+  assert.doesNotMatch(shell, /toggle\('drawer-open'/);
   assert.match(navigation, /className: 'btn-svg'/);
   assert.match(navigation, /mode === 'bottom'/);
   assert.match(css, /grid-template-columns: 260px minmax\(0, 1fr\)/);

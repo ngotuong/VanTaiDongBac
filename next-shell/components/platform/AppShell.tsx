@@ -36,8 +36,8 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
   const isDashboard = pathname === '/' || pathname === '/dashboard';
 
   useEffect(() => {
-    document.body.classList.toggle('drawer-open', drawerOpen);
-    return () => document.body.classList.remove('drawer-open');
+    document.body.classList.toggle('shell-drawer-open', drawerOpen);
+    return () => document.body.classList.remove('shell-drawer-open');
   }, [drawerOpen]);
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
 
   return <div className="app">
     <a className="platform-skip-link" href="#platform-content">Bỏ qua điều hướng</a>
-    <div className="drawer-backdrop" aria-hidden={!drawerOpen} onClick={() => setDrawerOpen(false)}/>
+    <div className="drawer-backdrop shell-drawer-backdrop" aria-hidden={!drawerOpen} onClick={() => setDrawerOpen(false)}/>
     <aside className="sidebar" aria-label="Menu ứng dụng">
       <button type="button" className="drawer-close" aria-label="Đóng menu" onClick={() => setDrawerOpen(false)}>×</button>
       <div>

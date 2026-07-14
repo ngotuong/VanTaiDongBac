@@ -17,5 +17,14 @@ test('D1 removes the temporary C2 presentation route while retaining documented 
 test('C3 golden shell keeps navigation client-driven without data-heavy Link prefetch', () => {
   const navigation = read('next-shell/components/platform/ShellNavigation.tsx');
   assert.match(navigation, /router\.push\(href\)/);
+  assert.match(navigation, /router\.prefetch\(href\)/);
+  assert.match(navigation, /onPointerEnter=.*prepare/);
   assert.doesNotMatch(navigation, /<Link|prefetch=/);
+});
+
+test('C3 route loading boundary uses visible C2 skeleton feedback', () => {
+  const loading = read('app/loading.jsx');
+  assert.match(loading, /className="view active c3-route-loading"/);
+  assert.match(loading, /aria-busy="true"/);
+  assert.match(loading, /shimmer-table/);
 });

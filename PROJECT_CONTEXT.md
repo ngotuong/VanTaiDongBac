@@ -113,8 +113,9 @@ Trạng thái: **IN PROGRESS ngày 2026-07-14; Shell/Login/Dashboard/Report đã
 - Baseline/matrix: `docs/quality/C3_GOLDEN_MASTER.md`, `docs/quality/C3_PARITY_MATRIX.md`.
 - Dashboard correction `dpl_6gdxkLwGnXperukyRtre3iqCTmuz` đã được người dùng phê duyệt; Login/Auth, Shell/Nav và Dashboard là `USER_APPROVED`.
 - Người dùng đã phê duyệt Report và cho phép tiếp tục checkpoint ngày 2026-07-14; Report là `USER_APPROVED`.
-- Preview Manage/Entry: `https://vantaidongbac-c3-preview.vercel.app`, deployment READY `dpl_4n1fRoecZiXMhtc5hLPebqhY1KeP`. Candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`; không promote production.
-- Manage/Entry technical gate: 270/270 test, lint, typecheck, build, diff check; computed-style/screenshot QA mobile/desktop xác nhận font, tab/filter/card geometry, bảng cuộn nội bộ và không overflow document. Session không cookie 401, API health 200. Production vẫn là C2 recovery.
+- Preview Manage/Entry: `https://vantaidongbac-c3-preview.vercel.app`, correction READY `dpl_4hT1vCRx88R9LeG2dn716oC6yvV2`. Candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`; không promote production.
+- Người dùng phát hiện Manage không hiển thị dù route 200; nguyên nhân là root `.view` thiếu `.active`. Correction thêm state hiển thị, lazy-load catalog Entry khỏi critical path, loading shimmer C2 và targeted prefetch theo intent.
+- Manage/Entry correction gate: 271/271 test, lint, typecheck, build, diff check; session không cookie 401, API health 200. Production vẫn là C2 recovery. Chờ người dùng kiểm tra lại authenticated preview.
 - Thứ tự gate: Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability.
 - Mỗi module phải được người dùng duyệt riêng; D1 blocked.
 
@@ -241,7 +242,7 @@ Baseline hiện tại:
 - Dashboard golden 07/2026: 270.513.180 / 94.863.960 / 175.649.220 / 341.770.935 / -166.121.715.
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
 - Candidate Report `dpl_7ngtXhSgmejtggAh11TNthLUpn4T` đã READY tại `https://vantaidongbac-c3-preview.vercel.app`; chưa được người dùng phê duyệt. Candidate Preview cũ thiếu server env và không còn trên alias.
-- Gate candidate: 270/270 test, lint, typecheck, build, `git diff --check`, computed-style QA 390/1440; session unauthenticated trả đúng 401 và API health 200. Production vẫn resolve `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` và final `/legacy-index.html` trả 200.
+- Gate candidate: 271/271 test, lint, typecheck, build, `git diff --check`, computed-style QA mobile/desktop; session unauthenticated trả đúng 401 và API health 200. Production vẫn resolve `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

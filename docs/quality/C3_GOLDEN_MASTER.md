@@ -97,8 +97,9 @@ Người dùng đã phê duyệt tiếp tục checkpoint sau khi kiểm tra Repo
 - Entry dùng lại `entry-shell`, `form-list`, `form-tab`, `entry-row`, `fields`, `status` và `submit-bar` C2; giữ sáu schema form, multi-row, clone/add/remove, validation, pending/error và retry.
 - Sửa/xóa tiếp tục dùng contract `saveSheetRow`/`deleteSheetRow`, gửi row identity/dữ liệu trước; các cột công thức C2 không xuất hiện trong form sửa. Nhập mới tiếp tục dùng `submitRows` queue, kick worker và poll status; không đổi Sheet/schema/cột/công thức.
 - Technical gate ngày 2026-07-14: 270/270 test, lint, typecheck, build và `git diff --check` đạt. Computed-style/screenshot QA ở breakpoint mobile 500px và desktop 1440px xác nhận Plus Jakarta Sans, tab gap 4/8px, filter grid/flex đúng breakpoint, document không overflow và bảng 760px cuộn bên trong card trên mobile.
-- Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ deployment READY `dpl_4n1fRoecZiXMhtc5hLPebqhY1KeP`. Deployment dùng Production environment với `--skip-domain`; production `https://dongbac.vercel.app` vẫn trỏ C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. Smoke qua Vercel protection bypass: session không cookie trả 401, API health trả 200.
+- Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ correction READY `dpl_4hT1vCRx88R9LeG2dn716oC6yvV2`. Deployment dùng Production environment với `--skip-domain`; production `https://dongbac.vercel.app` vẫn trỏ C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. Smoke qua Vercel protection bypass: session không cookie trả 401, API health trả 200.
 - Manage/Entry ở `TECH_PASS`, chờ người dùng kiểm tra authenticated visual/chức năng trước khi nâng `USER_APPROVED`.
+- Regression gate bắt buộc: mọi root dùng class `.view` C2 phải đồng thời có `.active` hoặc state hiển thị tương đương. Dữ liệu phụ như catalog Entry không được nằm trên critical render path của Manage; navigation phải có loading feedback và chỉ prefetch destination có intent, không prefetch đồng loạt.
 
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 

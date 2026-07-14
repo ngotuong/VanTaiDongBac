@@ -79,7 +79,7 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | B7 | Migrate Accounts, Settings và Observability | DONE | A2 |
 | C1 | Cutover `/` sang Next.js | DONE | B1–B7 |
 | C2 | Ổn định production và xác nhận rollback | DONE | C1 |
-| C3 | Next visual parity và controlled cut-forward | DONE | C2 + phê duyệt người dùng |
+| C3 | Next visual parity và controlled cut-forward | REOPENED — preview chờ duyệt | C2 + phê duyệt người dùng |
 | D1 | Xóa legacy frontend/HtmlService presentation | BLOCKED | C3 + thời gian ổn định |
 
 Kế hoạch hiện có **13 checkpoint**. C3 được thêm sau regression C2 chứng minh recovery production và cut forward UI không thể deploy/rollback an toàn trong cùng một change set. Chỉ được chia thêm checkpoint nếu audit trước implementation chứng minh không thể deploy/rollback an toàn trong một change set. Mọi split phải cập nhật bảng này và `PROJECT_CONTEXT.md`, không tạo chuỗi step mở không có điểm kết thúc.
@@ -226,7 +226,9 @@ Preview rework đầu tiên là `dpl_EBhjxjJTGJ1ypm9VBHRCQ8fqAkL7` (`https://van
 
 Sau phản hồi preview đầu tiên vẫn khác và thiếu chức năng, candidate đã được dựng lại ngày 2026-07-14 với `dongbac.vercel.app`/C2 là đặc tả duy nhất, không dùng design recommendation để đổi phong cách. Deployment `dpl_AHQoJpQEKuDmRz6UtT6UhSfpZWgJ` bổ sung stylesheet parity C2 riêng, giữ font/logo/icon và kích thước desktop/mobile, khôi phục mở Google Sheet, xuất ảnh Dashboard/Report/Thu chi, nút Nhập mới và Sửa/Xóa Vận hành theo RBAC/queue an toàn. Health đạt 200; 268/268 test, lint, typecheck, build và `git diff --check` pass.
 
-Người dùng phê duyệt tiếp tục và cut-forward ngày 2026-07-14. Alias `https://dongbac.vercel.app` đã chuyển sang deployment trên; root Next 200, DOM LoginGate đúng, health 200 và sáu route chính đạt 200 sau canonical redirect. Recovery C2 vẫn được giữ nguyên. C3 đóng `DONE`; D1 tiếp tục `BLOCKED` cho đến khi có thời gian ổn định và phê duyệt riêng.
+Người dùng từng phê duyệt cut-forward ngày 2026-07-14, nhưng sau đó từ chối kết quả vì UI/UX vẫn khác C2. Alias `https://dongbac.vercel.app` đã rollback về recovery C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; C3 mở lại và D1 tiếp tục `BLOCKED`.
+
+Candidate mới `dpl_3yqJm7uioak8cHvdP2pDEro78dUE` tại `https://vantaidongbac-c3-preview.vercel.app` dùng stylesheet C2 nguyên bản từ tree `73a0ede` và port component sang đúng class/phân cấp C2 thay vì phủ CSS lên redesign. 268/268 test, lint, typecheck, build và `git diff --check` pass; root/LoginGate và health đạt 200 qua deployment smoke. Candidate chưa cut-forward, còn chờ người dùng kiểm tra authenticated Desktop/Mobile.
 
 ## 9. Phase D — Legacy removal
 

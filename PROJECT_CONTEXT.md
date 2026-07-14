@@ -52,8 +52,8 @@ Các surface người dùng hiện có:
 
 ```text
 Browser
-  └─ /                         -> Next.js App Router -> Dashboard/auth gate
-  └─ Next module routes        -> presentation production chính
+  └─ dongbac.vercel.app        -> C2 recovery presentation (production)
+  └─ C3 preview                -> Next.js App Router -> Dashboard/auth gate
           ↓
 Vercel /api/app
   - xác thực Supabase session
@@ -81,11 +81,12 @@ Vai trò dữ liệu hiện tại:
 - Next.js `16.2.10`, React `19.2.7`.
 - Source route/component tiếp tục nằm trong `next-shell/`; root `app/` là Vercel App Router entrypoint mỏng.
 - `next.config.mjs` không còn `basePath` và không dùng `output: 'export'`; App Router phục vụ trực tiếp tại `/`.
-- Vercel production đã cut-forward C3 sang `dpl_AHQoJpQEKuDmRz6UtT6UhSfpZWgJ`; `/` được render trực tiếp bởi Next.js App Router với presentation parity theo recovery C2.
+- Production alias `https://dongbac.vercel.app` đã rollback về recovery C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` ngày 2026-07-14 sau khi người dùng từ chối visual parity của candidate `dpl_AHQoJpQEKuDmRz6UtT6UhSfpZWgJ`.
+- C3 preview Next.js mới là `dpl_3yqJm7uioak8cHvdP2pDEro78dUE` tại `https://vantaidongbac-c3-preview.vercel.app`; chưa cut-forward và còn chờ authenticated visual acceptance.
 - Root layout server-render auth/workbook context; chưa đăng nhập render LoginGate cùng-origin, đăng nhập tạo HttpOnly cookie qua `/api/session`.
-- Route `/reports/`, `/dashboard/`, `/manage/`, `/entry/`, `/catalog/`, `/cashflow/`, `/settings/` và `/observability/` là các frontend Next production độc lập.
+- Route `/reports/`, `/dashboard/`, `/manage/`, `/entry/`, `/catalog/`, `/cashflow/`, `/settings/` và `/observability/` là các frontend Next độc lập trên candidate preview.
 - Recovery C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` và legacy C1 vẫn được giữ nguyên làm rollback presentation.
-- Production C3 vẫn dùng Apps Script recovery `@281`; Apps Script API-only `@282` và Vercel D1 được giữ nhưng không nằm trên alias production.
+- Production C2 và C3 preview đều dùng Apps Script recovery `@281`; Apps Script API-only `@282` và Vercel D1 được giữ nhưng không nằm trên alias production.
 
 ### 3.3. Luồng Report hiện tại
 
@@ -105,14 +106,14 @@ Dashboard B2, Manage B3, Catalog B5 và Cashflow B6 giữ cache/fallback hiện 
 
 ### Phase C3 — Next visual parity và controlled cut-forward
 
-Trạng thái: **DONE ngày 2026-07-14; được người dùng phê duyệt cut-forward**.
+Trạng thái: **REOPENED; candidate mới đã deploy preview, chờ người dùng phê duyệt trực quan**.
 
-- Production alias `https://dongbac.vercel.app` trỏ tới `dpl_AHQoJpQEKuDmRz6UtT6UhSfpZWgJ` (`vantaidongbac-mrzm3i3bd-ngotuong2105.vercel.app`).
-- Root được render bởi Next.js App Router, không còn redirect `/legacy-index.html`; presentation lấy C2 production làm đặc tả về font, logo/icon, shell, navigation, Dashboard và responsive.
-- Khôi phục các hành vi C2 bị thiếu: mở Google Sheet, xuất ảnh Dashboard/Report/Thu chi, Nhập mới và Sửa/Xóa Vận hành theo RBAC/queue an toàn.
-- Cut-forward smoke: root 200 và DOM LoginGate đúng; health 200; Dashboard, Report, Manage, Catalog, Cashflow và Settings đều đạt HTTP 200 sau canonical redirect.
-- Verification source đạt 268/268 test, lint, typecheck, build và `git diff --check`; commit `141e876` đã push.
-- Recovery C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn nguyên vẹn làm rollback; chưa xóa legacy hoặc bắt đầu lại D1.
+- Candidate `dpl_AHQoJpQEKuDmRz6UtT6UhSfpZWgJ` bị người dùng từ chối ngày 2026-07-14 vì UI/UX không giống C2; production được rollback ngay về `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`.
+- Candidate mới `dpl_3yqJm7uioak8cHvdP2pDEro78dUE` port stylesheet C2 nguyên bản từ tree `73a0ede`, dùng đúng Plus Jakarta Sans, logo/icon, shell/sidebar/bottom nav, topbar, Dashboard, tab/filter/table/card và presentation Settings/Quỹ.
+- DOM/component Next được gắn lại theo class và phân cấp C2; không dùng design recommendation để đổi phong cách. API, RBAC, workbook boundary, queue và source of truth không đổi.
+- Preview alias: `https://vantaidongbac-c3-preview.vercel.app`; preview có Vercel Deployment Protection và chưa được gán production domain.
+- Verification source đạt 268/268 test, lint, typecheck, build và `git diff --check`; preview root/LoginGate và health đạt HTTP 200 qua authenticated deployment smoke.
+- Production vẫn là C2 recovery; D1 tiếp tục blocked.
 
 ### Attempt D1 — đã rollback, không được chấp nhận
 
@@ -176,11 +177,11 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### Phase D1 — Legacy removal sau thời gian ổn định
+### Phase C3 — Authenticated visual acceptance và quyết định cut-forward
 
-Trạng thái: **BLOCKED/CHƯA ĐƯỢC PHÊ DUYỆT LẠI**.
+Trạng thái: **CHỜ PHÊ DUYỆT**.
 
-C3 đã cut-forward thành công nhưng D1 không tự động tiếp tục. Trước khi xóa presentation legacy cần thời gian theo dõi production, representative role smoke và phê duyệt checkpoint riêng. Trong thời gian này giữ recovery C2, legacy C1 và Apps Script `@281` làm rollback.
+Người dùng cần đăng nhập preview mới, đối chiếu các màn Desktop/Mobile với `dongbac.vercel.app` và xác nhận trực tiếp. Chỉ sau phê duyệt mới được gán production alias. D1 không tự động tiếp tục và vẫn bị khóa.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -217,30 +218,30 @@ Google Sheets source of truth / Supabase read model, cache, queue
 
 Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_PLAN.md`. Kiến trúc đích tổng quát thuộc `TARGET_ARCHITECTURE.md`.
 
-## 7. Rủi ro và điều kiện trước D1
+## 7. Rủi ro và điều kiện trước cut-forward C3
 
 Các điều kiện bắt buộc:
 
-1. **Role coverage**: admin đã smoke production; operator/shareholder có contract/unit gate nhưng chưa có representative production smoke.
+1. **Visual acceptance**: Browser smoke tự động không có session người dùng trên preview; cần người dùng kiểm tra authenticated Desktop/Mobile.
 2. **Rollback**: giữ recovery C2, legacy C1 và Apps Script `@281`; không xóa trước khi production Next ổn định.
 3. **PWA/cache cũ**: tiếp tục theo dõi client đã cài PWA/service worker legacy và cache path cũ.
 4. **Runtime warning**: Vercel Node 24 có thể ghi `DEP0169 url.parse()` trên `/api/app/` dù HTTP 200; source project không có call site trực tiếp.
 5. **Dữ liệu**: mọi thay đổi Google Sheet/Supabase schema phải là migration riêng được phê duyệt; Google Sheets vẫn là source of truth.
-6. **Visual gate**: tiếp tục theo dõi phản hồi thực tế sau cut-forward; rollback ngay nếu presentation/function parity sai nghiêm trọng.
-7. **D1 gate**: không xóa legacy source/deployment cho đến khi có thời gian ổn định và phê duyệt checkpoint riêng.
+6. **Visual gate**: không cut-forward nếu bất kỳ màn hình hoặc chức năng C2 quan trọng nào còn khác ngoài các căn chỉnh nhỏ đã được yêu cầu.
+7. **D1 gate**: không xóa legacy source/deployment; D1 chỉ được xem xét sau C3 được chấp thuận và ổn định.
 
 Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 ## 8. Verification baseline hiện tại
 
-Baseline production sau C3 cut-forward đã xác nhận:
+Baseline hiện tại sau rollback production và deploy C3 preview:
 
 - `npm test`: 268/268 pass.
 - `npm run lint`, `npm run typecheck`, `npm run build` và `git diff --check`: pass.
-- Production `/`: 200 từ Next.js App Router; DOM xác nhận LoginGate, logo và Plus Jakarta Sans, không còn legacy redirect.
+- Production `/`: 307 tới `/legacy-index.html` và final C2 shell 200.
 - `/api/app/?action=health`: 200 qua recovery C2/Apps Script `@281`.
-- Production deployment hiện tại: `dpl_AHQoJpQEKuDmRz6UtT6UhSfpZWgJ`; recovery C2: `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; D1 cũ: `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9`; legacy C1: `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS`.
-- Root, health và sáu route chính đạt HTTP 200; không chạy account/business write, retry hoặc worker trong cut-forward smoke.
+- Production hiện tại/recovery C2: `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; C3 preview mới: `dpl_3yqJm7uioak8cHvdP2pDEro78dUE`; candidate bị từ chối: `dpl_AHQoJpQEKuDmRz6UtT6UhSfpZWgJ`; D1 cũ: `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9`.
+- Preview root/LoginGate và health đạt 200 qua Vercel authenticated curl; không chạy account/business write, retry hoặc worker.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

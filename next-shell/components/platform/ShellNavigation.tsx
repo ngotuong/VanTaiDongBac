@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import type { AppRole } from '../../lib/platform/types';
 
 type NavigationIcon = 'home' | 'reports' | 'manage' | 'catalog' | 'cashflow' | 'settings';
@@ -19,14 +19,15 @@ function NavIcon({ icon }: { icon: NavigationIcon }) {
 
 export function ShellNavigation({ items, role, mode = 'side', onNavigate }: { items: NavigationItem[]; role: AppRole; mode?: 'side' | 'bottom'; onNavigate?: () => void }) {
   const pathname = usePathname();
+  const router = useRouter();
   const visible = items.filter((item) => (mode === 'bottom' ? item.bottomRoles : item.roles).includes(role));
-  return <nav className={mode === 'bottom' ? 'platform-bottom-nav' : 'platform-nav'} aria-label={mode === 'bottom' ? 'Điều hướng nhanh' : 'Điều hướng chính'}>
+  return <nav className={mode === 'bottom' ? 'bottom-nav' : 'nav-stack'} aria-label={mode === 'bottom' ? 'Điều hướng nhanh' : 'Điều hướng chính'}>
     {visible.map((item) => {
       const active = pathname === item.href || pathname?.endsWith(`${item.href}/`) || Boolean(item.aliases?.includes(pathname || ''));
-      return <Link key={item.href} href={item.href} prefetch={false} className="platform-nav-link" aria-current={active ? 'page' : undefined} aria-label={item.label} onClick={onNavigate}>
-        <span className="platform-nav-icon"><NavIcon icon={item.icon} /></span>
-        <span>{item.label}</span>
-      </Link>;
+      return <button key={item.href} type="button" className={`${mode === 'side' ? 'nav-btn' : ''}${active ? ' active' : ''}`} aria-current={active ? 'page' : undefined} aria-label={item.label} onClick={() => { onNavigate?.(); router.push(item.href); }}>
+        <span className="nav-ico"><NavIcon icon={item.icon} /></span>
+        <span className="nav-main">{item.label}</span>
+      </button>;
     })}
   </nav>;
 }

@@ -49,12 +49,12 @@ function ReportTable({ type, matrix, query }: { type: ReportType; matrix: Report
   const normalized = query.trim().toLocaleLowerCase('vi-VN');
   const visible = normalized ? body.filter((row) => row.join(' ').toLocaleLowerCase('vi-VN').includes(normalized)) : body;
   const exportImage = () => void exportCardAsImage(card.current, type).catch((error) => window.alert(error instanceof Error ? error.message : String(error)));
-  return <section className="report-module-card" ref={card} aria-labelledby={`report-title-${type}`}>
-    <div className="report-module-card-head">
+  return <section className="table-card report-module-card" ref={card} aria-labelledby={`report-title-${type}`}>
+    <div className="table-card-head report-module-card-head">
       <div><h2 id={`report-title-${type}`}>{LABELS[type]}</h2><p>{visible.length} dòng hiển thị</p></div>
       <button type="button" className="c2-image-export" title="Xuất ảnh" aria-label={`Xuất ảnh ${LABELS[type]}`} onClick={exportImage} disabled={!head.length}><ImageExportIcon /></button>
     </div>
-    <div className="report-module-table-wrap" tabIndex={0} aria-label={`${LABELS[type]} — cuộn ngang để xem đủ cột`}>
+    <div className="table-wrap report-module-table-wrap" tabIndex={0} aria-label={`${LABELS[type]} — cuộn ngang để xem đủ cột`}>
       <table><thead><tr>{head.map((cell, index) => <th scope="col" key={index}>{String(cell ?? '')}</th>)}</tr></thead>
         <tbody>{visible.length ? visible.map((row, rowIndex) => <tr key={rowIndex}>{head.map((_, index) => <td key={index}>{String(row?.[index] ?? '')}</td>)}</tr>) : <tr><td colSpan={Math.max(1, head.length)} className="report-module-empty">Không có dữ liệu phù hợp với bộ lọc.</td></tr>}</tbody>
       </table>
@@ -92,22 +92,22 @@ export function ReportModule({ initialBundle, initialError = '' }: { initialBund
   };
 
   return <section className="report-module" data-next-report="true" aria-labelledby="report-page-title">
-    <header className="report-module-header">
+    <header className="react-module-heading report-module-header">
       <div><p className="platform-eyebrow">VẬN TẢI · {context.workbook.year}</p><h1 id="report-page-title">Báo cáo</h1><p className="report-module-status" role="status" aria-live="polite">{error || status}</p></div>
       <button type="button" className="report-module-secondary" data-shell-refresh onClick={() => load(month, true)} disabled={loading}>{loading ? 'Đang tải…' : 'Làm mới'}</button>
     </header>
 
-    <div className="report-module-tabs" role="tablist" aria-label="Loại báo cáo">
-      {TABS.map(([type, label]) => <button type="button" role="tab" aria-selected={tab === type} className={tab === type ? 'active' : ''} onClick={() => setTab(type)} key={type}>{label}</button>)}
+    <div className="sub-tabs-bar app-sticky-tabs report-module-tabs" role="tablist" aria-label="Loại báo cáo">
+      {TABS.map(([type, label]) => <button type="button" role="tab" aria-selected={tab === type} className={`sub-tab${tab === type ? ' active' : ''}`} onClick={() => setTab(type)} key={type}>{label}</button>)}
     </div>
 
-    <div className="report-module-filters">
+    <div className="panel report-filter-panel app-sticky-toolbar sticky-after-tabs report-module-filters">
       <label><span>Tìm trong báo cáo</span><input type="search" value={query} placeholder="Tìm xe, tài xế…" onChange={(event) => setQuery(event.target.value)} /></label>
       <label><span>Kỳ báo cáo</span><select value={month} disabled={loading} onChange={(event) => load(event.target.value)}><option value="latest">Tháng gần nhất</option><option value="Tất cả">Tất cả</option>{months.filter((item) => item !== 'Tất cả').map((item) => <option value={item} key={item}>{item}</option>)}</select></label>
     </div>
 
     {error && !bundle ? <div className="report-module-error" role="alert"><h2>Không tải được báo cáo</h2><p>{error}</p><button type="button" onClick={() => load(month)} disabled={loading}>Thử lại</button></div> : null}
     {loading && !bundle ? <div className="report-module-skeleton" aria-busy="true" aria-label="Đang tải báo cáo"><span /><span /><span /></div> : null}
-    {bundle ? <div className="report-module-stack">{visibleTypes.map((type) => <ReportTable type={type} matrix={matrices[type]} query={query} key={type} />)}</div> : null}
+    {bundle ? <div className="report-stack report-module-stack">{visibleTypes.map((type) => <ReportTable type={type} matrix={matrices[type]} query={query} key={type} />)}</div> : null}
   </section>;
 }

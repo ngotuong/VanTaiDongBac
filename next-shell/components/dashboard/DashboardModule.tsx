@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import type { DashboardBundle, DashboardDataResponse, DashboardTrip } from '../../lib/platform/dashboard-types';
 import type { ReportCell, ReportMatrix } from '../../lib/platform/report-types';
 import { exportCardAsImage, ImageExportIcon } from '../../lib/platform/export-card';
@@ -29,6 +28,13 @@ function parseRows(matrix?: ReportMatrix): MonthRow[] {
   }).filter((row) => row.month && row.month !== 'Tháng');
 }
 
+function moneyParts(value: number) {
+  const abs = Math.abs(value);
+  const signed = value < 0 ? '-' : '';
+  if (abs >= 1e9) return { value: signed + (abs / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 1 }), unit: 'tỷ' };
+  if (abs >= 1e6) return { value: signed + (abs / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 0 }), unit: 'triệu' };
+  return { value: value.toLocaleString('vi-VN'), unit: 'đ' };
+}
 const currency = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value);
 function shortMoney(value: number) {
   const abs = Math.abs(value);
@@ -47,8 +53,17 @@ async function requestDashboard(): Promise<DashboardDataResponse> {
   return payload;
 }
 
+function KpiIcon({ tone, kind }: { tone: string; kind: number }) {
+  return <div className={`kpi-icon-badge ${tone}`}>
+    {kind === 0 ? <svg className="btn-svg" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> : null}
+    {kind === 1 ? <svg className="btn-svg" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> : null}
+    {kind === 2 ? <svg className="btn-svg" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> : null}
+    {kind === 3 ? <svg className="btn-svg" viewBox="0 0 24 24"><path d="M3 6h18v12H3z"/><path d="M7 10h.01M17 14h.01M12 12a2 2 0 1 0 0 .01"/></svg> : null}
+    {kind === 4 ? <svg className="btn-svg" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> : null}
+  </div>;
+}
+
 export function DashboardModule({ initialDashboard, initialError = '' }: { initialDashboard: DashboardBundle | null; initialError?: string }) {
-  const context = useWorkbookContext();
   const [dashboard, setDashboard] = useState(initialDashboard);
   const [selectedMonth, setSelectedMonth] = useState('latest');
   const [loading, setLoading] = useState(false);
@@ -56,14 +71,19 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
   const latestTripsCard = useRef<HTMLElement>(null);
   const summaryCard = useRef<HTMLElement>(null);
   const rows = useMemo(() => parseRows(dashboard?.overview?.months), [dashboard]);
-  const selected = selectedMonth === 'latest' ? rows.at(-1) : rows.find((row) => row.month === selectedMonth);
+  const selectedIndex = selectedMonth === 'latest' ? rows.length - 1 : rows.findIndex((row) => row.month === selectedMonth);
+  const selected = rows[selectedIndex];
+  const previous = selectedIndex > 0 ? rows[selectedIndex - 1] : null;
   const trips = dashboard?.latestTrips?.trips || [];
-  const maxProfit = Math.max(...rows.slice(-12).map((row) => Math.abs(row.final)), 1);
-  const source = dashboard?.supabaseCached ? 'Supabase cache' : 'Apps Script';
+  const chartRows = rows.slice(-12);
+  const chartStep = 500_000_000;
+  const chartMax = Math.max(chartStep, Math.ceil(Math.max(...chartRows.map((row) => Math.abs(row.final)), 1) / chartStep) * chartStep);
+  const ticks = Array.from({ length: Math.floor(chartMax / chartStep) + 1 }, (_, index) => chartMax - index * chartStep);
   const metrics = selected ? [
     ['Tổng doanh thu', selected.revenue, 'blue'], ['Chi phí vận hành', selected.operatingCost, 'red'], ['Lợi nhuận gộp', selected.gross, 'amber'],
-    ['Chi phí sau vận hành', selected.cashCost, 'red'], ['Lợi nhuận thực tế', selected.final, 'green']
+    ['Chi phí sau vận hành', selected.cashCost, 'red'], ['Lợi nhuận thực tế', selected.final, selected.final >= 0 ? 'green' : 'red']
   ] as const : [];
+  const time = dashboard?.updatedAt?.split(' ')[1] || '';
 
   const refresh = async () => {
     setLoading(true); setError('');
@@ -71,32 +91,75 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
     catch (loadError) { setError(loadError instanceof Error ? loadError.message : String(loadError)); }
     finally { setLoading(false); }
   };
-
   const exportImage = async (card: HTMLElement | null, name: string) => {
     setError('');
     try { await exportCardAsImage(card, name); }
     catch (exportError) { setError(exportError instanceof Error ? exportError.message : String(exportError)); }
   };
+  const growth = (value: number, oldValue: number | undefined, invert = false) => {
+    if (!oldValue) return { text: '-', tone: 'ok' };
+    const pct = (value - oldValue) / Math.abs(oldValue) * 100;
+    const good = invert ? pct <= 0 : pct >= 0;
+    return { text: `${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`, tone: good ? 'ok' : 'err' };
+  };
 
-  return <section className="dashboard-module" data-next-dashboard="true" aria-labelledby="dashboard-page-title">
-    <header className="dashboard-module-header">
-      <div><p className="platform-eyebrow">VẬN TẢI · {context.workbook.year}</p><h1 id="dashboard-page-title">Tổng quan</h1><p className="dashboard-module-status" role="status" aria-live="polite">{error || (dashboard ? `Nguồn: ${source}${dashboard.updatedAt ? ` · cập nhật ${dashboard.updatedAt}` : ''}` : '')}</p></div>
-      <button type="button" className="dashboard-module-button" data-shell-refresh onClick={refresh} disabled={loading}>{loading ? 'Đang tải…' : 'Làm mới'}</button>
-    </header>
-    {error && !dashboard ? <div className="dashboard-module-error" role="alert"><h2>Không tải được tổng quan</h2><p>{error}</p><button type="button" onClick={refresh} disabled={loading}>Thử lại</button></div> : null}
-    {loading && !dashboard ? <div className="dashboard-module-skeleton" aria-busy="true" aria-label="Đang tải tổng quan"><span /><span /><span /></div> : null}
-    {dashboard ? <>
-      <div className="dashboard-module-filter"><strong>Tháng</strong><label><span className="platform-visually-hidden">Kỳ hiển thị</span><select aria-label="Kỳ hiển thị" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}><option value="latest">Tháng gần nhất</option>{rows.map((row) => <option value={row.month} key={row.month}>{row.month}</option>)}</select></label></div>
-      {selected ? <div className="dashboard-module-kpis">{metrics.map(([label, value, tone]) => <article className={`dashboard-kpi-${tone}`} key={label}><header><span>{label}</span><i aria-hidden="true" /></header><strong>{currency(value)}</strong><small>{selected.month}</small></article>)}</div> : <div className="dashboard-module-empty">Chưa có dữ liệu KPI.</div>}
-      <section className="dashboard-module-card" aria-labelledby="profit-chart-title"><div className="dashboard-module-card-head"><div><h2 id="profit-chart-title">Lợi nhuận thực tế</h2><p>12 kỳ gần nhất</p></div></div>
-        {rows.length ? <div className="dashboard-profit-chart" role="img" aria-label="Biểu đồ lợi nhuận thực tế theo tháng">{rows.slice(-12).map((row) => <div className="dashboard-profit-column" key={row.month}><strong>{shortMoney(row.final)}</strong><span className={row.final < 0 ? 'negative' : ''} style={{ height: `${Math.max(4, Math.abs(row.final) / maxProfit * 132)}px` }} title={`${row.month}: ${currency(row.final)}`} /><small>{row.month}</small></div>)}</div> : <div className="dashboard-module-empty">Chưa có dữ liệu lợi nhuận.</div>}
-      </section>
-      <section className="dashboard-module-card" ref={latestTripsCard} aria-labelledby="latest-trips-title"><div className="dashboard-module-card-head"><div><h2 id="latest-trips-title">Dữ liệu chuyến gần đây <span>{dashboard.latestTrips?.date || ''}</span></h2></div><div className="dashboard-card-actions"><strong>{totalTrips(trips).toLocaleString('vi-VN')} chuyến</strong><button type="button" className="c2-image-export" title="Xuất ảnh" aria-label="Xuất ảnh dữ liệu chuyến gần đây" onClick={() => void exportImage(latestTripsCard.current, 'SoChuyenXe')}><ImageExportIcon /></button></div></div>
-        <div className="dashboard-module-table-wrap" tabIndex={0} aria-label="Dữ liệu chuyến gần đây — cuộn ngang để xem đủ cột"><table><thead><tr><th scope="col">Dự án</th><th scope="col">Biển số xe</th><th scope="col">Số chuyến</th><th scope="col">Số phiếu</th></tr></thead><tbody>{trips.length ? trips.map((trip, index) => <tr key={`${trip.project}-${trip.vehicle}-${index}`}><td>{trip.project || '-'}</td><td>{trip.vehicle || '-'}</td><td>{Number(trip.count || 0).toLocaleString('vi-VN')}</td><td>{trip.ticket || '-'}</td></tr>) : <tr><td colSpan={4} className="dashboard-module-empty">Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>}</tbody></table></div>
-      </section>
-      <section className="dashboard-module-card" ref={summaryCard} aria-labelledby="summary-title"><div className="dashboard-module-card-head"><div><h2 id="summary-title">Kết quả kinh doanh theo tháng</h2></div><button type="button" className="c2-image-export" title="Xuất ảnh" aria-label="Xuất ảnh kết quả kinh doanh" onClick={() => void exportImage(summaryCard.current, 'TongQuan')}><ImageExportIcon /></button></div>
-        <div className="dashboard-module-table-wrap" tabIndex={0} aria-label="Kết quả kinh doanh — cuộn ngang để xem đủ cột"><table><thead><tr>{['Tháng','Tổng khối lượng','Tổng doanh thu','Thuế TNDN','Thuế VAT','Dầu Quang Minh','Dầu đổ ngoài','Phí đường bộ','Lợi nhuận gộp','Chi quỹ thực tế','Lợi nhuận thực'].map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row) => <tr key={row.month}>{Array.from({ length: 11 }, (_, index) => <td key={index}>{index === 8 ? currency(row.gross) : String(row.raw[index] ?? '')}</td>)}</tr>) : <tr><td colSpan={11} className="dashboard-module-empty">Chưa có dữ liệu báo cáo tài chính.</td></tr>}</tbody></table></div>
-      </section>
-    </> : null}
-  </section>;
+  return <div id="dashboardLegacyRoot">
+    <button type="button" data-shell-refresh onClick={refresh} hidden aria-hidden="true" />
+    <span className="platform-visually-hidden" role="status" aria-live="polite">{loading ? 'Đang tải tổng quan' : 'Tổng quan đã sẵn sàng'}</span>
+    {loading && !dashboard ? <div className="platform-visually-hidden" aria-busy="true">Đang tải dữ liệu</div> : null}
+    <div className="panel dashboard-month-filter">
+      <div className="dashboard-month-filter-title"><svg className="btn-svg" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Tháng</div>
+      <select aria-label="Kỳ hiển thị" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>
+        <option value="latest">Tháng gần nhất</option>{rows.map((row) => <option value={row.month} key={row.month}>{row.month}</option>)}
+      </select>
+    </div>
+
+    {error ? <div className="sync-toast show error" role="alert">{error}</div> : null}
+    <div className="kpi-grid" id="metrics">
+      {loading && !dashboard ? Array.from({ length: 5 }, (_, index) => <article className="kpi-card" key={index}><div className="shimmer shimmer-text"/><div className="shimmer shimmer-value"/></article>) : null}
+      {metrics.map(([label, value, tone], index) => {
+        const parts = moneyParts(value);
+        const old = previous ? [previous.revenue, previous.operatingCost, previous.gross, previous.cashCost, previous.final][index] : undefined;
+        const delta = growth(value, old, index === 1 || index === 3);
+        return <article className="kpi-card" key={label}>
+          <div className="kpi-card-header"><div className="kpi-label">{label}</div><KpiIcon tone={tone} kind={index}/></div>
+          <div className={`kpi-value ${tone}`}>{parts.value} <span className="unit">{parts.unit}</span></div>
+          <div className="kpi-card-footer"><div className={`kpi-status ${delta.tone}`}><span>{delta.text}</span></div><div className="kpi-time">{time}</div></div>
+        </article>;
+      })}
+    </div>
+
+    <section className="panel dashboard-profit-panel">
+      <div className="panel-head"><div><h2 className="panel-title">Biểu đồ lợi nhuận thực tế</h2><div className="panel-note">Dữ liệu được cập nhật tự động từ BC_TongQuan</div></div></div>
+      <div className="panel-body"><div className="chart" id="profitChart">
+        {chartRows.length ? <div className="chart-wrapper">
+          <div className="chart-y-axis">{ticks.map((tick) => <div key={tick}>{shortMoney(tick)}</div>)}</div>
+          <div className="chart-area">
+            <div className="chart-grid-lines">{ticks.map((tick) => <div className={tick === 0 ? 'zero' : ''} key={tick}/>)}</div>
+            <div className="chart-v">{chartRows.map((row) => <div className="chart-col" key={row.month}>
+              <div className="bar-value">{currency(row.final)}</div>
+              <div className="bar-track-v"><div className={`bar-fill-v${row.final < 0 ? ' negative' : ''}`} style={{ height: `${Math.max(2, Math.round(Math.abs(row.final) / chartMax * 100))}%` }}/></div>
+              <div className="bar-label">{row.month}</div>
+            </div>)}</div>
+          </div>
+        </div> : <div className="panel-note">Chưa có dữ liệu báo cáo lợi nhuận.</div>}
+      </div></div>
+    </section>
+
+    <section className="panel table-card dashboard-table-card" ref={latestTripsCard}>
+      <div className="table-card-head"><div><div className="table-title">Dữ liệu chuyến gần đây <span className="dashboard-table-date">{dashboard?.latestTrips?.date || ''}</span></div></div>
+        <div className="dashboard-card-actions"><span className="dashboard-trip-total">{totalTrips(trips).toLocaleString('vi-VN')} chuyến</span><button type="button" className="sub-tab dashboard-image-export" title="Xuất ảnh" aria-label="Xuất ảnh dữ liệu chuyến gần đây" onClick={() => void exportImage(latestTripsCard.current, 'SoChuyenXe')}><ImageExportIcon /></button></div>
+      </div>
+      <div className="table-wrap"><table><thead><tr><th style={{ width: '28%' }}>Dự án</th><th style={{ width: '26%' }}>Biển số xe</th><th style={{ width: '20%' }}>Số chuyến chạy</th><th style={{ width: '26%' }}>Số phiếu</th></tr></thead>
+        <tbody>{trips.length ? trips.map((trip, index) => <tr key={`${trip.project}-${trip.vehicle}-${index}`}><td>{trip.project || '-'}</td><td>{trip.vehicle || '-'}</td><td>{Number(trip.count || 0).toLocaleString('vi-VN')}</td><td>{trip.ticket || '-'}</td></tr>) : <tr><td colSpan={4} className="dashboard-empty-cell">Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>}</tbody>
+      </table></div>
+    </section>
+
+    <section className="panel table-card dashboard-table-card" ref={summaryCard}>
+      <div className="table-card-head"><div className="table-title">Kết quả kinh doanh theo tháng</div><button type="button" className="sub-tab dashboard-image-export" title="Xuất ảnh" aria-label="Xuất ảnh kết quả kinh doanh" onClick={() => void exportImage(summaryCard.current, 'TongQuan')}><ImageExportIcon /></button></div>
+      <div className="table-wrap"><table><thead><tr>{['Tháng','Tổng khối lượng','Tổng doanh thu','Thuế TNDN','Thuế VAT','Dầu Quang Minh','Dầu đổ ngoài','Phí đường bộ','Lợi nhuận gộp','Chi quỹ thực tế','Lợi nhuận thực'].map((label) => <th key={label}>{label}</th>)}</tr></thead>
+        <tbody>{rows.length ? rows.map((row) => <tr key={row.month}>{Array.from({ length: 11 }, (_, index) => <td key={index}>{index === 8 ? currency(row.gross) : String(row.raw[index] ?? '')}</td>)}</tr>) : <tr><td colSpan={11} className="dashboard-empty-cell">Chưa có dữ liệu báo cáo tài chính.</td></tr>}</tbody>
+      </table></div>
+    </section>
+  </div>;
 }

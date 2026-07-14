@@ -15,6 +15,8 @@ test('D1 removes the temporary C2 presentation route while retaining documented 
 });
 
 test('C2 recovery disables data-heavy navigation prefetch', () => {
-  assert.match(read('next-shell/components/platform/ShellNavigation.tsx'), /prefetch=\{false\}/);
-  assert.match(read('next-shell/components/platform/AppShell.tsx'), /prefetch=\{false\}/);
+  const navigation = read('next-shell/components/platform/ShellNavigation.tsx');
+  assert.doesNotMatch(navigation, /<Link|prefetch=\{true\}/);
+  assert.match(navigation, /router\.push\(item\.href\)/);
+  assert.doesNotMatch(read('next-shell/components/platform/AppShell.tsx'), /prefetch=\{true\}/);
 });

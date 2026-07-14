@@ -124,15 +124,15 @@ export function SettingsModule() {
     catch { report('Không thể tự sao chép. Hãy chọn và sao chép thủ công.', true); }
   };
 
-  return <section className="b7-module">
-    <header className="b7-header">
+  return <section className="settings-grid b7-module">
+    <header className="react-module-heading b7-header">
       <div><p className="platform-eyebrow">CÀI ĐẶT</p><h1>Tài khoản</h1><p>Đổi mật khẩu cá nhân và quản lý quyền truy cập theo vai trò.</p></div>
       {user.role !== 'shareholder' ? <Link className="b7-header-link" href="/observability" prefetch={false}>Trạng thái đồng bộ</Link> : null}
     </header>
     <p className={`b7-message${error ? ' error' : ''}`} role={error ? 'alert' : 'status'} aria-live="polite">{message}</p>
 
-    <section className="b7-card" aria-labelledby="password-title">
-      <div className="b7-card-head"><div><h2 id="password-title">Đổi mật khẩu</h2><p>{user.displayName} · {ROLE_LABELS[user.role]}</p></div></div>
+    <section className="info-card b7-card" aria-labelledby="password-title">
+      <div className="settings-card-header b7-card-head"><div><h2 id="password-title">Đổi mật khẩu</h2><p>{user.displayName} · {ROLE_LABELS[user.role]}</p></div></div>
       <div className="b7-form-grid password-grid">
         <label>Mật khẩu hiện tại<input type={showPasswords ? 'text' : 'password'} autoComplete="current-password" value={passwords.currentPassword} onChange={(event) => setPasswords({ ...passwords, currentPassword: event.target.value })} /></label>
         <label>Mật khẩu mới<input type={showPasswords ? 'text' : 'password'} autoComplete="new-password" minLength={6} value={passwords.newPassword} onChange={(event) => setPasswords({ ...passwords, newPassword: event.target.value })} /><small>Tối thiểu 6 ký tự và phải khác mật khẩu hiện tại.</small></label>
@@ -144,8 +144,8 @@ export function SettingsModule() {
       </div>
     </section>
 
-    {isAdmin && <section className="b7-card" aria-labelledby="accounts-title">
-      <div className="b7-card-head"><div><h2 id="accounts-title">Quản lý tài khoản</h2><p>Chỉ quản trị viên được tạo, đổi vai trò, khóa hoặc đặt lại mật khẩu.</p></div><button type="button" disabled={loadingUsers} onClick={loadUsers}>{loadingUsers ? 'Đang tải…' : 'Làm mới'}</button></div>
+    {isAdmin && <section className="info-card b7-card" aria-labelledby="accounts-title">
+      <div className="settings-card-header b7-card-head"><div><h2 id="accounts-title">Quản lý tài khoản</h2><p>Chỉ quản trị viên được tạo, đổi vai trò, khóa hoặc đặt lại mật khẩu.</p></div><button type="button" disabled={loadingUsers} onClick={loadUsers}>{loadingUsers ? 'Đang tải…' : 'Làm mới'}</button></div>
       <div className="b7-form-grid account-create-grid">
         <label>Tên đăng nhập<input autoComplete="off" value={newAccount.username} onChange={(event) => setNewAccount({ ...newAccount, username: event.target.value })} placeholder="vidu: codong01" /></label>
         <label>Tên hiển thị<input autoComplete="name" value={newAccount.displayName} onChange={(event) => setNewAccount({ ...newAccount, displayName: event.target.value })} /></label>
@@ -156,7 +156,7 @@ export function SettingsModule() {
 
       {temporaryPassword && <div className="b7-temporary" role="status"><div><strong>Mật khẩu tạm của {temporaryPassword.username}</strong><p>Chỉ hiển thị trong phiên này. Hãy chuyển cho người dùng qua kênh an toàn.</p></div><code>{temporaryPassword.value}</code><button type="button" onClick={copyTemporaryPassword}>Sao chép</button><button type="button" onClick={() => setTemporaryPassword(null)}>Ẩn</button></div>}
 
-      <div className="b7-table-wrap" tabIndex={0} aria-label="Danh sách tài khoản">
+      <div className="table-wrap account-users-wrap b7-table-wrap" tabIndex={0} aria-label="Danh sách tài khoản">
         <table><thead><tr><th>Tên đăng nhập</th><th>Tên hiển thị</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
           <tbody>{loadingUsers ? <tr><td colSpan={5} className="b7-empty">Đang tải tài khoản…</td></tr> : users.length ? users.map((account) => {
             const draft = drafts[account.user_id] || { displayName: account.display_name, role: account.role, active: account.active };

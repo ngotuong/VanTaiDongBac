@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -44,8 +43,8 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
   }, []);
 
   useEffect(() => {
-    document.body.classList.toggle('platform-drawer-open', drawerOpen);
-    return () => document.body.classList.remove('platform-drawer-open');
+    document.body.classList.toggle('drawer-open', drawerOpen);
+    return () => document.body.classList.remove('drawer-open');
   }, [drawerOpen]);
 
   const refreshCurrentModule = () => {
@@ -53,38 +52,39 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
     refresh?.click();
   };
 
-  return <div className="platform-shell">
+  return <div className="app">
     <a className="platform-skip-link" href="#platform-content">Bỏ qua điều hướng</a>
-    <button type="button" className="platform-drawer-backdrop" aria-label="Đóng menu" tabIndex={drawerOpen ? 0 : -1} onClick={() => setDrawerOpen(false)} />
-    <aside className={`platform-sidebar${drawerOpen ? ' open' : ''}`} aria-label="Menu ứng dụng">
-      <button type="button" className="platform-drawer-close" aria-label="Đóng menu" onClick={() => setDrawerOpen(false)}>×</button>
-      <Link className="platform-brand" href="/dashboard" prefetch={false} aria-label="Vận tải Đông Bắc - Tổng quan" onClick={() => setDrawerOpen(false)}>
-        <Image className="platform-brand-mark" src="/static/assets/apple-touch-icon.png" alt="Logo Vận tải Đông Bắc" width={44} height={44} priority />
-        <span><strong>Vận tải Đông Bắc</strong><small>Hệ thống nội bộ</small></span>
-      </Link>
-      <ShellNavigation items={NAVIGATION} role={context.user.role} onNavigate={() => setDrawerOpen(false)} />
-      <div className="platform-sidebar-footer">
-        <span>{context.user.displayName}</span>
-        <small>{context.user.role}</small>
-        <SignOutButton />
+    <button type="button" className="drawer-backdrop" aria-label="Đóng menu" tabIndex={drawerOpen ? 0 : -1} onClick={() => setDrawerOpen(false)} />
+    <aside className="sidebar" aria-label="Menu ứng dụng">
+      <button type="button" className="drawer-close" aria-label="Đóng menu" onClick={() => setDrawerOpen(false)}>×</button>
+      <div>
+        <div className="brand" aria-label="Vận tải Đông Bắc">
+          <Image className="brand-mark" src="/static/assets/apple-touch-icon.png" alt="Logo" width={44} height={44} priority />
+          <div><div className="brand-name">Vận tải Đông Bắc</div><div className="brand-sub">Hệ thống nội bộ</div></div>
+        </div>
+        <ShellNavigation items={NAVIGATION} role={context.user.role} onNavigate={() => setDrawerOpen(false)} />
+        <div className="auth-user">
+          <div className="auth-user-email">{context.user.displayName}</div>
+          <SignOutButton />
+        </div>
       </div>
     </aside>
-    <main className="platform-workspace">
-      <header className="platform-topbar">
-        <button type="button" className="platform-menu-button" aria-label="Mở menu" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <main className="main">
+      <header className="topbar">
+        <button type="button" className="menu-button ghost icon-button" aria-label="Mở menu" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}>
+          <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
-        <div className="platform-page-heading"><p className="platform-eyebrow">{pageMeta[0]}</p><h1>{pageMeta[1]}</h1><p>{context.workbook.module === 'cashflow' ? 'Thu chi' : 'Vận tải'} · {context.workbook.year}</p></div>
-        <div className="platform-top-actions">
-          <button type="button" className="platform-refresh-button" aria-label="Cập nhật dữ liệu" title="Cập nhật dữ liệu" onClick={refreshCurrentModule}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+        <div><div className="eyebrow">{pageMeta[0]}</div><h1>{pageMeta[1]}</h1><div className="subtitle">{context.workbook.module === 'cashflow' ? 'Thu chi' : 'Vận tải'} · {context.workbook.year}</div></div>
+        <div className="top-actions">
+          <button type="button" className="ghost icon-button" aria-label="Cập nhật dữ liệu" title="Cập nhật dữ liệu" onClick={refreshCurrentModule}>
+            <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
           </button>
-          <a className="platform-sheet-button" href={`/open-sheet?module=${context.workbook.module}&year=${context.workbook.year}`} target="_blank" rel="noreferrer" aria-label="Mở Google Sheet" title="Google Sheet">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <a href={`/open-sheet?module=${context.workbook.module}&year=${context.workbook.year}`} target="_blank" rel="noreferrer" aria-label="Mở Google Sheet" title="Google Sheet" style={{ display: 'inline-flex' }}>
+            <span className="ghost icon-button"><svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
           </a>
         </div>
       </header>
-      <div id="platform-content" className="platform-content" tabIndex={-1}>{children}</div>
+      <section id="platform-content" className="view active" tabIndex={-1}>{children}</section>
     </main>
     <ShellNavigation items={NAVIGATION} role={context.user.role} mode="bottom" onNavigate={() => setDrawerOpen(false)} />
   </div>;

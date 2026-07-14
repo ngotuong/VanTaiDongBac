@@ -67,6 +67,16 @@ test('C3 shell refresh delegates to each read module without changing API contra
   ]) assert.match(read(file), /data-shell-refresh/, `${file} must expose its existing refresh action`);
 });
 
+test('C3 restores the legacy image export controls on Dashboard, Report and Cashflow', () => {
+  const sources = [
+    'next-shell/components/dashboard/DashboardModule.tsx',
+    'next-shell/components/report/ReportModule.tsx',
+    'next-shell/components/cashflow/CashflowModule.tsx'
+  ].map(read).join('\n');
+  for (const name of ['SoChuyenXe','TongQuan','ThuChi']) assert.match(sources, new RegExp(name));
+  assert.match(sources, /exportCardAsImage/);
+});
+
 test('C3 preserves hidden module routes behind their approved parent menus', () => {
   const manage = read('next-shell/components/manage/ManageReadOnlyModule.tsx');
   const settings = read('next-shell/components/settings/SettingsModule.tsx');

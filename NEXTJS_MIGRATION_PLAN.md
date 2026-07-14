@@ -222,7 +222,7 @@ C3 được mở lại ngày 2026-07-14 sau khi các candidate Next cho thấy k
 
 Nguồn chuẩn và ma trận phê duyệt thuộc `docs/quality/C3_GOLDEN_MASTER.md` và `docs/quality/C3_PARITY_MATRIX.md`. Thứ tự triển khai là Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability. Mỗi module cần data gate, desktop/mobile visual gate và phê duyệt người dùng riêng. D1 giữ trạng thái `BLOCKED/ROLLED BACK`.
 
-C3.0–C3.2a hoàn tất kỹ thuật ngày 2026-07-14 trên nhánh `codex/c3-golden-master`: shell/login/Dashboard port đúng DOM/class/style/runtime C2; Dashboard ưu tiên `overview.kpis`, giữ matrix cho chart/bảng và giữ latest trips/export. Candidate `dpl_5TcZ77CxZskFizUUNCZnT9rrG3hp` được gán riêng tại `https://vantaidongbac-c3-preview.vercel.app`; production vẫn là C2. Gate đạt 267/267 test, lint, typecheck, build và diff check. Trạng thái hiện tại là chờ người dùng duyệt authenticated Dashboard; không bắt đầu Report trước phê duyệt này.
+C3.0–C3.2a hoàn tất kỹ thuật ngày 2026-07-14 trên nhánh `codex/c3-golden-master`: shell/login/Dashboard port đúng DOM/class/style/runtime C2; Dashboard ưu tiên `overview.kpis`, giữ matrix cho chart/bảng và giữ latest trips/export. Sau phản hồi visual đầu tiên, correction đã bổ sung dependency font thật, reset cascade `table-wrap`, khôi phục wrapper header/action và khóa geometry/stroke SVG export. Candidate hiện tại `dpl_6gdxkLwGnXperukyRtre3iqCTmuz` được gán riêng tại `https://vantaidongbac-c3-preview.vercel.app`; production vẫn là C2. Gate đạt 268/268 test, lint, typecheck, build, diff check và computed-style QA 390×844. Trạng thái hiện tại là chờ người dùng duyệt authenticated Dashboard; không bắt đầu Report trước phê duyệt này.
 
 ## 9. Phase D — Legacy removal
 

@@ -111,8 +111,8 @@ Trạng thái: **IN PROGRESS ngày 2026-07-14; C3.0–C3.2a đạt TECH_PASS, C3
 - Candidate parity sai đã bị loại khỏi nhánh triển khai mới.
 - Golden source: production C2 sau hydrate và tree `73a0ede`.
 - Baseline/matrix: `docs/quality/C3_GOLDEN_MASTER.md`, `docs/quality/C3_PARITY_MATRIX.md`.
-- Preview Dashboard: `https://vantaidongbac-c3-preview.vercel.app`, deployment `dpl_5TcZ77CxZskFizUUNCZnT9rrG3hp`.
-- Technical gate: 267/267 test, lint, typecheck, build, diff check; root preview HTTP 200 qua deployment-authenticated smoke. Authenticated visual chưa được phê duyệt.
+- Preview Dashboard: `https://vantaidongbac-c3-preview.vercel.app`, correction deployment `dpl_6gdxkLwGnXperukyRtre3iqCTmuz`.
+- Technical gate: 268/268 test, lint, typecheck, build, diff check; computed-style QA 390×844 xác nhận font tải thật, card gap 0px, export/SVG đúng geometry và không overflow; root preview HTTP 200 qua deployment-authenticated smoke. Authenticated visual chưa được phê duyệt.
 - Thứ tự gate: Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability.
 - Mỗi module phải được người dùng duyệt riêng; D1 blocked.
 
@@ -226,6 +226,7 @@ Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_
 5. **Dữ liệu**: mọi thay đổi Google Sheet/Supabase schema phải là migration riêng được phê duyệt; Google Sheets vẫn là source of truth.
 6. **Golden runtime**: template tĩnh không đủ; phải port cả client runtime và data-selection semantics.
 7. **Visual approval**: HTTP/DOM/unit test không thay thế ảnh authenticated và xác nhận trực tiếp của người dùng.
+8. **CSS dependency/cascade**: mọi surface tiếp theo phải audit font/script/asset thật, DOM wrapper và selector rò rỉ từ shared CSS; copy stylesheet đơn thuần không đủ.
 
 Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
@@ -237,8 +238,8 @@ Baseline hiện tại:
 - Production deployment: `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, Apps Script recovery `@281`.
 - Dashboard golden 07/2026: 270.513.180 / 94.863.960 / 175.649.220 / 341.770.935 / -166.121.715.
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
-- Candidate Dashboard `dpl_5TcZ77CxZskFizUUNCZnT9rrG3hp` đã READY tại `https://vantaidongbac-c3-preview.vercel.app`; chưa được người dùng phê duyệt.
-- Gate candidate: 267/267 test, lint, typecheck, build, `git diff --check`; root deployment-authenticated HTTP 200. Alias preview có Vercel Deployment Protection.
+- Candidate Dashboard correction `dpl_6gdxkLwGnXperukyRtre3iqCTmuz` đã READY tại `https://vantaidongbac-c3-preview.vercel.app`; chưa được người dùng phê duyệt.
+- Gate candidate: 268/268 test, lint, typecheck, build, `git diff --check`, computed-style QA 390×844; root deployment-authenticated HTTP 200. Alias preview có Vercel Deployment Protection.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

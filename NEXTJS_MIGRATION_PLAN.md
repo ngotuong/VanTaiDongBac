@@ -234,6 +234,8 @@ Người dùng phê duyệt tiếp tục sau correction C3.3; Manage/Entry đư�
 
 Người dùng kiểm tra và phê duyệt tiếp tục migration ngày 2026-07-14; Catalog được nâng `USER_APPROVED`, đồng thời Manage/Catalog UI debt được ghi nhận để xử lý sau migration. C3.5 Cashflow đạt `TECH_PASS` trên `dpl_DxHVCvzd8Dc1ZZnDM8BGzPcNrrRc`: port lại Overview/report/export, Transactions filters/search/pagination/pending/multi-row drawer, Loans reconciliation/filter/history/payment và Fund Catalog inline theo C2; giữ queue/idempotency, row identity, native bounds, RBAC và Apps Script authoritative writes. Gate đạt 272/272 test, lint, typecheck, build, diff check; session 401/API health 200. Production vẫn C2; chờ người dùng duyệt Cashflow trước Settings/Observability.
 
+Correction C3.5 ngày 2026-07-14 sửa collision giữa body class mở sidebar và Cashflow drawer, đồng thời đưa Cashflow/Manage overlays ra khỏi stacking context của `.view`. Entry popup mobile dùng full viewport, safe-area và vùng cuộn độc lập như C2; không redesign presentation. Deployment `dpl_Dw7o14BkbLp77bNuXPZ6Q8ULctf9` đạt 274/274 test, lint, typecheck, build, diff check và smoke session/health; production vẫn C2. C3.5 tiếp tục chờ user approval, chưa bắt đầu Settings/Observability.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

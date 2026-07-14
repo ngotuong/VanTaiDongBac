@@ -115,13 +115,14 @@ Trạng thái: **IN PROGRESS ngày 2026-07-14; Shell/Login/Dashboard/Report/Mana
 - Người dùng đã phê duyệt Report và cho phép tiếp tục checkpoint ngày 2026-07-14; Report là `USER_APPROVED`.
 - Người dùng đã phê duyệt tiếp tục checkpoint sau khi kiểm tra correction Manage/Entry; hai surface này được khóa `USER_APPROVED`. Người dùng vẫn ghi nhận nhiều lỗi UI/UX ở Manage và Catalog; đây là UI debt sẽ xử lý ở pha sau, không được hiểu là C2 visual đã hoàn hảo.
 - Người dùng đã kiểm tra Catalog và phê duyệt tiếp tục hoàn thiện migration ngày 2026-07-14; Catalog được nâng `USER_APPROVED` cho gate migration với UI debt nói trên.
-- Preview Cashflow/Entry correction: `https://vantaidongbac-c3-preview.vercel.app`, READY `dpl_CnvssuGUQgLED2YCEQMYG9t2bhAQ`. Candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`; không promote production.
+- Preview overlay correction toàn diện: `https://vantaidongbac-c3-preview.vercel.app`, READY `dpl_Fi2JXxP4kJPbYBaNvZkZ1i1ktUX3`. Candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`; không promote production.
 - Người dùng phát hiện Manage không hiển thị dù route 200; nguyên nhân là root `.view` thiếu `.active`. Correction thêm state hiển thị, lazy-load catalog Entry khỏi critical path, loading shimmer C2 và targeted prefetch theo intent.
 - Catalog port lại đúng C2 với chín tab, filter nhân sự/chủ xe, bảng/pagination, modal add/edit/delete, cột chủ xe và mapping clear-only cho hai view ảo `DM_ThamSo`; không đổi Sheet/schema/cột/công thức.
 - Cashflow port lại bốn surface C2: Tổng quan/báo cáo/export, Danh sách thu chi với quick/custom date/search/pagination/pending jobs, Khoản vay với reconciliation/filter/history và Fund Catalog inline; các form dùng drawer C2. Queue/idempotency, row identity, native-range bounds và Apps Script authoritative writes được giữ nguyên; không đổi Sheet/schema/cột/công thức.
 - Correction ngày 2026-07-14 tách class mở menu shell khỏi class popup nghiệp vụ, đưa Cashflow drawer và Manage Entry/edit modal lên `document.body`, khóa bottom navigation khi modal mở, đồng thời bổ sung full-viewport/safe-area/independent-scroll cho form mobile. Việc bấm `Nhập mới` không còn kích hoạt menu trái; không redesign font, màu hoặc hierarchy C2.
 - Người dùng từ chối presentation/interaction Entry của correction đầu vì không vuốt được và icon lộn xộn. Correction kế tiếp phục hồi trực tiếp contract DOM C2: `#rows` là vùng cuộn dọc duy nhất; bốn action Cập nhật/Nhân bản/Thêm dòng/Đóng dùng đúng SVG và ID C2 trong cùng submit bar; bỏ floating close và grid mobile tự chế. UI/UX skill chỉ được dùng để kiểm tra touch/scroll/icon consistency, không thay style C2.
-- Cashflow correction gate: 274/274 test, lint, typecheck, build, diff check; session không cookie trả 401 đúng contract, API health 200. Authenticated visual/chức năng Cashflow và popup Manage vẫn phải do người dùng xác nhận. Production vẫn là C2 recovery.
+- Sau khi người dùng tiếp tục phát hiện popup `Quỹ > Danh mục thu chi > Nhập mới` không vuốt được, toàn bộ overlay nghiệp vụ đã được audit thay vì vá riêng một màn hình: bốn Cashflow drawer, Manage Entry/edit và Catalog add/edit. Mỗi overlay chỉ còn một vùng pan-y có momentum, header/footer không co, action bar chừa safe-area; bảng ngang bên trong không còn tranh quyền cuộn dọc. Catalog modal được portal ra `document.body` và khóa bottom navigation giống Manage/Cashflow. Rule full-height chỉ áp dụng mobile, không phá drawer nổi desktop.
+- Overlay correction gate: 277/277 test, lint, typecheck, build, diff check; deployment-authenticated root 200, session không cookie 401 và API health 200. Vercel Deployment Protection chặn browser automation trước app, nên thao tác vuốt authenticated vẫn phải do người dùng xác nhận. Production vẫn là C2 recovery.
 - Thứ tự gate: Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability.
 - Mỗi module phải được người dùng duyệt riêng; D1 blocked.
 
@@ -189,7 +190,7 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ### C3.5 — Cashflow preview approval
 
-Người dùng kiểm tra authenticated Cashflow tại preview C3, trước hết xác nhận `Quỹ > Danh sách thu chi > Nhập mới` mở đúng drawer thay vì menu trái; đồng thời kiểm tra popup `Nhập mới` trong Vận hành không bị navigation che và cuộn/thao tác được trên mobile. Sau đó kiểm tra Tổng quan và báo cáo/export; bộ lọc, bảng, pagination và drawer nhiều dòng của Danh sách thu chi; summary/history/filter/drawer Khoản vay; năm nhóm Fund Catalog inline. Không chạy business write production trong bước duyệt giao diện. Chưa chuyển Settings/Observability nếu Cashflow chưa đạt `USER_APPROVED`.
+Người dùng kiểm tra authenticated overlay correction tại preview C3: Quỹ/Danh sách thu chi thêm-sửa giao dịch; Quỹ/Khoản vay thêm khoản vay, trả khoản và xem chi tiết; Vận hành nhập mới và sửa; Danh mục thêm/sửa. Trên mobile cần xác nhận vuốt tới cuối form, header và hai nút cuối vẫn thao tác được, bottom navigation không che form; trên desktop drawer vẫn là panel nổi đúng C2. Sau đó hoàn tất duyệt Cashflow. Không chạy business write production trong bước duyệt giao diện. Chưa chuyển Settings/Observability nếu Cashflow chưa đạt `USER_APPROVED`.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -247,8 +248,8 @@ Baseline hiện tại:
 - Production deployment: `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, Apps Script recovery `@281`.
 - Dashboard golden 07/2026: 270.513.180 / 94.863.960 / 175.649.220 / 341.770.935 / -166.121.715.
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
-- Candidate Cashflow/Entry correction `dpl_CnvssuGUQgLED2YCEQMYG9t2bhAQ` đã READY tại `https://vantaidongbac-c3-preview.vercel.app`; chờ người dùng phê duyệt authenticated visual/chức năng, gồm popup Cashflow và Manage trên mobile.
-- Gate candidate: 274/274 test, lint, typecheck, build, `git diff --check`, source/CSS responsive parity; session unauthenticated trả 401 và API health 200. Production vẫn resolve `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`.
+- Candidate overlay correction `dpl_Fi2JXxP4kJPbYBaNvZkZ1i1ktUX3` đã READY tại `https://vantaidongbac-c3-preview.vercel.app`; chờ người dùng phê duyệt thao tác vuốt authenticated trên Cashflow, Manage/Entry và Catalog.
+- Gate candidate: 277/277 test, lint, typecheck, build, `git diff --check`, source/CSS overlay audit; root deployment-authenticated 200, session unauthenticated 401 và API health 200. Production vẫn resolve `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

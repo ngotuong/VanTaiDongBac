@@ -137,6 +137,14 @@ Người dùng đã kiểm tra và phê duyệt tiếp tục migration ngày 202
 - Nút Đóng trở lại cùng submit bar thay vì floating circle. Trên mobile, `#rows` là vùng `overflow-y:auto`, `touch-action:pan-y`, `-webkit-overflow-scrolling:touch` duy nhất; tab form cuộn ngang riêng, submit bar giữ safe-area. Job panel phụ được ẩn trong entry sheet như C2 để không tạo grid row/nested-scroll ngoài ý muốn.
 - Gate đạt 274/274 test, lint, typecheck, build và diff check. Preview hiện trỏ READY `dpl_CnvssuGUQgLED2YCEQMYG9t2bhAQ`; production vẫn C2 recovery. Không có authenticated browser session nên cần người dùng xác nhận thao tác vuốt và visual thực tế.
 
+### Correction overlay toàn diện ngày 2026-07-14
+
+- Phản hồi sau Entry correction xác nhận popup Quỹ vẫn không vuốt được. Audit repo-wide tìm thấy toàn bộ overlay nghiệp vụ cần khóa cùng contract: bốn Cashflow drawer, Manage Entry/edit và Catalog add/edit; không có business dialog Next khác ngoài các nhóm này.
+- Cashflow drawer body là vùng pan-y duy nhất; các `.table-wrap` con chỉ cuộn ngang và để chiều dọc cho drawer. Header/footer là flex item không co, footer chừa safe-area và bottom navigation bị vô hiệu khi drawer mở.
+- Manage/Catalog modal dùng portal `document.body`, modal body là vùng pan-y duy nhất có `overscroll-behavior` và iOS momentum. Catalog thêm body state riêng để khóa trang nền/navigation. Mobile dùng toàn chiều cao khả dụng và nút tối thiểu 44px; desktop vẫn giữ modal/drawer nổi C2 vì rule `100dvh` chỉ nằm trong media query mobile.
+- `tests/next-overlay-interactions-c3.test.js` khóa inventory portal, scroll marker, single-scroll contract và safe-area cho mọi nhóm trên. Gate đạt 277/277 test, lint, typecheck, build và diff check.
+- Preview hiện trỏ READY `dpl_Fi2JXxP4kJPbYBaNvZkZ1i1ktUX3`; deployment-authenticated root 200, session không cookie 401, API health 200. Vercel Deployment Protection chặn browser automation trước app, nên người dùng vẫn là gate cho thao tác vuốt authenticated. Production vẫn là C2 recovery.
+
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 
 Phản hồi visual ngày 2026-07-14 chứng minh copy CSS/DOM chưa đủ nếu bỏ sót dependency hoặc để stylesheet khác rò rỉ vào surface golden. Từ Dashboard trở đi, mỗi surface phải thêm đủ các kiểm tra sau trước `TECH_PASS`:

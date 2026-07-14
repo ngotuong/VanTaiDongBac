@@ -238,6 +238,8 @@ Correction C3.5 ngày 2026-07-14 sửa collision giữa body class mở sidebar 
 
 Người dùng từ chối visual/interaction Entry của correction đầu vì không vuốt được và icon không đúng C2. Correction lần hai trên `dpl_CnvssuGUQgLED2YCEQMYG9t2bhAQ` lấy lại trực tiếp DOM contract và bốn SVG action từ golden tree `73a0ede`, dùng `#rows` làm vùng pan-y duy nhất và bỏ floating close/grid mobile tự chế. Gate vẫn đạt 274/274 test, lint, typecheck, build, diff check; C3.5 tiếp tục chờ user approval.
 
+Phản hồi tiếp theo cho thấy popup Quỹ vẫn không vuốt được. Correction toàn diện trên `dpl_Fi2JXxP4kJPbYBaNvZkZ1i1ktUX3` audit mọi business overlay hiện có thay vì sửa cục bộ: bốn Cashflow drawer, Manage Entry/edit và Catalog add/edit. Overlay được đưa ra body-level stacking context, mỗi form chỉ có một vùng pan-y có iOS momentum, header/footer cố định trong flex shell, action bar chừa safe-area, bảng ngang không còn nested vertical scroll; Catalog modal cũng khóa bottom navigation. Full-height được scope mobile để giữ desktop drawer C2. Gate đạt 277/277 test, lint, typecheck, build, diff check; root 200, session 401, health 200 qua deployment-authenticated smoke. Production vẫn C2; C3.5 chờ user approval trước Settings/Observability.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

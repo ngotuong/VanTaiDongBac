@@ -7,6 +7,7 @@ export type ReportBundle = {
   apiCached?: boolean;
   supabaseCached?: boolean;
   supabaseSyncedAt?: string;
+  updatedAt?: string;
   overview?: {
     months?: ReportMatrix;
     details?: ReportMatrix;

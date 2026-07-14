@@ -1,7 +1,7 @@
 export type EntryFormType = 'vanChuyen'|'taiXe'|'dau'|'chamCong'|'phat'|'nghiVanHanh';
 export type EntryRow = Record<string,string>;
 export type EntryCatalogs = Record<string, unknown> & {
-  vehicles?: Array<{plate?:string}>; activeVehicles?: Array<{plate?:string}>;
+  vehicles?: Array<{plate?:string;owner?:string}>; activeVehicles?: Array<{plate?:string;owner?:string}>;
   people?: Array<{name?:string;role?:string}>; activePeople?: Array<{name?:string;role?:string}>; activeDrivers?: Array<{name?:string}>;
   projects?: Array<{name?:string}>; activePenalties?: Array<{code?:string;content?:string}>;
   fuelSources?: string[]; fuelPaymentSources?: string[]; chamCongTypes?: Array<{name?:string}>; nghiVanHanhTypes?: string[];

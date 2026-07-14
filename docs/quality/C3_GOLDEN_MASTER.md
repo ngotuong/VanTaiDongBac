@@ -89,6 +89,17 @@ Không được suy ra module khác đạt chỉ vì shell hoặc Dashboard đ�
 - Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ `dpl_7ngtXhSgmejtggAh11TNthLUpn4T` (READY). Deployment dùng Production environment để nhận đầy đủ biến server `sensitive`, nhưng được tạo với `--skip-domain` và chỉ gán alias preview; production alias vẫn là C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, redirect `/legacy-index.html` trả 200. Smoke preview: session không cookie trả đúng 401 thay vì 503; API health trả 200.
 - Report chỉ ở `TECH_PASS`; cần người dùng duyệt authenticated visual và chức năng trước khi nâng `USER_APPROVED`.
 
+Người dùng đã phê duyệt tiếp tục checkpoint sau khi kiểm tra Report ngày 2026-07-14; Report được nâng `USER_APPROVED`.
+
+## Bằng chứng triển khai Manage/Entry C3.3
+
+- Manage port trực tiếp cấu trúc C2: sáu tab sheet, quick/custom date, tìm kiếm accent-insensitive, thống kê Tài xế, filter/thống kê Xăng dầu, bảng ngang cuộn trong card, sticky column, pagination và modal sửa/xóa theo RBAC.
+- Entry dùng lại `entry-shell`, `form-list`, `form-tab`, `entry-row`, `fields`, `status` và `submit-bar` C2; giữ sáu schema form, multi-row, clone/add/remove, validation, pending/error và retry.
+- Sửa/xóa tiếp tục dùng contract `saveSheetRow`/`deleteSheetRow`, gửi row identity/dữ liệu trước; các cột công thức C2 không xuất hiện trong form sửa. Nhập mới tiếp tục dùng `submitRows` queue, kick worker và poll status; không đổi Sheet/schema/cột/công thức.
+- Technical gate ngày 2026-07-14: 270/270 test, lint, typecheck, build và `git diff --check` đạt. Computed-style/screenshot QA ở breakpoint mobile 500px và desktop 1440px xác nhận Plus Jakarta Sans, tab gap 4/8px, filter grid/flex đúng breakpoint, document không overflow và bảng 760px cuộn bên trong card trên mobile.
+- Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ deployment READY `dpl_4n1fRoecZiXMhtc5hLPebqhY1KeP`. Deployment dùng Production environment với `--skip-domain`; production `https://dongbac.vercel.app` vẫn trỏ C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. Smoke qua Vercel protection bypass: session không cookie trả 401, API health trả 200.
+- Manage/Entry ở `TECH_PASS`, chờ người dùng kiểm tra authenticated visual/chức năng trước khi nâng `USER_APPROVED`.
+
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 
 Phản hồi visual ngày 2026-07-14 chứng minh copy CSS/DOM chưa đủ nếu bỏ sót dependency hoặc để stylesheet khác rò rỉ vào surface golden. Từ Dashboard trở đi, mỗi surface phải thêm đủ các kiểm tra sau trước `TECH_PASS`:

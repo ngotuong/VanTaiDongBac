@@ -6,8 +6,9 @@ const root = path.resolve(__dirname,'..');
 const read = (file) => fs.readFileSync(path.join(root,file),'utf8');
 
 test('C3 Manage route server-loads Manage and lazy-loads Entry catalogs without blocking the page',()=>{
-  const page=read('next-shell/app/manage/page.jsx');
-  assert.match(page,/loadManageData\(\)/); assert.doesNotMatch(page,/loadEntryCatalogs\(\)/); assert.match(page,/<ManageReadOnlyModule initialData=/); assert.match(page,/entry=\{<EntryModule initialCatalogs=\{\{\}\}/);
+  const page=read('next-shell/app/manage/page.jsx'),module=read('next-shell/components/manage/ManageReadOnlyModule.tsx');
+  assert.match(page,/loadManageData\(\)/); assert.doesNotMatch(page,/loadEntryCatalogs\(\)/); assert.match(page,/<ManageReadOnlyModule initialData=/);
+  assert.match(module,/entryOpen\?<BodyPortal>[\s\S]*<EntryModule initialCatalogs=\{\{\}\}/); assert.doesNotMatch(module,/loadEntryCatalogs\(\)/);
   assert.doesNotMatch(page,/bridge=|next-accounts-shell/);
 });
 

@@ -130,6 +130,13 @@ Người dùng đã kiểm tra và phê duyệt tiếp tục migration ngày 202
 - Regression tests khóa việc popup nghiệp vụ không kích hoạt sidebar, portal body-level, lớp z-index, full-screen mobile và safe-area submit. Gate mới đạt 274/274 test, lint, typecheck, build và `git diff --check`.
 - Preview hiện trỏ READY `dpl_Dw7o14BkbLp77bNuXPZ6Q8ULctf9`; session không cookie 401, API health 200. Production vẫn là C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. Do không có phiên đăng nhập của người dùng trong browser automation, correction vẫn chờ authenticated visual/chức năng approval.
 
+### Correction Entry C2 lần hai ngày 2026-07-14
+
+- Người dùng xác nhận popup đã mở nhưng từ chối correction trên vì hình thức xấu, không vuốt dọc được và icon lộn xộn. Correction `dpl_Dw7o14BkbLp77bNuXPZ6Q8ULctf9` không còn hiệu lực visual.
+- Đối chiếu trực tiếp `index.template.html`, `client_entry.html` và `styles_responsive.html` tại golden tree `73a0ede`: React Entry phục hồi ID `rows`, `submitBtn`, `cloneBtn`, `addBtn`, `closeMobileEntryBtn`; bốn action dùng lại path/line/rect SVG C2, không dùng glyph font `▣`, `＋`, `×`.
+- Nút Đóng trở lại cùng submit bar thay vì floating circle. Trên mobile, `#rows` là vùng `overflow-y:auto`, `touch-action:pan-y`, `-webkit-overflow-scrolling:touch` duy nhất; tab form cuộn ngang riêng, submit bar giữ safe-area. Job panel phụ được ẩn trong entry sheet như C2 để không tạo grid row/nested-scroll ngoài ý muốn.
+- Gate đạt 274/274 test, lint, typecheck, build và diff check. Preview hiện trỏ READY `dpl_CnvssuGUQgLED2YCEQMYG9t2bhAQ`; production vẫn C2 recovery. Không có authenticated browser session nên cần người dùng xác nhận thao tác vuốt và visual thực tế.
+
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 
 Phản hồi visual ngày 2026-07-14 chứng minh copy CSS/DOM chưa đủ nếu bỏ sót dependency hoặc để stylesheet khác rò rỉ vào surface golden. Từ Dashboard trở đi, mỗi surface phải thêm đủ các kiểm tra sau trước `TECH_PASS`:

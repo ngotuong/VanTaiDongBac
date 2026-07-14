@@ -92,7 +92,7 @@ clasp push
 
 Production hiện tại là C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. D1 `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` và các candidate C3 sai không nằm trên `dongbac.vercel.app`.
 
-Candidate golden-master hiện tại là Report deployment `dpl_AaUuAHLhhexV5QfihCqhNu3JTphP` tại `https://vantaidongbac-c3-preview.vercel.app`. Dashboard correction trước đó là `dpl_6gdxkLwGnXperukyRtre3iqCTmuz`; candidate `dpl_5TcZ77CxZskFizUUNCZnT9rrG3hp` bị từ chối vì thiếu font/cascade/icon parity. Candidate hiện tại chỉ phục vụ phê duyệt Report và không nằm trên alias production. Nếu candidate lỗi, gán lại alias preview về Dashboard correction hoặc bỏ alias; không cần đổi `dongbac.vercel.app`.
+Candidate golden-master hiện tại là Report deployment `dpl_7ngtXhSgmejtggAh11TNthLUpn4T` tại `https://vantaidongbac-c3-preview.vercel.app`. Candidate dùng Production environment để có đủ biến server `sensitive`, nhưng được tạo với `--skip-domain`; `dongbac.vercel.app` vẫn trỏ C2 recovery. Report candidate target Preview trước đó `dpl_AaUuAHLhhexV5QfihCqhNu3JTphP` không dùng làm approval vì thiếu server env. Dashboard correction là `dpl_6gdxkLwGnXperukyRtre3iqCTmuz`; candidate `dpl_5TcZ77CxZskFizUUNCZnT9rrG3hp` bị từ chối vì thiếu font/cascade/icon parity. Nếu candidate hiện tại lỗi, gán lại alias preview về Dashboard correction hoặc bỏ alias; không đổi `dongbac.vercel.app`.
 
 Rollback nhanh về giao diện legacy đã xác nhận ở C2:
 

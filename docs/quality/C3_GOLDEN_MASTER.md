@@ -86,7 +86,7 @@ Không được suy ra module khác đạt chỉ vì shell hoặc Dashboard đ�
 - Giữ nguyên bốn matrix backend, năm tab, tháng thực tế/`Tất cả`, tìm kiếm accent-insensitive nhiều từ chỉ trên Lương/Xe, filter công ty/biển số, subtotal động, sticky columns, colgroup Chi tiết, màu semantic và trạng thái loading/empty/error C2.
 - Dùng chung dependency `html2canvas-pro@1.5.8` cho export ảnh; export Excel tiếp tục là CSV UTF-8 BOM theo C2. Nút action 28×28px/SVG 16×16px hiện trên desktop và ẩn trên mobile đúng media rule C2.
 - Technical gate ngày 2026-07-14: 270/270 test, lint, typecheck, build và `git diff --check` đạt. Computed style 390px xác nhận body/card đúng chiều rộng, tab gap 4px, header–table margin 0 và action ẩn; 1440px xác nhận Plus Jakarta Sans, tab gap 8px, filter margin 16px, action 28×28px/SVG 16×16px có stroke.
-- Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ `dpl_AaUuAHLhhexV5QfihCqhNu3JTphP` (READY, Deployment Protection). Production vẫn là C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` và redirect `/legacy-index.html` trả 200.
+- Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ `dpl_7ngtXhSgmejtggAh11TNthLUpn4T` (READY). Deployment dùng Production environment để nhận đầy đủ biến server `sensitive`, nhưng được tạo với `--skip-domain` và chỉ gán alias preview; production alias vẫn là C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, redirect `/legacy-index.html` trả 200. Smoke preview: session không cookie trả đúng 401 thay vì 503; API health trả 200.
 - Report chỉ ở `TECH_PASS`; cần người dùng duyệt authenticated visual và chức năng trước khi nâng `USER_APPROVED`.
 
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo

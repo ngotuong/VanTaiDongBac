@@ -236,6 +236,8 @@ Người dùng kiểm tra và phê duyệt tiếp tục migration ngày 2026-07-
 
 Correction C3.5 ngày 2026-07-14 sửa collision giữa body class mở sidebar và Cashflow drawer, đồng thời đưa Cashflow/Manage overlays ra khỏi stacking context của `.view`. Entry popup mobile dùng full viewport, safe-area và vùng cuộn độc lập như C2; không redesign presentation. Deployment `dpl_Dw7o14BkbLp77bNuXPZ6Q8ULctf9` đạt 274/274 test, lint, typecheck, build, diff check và smoke session/health; production vẫn C2. C3.5 tiếp tục chờ user approval, chưa bắt đầu Settings/Observability.
 
+Người dùng từ chối visual/interaction Entry của correction đầu vì không vuốt được và icon không đúng C2. Correction lần hai trên `dpl_CnvssuGUQgLED2YCEQMYG9t2bhAQ` lấy lại trực tiếp DOM contract và bốn SVG action từ golden tree `73a0ede`, dùng `#rows` làm vùng pan-y duy nhất và bỏ floating close/grid mobile tự chế. Gate vẫn đạt 274/274 test, lint, typecheck, build, diff check; C3.5 tiếp tục chờ user approval.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

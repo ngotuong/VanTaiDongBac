@@ -115,11 +115,12 @@ Trạng thái: **IN PROGRESS ngày 2026-07-14; Shell/Login/Dashboard/Report/Mana
 - Người dùng đã phê duyệt Report và cho phép tiếp tục checkpoint ngày 2026-07-14; Report là `USER_APPROVED`.
 - Người dùng đã phê duyệt tiếp tục checkpoint sau khi kiểm tra correction Manage/Entry; hai surface này được khóa `USER_APPROVED`. Người dùng vẫn ghi nhận nhiều lỗi UI/UX ở Manage và Catalog; đây là UI debt sẽ xử lý ở pha sau, không được hiểu là C2 visual đã hoàn hảo.
 - Người dùng đã kiểm tra Catalog và phê duyệt tiếp tục hoàn thiện migration ngày 2026-07-14; Catalog được nâng `USER_APPROVED` cho gate migration với UI debt nói trên.
-- Preview Cashflow correction: `https://vantaidongbac-c3-preview.vercel.app`, READY `dpl_Dw7o14BkbLp77bNuXPZ6Q8ULctf9`. Candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`; không promote production.
+- Preview Cashflow/Entry correction: `https://vantaidongbac-c3-preview.vercel.app`, READY `dpl_CnvssuGUQgLED2YCEQMYG9t2bhAQ`. Candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`; không promote production.
 - Người dùng phát hiện Manage không hiển thị dù route 200; nguyên nhân là root `.view` thiếu `.active`. Correction thêm state hiển thị, lazy-load catalog Entry khỏi critical path, loading shimmer C2 và targeted prefetch theo intent.
 - Catalog port lại đúng C2 với chín tab, filter nhân sự/chủ xe, bảng/pagination, modal add/edit/delete, cột chủ xe và mapping clear-only cho hai view ảo `DM_ThamSo`; không đổi Sheet/schema/cột/công thức.
 - Cashflow port lại bốn surface C2: Tổng quan/báo cáo/export, Danh sách thu chi với quick/custom date/search/pagination/pending jobs, Khoản vay với reconciliation/filter/history và Fund Catalog inline; các form dùng drawer C2. Queue/idempotency, row identity, native-range bounds và Apps Script authoritative writes được giữ nguyên; không đổi Sheet/schema/cột/công thức.
 - Correction ngày 2026-07-14 tách class mở menu shell khỏi class popup nghiệp vụ, đưa Cashflow drawer và Manage Entry/edit modal lên `document.body`, khóa bottom navigation khi modal mở, đồng thời bổ sung full-viewport/safe-area/independent-scroll cho form mobile. Việc bấm `Nhập mới` không còn kích hoạt menu trái; không redesign font, màu hoặc hierarchy C2.
+- Người dùng từ chối presentation/interaction Entry của correction đầu vì không vuốt được và icon lộn xộn. Correction kế tiếp phục hồi trực tiếp contract DOM C2: `#rows` là vùng cuộn dọc duy nhất; bốn action Cập nhật/Nhân bản/Thêm dòng/Đóng dùng đúng SVG và ID C2 trong cùng submit bar; bỏ floating close và grid mobile tự chế. UI/UX skill chỉ được dùng để kiểm tra touch/scroll/icon consistency, không thay style C2.
 - Cashflow correction gate: 274/274 test, lint, typecheck, build, diff check; session không cookie trả 401 đúng contract, API health 200. Authenticated visual/chức năng Cashflow và popup Manage vẫn phải do người dùng xác nhận. Production vẫn là C2 recovery.
 - Thứ tự gate: Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability.
 - Mỗi module phải được người dùng duyệt riêng; D1 blocked.
@@ -246,7 +247,7 @@ Baseline hiện tại:
 - Production deployment: `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, Apps Script recovery `@281`.
 - Dashboard golden 07/2026: 270.513.180 / 94.863.960 / 175.649.220 / 341.770.935 / -166.121.715.
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
-- Candidate Cashflow correction `dpl_Dw7o14BkbLp77bNuXPZ6Q8ULctf9` đã READY tại `https://vantaidongbac-c3-preview.vercel.app`; chờ người dùng phê duyệt authenticated visual/chức năng, gồm popup Cashflow và Manage trên mobile.
+- Candidate Cashflow/Entry correction `dpl_CnvssuGUQgLED2YCEQMYG9t2bhAQ` đã READY tại `https://vantaidongbac-c3-preview.vercel.app`; chờ người dùng phê duyệt authenticated visual/chức năng, gồm popup Cashflow và Manage trên mobile.
 - Gate candidate: 274/274 test, lint, typecheck, build, `git diff --check`, source/CSS responsive parity; session unauthenticated trả 401 và API health 200. Production vẫn resolve `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.

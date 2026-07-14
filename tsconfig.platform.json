@@ -38,6 +38,8 @@
     "app/dashboard-data/**/*.ts",
     "next-shell/app/manage-data/**/*.ts",
     "app/manage-data/**/*.ts",
+    "next-shell/app/open-sheet/**/*.ts",
+    "app/open-sheet/**/*.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules"]

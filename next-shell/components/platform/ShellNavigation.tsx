@@ -1,14 +1,13 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { AppRole } from '../../lib/platform/types';
 
 type NavigationIcon = 'home' | 'reports' | 'manage' | 'catalog' | 'cashflow' | 'settings';
 export type NavigationItem = { href: string; label: string; icon: NavigationIcon; roles: AppRole[]; bottomRoles: AppRole[]; aliases?: string[] };
 
 function NavIcon({ icon }: { icon: NavigationIcon }) {
-  const common = { viewBox: '0 0 24 24', 'aria-hidden': true } as const;
+  const common = { className: 'btn-svg', viewBox: '0 0 24 24', 'aria-hidden': true } as const;
   if (icon === 'home') return <svg {...common}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
   if (icon === 'reports') return <svg {...common}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
   if (icon === 'manage') return <svg {...common}><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>;
@@ -19,14 +18,15 @@ function NavIcon({ icon }: { icon: NavigationIcon }) {
 
 export function ShellNavigation({ items, role, mode = 'side', onNavigate }: { items: NavigationItem[]; role: AppRole; mode?: 'side' | 'bottom'; onNavigate?: () => void }) {
   const pathname = usePathname();
+  const router = useRouter();
   const visible = items.filter((item) => (mode === 'bottom' ? item.bottomRoles : item.roles).includes(role));
-  return <nav className={mode === 'bottom' ? 'platform-bottom-nav' : 'platform-nav'} aria-label={mode === 'bottom' ? 'Điều hướng nhanh' : 'Điều hướng chính'}>
+  const navigate = (href: string) => { onNavigate?.(); router.push(href); };
+  return <nav className={mode === 'bottom' ? 'bottom-nav' : 'nav-stack'} aria-label={mode === 'bottom' ? 'Điều hướng nhanh' : 'Điều hướng chính'}>
     {visible.map((item) => {
       const active = pathname === item.href || pathname?.endsWith(`${item.href}/`) || Boolean(item.aliases?.includes(pathname || ''));
-      return <Link key={item.href} href={item.href} prefetch={false} className="platform-nav-link" aria-current={active ? 'page' : undefined} aria-label={item.label} onClick={onNavigate}>
-        <span className="platform-nav-icon"><NavIcon icon={item.icon} /></span>
-        <span>{item.label}</span>
-      </Link>;
+      return <button key={item.href} type="button" className={mode === 'bottom' ? (active ? 'active' : '') : `nav-btn${active ? ' active' : ''}`} aria-current={active ? 'page' : undefined} aria-label={item.label} onClick={() => navigate(item.href)}>
+        {mode === 'side' ? <><span className="nav-ico"><NavIcon icon={item.icon}/></span><span className="nav-main">{item.label}</span></> : <><NavIcon icon={item.icon}/><span>{item.label}</span></>}
+      </button>;
     })}
   </nav>;
 }

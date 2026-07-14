@@ -51,20 +51,21 @@ export function LoginGate({ supabaseUrl, anonKey }: LoginGateProps) {
     }
   }
 
-  return <main className="platform-auth-shell">
-    <section className="platform-auth-card" aria-labelledby="platform-auth-title">
-      <Image className="platform-auth-brand" src="/static/assets/apple-touch-icon.png" alt="Logo Vận tải Đông Bắc" width={80} height={80} priority />
-      <p className="platform-eyebrow">NỀN TẢNG NỘI BỘ</p>
-      <h1 id="platform-auth-title">Đăng nhập Đông Bắc</h1>
-      <p className="platform-auth-copy">Sử dụng tài khoản nội bộ để truy cập Vận tải và Thu chi.</p>
-      <form onSubmit={submit} className="platform-auth-form">
-        <label htmlFor="platform-auth-username">Tên đăng nhập</label>
-        <input id="platform-auth-username" name="username" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} disabled={busy} autoFocus />
-        <label htmlFor="platform-auth-password">Mật khẩu</label>
-        <input id="platform-auth-password" name="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} />
-        <button type="submit" disabled={busy}>{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}</button>
+  return <main className="auth-gate">
+    <section className="auth-card" aria-labelledby="authTitle">
+      <Image className="auth-logo" src="/static/assets/apple-touch-icon.png" alt="Logo Vận tải Đông Bắc" width={80} height={80} priority />
+      <div className="eyebrow">HỆ THỐNG NỘI BỘ</div>
+      <h1 id="authTitle">Đăng nhập Đông Bắc</h1>
+      <p>Dùng tài khoản nội bộ đã được cấp quyền để truy cập hệ thống.</p>
+      <form onSubmit={submit} className="auth-form">
+        <label htmlFor="authUsername">Tên đăng nhập</label>
+        <input id="authUsername" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} value={username} onChange={(event) => setUsername(event.target.value)} disabled={busy} autoFocus />
+        <label htmlFor="authPassword">Mật khẩu</label>
+        <input id="authPassword" name="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} />
+        <p className="auth-remember-note">Ứng dụng sẽ ghi nhớ tên đăng nhập và duy trì phiên an toàn trên thiết bị này. Bạn có thể cho phép trình duyệt lưu mật khẩu để tự điền lần sau.</p>
+        <div className="auth-status" role="alert" aria-live="polite">{status}</div>
+        <button type="submit" className="primary auth-button" disabled={busy}>{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}</button>
       </form>
-      <p className="platform-auth-status" role="status" aria-live="polite">{status}</p>
     </section>
   </main>;
 }
@@ -76,5 +77,5 @@ export function SignOutButton() {
     await fetch('/api/session', { method: 'DELETE', credentials: 'same-origin', headers: { 'X-VTDB-CSRF': 'session' } }).catch(() => null);
     window.location.replace('/');
   }
-  return <button type="button" className="platform-signout" onClick={signOut} disabled={busy}>{busy ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>;
+  return <button type="button" className="ghost" onClick={signOut} disabled={busy}>{busy ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>;
 }

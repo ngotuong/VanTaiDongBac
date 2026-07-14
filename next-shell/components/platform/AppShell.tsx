@@ -1,8 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { PlatformContext } from '../../lib/platform/types';
 import { ShellNavigation, type NavigationItem } from './ShellNavigation';
@@ -20,70 +19,61 @@ const NAVIGATION: NavigationItem[] = [
 ];
 
 const PAGE_META: Record<string, [string, string]> = {
-  '/dashboard': ['TỔNG QUAN', 'Kết quả kinh doanh'],
-  '/reports': ['BÁO CÁO', 'Tổng hợp chi tiết'],
-  '/manage': ['VẬN HÀNH', 'Quản lý vận hành'],
-  '/entry': ['VẬN HÀNH', 'Nhập liệu nghiệp vụ'],
-  '/catalog': ['DANH MỤC', 'Quản lý danh mục hệ thống'],
-  '/cashflow': ['QUỸ', 'Quản lý quỹ'],
-  '/settings': ['CÀI ĐẶT', 'Cấu hình App'],
-  '/observability': ['CÀI ĐẶT', 'Trạng thái đồng bộ']
+  '/': ['TỔNG QUAN', 'Kết quả kinh doanh'], '/dashboard': ['TỔNG QUAN', 'Kết quả kinh doanh'],
+  '/reports': ['BÁO CÁO', 'Tổng hợp chi tiết'], '/manage': ['VẬN HÀNH', 'Quản lý vận hành'],
+  '/entry': ['VẬN HÀNH', 'Nhập liệu nghiệp vụ'], '/catalog': ['DANH MỤC', 'Quản lý danh mục hệ thống'],
+  '/cashflow': ['QUỸ', 'Quản lý quỹ'], '/settings': ['CÀI ĐẶT', 'Cấu hình App'], '/observability': ['CÀI ĐẶT', 'Trạng thái đồng bộ']
 };
+
+type DashboardMeta = { updatedAt?: string; source?: 'supabase' | 'apps-script' };
 
 export function AppShell({ context, children }: { context: PlatformContext; children: React.ReactNode }) {
   const pathname = usePathname() || '/dashboard';
+  const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [dashboardMeta, setDashboardMeta] = useState<DashboardMeta>({});
   const pageMeta = PAGE_META[pathname] || ['VẬN TẢI ĐÔNG BẮC', 'Hệ thống điều hành'];
+  const isDashboard = pathname === '/' || pathname === '/dashboard';
 
   useEffect(() => {
-    const saved = window.localStorage.getItem('vtdb-theme');
-    const nextTheme = saved === 'dark' || saved === 'light'
-      ? saved
-      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    document.documentElement.dataset.theme = nextTheme;
-  }, []);
-
-  useEffect(() => {
-    document.body.classList.toggle('platform-drawer-open', drawerOpen);
-    return () => document.body.classList.remove('platform-drawer-open');
+    document.body.classList.toggle('drawer-open', drawerOpen);
+    return () => document.body.classList.remove('drawer-open');
   }, [drawerOpen]);
 
-  const toggleTheme = () => {
-    const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = nextTheme;
-    window.localStorage.setItem('vtdb-theme', nextTheme);
-  };
+  useEffect(() => {
+    const update = (event: Event) => setDashboardMeta((event as CustomEvent<DashboardMeta>).detail || {});
+    window.addEventListener('vtdb:dashboard-meta', update);
+    return () => window.removeEventListener('vtdb:dashboard-meta', update);
+  }, []);
 
-  return <div className="platform-shell">
+  const refresh = () => document.querySelector<HTMLButtonElement>('[data-shell-refresh]')?.click();
+  const subtitle = isDashboard ? `Cập nhật: ${dashboardMeta.updatedAt || 'Vui lòng chờ...'}` : `Cập nhật: ${dashboardMeta.updatedAt || 'Vui lòng chờ...'}`;
+
+  return <div className="app">
     <a className="platform-skip-link" href="#platform-content">Bỏ qua điều hướng</a>
-    <button type="button" className="platform-drawer-backdrop" aria-label="Đóng menu" tabIndex={drawerOpen ? 0 : -1} onClick={() => setDrawerOpen(false)} />
-    <aside className={`platform-sidebar${drawerOpen ? ' open' : ''}`} aria-label="Menu ứng dụng">
-      <button type="button" className="platform-drawer-close" aria-label="Đóng menu" onClick={() => setDrawerOpen(false)}>×</button>
-      <Link className="platform-brand" href="/dashboard" prefetch={false} aria-label="Vận tải Đông Bắc - Tổng quan" onClick={() => setDrawerOpen(false)}>
-        <Image className="platform-brand-mark" src="/static/assets/apple-touch-icon.png" alt="Logo Vận tải Đông Bắc" width={44} height={44} priority />
-        <span><strong>Vận tải Đông Bắc</strong><small>Hệ thống nội bộ</small></span>
-      </Link>
-      <ShellNavigation items={NAVIGATION} role={context.user.role} onNavigate={() => setDrawerOpen(false)} />
-      <div className="platform-sidebar-footer">
-        <span>{context.user.displayName}</span>
-        <small>{context.user.role}</small>
-        <SignOutButton />
+    <div className="drawer-backdrop" aria-hidden={!drawerOpen} onClick={() => setDrawerOpen(false)}/>
+    <aside className="sidebar" aria-label="Menu ứng dụng">
+      <button type="button" className="drawer-close" aria-label="Đóng menu" onClick={() => setDrawerOpen(false)}>×</button>
+      <div>
+        <button type="button" className="brand" aria-label="Vận tải Đông Bắc - Tổng quan" onClick={() => router.push('/dashboard')}>
+          <Image className="brand-mark" src="/static/assets/apple-touch-icon.png" alt="Logo" width={44} height={44} priority/>
+          <span><span className="brand-name">Vận tải Đông Bắc</span><span className="brand-sub">Hệ thống nội bộ</span></span>
+        </button>
+        <ShellNavigation items={NAVIGATION} role={context.user.role} onNavigate={() => setDrawerOpen(false)}/>
+        <div className="auth-user"><div className="auth-user-email">{context.user.displayName}</div><SignOutButton /></div>
       </div>
     </aside>
-    <main className="platform-workspace">
-      <header className="platform-topbar">
-        <button type="button" className="platform-menu-button" aria-label="Mở menu" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-        <div className="platform-page-heading"><p className="platform-eyebrow">{pageMeta[0]}</p><h1>{pageMeta[1]}</h1><p>{context.workbook.module === 'cashflow' ? 'Thu chi' : 'Vận tải'} · {context.workbook.year}</p></div>
-        <div className="platform-top-actions">
-          <button type="button" className="platform-theme-button" aria-label="Đổi giao diện sáng hoặc tối" title="Đổi giao diện sáng/tối" onClick={toggleTheme}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          </button>
+    <main className="main" id="platform-content">
+      <header className="topbar">
+        <button type="button" className="menu-button" aria-label="Mở menu" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}><svg className="btn-svg" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <div><div className="eyebrow">{pageMeta[0]}</div><h1>{pageMeta[1]}</h1><div className="subtitle">{subtitle}{dashboardMeta.source ? <span className={`source-badge ${dashboardMeta.source === 'supabase' ? 'source-supabase' : 'source-appscript'}`} title={dashboardMeta.source === 'supabase' ? 'Đang đọc từ Supabase cache' : 'Đang đọc fallback từ Apps Script'}>{dashboardMeta.source === 'supabase' ? 'S' : 'AS'}</span> : null}</div></div>
+        <div className="top-actions">
+          <button type="button" className="ghost icon-button" aria-label="Cập nhật dữ liệu" title="Cập nhật" onClick={refresh}><svg className="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg></button>
+          <a href="/open-sheet" target="_blank" rel="noreferrer" title="Google Sheet" className="ghost icon-button" aria-label="Mở Google Sheet"><svg className="btn-svg" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg></a>
         </div>
       </header>
-      <div id="platform-content" className="platform-content" tabIndex={-1}>{children}</div>
+      {children}
     </main>
-    <ShellNavigation items={NAVIGATION} role={context.user.role} mode="bottom" onNavigate={() => setDrawerOpen(false)} />
+    <ShellNavigation items={NAVIGATION} role={context.user.role} mode="bottom" onNavigate={() => setDrawerOpen(false)}/>
   </div>;
 }

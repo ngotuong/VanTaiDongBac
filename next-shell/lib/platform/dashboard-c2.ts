@@ -1,0 +1,101 @@
+import type { DashboardKpi } from './dashboard-types';
+import type { ReportCell, ReportMatrix } from './report-types';
+
+export type DashboardMonthRow = {
+  month: string;
+  volume: number;
+  revenue: number;
+  operatingCost: number;
+  gross: number;
+  cashCost: number;
+  final: number;
+  raw: ReportCell[];
+};
+
+export type DashboardMetricKey = 'revenue' | 'operatingCost' | 'gross' | 'cashCost' | 'final';
+
+export function numberValue(value: unknown) {
+  const text = String(value ?? '').replace(/[^\d,\-.]/g, '');
+  if (!text) return 0;
+  const normalized = text.replace(/\./g, '').replace(',', '.');
+  const number = Number(normalized);
+  return Number.isFinite(number) ? number : 0;
+}
+
+export function normalizeMonthLabel(value: unknown) {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  const vn = text.match(/^(\d{1,2})\/(\d{4})$/);
+  if (vn) return `${vn[2]}-${String(Number(vn[1])).padStart(2, '0')}`;
+  const iso = text.match(/^(\d{4})-(\d{1,2})/);
+  if (iso) return `${iso[1]}-${String(Number(iso[2])).padStart(2, '0')}`;
+  return text;
+}
+
+export function parseDashboardRows(matrix?: ReportMatrix): DashboardMonthRow[] {
+  if (!matrix?.length) return [];
+  const headerIndex = matrix.findIndex((row) => String(row?.[0] ?? '').trim().toLowerCase() === 'tháng');
+  const headers = (matrix[headerIndex >= 0 ? headerIndex : 0] || []).map((value) => String(value ?? '').trim().toLowerCase());
+  const column = (names: string[], fallback: number) => {
+    const index = headers.findIndex((header) => names.some((name) => header.includes(name)));
+    return index >= 0 ? index : fallback;
+  };
+  const monthIndex = column(['tháng'], 0);
+  const volumeIndex = column(['sản lượng', 'khối lượng'], 1);
+  const revenueIndex = column(['doanh thu'], 2);
+  const taxTndnIndex = column(['thuế tndn', 'tndn'], 3);
+  const taxVatIndex = column(['thuế vat', 'vat'], 4);
+  const fuelIndex = column(['dầu qm', 'quang minh'], 5);
+  const tollIndex = column(['cầu đường', 'phí cầu đường'], 7);
+  const grossIndex = column(['lợi nhuận gộp'], 8);
+  const finalIndex = column(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận thực'], 10);
+  const body = headerIndex >= 0 ? matrix.slice(headerIndex + 1) : matrix.slice(1);
+  return body.filter((row) => String(row?.[monthIndex] ?? '').trim()).map((raw) => {
+    const revenue = numberValue(raw[revenueIndex]);
+    const calculatedGross = revenue - numberValue(raw[taxTndnIndex]) - numberValue(raw[taxVatIndex]) - numberValue(raw[fuelIndex]) - numberValue(raw[tollIndex]);
+    const gross = grossIndex >= 0 ? numberValue(raw[grossIndex]) : calculatedGross;
+    const final = numberValue(raw[finalIndex]);
+    return {
+      month: String(raw[monthIndex] ?? '').trim(),
+      volume: numberValue(raw[volumeIndex]),
+      revenue,
+      operatingCost: revenue - gross,
+      gross,
+      cashCost: gross - final,
+      final,
+      raw
+    };
+  }).filter((row) => row.month !== 'Tháng');
+}
+
+export function buildKpiMap(kpis?: DashboardKpi[]) {
+  const map = new Map<string, DashboardKpi>();
+  (kpis || []).forEach((item) => {
+    const key = normalizeMonthLabel(item.month || item.monthKey);
+    if (!key) return;
+    const metrics = [item.revenue, item.operatingCost, item.gross, item.cashCost, item.final];
+    if (!metrics.some((value) => value !== undefined && value !== null && Number.isFinite(Number(value)))) return;
+    map.set(key, item);
+  });
+  return map;
+}
+
+export function metricValue(row: DashboardMonthRow, key: DashboardMetricKey, kpiMap: Map<string, DashboardKpi>) {
+  const override = kpiMap.get(normalizeMonthLabel(row.month))?.[key];
+  return override === undefined || override === null || !Number.isFinite(Number(override)) ? row[key] : Number(override);
+}
+
+export function formatCurrencyText(value: number) {
+  return Math.round(Number(value || 0)).toLocaleString('vi-VN');
+}
+
+export function growth(current: number, previous: number | undefined, invertGood = false) {
+  if (previous === undefined || previous === 0) return { text: '-', statusClass: 'ok' as const };
+  const percent = ((current - previous) / Math.abs(previous)) * 100;
+  if (!Number.isFinite(percent)) return { text: '-', statusClass: 'ok' as const };
+  const isGood = invertGood ? percent < 0 : percent >= 0;
+  return {
+    text: `${percent >= 0 ? '▲' : '▼'} ${Math.abs(percent).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`,
+    statusClass: isGood ? 'ok' as const : 'err' as const
+  };
+}

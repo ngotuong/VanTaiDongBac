@@ -90,7 +90,9 @@ clasp push
 
 ## Rollback presentation Next/D1
 
-Production D1 là `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` (`https://vantaidongbac-eqydwsj14-ngotuong2105.vercel.app`). D1 xóa source legacy khỏi nhánh hiện tại nhưng không xóa deployment recovery. Production Next trước D1 là `dpl_9vU7mJfGCbtPwGT3aKJLACS4hXx6`.
+Production hiện tại là C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. D1 `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` và các candidate C3 sai không nằm trên `dongbac.vercel.app`.
+
+Candidate golden-master hiện tại là `dpl_5TcZ77CxZskFizUUNCZnT9rrG3hp` tại `https://vantaidongbac-c3-preview.vercel.app`. Candidate này chỉ phục vụ phê duyệt Dashboard và không nằm trên alias production. Nếu candidate lỗi, bỏ alias preview hoặc gán lại preview cũ; không cần đổi `dongbac.vercel.app`.
 
 Rollback nhanh về giao diện legacy đã xác nhận ở C2:
 
@@ -106,7 +108,7 @@ Legacy C1 vẫn được giữ tại `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS` và alia
 vercel alias set vantaidongbac-62q4v6vur-ngotuong2105.vercel.app dongbac.vercel.app
 ```
 
-Sau rollback, không xóa deployment Next/D1. Cut forward lại bằng cách gán `dongbac.vercel.app` về `vantaidongbac-eqydwsj14-ngotuong2105.vercel.app`.
+Sau rollback, không xóa deployment Next/D1. Không cut-forward candidate C3 nào cho đến khi toàn bộ `docs/quality/C3_PARITY_MATRIX.md` được phê duyệt.
 
 Apps Script D1 API-only là deployment `AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw`, code version `@282`. Apps Script rollback là deployment `AKfycbzO8puBHqpuoA9_eYPROuNGoISJM6bI9HT53xigZY_xK-BmQdcRhd_rje4qGFGVPbF3Mg`, code version `@281`; rollback backend bằng cách khôi phục `APPS_SCRIPT_URL` về URL `@281` rồi redeploy Vercel.
 

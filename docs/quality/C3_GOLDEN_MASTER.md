@@ -101,6 +101,17 @@ Người dùng đã phê duyệt tiếp tục checkpoint sau khi kiểm tra Repo
 - Manage/Entry ở `TECH_PASS`, chờ người dùng kiểm tra authenticated visual/chức năng trước khi nâng `USER_APPROVED`.
 - Regression gate bắt buộc: mọi root dùng class `.view` C2 phải đồng thời có `.active` hoặc state hiển thị tương đương. Dữ liệu phụ như catalog Entry không được nằm trên critical render path của Manage; navigation phải có loading feedback và chỉ prefetch destination có intent, không prefetch đồng loạt.
 
+Người dùng đã phê duyệt tiếp tục checkpoint sau correction Manage/Entry ngày 2026-07-14; hai surface được nâng `USER_APPROVED`.
+
+## Bằng chứng triển khai Catalog C3.4
+
+- `next-shell/components/catalog/CatalogModule.tsx` bỏ header/card/modal redesign và khôi phục trực tiếp `catalogView view active`, `sub-tabs-bar`, sticky filter, `table-card`, `report-table mobile-record-table` và modal shared của C2.
+- Giữ đủ chín tab, tìm kiếm accent-insensitive, filter Nhân sự/Công ty xe, cột Công ty/Chủ xe kèm badge, 20 dòng/trang, action icon C2 và trường ngày/số/ghi chú đúng loại input.
+- Hai view ảo tiếp tục đọc/ghi physical `DM_ThamSo`; xóa chỉ clear đúng nhóm cột. Effective-date/history vẫn do `CatalogService`/`SheetService` sở hữu; không đổi sheet, thứ tự cột, công thức, workbook hay source of truth.
+- Test C3 khóa root `.view active`, toàn bộ ID/class C2, chín tab, mapping view ảo, RBAC và việc không tái xuất hiện các class redesign. Technical gate: 272/272 test, lint, typecheck, build và `git diff --check` đạt.
+- Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ READY `dpl_HohfDxtwRWx2AfEnvLgY2qVoAew5`; API health 200 và session không cookie trả lỗi hết phiên đúng contract. Production `https://dongbac.vercel.app` vẫn là C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`.
+- Browser automation chuyển tới Vercel Deployment Protection trước app nên không ghi nhận authenticated computed-style/screenshot giả. Catalog ở `TECH_PASS`, chờ người dùng kiểm tra giao diện và chức năng bằng phiên đăng nhập trước khi nâng `USER_APPROVED`.
+
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 
 Phản hồi visual ngày 2026-07-14 chứng minh copy CSS/DOM chưa đủ nếu bỏ sót dependency hoặc để stylesheet khác rò rỉ vào surface golden. Từ Dashboard trở đi, mỗi surface phải thêm đủ các kiểm tra sau trước `TECH_PASS`:

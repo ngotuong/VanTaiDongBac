@@ -226,6 +226,8 @@ C3.0–C3.2a hoàn tất và được người dùng phê duyệt ngày 2026-07-
 
 C3.2b Report đạt technical gate ngày 2026-07-14 trên `dpl_7ngtXhSgmejtggAh11TNthLUpn4T`, alias riêng `https://vantaidongbac-c3-preview.vercel.app`: port năm tab, filter tháng thực tế, bốn matrix, tìm kiếm/filter chuyên biệt, subtotal, sticky columns và export C2; không tính lại report meaning. Candidate đầu `dpl_AaUuAHLhhexV5QfihCqhNu3JTphP` thiếu server env do target Preview; candidate hiện tại dùng Production environment với `--skip-domain`, không promote production, và đã đạt session/API smoke. Gate đạt 270/270 test, lint, typecheck, build, diff check và computed-style QA 390/1440. Production vẫn là C2. Trạng thái hiện tại là chờ người dùng duyệt authenticated Report; không bắt đầu Manage/Entry trước phê duyệt này.
 
+C3.2b được người dùng phê duyệt ngày 2026-07-14. C3.3 Manage/Entry đạt technical gate trên `dpl_4n1fRoecZiXMhtc5hLPebqhY1KeP`: port sáu sheet/bộ lọc/thống kê/bảng ngang/pagination/modal sửa-xóa và sáu form/multi-row/queue lifecycle theo C2; giữ row identity, RBAC, idempotency và formula preservation. Gate đạt 270/270 test, lint, typecheck, build, diff check và visual QA mobile/desktop. Alias C3 preview đã cập nhật, production vẫn là C2; chờ người dùng duyệt Manage/Entry trước Catalog.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

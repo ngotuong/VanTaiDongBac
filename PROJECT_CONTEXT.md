@@ -105,15 +105,16 @@ Dashboard B2, Manage B3, Catalog B5 và Cashflow B6 giữ cache/fallback hiện 
 
 ### Phase C3 — Golden-master parity
 
-Trạng thái: **IN PROGRESS ngày 2026-07-14; Shell/Login/Dashboard đã USER_APPROVED, Report đạt TECH_PASS và đang chờ duyệt**.
+Trạng thái: **IN PROGRESS ngày 2026-07-14; Shell/Login/Dashboard/Report đã USER_APPROVED, Manage/Entry đạt TECH_PASS và đang chờ duyệt**.
 
 - Production giữ C2 recovery, không cut-forward.
 - Candidate parity sai đã bị loại khỏi nhánh triển khai mới.
 - Golden source: production C2 sau hydrate và tree `73a0ede`.
 - Baseline/matrix: `docs/quality/C3_GOLDEN_MASTER.md`, `docs/quality/C3_PARITY_MATRIX.md`.
 - Dashboard correction `dpl_6gdxkLwGnXperukyRtre3iqCTmuz` đã được người dùng phê duyệt; Login/Auth, Shell/Nav và Dashboard là `USER_APPROVED`.
-- Preview Report: `https://vantaidongbac-c3-preview.vercel.app`, deployment `dpl_7ngtXhSgmejtggAh11TNthLUpn4T`. Candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`; không promote production.
-- Report technical gate: 270/270 test, lint, typecheck, build, diff check; computed-style QA 390/1440 xác nhận font, tab/filter/card geometry, header–table margin 0, desktop export 28×28/SVG 16×16 và mobile action ẩn đúng C2. Authenticated Report chưa được phê duyệt.
+- Người dùng đã phê duyệt Report và cho phép tiếp tục checkpoint ngày 2026-07-14; Report là `USER_APPROVED`.
+- Preview Manage/Entry: `https://vantaidongbac-c3-preview.vercel.app`, deployment READY `dpl_4n1fRoecZiXMhtc5hLPebqhY1KeP`. Candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`; không promote production.
+- Manage/Entry technical gate: 270/270 test, lint, typecheck, build, diff check; computed-style/screenshot QA mobile/desktop xác nhận font, tab/filter/card geometry, bảng cuộn nội bộ và không overflow document. Session không cookie 401, API health 200. Production vẫn là C2 recovery.
 - Thứ tự gate: Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability.
 - Mỗi module phải được người dùng duyệt riêng; D1 blocked.
 
@@ -179,9 +180,9 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### C3.3b — Report preview approval
+### C3.3 — Manage/Entry preview approval
 
-Người dùng kiểm tra authenticated Report tại preview C3: năm tab, đổi tháng/`Tất cả`, tìm kiếm Lương/Xe, filter công ty/biển số, bốn bảng, sticky columns và export desktop. Chưa chuyển sang Manage/Entry nếu Report chưa đạt `USER_APPROVED`.
+Người dùng kiểm tra authenticated Manage/Entry tại preview C3: sáu tab Vận hành, quick/custom date, tìm kiếm, thống kê Tài xế/Xăng dầu, cuộn ngang/pagination, modal sửa/xóa theo quyền; mở Nhập mới, sáu form, clone/add/remove, validation và trạng thái queue. Chưa chuyển sang Catalog nếu Manage/Entry chưa đạt `USER_APPROVED`.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -218,7 +219,7 @@ Google Sheets source of truth / Supabase read model, cache, queue
 
 Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_PLAN.md`. Kiến trúc đích tổng quát thuộc `TARGET_ARCHITECTURE.md`.
 
-## 7. Rủi ro và điều kiện trước C3.3b
+## 7. Rủi ro và điều kiện trước C3.3
 
 1. **Role coverage**: admin đã smoke production; operator/shareholder có contract/unit gate nhưng chưa có representative production smoke.
 2. **Rollback**: không xóa recovery C2, legacy C1/alias hoặc Apps Script `@281` cho đến khi người dùng phê duyệt kết thúc retention.

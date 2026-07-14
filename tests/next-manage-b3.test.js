@@ -5,10 +5,10 @@ const test = require('node:test');
 const root = path.resolve(__dirname,'..');
 const read = (file) => fs.readFileSync(path.join(root,file),'utf8');
 
-test('B3 Manage route performs initial server read without legacy bridge',()=>{
+test('C3 Manage route server-loads Manage and Entry without legacy bridge',()=>{
   const page=read('next-shell/app/manage/page.jsx');
-  assert.match(page,/loadManageData\(\)/); assert.match(page,/<ManageReadOnlyModule initialData=/);
-  assert.doesNotMatch(page,/ManageEntry|bridge=|next-accounts-shell/);
+  assert.match(page,/loadManageData\(\)/); assert.match(page,/loadEntryCatalogs\(\)/); assert.match(page,/<ManageReadOnlyModule initialData=/); assert.match(page,/entry=\{<EntryModule/);
+  assert.doesNotMatch(page,/bridge=|next-accounts-shell/);
 });
 
 test('B3 loader allowlists six sheets and preserves recent/month cache with Apps Script fallback',()=>{
@@ -19,12 +19,13 @@ test('B3 loader allowlists six sheets and preserves recent/month cache with Apps
   assert.match(loader,/limit: startDate \|\| endDate \? '500' : '50'/);
 });
 
-test('B3 UI keeps tabs filters row identity and pagination but exposes no write lifecycle',()=>{
+test('C3 Manage ports C2 tabs filters stats pagination and RBAC write lifecycle',()=>{
   const module=read('next-shell/components/manage/ManageReadOnlyModule.tsx');
-  assert.match(module,/const PAGE_SIZE = 20/); assert.match(module,/Dòng Sheet/); assert.match(module,/row\.rowIndex/);
-  for(const label of ['Gần đây','Hôm nay','7 ngày qua','Tháng này','Tháng trước','Tùy chọn','Nguồn dầu','Nguồn chi']) assert.match(module,new RegExp(label));
-  assert.match(module,/data-next-manage-readonly="true"/); assert.match(module,/role="alert"/); assert.match(module,/aria-busy="true"/);
-  assert.doesNotMatch(module,/submitRows|saveSheetRow|deleteSheetRow|openManageEditModal|pendingWrite|google\.script|window\.appData/);
+  assert.match(module,/const PAGE_SIZE=20/); assert.match(module,/row\.rowIndex/); assert.match(module,/id="manageView"/); assert.match(module,/id="manageTabsBar"/); assert.match(module,/manage-horizontal-table/);
+  for(const label of ['Mới nhất','Hôm nay','7 ngày','Tháng này','Tháng trước','Tùy chọn','Nguồn dầu','Nguồn chi','Tổng số lít','Tổng số chuyến']) assert.match(module,new RegExp(label));
+  for(const action of ['saveSheetRow','deleteSheetRow','processWriteJobs']) assert.match(module,new RegExp(`'${action}'`));
+  assert.match(module,/context\.user\.role!==['"]shareholder['"]/); assert.match(module,/previousRowData/); assert.match(module,/formulaColumn/);
+  assert.doesNotMatch(module,/google\.script|SpreadsheetApp|window\.appData/);
 });
 
 test('B3 Manage repository sends exact Supabase bundle filters with server credentials',async()=>{

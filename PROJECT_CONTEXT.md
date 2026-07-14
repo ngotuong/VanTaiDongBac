@@ -112,7 +112,7 @@ Trạng thái: **IN PROGRESS ngày 2026-07-14; Shell/Login/Dashboard đã USER_A
 - Golden source: production C2 sau hydrate và tree `73a0ede`.
 - Baseline/matrix: `docs/quality/C3_GOLDEN_MASTER.md`, `docs/quality/C3_PARITY_MATRIX.md`.
 - Dashboard correction `dpl_6gdxkLwGnXperukyRtre3iqCTmuz` đã được người dùng phê duyệt; Login/Auth, Shell/Nav và Dashboard là `USER_APPROVED`.
-- Preview Report: `https://vantaidongbac-c3-preview.vercel.app`, deployment `dpl_AaUuAHLhhexV5QfihCqhNu3JTphP`.
+- Preview Report: `https://vantaidongbac-c3-preview.vercel.app`, deployment `dpl_7ngtXhSgmejtggAh11TNthLUpn4T`. Candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`; không promote production.
 - Report technical gate: 270/270 test, lint, typecheck, build, diff check; computed-style QA 390/1440 xác nhận font, tab/filter/card geometry, header–table margin 0, desktop export 28×28/SVG 16×16 và mobile action ẩn đúng C2. Authenticated Report chưa được phê duyệt.
 - Thứ tự gate: Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability.
 - Mỗi module phải được người dùng duyệt riêng; D1 blocked.
@@ -239,8 +239,8 @@ Baseline hiện tại:
 - Production deployment: `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, Apps Script recovery `@281`.
 - Dashboard golden 07/2026: 270.513.180 / 94.863.960 / 175.649.220 / 341.770.935 / -166.121.715.
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
-- Candidate Report `dpl_AaUuAHLhhexV5QfihCqhNu3JTphP` đã READY tại `https://vantaidongbac-c3-preview.vercel.app`; chưa được người dùng phê duyệt.
-- Gate candidate: 270/270 test, lint, typecheck, build, `git diff --check`, computed-style QA 390/1440. Alias preview có Vercel Deployment Protection; production vẫn resolve `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` và final `/legacy-index.html` trả 200.
+- Candidate Report `dpl_7ngtXhSgmejtggAh11TNthLUpn4T` đã READY tại `https://vantaidongbac-c3-preview.vercel.app`; chưa được người dùng phê duyệt. Candidate Preview cũ thiếu server env và không còn trên alias.
+- Gate candidate: 270/270 test, lint, typecheck, build, `git diff --check`, computed-style QA 390/1440; session unauthenticated trả đúng 401 và API health 200. Production vẫn resolve `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` và final `/legacy-index.html` trả 200.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

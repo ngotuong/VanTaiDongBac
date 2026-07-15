@@ -17,11 +17,10 @@ function NavIcon({ icon }: { icon: NavigationIcon }) {
   return <svg {...common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33A1.65 1.65 0 0 0 14 20.83V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.52 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09A1.65 1.65 0 0 0 20.91 10H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"/></svg>;
 }
 
-export function ShellNavigation({ items, role, mode = 'side', onNavigate }: { items: NavigationItem[]; role: AppRole; mode?: 'side' | 'bottom'; onNavigate?: () => void }) {
+export function ShellNavigation({ items, role, mode = 'side', pendingHref = '', onNavigate }: { items: NavigationItem[]; role: AppRole; mode?: 'side' | 'bottom'; pendingHref?: string; onNavigate: (href: string) => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const visible = items.filter((item) => (mode === 'bottom' ? item.bottomRoles : item.roles).includes(role));
-  const navigate = (href: string) => { onNavigate?.(); router.push(href); };
   const prepare = (href: string) => {
     if (href === pathname || PREFETCHED_ROUTES.has(href)) return;
     PREFETCHED_ROUTES.add(href);
@@ -29,8 +28,10 @@ export function ShellNavigation({ items, role, mode = 'side', onNavigate }: { it
   };
   return <nav className={mode === 'bottom' ? 'bottom-nav' : 'nav-stack'} aria-label={mode === 'bottom' ? 'Điều hướng nhanh' : 'Điều hướng chính'}>
     {visible.map((item) => {
-      const active = pathname === item.href || pathname?.endsWith(`${item.href}/`) || Boolean(item.aliases?.includes(pathname || ''));
-      return <button key={item.href} type="button" className={mode === 'bottom' ? (active ? 'active' : '') : `nav-btn${active ? ' active' : ''}`} aria-current={active ? 'page' : undefined} aria-label={item.label} onPointerEnter={() => prepare(item.href)} onFocus={() => prepare(item.href)} onClick={() => navigate(item.href)}>
+      const optimisticPath = pendingHref || pathname || '';
+      const active = optimisticPath === item.href || optimisticPath.endsWith(`${item.href}/`) || Boolean(item.aliases?.includes(optimisticPath));
+      const pending = pendingHref === item.href;
+      return <button key={item.href} type="button" className={`${mode === 'bottom' ? (active ? 'active' : '') : `nav-btn${active ? ' active' : ''}`}${pending ? ' nav-pending' : ''}`.trim()} aria-current={active ? 'page' : undefined} aria-label={pending ? `Đang mở ${item.label}` : item.label} aria-busy={pending || undefined} disabled={pending} onPointerEnter={() => prepare(item.href)} onPointerDown={() => prepare(item.href)} onFocus={() => prepare(item.href)} onClick={() => onNavigate(item.href)}>
         {mode === 'side' ? <><span className="nav-ico"><NavIcon icon={item.icon}/></span><span className="nav-main">{item.label}</span></> : <><NavIcon icon={item.icon}/><span>{item.label}</span></>}
       </button>;
     })}

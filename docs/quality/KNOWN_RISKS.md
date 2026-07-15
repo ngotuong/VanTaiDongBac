@@ -85,6 +85,7 @@ Không đánh dấu Closed nếu source/kiến trúc vẫn còn đường tái d
 | R-029 | Job `synced` làm sống lại row đã xóa | High | Low | Mitigated |
 | R-030 | Source bound script snapshot không khớp production | High | High | Documentation gap |
 | R-031 | Report `latest`/lọc total sai semantics và prefetch route trùng | High | Medium | Mitigated/Monitor |
+| R-032 | Chuyển route không có phản hồi tức thời và thao tác thiếu toast | Medium | High | Mitigated/Monitor |
 
 ## 4. Rủi ro dữ liệu Google Sheets
 
@@ -240,6 +241,24 @@ Kiểm soát:
 - filter value phải tồn tại trong option hiện tại;
 - auth memoize trong request, cache read sau auth, intent-prefetch dedupe;
 - luôn retest authenticated desktop/mobile và so latency thực tế trước cut-forward.
+
+### R-032 — Route/action không có phản hồi tức thời
+
+Tác động: Medium. Khả năng: High. Trạng thái: Mitigated/Monitor.
+
+Sự cố đã quan sát trong C3 production stabilization:
+
+- route Next động phải chờ server/data nên khi item menu không đổi state ngay, người dùng cảm giác thao tác bị khựng hoặc không nhận;
+- các module dùng status text cục bộ không nhất quán, đặc biệt trên mobile hoặc khi popup đóng, khiến refresh/export/write/audit có vẻ không phản hồi;
+- tăng prefetch hàng loạt để che latency có thể gọi đồng thời các route dữ liệu nặng và tái diễn R-027/R-031.
+
+Kiểm soát:
+
+- active/pending/progress phải xuất hiện ngay tại AppShell, không đợi route server trả về;
+- chỉ prefetch theo intent và dedupe; không tuyên bố cải thiện network latency nếu chưa đo authenticated;
+- dùng một toast contract toàn cục cho loading/success/error của thao tác chủ động, giữ đúng ngôn ngữ pending so với synced;
+- toast phải có `aria-live`, error alert, dismiss, timeout phù hợp và reduced-motion;
+- retest mobile/desktop trên preview trước promote, production giữ deployment rollback bất biến.
 
 ### R-015 — Sheet tạm báo cáo còn sót
 

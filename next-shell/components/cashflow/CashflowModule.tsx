@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
 import { exportCardAsImage } from '../../lib/platform/export-card';
+import { showToast } from '../../lib/platform/toast';
 import type { CashflowInitialData, CashflowTab, FundCatalog, FundCatalogRow, FundLoan, FundLoans, FundOptions, FundOverview, FundTransaction, FundTransactions, FundWriteJob } from '../../lib/platform/cashflow-types';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 
@@ -66,14 +67,14 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   const [loanPartner, setLoanPartner] = useState(''); const [historyPartner, setHistoryPartner] = useState(''); const [historyType, setHistoryType] = useState('');
   const [drawer, setDrawer] = useState<Drawer>(null); const [transactionRows, setTransactionRows] = useState<FundTransaction[]>([blankTransaction()]); const [loan, setLoan] = useState<LoanForm>({ date: today(), partner: '', amount: '', termMonths: '', annualRate: '', interestPeriodMonths: '', firstInterestDate: '', content: '' }); const [payment, setPayment] = useState<PaymentForm>({ date: today(), code: '', type: 'Trả nợ', partner: '', amount: '', content: '' }); const [category, setCategory] = useState<{ title: string; rows: FundTransaction[] } | null>(null); const [categoryPartner, setCategoryPartner] = useState('');
   const [catalogEdit, setCatalogEdit] = useState<FundCatalogRow>({ rowIndex: '', value: '' });
-  const report = (text: string, isError = false) => { setMessage(text); setError(isError); };
+  const report = (text: string, isError = false) => { setMessage(text); setError(isError); showToast(text, isError ? 'error' : 'success'); };
 
   useEffect(() => { if (!canWrite) return; let active = true; api.get<{ jobs?: FundWriteJob[] }>('getRecentWriteJobs', { params: { module: 'fund', actionName: 'addFundTransactions', limit: '12' } }).then((result) => { if (active) setJobs((result.jobs || []).filter((job) => ['pending', 'processing', 'failed'].includes(job.status))); }).catch(() => {}); return () => { active = false; }; }, [canWrite]);
   useEffect(() => { const pending = jobs.filter((job) => job.jobId && ['pending', 'processing'].includes(job.status)); if (!pending.length) return; const timer = window.setTimeout(() => Promise.all(pending.map((job) => api.get<FundWriteJob>('getWriteJobStatus', { params: { jobId: job.jobId } }).then(normalizeJob))).then((updated) => { setJobs((old) => old.map((job) => updated.find((item) => item.jobId === job.jobId) || job).filter((job) => job.status !== 'synced')); if (updated.some((job) => job.status === 'synced')) void readSurface<FundTransactions>(year, 'transactions', {}, true).then(setTransactions).catch(() => {}); }).catch(() => {}), 1800); return () => window.clearTimeout(timer); }, [jobs, year]);
   useEffect(() => { document.body.classList.toggle('cashflow-modal-open', Boolean(drawer)); return () => document.body.classList.remove('cashflow-modal-open'); }, [drawer]);
 
   const refresh = async (view: CashflowTab = tab, force = false, overrideMonth = month) => {
-    setBusy(true); report('Đang tải dữ liệu Thu chi…');
+    setBusy(true); setMessage('Đang tải dữ liệu Thu chi…'); setError(false); showToast('Đang tải dữ liệu Thu chi…', 'loading');
     try {
       if (view === 'overview') setOverview(await readSurface<FundOverview>(year, 'overview', { month: overrideMonth }, force));
       else if (view === 'transactions') setTransactions(await readSurface<FundTransactions>(year, 'transactions', { startDate, endDate }, force));

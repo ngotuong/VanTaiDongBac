@@ -1,3 +1,5 @@
+import { showToast } from './toast';
+
 type Html2Canvas = (element: HTMLElement, options?: Record<string, unknown>) => Promise<HTMLCanvasElement>;
 
 let html2CanvasLoader: Promise<Html2Canvas> | null = null;
@@ -23,9 +25,10 @@ function loadHtml2Canvas() {
 
 export async function exportCardAsImage(button: HTMLButtonElement, title: string) {
   const card = button.closest<HTMLElement>('.table-card');
-  if (!card) return;
+  if (!card) return showToast('Không tìm thấy nội dung để xuất ảnh.', 'error');
   button.disabled = true;
   card.classList.add('is-exporting');
+  showToast('Đang tạo ảnh…', 'loading');
   try {
     const html2canvas = await loadHtml2Canvas();
     const canvas = await html2canvas(card, {
@@ -37,8 +40,9 @@ export async function exportCardAsImage(button: HTMLButtonElement, title: string
     link.download = `${title}-${new Date().toISOString().slice(0, 10)}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
+    showToast('Đã tạo và tải ảnh xuống.', 'success');
   } catch (error) {
-    window.alert(error instanceof Error ? error.message : 'Không thể xuất ảnh.');
+    showToast(error instanceof Error ? error.message : 'Không thể xuất ảnh.', 'error');
   } finally {
     card.classList.remove('is-exporting');
     button.disabled = false;
@@ -48,7 +52,7 @@ export async function exportCardAsImage(button: HTMLButtonElement, title: string
 export function exportTableAsCsv(button: HTMLButtonElement, fallbackTitle: string) {
   const card = button.closest<HTMLElement>('.table-card');
   const table = card?.querySelector('table');
-  if (!table) return;
+  if (!table) return showToast('Không tìm thấy bảng để xuất.', 'error');
   const rows = Array.from(table.querySelectorAll('tr'))
     .filter((row) => !(row as HTMLElement).hidden)
     .map((row) => Array.from(row.children).map((cell) => {
@@ -65,6 +69,7 @@ export function exportTableAsCsv(button: HTMLButtonElement, fallbackTitle: strin
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
+  showToast('Đã tạo và tải bảng dữ liệu xuống.', 'success');
 }
 
 function removeAccents(value: string) {

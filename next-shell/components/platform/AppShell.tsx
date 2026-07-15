@@ -2,10 +2,11 @@
 
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import type { PlatformContext } from '../../lib/platform/types';
 import { ShellNavigation, type NavigationItem } from './ShellNavigation';
 import { SignOutButton } from './SessionControls';
+import { ToastViewport } from './ToastViewport';
 
 const ALL_ROLES = ['admin', 'operator', 'shareholder'] as const;
 const WRITE_ROLES = ['admin', 'operator'] as const;
@@ -32,8 +33,11 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dashboardMeta, setDashboardMeta] = useState<DashboardMeta>({});
+  const [pendingHref, setPendingHref] = useState('');
+  const [isNavigationPending, startNavigation] = useTransition();
   const pageMeta = PAGE_META[pathname] || ['VẬN TẢI ĐÔNG BẮC', 'Hệ thống điều hành'];
   const isDashboard = pathname === '/' || pathname === '/dashboard';
+  const navigationTarget = pendingHref === pathname ? '' : pendingHref;
 
   useEffect(() => {
     document.body.classList.toggle('shell-drawer-open', drawerOpen);
@@ -46,6 +50,13 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
     return () => window.removeEventListener('vtdb:dashboard-meta', update);
   }, []);
 
+  const navigate = (href: string) => {
+    if (href === pathname || navigationTarget === href) { setDrawerOpen(false); return; }
+    setDrawerOpen(false);
+    setPendingHref(href);
+    startNavigation(() => router.push(href));
+  };
+
   const refresh = () => document.querySelector<HTMLButtonElement>('[data-shell-refresh]')?.click();
   const subtitle = isDashboard ? `Cập nhật: ${dashboardMeta.updatedAt || 'Vui lòng chờ...'}` : `Cập nhật: ${dashboardMeta.updatedAt || 'Vui lòng chờ...'}`;
 
@@ -55,11 +66,11 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
     <aside className="sidebar" aria-label="Menu ứng dụng">
       <button type="button" className="drawer-close" aria-label="Đóng menu" onClick={() => setDrawerOpen(false)}>×</button>
       <div>
-        <button type="button" className="brand" aria-label="Vận tải Đông Bắc - Tổng quan" onClick={() => router.push('/dashboard')}>
+        <button type="button" className="brand" aria-label="Vận tải Đông Bắc - Tổng quan" onClick={() => navigate('/dashboard')}>
           <Image className="brand-mark" src="/static/assets/apple-touch-icon.png" alt="Logo" width={44} height={44} priority/>
           <span><span className="brand-name">Vận tải Đông Bắc</span><span className="brand-sub">Hệ thống nội bộ</span></span>
         </button>
-        <ShellNavigation items={NAVIGATION} role={context.user.role} onNavigate={() => setDrawerOpen(false)}/>
+        <ShellNavigation items={NAVIGATION} role={context.user.role} pendingHref={navigationTarget} onNavigate={navigate}/>
         <div className="auth-user"><div className="auth-user-email">{context.user.displayName}</div><SignOutButton /></div>
       </div>
     </aside>
@@ -72,8 +83,11 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
           <a href="/open-sheet" target="_blank" rel="noreferrer" title="Google Sheet" className="ghost icon-button" aria-label="Mở Google Sheet"><svg className="btn-svg" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg></a>
         </div>
       </header>
+      <div className={`route-progress${navigationTarget || isNavigationPending ? ' active' : ''}`} aria-hidden="true"><span/></div>
+      <span className="platform-visually-hidden" role="status" aria-live="polite">{navigationTarget ? `Đang chuyển tới ${PAGE_META[navigationTarget]?.[1] || 'màn hình mới'}.` : ''}</span>
       {children}
     </main>
-    <ShellNavigation items={NAVIGATION} role={context.user.role} mode="bottom" onNavigate={() => setDrawerOpen(false)}/>
+    <ShellNavigation items={NAVIGATION} role={context.user.role} mode="bottom" pendingHref={navigationTarget} onNavigate={navigate}/>
+    <ToastViewport/>
   </div>;
 }

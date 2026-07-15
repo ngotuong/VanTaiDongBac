@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { DashboardBundle, DashboardDataResponse, DashboardTrip } from '../../lib/platform/dashboard-types';
 import { buildKpiMap, formatCurrencyText, growth, metricValue, parseDashboardRows, type DashboardMetricKey, type DashboardMonthRow } from '../../lib/platform/dashboard-c2';
 import { exportCardAsImage } from '../../lib/platform/export-card';
+import { showToast } from '../../lib/platform/toast';
 
 type MetricSpec = { key: DashboardMetricKey; label: string; badge: 'blue' | 'red' | 'amber' | 'green'; invert?: boolean; icon: React.ReactNode };
 
@@ -89,8 +90,9 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
 
   const refresh = async () => {
     setLoading(true); setError('');
-    try { const data = await requestDashboard(); setDashboard(data.dashboard); }
-    catch (loadError) { setError(loadError instanceof Error ? loadError.message : String(loadError)); }
+    showToast('Đang cập nhật dữ liệu Tổng quan…', 'loading');
+    try { const data = await requestDashboard(); setDashboard(data.dashboard); showToast('Dữ liệu Tổng quan đã được cập nhật.', 'success'); }
+    catch (loadError) { const message = loadError instanceof Error ? loadError.message : String(loadError); setError(message); showToast(message, 'error'); }
     finally { setLoading(false); }
   };
 

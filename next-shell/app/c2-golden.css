@@ -4949,6 +4949,20 @@ body > .modal-overlay .modal-body { flex: 1 1 auto; min-height: 0; overflow-x: h
   .manage-react-pagination > div { width: 100%; }.manage-react-pagination button { flex: 1; }
 }
 
+/* C3 interaction feedback: preserve C2 visuals while making route/action state immediate. */
+.route-progress { position: fixed; top: 0; left: 0; right: 0; z-index: 1250; height: 3px; overflow: hidden; opacity: 0; pointer-events: none; transition: opacity .12s ease; }
+.route-progress.active { opacity: 1; }
+.route-progress > span { display: block; width: 42%; height: 100%; border-radius: 999px; background: linear-gradient(90deg,var(--teal),var(--deep)); transform: translateX(-110%); }
+.route-progress.active > span { animation: route-progress-slide .9s cubic-bezier(.4,0,.2,1) infinite; }
+@keyframes route-progress-slide { to { transform: translateX(350%); } }
+.nav-pending { cursor: progress !important; }
+.nav-pending .btn-svg,.nav-pending .nav-ico { opacity: .72; }
+.platform-toast { z-index: 1300; max-width: 520px; margin-inline: auto; }
+.platform-toast-message { min-width: 0; flex: 1; line-height: 1.4; }
+.platform-toast-close { width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: currentColor; font-size: 22px; line-height: 1; }
+.platform-toast.error .sync-toast-icon { background: var(--red-soft); color: var(--red); }
+@media (prefers-reduced-motion: reduce) { .route-progress,.route-progress > span { transition: none; animation: none !important; }.route-progress.active > span { width: 100%; transform: none; } }
+
 /* C3 Catalog bindings: exact C2 structure, behavior and responsive proportions. */
 .catalog-c2 { min-width: 0; }
 .catalog-c2 #catalogTabsBar { width: 100%; margin-bottom: 12px; }

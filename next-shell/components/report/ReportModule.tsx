@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { ReportBundle, ReportCell, ReportDataResponse, ReportMatrix } from '../../lib/platform/report-types';
 import { appendTotal, filterOptions, filterOverviewMatrix, formatValueLike, isTotalRow, matchesReportRow, matrixRows, parseCellValue, reportMonths, reportSourceRows, stripMonthColumn, type ReportType } from '../../lib/platform/report-c2';
 import { exportCardAsImage, exportTableAsCsv } from '../../lib/platform/export-card';
+import { showToast } from '../../lib/platform/toast';
 
 const TABS = [
   ['all', 'Tất Cả'],
@@ -127,14 +128,16 @@ export function ReportModule({ initialBundle, initialError = '' }: { initialBund
 
   const load = async (target: string, forceRefresh = false) => {
     setLoading(true); setError(''); setStatus('Đang tải báo cáo…');
+    if (forceRefresh) showToast('Đang cập nhật Báo cáo…', 'loading');
     try {
       const data = await requestReport(target, forceRefresh);
       setBundle(data.bundle);
       const loadedMonths = reportMonths(data.bundle.overview?.months);
       setMonth(target === 'latest' ? loadedMonths.at(-1) || 'Tất cả' : target);
       setStatus(data.bundle.apiCached ? 'Dữ liệu từ API cache.' : 'Dữ liệu từ API.');
+      if (forceRefresh) showToast('Dữ liệu Báo cáo đã được cập nhật.', 'success');
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : String(loadError)); setStatus('');
+      const message = loadError instanceof Error ? loadError.message : String(loadError); setError(message); setStatus(''); showToast(message, 'error');
     } finally { setLoading(false); }
   };
 

@@ -6,7 +6,7 @@ Tài liệu này khóa nguồn chuẩn duy nhất cho C3. Mục tiêu là chuy�
 
 ## Nguồn chuẩn theo thứ tự ưu tiên
 
-1. Production C2 đang chạy tại `https://dongbac.vercel.app`, deployment `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`.
+1. Deployment C2 recovery bất biến `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, là presentation production tại thời điểm khóa golden source và vẫn được giữ để rollback.
 2. Trạng thái authenticated sau khi client C2 tải xong dữ liệu và hydrate DOM.
 3. Tree Git C2 `73a0ede`:
    - `index.template.html`;
@@ -171,6 +171,7 @@ Người dùng phê duyệt Settings/Observability và cho phép chuyển checkp
 - Alias `latest` trước đây lấy row Supabase được sync gần nhất, kể cả snapshot Dashboard `__dashboard_latest__`, một tháng khác hoặc `Tất cả`, trong khi UI chọn tháng nghiệp vụ cuối từ overview. Server correction loại snapshot Dashboard khỏi Report lookup, xác thực trước, suy ra tháng nghiệp vụ mới nhất từ matrix tháng rồi đọc đúng bundle `report_month`; cache thiếu matrix tháng mới fallback Apps Script. Filter công ty/biển số không còn được áp dụng nếu option không tồn tại trong matrix mới.
 - Tối ưu không đổi nghĩa dữ liệu: auth lookup được memoize trong cùng server request; Report đọc cache workbook-scoped trực tiếp sau auth thay vì thêm một vòng HTTP qua proxy; intent-prefetch được dedupe giữa pointer/focus. Không bật prefetch hàng loạt và không tuyên bố Next tự động nhanh hơn SPA C2 vốn giữ dữ liệu trong memory.
 - Candidate correction `https://vantaidongbac-c3-preview.vercel.app` trỏ READY `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Gate đạt 282/282 test, lint, typecheck, build, diff check; deployment-authenticated root 200, session không cookie 401, health 200. Production vẫn C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; cần người dùng kiểm tra desktop/mobile Report và cảm nhận chuyển menu trước khi cut-forward lại.
+- Người dùng phê duyệt correction và cho phép chuyển checkpoint ngày 2026-07-15. Report được khóa lại `USER_APPROVED`; gate chạy lại tiếp tục đạt 282/282 test, lint, typecheck, build và diff check. Alias production được gán sang chính deployment bất biến `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`, không rebuild giữa preview và production. Smoke read-only root, Dashboard, Report, Manage, Catalog, Cashflow, Settings, Observability, favicon và manifest đạt 200; session không cookie 401, health 200, không có log 5xx. C2 recovery vẫn READY; C3 bước vào production stabilization và D1 tiếp tục blocked.
 
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 

@@ -52,8 +52,8 @@ Các surface người dùng hiện có:
 
 ```text
 Browser
-  └─ dongbac.vercel.app        -> C2 recovery presentation (production)
-  └─ C3 preview                -> Next.js Report correction đang chờ duyệt
+  └─ dongbac.vercel.app        -> Next.js App Router C3 correction (production stabilization)
+  └─ C3 preview                -> cùng deployment bất biến đã duyệt
           ↓
 Vercel /api/app
   - xác thực Supabase session
@@ -81,9 +81,9 @@ Vai trò dữ liệu hiện tại:
 - Next.js `16.2.10`, React `19.2.7`.
 - Source route/component tiếp tục nằm trong `next-shell/`; root `app/` là Vercel App Router entrypoint mỏng.
 - `next.config.mjs` không còn `basePath` và không dùng `output: 'export'`; App Router phục vụ trực tiếp tại `/`.
-- Production alias đã rollback về C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` sau regression Report của cut-forward C3. Candidate correction là `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` trên alias preview.
+- Production alias đã controlled cut-forward lại sang C3 correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY để rollback.
 - Root layout server-render auth/workbook context; chưa đăng nhập render LoginGate cùng-origin, đăng nhập tạo HttpOnly cookie qua `/api/session`.
-- Các route Next độc lập được giữ làm nền kỹ thuật nhưng chưa được chấp nhận làm production presentation.
+- Các route Next độc lập hiện là production presentation trong giai đoạn stabilization; legacy C2 chỉ được giữ dưới dạng deployment rollback bất biến.
 - Nhánh C3 mới `codex/c3-golden-master` bắt đầu từ nền Next sạch `a5e29bf`; nguồn C2 tại tree `73a0ede` được dùng làm golden reference, không khôi phục DOM bridge vào production.
 - Apps Script production vẫn dùng recovery `@281`; D1/API-only `@282` bị khóa.
 
@@ -105,9 +105,9 @@ Dashboard B2, Manage B3, Catalog B5 và Cashflow B6 giữ cache/fallback hiện 
 
 ### Phase C3 — Golden-master parity
 
-Trạng thái: **CUT-FORWARD ROLLED BACK ngày 2026-07-15; Report correction đạt TECH_PASS, các surface khác vẫn USER_APPROVED**.
+Trạng thái: **CORRECTION CUT-FORWARD ACTIVE ngày 2026-07-15; toàn bộ surface C3 là USER_APPROVED và production đang stabilization**.
 
-- Production `dongbac.vercel.app` đang trỏ C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; candidate C3 không nằm trên production.
+- Production `dongbac.vercel.app` đang trỏ correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; C2 recovery vẫn giữ nguyên, chưa xóa.
 - Candidate parity sai đã bị loại khỏi nhánh triển khai mới.
 - Golden source: production C2 sau hydrate và tree `73a0ede`.
 - Baseline/matrix: `docs/quality/C3_GOLDEN_MASTER.md`, `docs/quality/C3_PARITY_MATRIX.md`.
@@ -115,7 +115,7 @@ Trạng thái: **CUT-FORWARD ROLLED BACK ngày 2026-07-15; Report correction đ�
 - Người dùng đã phê duyệt Report và cho phép tiếp tục checkpoint ngày 2026-07-14; Report là `USER_APPROVED`.
 - Người dùng đã phê duyệt tiếp tục checkpoint sau khi kiểm tra correction Manage/Entry; hai surface này được khóa `USER_APPROVED`. Người dùng vẫn ghi nhận nhiều lỗi UI/UX ở Manage và Catalog; đây là UI debt sẽ xử lý ở pha sau, không được hiểu là C2 visual đã hoàn hảo.
 - Người dùng đã kiểm tra Catalog và phê duyệt tiếp tục hoàn thiện migration ngày 2026-07-14; Catalog được nâng `USER_APPROVED` cho gate migration với UI debt nói trên.
-- Preview correction: `https://vantaidongbac-c3-preview.vercel.app`, READY `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`; không promote production.
+- Preview correction: `https://vantaidongbac-c3-preview.vercel.app`, READY `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`; chính deployment bất biến này đã được gán production sau phê duyệt.
 - Người dùng phát hiện Manage không hiển thị dù route 200; nguyên nhân là root `.view` thiếu `.active`. Correction thêm state hiển thị, lazy-load catalog Entry khỏi critical path, loading shimmer C2 và targeted prefetch theo intent.
 - Catalog port lại đúng C2 với chín tab, filter nhân sự/chủ xe, bảng/pagination, modal add/edit/delete, cột chủ xe và mapping clear-only cho hai view ảo `DM_ThamSo`; không đổi Sheet/schema/cột/công thức.
 - Cashflow port lại bốn surface C2: Tổng quan/báo cáo/export, Danh sách thu chi với quick/custom date/search/pagination/pending jobs, Khoản vay với reconciliation/filter/history và Fund Catalog inline; các form dùng drawer C2. Queue/idempotency, row identity, native-range bounds và Apps Script authoritative writes được giữ nguyên; không đổi Sheet/schema/cột/công thức.
@@ -129,6 +129,8 @@ Trạng thái: **CUT-FORWARD ROLLED BACK ngày 2026-07-15; Report correction đ�
 - Người dùng phê duyệt Settings/Observability và yêu cầu chuyển checkpoint ngày 2026-07-15; toàn bộ parity matrix được khóa `USER_APPROVED`. Controlled cut-forward dùng đúng deployment preview bất biến, không rebuild giữa phê duyệt và production. Post-cutover smoke xác nhận các route chính, favicon và manifest 200; session không cookie 401, health 200 và không có log 5xx. Apps Script/data/schema không thay đổi.
 - Sau cut-forward, người dùng phát hiện Report mất ba dòng tổng/profit, mobile empty state và tốc độ chuyển menu/load bảng chậm hơn C2. Production được rollback ngay. Correction phục hồi detail rows, khóa `latest` vào tháng nghiệp vụ mới nhất thay vì row sync gần nhất, bỏ filter stale và loại các round-trip auth/API/prefetch trùng; không đổi Sheet, schema hoặc công thức.
 - Gate correction: 282/282 test, lint, typecheck, build, diff check; candidate root 200, session 401, health 200. Authenticated data/visual/performance vẫn cần người dùng kiểm tra trên preview.
+- Người dùng phê duyệt correction và yêu cầu chuyển checkpoint ngày 2026-07-15; Report trở lại `USER_APPROVED`. Gate được chạy lại trên commit đã duyệt và tiếp tục đạt 282/282 test, lint, typecheck, build, diff check. Controlled cut-forward chỉ đổi alias production sang đúng deployment preview bất biến, không rebuild.
+- Post-cutover smoke xác nhận root, Dashboard, Report, Manage, Catalog, Cashflow, Settings, Observability, favicon và manifest 200; session không cookie 401, health 200 và không có log 5xx trong cửa sổ kiểm tra. Apps Script/data/schema không thay đổi; D1 vẫn blocked.
 - Thứ tự gate: Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability.
 - Mỗi module phải được người dùng duyệt riêng; D1 blocked.
 
@@ -194,9 +196,9 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### C3 — Report correction preview approval
+### C3 — Production stabilization sau correction cut-forward
 
-Người dùng kiểm tra preview authenticated trên desktop và mobile: Báo cáo chi tiết phải có `Tổng khối lượng`, `Tổng doanh thu`, `Lợi nhuận thực`; cả bốn bảng có dữ liệu đúng tháng khi không lọc; đổi tháng không giữ filter công ty/biển số không còn hợp lệ. Đồng thời so cảm nhận chuyển menu và thời gian mở Báo cáo với C2 production. Chỉ cut-forward lại sau xác nhận trực tiếp; D1 tiếp tục blocked và UI debt Manage/Catalog giữ cho pha riêng.
+Người dùng xác nhận production `dongbac.vercel.app` tiếp tục hiển thị đúng correction đã duyệt trong phiên đăng nhập thực, đặc biệt Report trên mobile và tốc độ chuyển menu. Theo dõi auth/API error, cache fallback và PWA/home-screen cache; rollback ngay về C2 nếu regression nghiệp vụ nghiêm trọng tái xuất hiện. Chỉ đóng C3 sau thời gian ổn định được người dùng chấp thuận rõ; D1 tiếp tục blocked và UI debt Manage/Catalog giữ cho pha riêng.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -250,12 +252,12 @@ Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 Baseline hiện tại:
 
-- Production `/` chạy C2 recovery và trả 200.
-- Production deployment: `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; candidate Report correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; Apps Script recovery `@281`.
+- Production `/` chạy Next.js App Router C3 correction và trả 200.
+- Production deployment: `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; rollback C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; Apps Script recovery `@281`.
 - Dashboard golden 07/2026: 270.513.180 / 94.863.960 / 175.649.220 / 341.770.935 / -166.121.715.
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
-- Candidate correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` READY tại alias preview; Report là `TECH_PASS`, các surface còn lại giữ `USER_APPROVED`.
-- Gate correction: 282/282 test, lint, typecheck, build, `git diff --check`; root 200, session unauthenticated 401, API health 200. Production C2 root/health 200.
+- C3 correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` READY tại cả production và alias preview; toàn bộ mười surface là `USER_APPROVED`.
+- Gate cut-forward: 282/282 test, lint, typecheck, build, `git diff --check`; các route chính/PWA 200, session unauthenticated 401, API health 200 và không có log 5xx sau smoke.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

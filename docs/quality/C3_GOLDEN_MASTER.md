@@ -152,6 +152,16 @@ Người dùng đã kiểm tra và phê duyệt tiếp tục migration ngày 202
 - Scope block display được thu hẹp thành `#cashflowView.cashflow-c2`. Body-level drawer được khóa `display:flex; flex-direction:column; min-height:0`; scroll body dùng `flex:1 1 0%`, `height:0`, `min-height:0`, `overflow-y:auto`, `touch-action:pan-y` và iOS momentum. Header/footer tiếp tục không co và footer giữ safe-area.
 - Regression tests vừa khóa selector/cascade vừa giữ portal, z-index và single-scroll contract. Gate đạt 277/277 test, lint, typecheck, build và diff check. Preview trỏ READY `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL`; root 200, session 401, health 200. Production vẫn C2 recovery; cần user retest trước khi C3.5 được duyệt.
 
+Người dùng đã retest và xác nhận form Cashflow vuốt được ngày 2026-07-15; C3.5 được khóa `USER_APPROVED`.
+
+## Bằng chứng triển khai Settings/Observability C3.6
+
+- Golden source là `index.template.html`, `client_accounts.html`, `client_observability.html` và `styles_settings_modal.html` tại tree `73a0ede`. React giữ root `#settingsView.view.active`, `.settings-grid`, card/form/table account, từng password toggle, temporary password và toàn bộ ID C2; Observability giữ một sync card, năm button ID, path SVG C2 và bốn section cache/queue/manage audit/report audit.
+- Không dùng lại presentation `b7-*`. Phần binding chỉ scope route link và grid span trong `c2-golden.css`; font, màu, radius, shadow, spacing, table scroll và breakpoint tiếp tục do golden CSS sở hữu. UI/UX review chỉ dùng để kiểm tra touch target, responsive và trạng thái tải, không redesign.
+- Contract không đổi: mọi user active có thể đổi mật khẩu; list/create/update/reset account chỉ admin; temporary password chỉ giữ trong React state. Admin/operator được xem status; shareholder bị chặn ở UI và server. Initial load chỉ gọi `getSupabaseSyncStatus` và `getRecentWriteJobs`; quick 50/deep 500/all/report audit và `retryWriteJob` chỉ chạy sau thao tác chủ động; không gọi worker.
+- Regression test khóa ID/class/SVG C2, responsive form/table/status rows, cấm `b7-*`, giữ role gate và heavy-action contract. Gate đạt 278/278 test, lint, typecheck, build và diff check.
+- Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ READY `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`; deployment-authenticated root 200, session không cookie 401, API health 200. Browser automation vẫn bị Vercel Deployment Protection chặn trước app nên không tuyên bố authenticated visual pass. Production tiếp tục C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; C3.6 chờ người dùng duyệt.
+
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 
 Phản hồi visual ngày 2026-07-14 chứng minh copy CSS/DOM chưa đủ nếu bỏ sót dependency hoặc để stylesheet khác rò rỉ vào surface golden. Từ Dashboard trở đi, mỗi surface phải thêm đủ các kiểm tra sau trước `TECH_PASS`:

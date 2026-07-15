@@ -242,6 +242,8 @@ Phản hồi tiếp theo cho thấy popup Quỹ vẫn không vuốt được. Co
 
 Kiểm tra thực tế ngày 2026-07-15 bác bỏ phần Cashflow scroll của candidate trên. Root cause là `.cashflow-c2 {display:block}` của React bindings ghi đè `.fund-detail-drawer {display:flex}`; overflow được khai báo đúng nhưng không có containing flex height nên nội dung bị cắt. Correction `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL` scope block display cho `#cashflowView`, khóa drawer body-level thành column flex và vùng form thành `flex:1 1 0%`/`height:0`/`min-height:0` để Safari tạo scrollport hữu hạn. Regression test khóa chính cascade conflict này. Gate đạt 277/277 test, lint, typecheck, build và diff check; root 200, session 401, health 200. C3.5 vẫn chờ user approval.
 
+Người dùng retest ngày 2026-07-15 và xác nhận popup Cashflow đã vuốt được; C3.5 được nâng `USER_APPROVED`. C3.6 Settings/Observability đạt `TECH_PASS` trên `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`: port lại đúng C2 account forms/table/password controls và observability card/actions/sections/SVG; loại presentation `b7-*`. Contract own-password/admin-only, shareholder deny, initial light status load và explicit-only audit/retry được giữ. Gate đạt 278/278 test, lint, typecheck, build và diff check; root 200, session 401, health 200. Production vẫn C2; chờ authenticated user approval trước cổng controlled cut-forward C3.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

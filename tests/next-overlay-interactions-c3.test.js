@@ -19,11 +19,13 @@ test('C3 audits every business overlay as a body-level portal or fixed shell',()
 
 test('C3 gives every mobile business overlay one explicit vertical pan region',()=>{
   const css=read('next-shell/app/c2-golden.css');
-  assert.match(css,/\.cashflow-c2 \.cashflow-drawer-body \{[^}]*overflow-y: auto !important[^}]*touch-action: pan-y[^}]*-webkit-overflow-scrolling: touch/);
+  assert.doesNotMatch(css,/(?:^|\n)\s*\.cashflow-c2 \{[^}]*display:\s*block/);
+  assert.match(css,/body > \.cashflow-c2\.fund-detail-drawer \{[^}]*display: flex[^}]*flex-direction: column[^}]*min-height: 0/);
+  assert.match(css,/\.cashflow-c2 \.cashflow-drawer-body \{[^}]*flex: 1 1 0%[^}]*height: 0[^}]*min-height: 0[^}]*overflow-y: auto !important[^}]*touch-action: pan-y[^}]*-webkit-overflow-scrolling: touch/);
   assert.match(css,/\.cashflow-c2 \.cashflow-drawer-body > \.table-wrap \{[^}]*overflow-x: auto !important[^}]*overflow-y: visible !important/);
   assert.match(css,/body > \.modal-overlay \.modal-body \{[^}]*overflow-y: auto !important[^}]*touch-action: pan-y[^}]*-webkit-overflow-scrolling: touch/);
   assert.match(css,/body\.mobile-entry-open #entryShell \.entry-rows \{[^}]*overflow-y: auto !important[^}]*touch-action: pan-y[^}]*-webkit-overflow-scrolling: touch/);
-  assert.match(css,/@media \(max-width: 640px\) \{[\s\S]*?body > \.fund-detail-drawer \{[^}]*height: 100dvh !important[^}]*max-height: 100dvh !important/);
+  assert.match(css,/@media \(max-width: 640px\) \{[\s\S]*?body > \.cashflow-c2\.fund-detail-drawer \{[^}]*height: 100dvh !important[^}]*max-height: 100dvh !important/);
 });
 
 test('C3 keeps overlay actions visible above the mobile safe area',()=>{

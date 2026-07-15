@@ -240,6 +240,8 @@ Người dùng từ chối visual/interaction Entry của correction đầu vì 
 
 Phản hồi tiếp theo cho thấy popup Quỹ vẫn không vuốt được. Correction toàn diện trên `dpl_Fi2JXxP4kJPbYBaNvZkZ1i1ktUX3` audit mọi business overlay hiện có thay vì sửa cục bộ: bốn Cashflow drawer, Manage Entry/edit và Catalog add/edit. Overlay được đưa ra body-level stacking context, mỗi form chỉ có một vùng pan-y có iOS momentum, header/footer cố định trong flex shell, action bar chừa safe-area, bảng ngang không còn nested vertical scroll; Catalog modal cũng khóa bottom navigation. Full-height được scope mobile để giữ desktop drawer C2. Gate đạt 277/277 test, lint, typecheck, build, diff check; root 200, session 401, health 200 qua deployment-authenticated smoke. Production vẫn C2; C3.5 chờ user approval trước Settings/Observability.
 
+Kiểm tra thực tế ngày 2026-07-15 bác bỏ phần Cashflow scroll của candidate trên. Root cause là `.cashflow-c2 {display:block}` của React bindings ghi đè `.fund-detail-drawer {display:flex}`; overflow được khai báo đúng nhưng không có containing flex height nên nội dung bị cắt. Correction `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL` scope block display cho `#cashflowView`, khóa drawer body-level thành column flex và vùng form thành `flex:1 1 0%`/`height:0`/`min-height:0` để Safari tạo scrollport hữu hạn. Regression test khóa chính cascade conflict này. Gate đạt 277/277 test, lint, typecheck, build và diff check; root 200, session 401, health 200. C3.5 vẫn chờ user approval.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

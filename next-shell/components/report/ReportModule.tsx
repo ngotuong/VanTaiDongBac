@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { ReportBundle, ReportCell, ReportDataResponse, ReportMatrix } from '../../lib/platform/report-types';
-import { appendTotal, filterOptions, filterOverviewMatrix, formatValueLike, isTotalRow, matchesReportRow, matrixRows, parseCellValue, reportMonths, stripMonthColumn, type ReportType } from '../../lib/platform/report-c2';
+import { appendTotal, filterOptions, filterOverviewMatrix, formatValueLike, isTotalRow, matchesReportRow, matrixRows, parseCellValue, reportMonths, reportSourceRows, stripMonthColumn, type ReportType } from '../../lib/platform/report-c2';
 import { exportCardAsImage, exportTableAsCsv } from '../../lib/platform/export-card';
 
 const TABS = [
@@ -76,12 +76,14 @@ function ReportTable({ type, matrix, query, month }: { type: ReportType; matrix:
   const options = useMemo(() => filterOptions(type, prepared.head, prepared.body), [type, prepared]);
   const [company, setCompany] = useState('');
   const [plate, setPlate] = useState('');
-  const dataRows = useMemo(() => prepared.body.filter((row) => !isTotalRow(row)).filter((row) => {
+  const effectiveCompany = company && options.companies.includes(company) ? company : '';
+  const effectivePlate = plate && options.plates.includes(plate) ? plate : '';
+  const dataRows = useMemo(() => reportSourceRows(type, prepared.body).filter((row) => {
     if (type !== 'payroll' && type !== 'vehicles') return true;
     if (!matchesReportRow(row, query)) return false;
-    if (company && String(row[options.companyIdx] ?? '') !== company) return false;
-    return !(type === 'vehicles' && plate && String(row[options.plateIdx] ?? '') !== plate);
-  }), [prepared.body, type, query, company, plate, options]);
+    if (effectiveCompany && String(row[options.companyIdx] ?? '') !== effectiveCompany) return false;
+    return !(type === 'vehicles' && effectivePlate && String(row[options.plateIdx] ?? '') !== effectivePlate);
+  }), [prepared.body, type, query, effectiveCompany, effectivePlate, options]);
   const shouldTotal = type === 'finance' ? month === 'Tất cả' : type === 'payroll' || type === 'vehicles';
   const visibleRows = shouldTotal ? appendTotal(prepared.head, dataRows) : dataRows;
   const explanation = (cell: ReportCell) => { const value = String(cell ?? '').toLowerCase(); return value.includes('giải thích') || value.includes('nội dung'); };
@@ -90,8 +92,8 @@ function ReportTable({ type, matrix, query, month }: { type: ReportType; matrix:
     <div className="table-card-head report-table-head">
       <div><div className="table-title" id={`report-title-${type}`}>{LABELS[type]}</div><div className="panel-note report-month-note">{month === 'Tất cả' ? 'Tất cả tháng' : `Tháng ${month}`}</div></div>
       <div className="report-card-actions">
-        {type === 'payroll' && options.companyIdx >= 0 ? <div className="payroll-summary-filters"><label className="compact-filter compact-filter-inline"><select className="report-payroll-filter" aria-label="Lọc công ty bảng lương" value={company} onChange={(event) => setCompany(event.target.value)}><option value="">Tất cả</option>{options.companies.map((value) => <option value={value} key={value}>{value}</option>)}</select></label></div> : null}
-        {type === 'vehicles' ? <div className="vehicle-volume-filters vehicle-summary-filters"><label className="compact-filter compact-filter-inline"><select className="report-vehicle-filter" aria-label="Lọc công ty tổng hợp xe" value={company} onChange={(event) => setCompany(event.target.value)}><option value="">Tất cả</option>{options.companies.map((value) => <option value={value} key={value}>{value}</option>)}</select></label><label className="compact-filter compact-filter-inline"><select className="report-vehicle-filter" aria-label="Lọc biển số xe" value={plate} onChange={(event) => setPlate(event.target.value)}><option value="">Tất cả</option>{options.plates.map((value) => <option value={value} key={value}>{value}</option>)}</select></label></div> : null}
+        {type === 'payroll' && options.companyIdx >= 0 ? <div className="payroll-summary-filters"><label className="compact-filter compact-filter-inline"><select className="report-payroll-filter" aria-label="Lọc công ty bảng lương" value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}><option value="">Tất cả</option>{options.companies.map((value) => <option value={value} key={value}>{value}</option>)}</select></label></div> : null}
+        {type === 'vehicles' ? <div className="vehicle-volume-filters vehicle-summary-filters"><label className="compact-filter compact-filter-inline"><select className="report-vehicle-filter" aria-label="Lọc công ty tổng hợp xe" value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}><option value="">Tất cả</option>{options.companies.map((value) => <option value={value} key={value}>{value}</option>)}</select></label><label className="compact-filter compact-filter-inline"><select className="report-vehicle-filter" aria-label="Lọc biển số xe" value={effectivePlate} onChange={(event) => setPlate(event.target.value)}><option value="">Tất cả</option>{options.plates.map((value) => <option value={value} key={value}>{value}</option>)}</select></label></div> : null}
         <ActionButton kind="image" title={type} onClick={(button) => void exportCardAsImage(button, type)}/><ActionButton kind="csv" title={type} onClick={(button) => exportTableAsCsv(button, type)}/>
       </div>
     </div>

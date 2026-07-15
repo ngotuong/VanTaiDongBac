@@ -6,8 +6,11 @@ function createReportBundleRepository({ fetchImpl = fetch, httpError }) {
       order: 'synced_at.desc',
       limit: '1'
     });
-    // `latest` is a request alias, not a persisted report_month value.
-    if (normalizedMonth !== 'latest') query.set('report_month', `eq.${normalizedMonth}`);
+    // `latest` is a request alias, not a persisted report_month value. Dashboard
+    // snapshots share this table, so they must never satisfy a Report lookup.
+    query.set('report_month', normalizedMonth === 'latest'
+      ? 'neq.__dashboard_latest__'
+      : `eq.${normalizedMonth}`);
     if (spreadsheetId) query.set('spreadsheet_id', `eq.${String(spreadsheetId).trim()}`);
     const response = await fetchImpl(`${config.supabaseUrl}/rest/v1/report_bundles?${query.toString()}`, {
       headers: {

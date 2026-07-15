@@ -90,9 +90,9 @@ clasp push
 
 ## Rollback presentation Next/D1
 
-Production hiện tại là C3 golden master `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`. C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY nhưng không còn nằm trên `dongbac.vercel.app`. D1 `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` và các candidate C3 sai không nằm trên production.
+Production hiện tại đã rollback về C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` sau regression Report của C3. D1 `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` và các candidate C3 không nằm trên `dongbac.vercel.app`.
 
-Golden master hiện tại là `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee` tại cả `https://dongbac.vercel.app` và `https://vantaidongbac-c3-preview.vercel.app`. Controlled cut-forward chỉ đổi alias, không rebuild deployment đã được người dùng duyệt. Cashflow cascade correction trước đó là `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL`; overlay audit cũ `dpl_Fi2JXxP4kJPbYBaNvZkZ1i1ktUX3` đã bị bác bỏ riêng phần Cashflow scroll. Nếu C3 có regression nghiêm trọng trong stabilization, rollback production ngay về C2 bằng lệnh dưới; không rebuild legacy.
+Candidate correction hiện tại là `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` tại `https://vantaidongbac-c3-preview.vercel.app`. Cut-forward C3 trước `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee` đã bị rollback do Report thiếu total/profit rows, mobile empty state và hiệu năng chuyển route. Cashflow cascade correction trước đó là `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL`. Không gán candidate correction vào production trước authenticated user approval.
 
 Rollback nhanh về giao diện legacy đã xác nhận ở C2:
 

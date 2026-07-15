@@ -20,6 +20,10 @@ export function reportMonths(matrix: ReportMatrix | undefined) {
   return [...new Set(body.map((row) => String(row[0] ?? '').trim()).filter(Boolean))];
 }
 
+export function latestReportMonth(matrix: ReportMatrix | undefined) {
+  return reportMonths(matrix).filter((month) => /^(0?[1-9]|1[0-2])\/20\d{2}$/.test(month)).at(-1) || '';
+}
+
 export function filterOverviewMatrix(matrix: ReportMatrix | undefined, month: string): ReportMatrix {
   const { head, body } = matrixRows(matrix);
   if (!head.length) return [];
@@ -67,6 +71,10 @@ export function stripMonthColumn(type: ReportType, head: ReportCell[], body: Rep
 export function isTotalRow(row: ReportCell[]) {
   const first = removeAccents(String(row[0] ?? '').toLowerCase());
   return ['tong', 'cong', 'trung binh', 'thuc nhan', 'loi nhuan'].some((part) => first.includes(part));
+}
+
+export function reportSourceRows(type: ReportType, rows: ReportCell[][]) {
+  return type === 'details' ? rows : rows.filter((row) => !isTotalRow(row));
 }
 
 export function appendTotal(head: ReportCell[], rows: ReportCell[][]) {

@@ -4,10 +4,18 @@ test('C3 Report C2 helpers preserve actual months, month filtering and formatted
   const helpers=await import('../next-shell/lib/platform/report-c2.ts');
   const matrix=[['Tháng','Doanh thu','Chi phí'],['05/2026','1.000.000','200.000'],['06/2026','2.000.000','300.000']];
   assert.deepEqual(helpers.reportMonths(matrix),['05/2026','06/2026']);
+  assert.equal(helpers.latestReportMonth(matrix),'06/2026');
   assert.deepEqual(helpers.filterOverviewMatrix(matrix,'06/2026'),[matrix[0],matrix[2]]);
   const prepared=helpers.stripMonthColumn('finance',matrix[0],matrix.slice(1));
   // C2 reserves the first visible cell for the "Tổng cộng" label.
   assert.deepEqual(helpers.appendTotal(prepared.head,prepared.body).at(-1),['Tổng cộng','500.000']);
+});
+
+test('C3 Report keeps source totals and profit rows in the detail matrix only',async()=>{
+  const helpers=await import('../next-shell/lib/platform/report-c2.ts');
+  const rows=[['Tổng khối lượng','1.000'],['Tổng doanh thu','2.000'],['Chi phí dầu','300'],['Lợi nhuận thực','1.700']];
+  assert.deepEqual(helpers.reportSourceRows('details',rows),rows);
+  assert.deepEqual(helpers.reportSourceRows('vehicles',rows),[['Chi phí dầu','300']]);
 });
 
 test('C3 Report C2 search is accent-insensitive, multi-term and vehicle filters keep source columns',async()=>{

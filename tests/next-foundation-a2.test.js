@@ -16,6 +16,9 @@ test('A2 root layout is a dynamic server auth guard around the shared shell', ()
   assert.doesNotMatch(layout, /redirectToLegacyRoot/);
   assert.match(layout, /<WorkbookContextProvider value=\{context\}>/);
   assert.match(layout, /<AppShell context=\{context\}>/);
+  const requestContext = read('next-shell/lib/request-context.js');
+  assert.match(requestContext, /cache\(async \(\) =>/);
+  assert.match(requestContext, /loadAuthenticatedRequest/);
 });
 
 test('A2 shell remains role-aware and accessible after the C1 root cutover', () => {

@@ -84,6 +84,7 @@ Không đánh dấu Closed nếu source/kiến trúc vẫn còn đường tái d
 | R-028 | Optimistic row bị coi là dữ liệu đã ghi | High | Medium | Mitigated |
 | R-029 | Job `synced` làm sống lại row đã xóa | High | Low | Mitigated |
 | R-030 | Source bound script snapshot không khớp production | High | High | Documentation gap |
+| R-031 | Report `latest`/lọc total sai semantics và prefetch route trùng | High | Medium | Mitigated/Monitor |
 
 ## 4. Rủi ro dữ liệu Google Sheets
 
@@ -220,6 +221,25 @@ Yêu cầu kiểm soát:
 - đối chiếu ít nhất các tháng đại diện và `Tất cả`;
 - không tối ưu/parser lại trước khi có fixture số liệu;
 - cache sync không thay thế đối soát live Sheet.
+
+### R-031 — Report latest, total rows và route prefetch lệch contract
+
+Tác động: High. Khả năng: Medium. Trạng thái: Mitigated/Monitor.
+
+Sự cố đã quan sát sau C3 cut-forward:
+
+- dùng generic total-row detector cho Báo cáo chi tiết làm mất `Tổng khối lượng`, `Tổng doanh thu`, `Lợi nhuận thực`;
+- alias `latest` lấy row Supabase sync gần nhất, kể cả snapshot Dashboard `__dashboard_latest__`, thay vì bundle của tháng nghiệp vụ mới nhất;
+- filter công ty/biển số có thể stale sau đổi matrix;
+- pointer/focus cùng prefetch một route, cộng thêm auth/API hop làm Next chậm hơn SPA legacy đã giữ data trong memory.
+
+Kiểm soát:
+
+- detail render nguyên source rows; chỉ finance/payroll/vehicles được loại total nguồn trước khi tính subtotal;
+- loại `__dashboard_latest__` khỏi Report lookup, resolve actual latest month từ overview rồi đọc exact `report_month` theo workbook; cache không có matrix tháng phải fallback;
+- filter value phải tồn tại trong option hiện tại;
+- auth memoize trong request, cache read sau auth, intent-prefetch dedupe;
+- luôn retest authenticated desktop/mobile và so latency thực tế trước cut-forward.
 
 ### R-015 — Sheet tạm báo cáo còn sót
 

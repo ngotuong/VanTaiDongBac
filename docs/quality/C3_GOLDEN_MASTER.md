@@ -164,6 +164,14 @@ Người dùng đã retest và xác nhận form Cashflow vuốt được ngày 2
 
 Người dùng phê duyệt Settings/Observability và cho phép chuyển checkpoint ngày 2026-07-15; C3.6 cùng toàn bộ parity matrix được khóa `USER_APPROVED`. Trước cut-forward đã chạy lại 278/278 test, lint, typecheck, build và diff check. Alias `https://dongbac.vercel.app` sau đó được gán sang chính deployment đã duyệt `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`, không rebuild hoặc đổi code giữa preview và production. Smoke read-only xác nhận tám route chính, favicon và `/manifest.json` trả 200; `/api/session` không cookie trả 401, `/api/app?action=health` trả 200 và không có log 5xx sau smoke. Recovery C2 vẫn READY và chưa xóa legacy/D1.
 
+## Correction Report sau cut-forward ngày 2026-07-15
+
+- Người dùng phát hiện ba regression sau cut-forward: Báo cáo chi tiết mất ba dòng tổng/profit, mobile hiển thị empty state cho các bảng và chuyển menu/load Report chậm hơn C2. Vì Report là nghiệp vụ chính, production được rollback ngay về C2 recovery trước khi sửa candidate; D1 tiếp tục khóa.
+- Root cause trực tiếp của dòng mất là React dùng `isTotalRow()` để loại total/profit khỏi mọi matrix trước render. C2 chỉ loại chúng khi tự tính subtotal cho finance/payroll/vehicles; detail phải render nguyên matrix nguồn. `reportSourceRows()` mới khóa khác biệt này bằng test chứa đúng `Tổng khối lượng`, `Tổng doanh thu` và `Lợi nhuận thực`.
+- Alias `latest` trước đây lấy row Supabase được sync gần nhất, kể cả snapshot Dashboard `__dashboard_latest__`, một tháng khác hoặc `Tất cả`, trong khi UI chọn tháng nghiệp vụ cuối từ overview. Server correction loại snapshot Dashboard khỏi Report lookup, xác thực trước, suy ra tháng nghiệp vụ mới nhất từ matrix tháng rồi đọc đúng bundle `report_month`; cache thiếu matrix tháng mới fallback Apps Script. Filter công ty/biển số không còn được áp dụng nếu option không tồn tại trong matrix mới.
+- Tối ưu không đổi nghĩa dữ liệu: auth lookup được memoize trong cùng server request; Report đọc cache workbook-scoped trực tiếp sau auth thay vì thêm một vòng HTTP qua proxy; intent-prefetch được dedupe giữa pointer/focus. Không bật prefetch hàng loạt và không tuyên bố Next tự động nhanh hơn SPA C2 vốn giữ dữ liệu trong memory.
+- Candidate correction `https://vantaidongbac-c3-preview.vercel.app` trỏ READY `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Gate đạt 282/282 test, lint, typecheck, build, diff check; deployment-authenticated root 200, session không cookie 401, health 200. Production vẫn C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; cần người dùng kiểm tra desktop/mobile Report và cảm nhận chuyển menu trước khi cut-forward lại.
+
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 
 Phản hồi visual ngày 2026-07-14 chứng minh copy CSS/DOM chưa đủ nếu bỏ sót dependency hoặc để stylesheet khác rò rỉ vào surface golden. Từ Dashboard trở đi, mỗi surface phải thêm đủ các kiểm tra sau trước `TECH_PASS`:

@@ -22,7 +22,7 @@ test('Report repository reads one exact month/workbook bundle with server creden
   assert.deepEqual(row.payload, { ok: true });
 });
 
-test('Report repository resolves latest from the newest synced workbook bundle', async () => {
+test('Report repository resolves latest from the newest synced workbook report bundle', async () => {
   let request;
   const repository = createReportBundleRepository({ httpError, fetchImpl: async (url, options) => {
     request = { url, options };
@@ -30,7 +30,7 @@ test('Report repository resolves latest from the newest synced workbook bundle',
   }});
   await repository.findLatest({ supabaseUrl: 'https://db.example', serviceRoleKey: 'server-secret' }, 'latest', 'sheet-1');
   const url = new URL(request.url);
-  assert.equal(url.searchParams.has('report_month'), false);
+  assert.equal(url.searchParams.get('report_month'), 'neq.__dashboard_latest__');
   assert.equal(url.searchParams.get('order'), 'synced_at.desc');
   assert.equal(url.searchParams.get('spreadsheet_id'), 'eq.sheet-1');
 });

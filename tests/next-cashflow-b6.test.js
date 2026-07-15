@@ -70,5 +70,5 @@ test('C3 Cashflow drawers cannot open the application sidebar and render above f
   const source=read('next-shell/components/cashflow/CashflowModule.tsx');const shell=read('next-shell/components/platform/AppShell.tsx');const css=read('next-shell/app/c2-golden.css');
   assert.match(source,/createPortal\(children, document\.body\)/);assert.match(source,/cashflow-modal-open/);assert.doesNotMatch(source,/classList\.toggle\('drawer-open'/);
   assert.match(shell,/shell-drawer-open/);assert.doesNotMatch(shell,/classList\.toggle\('drawer-open'/);
-  assert.match(css,/body\.shell-drawer-open \.sidebar/);assert.match(css,/\.cashflow-drawer-backdrop \{ display: block; z-index: 990/);assert.match(css,/body > \.fund-detail-drawer \{ z-index: 1000/);
+  assert.match(css,/body\.shell-drawer-open \.sidebar/);assert.match(css,/\.cashflow-drawer-backdrop \{ display: block; z-index: 990/);assert.match(css,/body > \.cashflow-c2\.fund-detail-drawer \{ z-index: 1000; display: flex/);
 });

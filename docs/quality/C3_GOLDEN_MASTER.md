@@ -145,6 +145,13 @@ Người dùng đã kiểm tra và phê duyệt tiếp tục migration ngày 202
 - `tests/next-overlay-interactions-c3.test.js` khóa inventory portal, scroll marker, single-scroll contract và safe-area cho mọi nhóm trên. Gate đạt 277/277 test, lint, typecheck, build và diff check.
 - Preview hiện trỏ READY `dpl_Fi2JXxP4kJPbYBaNvZkZ1i1ktUX3`; deployment-authenticated root 200, session không cookie 401, API health 200. Vercel Deployment Protection chặn browser automation trước app, nên người dùng vẫn là gate cho thao tác vuốt authenticated. Production vẫn là C2 recovery.
 
+### Correction Cashflow scroll cascade ngày 2026-07-15
+
+- Người dùng kiểm tra authenticated trên iPhone và xác nhận form thêm giao dịch của candidate trước vẫn không vuốt tới nút Lưu; vì vậy tuyên bố scroll correction trước không đạt acceptance.
+- Audit cascade tìm thấy `.cashflow-c2 {display:block}` trong React bindings có cùng class với drawer và nằm sau `.fund-detail-drawer {display:flex}` của golden CSS. Drawer thực tế trở thành block container; `.cashflow-drawer-body` có `overflow-y:auto` nhưng không có chiều cao hữu hạn và toàn bộ phần dư bị parent `overflow:hidden` cắt bỏ.
+- Scope block display được thu hẹp thành `#cashflowView.cashflow-c2`. Body-level drawer được khóa `display:flex; flex-direction:column; min-height:0`; scroll body dùng `flex:1 1 0%`, `height:0`, `min-height:0`, `overflow-y:auto`, `touch-action:pan-y` và iOS momentum. Header/footer tiếp tục không co và footer giữ safe-area.
+- Regression tests vừa khóa selector/cascade vừa giữ portal, z-index và single-scroll contract. Gate đạt 277/277 test, lint, typecheck, build và diff check. Preview trỏ READY `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL`; root 200, session 401, health 200. Production vẫn C2 recovery; cần user retest trước khi C3.5 được duyệt.
+
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 
 Phản hồi visual ngày 2026-07-14 chứng minh copy CSS/DOM chưa đủ nếu bỏ sót dependency hoặc để stylesheet khác rò rỉ vào surface golden. Từ Dashboard trở đi, mỗi surface phải thêm đủ các kiểm tra sau trước `TECH_PASS`:

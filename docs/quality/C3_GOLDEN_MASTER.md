@@ -173,6 +173,13 @@ Người dùng phê duyệt Settings/Observability và cho phép chuyển checkp
 - Candidate correction `https://vantaidongbac-c3-preview.vercel.app` trỏ READY `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Gate đạt 282/282 test, lint, typecheck, build, diff check; deployment-authenticated root 200, session không cookie 401, health 200. Production vẫn C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; cần người dùng kiểm tra desktop/mobile Report và cảm nhận chuyển menu trước khi cut-forward lại.
 - Người dùng phê duyệt correction và cho phép chuyển checkpoint ngày 2026-07-15. Report được khóa lại `USER_APPROVED`; gate chạy lại tiếp tục đạt 282/282 test, lint, typecheck, build và diff check. Alias production được gán sang chính deployment bất biến `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`, không rebuild giữa preview và production. Smoke read-only root, Dashboard, Report, Manage, Catalog, Cashflow, Settings, Observability, favicon và manifest đạt 200; session không cookie 401, health 200, không có log 5xx. C2 recovery vẫn READY; C3 bước vào production stabilization và D1 tiếp tục blocked.
 
+## Correction interaction feedback sau cut-forward ngày 2026-07-15
+
+- Người dùng ghi nhận chuyển menu chưa mượt và không có toast cho thao tác. Phần correction không đổi font, màu, icon, layout hay information hierarchy C2; chỉ bổ sung trạng thái phản hồi và accessibility.
+- `AppShell` sở hữu một navigation transaction: item đích active/pending ngay khi chạm, drawer đóng ngay, progress 3px hiển thị trong lúc route đổi và status text dùng `aria-live`. Prefetch vẫn theo intent và được dedupe; `pointerdown` bổ sung cho mobile, không prefetch hàng loạt các route server/data nặng.
+- Một `ToastViewport` toàn cục dùng lại `.sync-toast` C2. Refresh, export ảnh/CSV, CRUD Manage/Catalog/Cashflow, Entry queue/retry, account action và observability audit đều phát loading/success/error; toast thường tự đóng, có nút đóng, error dùng `role=alert`, loading không tự biến mất giữa thao tác. `prefers-reduced-motion` tắt animation progress.
+- Candidate `https://vantaidongbac-c3-preview.vercel.app` trỏ READY `dpl_9HKgcJQZoZJcj1co5xd8sTdemFKq`. Gate đạt 283/283 test, lint, typecheck và build; deployment-authenticated smoke: root 200, session không cookie 401, health 200, manifest 200. Production vẫn trỏ `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; Shell/Nav là `TECH_PASS` và cần user retest authenticated trước promote.
+
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 
 Phản hồi visual ngày 2026-07-14 chứng minh copy CSS/DOM chưa đủ nếu bỏ sót dependency hoặc để stylesheet khác rò rỉ vào surface golden. Từ Dashboard trở đi, mỗi surface phải thêm đủ các kiểm tra sau trước `TECH_PASS`:

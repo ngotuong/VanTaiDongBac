@@ -6,6 +6,7 @@ import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
 import type { AccountUser } from '../../lib/platform/operations-types';
 import type { AppRole } from '../../lib/platform/types';
+import { showToast } from '../../lib/platform/toast';
 
 const ROLE_LABELS: Record<AppRole, string> = {
   admin: 'Quản trị viên',
@@ -33,7 +34,7 @@ export function SettingsModule() {
   const [error, setError] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState<{ username: string; value: string } | null>(null);
 
-  const report = (value: string, isError = false) => { setMessage(value); setError(isError); };
+  const report = (value: string, isError = false) => { setMessage(value); setError(isError); showToast(value, isError ? 'error' : 'success'); };
   const togglePassword = (key: PasswordKey) => setShownPasswords((current) => ({ ...current, [key]: !current[key] }));
   const loadUsers = async () => {
     if (!isAdmin) return;

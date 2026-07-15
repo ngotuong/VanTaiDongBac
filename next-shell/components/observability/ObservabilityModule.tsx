@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
 import type { ManageAuditRow, ReportAuditRow, SyncStatusRow, WriteJob } from '../../lib/platform/operations-types';
+import { showToast } from '../../lib/platform/toast';
 
 const DEFAULT_MANAGE_SHEET = 'NL_VanChuyen';
 const REPORT_MONTHS = '05/2026,06/2026,07/2026,Tất cả';
@@ -36,11 +37,12 @@ export function ObservabilityModule() {
   const [message, setMessage] = useState(user.role === 'shareholder' ? 'Tài khoản cổ đông chỉ có quyền xem dữ liệu.' : 'Đang tải trạng thái nhanh...');
   const [error, setError] = useState(false);
 
-  const report = (value: string, isError = false) => { setMessage(value); setError(isError); };
+  const report = (value: string, isError = false, announce = true) => { setMessage(value); setError(isError); if (announce) showToast(value, isError ? 'error' : 'success'); };
   const loadStatus = useCallback(async (forceRefresh = false) => {
     if (user.role === 'shareholder') return;
     setBusy('status');
-    report(forceRefresh ? 'Đang làm mới trạng thái...' : 'Đang tải trạng thái nhanh...');
+    report(forceRefresh ? 'Đang làm mới trạng thái...' : 'Đang tải trạng thái nhanh...', false, false);
+    if (forceRefresh) showToast('Đang làm mới trạng thái…', 'loading');
     try {
       const [sync, recent] = await Promise.all([
         api.get<{ rows?: SyncStatusRow[]; checkedAt?: string }>('getSupabaseSyncStatus', { params: { limit: 24, forceRefresh } }),
@@ -49,7 +51,7 @@ export function ObservabilityModule() {
       setSyncRows(sync.rows || []);
       setJobs(recent.jobs || []);
       setCheckedAt(sync.checkedAt || recent.checkedAt || new Date().toISOString());
-      report('Đã tải trạng thái cache và write queue. Audit chưa được chạy.');
+      report('Đã tải trạng thái cache và write queue. Audit chưa được chạy.', false, forceRefresh);
     } catch (loadError) {
       report(loadError instanceof Error ? loadError.message : String(loadError), true);
     } finally { setBusy(''); }
@@ -65,7 +67,8 @@ export function ObservabilityModule() {
     setBusy(mode);
     const allSheets = mode === 'all';
     const limit = mode === 'quick' ? 50 : 500;
-    report(allSheets ? 'Đang kiểm tra sâu toàn bộ Vận hành...' : mode === 'deep' ? 'Đang kiểm tra sâu cache Vận hành...' : 'Đang kiểm tra cache Vận hành...');
+    const loadingMessage = allSheets ? 'Đang kiểm tra sâu toàn bộ Vận hành...' : mode === 'deep' ? 'Đang kiểm tra sâu cache Vận hành...' : 'Đang kiểm tra cache Vận hành...';
+    report(loadingMessage, false, false); showToast(loadingMessage, 'loading');
     try {
       const result = await api.get<{ ok?: boolean; results?: ManageAuditRow[] }>('getManageCacheAudit', { params: { sheetNames: allSheets ? '' : DEFAULT_MANAGE_SHEET, limit, forceRefresh: true } });
       setManageAudit(result.results || []);
@@ -76,7 +79,7 @@ export function ObservabilityModule() {
 
   const auditReports = async () => {
     setBusy('reports');
-    report('Đang kiểm tra cache Báo cáo...');
+    report('Đang kiểm tra cache Báo cáo...', false, false); showToast('Đang kiểm tra cache Báo cáo…', 'loading');
     try {
       const result = await api.get<{ ok?: boolean; results?: ReportAuditRow[] }>('getReportCacheAudit', { params: { months: REPORT_MONTHS, forceRefresh: true } });
       setReportAudit(result.results || []);

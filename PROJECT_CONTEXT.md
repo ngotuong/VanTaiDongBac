@@ -105,7 +105,7 @@ Dashboard B2, Manage B3, Catalog B5 và Cashflow B6 giữ cache/fallback hiện 
 
 ### Phase C3 — Golden-master parity
 
-Trạng thái: **CORRECTION CUT-FORWARD ACTIVE ngày 2026-07-15; toàn bộ surface C3 là USER_APPROVED và production đang stabilization**.
+Trạng thái: **CORRECTION CUT-FORWARD ACTIVE ngày 2026-07-15; production đang stabilization, Shell/Nav tạm hạ `TECH_PASS` vì correction interaction feedback đang chờ user retest**.
 
 - Production `dongbac.vercel.app` đang trỏ correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; C2 recovery vẫn giữ nguyên, chưa xóa.
 - Candidate parity sai đã bị loại khỏi nhánh triển khai mới.
@@ -131,6 +131,7 @@ Trạng thái: **CORRECTION CUT-FORWARD ACTIVE ngày 2026-07-15; toàn bộ surf
 - Gate correction: 282/282 test, lint, typecheck, build, diff check; candidate root 200, session 401, health 200. Authenticated data/visual/performance vẫn cần người dùng kiểm tra trên preview.
 - Người dùng phê duyệt correction và yêu cầu chuyển checkpoint ngày 2026-07-15; Report trở lại `USER_APPROVED`. Gate được chạy lại trên commit đã duyệt và tiếp tục đạt 282/282 test, lint, typecheck, build, diff check. Controlled cut-forward chỉ đổi alias production sang đúng deployment preview bất biến, không rebuild.
 - Post-cutover smoke xác nhận root, Dashboard, Report, Manage, Catalog, Cashflow, Settings, Observability, favicon và manifest 200; session không cookie 401, health 200 và không có log 5xx trong cửa sổ kiểm tra. Apps Script/data/schema không thay đổi; D1 vẫn blocked.
+- Sau cut-forward lần hai, người dùng ghi nhận chuyển menu vẫn khựng và các thao tác thiếu toast. Correction interaction feedback giữ nguyên presentation C2, thêm active/pending state ngay khi chạm menu, progress route, intent-prefetch cho touch và một toast viewport toàn cục cho refresh/export/CRUD/submit/audit/account actions. Candidate `dpl_9HKgcJQZoZJcj1co5xd8sTdemFKq` đang ở `https://vantaidongbac-c3-preview.vercel.app`; production vẫn giữ `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Gate đạt 283/283 test, lint, typecheck, build; root 200, session không cookie 401, health 200. Shell/Nav tạm là `TECH_PASS`, chờ authenticated mobile/desktop retest; không tuyên bố giảm network/data latency nếu chưa đo trong phiên thật.
 - Thứ tự gate: Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability.
 - Mỗi module phải được người dùng duyệt riêng; D1 blocked.
 
@@ -196,9 +197,9 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### C3 — Production stabilization sau correction cut-forward
+### C3 — Retest interaction feedback trong production stabilization
 
-Người dùng xác nhận production `dongbac.vercel.app` tiếp tục hiển thị đúng correction đã duyệt trong phiên đăng nhập thực, đặc biệt Report trên mobile và tốc độ chuyển menu. Theo dõi auth/API error, cache fallback và PWA/home-screen cache; rollback ngay về C2 nếu regression nghiệp vụ nghiêm trọng tái xuất hiện. Chỉ đóng C3 sau thời gian ổn định được người dùng chấp thuận rõ; D1 tiếp tục blocked và UI debt Manage/Catalog giữ cho pha riêng.
+Người dùng kiểm tra candidate `https://vantaidongbac-c3-preview.vercel.app` trong phiên đăng nhập thật trên mobile/desktop: trạng thái menu phải phản hồi ngay, progress không che nội dung, toast loading/success/error xuất hiện đúng ở refresh/export và các thao tác ghi. Chỉ promote đúng deployment bất biến sau phê duyệt; production hiện chưa đổi. Tiếp tục theo dõi latency thực, auth/API error, cache fallback và PWA/home-screen cache. Chỉ đóng C3 sau thời gian ổn định được người dùng chấp thuận rõ; D1 tiếp tục blocked và UI debt Manage/Catalog giữ cho pha riêng.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 

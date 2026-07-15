@@ -92,7 +92,7 @@ clasp push
 
 Production hiện tại là C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`. D1 `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` và các candidate C3 sai không nằm trên `dongbac.vercel.app`.
 
-Candidate golden-master hiện tại là Cashflow cascade correction `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL` tại `https://vantaidongbac-c3-preview.vercel.app`. Candidate dùng Production environment để có đủ biến server `sensitive`, nhưng được tạo với `--skip-domain`; `dongbac.vercel.app` vẫn trỏ C2 recovery. Overlay audit trước đó `dpl_Fi2JXxP4kJPbYBaNvZkZ1i1ktUX3` đã bị kiểm tra thực tế bác bỏ riêng phần Cashflow scroll; Entry correction là `dpl_CnvssuGUQgLED2YCEQMYG9t2bhAQ`; Cashflow candidate trước correction là `dpl_DxHVCvzd8Dc1ZZnDM8BGzPcNrrRc`. Nếu correction hiện tại lỗi, bỏ alias preview hoặc gán về candidate phục vụ điều tra; không đổi `dongbac.vercel.app`.
+Candidate golden-master hiện tại là Settings/Observability C3.6 `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee` tại `https://vantaidongbac-c3-preview.vercel.app`. Candidate dùng Production environment để có đủ biến server `sensitive`, nhưng được tạo với `--skip-domain`; `dongbac.vercel.app` vẫn trỏ C2 recovery. Cashflow cascade correction đã được người dùng duyệt là `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL`; overlay audit cũ `dpl_Fi2JXxP4kJPbYBaNvZkZ1i1ktUX3` đã bị bác bỏ riêng phần Cashflow scroll. Nếu C3.6 lỗi, gán alias preview về Cashflow correction để điều tra; không đổi `dongbac.vercel.app`.
 
 Rollback nhanh về giao diện legacy đã xác nhận ở C2:
 

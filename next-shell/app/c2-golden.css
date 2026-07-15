@@ -4985,3 +4985,27 @@ body > .modal-overlay .modal-body { flex: 1 1 auto; min-height: 0; overflow-x: h
   .catalog-react-pagination { align-items: flex-start; flex-direction: column; }
   .catalog-react-pagination > div { width: 100%; }.catalog-react-pagination button { flex: 1; }
 }
+
+/* C3 Settings/Observability bindings: preserve the C2 golden DOM and presentation. */
+.settings-c2 { min-width: 0; }
+.settings-c2 .sync-status-card { grid-column: 1 / -1; }
+.settings-route-actions { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.settings-route-actions.inline { justify-content: flex-start; margin: 18px 0 0; }
+.settings-route-link {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--deep);
+  background: var(--paper);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.settings-route-link:hover { border-color: var(--teal); color: var(--teal); }
+@media (max-width: 768px) {
+  .settings-route-actions { justify-content: stretch; }
+  .settings-route-link { width: 100%; justify-content: center; }
+  .settings-c2 .sync-status-actions { width: 100%; }
+  .settings-c2 .sync-status-actions .icon-text-btn { flex: 1 1 180px; }
+}

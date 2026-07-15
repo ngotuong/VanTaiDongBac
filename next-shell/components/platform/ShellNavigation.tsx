@@ -5,6 +5,7 @@ import type { AppRole } from '../../lib/platform/types';
 
 type NavigationIcon = 'home' | 'reports' | 'manage' | 'catalog' | 'cashflow' | 'settings';
 export type NavigationItem = { href: string; label: string; icon: NavigationIcon; roles: AppRole[]; bottomRoles: AppRole[]; aliases?: string[] };
+const PREFETCHED_ROUTES = new Set<string>();
 
 function NavIcon({ icon }: { icon: NavigationIcon }) {
   const common = { className: 'btn-svg', viewBox: '0 0 24 24', 'aria-hidden': true } as const;
@@ -21,7 +22,11 @@ export function ShellNavigation({ items, role, mode = 'side', onNavigate }: { it
   const router = useRouter();
   const visible = items.filter((item) => (mode === 'bottom' ? item.bottomRoles : item.roles).includes(role));
   const navigate = (href: string) => { onNavigate?.(); router.push(href); };
-  const prepare = (href: string) => { if (href !== pathname) router.prefetch(href); };
+  const prepare = (href: string) => {
+    if (href === pathname || PREFETCHED_ROUTES.has(href)) return;
+    PREFETCHED_ROUTES.add(href);
+    router.prefetch(href);
+  };
   return <nav className={mode === 'bottom' ? 'bottom-nav' : 'nav-stack'} aria-label={mode === 'bottom' ? 'Điều hướng nhanh' : 'Điều hướng chính'}>
     {visible.map((item) => {
       const active = pathname === item.href || pathname?.endsWith(`${item.href}/`) || Boolean(item.aliases?.includes(pathname || ''));

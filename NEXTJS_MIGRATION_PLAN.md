@@ -244,6 +244,8 @@ Kiểm tra thực tế ngày 2026-07-15 bác bỏ phần Cashflow scroll của c
 
 Người dùng retest ngày 2026-07-15 và xác nhận popup Cashflow đã vuốt được; C3.5 được nâng `USER_APPROVED`. C3.6 Settings/Observability đạt `TECH_PASS` trên `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`: port lại đúng C2 account forms/table/password controls và observability card/actions/sections/SVG; loại presentation `b7-*`. Contract own-password/admin-only, shareholder deny, initial light status load và explicit-only audit/retry được giữ. Gate đạt 278/278 test, lint, typecheck, build và diff check; root 200, session 401, health 200. Production vẫn C2; chờ authenticated user approval trước cổng controlled cut-forward C3.
 
+Người dùng phê duyệt C3.6 và yêu cầu chuyển checkpoint ngày 2026-07-15. Toàn bộ parity matrix đạt `USER_APPROVED`; quality gate được chạy lại và tiếp tục đạt 278/278 test, lint, typecheck, build, diff check. Controlled cut-forward chuyển `dongbac.vercel.app` sang deployment bất biến đã duyệt `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`. Smoke read-only các route chính/PWA đạt 200, session không cookie 401, health 200, không có log 5xx sau smoke. C3 chuyển sang production stabilization; C2 recovery, legacy alias và Apps Script `@281` vẫn giữ nguyên. D1 chưa được phép bắt đầu trong cùng checkpoint.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

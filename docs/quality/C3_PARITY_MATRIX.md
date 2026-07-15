@@ -12,8 +12,8 @@ Trạng thái hợp lệ: `SOURCE_LOCKED`, `IMPLEMENTING`, `TECH_PASS`, `USER_AP
 | 5 | Entry | 6 form, multi-row, clone/add/remove, validation, pending/error | schema, idempotency, formula preservation | USER_APPROVED |
 | 6 | Catalog | 9 tab, personnel/owner filter, pagination, add/edit/delete modal | virtual mapping, effective-date/history semantics | USER_APPROVED |
 | 7 | Cashflow | overview, transactions, loans, catalog, filters, drawers, export | voucher/idempotency/reconciliation/native range | USER_APPROVED |
-| 8 | Settings | password, account admin, temporary password, role states | account actions và self-protection | TECH_PASS |
-| 9 | Observability | sync status, queue, quick/deep/all/report audit, retry | heavy action chỉ khi chủ động; role gate | TECH_PASS |
+| 8 | Settings | password, account admin, temporary password, role states | account actions và self-protection | USER_APPROVED |
+| 9 | Observability | sync status, queue, quick/deep/all/report audit, retry | heavy action chỉ khi chủ động; role gate | USER_APPROVED |
 
 ## Role matrix
 
@@ -49,3 +49,4 @@ Chỉ ghi `USER_APPROVED` khi người dùng đã kiểm tra preview tương ứ
 - 2026-07-15: user retest bác bỏ Cashflow scroll của candidate trên: form thêm giao dịch vẫn không vuốt tới nút Lưu. Root cause là generic `.cashflow-c2 {display:block}` ghi đè flex display của drawer. Correction `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL` scope block display cho view chính, phục hồi column flex ở drawer và tạo scrollport hữu hạn bằng `flex-basis:0`/`height:0` cho form body; tests khóa trực tiếp cascade conflict. Gate đạt 277/277 test, lint, typecheck, build, diff check; root 200, session 401, health 200. Cashflow vẫn `TECH_PASS`, chờ user retest.
 - 2026-07-15: người dùng xác nhận correction Cashflow đã vuốt được và phê duyệt chuyển checkpoint; Cashflow được khóa `USER_APPROVED`.
 - 2026-07-15: Settings/Observability đạt `TECH_PASS` trên `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`. Hai module bỏ toàn bộ class redesign `b7-*`, phục hồi DOM/class/ID/SVG C2 cho đổi mật khẩu, account admin, temporary password, bảng tài khoản, sync status, queue và bốn action audit. Initial load chỉ đọc status/queue; audit và retry vẫn explicit; shareholder không tải Observability. Gate đạt 278/278 test, lint, typecheck, build, diff check; root 200, session 401, health 200. Production vẫn C2; chờ authenticated user approval.
+- 2026-07-15: người dùng phê duyệt Settings/Observability và yêu cầu chuyển checkpoint; toàn bộ mười surface C3 được khóa `USER_APPROVED`. Controlled cut-forward gán `dongbac.vercel.app` sang cùng deployment bất biến `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`. Root, Dashboard, Report, Manage, Catalog, Cashflow, Settings, Observability, favicon và manifest trả 200; session không cookie 401, API health 200, không có log 5xx sau smoke. C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` và Apps Script `@281` tiếp tục được giữ để rollback; chưa mở D1.

@@ -162,6 +162,8 @@ Người dùng đã retest và xác nhận form Cashflow vuốt được ngày 2
 - Regression test khóa ID/class/SVG C2, responsive form/table/status rows, cấm `b7-*`, giữ role gate và heavy-action contract. Gate đạt 278/278 test, lint, typecheck, build và diff check.
 - Preview `https://vantaidongbac-c3-preview.vercel.app` trỏ READY `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`; deployment-authenticated root 200, session không cookie 401, API health 200. Browser automation vẫn bị Vercel Deployment Protection chặn trước app nên không tuyên bố authenticated visual pass. Production tiếp tục C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; C3.6 chờ người dùng duyệt.
 
+Người dùng phê duyệt Settings/Observability và cho phép chuyển checkpoint ngày 2026-07-15; C3.6 cùng toàn bộ parity matrix được khóa `USER_APPROVED`. Trước cut-forward đã chạy lại 278/278 test, lint, typecheck, build và diff check. Alias `https://dongbac.vercel.app` sau đó được gán sang chính deployment đã duyệt `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`, không rebuild hoặc đổi code giữa preview và production. Smoke read-only xác nhận tám route chính, favicon và `/manifest.json` trả 200; `/api/session` không cookie trả 401, `/api/app?action=health` trả 200 và không có log 5xx sau smoke. Recovery C2 vẫn READY và chưa xóa legacy/D1.
+
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 
 Phản hồi visual ngày 2026-07-14 chứng minh copy CSS/DOM chưa đủ nếu bỏ sót dependency hoặc để stylesheet khác rò rỉ vào surface golden. Từ Dashboard trở đi, mỗi surface phải thêm đủ các kiểm tra sau trước `TECH_PASS`:

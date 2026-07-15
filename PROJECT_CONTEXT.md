@@ -52,8 +52,8 @@ Các surface người dùng hiện có:
 
 ```text
 Browser
-  └─ dongbac.vercel.app        -> C2 recovery presentation (production)
-  └─ C3 preview                -> Next.js App Router (đang triển khai theo golden master)
+  └─ dongbac.vercel.app        -> Next.js App Router C3 (production stabilization)
+  └─ C3 preview                -> cùng deployment golden master đã duyệt
           ↓
 Vercel /api/app
   - xác thực Supabase session
@@ -81,7 +81,7 @@ Vai trò dữ liệu hiện tại:
 - Next.js `16.2.10`, React `19.2.7`.
 - Source route/component tiếp tục nằm trong `next-shell/`; root `app/` là Vercel App Router entrypoint mỏng.
 - `next.config.mjs` không còn `basePath` và không dùng `output: 'export'`; App Router phục vụ trực tiếp tại `/`.
-- Production alias đã rollback về C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`.
+- Production alias đã controlled cut-forward sang C3 `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`; C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY để rollback.
 - Root layout server-render auth/workbook context; chưa đăng nhập render LoginGate cùng-origin, đăng nhập tạo HttpOnly cookie qua `/api/session`.
 - Các route Next độc lập được giữ làm nền kỹ thuật nhưng chưa được chấp nhận làm production presentation.
 - Nhánh C3 mới `codex/c3-golden-master` bắt đầu từ nền Next sạch `a5e29bf`; nguồn C2 tại tree `73a0ede` được dùng làm golden reference, không khôi phục DOM bridge vào production.
@@ -105,9 +105,9 @@ Dashboard B2, Manage B3, Catalog B5 và Cashflow B6 giữ cache/fallback hiện 
 
 ### Phase C3 — Golden-master parity
 
-Trạng thái: **IN PROGRESS ngày 2026-07-15; Shell/Login/Dashboard/Report/Manage/Entry/Catalog/Cashflow đã USER_APPROVED cho mục tiêu migration; Settings/Observability đạt TECH_PASS và đang chờ duyệt**.
+Trạng thái: **CUT-FORWARD ACTIVE ngày 2026-07-15; toàn bộ surface C3 đã USER_APPROVED và production đang ở giai đoạn stabilization**.
 
-- Production giữ C2 recovery, không cut-forward.
+- Production `dongbac.vercel.app` đang trỏ C3 `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`; C2 recovery được giữ nguyên, chưa xóa.
 - Candidate parity sai đã bị loại khỏi nhánh triển khai mới.
 - Golden source: production C2 sau hydrate và tree `73a0ede`.
 - Baseline/matrix: `docs/quality/C3_GOLDEN_MASTER.md`, `docs/quality/C3_PARITY_MATRIX.md`.
@@ -125,7 +125,8 @@ Trạng thái: **IN PROGRESS ngày 2026-07-15; Shell/Login/Dashboard/Report/Mana
 - Người dùng kiểm tra thực tế ngày 2026-07-15 và xác nhận popup thêm giao dịch vẫn không vuốt được. Nguyên nhân chính xác là selector React `.cashflow-c2 { display:block }` nằm sau golden CSS đã ghi đè `display:flex` của `.fund-detail-drawer`; do đó drawer cắt phần form dài thay vì tạo scroll container. Correction scope `display:block` riêng cho `#cashflowView`, ép body-level Cashflow drawer trở lại column flex và dùng `flex-basis:0`/`height:0` cho vùng form để iOS Safari có chiều cao cuộn hữu hạn. Regression test mới cấm selector generic tái xuất hiện và khóa cascade drawer/body.
 - Người dùng đã retest và xác nhận form Cashflow vuốt được ngày 2026-07-15; C3.5 được khóa `USER_APPROVED` và cho phép chuyển C3.6.
 - Settings/Observability C3.6 đã bỏ presentation `b7-*`, phục hồi root `.view active`, card/form/table tài khoản, password toggle riêng, temporary password, nhóm icon audit SVG và bốn section sync/queue/audit đúng golden tree `73a0ede`. Own-password giữ cho mọi role, account administration chỉ admin; shareholder bị chặn Observability ở client và server. Initial load chỉ gọi sync status/write queue; quick/deep/all/report audit và retry chỉ chạy sau thao tác chủ động.
-- Gate C3.6: 278/278 test, lint, typecheck, build, diff check; deployment-authenticated root 200, session không cookie 401 và API health 200. Browser automation bị Vercel Deployment Protection chặn trước app nên Settings/Observability vẫn cần người dùng duyệt authenticated. Production vẫn là C2 recovery.
+- Trước phê duyệt, gate C3.6 đạt 278/278 test, lint, typecheck, build, diff check; deployment-authenticated root 200, session không cookie 401 và API health 200. Browser automation bị Vercel Deployment Protection chặn trước app nên authenticated visual gate do người dùng trực tiếp xác nhận.
+- Người dùng phê duyệt Settings/Observability và yêu cầu chuyển checkpoint ngày 2026-07-15; toàn bộ parity matrix được khóa `USER_APPROVED`. Controlled cut-forward dùng đúng deployment preview bất biến, không rebuild giữa phê duyệt và production. Post-cutover smoke xác nhận các route chính, favicon và manifest 200; session không cookie 401, health 200 và không có log 5xx. Apps Script/data/schema không thay đổi.
 - Thứ tự gate: Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability.
 - Mỗi module phải được người dùng duyệt riêng; D1 blocked.
 
@@ -191,9 +192,9 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### C3.6 — Settings/Observability preview approval
+### C3 — Production stabilization sau controlled cut-forward
 
-Người dùng kiểm tra authenticated preview C3 tại `Cài đặt`: đổi mật khẩu (chỉ kiểm tra giao diện, không cần lưu), quản lý tài khoản của admin, bảng responsive và link Trạng thái đồng bộ. Ở Observability cần xác nhận card/icon/section giống C2, tải nhanh sync status/write queue và không tự chạy audit. Không bấm tạo/reset account, retry job hoặc audit nặng nếu không chủ động muốn kiểm tra. Sau khi Settings/Observability đạt `USER_APPROVED`, checkpoint kế tiếp là cổng phê duyệt controlled cut-forward C3; không tự đổi production alias.
+Người dùng xác nhận production `dongbac.vercel.app` mở đúng giao diện C3 đã duyệt và các menu chính hoạt động với phiên đăng nhập thực. Theo dõi auth/API error, tốc độ chuyển route, cache fallback và PWA/home-screen cache; chỉ dùng read-only smoke trừ khi người dùng chủ động kiểm tra ghi. Nếu có regression nghiêm trọng, rollback ngay alias về C2. Không bắt đầu D1 cho đến khi production stabilization được người dùng chấp thuận rõ; UI debt Manage/Catalog tiếp tục được giữ cho pha riêng.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -247,12 +248,12 @@ Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 Baseline hiện tại:
 
-- Production `/` redirect tới C2 legacy shell và final 200.
-- Production deployment: `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`, Apps Script recovery `@281`.
+- Production `/` chạy Next.js App Router C3 và trả 200.
+- Production deployment: `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee`; rollback C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; Apps Script recovery `@281`.
 - Dashboard golden 07/2026: 270.513.180 / 94.863.960 / 175.649.220 / 341.770.935 / -166.121.715.
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
-- Candidate Settings/Observability `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee` đã READY tại `https://vantaidongbac-c3-preview.vercel.app`; Cashflow đã được người dùng khóa `USER_APPROVED`.
-- Gate candidate: 278/278 test, lint, typecheck, build, `git diff --check`, C2 DOM/CSS/RBAC/heavy-action audit; root deployment-authenticated 200, session unauthenticated 401 và API health 200. Production vẫn resolve `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`.
+- C3 `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee` READY tại cả production và alias preview; toàn bộ mười surface là `USER_APPROVED`.
+- Gate cut-forward: 278/278 test, lint, typecheck, build, `git diff --check`, C2 DOM/CSS/RBAC/heavy-action audit; các route chính/PWA 200, session unauthenticated 401, API health 200, không có log 5xx sau smoke.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

@@ -248,6 +248,8 @@ Người dùng phê duyệt C3.6 và yêu cầu chuyển checkpoint ngày 2026-0
 
 Production stabilization cùng ngày phát hiện Report C3 mất total/profit rows, mobile có empty-state regression và route/report load chậm hơn C2. Production rollback ngay về C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; Report hạ từ `USER_APPROVED` về `TECH_PASS`. Correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` giữ nguyên detail source rows, loại snapshot Dashboard khỏi Report `latest`, resolve tháng nghiệp vụ, vô hiệu filter stale, memoize auth per request, đọc cache trực tiếp sau auth và dedupe intent-prefetch. Gate đạt 282/282 test, lint, typecheck, build, diff check; root 200, session 401, health 200. Chờ user retest preview desktop/mobile; chưa cut-forward lại và D1 vẫn blocked.
 
+Người dùng phê duyệt Report correction và cho phép chuyển checkpoint ngày 2026-07-15; Report trở lại `USER_APPROVED`. Gate được chạy lại và tiếp tục đạt 282/282 test, lint, typecheck, build, diff check. Controlled cut-forward gán `dongbac.vercel.app` sang chính deployment bất biến đã duyệt `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`, không rebuild. Smoke read-only các route chính/PWA đạt 200, session không cookie 401, health 200 và không có log 5xx; C2 recovery và Apps Script `@281` tiếp tục được giữ. C3 bước vào production stabilization; D1 chưa được phép bắt đầu.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

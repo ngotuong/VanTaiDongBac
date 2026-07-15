@@ -90,9 +90,9 @@ clasp push
 
 ## Rollback presentation Next/D1
 
-Production hiện tại đã rollback về C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` sau regression Report của C3. D1 `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` và các candidate C3 không nằm trên `dongbac.vercel.app`.
+Production hiện tại là C3 correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY nhưng không còn nằm trên `dongbac.vercel.app`; D1 `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` không nằm trên production.
 
-Candidate correction hiện tại là `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` tại `https://vantaidongbac-c3-preview.vercel.app`. Cut-forward C3 trước `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee` đã bị rollback do Report thiếu total/profit rows, mobile empty state và hiệu năng chuyển route. Cashflow cascade correction trước đó là `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL`. Không gán candidate correction vào production trước authenticated user approval.
+Golden correction hiện tại là `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` tại cả `https://dongbac.vercel.app` và `https://vantaidongbac-c3-preview.vercel.app`. Cut-forward C3 trước `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee` đã bị rollback do Report thiếu total/profit rows, mobile empty state và hiệu năng chuyển route; correction đã được người dùng duyệt trước lần cut-forward lại. Cashflow cascade correction trước đó là `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL`.
 
 Rollback nhanh về giao diện legacy đã xác nhận ở C2:
 
@@ -108,7 +108,7 @@ Legacy C1 vẫn được giữ tại `dpl_D5wgai8jwCkGESyhP9SDJPpTzqXS` và alia
 vercel alias set vantaidongbac-62q4v6vur-ngotuong2105.vercel.app dongbac.vercel.app
 ```
 
-Sau rollback, không xóa deployment Next/D1. Không cut-forward candidate C3 nào cho đến khi toàn bộ `docs/quality/C3_PARITY_MATRIX.md` được phê duyệt.
+Sau rollback, không xóa deployment Next/D1. Không cut-forward lại candidate nào nếu chưa có authenticated user approval và parity matrix tương ứng.
 
 Apps Script D1 API-only là deployment `AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw`, code version `@282`. Apps Script rollback là deployment `AKfycbzO8puBHqpuoA9_eYPROuNGoISJM6bI9HT53xigZY_xK-BmQdcRhd_rje4qGFGVPbF3Mg`, code version `@281`; rollback backend bằng cách khôi phục `APPS_SCRIPT_URL` về URL `@281` rồi redeploy Vercel.
 

@@ -80,7 +80,7 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | C1 | Cutover `/` sang Next.js | DONE | B1–B7 |
 | C2 | Ổn định production và xác nhận rollback | DONE | C1 |
 | C3 | Next visual parity và controlled cut-forward | DONE | C2 + phê duyệt người dùng |
-| D1 | Xóa legacy frontend/HtmlService presentation | IN PROGRESS | C3 + thời gian ổn định |
+| D1 | Xóa legacy frontend/HtmlService presentation | DONE | C3 + thời gian ổn định |
 
 Kế hoạch hiện có **13 checkpoint**. C3 được thêm sau regression C2 chứng minh recovery production và cut forward UI không thể deploy/rollback an toàn trong cùng một change set. Chỉ được chia thêm checkpoint nếu audit trước implementation chứng minh không thể deploy/rollback an toàn trong một change set. Mọi split phải cập nhật bảng này và `PROJECT_CONTEXT.md`, không tạo chuỗi step mở không có điểm kết thúc.
 
@@ -271,7 +271,7 @@ Chỉ thực hiện sau C3 và thời gian ổn định production Next được
 - cập nhật architecture, workflow, rollback và documentation router;
 - chạy dead-code/call-site audit trước khi xóa.
 
-D1 implementation cũ đã bị rollback vì C3 chưa đạt visual/data acceptance. Sau khi C3 được đóng và D1 được phê duyệt ngày 2026-07-16, audit lại xác nhận source hiện tại đã hoàn tất removal, không cần xóa thêm file. Apps Script API-only `@282` tồn tại bất biến; Vercel Production environment trỏ @282. Candidate `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` đạt 284/284 test, lint, typecheck, build, diff check, route/PWA 200, session 401, health 200 và legacy paths 404; authenticated preview Dashboard/Report/Manage cũng đạt, không có legacy runtime marker, browser error hoặc HTTP 500. Sau phê duyệt, controlled cut-forward gán `dongbac.vercel.app` sang đúng deployment bất biến này, không rebuild. Public post-cutover smoke tiếp tục đạt trên các route/PWA, session, health và legacy paths; log không có HTTP 500. Không chạy business write. D1 đang production stabilization và chờ authenticated production smoke sau khi người dùng đăng nhập lại. Không xóa presentation C3/C2 hoặc Apps Script `@281` khỏi rollback retention.
+D1 implementation cũ đã bị rollback vì C3 chưa đạt visual/data acceptance. Sau khi C3 được đóng và D1 được phê duyệt ngày 2026-07-16, audit lại xác nhận source hiện tại đã hoàn tất removal, không cần xóa thêm file. Apps Script API-only `@282` tồn tại bất biến; Vercel Production environment trỏ @282. Candidate `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` đạt 284/284 test, lint, typecheck, build, diff check, route/PWA 200, session 401, health 200 và legacy paths 404; authenticated preview Dashboard/Report/Manage cũng đạt, không có legacy runtime marker, browser error hoặc HTTP 500. Sau phê duyệt, controlled cut-forward gán `dongbac.vercel.app` sang đúng deployment bất biến này, không rebuild. Public post-cutover smoke tiếp tục đạt trên các route/PWA, session, health và legacy paths; log không có HTTP 500. Authenticated production stabilization xác nhận Dashboard/Report/Manage đúng dữ liệu và interaction contract, Report đủ bốn bảng/41 dòng cùng các dòng tổng/lợi nhuận, Manage có 20 dòng, Dashboard refresh qua Apps Script `@282` thành công khoảng 22,4 giây với toast success; không có browser warning/error hoặc HTTP 500. Không chạy business write. D1 chuyển `DONE`; không tự tạo checkpoint thứ 14 và không xóa presentation C3/C2 hoặc Apps Script `@281` khỏi rollback retention nếu chưa có phê duyệt riêng.
 
 ## 10. Quality gates chung
 

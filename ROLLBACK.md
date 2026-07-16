@@ -92,7 +92,7 @@ clasp push
 
 Production hiện tại là D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`, được người dùng duyệt và promote ngày 2026-07-16. C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, correction trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`, C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` và D1 rollback cũ `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` vẫn được giữ bất biến; interaction candidate bị bác bỏ `dpl_9HKgcJQZoZJcj1co5xd8sTdemFKq` không được dùng để rollback.
 
-D1 đã đạt source/HTTP/authenticated preview và public post-cutover gate. Vercel Production environment trỏ Apps Script API-only `@282`. Nếu D1 có regression trong production stabilization, rollback nhanh alias về C3 đã xác nhận, không rebuild:
+D1 đã đạt source/HTTP/authenticated preview, public post-cutover và authenticated production gate. Vercel Production environment trỏ Apps Script API-only `@282`. Nếu D1 có regression sau khi đóng checkpoint, rollback nhanh alias về C3 đã xác nhận, không rebuild:
 
 ```bash
 vercel alias set vantaidongbac-fqvm2e2yv-ngotuong2105.vercel.app dongbac.vercel.app

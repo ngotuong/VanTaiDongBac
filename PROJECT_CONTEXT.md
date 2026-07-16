@@ -202,9 +202,9 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ### D1 — Xóa presentation legacy và cutover Apps Script API-only
 
-Trạng thái: **IN PROGRESS / TECH_PASS qua source và HTTP gate; chờ authenticated preview**.
+Trạng thái: **IN PROGRESS / TECH_PASS qua source, HTTP và authenticated preview gate; chờ người dùng phê duyệt promote**.
 
-Audit xác nhận source hiện tại đã không còn HtmlService, `google.script.run`, legacy template/client/style fragments, React islands, DOM bridge, compatibility rewrites hoặc legacy build pipeline. `Router.gs` chỉ còn JSON API; Apps Script API-only `@282` tồn tại bất biến và Vercel Production environment hiện trỏ deployment này. Candidate D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY tại `https://vantaidongbac-c3-preview.vercel.app`; production vẫn `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`. Gate đạt 284/284 test, lint, typecheck, build, diff check; các route/PWA 200, session 401, health 200 và path legacy 404. Cần đăng nhập lại preview để smoke authenticated Dashboard/Report/Manage trước gate promote. Không xóa recovery C2, legacy C1, Apps Script `@281` hoặc rollback deployments.
+Audit xác nhận source hiện tại đã không còn HtmlService, `google.script.run`, legacy template/client/style fragments, React islands, DOM bridge, compatibility rewrites hoặc legacy build pipeline. `Router.gs` chỉ còn JSON API; Apps Script API-only `@282` tồn tại bất biến và Vercel Production environment hiện trỏ deployment này. Candidate D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY tại `https://vantaidongbac-c3-preview.vercel.app`; production vẫn `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`. Gate đạt 284/284 test, lint, typecheck, build, diff check; các route/PWA 200, session 401, health 200 và path legacy 404. Authenticated preview smoke ngày 2026-07-16 đạt trên Dashboard, Report và Manage: dữ liệu render đúng, Report có bốn bảng/41 dòng và ba dòng total/profit, Manage có bảng 20 dòng, route progress kết thúc, không có legacy runtime marker hoặc browser warning/error; Dashboard force refresh qua Apps Script `@282` thành công trong khoảng 17,3 giây. Log candidate không có HTTP 500; chỉ còn warning `DEP0169` đã biết trên request 200. Không thực hiện business write. Candidate đang dừng ở cổng chờ người dùng phê duyệt promote; không xóa recovery C2, legacy C1, Apps Script `@281` hoặc rollback deployments.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -264,7 +264,7 @@ Baseline hiện tại:
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
 - C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` READY tại production; toàn bộ mười surface là `USER_APPROVED`, C3 đã đóng.
 - Gate cut-forward: 284/284 test, lint, typecheck, build, `git diff --check`; các route chính/PWA 200, session unauthenticated 401, API health 200 và không có HTTP 500 sau smoke.
-- D1 candidate `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY trên alias preview với Apps Script API-only `@282`; HTTP/source gate đạt, authenticated preview gate còn chờ.
+- D1 candidate `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY trên alias preview với Apps Script API-only `@282`; source/HTTP/authenticated preview gate đều đạt, đang chờ người dùng phê duyệt promote chính deployment bất biến này.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

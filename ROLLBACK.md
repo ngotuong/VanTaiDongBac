@@ -92,6 +92,8 @@ clasp push
 
 Production hiện tại là C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, đã được người dùng duyệt và promote ngày 2026-07-16. Correction production trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`, C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` và D1 rollback cũ `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` vẫn được giữ bất biến; interaction candidate bị bác bỏ `dpl_9HKgcJQZoZJcj1co5xd8sTdemFKq` không được dùng để rollback.
 
+D1 candidate hiện tại là `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`, chỉ nằm trên `https://vantaidongbac-c3-preview.vercel.app` và chưa được gán production. Vercel Production environment trỏ Apps Script API-only `@282`; nếu D1 bị bác bỏ trước promote, trả preview alias về `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` và khôi phục `APPS_SCRIPT_URL` project environment về recovery `@281` trước mọi build mới. Production alias hiện không cần rollback vì chưa đổi.
+
 Interaction correction production hiện tại là `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` tại `https://dongbac.vercel.app`. Rollback gần nhất về correction C3 trước:
 
 ```bash

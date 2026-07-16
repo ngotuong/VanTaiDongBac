@@ -79,8 +79,8 @@ Trạng thái cho phép: `NOT STARTED`, `IN PROGRESS`, `DONE`, `BLOCKED`.
 | B7 | Migrate Accounts, Settings và Observability | DONE | A2 |
 | C1 | Cutover `/` sang Next.js | DONE | B1–B7 |
 | C2 | Ổn định production và xác nhận rollback | DONE | C1 |
-| C3 | Next visual parity và controlled cut-forward | REOPENED — golden master | C2 + phê duyệt người dùng |
-| D1 | Xóa legacy frontend/HtmlService presentation | BLOCKED/ROLLED BACK | C3 + thời gian ổn định |
+| C3 | Next visual parity và controlled cut-forward | DONE | C2 + phê duyệt người dùng |
+| D1 | Xóa legacy frontend/HtmlService presentation | IN PROGRESS | C3 + thời gian ổn định |
 
 Kế hoạch hiện có **13 checkpoint**. C3 được thêm sau regression C2 chứng minh recovery production và cut forward UI không thể deploy/rollback an toàn trong cùng một change set. Chỉ được chia thêm checkpoint nếu audit trước implementation chứng minh không thể deploy/rollback an toàn trong một change set. Mọi split phải cập nhật bảng này và `PROJECT_CONTEXT.md`, không tạo chuỗi step mở không có điểm kết thúc.
 
@@ -256,6 +256,8 @@ User retest ngày 2026-07-16 phát hiện correction trên giữ progress vô h�
 
 Authenticated mobile/desktop retest ngày 2026-07-16 xác nhận correction trên đạt interaction gate; người dùng phê duyệt và controlled cut-forward gán production sang đúng deployment bất biến `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, không rebuild. Các route chính/PWA, session và health smoke đúng contract, không có HTTP 500. Shell/Nav trở lại `USER_APPROVED`; C3 tiếp tục production stabilization và D1 vẫn blocked cho đến phê duyệt checkpoint riêng.
 
+Authenticated production stabilization tiếp tục đạt ngày 2026-07-16: route cache Dashboard/Report khoảng 0,45–0,50 giây, mobile interaction và Report data đúng contract, fallback Apps Script hoạt động, không có browser error hoặc HTTP 500. Người dùng chấp thuận đóng C3 và cho phép mở checkpoint D1 riêng.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy
@@ -269,7 +271,7 @@ Chỉ thực hiện sau C3 và thời gian ổn định production Next được
 - cập nhật architecture, workflow, rollback và documentation router;
 - chạy dead-code/call-site audit trước khi xóa.
 
-D1 implementation cũ đã bị rollback vì C3 chưa đạt visual/data acceptance. Deployment và Apps Script API-only cũ chỉ được giữ để điều tra, không nằm trên production alias. Không xóa presentation C2 hoặc bắt đầu lại D1 cho đến khi toàn bộ parity matrix C3 đạt `USER_APPROVED`, có thời gian ổn định và phê duyệt checkpoint riêng.
+D1 implementation cũ đã bị rollback vì C3 chưa đạt visual/data acceptance. Sau khi C3 được đóng và D1 được phê duyệt ngày 2026-07-16, audit lại xác nhận source hiện tại đã hoàn tất removal, không cần xóa thêm file. Apps Script API-only `@282` tồn tại bất biến; Vercel Production environment trỏ @282. Candidate mới `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` được build từ source hiện tại với `--skip-domain`, READY trên alias preview; gate 284/284 test, lint, typecheck, build, diff check, route/PWA 200, session 401, health 200 và legacy paths 404. Production chưa đổi; chờ authenticated preview smoke trước promote. Không xóa presentation C2 hoặc Apps Script `@281` khỏi rollback retention.
 
 ## 10. Quality gates chung
 

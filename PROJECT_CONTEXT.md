@@ -52,8 +52,8 @@ Các surface người dùng hiện có:
 
 ```text
 Browser
-  └─ dongbac.vercel.app        -> Next.js App Router C3 interaction correction (production stabilization)
-  └─ C3 preview                -> cùng deployment bất biến đã được promote
+  └─ dongbac.vercel.app        -> Next.js App Router D1, Apps Script API-only (production stabilization)
+  └─ D1 preview                -> cùng deployment bất biến đã được promote
           ↓
 Vercel /api/app
   - xác thực Supabase session
@@ -81,11 +81,11 @@ Vai trò dữ liệu hiện tại:
 - Next.js `16.2.10`, React `19.2.7`.
 - Source route/component tiếp tục nằm trong `next-shell/`; root `app/` là Vercel App Router entrypoint mỏng.
 - `next.config.mjs` không còn `basePath` và không dùng `output: 'export'`; App Router phục vụ trực tiếp tại `/`.
-- Production alias đã controlled cut-forward sang C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`; correction trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` và C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY để rollback.
+- Production alias đã controlled cut-forward sang D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`; C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, correction trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` và C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY để rollback.
 - Root layout server-render auth/workbook context; chưa đăng nhập render LoginGate cùng-origin, đăng nhập tạo HttpOnly cookie qua `/api/session`.
 - Các route Next độc lập hiện là production presentation trong giai đoạn stabilization; legacy C2 chỉ được giữ dưới dạng deployment rollback bất biến.
 - Nhánh C3 mới `codex/c3-golden-master` bắt đầu từ nền Next sạch `a5e29bf`; nguồn C2 tại tree `73a0ede` được dùng làm golden reference, không khôi phục DOM bridge vào production.
-- Vercel Production environment hiện trỏ Apps Script API-only `@282`; deployment production hiện tại vẫn là snapshot bất biến `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` cho đến khi D1 được duyệt promote. Recovery `@281` vẫn được giữ để rollback.
+- Vercel Production environment và deployment D1 hiện trỏ Apps Script API-only `@282`; recovery `@281` vẫn được giữ để rollback.
 
 ### 3.3. Luồng Report hiện tại
 
@@ -202,9 +202,9 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ### D1 — Xóa presentation legacy và cutover Apps Script API-only
 
-Trạng thái: **IN PROGRESS / TECH_PASS qua source, HTTP và authenticated preview gate; chờ người dùng phê duyệt promote**.
+Trạng thái: **PRODUCTION STABILIZATION; cutover hoàn tất, chờ authenticated production gate**.
 
-Audit xác nhận source hiện tại đã không còn HtmlService, `google.script.run`, legacy template/client/style fragments, React islands, DOM bridge, compatibility rewrites hoặc legacy build pipeline. `Router.gs` chỉ còn JSON API; Apps Script API-only `@282` tồn tại bất biến và Vercel Production environment hiện trỏ deployment này. Candidate D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY tại `https://vantaidongbac-c3-preview.vercel.app`; production vẫn `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`. Gate đạt 284/284 test, lint, typecheck, build, diff check; các route/PWA 200, session 401, health 200 và path legacy 404. Authenticated preview smoke ngày 2026-07-16 đạt trên Dashboard, Report và Manage: dữ liệu render đúng, Report có bốn bảng/41 dòng và ba dòng total/profit, Manage có bảng 20 dòng, route progress kết thúc, không có legacy runtime marker hoặc browser warning/error; Dashboard force refresh qua Apps Script `@282` thành công trong khoảng 17,3 giây. Log candidate không có HTTP 500; chỉ còn warning `DEP0169` đã biết trên request 200. Không thực hiện business write. Candidate đang dừng ở cổng chờ người dùng phê duyệt promote; không xóa recovery C2, legacy C1, Apps Script `@281` hoặc rollback deployments.
+Audit xác nhận source hiện tại đã không còn HtmlService, `google.script.run`, legacy template/client/style fragments, React islands, DOM bridge, compatibility rewrites hoặc legacy build pipeline. `Router.gs` chỉ còn JSON API; Apps Script API-only `@282` tồn tại bất biến. Candidate D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` đạt 284/284 test, lint, typecheck, build, diff check; authenticated preview Dashboard/Report/Manage đạt, không có legacy runtime marker, browser error hoặc HTTP 500. Sau phê duyệt ngày 2026-07-16, controlled cut-forward chỉ gán `dongbac.vercel.app` sang đúng deployment bất biến này, không rebuild. Post-cutover public smoke xác nhận các route/PWA 200, session không cookie 401, health 200, legacy paths 404 và không có HTTP 500; warning `DEP0169` đã biết chỉ xuất hiện trên request 200. Không thực hiện business write. Phiên production yêu cầu đăng nhập lại nên authenticated production stabilization còn chờ; không xóa recovery C3/C2, legacy C1, Apps Script `@281` hoặc rollback deployments.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -258,13 +258,13 @@ Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 Baseline hiện tại:
 
-- Production `/` chạy Next.js App Router C3 correction và trả 200.
-- Production deployment: `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`; rollback correction trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; rollback C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; Apps Script recovery `@281`.
+- Production `/` chạy Next.js App Router D1 với Apps Script API-only `@282` và trả 200.
+- Production deployment D1: `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`; rollback C3 `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`; rollback correction trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; rollback C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; Apps Script recovery `@281`.
 - Dashboard golden 07/2026: 270.513.180 / 94.863.960 / 175.649.220 / 341.770.935 / -166.121.715.
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
-- C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` READY tại production; toàn bộ mười surface là `USER_APPROVED`, C3 đã đóng.
+- C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` vẫn READY làm rollback; toàn bộ mười surface là `USER_APPROVED`, C3 đã đóng.
 - Gate cut-forward: 284/284 test, lint, typecheck, build, `git diff --check`; các route chính/PWA 200, session unauthenticated 401, API health 200 và không có HTTP 500 sau smoke.
-- D1 candidate `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY trên alias preview với Apps Script API-only `@282`; source/HTTP/authenticated preview gate đều đạt, đang chờ người dùng phê duyệt promote chính deployment bất biến này.
+- D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY tại production với Apps Script API-only `@282`; source/HTTP/authenticated preview và public post-cutover gate đều đạt, authenticated production stabilization còn chờ đăng nhập.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

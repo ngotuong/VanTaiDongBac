@@ -90,9 +90,15 @@ clasp push
 
 ## Rollback presentation Next/D1
 
-Production hiện tại là C3 correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Progress/bottom-nav correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` chỉ nằm trên `https://vantaidongbac-c3-preview.vercel.app`, chưa được promote; interaction candidate trước `dpl_9HKgcJQZoZJcj1co5xd8sTdemFKq` đã bị user retest bác bỏ. C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY nhưng không còn nằm trên `dongbac.vercel.app`; D1 `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` không nằm trên production.
+Production hiện tại là C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, đã được người dùng duyệt và promote ngày 2026-07-16. Correction production trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`, C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` và D1 rollback cũ `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` vẫn được giữ bất biến; interaction candidate bị bác bỏ `dpl_9HKgcJQZoZJcj1co5xd8sTdemFKq` không được dùng để rollback.
 
-Golden correction production hiện tại là `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` tại `https://dongbac.vercel.app`; preview đã tiến lên interaction-feedback candidate và phải được người dùng duyệt trước khi promote. Cut-forward C3 trước `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee` đã bị rollback do Report thiếu total/profit rows, mobile empty state và hiệu năng chuyển route; correction đã được người dùng duyệt trước lần cut-forward lại. Cashflow cascade correction trước đó là `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL`.
+Interaction correction production hiện tại là `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` tại `https://dongbac.vercel.app`. Rollback gần nhất về correction C3 trước:
+
+```bash
+vercel alias set vantaidongbac-kisby95be-ngotuong2105.vercel.app dongbac.vercel.app
+```
+
+Deployment đích của rollback gần nhất là `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Nếu regression liên quan toàn bộ C3, dùng C2 recovery ở bước dưới. Cut-forward C3 cũ `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee` đã bị rollback do Report thiếu total/profit rows, mobile empty state và hiệu năng chuyển route; Cashflow cascade correction trước đó là `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL`.
 
 Rollback nhanh về giao diện legacy đã xác nhận ở C2:
 

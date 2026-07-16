@@ -52,8 +52,8 @@ Các surface người dùng hiện có:
 
 ```text
 Browser
-  └─ dongbac.vercel.app        -> Next.js App Router C3 correction (production stabilization)
-  └─ C3 preview                -> Shell/Nav correction candidate đang chờ user retest
+  └─ dongbac.vercel.app        -> Next.js App Router C3 interaction correction (production stabilization)
+  └─ C3 preview                -> cùng deployment bất biến đã được promote
           ↓
 Vercel /api/app
   - xác thực Supabase session
@@ -81,7 +81,7 @@ Vai trò dữ liệu hiện tại:
 - Next.js `16.2.10`, React `19.2.7`.
 - Source route/component tiếp tục nằm trong `next-shell/`; root `app/` là Vercel App Router entrypoint mỏng.
 - `next.config.mjs` không còn `basePath` và không dùng `output: 'export'`; App Router phục vụ trực tiếp tại `/`.
-- Production alias đã controlled cut-forward lại sang C3 correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY để rollback.
+- Production alias đã controlled cut-forward sang C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`; correction trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` và C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY để rollback.
 - Root layout server-render auth/workbook context; chưa đăng nhập render LoginGate cùng-origin, đăng nhập tạo HttpOnly cookie qua `/api/session`.
 - Các route Next độc lập hiện là production presentation trong giai đoạn stabilization; legacy C2 chỉ được giữ dưới dạng deployment rollback bất biến.
 - Nhánh C3 mới `codex/c3-golden-master` bắt đầu từ nền Next sạch `a5e29bf`; nguồn C2 tại tree `73a0ede` được dùng làm golden reference, không khôi phục DOM bridge vào production.
@@ -105,9 +105,9 @@ Dashboard B2, Manage B3, Catalog B5 và Cashflow B6 giữ cache/fallback hiện 
 
 ### Phase C3 — Golden-master parity
 
-Trạng thái: **CORRECTION CUT-FORWARD ACTIVE ngày 2026-07-15; production đang stabilization, Shell/Nav tạm hạ `TECH_PASS` vì correction interaction feedback đang chờ user retest**.
+Trạng thái: **INTERACTION CORRECTION CUT-FORWARD ACTIVE ngày 2026-07-16; production đang stabilization, Shell/Nav đã trở lại `USER_APPROVED`**.
 
-- Production `dongbac.vercel.app` đang trỏ correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; C2 recovery vẫn giữ nguyên, chưa xóa.
+- Production `dongbac.vercel.app` đang trỏ interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`; correction trước và C2 recovery vẫn giữ nguyên, chưa xóa.
 - Candidate parity sai đã bị loại khỏi nhánh triển khai mới.
 - Golden source: production C2 sau hydrate và tree `73a0ede`.
 - Baseline/matrix: `docs/quality/C3_GOLDEN_MASTER.md`, `docs/quality/C3_PARITY_MATRIX.md`.
@@ -133,6 +133,7 @@ Trạng thái: **CORRECTION CUT-FORWARD ACTIVE ngày 2026-07-15; production đan
 - Post-cutover smoke xác nhận root, Dashboard, Report, Manage, Catalog, Cashflow, Settings, Observability, favicon và manifest 200; session không cookie 401, health 200 và không có log 5xx trong cửa sổ kiểm tra. Apps Script/data/schema không thay đổi; D1 vẫn blocked.
 - Sau cut-forward lần hai, người dùng ghi nhận chuyển menu vẫn khựng và các thao tác thiếu toast. Correction interaction feedback giữ nguyên presentation C2, thêm active/pending state ngay khi chạm menu, progress route, intent-prefetch cho touch và một toast viewport toàn cục cho refresh/export/CRUD/submit/audit/account actions. Candidate `dpl_9HKgcJQZoZJcj1co5xd8sTdemFKq` đang ở `https://vantaidongbac-c3-preview.vercel.app`; production vẫn giữ `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Gate đạt 283/283 test, lint, typecheck, build; root 200, session không cookie 401, health 200. Shell/Nav tạm là `TECH_PASS`, chờ authenticated mobile/desktop retest; không tuyên bố giảm network/data latency nếu chưa đo trong phiên thật.
 - User retest ngày 2026-07-16 phát hiện candidate trên bị progress chạy vô hạn, bottom item active nhạt, mất auto-hide/show khi cuộn và còn khoảng hở dưới nav. Root cause progress/màu là `trailingSlash:true`: pending `/dashboard` không bằng pathname `/dashboard/`, khiến pending không kết thúc và button bị disabled/opacity 0.5. Correction mới chuẩn hóa route trước so sánh, có timeout fail-safe, bỏ native disabled khỏi active nav; port lại chính xác threshold/near-top/near-bottom/scroll-direction C2 bằng passive listener + `requestAnimationFrame`; hạ bottom offset từ `12px + safe-area` xuống sát safe-area hợp lệ. Candidate hiện tại `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` READY trên preview; production vẫn `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Gate đạt 284/284 test, lint, typecheck, build; root 200, session 401, health 200. Shell/Nav vẫn `TECH_PASS`, chờ user retest.
+- Authenticated retest mobile/desktop ngày 2026-07-16 xác nhận progress kết thúc sau route, active item không disabled/nhạt, bottom nav tự ẩn/hiện đúng hướng cuộn, nằm sát safe-area và toast refresh chuyển loading sang success rồi tự ẩn. Người dùng phê duyệt promote; controlled cut-forward chỉ đổi alias production sang đúng deployment bất biến `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, không rebuild. Post-cutover smoke xác nhận root, Dashboard, Report, Manage, Catalog, Cashflow, Settings, Observability, favicon và `/manifest.json` 200; session không cookie 401, health 200 và không có HTTP 500. Log vẫn có warning `DEP0169 url.parse()` trên request health 200 đã biết. Apps Script/data/schema không thay đổi; D1 tiếp tục blocked.
 - Thứ tự gate: Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability.
 - Mỗi module phải được người dùng duyệt riêng; D1 blocked.
 
@@ -198,9 +199,9 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint tiếp theo được đề xuất
 
-### C3 — Retest interaction feedback trong production stabilization
+### C3 — Theo dõi interaction correction trong production stabilization
 
-Người dùng kiểm tra candidate `https://vantaidongbac-c3-preview.vercel.app` trong phiên đăng nhập thật trên mobile/desktop: progress phải dừng khi route đã hiển thị; bottom nav phải tự ẩn khi cuộn xuống, hiện khi cuộn lên/gần đầu trang, giữ màu `--deep` và nằm sát safe-area không đè home indicator; toast loading/success/error vẫn hoạt động. Chỉ promote đúng deployment bất biến sau phê duyệt; production hiện chưa đổi. Tiếp tục theo dõi latency thực, auth/API error, cache fallback và PWA/home-screen cache. Chỉ đóng C3 sau thời gian ổn định được người dùng chấp thuận rõ; D1 tiếp tục blocked và UI debt Manage/Catalog giữ cho pha riêng.
+Theo dõi production `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` trong phiên dùng thật: latency route/data, auth/API error, cache fallback, toast thao tác và PWA/home-screen cache. Chỉ đóng C3 sau thời gian ổn định được người dùng chấp thuận rõ; không tự bắt đầu D1. Correction trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`, C2 recovery và Apps Script `@281` tiếp tục được giữ để rollback; UI debt Manage/Catalog giữ cho pha riêng.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -255,11 +256,11 @@ Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 Baseline hiện tại:
 
 - Production `/` chạy Next.js App Router C3 correction và trả 200.
-- Production deployment: `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; rollback C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; Apps Script recovery `@281`.
+- Production deployment: `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`; rollback correction trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; rollback C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; Apps Script recovery `@281`.
 - Dashboard golden 07/2026: 270.513.180 / 94.863.960 / 175.649.220 / 341.770.935 / -166.121.715.
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
-- C3 correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` READY tại cả production và alias preview; toàn bộ mười surface là `USER_APPROVED`.
-- Gate cut-forward: 282/282 test, lint, typecheck, build, `git diff --check`; các route chính/PWA 200, session unauthenticated 401, API health 200 và không có log 5xx sau smoke.
+- C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` READY tại cả production và alias preview; toàn bộ mười surface là `USER_APPROVED`.
+- Gate cut-forward: 284/284 test, lint, typecheck, build, `git diff --check`; các route chính/PWA 200, session unauthenticated 401, API health 200 và không có HTTP 500 sau smoke.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 
@@ -296,5 +297,5 @@ Không ghi nhật ký từng commit hoặc toàn bộ lịch sử step vào đâ
 - Owner: trạng thái hiện tại, checkpoint gần nhất và checkpoint tiếp theo.
 - Không sở hữu: API/schema/module contract chi tiết hoặc lịch sử đầy đủ.
 - Nguồn kiểm chứng: source, tests, build output, deployment checkpoint và tài liệu contract.
-- Ngày xác nhận: 2026-07-14.
+- Ngày xác nhận: 2026-07-16.
 - Cập nhật khi: các điều kiện tại mục 9 thay đổi.

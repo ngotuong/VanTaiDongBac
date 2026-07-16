@@ -254,6 +254,8 @@ Production stabilization tiếp tục nhận phản hồi chuyển menu có cả
 
 User retest ngày 2026-07-16 phát hiện correction trên giữ progress vô hạn do `/route` khác `/route/`, làm bottom active bị disabled/nhạt; đồng thời auto-hide/show C2 chưa được port và safe-area offset tạo khoảng hở lớn. Candidate kế tiếp `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` normalize route, thêm navigation fail-safe, giữ active deep color, port scroll-direction threshold C2 bằng rAF/passive listener và hạ bottom nav tới safe-area edge. Gate đạt 284/284 test, lint, typecheck, build; root 200, session 401, health 200. Production không đổi; Shell/Nav vẫn `TECH_PASS`, D1 blocked.
 
+Authenticated mobile/desktop retest ngày 2026-07-16 xác nhận correction trên đạt interaction gate; người dùng phê duyệt và controlled cut-forward gán production sang đúng deployment bất biến `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, không rebuild. Các route chính/PWA, session và health smoke đúng contract, không có HTTP 500. Shell/Nav trở lại `USER_APPROVED`; C3 tiếp tục production stabilization và D1 vẫn blocked cho đến phê duyệt checkpoint riêng.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

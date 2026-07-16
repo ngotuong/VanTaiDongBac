@@ -255,6 +255,9 @@ Sự cố đã quan sát trong C3 production stabilization:
 Kiểm soát:
 
 - active/pending/progress phải xuất hiện ngay tại AppShell, không đợi route server trả về;
+- mọi pathname phải normalize trailing slash/root alias trước khi kết thúc pending; navigation lỗi phải có fail-safe để progress không chạy vô hạn;
+- pending bottom item không được dùng native `disabled` nếu trạng thái này làm mất active contrast; chống double-tap ở navigation transaction và dùng `aria-busy`/`aria-disabled`;
+- auto-hide/show phải giữ threshold/direction/top-bottom contract C2, dùng passive listener và throttle/rAF để không tạo scroll jank;
 - chỉ prefetch theo intent và dedupe; không tuyên bố cải thiện network latency nếu chưa đo authenticated;
 - dùng một toast contract toàn cục cho loading/success/error của thao tác chủ động, giữ đúng ngôn ngữ pending so với synced;
 - toast phải có `aria-live`, error alert, dismiss, timeout phù hợp và reduced-motion;

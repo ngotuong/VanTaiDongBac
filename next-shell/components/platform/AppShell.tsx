@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
+import { normalizeRoutePath, routesEqual } from '../../lib/platform/routes';
 import type { PlatformContext } from '../../lib/platform/types';
 import { ShellNavigation, type NavigationItem } from './ShellNavigation';
 import { SignOutButton } from './SessionControls';
@@ -35,9 +36,10 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
   const [dashboardMeta, setDashboardMeta] = useState<DashboardMeta>({});
   const [pendingHref, setPendingHref] = useState('');
   const [isNavigationPending, startNavigation] = useTransition();
-  const pageMeta = PAGE_META[pathname] || ['VẬN TẢI ĐÔNG BẮC', 'Hệ thống điều hành'];
-  const isDashboard = pathname === '/' || pathname === '/dashboard';
-  const navigationTarget = pendingHref === pathname ? '' : pendingHref;
+  const currentPath = normalizeRoutePath(pathname);
+  const pageMeta = PAGE_META[currentPath] || ['VẬN TẢI ĐÔNG BẮC', 'Hệ thống điều hành'];
+  const isDashboard = currentPath === '/dashboard';
+  const navigationTarget = pendingHref && !routesEqual(pendingHref, currentPath) ? pendingHref : '';
 
   useEffect(() => {
     document.body.classList.toggle('shell-drawer-open', drawerOpen);
@@ -50,8 +52,14 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
     return () => window.removeEventListener('vtdb:dashboard-meta', update);
   }, []);
 
+  useEffect(() => {
+    if (!navigationTarget) return;
+    const timeout = window.setTimeout(() => setPendingHref(''), 12000);
+    return () => window.clearTimeout(timeout);
+  }, [navigationTarget]);
+
   const navigate = (href: string) => {
-    if (href === pathname || navigationTarget === href) { setDrawerOpen(false); return; }
+    if (routesEqual(href, currentPath) || (Boolean(navigationTarget) && routesEqual(navigationTarget, href))) { setDrawerOpen(false); return; }
     setDrawerOpen(false);
     setPendingHref(href);
     startNavigation(() => router.push(href));

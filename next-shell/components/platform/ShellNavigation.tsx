@@ -1,6 +1,8 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { normalizeRoutePath, routesEqual } from '../../lib/platform/routes';
 import type { AppRole } from '../../lib/platform/types';
 
 type NavigationIcon = 'home' | 'reports' | 'manage' | 'catalog' | 'cashflow' | 'settings';
@@ -20,18 +22,46 @@ function NavIcon({ icon }: { icon: NavigationIcon }) {
 export function ShellNavigation({ items, role, mode = 'side', pendingHref = '', onNavigate }: { items: NavigationItem[]; role: AppRole; mode?: 'side' | 'bottom'; pendingHref?: string; onNavigate: (href: string) => void }) {
   const pathname = usePathname();
   const router = useRouter();
+  const currentPath = normalizeRoutePath(pathname);
+  const [scrollState, setScrollState] = useState({ path: currentPath, hidden: false });
+  const navHidden = mode === 'bottom' && scrollState.path === currentPath && scrollState.hidden;
   const visible = items.filter((item) => (mode === 'bottom' ? item.bottomRoles : item.roles).includes(role));
+
+  useEffect(() => {
+    if (mode !== 'bottom') return;
+    let lastScrollY = window.scrollY;
+    let accumulatedDelta = 0;
+    let frame = 0;
+    const threshold = 15;
+    const setHidden = (hidden: boolean) => setScrollState((state) => state.path === currentPath && state.hidden === hidden ? state : { path: currentPath, hidden });
+    const update = () => {
+      frame = 0;
+      const currentScrollY = window.scrollY;
+      const maxScrollY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      if (currentScrollY < 0 || currentScrollY > maxScrollY) { lastScrollY = currentScrollY; return; }
+      accumulatedDelta += currentScrollY - lastScrollY;
+      if (currentScrollY <= 10) { setHidden(false); accumulatedDelta = 0; }
+      else if (currentScrollY >= maxScrollY - 60) { setHidden(true); accumulatedDelta = 0; }
+      else if (accumulatedDelta > threshold && currentScrollY > 80) { setHidden(true); accumulatedDelta = 0; }
+      else if (accumulatedDelta < -threshold) { setHidden(false); accumulatedDelta = 0; }
+      lastScrollY = currentScrollY;
+    };
+    const onScroll = () => { if (!frame) frame = window.requestAnimationFrame(update); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); if (frame) window.cancelAnimationFrame(frame); };
+  }, [currentPath, mode]);
+
   const prepare = (href: string) => {
-    if (href === pathname || PREFETCHED_ROUTES.has(href)) return;
+    if (routesEqual(href, currentPath) || PREFETCHED_ROUTES.has(href)) return;
     PREFETCHED_ROUTES.add(href);
     router.prefetch(href);
   };
-  return <nav className={mode === 'bottom' ? 'bottom-nav' : 'nav-stack'} aria-label={mode === 'bottom' ? 'Điều hướng nhanh' : 'Điều hướng chính'}>
+  return <nav className={`${mode === 'bottom' ? 'bottom-nav' : 'nav-stack'}${navHidden ? ' nav-hidden' : ''}`} aria-label={mode === 'bottom' ? 'Điều hướng nhanh' : 'Điều hướng chính'}>
     {visible.map((item) => {
-      const optimisticPath = pendingHref || pathname || '';
-      const active = optimisticPath === item.href || optimisticPath.endsWith(`${item.href}/`) || Boolean(item.aliases?.includes(optimisticPath));
-      const pending = pendingHref === item.href;
-      return <button key={item.href} type="button" className={`${mode === 'bottom' ? (active ? 'active' : '') : `nav-btn${active ? ' active' : ''}`}${pending ? ' nav-pending' : ''}`.trim()} aria-current={active ? 'page' : undefined} aria-label={pending ? `Đang mở ${item.label}` : item.label} aria-busy={pending || undefined} disabled={pending} onPointerEnter={() => prepare(item.href)} onPointerDown={() => prepare(item.href)} onFocus={() => prepare(item.href)} onClick={() => onNavigate(item.href)}>
+      const optimisticPath = normalizeRoutePath(pendingHref || currentPath);
+      const active = routesEqual(optimisticPath, item.href) || Boolean(item.aliases?.some((alias) => routesEqual(alias, optimisticPath)));
+      const pending = Boolean(pendingHref) && routesEqual(pendingHref, item.href);
+      return <button key={item.href} type="button" className={`${mode === 'bottom' ? (active ? 'active' : '') : `nav-btn${active ? ' active' : ''}`}${pending ? ' nav-pending' : ''}`.trim()} aria-current={active ? 'page' : undefined} aria-label={pending ? `Đang mở ${item.label}` : item.label} aria-busy={pending || undefined} aria-disabled={pending || undefined} onPointerEnter={() => prepare(item.href)} onPointerDown={() => prepare(item.href)} onFocus={() => prepare(item.href)} onClick={() => { if (!pending) onNavigate(item.href); }}>
         {mode === 'side' ? <><span className="nav-ico"><NavIcon icon={item.icon}/></span><span className="nav-main">{item.label}</span></> : <><NavIcon icon={item.icon}/><span>{item.label}</span></>}
       </button>;
     })}

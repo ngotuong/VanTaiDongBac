@@ -252,6 +252,8 @@ Người dùng phê duyệt Report correction và cho phép chuyển checkpoint 
 
 Production stabilization tiếp tục nhận phản hồi chuyển menu có cảm giác khựng và thiếu toast toàn cục. Correction interaction feedback `dpl_9HKgcJQZoZJcj1co5xd8sTdemFKq` giữ presentation C2, đưa route transaction lên AppShell để active/pending/progress phản hồi ngay, bổ sung intent-prefetch ở pointerdown mobile và một toast contract dùng chung cho refresh/export/CRUD/submit/audit/account actions. Gate đạt 283/283 test, lint, typecheck, build; root 200, session không cookie 401, health 200. Alias C3 preview đã cập nhật nhưng production vẫn `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; Shell/Nav tạm `TECH_PASS`, chờ user retest trước promote. D1 tiếp tục blocked.
 
+User retest ngày 2026-07-16 phát hiện correction trên giữ progress vô hạn do `/route` khác `/route/`, làm bottom active bị disabled/nhạt; đồng thời auto-hide/show C2 chưa được port và safe-area offset tạo khoảng hở lớn. Candidate kế tiếp `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` normalize route, thêm navigation fail-safe, giữ active deep color, port scroll-direction threshold C2 bằng rAF/passive listener và hạ bottom nav tới safe-area edge. Gate đạt 284/284 test, lint, typecheck, build; root 200, session 401, health 200. Production không đổi; Shell/Nav vẫn `TECH_PASS`, D1 blocked.
+
 ## 9. Phase D — Legacy removal
 
 ### D1 — Xóa presentation legacy

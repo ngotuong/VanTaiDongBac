@@ -198,13 +198,13 @@ Checkpoint runtime gần nhất trước đó:
 
 Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành. File đó là historical plan, không còn quyết định bước tiếp theo.
 
-## 5. Checkpoint tiếp theo được đề xuất
+## 5. Checkpoint hiện tại
 
 ### D1 — Xóa presentation legacy và cutover Apps Script API-only
 
-Trạng thái: **PRODUCTION STABILIZATION; cutover hoàn tất, chờ authenticated production gate**.
+Trạng thái: **DONE ngày 2026-07-16**.
 
-Audit xác nhận source hiện tại đã không còn HtmlService, `google.script.run`, legacy template/client/style fragments, React islands, DOM bridge, compatibility rewrites hoặc legacy build pipeline. `Router.gs` chỉ còn JSON API; Apps Script API-only `@282` tồn tại bất biến. Candidate D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` đạt 284/284 test, lint, typecheck, build, diff check; authenticated preview Dashboard/Report/Manage đạt, không có legacy runtime marker, browser error hoặc HTTP 500. Sau phê duyệt ngày 2026-07-16, controlled cut-forward chỉ gán `dongbac.vercel.app` sang đúng deployment bất biến này, không rebuild. Post-cutover public smoke xác nhận các route/PWA 200, session không cookie 401, health 200, legacy paths 404 và không có HTTP 500; warning `DEP0169` đã biết chỉ xuất hiện trên request 200. Không thực hiện business write. Phiên production yêu cầu đăng nhập lại nên authenticated production stabilization còn chờ; không xóa recovery C3/C2, legacy C1, Apps Script `@281` hoặc rollback deployments.
+Audit xác nhận source hiện tại đã không còn HtmlService, `google.script.run`, legacy template/client/style fragments, React islands, DOM bridge, compatibility rewrites hoặc legacy build pipeline. `Router.gs` chỉ còn JSON API; Apps Script API-only `@282` tồn tại bất biến. Candidate D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` đạt 284/284 test, lint, typecheck, build, diff check; authenticated preview Dashboard/Report/Manage đạt, không có legacy runtime marker, browser error hoặc HTTP 500. Sau phê duyệt ngày 2026-07-16, controlled cut-forward chỉ gán `dongbac.vercel.app` sang đúng deployment bất biến này, không rebuild. Post-cutover public smoke xác nhận các route/PWA 200, session không cookie 401, health 200, legacy paths 404 và không có HTTP 500; warning `DEP0169` đã biết chỉ xuất hiện trên request 200. Authenticated production stabilization xác nhận Dashboard đúng KPI live, Report có bốn bảng/41 dòng và các dòng tổng/lợi nhuận, Manage có bảng 20 dòng, route progress kết thúc và không có legacy runtime marker; Dashboard refresh qua Apps Script `@282` thành công trong khoảng 22,4 giây với toast success. Không có browser warning/error hoặc HTTP 500 và không thực hiện business write. D1 được đóng; không tự mở thêm checkpoint migration và không xóa recovery C3/C2, legacy C1, Apps Script `@281` hoặc rollback deployments nếu chưa có phê duyệt riêng.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -264,7 +264,7 @@ Baseline hiện tại:
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
 - C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` vẫn READY làm rollback; toàn bộ mười surface là `USER_APPROVED`, C3 đã đóng.
 - Gate cut-forward: 284/284 test, lint, typecheck, build, `git diff --check`; các route chính/PWA 200, session unauthenticated 401, API health 200 và không có HTTP 500 sau smoke.
-- D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY tại production với Apps Script API-only `@282`; source/HTTP/authenticated preview và public post-cutover gate đều đạt, authenticated production stabilization còn chờ đăng nhập.
+- D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY tại production với Apps Script API-only `@282`; source/HTTP/authenticated preview/public post-cutover/authenticated production gate đều đạt và D1 đã đóng.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

@@ -180,6 +180,13 @@ Người dùng phê duyệt Settings/Observability và cho phép chuyển checkp
 - Một `ToastViewport` toàn cục dùng lại `.sync-toast` C2. Refresh, export ảnh/CSV, CRUD Manage/Catalog/Cashflow, Entry queue/retry, account action và observability audit đều phát loading/success/error; toast thường tự đóng, có nút đóng, error dùng `role=alert`, loading không tự biến mất giữa thao tác. `prefers-reduced-motion` tắt animation progress.
 - Candidate `https://vantaidongbac-c3-preview.vercel.app` trỏ READY `dpl_9HKgcJQZoZJcj1co5xd8sTdemFKq`. Gate đạt 283/283 test, lint, typecheck và build; deployment-authenticated smoke: root 200, session không cookie 401, health 200, manifest 200. Production vẫn trỏ `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; Shell/Nav là `TECH_PASS` và cần user retest authenticated trước promote.
 
+### Correction progress và bottom navigation ngày 2026-07-16
+
+- User retest cho thấy progress của candidate không kết thúc và item active bị làm nhạt. `next.config.mjs` dùng `trailingSlash:true`, nhưng AppShell so sánh raw `/dashboard` với `/dashboard/`; pending vì thế tồn tại vĩnh viễn và thuộc tính `disabled` kích hoạt opacity 0.5 của golden CSS. Route path nay được normalize trước mọi current/pending/alias comparison; timeout 12 giây chỉ là fail-safe nếu navigation lỗi. Bottom item pending dùng `aria-busy`/`aria-disabled` nhưng không dùng native disabled nên màu `var(--deep)` C2 không bị đổi.
+- C2 `client_ui.html` dùng accumulated delta 15px: cuộn xuống sau 80px thì ẩn, cuộn lên thì hiện, gần cuối trang ẩn và gần đầu trang hiện. React port lại đúng bốn rule, passive scroll listener và gom DOM read bằng `requestAnimationFrame`; class tiếp tục là `.nav-hidden` và transition C2.
+- Theo phản hồi khoảng hở, bottom offset được hạ từ `12px + safe-area` xuống `max(4px, safe-area)`: sát đáy hơn nhưng không lấn home indicator/system gesture. Đây là correction được người dùng yêu cầu, không áp dụng thay đổi style khác.
+- Candidate hiện tại `https://vantaidongbac-c3-preview.vercel.app` trỏ READY `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`. Gate đạt 284/284 test, lint, typecheck và build; root 200, session không cookie 401, health 200. Production giữ `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; chờ authenticated mobile user retest.
+
 ## Gate dependency và cascade bắt buộc cho các surface tiếp theo
 
 Phản hồi visual ngày 2026-07-14 chứng minh copy CSS/DOM chưa đủ nếu bỏ sót dependency hoặc để stylesheet khác rò rỉ vào surface golden. Từ Dashboard trở đi, mỗi surface phải thêm đủ các kiểm tra sau trước `TECH_PASS`:

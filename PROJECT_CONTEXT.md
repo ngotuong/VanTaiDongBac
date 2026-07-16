@@ -53,7 +53,7 @@ Các surface người dùng hiện có:
 ```text
 Browser
   └─ dongbac.vercel.app        -> Next.js App Router C3 correction (production stabilization)
-  └─ C3 preview                -> cùng deployment bất biến đã duyệt
+  └─ C3 preview                -> Shell/Nav correction candidate đang chờ user retest
           ↓
 Vercel /api/app
   - xác thực Supabase session
@@ -115,7 +115,7 @@ Trạng thái: **CORRECTION CUT-FORWARD ACTIVE ngày 2026-07-15; production đan
 - Người dùng đã phê duyệt Report và cho phép tiếp tục checkpoint ngày 2026-07-14; Report là `USER_APPROVED`.
 - Người dùng đã phê duyệt tiếp tục checkpoint sau khi kiểm tra correction Manage/Entry; hai surface này được khóa `USER_APPROVED`. Người dùng vẫn ghi nhận nhiều lỗi UI/UX ở Manage và Catalog; đây là UI debt sẽ xử lý ở pha sau, không được hiểu là C2 visual đã hoàn hảo.
 - Người dùng đã kiểm tra Catalog và phê duyệt tiếp tục hoàn thiện migration ngày 2026-07-14; Catalog được nâng `USER_APPROVED` cho gate migration với UI debt nói trên.
-- Preview correction: `https://vantaidongbac-c3-preview.vercel.app`, READY `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`; chính deployment bất biến này đã được gán production sau phê duyệt.
+- Preview Report correction đã duyệt trước cut-forward từng là READY `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; candidate dùng Production environment với `--skip-domain` để nhận đủ server env `sensitive`, rồi chính deployment bất biến đó được gán production. Alias preview hiện đã chuyển sang Shell/Nav correction mới ghi ở cuối mục này.
 - Người dùng phát hiện Manage không hiển thị dù route 200; nguyên nhân là root `.view` thiếu `.active`. Correction thêm state hiển thị, lazy-load catalog Entry khỏi critical path, loading shimmer C2 và targeted prefetch theo intent.
 - Catalog port lại đúng C2 với chín tab, filter nhân sự/chủ xe, bảng/pagination, modal add/edit/delete, cột chủ xe và mapping clear-only cho hai view ảo `DM_ThamSo`; không đổi Sheet/schema/cột/công thức.
 - Cashflow port lại bốn surface C2: Tổng quan/báo cáo/export, Danh sách thu chi với quick/custom date/search/pagination/pending jobs, Khoản vay với reconciliation/filter/history và Fund Catalog inline; các form dùng drawer C2. Queue/idempotency, row identity, native-range bounds và Apps Script authoritative writes được giữ nguyên; không đổi Sheet/schema/cột/công thức.
@@ -132,6 +132,7 @@ Trạng thái: **CORRECTION CUT-FORWARD ACTIVE ngày 2026-07-15; production đan
 - Người dùng phê duyệt correction và yêu cầu chuyển checkpoint ngày 2026-07-15; Report trở lại `USER_APPROVED`. Gate được chạy lại trên commit đã duyệt và tiếp tục đạt 282/282 test, lint, typecheck, build, diff check. Controlled cut-forward chỉ đổi alias production sang đúng deployment preview bất biến, không rebuild.
 - Post-cutover smoke xác nhận root, Dashboard, Report, Manage, Catalog, Cashflow, Settings, Observability, favicon và manifest 200; session không cookie 401, health 200 và không có log 5xx trong cửa sổ kiểm tra. Apps Script/data/schema không thay đổi; D1 vẫn blocked.
 - Sau cut-forward lần hai, người dùng ghi nhận chuyển menu vẫn khựng và các thao tác thiếu toast. Correction interaction feedback giữ nguyên presentation C2, thêm active/pending state ngay khi chạm menu, progress route, intent-prefetch cho touch và một toast viewport toàn cục cho refresh/export/CRUD/submit/audit/account actions. Candidate `dpl_9HKgcJQZoZJcj1co5xd8sTdemFKq` đang ở `https://vantaidongbac-c3-preview.vercel.app`; production vẫn giữ `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Gate đạt 283/283 test, lint, typecheck, build; root 200, session không cookie 401, health 200. Shell/Nav tạm là `TECH_PASS`, chờ authenticated mobile/desktop retest; không tuyên bố giảm network/data latency nếu chưa đo trong phiên thật.
+- User retest ngày 2026-07-16 phát hiện candidate trên bị progress chạy vô hạn, bottom item active nhạt, mất auto-hide/show khi cuộn và còn khoảng hở dưới nav. Root cause progress/màu là `trailingSlash:true`: pending `/dashboard` không bằng pathname `/dashboard/`, khiến pending không kết thúc và button bị disabled/opacity 0.5. Correction mới chuẩn hóa route trước so sánh, có timeout fail-safe, bỏ native disabled khỏi active nav; port lại chính xác threshold/near-top/near-bottom/scroll-direction C2 bằng passive listener + `requestAnimationFrame`; hạ bottom offset từ `12px + safe-area` xuống sát safe-area hợp lệ. Candidate hiện tại `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` READY trên preview; production vẫn `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Gate đạt 284/284 test, lint, typecheck, build; root 200, session 401, health 200. Shell/Nav vẫn `TECH_PASS`, chờ user retest.
 - Thứ tự gate: Shell/Login → Dashboard → Report → Manage/Entry → Catalog → Cashflow → Settings/Observability.
 - Mỗi module phải được người dùng duyệt riêng; D1 blocked.
 
@@ -199,7 +200,7 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ### C3 — Retest interaction feedback trong production stabilization
 
-Người dùng kiểm tra candidate `https://vantaidongbac-c3-preview.vercel.app` trong phiên đăng nhập thật trên mobile/desktop: trạng thái menu phải phản hồi ngay, progress không che nội dung, toast loading/success/error xuất hiện đúng ở refresh/export và các thao tác ghi. Chỉ promote đúng deployment bất biến sau phê duyệt; production hiện chưa đổi. Tiếp tục theo dõi latency thực, auth/API error, cache fallback và PWA/home-screen cache. Chỉ đóng C3 sau thời gian ổn định được người dùng chấp thuận rõ; D1 tiếp tục blocked và UI debt Manage/Catalog giữ cho pha riêng.
+Người dùng kiểm tra candidate `https://vantaidongbac-c3-preview.vercel.app` trong phiên đăng nhập thật trên mobile/desktop: progress phải dừng khi route đã hiển thị; bottom nav phải tự ẩn khi cuộn xuống, hiện khi cuộn lên/gần đầu trang, giữ màu `--deep` và nằm sát safe-area không đè home indicator; toast loading/success/error vẫn hoạt động. Chỉ promote đúng deployment bất biến sau phê duyệt; production hiện chưa đổi. Tiếp tục theo dõi latency thực, auth/API error, cache fallback và PWA/home-screen cache. Chỉ đóng C3 sau thời gian ổn định được người dùng chấp thuận rõ; D1 tiếp tục blocked và UI debt Manage/Catalog giữ cho pha riêng.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 

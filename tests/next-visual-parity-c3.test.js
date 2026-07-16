@@ -35,7 +35,7 @@ test('C3 golden shell keeps the exact C2 logo, drawer, SVG and five-item mobile 
   assert.match(navigation, /mode === 'bottom'/);
   assert.match(css, /grid-template-columns: 260px minmax\(0, 1fr\)/);
   assert.match(css, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
-  assert.match(css, /bottom: calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(css, /bottom: max\(4px, env\(safe-area-inset-bottom, 0px\)\)/);
 });
 
 test('C3 preserves hidden module routes behind their approved parent menus', () => {

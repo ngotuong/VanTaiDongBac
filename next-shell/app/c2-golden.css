@@ -2867,7 +2867,7 @@
       position: fixed;
       left: 12px;
       right: 12px;
-      bottom: calc(12px + env(safe-area-inset-bottom));
+      bottom: max(4px, env(safe-area-inset-bottom, 0px));
       z-index: 90;
       grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 4px;
@@ -4956,7 +4956,7 @@ body > .modal-overlay .modal-body { flex: 1 1 auto; min-height: 0; overflow-x: h
 .route-progress.active > span { animation: route-progress-slide .9s cubic-bezier(.4,0,.2,1) infinite; }
 @keyframes route-progress-slide { to { transform: translateX(350%); } }
 .nav-pending { cursor: progress !important; }
-.nav-pending .btn-svg,.nav-pending .nav-ico { opacity: .72; }
+.bottom-nav button.active.nav-pending { background: var(--deep) !important; color: #fff !important; opacity: 1 !important; }
 .platform-toast { z-index: 1300; max-width: 520px; margin-inline: auto; }
 .platform-toast-message { min-width: 0; flex: 1; line-height: 1.4; }
 .platform-toast-close { width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: currentColor; font-size: 22px; line-height: 1; }

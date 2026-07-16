@@ -90,7 +90,7 @@ clasp push
 
 ## Rollback presentation Next/D1
 
-Production hiện tại là C3 correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Interaction-feedback candidate `dpl_9HKgcJQZoZJcj1co5xd8sTdemFKq` chỉ nằm trên `https://vantaidongbac-c3-preview.vercel.app`, chưa được promote. C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY nhưng không còn nằm trên `dongbac.vercel.app`; D1 `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` không nằm trên production.
+Production hiện tại là C3 correction `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`. Progress/bottom-nav correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` chỉ nằm trên `https://vantaidongbac-c3-preview.vercel.app`, chưa được promote; interaction candidate trước `dpl_9HKgcJQZoZJcj1co5xd8sTdemFKq` đã bị user retest bác bỏ. C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY nhưng không còn nằm trên `dongbac.vercel.app`; D1 `dpl_8AdSfrkz764MjBwygZa7zr7ZM8d9` không nằm trên production.
 
 Golden correction production hiện tại là `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` tại `https://dongbac.vercel.app`; preview đã tiến lên interaction-feedback candidate và phải được người dùng duyệt trước khi promote. Cut-forward C3 trước `dpl_4W8Dyj2DE6WjUXoojmVmC2dugeee` đã bị rollback do Report thiếu total/profit rows, mobile empty state và hiệu năng chuyển route; correction đã được người dùng duyệt trước lần cut-forward lại. Cashflow cascade correction trước đó là `dpl_CSAZkHAftQEB6xyNGJzjMRGpNXRL`.
 

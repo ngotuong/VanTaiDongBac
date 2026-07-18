@@ -193,6 +193,8 @@ Apps Script:
 5. `syncAllReportBundles()` E1.2 phải trả một `dataVersion` chung cho mọi tháng; nếu mỗi result có version khác nhau thì dừng parity/cutover.
 6. Trước batch parity E1.3, phải guard/lock để trigger `syncRealtimeCache` không chạy `reportsRecent` hoặc `reportsAll` đồng thời. Chốt dòng cuối `SYS_ReportCache` ngay trước batch và chỉ chấp nhận đúng 39 dòng của một `dataVersion` mục tiêu.
 7. Nếu xuất hiện version xen ngang, số dòng tăng khác 39 hoặc Supabase không còn đủ 4 row exact-version, rollback ngay `REPORT_CACHE_MODE=sheet` và không tự chạy batch thứ hai khi chưa có phê duyệt mới.
+8. Guard E1.3 dùng Script Property để chặn tick mới, Script Cache để nhận biết tick đang chạy và Script Lock chỉ cho quyết định start/stop ngắn. Không giữ lock trong suốt report sync. Wrapper parity phải xóa property trong `finally`, kể cả khi batch lỗi.
+9. Audit payload E1.3 chỉ đọc tối đa 500 dòng cuối, lọc đúng `REPORT_CACHE_E1_LAST_BATCH_VERSION`, chuẩn hóa text/số và so hash bốn kỳ. Không dùng force refresh hoặc log payload/credential trong audit.
 
 Supabase:
 

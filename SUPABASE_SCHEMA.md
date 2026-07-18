@@ -58,11 +58,14 @@ Migration `010_report_cache_cutover_foundation.sql` không tạo bảng cache th
 7. Frontend Vercel đọc `report_bundles.payload` bằng anon key.
 8. Nếu đọc Supabase lỗi, frontend tự gọi Apps Script `getReportBundle` như trước.
 
+Từ E1.2, Apps Script cũng có thể đọc `payload.overview.details` theo đúng `cache_version` và `source_data_version`. Khi sync toàn bộ, backend tạo một `dataVersion`, dựng `Tất cả` trước để tính các tháng một lần, rồi upsert từng bundle tháng và `Tất cả` với cùng metadata/hash.
+
 ## File liên quan
 
 - SQL migration: `supabase/migrations/001_report_bundles.sql`
 - SQL migration realtime cache: `supabase/migrations/002_realtime_cache.sql`
 - Apps Script sync: `SupabaseService.gs`
+- Report cache adapter: `SupabaseReportCacheRepository.gs`
 - API expose thủ công: `PublicApi.gs`, `Router.gs`
 - Next API clients: `next-shell/lib/platform/`
 - Report server boundary: `next-shell/lib/report-server.ts`

@@ -10,8 +10,9 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 function loadService(overrides = {}) {
   const vmContext = vm.createContext({});
   new vm.Script(read('ReportSyncService.gs'), { filename: 'ReportSyncService.gs#test' }).runInContext(vmContext);
-  const calls = { bundles: [], dashboards: [], upserts: [], statuses: [] };
+  const calls = { bundles: [], dashboards: [], upserts: [], statuses: [], batchStarts: 0 };
   const syncTime = '2026-07-11T15:00:00.000Z';
+  const dataVersion = 'data-version-1';
   const reportMonths = ['05/2026', '06/2026', '07/2026'];
   const context = {
     spreadsheetId: 'synthetic-transport-sheet',
@@ -19,10 +20,14 @@ function loadService(overrides = {}) {
       return value === null || value === undefined ? '' : String(value).trim();
     },
     nowISOString() { return syncTime; },
-    getReportBundle(month, forceRefresh) {
-      calls.bundles.push({ month, forceRefresh });
+    getReportBundle(month, forceRefresh, options) {
+      calls.bundles.push({ month, forceRefresh, options });
       return { overview: { months: [['Tháng'], ...reportMonths.map((item) => [item])] }, selected: month };
     },
+    beginReportRefreshBatch() { calls.batchStarts += 1; return dataVersion; },
+    getReportDataVersion() { return dataVersion; },
+    getReportCacheVersion() { return 'v13'; },
+    upsertReportBundle(options) { calls.upserts.push({ operation: 'reportBundle', options }); },
     getDashboard(month, forceRefresh) {
       calls.dashboards.push({ month, forceRefresh });
       return { latestTrips: { date: '04/07/2026', trips: [] } };
@@ -56,30 +61,29 @@ function loadService(overrides = {}) {
     },
     ...overrides
   };
-  return { service: vmContext.ReportSyncService, context, calls, syncTime };
+  return { service: vmContext.ReportSyncService, context, calls, syncTime, dataVersion };
 }
 
 test('report bundle and dashboard sync preserve rows, conflict key, status, and response', () => {
-  const { service, context, calls, syncTime } = loadService();
+  const { service, context, calls, syncTime, dataVersion } = loadService();
   const report = service.syncReportBundle('latest', context);
   const dashboard = service.syncDashboard(context);
   assert.deepEqual(JSON.parse(JSON.stringify(report)), {
     ok: true, table: 'report_bundles', spreadsheetId: 'synthetic-transport-sheet',
-    reportMonth: '07/2026', syncedAt: syncTime
+    reportMonth: '07/2026', dataVersion, syncedAt: syncTime
   });
   assert.deepEqual(JSON.parse(JSON.stringify(dashboard)), {
     ok: true, table: 'report_bundles', reportMonth: '__dashboard_latest__', syncedAt: syncTime
   });
   assert.deepEqual(JSON.parse(JSON.stringify(calls.upserts)), [
     {
-      tableName: 'report_bundles',
-      rows: [{
-        spreadsheet_id: 'synthetic-transport-sheet', report_month: '07/2026',
-        source_sheet_names: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe'],
-        payload: { overview: { months: [['Tháng'], ['05/2026'], ['06/2026'], ['07/2026']] }, selected: 'latest' },
-        synced_at: syncTime
-      }],
-      onConflict: 'spreadsheet_id,report_month'
+      operation: 'reportBundle',
+      options: {
+        spreadsheetId: 'synthetic-transport-sheet', reportMonth: '07/2026',
+        sourceSheetNames: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe'],
+        bundle: { overview: { months: [['Tháng'], ['05/2026'], ['06/2026'], ['07/2026']] }, selected: 'latest' },
+        cacheVersion: 'v13', dataVersion, syncedAt: syncTime
+      }
     },
     {
       tableName: 'report_bundles',
@@ -102,6 +106,12 @@ test('full report sync preserves Sheet month order, all target, and isolated err
   assert.deepEqual(JSON.parse(JSON.stringify(result.months)), ['05/2026', '06/2026', '07/2026', 'Tất cả']);
   assert.equal(result.synced, 4);
   assert.equal(result.failed, 0);
+  assert.equal(result.dataVersion, original.dataVersion);
+  assert.equal(original.calls.batchStarts, 1);
+  assert.deepEqual(original.calls.bundles.map((call) => call.month), ['Tất cả', '05/2026', '06/2026', '07/2026']);
+  assert.equal(new Set(original.calls.bundles.map((call) => call.options.dataVersion)).size, 1);
+  assert.equal(original.calls.bundles.every((call) => call.options.skipInvalidation === true), true);
+  assert.equal(original.calls.bundles.every((call) => call.options.suppressSupabaseWrite === true), true);
 
   const failed = loadService({
     getReportBundle(month) {

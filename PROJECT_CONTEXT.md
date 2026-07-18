@@ -103,6 +103,17 @@ Dashboard B2, Manage B3, Catalog B5 và Cashflow B6 giữ cache/fallback hiện 
 
 ## 4. Checkpoint gần nhất đã hoàn thành
 
+### E1.2 — Apps Script batch/upsert và dual mode
+
+Trạng thái: **DONE ngày 2026-07-19; code/candidate hoàn tất, production vẫn `sheet` trên Apps Script `@282`**.
+
+- `SupabaseReportCacheRepository.gs` đọc `payload.overview.details` theo exact `spreadsheet_id`, `cache_version`, `source_data_version`; loại `Tất cả`/dashboard khỏi map tháng và upsert full bundle với SHA-256 hex vào khóa `(spreadsheet_id, report_month)`.
+- `REPORT_CACHE_MODE` đã nối vào runtime: `sheet` đọc/ghi Sheet; `dual` đọc/ghi Sheet và shadow-upsert Supabase; `supabase` ưu tiên Supabase, fallback Sheet/live compute, không append `SYS_ReportCache`.
+- Supabase read/write lỗi không làm mất live report nếu Google Sheet còn đọc được. Cache chi tiết trong memory được scope theo `(spreadsheetId, dataVersion)` để một execution không quét Sheet/Supabase lặp lại.
+- `syncAllReportBundles()` invalidation đúng một lần, dựng `Tất cả` trước để batch-compute mọi tháng thiếu, rồi upsert từng tháng và `Tất cả` với cùng một `dataVersion`; report tables và detail matrices được tái sử dụng trong cùng execution.
+- Source đã force-push Apps Script; candidate đã chốt `AKfycbywZZpzPea0EwdfcEG7OdwhnrMWXeEGI7f-JWnMADGaj1d04-JMrwXIvtZNnswI8-mwww` version `@286` smoke health 200 với `cacheVersion=v13`, `reportCacheMode=sheet`. Candidate `@285` được tạo trước correction call-site cuối và không được sử dụng.
+- Gate đạt 291/291 test, lint, typecheck, Next build và `git diff --check`. Không chạy report sync/force refresh, không đổi Script Property, Vercel env/alias hoặc Apps Script production URL; không compact `SYS_ReportCache`.
+
 ### E1.1 — Nền tảng chuyển `SYS_ReportCache` sang Supabase
 
 Trạng thái: **DONE ngày 2026-07-18; migration production đã apply, runtime vẫn giữ chế độ Sheet**.
@@ -212,17 +223,17 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint hiện tại
 
-### E1.2 — Apps Script batch/upsert và dual mode
+### E1.3 — Dual-mode preview và parity
 
 Trạng thái: **NOT STARTED; chờ người dùng phê duyệt riêng**.
 
 Mục tiêu checkpoint:
 
-- nối `REPORT_CACHE_MODE` vào repository với semantics đã khóa: `sheet` đọc/ghi Sheet, `dual` đọc Sheet và ghi cả Sheet/Supabase, `supabase` đọc/ghi Supabase và không append Sheet;
-- batch tính các tháng với một `dataVersion`, tránh `syncAllReportBundles()` tăng version lặp theo từng tháng;
-- upsert metadata `cache_version`, `source_data_version`, `details_hash` vào đúng row `(spreadsheet_id, report_month)`;
-- giữ fallback an toàn, không đổi Google Sheets source of truth, không compact `SYS_ReportCache`;
-- deploy preview/Apps Script candidate chỉ sau unit/contract gate; chưa cutover production sang `dual` hoặc `supabase` trong E1.2 nếu chưa có gate tiếp theo.
+- bật `REPORT_CACHE_MODE=dual` trong cửa sổ kiểm soát và dùng Apps Script candidate `@286`, chưa bật `supabase`;
+- chạy một batch sync báo cáo, xác nhận tất cả tháng dùng cùng `dataVersion` và số row Sheet chỉ tăng đúng một batch hiện hành;
+- đối chiếu hash/payload giữa Sheet live, `SYS_ReportCache` và `report_bundles` cho 05/2026, 06/2026, 07/2026, `Tất cả`;
+- kiểm tra authenticated preview Report/latest/month/all, fallback và thời gian xử lý; theo dõi log lỗi/HTTP 500;
+- nếu parity lỗi, rollback ngay `REPORT_CACHE_MODE=sheet`; không compact Sheet, không đổi production Vercel trong E1.3.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -289,6 +300,7 @@ Baseline hiện tại:
 - D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY tại production với Apps Script API-only `@282`; source/HTTP/authenticated preview/public post-cutover/authenticated production gate đều đạt và D1 đã đóng.
 - Supabase production migration history có đủ `001–010`; `report_bundles` giữ primary key `(spreadsheet_id, report_month)` và metadata E1.1 nullable.
 - Runtime production vẫn Apps Script `@282` và vẫn dùng `SYS_ReportCache`; E1.1 chỉ có Apps Script candidate `@284`, chưa cập nhật `APPS_SCRIPT_URL` production và chưa chuyển mode khỏi `sheet`.
+- Apps Script candidate E1.2 `@286` READY/smoke health 200 ở mode `sheet`; `@285` bị loại, chưa dùng candidate cho production hoặc chạy dual-mode sync.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

@@ -90,7 +90,7 @@ Giải thích:
 - `SUPABASE_URL`: dùng cho Apps Script ghi/cache sync.
 - `SUPABASE_ANON_KEY`: public key tương thích cho các integration còn cần.
 - `SUPABASE_REPORTS_ENABLED=false`: tắt read-cache compatibility phía Apps Script khi cần.
-- `REPORT_CACHE_MODE=sheet`: giữ `SYS_ReportCache` làm cache chi tiết trong giai đoạn nền tảng E1.1. Các giá trị `dual` và `supabase` chỉ được bật sau khi code E1.2 được deploy và qua parity gate.
+- `REPORT_CACHE_MODE=sheet`: giữ `SYS_ReportCache` làm cache chi tiết. E1.2 đã có code cho `dual`/`supabase`, nhưng chỉ bật `dual` trong E1.3 parity và chỉ bật `supabase` sau gate cutover riêng.
 - `SUPABASE_SERVICE_ROLE_KEY`: key bí mật để Apps Script ghi dữ liệu sang Supabase.
 
 ## 5. Chạy test sync thủ công
@@ -191,7 +191,9 @@ Migration này giữ nguyên dữ liệu và khóa chính `(spreadsheet_id, repo
 REPORT_CACHE_MODE=sheet
 ```
 
-Không xóa hoặc compact `SYS_ReportCache` ở E1.1.
+Không xóa hoặc compact `SYS_ReportCache` ở E1.1 hoặc E1.2.
+
+Sau khi deploy candidate E1.2, kiểm tra `health` vẫn trả `reportCacheMode=sheet`. Không chạy `syncAllReportBundlesToSupabase()` trên production ở E1.2; E1.3 sẽ bật `dual`, chạy batch có kiểm soát và đối chiếu hash trước/sau.
 
 Nguồn tham khảo chính thức:
 

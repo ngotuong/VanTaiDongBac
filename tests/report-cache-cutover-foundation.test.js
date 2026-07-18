@@ -57,7 +57,13 @@ test('migration 010 is additive and preserves one report bundle row per workbook
   assert.match(base, /primary key \(spreadsheet_id, report_month\)/);
 });
 
-test('health exposes the effective report cache mode without changing cache behavior', () => {
-  assert.match(read('SheetService.gs'), /reportCacheMode: ReportCacheMode\.get\(\)/);
-  assert.doesNotMatch(read('SheetReportCacheRepository.gs'), /ReportCacheMode/);
+test('SheetService wires the effective mode to Supabase read, Sheet write, and full-bundle upsert', () => {
+  const source = read('SheetService.gs');
+  assert.match(source, /reportCacheMode: ReportCacheMode\.get\(\)/);
+  assert.match(source, /cacheMode\.readSource === ReportCacheMode\.SUPABASE/);
+  assert.match(source, /if \(!ReportCacheMode\.describe\(\)\.writeSheet\) return/);
+  assert.match(source, /if \(!ReportCacheMode\.describe\(\)\.writeSupabase\) return/);
+  assert.match(source, /SupabaseReportCacheRepository\.readDetailsMap/);
+  assert.match(source, /SupabaseReportCacheRepository\.upsertBundle/);
+  assert.match(source, /beginReportRefreshBatch/);
 });

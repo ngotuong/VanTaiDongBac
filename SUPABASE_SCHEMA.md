@@ -22,6 +22,9 @@ Next Report đọc qua server boundary trong `next-shell/lib/report-server.ts`. 
 | `report_month` | `text` | Có | Tháng báo cáo, ví dụ `1`, `2`, `Tất cả`, hoặc tháng được frontend chọn. |
 | `source_sheet_names` | `text[]` | Có | Danh sách sheet nguồn đã dùng để tạo payload. |
 | `payload` | `jsonb` | Có | Dữ liệu trả về từ `ReportService.getReportBundle(month, true)`. |
+| `cache_version` | `text` | Không | Version schema cache chi tiết do Apps Script ghi, ví dụ `v13`. Được thêm ở migration `010`. |
+| `source_data_version` | `text` | Không | Version dữ liệu Google Sheet dùng để tạo bundle. Được thêm ở migration `010`. |
+| `details_hash` | `text` | Không | SHA-256 chữ thường của `overview.details` đã chuẩn hóa để đối soát. Được thêm ở migration `010`. |
 | `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
 | `created_at` | `timestamptz` | Có | Thời điểm tạo row. |
 | `updated_at` | `timestamptz` | Có | Thời điểm cập nhật row gần nhất. |
@@ -41,6 +44,8 @@ RLS:
 - Cho phép `anon` và `authenticated` chỉ `select`.
 - Không cấp quyền ghi cho frontend.
 - Apps Script dùng service role key để upsert dữ liệu.
+
+Migration `010_report_cache_cutover_foundation.sql` không tạo bảng cache thứ hai. Nó giữ nguyên khóa chính trên để mỗi workbook/tháng chỉ có một row JSON, đồng thời thêm metadata cần cho dual-run và parity. Các row cũ được giữ nguyên; ba cột mới nullable cho đến khi E1.2 bắt đầu ghi metadata.
 
 ## Luồng đồng bộ
 

@@ -103,6 +103,18 @@ Dashboard B2, Manage B3, Catalog B5 và Cashflow B6 giữ cache/fallback hiện 
 
 ## 4. Checkpoint gần nhất đã hoàn thành
 
+### E1.1 — Nền tảng chuyển `SYS_ReportCache` sang Supabase
+
+Trạng thái: **DONE ngày 2026-07-18; migration production đã apply, runtime vẫn giữ chế độ Sheet**.
+
+- E1.0 audit read-only xác nhận `SYS_ReportCache` có 196.442 dòng dữ liệu và 6.832 `dataVersion`; chỉ 39 dòng hiện hành, 196.403 dòng stale (99,98%). Repository hiện quét khoảng 1.964.420 ô cho mỗi lần đọc cache trước khi lọc.
+- Supabase `report_bundles` đã sẵn có đúng mô hình một row trên `(spreadsheet_id, report_month)`. Sau E1.1, bảng production có khoảng 5 row và tổng dung lượng khoảng 272 kB theo `supabase inspect db table-stats`.
+- Migration additive `010_report_cache_cutover_foundation.sql` đã được apply production và remote migration history có đủ `001–010`. Migration thêm ba cột nullable `cache_version`, `source_data_version`, `details_hash`, constraint SHA-256 và index lookup; không update/delete dữ liệu, không đổi primary key.
+- `ReportCacheMode.gs` định nghĩa `REPORT_CACHE_MODE=sheet|dual|supabase`; giá trị trống hoặc sai fallback `sheet`. E1.1 chưa nối flag vào repository và chưa đổi production khỏi Apps Script `@282`.
+- Source đã force-push lên Apps Script và candidate riêng `AKfycbxRRwRBwonYDCdgrnX5dTjLqHePCMfDOKQrNStjz2sE9KC4Kc2Lg72yqX6B361Dwccbxg` version `@284` được tạo; smoke health trả 200 với `cacheVersion=v13`, `reportCacheMode=sheet`. Version `@283` tạo trước force-push không deploy/không sử dụng.
+- `SYS_ReportCache` chưa compact/xóa và vẫn là cache runtime production hiện hành. Gate source đạt 288/288 test, lint, typecheck, Next build và `git diff --check`.
+- Rollback schema không cần drop cột vì migration additive; rollback runtime là `REPORT_CACHE_MODE=sheet`.
+
 ### Phase C3 — Golden-master parity
 
 Trạng thái: **DONE ngày 2026-07-16; người dùng chấp thuận production stabilization và cho phép mở checkpoint D1 riêng**.
@@ -200,11 +212,17 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint hiện tại
 
-### D1 — Xóa presentation legacy và cutover Apps Script API-only
+### E1.2 — Apps Script batch/upsert và dual mode
 
-Trạng thái: **DONE ngày 2026-07-16**.
+Trạng thái: **NOT STARTED; chờ người dùng phê duyệt riêng**.
 
-Audit xác nhận source hiện tại đã không còn HtmlService, `google.script.run`, legacy template/client/style fragments, React islands, DOM bridge, compatibility rewrites hoặc legacy build pipeline. `Router.gs` chỉ còn JSON API; Apps Script API-only `@282` tồn tại bất biến. Candidate D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` đạt 284/284 test, lint, typecheck, build, diff check; authenticated preview Dashboard/Report/Manage đạt, không có legacy runtime marker, browser error hoặc HTTP 500. Sau phê duyệt ngày 2026-07-16, controlled cut-forward chỉ gán `dongbac.vercel.app` sang đúng deployment bất biến này, không rebuild. Post-cutover public smoke xác nhận các route/PWA 200, session không cookie 401, health 200, legacy paths 404 và không có HTTP 500; warning `DEP0169` đã biết chỉ xuất hiện trên request 200. Authenticated production stabilization xác nhận Dashboard đúng KPI live, Report có bốn bảng/41 dòng và các dòng tổng/lợi nhuận, Manage có bảng 20 dòng, route progress kết thúc và không có legacy runtime marker; Dashboard refresh qua Apps Script `@282` thành công trong khoảng 22,4 giây với toast success. Không có browser warning/error hoặc HTTP 500 và không thực hiện business write. D1 được đóng; không tự mở thêm checkpoint migration và không xóa recovery C3/C2, legacy C1, Apps Script `@281` hoặc rollback deployments nếu chưa có phê duyệt riêng.
+Mục tiêu checkpoint:
+
+- nối `REPORT_CACHE_MODE` vào repository với semantics đã khóa: `sheet` đọc/ghi Sheet, `dual` đọc Sheet và ghi cả Sheet/Supabase, `supabase` đọc/ghi Supabase và không append Sheet;
+- batch tính các tháng với một `dataVersion`, tránh `syncAllReportBundles()` tăng version lặp theo từng tháng;
+- upsert metadata `cache_version`, `source_data_version`, `details_hash` vào đúng row `(spreadsheet_id, report_month)`;
+- giữ fallback an toàn, không đổi Google Sheets source of truth, không compact `SYS_ReportCache`;
+- deploy preview/Apps Script candidate chỉ sau unit/contract gate; chưa cutover production sang `dual` hoặc `supabase` trong E1.2 nếu chưa có gate tiếp theo.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -241,7 +259,7 @@ Google Sheets source of truth / Supabase read model, cache, queue
 
 Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_PLAN.md`. Kiến trúc đích tổng quát thuộc `TARGET_ARCHITECTURE.md`.
 
-## 7. Rủi ro và điều kiện trước khi đóng C3
+## 7. Rủi ro và điều kiện trước checkpoint tiếp theo
 
 1. **Role coverage**: admin đã smoke production; operator/shareholder có contract/unit gate nhưng chưa có representative production smoke.
 2. **Rollback**: không xóa recovery C2, legacy C1/alias hoặc Apps Script `@281` cho đến khi người dùng phê duyệt kết thúc retention.
@@ -251,6 +269,10 @@ Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_
 6. **Golden runtime**: template tĩnh không đủ; phải port cả client runtime và data-selection semantics.
 7. **Visual approval**: HTTP/DOM/unit test không thay thế ảnh authenticated và xác nhận trực tiếp của người dùng.
 8. **CSS dependency/cascade**: mọi surface tiếp theo phải audit font/script/asset thật, DOM wrapper và selector rò rỉ từ shared CSS; copy stylesheet đơn thuần không đủ.
+9. **Report cache parity**: hash phải loại field volatile và đối chiếu ít nhất 05/2026, 06/2026, 07/2026, `Tất cả` trước khi đổi mode.
+10. **Version amplification**: batch sync phải dùng một `source_data_version`; không gọi force refresh lặp làm tăng version cho từng tháng.
+11. **Rollback**: `REPORT_CACHE_MODE=sheet` phải hoạt động ngay cả khi Supabase thiếu metadata/lỗi; chưa xóa cache Sheet ở E1.2.
+12. **Production migration**: migration `010` đã apply; không sửa file migration đã chạy. Mọi schema correction phải là migration `011+`.
 
 Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
@@ -265,6 +287,8 @@ Baseline hiện tại:
 - C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` vẫn READY làm rollback; toàn bộ mười surface là `USER_APPROVED`, C3 đã đóng.
 - Gate cut-forward: 284/284 test, lint, typecheck, build, `git diff --check`; các route chính/PWA 200, session unauthenticated 401, API health 200 và không có HTTP 500 sau smoke.
 - D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY tại production với Apps Script API-only `@282`; source/HTTP/authenticated preview/public post-cutover/authenticated production gate đều đạt và D1 đã đóng.
+- Supabase production migration history có đủ `001–010`; `report_bundles` giữ primary key `(spreadsheet_id, report_month)` và metadata E1.1 nullable.
+- Runtime production vẫn Apps Script `@282` và vẫn dùng `SYS_ReportCache`; E1.1 chỉ có Apps Script candidate `@284`, chưa cập nhật `APPS_SCRIPT_URL` production và chưa chuyển mode khỏi `sheet`.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 
@@ -301,5 +325,5 @@ Không ghi nhật ký từng commit hoặc toàn bộ lịch sử step vào đâ
 - Owner: trạng thái hiện tại, checkpoint gần nhất và checkpoint tiếp theo.
 - Không sở hữu: API/schema/module contract chi tiết hoặc lịch sử đầy đủ.
 - Nguồn kiểm chứng: source, tests, build output, deployment checkpoint và tài liệu contract.
-- Ngày xác nhận: 2026-07-16.
+- Ngày xác nhận: 2026-07-18.
 - Cập nhật khi: các điều kiện tại mục 9 thay đổi.

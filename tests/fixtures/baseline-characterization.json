@@ -12,6 +12,7 @@
       "ManageService.gs",
       "PublicApi.gs",
       "ReportService.gs",
+      "ReportCacheMode.gs",
       "ReportTableService.gs",
       "ReportTempSheetService.gs",
       "Router.gs",
@@ -191,6 +192,7 @@
     "ASYNC_WRITE_ENABLED": false,
     "ASYNC_TRANSPORT_WRITE_ENABLED": true,
     "ASYNC_FUND_TRANSACTION_ADD_ENABLED": false,
+    "REPORT_CACHE_MODE": "sheet",
     "AUTH_ENFORCEMENT_ENABLED": "script-property",
     "VITE_AUTH_ENABLED": "build-time",
     "VITE_SUPABASE_REPORTS_ENABLED": "build-time"

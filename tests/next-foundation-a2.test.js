@@ -76,7 +76,7 @@ test('A2 adds real lint and independent TypeScript quality gates', () => {
   assert.equal(fs.existsSync(path.join(root, 'tsconfig.platform.json')), true);
 });
 
-test('finite Next migration roadmap records the reopened C3 golden-master gate', () => {
+test('finite Next migration roadmap records the completed C3 and D1 gates', () => {
   const roadmap = read('NEXTJS_MIGRATION_PLAN.md');
   assert.match(roadmap, /\| B1 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| B2 \|[^\n]+\| DONE \|/);
@@ -87,6 +87,6 @@ test('finite Next migration roadmap records the reopened C3 golden-master gate',
   assert.match(roadmap, /\| B7 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| C1 \|[^\n]+\| DONE \|/);
   assert.match(roadmap, /\| C2 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| C3 \|[^\n]+\| REOPENED — golden master \|/);
-  assert.match(roadmap, /\| D1 \|[^\n]+\| BLOCKED\/ROLLED BACK \|/);
+  assert.match(roadmap, /\| C3 \|[^\n]+\| DONE \|/);
+  assert.match(roadmap, /\| D1 \|[^\n]+\| DONE \|/);
 });

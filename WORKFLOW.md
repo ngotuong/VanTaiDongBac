@@ -189,6 +189,7 @@ Apps Script:
 1. Chạy test liên quan backend.
 2. Chạy `clasp push`.
 3. Tạo deployment web app mới nếu thay đổi cần public ngay; giữ deployment cũ để rollback.
+4. Với E1 report cache, giữ `REPORT_CACHE_MODE=sheet` ở bước nền tảng; chỉ đổi sang `dual`/`supabase` tại checkpoint đã được phê duyệt.
 
 Supabase:
 

@@ -103,12 +103,15 @@ test('Supabase tables and stable cache/job keys remain represented in runtime an
 
 test('feature flag defaults match the characterized baseline', () => {
   const service = read('SupabaseService.gs');
+  const reportCacheMode = read('ReportCacheMode.gs');
   assert.match(service, new RegExp(`ASYNC_WRITE_ENABLED = ${baseline.featureFlags.ASYNC_WRITE_ENABLED}`));
   assert.match(service, new RegExp(`ASYNC_TRANSPORT_WRITE_ENABLED = ${baseline.featureFlags.ASYNC_TRANSPORT_WRITE_ENABLED}`));
   assert.match(
     service,
     new RegExp(`ASYNC_FUND_TRANSACTION_ADD_ENABLED = readBooleanProperty_\\('ASYNC_FUND_TRANSACTION_ADD_ENABLED', ${baseline.featureFlags.ASYNC_FUND_TRANSACTION_ADD_ENABLED}\\)`)
   );
+  assert.match(reportCacheMode, /PROPERTY_NAME = 'REPORT_CACHE_MODE'/);
+  assert.match(reportCacheMode, new RegExp(`var SHEET = '${baseline.featureFlags.REPORT_CACHE_MODE}'`));
   assert.match(read('SecurityService.gs'), /AUTH_ENFORCEMENT_ENABLED/);
   assert.doesNotMatch(read('package.json'), /build:legacy|build-[a-z-]+-react|scripts\/build\.js/);
 });

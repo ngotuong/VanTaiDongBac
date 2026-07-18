@@ -201,10 +201,20 @@ Audit không tự sửa cache. Sync lại là thao tác riêng.
 Apps Script dùng Script Property `REPORT_CACHE_MODE`:
 
 - `sheet`: đọc/ghi `SYS_ReportCache` như hiện tại; đây là mặc định và rollback an toàn;
-- `dual`: vẫn đọc Sheet, đồng thời ghi Supabase để đối soát;
-- `supabase`: đọc/ghi cache tháng ở Supabase và không append `SYS_ReportCache`.
+- `dual`: vẫn đọc Sheet và append Sheet, đồng thời upsert full `report_bundles` với metadata để đối soát;
+- `supabase`: ưu tiên đọc `payload.overview.details` ở Supabase, không append `SYS_ReportCache`, và upsert full bundle sau live compute.
 
-Giá trị trống hoặc không hợp lệ phải fallback về `sheet`. E1.1 chỉ định nghĩa flag; switching repository/read-write được thực hiện ở E1.2 và không được bật `dual`/`supabase` trước deployment tương ứng.
+Giá trị trống hoặc không hợp lệ fallback về `sheet`. Nếu Supabase read lỗi/miss, Apps Script fallback cache Sheet còn tồn tại rồi live compute; cache không được làm request báo cáo thất bại khi Google Sheet vẫn đọc được.
+
+`syncAllReportBundles()` phải:
+
+1. invalidation đúng một lần và lấy một `source_data_version`;
+2. dựng bundle `Tất cả` trước để batch-compute toàn bộ tháng thiếu;
+3. giữ map chi tiết trong memory theo `(spreadsheet_id, dataVersion)` trong cùng execution;
+4. dựng/upsert từng tháng và `Tất cả` với cùng version;
+5. không gọi force refresh làm tăng version riêng cho từng tháng.
+
+E1.2 triển khai code/candidate nhưng production vẫn giữ `sheet`. Việc bật `dual` và chạy parity thuộc E1.3.
 
 ## 6. `startup_bundles`
 

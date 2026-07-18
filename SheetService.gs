@@ -4,6 +4,7 @@ var SheetService = (function () {
   var REPORT_TTL_SECONDS = 600;
   var REPORT_CACHE_SHEET_NAME = 'SYS_ReportCache';
   var REPORT_DATA_VERSION_PROP = 'REPORT_DATA_VERSION_V1';
+  var reportDetailsMemoryCache_ = { spreadsheetId: '', dataVersion: '', detailsByMonth: {} };
 
   function getBootstrap() {
     return {
@@ -146,24 +147,27 @@ var SheetService = (function () {
     return report;
   }
 
-  function getReportBundle(month, forceRefresh) {
+  function getReportBundle(month, forceRefresh, options) {
+    var requestOptions = options || {};
     var monthKey = normalizeMonthKey_(month) || 'all';
     var cacheKey = cacheKey_('report_bundle', monthKey);
-    if (forceRefresh) invalidateRuntimeCaches_();
+    if (forceRefresh && !requestOptions.skipInvalidation) invalidateRuntimeCaches_();
     if (!forceRefresh) {
       var cached = getChunkedCache_(cacheKey);
       if (cached) return cached;
     }
     var ss = getSpreadsheet_();
-    var reportTables = readReportTables_(ss, forceRefresh);
+    var reportTables = readReportTables_(ss, forceRefresh && !requestOptions.skipInvalidation);
+    var dataVersion = clean_(requestOptions.dataVersion) || getReportDataVersion_();
     var bundle = {
       updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
-      overview: readOverviewReport_(ss, month),
+      overview: readOverviewReport_(ss, month, dataVersion),
       payroll: filterDisplayTableByMonth_(reportTables.payroll, month),
       vehicles: filterDisplayTableByMonth_(reportTables.vehicles, month),
       links: reportLinks_(ss)
     };
     putChunkedCache_(cacheKey, bundle, REPORT_TTL_SECONDS);
+    if (!requestOptions.suppressSupabaseWrite) writeReportBundleToSupabase_(month, bundle, dataVersion);
     return bundle;
   }
 
@@ -217,12 +221,12 @@ var SheetService = (function () {
     return SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
   }
 
-  function readOverviewReport_(ss, month) {
+  function readOverviewReport_(ss, month, dataVersion) {
     var sheet = ss.getSheetByName('BC_TongQuan');
     if (!sheet) return { months: [], details: [] };
 
     var months = readOverviewMonths_(sheet);
-    var details = readOverviewDetailsWithCache_(ss, sheet, months, month);
+    var details = readOverviewDetailsWithCache_(ss, sheet, months, month, dataVersion);
     return { months: months, details: details, kpis: readOverviewKpis_(ss, sheet, months) };
   }
 
@@ -252,22 +256,22 @@ var SheetService = (function () {
     return DashboardService.resolveReportMonth(months, month);
   }
 
-  function readOverviewDetailsWithCache_(ss, sheet, months, month) {
+  function readOverviewDetailsWithCache_(ss, sheet, months, month, dataVersion) {
     var activeMonths = getActiveReportMonths_(months);
     if (month === 'Tất cả') {
       if (!activeMonths.length) return readCurrentOverviewDetails_(sheet);
-      return readAggregatedOverviewDetails_(ss, sheet, activeMonths);
+      return readAggregatedOverviewDetails_(ss, sheet, activeMonths, dataVersion);
     }
 
     var targetMonth = resolveReportMonth_(months, month);
     if (!targetMonth || targetMonth === 'Tháng') return readCurrentOverviewDetails_(sheet);
 
-    var dataVersion = getReportDataVersion_();
-    var cached = readReportDetailsCacheMap_(ss, dataVersion);
+    var effectiveDataVersion = clean_(dataVersion) || getReportDataVersion_();
+    var cached = readReportDetailsCacheMap_(ss, effectiveDataVersion);
     var monthKey = normalizeDisplayMonth_(targetMonth) || normalizeMonthKey_(targetMonth);
     if (cached[monthKey]) return cached[monthKey];
 
-    var computed = computeAndCacheOverviewDetails_(ss, sheet, [targetMonth], dataVersion);
+    var computed = computeAndCacheOverviewDetails_(ss, sheet, [targetMonth], effectiveDataVersion);
     return computed[monthKey] || readCurrentOverviewDetails_(sheet);
   }
 
@@ -287,15 +291,15 @@ var SheetService = (function () {
     return DashboardService.parseDetailKpis(details);
   }
 
-  function readAggregatedOverviewDetails_(ss, sheet, activeMonths) {
-    var dataVersion = getReportDataVersion_();
-    var cached = readReportDetailsCacheMap_(ss, dataVersion);
+  function readAggregatedOverviewDetails_(ss, sheet, activeMonths, dataVersion) {
+    var effectiveDataVersion = clean_(dataVersion) || getReportDataVersion_();
+    var cached = readReportDetailsCacheMap_(ss, effectiveDataVersion);
     var missing = activeMonths.filter(function (month) {
       var key = normalizeDisplayMonth_(month) || normalizeMonthKey_(month);
       return !cached[key];
     });
     if (missing.length) {
-      var computed = computeAndCacheOverviewDetails_(ss, sheet, missing, dataVersion);
+      var computed = computeAndCacheOverviewDetails_(ss, sheet, missing, effectiveDataVersion);
       Object.keys(computed).forEach(function (key) {
         cached[key] = computed[key];
       });
@@ -333,6 +337,7 @@ var SheetService = (function () {
       readDetails: readCurrentOverviewDetails_
     });
     writeReportDetailsCache_(ss, dataVersion, detailsByMonth);
+    mergeReportDetailsMemoryCache_(dataVersion, detailsByMonth);
     return detailsByMonth;
   }
 
@@ -371,20 +376,91 @@ var SheetService = (function () {
   }
 
   function readReportDetailsCacheMap_(ss, dataVersion) {
-    return SheetReportCacheRepository.readDetailsMap(ss, {
+    if (reportDetailsMemoryCache_.spreadsheetId === APP_CONFIG.spreadsheetId && reportDetailsMemoryCache_.dataVersion === dataVersion) {
+      return reportDetailsMemoryCache_.detailsByMonth;
+    }
+    var cacheMode = ReportCacheMode.describe();
+    if (cacheMode.readSource === ReportCacheMode.SUPABASE) {
+      try {
+        var supabaseDetails = SupabaseReportCacheRepository.readDetailsMap({
+          spreadsheetId: APP_CONFIG.spreadsheetId,
+          cacheVersion: CACHE_VERSION,
+          dataVersion: dataVersion,
+          clean: clean_
+        });
+        if (Object.keys(supabaseDetails).length) {
+          setReportDetailsMemoryCache_(dataVersion, supabaseDetails);
+          return supabaseDetails;
+        }
+      } catch (err) {
+        console.log('supabase_report_cache_read_failed: ' + (err && err.message ? err.message : err));
+      }
+    }
+    var sheetDetails = SheetReportCacheRepository.readDetailsMap(ss, {
       sheetName: REPORT_CACHE_SHEET_NAME,
       cacheVersion: CACHE_VERSION,
       dataVersion: dataVersion,
       clean: clean_
     });
+    setReportDetailsMemoryCache_(dataVersion, sheetDetails);
+    return sheetDetails;
   }
 
   function writeReportDetailsCache_(ss, dataVersion, detailsByMonth) {
+    if (!ReportCacheMode.describe().writeSheet) return;
     return SheetReportCacheRepository.writeDetails(ss, detailsByMonth, {
       sheetName: REPORT_CACHE_SHEET_NAME,
       cacheVersion: CACHE_VERSION,
       dataVersion: dataVersion
     });
+  }
+
+  function writeReportBundleToSupabase_(month, bundle, dataVersion) {
+    if (!ReportCacheMode.describe().writeSupabase) return;
+    try {
+      var resolvedMonth = resolveReportMonth_(bundle && bundle.overview && bundle.overview.months, month);
+      SupabaseReportCacheRepository.upsertBundle({
+        spreadsheetId: APP_CONFIG.spreadsheetId,
+        reportMonth: month === 'Tất cả' ? 'Tất cả' : (resolvedMonth || clean_(month) || 'latest'),
+        bundle: bundle,
+        cacheVersion: CACHE_VERSION,
+        dataVersion: dataVersion,
+        syncedAt: new Date().toISOString()
+      });
+    } catch (err) {
+      console.log('supabase_report_cache_write_failed: ' + (err && err.message ? err.message : err));
+    }
+  }
+
+  function beginReportRefreshBatch() {
+    invalidateRuntimeCaches_();
+    return getReportDataVersion_();
+  }
+
+  function getReportDataVersion() {
+    return getReportDataVersion_();
+  }
+
+  function getReportCacheVersion() {
+    return CACHE_VERSION;
+  }
+
+  function setReportDetailsMemoryCache_(dataVersion, detailsByMonth) {
+    reportDetailsMemoryCache_ = {
+      spreadsheetId: APP_CONFIG.spreadsheetId,
+      dataVersion: dataVersion,
+      detailsByMonth: detailsByMonth || {}
+    };
+  }
+
+  function mergeReportDetailsMemoryCache_(dataVersion, detailsByMonth) {
+    var current = reportDetailsMemoryCache_.spreadsheetId === APP_CONFIG.spreadsheetId && reportDetailsMemoryCache_.dataVersion === dataVersion
+      ? reportDetailsMemoryCache_.detailsByMonth
+      : {};
+    Object.keys(detailsByMonth || {}).forEach(function (monthKey) {
+      current[monthKey] = detailsByMonth[monthKey];
+    });
+    setReportDetailsMemoryCache_(dataVersion, current);
   }
 
   function readInputStats_(ss) {
@@ -888,6 +964,9 @@ var SheetService = (function () {
     getReports: getReports,
     getReport: getReport,
     getReportBundle: getReportBundle,
+    beginReportRefreshBatch: beginReportRefreshBatch,
+    getReportDataVersion: getReportDataVersion,
+    getReportCacheVersion: getReportCacheVersion,
     invalidateCaches: invalidateCaches,
     cleanupOverviewTempSheets: cleanupOverviewTempSheets,
     submitRows: submitRows,

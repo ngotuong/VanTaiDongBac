@@ -41,23 +41,35 @@ var ReportSyncService = (function () {
     });
   }
 
-  function syncReportBundle(month, context) {
+  function syncReportBundle(month, context, options) {
+    var syncOptions = options || {};
     var targetMonth = context.clean(month) || 'latest';
-    var bundle = context.getReportBundle(targetMonth, true);
+    var bundle = context.getReportBundle(targetMonth, true, {
+      skipInvalidation: syncOptions.skipInvalidation === true,
+      dataVersion: syncOptions.dataVersion || '',
+      suppressSupabaseWrite: true
+    });
+    return upsertPreparedReportBundle_(targetMonth, bundle, context, syncOptions.dataVersion || context.getReportDataVersion());
+  }
+
+  function upsertPreparedReportBundle_(targetMonth, bundle, context, dataVersion) {
     var resolvedMonth = resolveBundleMonth(targetMonth, bundle, context.clean);
     var syncedAt = context.nowISOString();
-    context.upsertRows(TABLE_REPORT_BUNDLES, [{
-      spreadsheet_id: context.spreadsheetId,
-      report_month: resolvedMonth,
-      source_sheet_names: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe'],
-      payload: bundle,
-      synced_at: syncedAt
-    }], 'spreadsheet_id,report_month');
+    context.upsertReportBundle({
+      spreadsheetId: context.spreadsheetId,
+      reportMonth: resolvedMonth,
+      sourceSheetNames: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe'],
+      bundle: bundle,
+      cacheVersion: context.getReportCacheVersion(),
+      dataVersion: dataVersion,
+      syncedAt: syncedAt
+    });
     return {
       ok: true,
       table: TABLE_REPORT_BUNDLES,
       spreadsheetId: context.spreadsheetId,
       reportMonth: resolvedMonth,
+      dataVersion: dataVersion,
       syncedAt: syncedAt
     };
   }
@@ -79,18 +91,36 @@ var ReportSyncService = (function () {
   function syncAllReportBundles(context) {
     var months = getReportMonths(context);
     if (!months.length) throw new Error('Không tìm thấy tháng báo cáo trong BC_TongQuan.');
+    var dataVersion = context.beginReportRefreshBatch();
     var results = [];
     var errors = [];
-    months.concat(['Tất cả']).forEach(function (month) {
+    var batchOptions = {
+      skipInvalidation: true,
+      dataVersion: dataVersion,
+      suppressSupabaseWrite: true
+    };
+    var allResult = null;
+    try {
+      var allBundle = context.getReportBundle('Tất cả', true, batchOptions);
+      allResult = upsertPreparedReportBundle_('Tất cả', allBundle, context, dataVersion);
+    } catch (err) {
+      errors.push({ reportMonth: 'Tất cả', error: err && err.message ? err.message : String(err) });
+    }
+    months.forEach(function (month) {
       try {
-        results.push(syncReportBundle(month, context));
+        results.push(syncReportBundle(month, context, {
+          skipInvalidation: true,
+          dataVersion: dataVersion
+        }));
       } catch (err) {
         errors.push({ reportMonth: month, error: err && err.message ? err.message : String(err) });
       }
     });
+    if (allResult) results.push(allResult);
     return {
       ok: errors.length === 0,
       spreadsheetId: context.spreadsheetId,
+      dataVersion: dataVersion,
       synced: results.length,
       failed: errors.length,
       months: results.map(function (item) { return item.reportMonth; }),

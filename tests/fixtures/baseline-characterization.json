@@ -23,6 +23,7 @@
       "SheetService.gs",
       "SheetWritePreserver.gs",
       "SupabaseService.gs",
+      "SupabaseReportCacheRepository.gs",
       "TransportReconciliationService.gs",
       "ValidationService.gs"
     ],

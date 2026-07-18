@@ -76,6 +76,7 @@ test('Supabase tables and stable cache/job keys remain represented in runtime an
     read('SupabaseService.gs'),
     read('StartupCatalogSyncService.gs'),
     read('ReportSyncService.gs'),
+    read('SupabaseReportCacheRepository.gs'),
     read('ManageSyncService.gs'),
     read('FundSyncService.gs'),
     read('WriteJobRepository.gs'),

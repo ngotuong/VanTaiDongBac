@@ -725,9 +725,13 @@ var SupabaseService = (function () {
       spreadsheetId: APP_CONFIG.spreadsheetId,
       clean: clean_,
       nowISOString: function () { return new Date().toISOString(); },
-      getReportBundle: function (month, forceRefresh) {
-        return ReportService.getReportBundle(month, forceRefresh);
+      getReportBundle: function (month, forceRefresh, options) {
+        return ReportService.getReportBundle(month, forceRefresh, options);
       },
+      beginReportRefreshBatch: function () { return ReportService.beginReportRefreshBatch(); },
+      getReportDataVersion: function () { return ReportService.getReportDataVersion(); },
+      getReportCacheVersion: function () { return ReportService.getReportCacheVersion(); },
+      upsertReportBundle: function (options) { return SupabaseReportCacheRepository.upsertBundle(options); },
       getDashboard: function (month, forceRefresh) {
         return ReportService.getDashboard(month, forceRefresh);
       },

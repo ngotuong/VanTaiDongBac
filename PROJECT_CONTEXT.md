@@ -225,7 +225,18 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ### E1.3 — Dual-mode preview và parity
 
-Trạng thái: **NOT STARTED; chờ người dùng phê duyệt riêng**.
+Trạng thái: **ROLLED BACK ngày 2026-07-19; lần chạy đầu không đạt gate do realtime trigger chồng lấn, chờ phê duyệt retry E1.3**.
+
+Kết quả lần chạy có kiểm soát đầu tiên:
+
+- Trước cửa sổ dual, `REPORT_CACHE_MODE` không được cấu hình và fallback đúng về `sheet`. Baseline live của `SYS_ReportCache` có dòng cuối 196.768; batch gần nhất gồm 39 dòng dùng chung `dataVersion=1784396163488` cho 05/2026, 06/2026, 07/2026.
+- Đã bật `dual` và chạy đúng một lần wrapper `runReportCacheParityBatchForMigration()`. Apps Script trả `ok=true`, `dataVersion=1784397123471`, `synced=4`, `failed=0`, gồm `05/2026`, `06/2026`, `07/2026`, `Tất cả`.
+- Batch mục tiêu tự nó ghi đúng 39 dòng Sheet, cùng một `dataVersion`, mỗi tháng 13 dòng. Tuy nhiên trong cùng cửa sổ, dòng cuối tăng từ 196.768 lên 196.872, tổng cộng 104 dòng thay vì 39.
+- 65 dòng ngoài batch mục tiêu đến từ realtime refresh đồng thời: `1784397003981` có 13 dòng, `1784397039851` có 13 dòng và `1784397124190` có 39 dòng. Root cause là trigger `syncRealtimeCache` chạy mỗi phút; vòng quay `reportsRecent`/`reportsAll` gọi `syncReportBundle()` và bump version trong lúc batch parity đang chạy.
+- Supabase audit theo exact `source_data_version=1784397123471` chỉ còn 3 row tháng với `cache_version=v13`; row `Tất cả` đã bị batch concurrent `1784397124190` upsert đè trên primary key `(spreadsheet_id, report_month)`. Vì vậy gate row-count và gate 4/4 bundle cùng version đều fail.
+- Đã rollback ngay `REPORT_CACHE_MODE=sheet`; log xác nhận `previous=dual`, `configured=sheet`, `effective=sheet`, `writeSupabase=false`. Không bật `supabase`, không compact/xóa Sheet, không đổi Vercel alias/env hoặc Apps Script production `@282`.
+- `ReportCacheMode.gs` hiện có các helper editor nội bộ không đi qua HTTP router để đọc mode, bật dual, rollback sheet, chạy đúng một batch và audit metadata Supabase; helper không log payload/credential. Source đã push HEAD; version Apps Script `@287` được tạo cho operations nhưng deployment tạm đã bị xóa, không có endpoint mới hoạt động.
+- Retry đề xuất phải có guard cửa sổ parity để `syncRealtimeCache` không chạy report step đồng thời, chốt lại baseline ngay trước batch và dừng/rollback nếu xuất hiện bất kỳ `dataVersion` ngoài version mục tiêu. Không tự chạy batch thứ hai khi chưa được người dùng phê duyệt.
 
 Mục tiêu checkpoint:
 
@@ -284,6 +295,7 @@ Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_
 10. **Version amplification**: batch sync phải dùng một `source_data_version`; không gọi force refresh lặp làm tăng version cho từng tháng.
 11. **Rollback**: `REPORT_CACHE_MODE=sheet` phải hoạt động ngay cả khi Supabase thiếu metadata/lỗi; chưa xóa cache Sheet ở E1.2.
 12. **Production migration**: migration `010` đã apply; không sửa file migration đã chạy. Mọi schema correction phải là migration `011+`.
+13. **Realtime overlap**: `syncRealtimeCache` chạy mỗi phút và các step `reportsRecent`/`reportsAll` có thể bump `REPORT_DATA_VERSION_V1`, append thêm cache Sheet và upsert đè `Tất cả` trong lúc parity batch chạy. Retry E1.3 phải có guard/lock riêng và chứng minh không có version xen ngang.
 
 Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
@@ -301,6 +313,7 @@ Baseline hiện tại:
 - Supabase production migration history có đủ `001–010`; `report_bundles` giữ primary key `(spreadsheet_id, report_month)` và metadata E1.1 nullable.
 - Runtime production vẫn Apps Script `@282` và vẫn dùng `SYS_ReportCache`; E1.1 chỉ có Apps Script candidate `@284`, chưa cập nhật `APPS_SCRIPT_URL` production và chưa chuyển mode khỏi `sheet`.
 - Apps Script candidate E1.2 `@286` READY/smoke health 200 ở mode `sheet`; `@285` bị loại, chưa dùng candidate cho production hoặc chạy dual-mode sync.
+- Attempt E1.3 đầu đã rollback về `sheet`. `SYS_ReportCache` hiện có dòng cuối 196.872 sau khi cửa sổ test tăng 104 dòng; batch mục tiêu `1784397123471` có đúng 39 dòng nhưng bị realtime trigger xen ba version khác và Supabase chỉ còn 3/4 row exact-version vì `Tất cả` bị upsert đè. Không được coi E1.3 là parity pass.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

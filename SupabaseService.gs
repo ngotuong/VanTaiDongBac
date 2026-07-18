@@ -18,6 +18,7 @@ var SupabaseService = (function () {
   var REPORT_AUDIT_MONTHS = ['05/2026', '06/2026', '07/2026', 'Tất cả'];
   var REALTIME_TICK_INDEX_KEY = 'SUPABASE_REALTIME_TICK_INDEX';
   var REALTIME_TICK_RUNNING_CACHE_KEY = 'SUPABASE_REALTIME_TICK_RUNNING';
+  var REPORT_CACHE_E1_PARITY_RUNNING_PROP = 'REPORT_CACHE_E1_PARITY_RUNNING';
   var TRANSPORT_SHEET_SYNC_RUNNING_CACHE_KEY = 'SUPABASE_TRANSPORT_SHEET_SYNC_RUNNING';
   var REALTIME_TICK_INTERVAL_MINUTES = 1;
   var REALTIME_TICK_RUNNING_TTL_SECONDS = 300;
@@ -120,19 +121,30 @@ var SupabaseService = (function () {
 
   function syncRealtimeCache() {
     var runtimeCache = CacheService.getScriptCache();
-    if (runtimeCache.get(REALTIME_TICK_RUNNING_CACHE_KEY)) {
-      return {
-        ok: true,
-        mode: 'tick',
-        skipped: true,
-        reason: 'Previous syncRealtimeCache tick is still running.'
-      };
+    var props = PropertiesService.getScriptProperties();
+    var startLock = LockService.getScriptLock();
+    if (!startLock.tryLock(1000)) {
+      return { ok: true, mode: 'tick', skipped: true, reason: 'Realtime start guard is busy.' };
     }
-    runtimeCache.put(REALTIME_TICK_RUNNING_CACHE_KEY, new Date().toISOString(), REALTIME_TICK_RUNNING_TTL_SECONDS);
+    try {
+      if (props.getProperty(REPORT_CACHE_E1_PARITY_RUNNING_PROP) === 'true') {
+        return { ok: true, mode: 'tick', skipped: true, reason: 'E1 report cache parity window is active.' };
+      }
+      if (runtimeCache.get(REALTIME_TICK_RUNNING_CACHE_KEY)) {
+        return {
+          ok: true,
+          mode: 'tick',
+          skipped: true,
+          reason: 'Previous syncRealtimeCache tick is still running.'
+        };
+      }
+      runtimeCache.put(REALTIME_TICK_RUNNING_CACHE_KEY, new Date().toISOString(), REALTIME_TICK_RUNNING_TTL_SECONDS);
+    } finally {
+      startLock.releaseLock();
+    }
 
     try {
       var steps = buildRealtimeTickSteps_();
-      var props = PropertiesService.getScriptProperties();
       var rawIndex = Number(props.getProperty(REALTIME_TICK_INDEX_KEY) || 0);
       var index = isNaN(rawIndex) || rawIndex < 0 ? 0 : rawIndex;
       var step = steps[index % steps.length];

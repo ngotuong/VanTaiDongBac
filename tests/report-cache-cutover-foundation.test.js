@@ -65,12 +65,37 @@ test('migration helpers expose the effective mode and reject undeclared writes',
 
 test('E1.3 editor wrappers run one batch and audit Supabase metadata only', () => {
   const source = read('ReportCacheMode.gs');
+  const realtime = read('SupabaseService.gs');
   assert.match(source, /function runReportCacheParityBatchForMigration\(\)/);
   assert.match(source, /syncAllReportBundlesToSupabase\(\)/);
   assert.match(source, /REPORT_CACHE_E1_LAST_BATCH_VERSION/);
+  assert.match(source, /REPORT_CACHE_E1_PARITY_RUNNING/);
+  assert.match(source, /SUPABASE_REALTIME_TICK_RUNNING/);
+  assert.match(source, /guardLock\.waitLock\(30000\)/);
+  assert.match(source, /properties\.deleteProperty\(parityProperty\)/);
+  assert.match(realtime, /REPORT_CACHE_E1_PARITY_RUNNING_PROP = 'REPORT_CACHE_E1_PARITY_RUNNING'/);
+  assert.match(realtime, /startLock\.tryLock\(1000\)/);
+  assert.match(realtime, /E1 report cache parity window is active/);
+  assert.match(realtime, /runtimeCache\.put\(REALTIME_TICK_RUNNING_CACHE_KEY/);
   assert.match(source, /function getReportCacheSupabaseAuditForMigration\(\)/);
   assert.match(source, /select: 'report_month,cache_version,source_data_version,details_hash,synced_at'/);
-  assert.doesNotMatch(source, /select: '[^']*payload/);
+  const metadataAudit = source.slice(
+    source.indexOf('function getReportCacheSupabaseAuditForMigration()'),
+    source.indexOf('/** Compares normalized Sheet-cache details')
+  );
+  assert.doesNotMatch(metadataAudit, /select: '[^']*payload/);
+});
+
+test('E1.3 payload parity audit is bounded, normalized, and never force-refreshes reports', () => {
+  const source = read('ReportCacheMode.gs');
+  assert.match(source, /function getReportCachePayloadParityAuditForMigration\(\)/);
+  assert.match(source, /cacheSheet\.getLastRow\(\) - 499/);
+  assert.match(source, /matchedRows === 39/);
+  assert.match(source, /supabaseRows\.length === 4/);
+  assert.match(source, /DashboardService\.aggregateDetailMatrices\(monthlyMatrices\)/);
+  assert.match(source, /CacheAuditService\.hashPayload\(sheetDetails\)/);
+  assert.match(source, /ValidationService\.parseNumber\(value, false\)/);
+  assert.doesNotMatch(source, /getReportCachePayloadParityAuditForMigration[\s\S]*?getReportBundle\([^)]*,\s*true\)/);
 });
 
 test('report cache mode describes read and write behavior for the next checkpoint', () => {

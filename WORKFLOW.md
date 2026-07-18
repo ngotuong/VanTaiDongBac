@@ -191,6 +191,8 @@ Apps Script:
 3. Tạo deployment web app mới nếu thay đổi cần public ngay; giữ deployment cũ để rollback.
 4. Với E1 report cache, giữ `REPORT_CACHE_MODE=sheet` ở bước nền tảng; chỉ đổi sang `dual`/`supabase` tại checkpoint đã được phê duyệt.
 5. `syncAllReportBundles()` E1.2 phải trả một `dataVersion` chung cho mọi tháng; nếu mỗi result có version khác nhau thì dừng parity/cutover.
+6. Trước batch parity E1.3, phải guard/lock để trigger `syncRealtimeCache` không chạy `reportsRecent` hoặc `reportsAll` đồng thời. Chốt dòng cuối `SYS_ReportCache` ngay trước batch và chỉ chấp nhận đúng 39 dòng của một `dataVersion` mục tiêu.
+7. Nếu xuất hiện version xen ngang, số dòng tăng khác 39 hoặc Supabase không còn đủ 4 row exact-version, rollback ngay `REPORT_CACHE_MODE=sheet` và không tự chạy batch thứ hai khi chưa có phê duyệt mới.
 
 Supabase:
 

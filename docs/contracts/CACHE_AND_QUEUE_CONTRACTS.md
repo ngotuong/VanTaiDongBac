@@ -140,7 +140,12 @@ Columns:
 - `report_month text`;
 - `source_sheet_names text[]`;
 - `payload jsonb`;
+- `cache_version text`, nullable cho row legacy;
+- `source_data_version text`, nullable cho row legacy;
+- `details_hash text`, nullable hoặc SHA-256 chữ thường 64 ký tự;
 - `synced_at`, `created_at`, `updated_at`.
+
+Ba cột metadata được thêm bằng migration `010`. Chúng phục vụ cutover khỏi `SYS_ReportCache`; không thay primary key và không biến Supabase thành source of truth.
 
 ### 5.2. Key convention
 
@@ -190,6 +195,16 @@ Report audit:
 6. trả trạng thái missing/stale/ok/error.
 
 Audit không tự sửa cache. Sync lại là thao tác riêng.
+
+### 5.6. Feature flag cutover
+
+Apps Script dùng Script Property `REPORT_CACHE_MODE`:
+
+- `sheet`: đọc/ghi `SYS_ReportCache` như hiện tại; đây là mặc định và rollback an toàn;
+- `dual`: vẫn đọc Sheet, đồng thời ghi Supabase để đối soát;
+- `supabase`: đọc/ghi cache tháng ở Supabase và không append `SYS_ReportCache`.
+
+Giá trị trống hoặc không hợp lệ phải fallback về `sheet`. E1.1 chỉ định nghĩa flag; switching repository/read-write được thực hiện ở E1.2 và không được bật `dual`/`supabase` trước deployment tương ứng.
 
 ## 6. `startup_bundles`
 

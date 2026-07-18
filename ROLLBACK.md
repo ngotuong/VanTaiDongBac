@@ -40,6 +40,14 @@ Nếu muốn ngừng hẳn khả năng ghi Supabase từ Apps Script, xóa prope
 SUPABASE_SERVICE_ROLE_KEY
 ```
 
+Trong chương trình E1, rollback cache chi tiết về Sheet bằng Script Property:
+
+```text
+REPORT_CACHE_MODE=sheet
+```
+
+Giá trị trống/không hợp lệ cũng fallback về `sheet`. Migration `010` là additive nên không cần drop ba cột metadata khi rollback; giữ chúng nullable để tránh migration phá dữ liệu.
+
 Không cần xóa code ngay.
 
 Nếu đã cài trigger gần realtime, có thể vào Apps Script **Triggers** và xóa trigger của function:

@@ -20,6 +20,7 @@ var SheetService = (function () {
       ok: true,
       spreadsheetId: APP_CONFIG.spreadsheetId,
       cacheVersion: CACHE_VERSION,
+      reportCacheMode: ReportCacheMode.get(),
       checkedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm:ss')
     };
   }

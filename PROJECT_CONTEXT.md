@@ -246,6 +246,21 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint hiện tại
 
+### E1.6 — Freshness sau chỉnh sửa trực tiếp Sheet Vận tải
+
+Trạng thái: **DONE ngày 2026-07-19; manual edit queue, debounce/retry, structural full refresh và production canary đều PASS**.
+
+Kết quả:
+
+- `handleTransportSheetEdit` giữ sync Manage/dashboard hiện hữu rồi enqueue các tháng Report bị ảnh hưởng + `Tất cả`; các edit trong 15 giây được merge/dedupe. `syncRealtimeCache` atomically claim item đến hạn trước bước luân phiên và không tăng rotation index cho lượt ưu tiên.
+- Xóa dòng/thay đổi cấu trúc/không xác định được active sheet nâng scope thành full Report refresh. Lỗi requeue sau 30 giây; edit mới trong lúc item đang chạy được giữ thành item kế tiếp.
+- Canary structural đầu tiên phát hiện report temp sheet có thể phát `onChange` nội bộ và tự tạo lại queue. Bản chốt bổ sung token guard có TTL 10 phút; `INSERT_GRID`/`REMOVE_GRID` nội bộ trả `skipped` nhưng row-level structural change vẫn được giữ, đồng thời token list hỗ trợ report execution chồng lấn và tự hết hạn nếu execution bị dừng bất thường.
+- Apps Script HEAD/version bất biến cuối là `@295`; production web-app deployment vẫn `@290`, Vercel deployment/env/alias không đổi. Installable trigger giữ nguyên handler và tự dùng HEAD mới, không cần cài lại.
+- Production canary full Report hoàn tất trong 110,769 giây; các tick sau ổn định 2,067 giây và 8,454 giây, không còn chuỗi sheet-change mới. Audit lúc `2026-07-19T04:48:42.312Z` xác nhận `pending=null` và `transport_reports_manual_sheet=ok` (sync `2026-07-19T04:41:19.710Z`).
+- Google Sheets metadata read-only xác nhận hidden `SYS_ReportCache` vẫn đúng sheet ID `1474417029`, `rowCount=40`, `columnCount=26`; E1.6 không append cache Sheet, không đổi tên/thứ tự/cột/công thức hoặc schema Supabase.
+- Gate source đạt 304/304 test, lint, typecheck, Next build và `git diff --check`. SLA mục tiêu cho edit thông thường là tối đa khoảng 2 phút; full structural refresh có thể lâu hơn và Apps Script quota/contention vẫn là eventual-consistency risk.
+- Checkpoint đề xuất tiếp theo là **Auth session continuity**: access cookie hiện hết hạn khoảng 1 giờ dù refresh cookie tồn tại 30 ngày; server root guard chưa refresh trước khi redirect login. Việc này tách khỏi E1.6 và cần phê duyệt riêng.
+
 ### E1.5 — Archive/compact `SYS_ReportCache`
 
 Trạng thái: **DONE ngày 2026-07-19; compact 198.860 dòng stale, post-migration Sheet/Supabase/Report/fallback smoke đều PASS**.
@@ -260,7 +275,7 @@ Kết quả:
 - Gate source hiện đạt 301/301 test, lint, typecheck, Next build và `git diff --check`.
 - Post-check Apps Script và Google Sheets API xác nhận hidden sheet vẫn giữ nguyên tên/ID/thứ tự, header A:J exact, không formula, `lastRow=maxRows=40`, đúng 39 dòng `dataVersion=1784425021715`, ba tháng × 13 rowOrder và fingerprint không đổi. Force refresh sau migration không append thêm dòng; backup vẫn nguyên 198.900 hàng.
 - Authenticated production Report PASS cho 05/2026, 06/2026, 07/2026 và `Tất cả` từ Supabase cache. Force refresh `Tất cả` PASS qua Apps Script fallback, reload trở lại Supabase cache, không có HTTP 500.
-- E1 đã hoàn tất từ nền tảng đến cleanup. Chưa mở checkpoint tiếp theo; mọi thay đổi tiếp theo cần checkpoint/phê duyệt riêng.
+- E1.0–E1.5 đã hoàn tất từ nền tảng đến cleanup; E1.6 bổ sung freshness sau manual Sheet edit mà không khôi phục việc append cache Sheet.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -312,6 +327,8 @@ Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_
 11. **Rollback sau E1.5**: runtime tiếp tục ở `supabase`; nếu cần phục hồi cache Sheet, dùng full-workbook backup đã chốt và một migration khôi phục riêng, không copy/paste tay hoặc phục hồi toàn workbook làm ghi đè dữ liệu nghiệp vụ mới.
 12. **Production migration**: migration `010` đã apply; không sửa file migration đã chạy. Mọi schema correction phải là migration `011+`.
 13. **Realtime overlap**: guard E1.3 đã ngăn tick mới khởi động và chờ tick cũ kết thúc trước batch; retry chứng minh không có version xen ngang. Phải giữ regression test cho protocol này và không chạy parity helper song song từ nhiều editor session.
+14. **Session continuity**: access cookie Next hiện giới hạn khoảng 1 giờ trong khi refresh cookie 30 ngày; root Server Component đọc access token trực tiếp và có thể đưa người dùng về login trước khi `/api/session` kịp refresh. Tách thành checkpoint Auth riêng, không trộn với cache E1.6.
+15. **Manual freshness scope**: E1.6 cài trigger trực tiếp trên workbook Vận tải. Sửa tay workbook Thu chi hoặc thay đổi chỉ lan truyền qua công thức/`IMPORTRANGE` không được bảo đảm cùng SLA 2 phút.
 
 Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
@@ -327,9 +344,9 @@ Baseline hiện tại:
 - Gate cut-forward: 284/284 test, lint, typecheck, build, `git diff --check`; các route chính/PWA 200, session unauthenticated 401, API health 200 và không có HTTP 500 sau smoke.
 - D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` vẫn READY tại production; Apps Script deployment ID hiện ở E1.4 `@290`, rollback code `@282`.
 - Supabase production migration history có đủ `001–010`; `report_bundles` giữ primary key `(spreadsheet_id, report_month)` và metadata E1.1 nullable.
-- Runtime production dùng cùng Apps Script endpoint đã update `@290`; Script Property là `supabase`. E1.5 đã compact `SYS_ReportCache` từ 198.900 xuống đúng 40 dòng vật lý; source migration chốt ở Apps Script `@291` nhưng không update deployment runtime.
+- Runtime production dùng cùng Apps Script endpoint đã update `@290`; Script Property là `supabase`. E1.5 đã compact `SYS_ReportCache` từ 198.900 xuống đúng 40 dòng vật lý; E1.6 trigger HEAD chốt ở Apps Script `@295` nhưng không update deployment web runtime.
 - Apps Script candidate E1.2 `@286` READY/smoke health 200 ở mode `sheet`; `@285` bị loại, chưa dùng candidate cho production hoặc chạy dual-mode sync.
-- E1.4 và E1.5 đều DONE: Supabase cutover ổn định; full backup giữ nguyên 198.900 dòng, production cache Sheet còn 40 dòng, Report/Supabase/fallback smoke hậu migration đều PASS.
+- E1.4–E1.6 đều DONE: Supabase cutover ổn định; full backup giữ nguyên 198.900 dòng, production cache Sheet còn 40 dòng, Report/Supabase/fallback smoke hậu migration đều PASS, manual edit Report queue đã canary và rỗng.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

@@ -120,8 +120,12 @@ installTransportSheetSyncTrigger()
 
 Hàm này xóa trigger cũ cùng handler rồi cài lại 2 handler:
 
-- `handleTransportSheetEdit(e)`: bắt chỉnh sửa ô/dòng trong các sheet `NL_*`, sync `recent_500`, tháng liên quan nếu xác định được, và dashboard nếu là `NL_VanChuyen`.
-- `handleTransportSheetChange(e)`: bắt thay đổi cấu trúc/xóa dòng trong các sheet `NL_*`, sync `recent_500`, 2 tháng gần nhất, và dashboard nếu là `NL_VanChuyen`.
+- `handleTransportSheetEdit(e)`: bắt chỉnh sửa ô/dòng trong các sheet `NL_*`, sync `recent_500`, tháng liên quan nếu xác định được, dashboard nếu là `NL_VanChuyen`, rồi debounce 15 giây và xếp tháng Report + `Tất cả` vào hàng đợi ưu tiên.
+- `handleTransportSheetChange(e)`: bắt thay đổi cấu trúc/xóa dòng trong các sheet `NL_*`, sync Manage/dashboard như trước và xếp full Report refresh vào hàng đợi vì row đã xóa có thể không còn đủ dữ liệu để suy ra tháng.
+
+`syncRealtimeCache()` kiểm tra hàng đợi Report trước vòng tick luân phiên. Khi item đã qua debounce, tick sync tháng bị ảnh hưởng và `Tất cả`; nếu là thay đổi cấu trúc thì chạy full Report batch. Lượt tick luân phiên thường không bị tăng index khi item ưu tiên được xử lý. Nếu lỗi, item được merge/requeue sau 30 giây. Mục tiêu vận hành cho edit thông thường là web app thấy cache mới trong khoảng tối đa 2 phút; đây là SLA mục tiêu, không phải transaction guarantee khi Apps Script bị quota, contention hoặc lỗi công thức.
+
+Report refresh dùng token guard trong Script Properties. Các `INSERT_GRID`/`REMOVE_GRID` phát sinh do Apps Script tự tạo/xóa report temp sheet phải trả `skipped` và không được tạo lại pending full refresh; `INSERT_ROW`/`REMOVE_ROW` thực của người dùng vẫn queue full refresh.
 
 Test nhanh sau khi cài:
 
@@ -130,6 +134,18 @@ syncTransportSheetChange('MANUAL_TEST', 'NL_VanChuyen')
 ```
 
 Sau đó kiểm tra `Cài đặt > Trạng thái đồng bộ` có key `transport_sheet_change:NL_VanChuyen` và thử xóa/sửa một dòng trong Sheet rồi reload web app không force refresh.
+
+Có thể kiểm tra hàng đợi read-only trong Apps Script editor:
+
+```javascript
+getPendingTransportReportRefresh()
+```
+
+Để ghi một dòng audit đã lọc vào execution log (không chứa payload/secret), chạy:
+
+```javascript
+auditManualReportFreshnessQueue()
+```
 
 Nếu chỉ cần sync lại một tháng giao dịch Quỹ/Thu chi:
 
@@ -200,6 +216,7 @@ Apps Script:
 12. E1.5 phải tạo full-workbook backup riêng trước, đăng ký ID bằng `REPORT_CACHE_E15_BACKUP_FILE_ID`, rồi chạy `getReportCacheCompactionDryRunForMigration()` và `prepareReportCacheCompactionForMigration()`. Dry-run phải chứng minh header A:J exact, last column dữ liệu là J, batch giữ có đúng 39 dòng/3 tháng/13 rowOrder, không formula và mode còn `supabase`.
 13. Không gọi `approveReportCacheCompactionForMigration()` hoặc `runReportCacheCompactionForMigration()` trong pha chuẩn bị. Destructive pass cần phê duyệt người dùng riêng; trước xóa phải so lại live row/version/fingerprint với prepared snapshot. Approval là one-shot và luôn bị xóa trong `finally`.
 14. Migration E1.5 chỉ copy batch giữ về dòng 2:40 rồi xóa toàn bộ hàng vật lý từ 41 trở xuống; không đổi tên sheet, thứ tự cột hoặc header. Sau chạy phải xác nhận sheet còn đúng 40 hàng, fingerprint không đổi, Supabase đủ bốn bundle và Report/fallback smoke PASS.
+15. E1.6 không ghi thêm vào `SYS_ReportCache`. Manual edit Vận tải phải queue tháng Report bị ảnh hưởng + `Tất cả`; thay đổi cấu trúc/không xác định sheet phải queue full Report sync. Queue dùng Script Property, Script Lock ngắn, debounce 15 giây và retry 30 giây; tick xử lý item đến hạn trước bước luân phiên.
 
 Supabase:
 

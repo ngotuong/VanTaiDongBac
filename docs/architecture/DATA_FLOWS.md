@@ -584,6 +584,8 @@ sequenceDiagram
     opt NL_VanChuyen
         S->>C: Sync dashboard
     end
+    S-->>S: Debounce + merge month vào pending Report queue
+    S->>C: Tick ưu tiên sync month + Tất cả
     S->>C: Ghi sync_status
 ```
 
@@ -591,7 +593,7 @@ sequenceDiagram
 
 `onChange` có thể không cung cấp active sheet đáng tin cậy. Khi biết sheet, hệ thống sync recent bundle, tháng gần nhất và dashboard nếu cần.
 
-Khi không biết sheet, fallback hiện tập trung hẹp vào `NL_VanChuyen`, hai tháng gần nhất và dashboard để tránh full sync kéo dài.
+Khi không biết sheet, Manage/dashboard fallback hiện tập trung hẹp vào `NL_VanChuyen` và hai tháng gần nhất. Riêng Report queue được nâng thành `full=true`, vì row đã xóa hoặc structural event không còn đủ dữ liệu để suy ra tháng an toàn.
 
 ### 15.3. Giới hạn
 
@@ -599,6 +601,8 @@ Khi không biết sheet, fallback hiện tập trung hẹp vào `NL_VanChuyen`, 
 - không phải mọi thay đổi công thức lan truyền đều phát ra event phù hợp;
 - Apps Script có execution limit;
 - cache vẫn có thể tạm thời cũ;
+- mục tiêu edit thông thường là cache mới trong khoảng tối đa 2 phút; full structural refresh có thể lâu hơn;
+- trigger trực tiếp hiện chỉ cài trên workbook Vận tải; thay đổi thủ công ở workbook Thu chi/công thức lan truyền không tự động có cùng SLA;
 - `sync_status` và audit dùng để quan sát, không phải transaction guarantee.
 
 ## 16. Luồng liên kết Thu chi → Vận tải

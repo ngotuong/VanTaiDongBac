@@ -233,6 +233,14 @@ function syncRealtimeCache() {
   return SupabaseService.syncRealtimeCache();
 }
 
+function getPendingTransportReportRefresh() {
+  return SupabaseService.getPendingTransportReportRefresh();
+}
+
+function auditManualReportFreshnessQueue() {
+  return SupabaseService.auditManualReportFreshnessQueue();
+}
+
 function syncFullRealtimeCache() {
   return SupabaseService.syncFullRealtimeCache();
 }

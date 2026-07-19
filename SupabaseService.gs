@@ -19,13 +19,19 @@ var SupabaseService = (function () {
   var REALTIME_TICK_INDEX_KEY = 'SUPABASE_REALTIME_TICK_INDEX';
   var REALTIME_TICK_RUNNING_CACHE_KEY = 'SUPABASE_REALTIME_TICK_RUNNING';
   var REPORT_CACHE_E1_PARITY_RUNNING_PROP = 'REPORT_CACHE_E1_PARITY_RUNNING';
+  var INTERNAL_REPORT_REFRESH_TOKENS_PROP = 'SUPABASE_INTERNAL_REPORT_REFRESH_TOKENS';
   var TRANSPORT_SHEET_SYNC_RUNNING_CACHE_KEY = 'SUPABASE_TRANSPORT_SHEET_SYNC_RUNNING';
   var REALTIME_TICK_INTERVAL_MINUTES = 1;
   var REALTIME_TICK_RUNNING_TTL_SECONDS = 300;
   var TRANSPORT_SHEET_SYNC_RUNNING_TTL_SECONDS = 120;
+  var TRANSPORT_REPORT_DEBOUNCE_MS = 15000;
+  var TRANSPORT_REPORT_RETRY_DELAY_MS = 30000;
+  var INTERNAL_REPORT_REFRESH_GUARD_TTL_MS = 600000;
 
   function syncReportBundle(month) {
-    return ReportSyncService.syncReportBundle(month, reportSyncContext_());
+    return withInternalReportRefreshGuard_(function () {
+      return ReportSyncService.syncReportBundle(month, reportSyncContext_());
+    });
   }
 
   function testReportSync() {
@@ -37,7 +43,9 @@ var SupabaseService = (function () {
   }
 
   function syncAllReportBundles() {
-    return ReportSyncService.syncAllReportBundles(reportSyncContext_());
+    return withInternalReportRefreshGuard_(function () {
+      return ReportSyncService.syncAllReportBundles(reportSyncContext_());
+    });
   }
 
   function syncFundOverview(year, month) {
@@ -144,6 +152,10 @@ var SupabaseService = (function () {
     }
 
     try {
+      var pendingClaim = ManualReportRefreshQueueService.claimDue(manualReportRefreshQueueContext_());
+      if (pendingClaim.due) {
+        return runPendingTransportReportSync_(pendingClaim.item);
+      }
       var steps = buildRealtimeTickSteps_();
       var rawIndex = Number(props.getProperty(REALTIME_TICK_INDEX_KEY) || 0);
       var index = isNaN(rawIndex) || rawIndex < 0 ? 0 : rawIndex;
@@ -174,6 +186,88 @@ var SupabaseService = (function () {
     } finally {
       runtimeCache.remove(REALTIME_TICK_RUNNING_CACHE_KEY);
     }
+  }
+
+  function enqueueManualReportRefresh_(options) {
+    return ManualReportRefreshQueueService.enqueue(options || {}, manualReportRefreshQueueContext_());
+  }
+
+  function getPendingTransportReportRefresh() {
+    return {
+      ok: true,
+      pending: ManualReportRefreshQueueService.getPending(manualReportRefreshQueueContext_())
+    };
+  }
+
+  function auditManualReportFreshnessQueue() {
+    var status = getSupabaseSyncStatus(20, 'transport');
+    var result = {
+      ok: true,
+      pending: ManualReportRefreshQueueService.getPending(manualReportRefreshQueueContext_()),
+      status: (status.rows || []).filter(function (row) {
+        return row.syncKey === 'transport_reports_manual_sheet';
+      }).slice(0, 1),
+      checkedAt: new Date().toISOString()
+    };
+    console.log('E1.6 audit: ' + JSON.stringify(result));
+    return result;
+  }
+
+  function runPendingTransportReportSync_(pending) {
+    return withInternalReportRefreshGuard_(function () {
+      return runPendingTransportReportSyncUnguarded_(pending);
+    });
+  }
+
+  function runPendingTransportReportSyncUnguarded_(pending) {
+    var results = [];
+    var errors = [];
+    var context = manualReportRefreshQueueContext_();
+    if (pending.full === true) {
+      try {
+        var fullResult = syncAllReportBundles();
+        results.push({ name: 'reports:full', result: fullResult });
+        if (!fullResult || fullResult.ok === false) {
+          errors.push({ name: 'reports:full', error: JSON.stringify((fullResult && fullResult.errors) || ['Full report sync failed.']) });
+        }
+      } catch (err) {
+        errors.push({ name: 'reports:full', error: err && err.message ? err.message : String(err) });
+      }
+    } else {
+      (pending.months || []).forEach(function (monthKey) {
+        runSyncStep_(results, errors, 'report:' + monthKey, function () {
+          return syncReportBundle(formatMonthKeyForReport_(monthKey));
+        });
+      });
+      if (pending.includeAll !== false) {
+        runSyncStep_(results, errors, 'report:Tất cả', function () {
+          return syncReportBundle('Tất cả');
+        });
+      }
+    }
+
+    var syncedAt = new Date().toISOString();
+    var retry = null;
+    if (errors.length) retry = ManualReportRefreshQueueService.requeue(pending, context);
+    writeSyncStatus_(
+      'transport_reports_manual_sheet',
+      'transport',
+      errors.length ? 'error' : 'ok',
+      errors.length ? JSON.stringify(errors) : 'Manual Sheet report cache synced.',
+      syncedAt
+    );
+    return {
+      ok: errors.length === 0,
+      mode: 'tick',
+      step: 'transportReportsPending',
+      full: pending.full === true,
+      months: (pending.months || []).slice(),
+      synced: results.length,
+      failed: errors.length,
+      results: results,
+      errors: errors,
+      retry: retry
+    };
   }
 
   function syncTransportAfterWrite(sheetName, rows, options) {
@@ -218,7 +312,15 @@ var SupabaseService = (function () {
   }
 
   function syncTransportSheetChange(eventType, sheetName, editedRange) {
-    return ManageSyncService.syncTransportSheetChange(eventType, sheetName, editedRange, manageSyncContext_());
+    var result = ManageSyncService.syncTransportSheetChange(eventType, sheetName, editedRange, manageSyncContext_());
+    if (!result.skipped) {
+      result.reportRefresh = enqueueManualReportRefresh_({
+        months: result.months || [],
+        full: isStructuralSheetChange_(eventType),
+        source: 'sheet:' + clean_(sheetName) + ':' + (clean_(eventType) || 'UNKNOWN')
+      });
+    }
+    return result;
   }
 
   function handleTransportSheetEdit(e) {
@@ -240,7 +342,85 @@ var SupabaseService = (function () {
   }
 
   function syncUnknownTransportSheetChange_(eventType) {
-    return ManageSyncService.syncUnknownTransportSheetChange(eventType, manageSyncContext_());
+    if (isInternalReportRefreshRunning_() && isInternalReportSheetChangeEvent_(eventType)) {
+      return {
+        ok: true,
+        skipped: true,
+        eventType: clean_(eventType) || 'CHANGE',
+        reason: 'Ignored internal report refresh sheet change.'
+      };
+    }
+    var result = ManageSyncService.syncUnknownTransportSheetChange(eventType, manageSyncContext_());
+    if (!result.skipped) {
+      result.reportRefresh = enqueueManualReportRefresh_({
+        full: true,
+        source: 'sheet:unknown:' + (clean_(eventType) || 'CHANGE')
+      });
+    }
+    return result;
+  }
+
+  function isStructuralSheetChange_(eventType) {
+    var safeEventType = (clean_(eventType) || 'CHANGE').toUpperCase();
+    return safeEventType !== 'EDIT' && safeEventType !== 'MANUAL_TEST';
+  }
+
+  function isInternalReportSheetChangeEvent_(eventType) {
+    var safeEventType = (clean_(eventType) || '').toUpperCase();
+    return safeEventType === 'INSERT_GRID' || safeEventType === 'REMOVE_GRID';
+  }
+
+  function withInternalReportRefreshGuard_(fn) {
+    var token = Utilities.getUuid();
+    updateInternalReportRefreshTokens_(function (tokens) {
+      tokens.push({ id: token, expiresAt: new Date().getTime() + INTERNAL_REPORT_REFRESH_GUARD_TTL_MS });
+      return tokens;
+    });
+    try {
+      return fn();
+    } finally {
+      updateInternalReportRefreshTokens_(function (tokens) {
+        return tokens.filter(function (value) { return value.id !== token; });
+      });
+    }
+  }
+
+  function isInternalReportRefreshRunning_() {
+    var raw = PropertiesService.getScriptProperties().getProperty(INTERNAL_REPORT_REFRESH_TOKENS_PROP);
+    if (!raw) return false;
+    try {
+      var tokens = JSON.parse(raw);
+      var now = new Date().getTime();
+      return Array.isArray(tokens) && tokens.some(function (value) {
+        return value && value.id && Number(value.expiresAt || 0) > now;
+      });
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function updateInternalReportRefreshTokens_(mutate) {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(5000);
+    try {
+      var props = PropertiesService.getScriptProperties();
+      var tokens = [];
+      try {
+        tokens = JSON.parse(props.getProperty(INTERNAL_REPORT_REFRESH_TOKENS_PROP) || '[]');
+        if (!Array.isArray(tokens)) tokens = [];
+      } catch (err) {
+        tokens = [];
+      }
+      var now = new Date().getTime();
+      tokens = tokens.filter(function (value) {
+        return value && value.id && Number(value.expiresAt || 0) > now;
+      });
+      tokens = mutate(tokens) || [];
+      if (tokens.length) props.setProperty(INTERNAL_REPORT_REFRESH_TOKENS_PROP, JSON.stringify(tokens));
+      else props.deleteProperty(INTERNAL_REPORT_REFRESH_TOKENS_PROP);
+    } finally {
+      lock.releaseLock();
+    }
   }
 
   function syncCatalogAfterWrite(displaySheetName) {
@@ -762,6 +942,29 @@ var SupabaseService = (function () {
     };
   }
 
+  function manualReportRefreshQueueContext_() {
+    var props = PropertiesService.getScriptProperties();
+    return {
+      debounceMs: TRANSPORT_REPORT_DEBOUNCE_MS,
+      retryDelayMs: TRANSPORT_REPORT_RETRY_DELAY_MS,
+      nowMillis: function () { return new Date().getTime(); },
+      nowISOString: function () { return new Date().toISOString(); },
+      normalizeYearMonthKey: normalizeYearMonthKey_,
+      getProperty: function (key) { return props.getProperty(key); },
+      setProperty: function (key, value) { props.setProperty(key, value); },
+      deleteProperty: function (key) { props.deleteProperty(key); },
+      withLock: function (fn) {
+        var lock = LockService.getScriptLock();
+        lock.waitLock(5000);
+        try {
+          return fn();
+        } finally {
+          lock.releaseLock();
+        }
+      }
+    };
+  }
+
   function manageSyncContext_() {
     var ss = null;
     return {
@@ -1070,6 +1273,8 @@ var SupabaseService = (function () {
     syncAllManageDataBundles: syncAllManageDataBundles,
     syncFullRealtimeCache: syncFullRealtimeCache,
     syncRealtimeCache: syncRealtimeCache,
+    getPendingTransportReportRefresh: getPendingTransportReportRefresh,
+    auditManualReportFreshnessQueue: auditManualReportFreshnessQueue,
     getSupabaseSyncStatus: getSupabaseSyncStatus,
     getReportCacheAudit: getReportCacheAudit,
     getManageCacheAudit: getManageCacheAudit,

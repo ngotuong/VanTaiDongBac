@@ -179,9 +179,22 @@ Các đường sync:
 - sync tất cả report months;
 - sync tháng liên quan sau write Vận tải;
 - tick luân phiên report recent/`Tất cả`;
+- hàng đợi ưu tiên sau chỉnh sửa trực tiếp Sheet Vận tải;
 - full backfill.
 
 Sau write Vận tải, month key được lấy từ payload row rồi đổi sang report label. Có thể sync thêm `Tất cả`.
+
+Chỉnh sửa trực tiếp `NL_*` dùng Script Property `SUPABASE_PENDING_TRANSPORT_REPORT_SYNC` làm hàng đợi debounce một item:
+
+- các edit trong cùng cửa sổ 15 giây được gộp và dedupe theo `YYYY-MM`;
+- edit thông thường sync từng tháng bị ảnh hưởng rồi sync `Tất cả`;
+- xóa dòng/thay đổi cấu trúc/không xác định được sheet nâng item thành `full=true`;
+- `syncRealtimeCache()` atomically claim item đến hạn trước vòng tick thường và không tăng rotation index cho lượt ưu tiên;
+- edit mới trong khi item đang chạy tạo item kế tiếp, không bị claim cũ ghi đè;
+- lỗi requeue toàn scope sau 30 giây để đảm bảo eventual consistency.
+- report compute đăng ký token guard; `INSERT_GRID`/`REMOVE_GRID` do temp sheet nội bộ phải skip để queue không tự tạo vòng lặp, nhưng row-level structural changes vẫn phải queue.
+
+SLA mục tiêu cho edit thông thường là tối đa khoảng 2 phút từ lúc edit đến khi Supabase có bundle mới, gồm debounce, độ trễ trigger tick và thời gian compute. Đây không phải transaction guarantee khi Apps Script bị quota/contention hoặc công thức chưa tính xong. Full refresh do structural change có thể lâu hơn.
 
 ### 5.5. Audit
 

@@ -193,7 +193,7 @@ REPORT_CACHE_MODE=sheet
 
 Không xóa hoặc compact `SYS_ReportCache` ở E1.1 hoặc E1.2.
 
-E1.3 đã đạt dual parity. E1.4 technical cutover đã chuyển `REPORT_CACHE_MODE=supabase`: batch và audit sau nhiều trigger giữ `SYS_ReportCache` ở dòng 198.900, tăng 0, Supabase đủ bốn row hiện hành có metadata hợp lệ. Production deployment ID hiện ở Apps Script `@290`, rollback cùng-ID là `@282`. Chưa compact/xóa `SYS_ReportCache`; authenticated stabilization phải hoàn tất trước checkpoint cleanup riêng.
+E1.3 đã đạt dual parity. E1.4 đã DONE với `REPORT_CACHE_MODE=supabase`: batch, nhiều trigger và force refresh authenticated preview/production giữ `SYS_ReportCache` ở dòng 198.900, tăng 0; Supabase đủ bốn row hiện hành có metadata hợp lệ. Production deployment ID hiện ở Apps Script `@290`, rollback cùng-ID là `@282`. Chưa compact/xóa `SYS_ReportCache`; E1.5 cleanup cần phê duyệt riêng và hàm migration có dry-run/backup.
 
 Nguồn tham khảo chính thức:
 

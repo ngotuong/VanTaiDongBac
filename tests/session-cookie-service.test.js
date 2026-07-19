@@ -3,6 +3,7 @@ const test = require('node:test');
 const {
   accessTokenFromRequest,
   refreshTokenFromRequest,
+  accessTokenExpiresWithin,
   sessionCookies,
   clearedSessionCookies,
   assertSameOrigin,
@@ -18,6 +19,16 @@ test('session cookies are HttpOnly Strict and never use browser-readable storage
   assert.equal(accessTokenFromRequest({ headers: { cookie: values[0].split(';')[0] } }), 'access');
   assert.equal(refreshTokenFromRequest({ headers: { cookie: values[1].split(';')[0] } }), 'refresh');
   for (const value of clearedSessionCookies({ secure: true })) assert.match(value, /Max-Age=0/);
+});
+
+test('access token refresh window handles healthy, expiring, missing, and malformed JWTs', () => {
+  const jwt = (payload) => `header.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.signature`;
+  assert.equal(accessTokenExpiresWithin(jwt({ exp: 2000 }), 900, 1000), false);
+  assert.equal(accessTokenExpiresWithin(jwt({ exp: 1900 }), 900, 1000), true);
+  assert.equal(accessTokenExpiresWithin(jwt({ exp: 2500 }), undefined, 1000), true);
+  assert.equal(accessTokenExpiresWithin(jwt({ exp: 2501 }), undefined, 1000), false);
+  assert.equal(accessTokenExpiresWithin('', 900, 1000), true);
+  assert.equal(accessTokenExpiresWithin('not-a-jwt', 900, 1000), true);
 });
 
 test('session mutation requires same origin and explicit CSRF header', () => {

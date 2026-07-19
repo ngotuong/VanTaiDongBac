@@ -18,8 +18,9 @@
 ## Next Foundation A1 session/context boundary
 
 - `POST /api/session`: nhận Supabase session từ same-origin browser sau sign-in; bắt buộc `X-VTDB-CSRF: session`; xác minh Auth và active allowlist trước khi đặt cookie `HttpOnly`.
-- `GET /api/session`: đọc cookie server, xác minh request user và refresh qua Supabase khi access token hết hạn; không trả token trong response.
+- `GET /api/session`: đọc cookie server, xác minh request user và chủ động refresh qua Supabase khi access token còn không quá 25 phút hoặc đã hết hạn; chỉ ghi lại cookie khi refresh thành công và không trả token trong response. Nếu refresh tạm lỗi nhưng access token vẫn còn hợp lệ, request hiện tại vẫn được phép hoàn tất bằng token cũ.
 - `DELETE /api/session`: yêu cầu same-origin và CSRF header, sau đó xóa access/refresh cookie.
+- Shared shell gọi `GET /api/session` khi mount, mỗi 40 phút và khi tab hoạt động lại sau khoảng nghỉ tương ứng. Nếu root guard gặp access cookie đã hết hạn, `LoginGate` thử khôi phục bằng refresh cookie trước khi hiển thị form đăng nhập; token vẫn chỉ nằm trong cookie `HttpOnly`.
 - `GET /api/app?action=runtimeContext&module=<transport|cashflow>&year=<YYYY>`: action read-only; resolve workbook từ `WORKBOOK_CONTEXTS_JSON`; chỉ trả user, module và year; không trả Spreadsheet ID, không fallback bundle mới nhất và không gọi Apps Script.
 
 ## 1. Mục đích và phạm vi

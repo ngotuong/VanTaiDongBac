@@ -338,9 +338,18 @@ Test:
 - non-JSON upstream → 502;
 - missing action → 400;
 - missing proxy config → 503;
-- browser nhận 401 thì sign out/clear session.
+- browser nhận 401 thì reload về auth gate; server session endpoint clear cookie khi refresh token cũng không còn hợp lệ.
 
-### 8.4. Spreadsheet context test
+### 8.4. Next session continuity
+
+- access token còn xa hạn không gọi refresh và không ghi lại cookie;
+- access token nằm trong cửa sổ 25 phút gọi refresh đúng một lần, xác minh user bằng token mới và đặt lại hai cookie `HttpOnly`;
+- refresh lỗi nhưng access token còn hợp lệ không làm mất phiên hiện tại;
+- access và refresh đều không hợp lệ trả 401 và clear cookie;
+- LoginGate thử recovery trước form đăng nhập; shared shell kiểm tra khi mount, heartbeat mỗi 40 phút và kiểm tra lại khi tab trở về foreground;
+- smoke preview phải giữ nguyên route sau recovery và không thay đổi RBAC/allowlist.
+
+### 8.5. Spreadsheet context test
 
 - explicit `spreadsheetId` thắng year property;
 - year property đúng;

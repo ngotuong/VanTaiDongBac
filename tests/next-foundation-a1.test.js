@@ -34,6 +34,14 @@ test('Next session controls synchronize and clear the server session', () => {
   assert.match(auth, /fetch\('\/api\/session'/);
   assert.match(auth, /method: 'DELETE'/);
   assert.match(auth, /X-VTDB-CSRF/);
+  assert.match(auth, /Đang khôi phục phiên/);
+  assert.match(auth, /40 \* 60 \* 1000/);
+  assert.match(auth, /refreshIfNeeded\(\);\s*const interval/);
+  assert.match(auth, /visibilitychange/);
+  assert.match(read('next-shell/components/platform/AppShell.tsx'), /<SessionKeepAlive \/>/);
+  const endpoint = read('api/session.js');
+  assert.match(endpoint, /accessTokenExpiresWithin\(token\)/);
+  assert.match(endpoint, /if \(refreshed\) res\.setHeader\('Set-Cookie'/);
 });
 
 test('runtime context remains a proxy-local read-only action', () => {

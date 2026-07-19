@@ -4,6 +4,7 @@ const { createAuthService } = require('../server/services/auth-service');
 const {
   accessTokenFromRequest,
   refreshTokenFromRequest,
+  accessTokenExpiresWithin,
   sessionCookies,
   clearedSessionCookies,
   assertSameOrigin,
@@ -41,16 +42,26 @@ module.exports = async function handler(req, res) {
     }
     let token = accessTokenFromRequest(req);
     let refreshed = null;
+    let proactiveRefreshError = null;
+    if (accessTokenExpiresWithin(token)) {
+      try {
+        refreshed = await refreshSession(fetch, config, refreshTokenFromRequest(req), httpError);
+        token = refreshed.access_token;
+      } catch (error) {
+        proactiveRefreshError = error;
+      }
+    }
+    let user;
     try {
-      const user = await auth.getAuthenticatedUser({ headers: { authorization: token ? `Bearer ${token}` : '' } }, config);
-      return send(res, 200, { ok: true, user });
+      user = await auth.getAuthenticatedUser({ headers: { authorization: token ? `Bearer ${token}` : '' } }, config);
     } catch (error) {
       if (error.status !== 401) throw error;
+      if (proactiveRefreshError) throw proactiveRefreshError;
       refreshed = await refreshSession(fetch, config, refreshTokenFromRequest(req), httpError);
       token = refreshed.access_token;
+      user = await auth.getAuthenticatedUser({ headers: { authorization: `Bearer ${token}` } }, config);
     }
-    const user = await auth.getAuthenticatedUser({ headers: { authorization: `Bearer ${token}` } }, config);
-    res.setHeader('Set-Cookie', sessionCookies(refreshed));
+    if (refreshed) res.setHeader('Set-Cookie', sessionCookies(refreshed));
     return send(res, 200, { ok: true, user });
   } catch (error) {
     if (error.status === 401) res.setHeader('Set-Cookie', clearedSessionCookies());

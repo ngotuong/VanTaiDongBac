@@ -6,7 +6,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { normalizeRoutePath, routesEqual } from '../../lib/platform/routes';
 import type { PlatformContext } from '../../lib/platform/types';
 import { ShellNavigation, type NavigationItem } from './ShellNavigation';
-import { SignOutButton } from './SessionControls';
+import { SessionKeepAlive, SignOutButton } from './SessionControls';
 import { ToastViewport } from './ToastViewport';
 
 const ALL_ROLES = ['admin', 'operator', 'shareholder'] as const;
@@ -69,6 +69,7 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
   const subtitle = isDashboard ? `Cập nhật: ${dashboardMeta.updatedAt || 'Vui lòng chờ...'}` : `Cập nhật: ${dashboardMeta.updatedAt || 'Vui lòng chờ...'}`;
 
   return <div className="app">
+    <SessionKeepAlive />
     <a className="platform-skip-link" href="#platform-content">Bỏ qua điều hướng</a>
     <div className="drawer-backdrop shell-drawer-backdrop" aria-hidden={!drawerOpen} onClick={() => setDrawerOpen(false)}/>
     <aside className="sidebar" aria-label="Menu ứng dụng">

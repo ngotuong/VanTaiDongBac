@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type LoginGateProps = { supabaseUrl: string; anonKey: string };
 
@@ -15,6 +15,28 @@ export function LoginGate({ supabaseUrl, anonKey }: LoginGateProps) {
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
+  const [recovering, setRecovering] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function recoverSession() {
+      try {
+        const response = await fetch('/api/session', { method: 'GET', credentials: 'same-origin', cache: 'no-store' });
+        const result = await response.json().catch(() => ({}));
+        if (!active) return;
+        if (response.ok && result.ok !== false) {
+          window.location.reload();
+          return;
+        }
+        if (response.status >= 500) setStatus(result.error || 'Không thể khôi phục phiên. Bạn vẫn có thể đăng nhập lại.');
+      } catch {
+        if (active) setStatus('Không thể khôi phục phiên. Bạn vẫn có thể đăng nhập lại.');
+      }
+      if (active) setRecovering(false);
+    }
+    recoverSession();
+    return () => { active = false; };
+  }, []);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,6 +73,15 @@ export function LoginGate({ supabaseUrl, anonKey }: LoginGateProps) {
     }
   }
 
+  if (recovering) return <main className="auth-gate">
+    <section className="auth-card" aria-labelledby="authRecoveryTitle" aria-busy="true">
+      <Image className="auth-logo" src="/static/assets/apple-touch-icon.png" alt="Logo Vận tải Đông Bắc" width={80} height={80} priority />
+      <div className="eyebrow">HỆ THỐNG NỘI BỘ</div>
+      <h1 id="authRecoveryTitle">Đang khôi phục phiên</h1>
+      <p>Vui lòng chờ trong giây lát…</p>
+    </section>
+  </main>;
+
   return <main className="auth-gate">
     <section className="auth-card" aria-labelledby="authTitle">
       <Image className="auth-logo" src="/static/assets/apple-touch-icon.png" alt="Logo Vận tải Đông Bắc" width={80} height={80} priority />
@@ -68,6 +99,33 @@ export function LoginGate({ supabaseUrl, anonKey }: LoginGateProps) {
       </form>
     </section>
   </main>;
+}
+
+export function SessionKeepAlive() {
+  useEffect(() => {
+    let active = true;
+    let lastAttemptAt = Date.now();
+    async function refreshIfNeeded() {
+      if (!active) return;
+      lastAttemptAt = Date.now();
+      try {
+        const response = await fetch('/api/session', { method: 'GET', credentials: 'same-origin', cache: 'no-store' });
+        if (active && (response.status === 401 || response.status === 403)) window.location.reload();
+      } catch {}
+    }
+    refreshIfNeeded();
+    const interval = window.setInterval(refreshIfNeeded, 40 * 60 * 1000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastAttemptAt >= 40 * 60 * 1000) refreshIfNeeded();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+  return null;
 }
 
 export function SignOutButton() {

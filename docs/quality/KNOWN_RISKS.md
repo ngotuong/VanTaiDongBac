@@ -266,7 +266,7 @@ Kiểm soát:
 
 ### R-033 — `SYS_ReportCache` tăng không giới hạn
 
-Tác động: High. Khả năng: High. Trạng thái: Open/Migration E1.
+Tác động: High. Khả năng: High. Trạng thái: Mitigated/E1.4 stabilization.
 
 Audit E1.0 ngày 2026-07-18 xác nhận tab có 196.442 dòng dữ liệu, 6.832 `dataVersion`; chỉ 39 dòng thuộc version hiện hành và 196.403 dòng (99,98%) đã stale. Repository hiện đọc 10 cột của toàn bộ vùng dữ liệu, tương đương khoảng 1.964.420 ô trước khi lọc.
 
@@ -275,7 +275,7 @@ Kiểm soát/chuyển đổi:
 - migration `010` giữ mô hình một row Supabase cho mỗi `(spreadsheet_id, report_month)`;
 - `REPORT_CACHE_MODE=sheet` là mặc định an toàn;
 - E1.2 dùng `dual` để ghi Supabase nhưng vẫn đọc Sheet;
-- chỉ chuyển `supabase` sau parity gate;
+- E1.4 đã chuyển `supabase`; batch và audit sau nhiều trigger giữ dòng cuối 198.900, tăng 0;
 - không compact/xóa dòng cũ trước khi production cutover ổn định và có checkpoint riêng.
 
 ### R-015 — Sheet tạm báo cáo còn sót

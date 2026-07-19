@@ -84,8 +84,111 @@ function setReportCacheModeSheetForMigration() {
   return setReportCacheModeForMigration(ReportCacheMode.SHEET);
 }
 
+/** Zero-argument cutover wrapper for the separately approved E1.4 window. */
+function setReportCacheModeSupabaseForMigration() {
+  return setReportCacheModeForMigration(ReportCacheMode.SUPABASE);
+}
+
 /** Runs exactly one controlled parity batch and records its version for audit. */
 function runReportCacheParityBatchForMigration() {
+  return runReportCacheGuardedBatch_(function (waitedMs) {
+    var result = syncAllReportBundlesToSupabase();
+    result.parityGuard = { waitedMs: waitedMs };
+    PropertiesService.getScriptProperties().setProperty('REPORT_CACHE_E1_LAST_BATCH_VERSION', String(result.dataVersion || ''));
+    console.log(JSON.stringify(result));
+    return result;
+  });
+}
+
+/** Runs one E1.4 Supabase-mode batch and rolls back to dual if the no-append gate fails. */
+function runReportCacheSupabaseCutoverBatchForMigration() {
+  if (ReportCacheMode.get() !== ReportCacheMode.SUPABASE) {
+    throw new Error('E1.4 cutover batch requires REPORT_CACHE_MODE=supabase.');
+  }
+
+  var properties = PropertiesService.getScriptProperties();
+  var spreadsheet = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
+  var cacheSheet = spreadsheet.getSheetByName('SYS_ReportCache');
+  var baselineRow = cacheSheet ? cacheSheet.getLastRow() : 0;
+  properties.setProperty('REPORT_CACHE_E1_CUTOVER_BASELINE_ROW', String(baselineRow));
+
+  try {
+    return runReportCacheGuardedBatch_(function (waitedMs) {
+      var result = syncAllReportBundlesToSupabase();
+      var afterRow = cacheSheet ? cacheSheet.getLastRow() : 0;
+      properties.setProperty('REPORT_CACHE_E1_CUTOVER_AFTER_ROW', String(afterRow));
+      properties.setProperty('REPORT_CACHE_E1_LAST_BATCH_VERSION', String(result.dataVersion || ''));
+      result.cutoverGate = {
+        waitedMs: waitedMs,
+        baselineRow: baselineRow,
+        afterRow: afterRow,
+        sheetRowsAdded: afterRow - baselineRow,
+        expectedBundles: 4
+      };
+      if (!result.ok || result.failed !== 0 || result.synced !== 4 || afterRow !== baselineRow) {
+        throw new Error('E1.4 cutover gate failed: ' + JSON.stringify({
+          ok: result.ok,
+          synced: result.synced,
+          failed: result.failed,
+          baselineRow: baselineRow,
+          afterRow: afterRow
+        }));
+      }
+      console.log(JSON.stringify(result));
+      return result;
+    });
+  } catch (err) {
+    var rollback = setReportCacheModeForMigration(ReportCacheMode.DUAL);
+    throw new Error((err && err.message ? err.message : String(err)) + ' Rolled back REPORT_CACHE_MODE to ' + rollback.effective + '.');
+  }
+}
+
+/** Audits current Supabase rows and proves SYS_ReportCache stayed unchanged after E1.4. */
+function getReportCacheCutoverAuditForMigration() {
+  var properties = PropertiesService.getScriptProperties();
+  var dataVersion = properties.getProperty('REPORT_CACHE_E1_LAST_BATCH_VERSION') || '';
+  var baselineRow = Number(properties.getProperty('REPORT_CACHE_E1_CUTOVER_BASELINE_ROW') || 0);
+  var batchAfterRow = Number(properties.getProperty('REPORT_CACHE_E1_CUTOVER_AFTER_ROW') || 0);
+  var spreadsheet = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
+  var cacheSheet = spreadsheet.getSheetByName('SYS_ReportCache');
+  var currentRow = cacheSheet ? cacheSheet.getLastRow() : 0;
+  var rows = SupabaseBundleRepository.readRows('report_bundles', {
+    spreadsheet_id: 'eq.' + APP_CONFIG.spreadsheetId,
+    report_month: 'in.("05/2026","06/2026","07/2026","Tất cả")',
+    select: 'report_month,cache_version,source_data_version,details_hash,synced_at',
+    limit: '20'
+  });
+  var expectedMonths = ['05/2026', '06/2026', '07/2026', 'Tất cả'];
+  var actualMonths = rows.map(function (row) { return String(row.report_month || ''); }).sort();
+  var expectedSorted = expectedMonths.slice().sort();
+  var metadataComplete = rows.every(function (row) {
+    return row.cache_version === SheetService.getReportCacheVersion() &&
+      String(row.source_data_version || '') && String(row.details_hash || '');
+  });
+  var sourceDataVersions = rows.map(function (row) { return String(row.source_data_version || ''); })
+    .filter(function (value, index, values) { return value && values.indexOf(value) === index; })
+    .sort();
+  var result = {
+    ok: ReportCacheMode.get() === ReportCacheMode.SUPABASE &&
+      baselineRow > 0 && baselineRow === batchAfterRow && batchAfterRow === currentRow &&
+      rows.length === 4 && metadataComplete && JSON.stringify(actualMonths) === JSON.stringify(expectedSorted),
+    mode: ReportCacheMode.get(),
+    dataVersion: dataVersion,
+    baselineRow: baselineRow,
+    batchAfterRow: batchAfterRow,
+    currentRow: currentRow,
+    sheetRowsAddedSinceCutover: currentRow - baselineRow,
+    supabaseRowCount: rows.length,
+    metadataComplete: metadataComplete,
+    sourceDataVersions: sourceDataVersions,
+    months: actualMonths,
+    rows: rows
+  };
+  console.log(JSON.stringify(result));
+  return result;
+}
+
+function runReportCacheGuardedBatch_(callback) {
   var parityProperty = 'REPORT_CACHE_E1_PARITY_RUNNING';
   var realtimeRunningKey = 'SUPABASE_REALTIME_TICK_RUNNING';
   var properties = PropertiesService.getScriptProperties();
@@ -108,11 +211,7 @@ function runReportCacheParityBatchForMigration() {
       Utilities.sleep(1000);
     }
 
-    var result = syncAllReportBundlesToSupabase();
-    result.parityGuard = { waitedMs: new Date().getTime() - waitStartedAt };
-    properties.setProperty('REPORT_CACHE_E1_LAST_BATCH_VERSION', String(result.dataVersion || ''));
-    console.log(JSON.stringify(result));
-    return result;
+    return callback(new Date().getTime() - waitStartedAt);
   } finally {
     guardLock.waitLock(30000);
     try {

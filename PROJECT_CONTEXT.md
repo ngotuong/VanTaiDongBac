@@ -236,15 +236,17 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ### E1.4 — Controlled cutover sang Supabase report cache
 
-Trạng thái: **PROPOSED/BLOCKED; chờ người dùng phê duyệt checkpoint riêng**.
+Trạng thái: **IN PROGRESS ngày 2026-07-19; technical cutover PASS, chờ authenticated preview/production Report để đóng checkpoint**.
 
-Mục tiêu đề xuất:
+Kết quả hiện tại:
 
-- chốt rollback point và baseline mới trong khi `REPORT_CACHE_MODE=dual`;
-- deploy/smoke Apps Script candidate chứa guard E1.3, sau đó đổi có kiểm soát `REPORT_CACHE_MODE=supabase` nhưng chưa compact/xóa `SYS_ReportCache`;
-- xác nhận report read/write/trigger không append thêm Sheet cache ở mode `supabase`, trong khi fallback Sheet/live compute vẫn hoạt động khi Supabase miss/lỗi;
-- kiểm tra authenticated preview rồi production cho latest/month/all, force refresh, RBAC, latency và HTTP 500; rollback ngay về `dual` hoặc `sheet` nếu gate lỗi;
-- chỉ sau thời gian ổn định và một checkpoint phê duyệt khác mới được lập migration compact/archive `SYS_ReportCache`.
+- Bổ sung wrapper `supabase`, cutover batch có realtime guard/no-append gate/tự rollback `dual` và audit hậu trigger read-only. Source gate đạt 296/296 test, lint, typecheck, Next build và `git diff --check`.
+- Trước cutover, `SYS_ReportCache` đã tăng đến dòng 198.900. Batch `dataVersion=1784425969331` đồng bộ đủ 4/4 bundle và giữ dòng Sheet trước/sau đúng 198.900, tăng 0; mode chuyển thành `supabase` với `writeSheet=false`, `writeSupabase=true`.
+- Audit sau nhiều vòng trigger PASS: dòng hiện tại vẫn 198.900, Supabase đủ 05/2026, 06/2026, 07/2026, `Tất cả`, metadata `v13`/version/hash đầy đủ. Tick luân phiên đã cập nhật `Tất cả` sang version mới hơn; post-trigger audit kiểm tra bốn row hiện hành, còn exact-version chung chỉ là gate của batch cutover.
+- Apps Script candidate riêng `AKfycbz1Yb_1LrA-absjC9-3S07Gyy1HLLB85j4eQatEaW01gYMe077L_b03E-48OA2SDRbKWQ` được tạo ở `@289`. Production deployment ID hiện hữu `AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw` đã controlled update lên corrected `@290`; rollback version là `@282` trên cùng ID.
+- Production API health trả 200 với `cacheVersion=v13`, `reportCacheMode=supabase`; không có HTTP 500 trong log kiểm tra sau correction.
+- Một Vercel preview deployment mới bị HTTP 500 vì server secret không kế thừa; alias đã phục hồi ngay về D1 bất biến và toàn bộ env Preview tạm đã xóa, chỉ còn ba `VITE_SUPABASE_*` ban đầu. Không xoay hoặc làm lộ secret.
+- Phiên đăng nhập preview đã mất sau alias recovery. Còn phải kiểm tra authenticated preview rồi production cho latest/month/all, force refresh/fallback, latency và HTTP 500. Chưa compact/xóa `SYS_ReportCache`; checkpoint tiếp theo vẫn blocked.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -303,17 +305,17 @@ Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 
 Baseline hiện tại:
 
-- Production `/` chạy Next.js App Router D1 với Apps Script API-only `@282` và trả 200.
+- Production `/` chạy Next.js App Router D1 với Apps Script API-only deployment ID cũ đã update lên `@290` và trả 200.
 - Production deployment D1: `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`; rollback C3 `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`; rollback correction trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; rollback C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; Apps Script recovery `@281`.
 - Dashboard golden 07/2026: 270.513.180 / 94.863.960 / 175.649.220 / 341.770.935 / -166.121.715.
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
 - C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` vẫn READY làm rollback; toàn bộ mười surface là `USER_APPROVED`, C3 đã đóng.
 - Gate cut-forward: 284/284 test, lint, typecheck, build, `git diff --check`; các route chính/PWA 200, session unauthenticated 401, API health 200 và không có HTTP 500 sau smoke.
-- D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY tại production với Apps Script API-only `@282`; source/HTTP/authenticated preview/public post-cutover/authenticated production gate đều đạt và D1 đã đóng.
+- D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` vẫn READY tại production; Apps Script deployment ID hiện ở E1.4 `@290`, rollback code `@282`.
 - Supabase production migration history có đủ `001–010`; `report_bundles` giữ primary key `(spreadsheet_id, report_month)` và metadata E1.1 nullable.
-- Runtime production vẫn dùng Apps Script endpoint `@282`; `SYS_ReportCache` chưa compact/xóa. Script Property hiện là `dual`, nên source/trigger HEAD shadow-write Supabase trong khi endpoint production cũ tiếp tục giữ contract fallback hiện hành.
+- Runtime production dùng cùng Apps Script endpoint đã update `@290`; Script Property là `supabase`. `SYS_ReportCache` dừng ở dòng 198.900 qua batch và nhiều trigger, chưa compact/xóa.
 - Apps Script candidate E1.2 `@286` READY/smoke health 200 ở mode `sheet`; `@285` bị loại, chưa dùng candidate cho production hoặc chạy dual-mode sync.
-- E1.3 đã DONE: retry guard đạt row/version/hash parity 4/4; authenticated preview latest/month/all và fallback Apps Script đều PASS, không có console error/HTTP 500. Mode giữ `dual`; E1.4 cutover sang `supabase` chưa được phê duyệt.
+- E1.3 đã DONE. E1.4 technical cutover/no-append/post-trigger/health PASS; authenticated preview/production Report còn chờ đăng nhập lại nên chưa DONE.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

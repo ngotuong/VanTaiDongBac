@@ -46,6 +46,12 @@ Trong chương trình E1, rollback cache chi tiết về Sheet bằng Script Pro
 REPORT_CACHE_MODE=sheet
 ```
 
+Trong cửa sổ stabilization E1.4, rollback ít tốn tải hơn là `REPORT_CACHE_MODE=dual` nếu vẫn muốn shadow-write Supabase; dùng `sheet` khi cần tắt toàn bộ report-cache Supabase. Production Apps Script deployment ID hiện hữu có thể đưa từ `@290` về `@282` mà không đổi URL:
+
+```bash
+clasp deploy -i AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw -V 282 -d "Rollback E1.4 to D1 backend"
+```
+
 Giá trị trống/không hợp lệ cũng fallback về `sheet`. Migration `010` là additive nên không cần drop ba cột metadata khi rollback; giữ chúng nullable để tránh migration phá dữ liệu.
 
 Không cần xóa code ngay.
@@ -132,7 +138,7 @@ vercel alias set vantaidongbac-62q4v6vur-ngotuong2105.vercel.app dongbac.vercel.
 
 Sau rollback, không xóa deployment Next/D1. Không cut-forward lại candidate nào nếu chưa có authenticated user approval và parity matrix tương ứng.
 
-Apps Script D1 API-only là deployment `AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw`, code version `@282`. Apps Script rollback là deployment `AKfycbzO8puBHqpuoA9_eYPROuNGoISJM6bI9HT53xigZY_xK-BmQdcRhd_rje4qGFGVPbF3Mg`, code version `@281`; rollback backend bằng cách khôi phục `APPS_SCRIPT_URL` về URL `@281` rồi redeploy Vercel.
+Apps Script D1 API-only deployment `AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw` hiện chạy E1.4 `@290`; rollback trực tiếp là cập nhật cùng deployment về `@282`. Deployment recovery riêng `AKfycbzO8puBHqpuoA9_eYPROuNGoISJM6bI9HT53xigZY_xK-BmQdcRhd_rje4qGFGVPbF3Mg` vẫn ở `@281`; chỉ đổi `APPS_SCRIPT_URL` sang URL recovery và redeploy Vercel khi rollback cùng-ID không đủ.
 
 ## Dấu hiệu rollback thành công
 

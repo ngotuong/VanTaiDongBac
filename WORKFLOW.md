@@ -195,6 +195,8 @@ Apps Script:
 7. Nếu xuất hiện version xen ngang, số dòng tăng khác 39 hoặc Supabase không còn đủ 4 row exact-version, rollback ngay `REPORT_CACHE_MODE=sheet` và không tự chạy batch thứ hai khi chưa có phê duyệt mới.
 8. Guard E1.3 dùng Script Property để chặn tick mới, Script Cache để nhận biết tick đang chạy và Script Lock chỉ cho quyết định start/stop ngắn. Không giữ lock trong suốt report sync. Wrapper parity phải xóa property trong `finally`, kể cả khi batch lỗi.
 9. Audit payload E1.3 chỉ đọc tối đa 500 dòng cuối, lọc đúng `REPORT_CACHE_E1_LAST_BATCH_VERSION`, chuẩn hóa text/số và so hash bốn kỳ. Không dùng force refresh hoặc log payload/credential trong audit.
+10. E1.4 chỉ đổi `REPORT_CACHE_MODE=supabase` sau khi đã chốt dòng cuối Sheet. Cutover batch phải chạy dưới cùng realtime guard, đồng bộ đúng 4 bundle và chứng minh dòng cuối `SYS_ReportCache` không đổi; helper tự rollback về `dual` nếu gate lỗi.
+11. Sau cutover, đợi ít nhất một vòng realtime trigger rồi chạy audit lại. Chỉ chấp nhận khi mode vẫn `supabase`, dòng Sheet vẫn bằng baseline và Supabase còn đủ 4 row hiện hành có metadata hợp lệ. Batch cutover ban đầu phải có một exact-version chung; sau đó tick luân phiên có thể upsert từng row bằng version mới khác nhau. Không compact/xóa Sheet trong E1.4.
 
 Supabase:
 

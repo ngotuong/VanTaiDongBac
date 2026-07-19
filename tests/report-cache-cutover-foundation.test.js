@@ -29,6 +29,7 @@ function loadMode(propertyValue, shouldThrow = false) {
   context.ReportCacheMode.setReportCacheModeForMigration = context.setReportCacheModeForMigration;
   context.ReportCacheMode.setReportCacheModeDualForMigration = context.setReportCacheModeDualForMigration;
   context.ReportCacheMode.setReportCacheModeSheetForMigration = context.setReportCacheModeSheetForMigration;
+  context.ReportCacheMode.setReportCacheModeSupabaseForMigration = context.setReportCacheModeSupabaseForMigration;
   context.ReportCacheMode.logs = logs;
   return context.ReportCacheMode;
 }
@@ -60,7 +61,8 @@ test('migration helpers expose the effective mode and reject undeclared writes',
   assert.equal(mode.get(), 'dual');
   assert.equal(mode.setReportCacheModeSheetForMigration().effective, 'sheet');
   assert.equal(mode.setReportCacheModeDualForMigration().effective, 'dual');
-  assert.equal(mode.logs.length, 4);
+  assert.equal(mode.setReportCacheModeSupabaseForMigration().effective, 'supabase');
+  assert.equal(mode.logs.length, 5);
 });
 
 test('E1.3 editor wrappers run one batch and audit Supabase metadata only', () => {
@@ -96,6 +98,34 @@ test('E1.3 payload parity audit is bounded, normalized, and never force-refreshe
   assert.match(source, /CacheAuditService\.hashPayload\(sheetDetails\)/);
   assert.match(source, /ValidationService\.parseNumber\(value, false\)/);
   assert.doesNotMatch(source, /getReportCachePayloadParityAuditForMigration[\s\S]*?getReportBundle\([^)]*,\s*true\)/);
+});
+
+test('E1.4 cutover helper enforces Supabase mode, no Sheet append, four bundles, and dual rollback', () => {
+  const source = read('ReportCacheMode.gs');
+  assert.match(source, /function setReportCacheModeSupabaseForMigration\(\)/);
+  assert.match(source, /function runReportCacheSupabaseCutoverBatchForMigration\(\)/);
+  assert.match(source, /requires REPORT_CACHE_MODE=supabase/);
+  assert.match(source, /REPORT_CACHE_E1_CUTOVER_BASELINE_ROW/);
+  assert.match(source, /REPORT_CACHE_E1_CUTOVER_AFTER_ROW/);
+  assert.match(source, /result\.synced !== 4/);
+  assert.match(source, /afterRow !== baselineRow/);
+  assert.match(source, /setReportCacheModeForMigration\(ReportCacheMode\.DUAL\)/);
+  assert.match(source, /Rolled back REPORT_CACHE_MODE to/);
+});
+
+test('E1.4 post-cutover audit is read-only and requires stable Sheet row plus current four-month metadata', () => {
+  const source = read('ReportCacheMode.gs');
+  const audit = source.slice(
+    source.indexOf('function getReportCacheCutoverAuditForMigration()'),
+    source.indexOf('function runReportCacheGuardedBatch_')
+  );
+  assert.match(audit, /baselineRow === batchAfterRow && batchAfterRow === currentRow/);
+  assert.match(audit, /rows\.length === 4/);
+  assert.match(audit, /metadataComplete/);
+  assert.match(audit, /'05\/2026', '06\/2026', '07\/2026', 'Tất cả'/);
+  assert.match(audit, /report_month: 'in\.\(\"05\/2026\",\"06\/2026\",\"07\/2026\",\"Tất cả\"\)'/);
+  assert.match(audit, /select: 'report_month,cache_version,source_data_version,details_hash,synced_at'/);
+  assert.doesNotMatch(audit, /setProperty|setReportCacheModeForMigration|syncAllReportBundlesToSupabase|forceRefresh/);
 });
 
 test('report cache mode describes read and write behavior for the next checkpoint', () => {

@@ -197,6 +197,9 @@ Apps Script:
 9. Audit payload E1.3 chỉ đọc tối đa 500 dòng cuối, lọc đúng `REPORT_CACHE_E1_LAST_BATCH_VERSION`, chuẩn hóa text/số và so hash bốn kỳ. Không dùng force refresh hoặc log payload/credential trong audit.
 10. E1.4 chỉ đổi `REPORT_CACHE_MODE=supabase` sau khi đã chốt dòng cuối Sheet. Cutover batch phải chạy dưới cùng realtime guard, đồng bộ đúng 4 bundle và chứng minh dòng cuối `SYS_ReportCache` không đổi; helper tự rollback về `dual` nếu gate lỗi.
 11. Sau cutover, đợi ít nhất một vòng realtime trigger rồi chạy audit lại. Chỉ chấp nhận khi mode vẫn `supabase`, dòng Sheet vẫn bằng baseline và Supabase còn đủ 4 row hiện hành có metadata hợp lệ. Batch cutover ban đầu phải có một exact-version chung; sau đó tick luân phiên có thể upsert từng row bằng version mới khác nhau. Không compact/xóa Sheet trong E1.4.
+12. E1.5 phải tạo full-workbook backup riêng trước, đăng ký ID bằng `REPORT_CACHE_E15_BACKUP_FILE_ID`, rồi chạy `getReportCacheCompactionDryRunForMigration()` và `prepareReportCacheCompactionForMigration()`. Dry-run phải chứng minh header A:J exact, last column dữ liệu là J, batch giữ có đúng 39 dòng/3 tháng/13 rowOrder, không formula và mode còn `supabase`.
+13. Không gọi `approveReportCacheCompactionForMigration()` hoặc `runReportCacheCompactionForMigration()` trong pha chuẩn bị. Destructive pass cần phê duyệt người dùng riêng; trước xóa phải so lại live row/version/fingerprint với prepared snapshot. Approval là one-shot và luôn bị xóa trong `finally`.
+14. Migration E1.5 chỉ copy batch giữ về dòng 2:40 rồi xóa toàn bộ hàng vật lý từ 41 trở xuống; không đổi tên sheet, thứ tự cột hoặc header. Sau chạy phải xác nhận sheet còn đúng 40 hàng, fingerprint không đổi, Supabase đủ bốn bundle và Report/fallback smoke PASS.
 
 Supabase:
 

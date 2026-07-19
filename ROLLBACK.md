@@ -54,6 +54,15 @@ clasp deploy -i AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9Tjk
 
 Giá trị trống/không hợp lệ cũng fallback về `sheet`. Migration `010` là additive nên không cần drop ba cột metadata khi rollback; giữ chúng nullable để tránh migration phá dữ liệu.
 
+Nếu E1.5 đã compact `SYS_ReportCache` và post-check sai, không sửa tay hoặc đổi tên sheet. Bản full-workbook rollback trước compact là:
+
+```text
+BACKUP E1.5 - VanTaiDongBac_2026 - before SYS_ReportCache compaction - 2026-07-19
+File ID: 132EMVW5MI_jxyTtVVuPoXfcXIkM1-v7YVfINC0xV164
+```
+
+Trước destructive pass, `REPORT_CACHE_E15_PREPARED_SNAPSHOT` phải khớp live fingerprint và `REPORT_CACHE_E15_DESTRUCTIVE_APPROVAL` chỉ tồn tại cho một lần chạy. Nếu migration abort trước xóa, chạy lại dry-run/prepare; không tái sử dụng approval cũ. Nếu đã xóa và cần rollback, trước hết giữ `REPORT_CACHE_MODE=supabase` để runtime không append Sheet, đối chiếu backup, rồi khôi phục riêng hidden sheet bằng một migration phục hồi được phê duyệt; không copy/paste thủ công và không phục hồi toàn workbook vì có thể ghi đè dữ liệu nghiệp vụ mới phát sinh sau thời điểm backup.
+
 Không cần xóa code ngay.
 
 Nếu đã cài trigger gần realtime, có thể vào Apps Script **Triggers** và xóa trigger của function:

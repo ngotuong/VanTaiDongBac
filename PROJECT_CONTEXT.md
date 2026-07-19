@@ -246,6 +246,20 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint hiện tại
 
+### Auth session continuity — Next.js HttpOnly session
+
+Trạng thái: **PREVIEW READY ngày 2026-07-19; source/build/authenticated preview smoke PASS, chờ phê duyệt promote production**.
+
+Kết quả candidate:
+
+- `GET /api/session` chủ động xoay Supabase session khi access token còn không quá 25 phút; access/refresh token tiếp tục chỉ nằm trong cookie `HttpOnly`, `SameSite=Strict`. Cookie chỉ được ghi lại sau refresh thành công.
+- Nếu refresh tạm lỗi nhưng access token vẫn còn hợp lệ, request hiện tại vẫn xác minh user bằng token cũ; chỉ khi session thực sự trả 401 mới clear cookie. Không thay đổi allowlist, role hoặc RBAC.
+- Shared Next shell kiểm tra session ngay khi mount, mỗi 40 phút và khi tab hoạt động lại sau khoảng nghỉ tương ứng. Root `LoginGate` thử khôi phục bằng refresh cookie 30 ngày trước khi hiện form đăng nhập và reload đúng route hiện tại khi thành công.
+- Regression gate đạt 309/309 test, lint, typecheck, Next production build và `git diff --check`. Test mới bao phủ token khỏe, token gần hạn, refresh tạm lỗi, access+refresh hết hiệu lực, cookie rotation và recovery/keepalive wiring.
+- Source đã push ở commit `b50a928`. Candidate Vercel bất biến `dpl_8f3resbHcr5ZNWMdV4PjP28Gm5yK` (`vantaidongbac-kx8nct4lk-ngotuong2105.vercel.app`) READY và alias `vantaidongbac-c3-preview.vercel.app` đã trỏ vào candidate; build dùng Production environment nhưng `dongbac.vercel.app` chưa đổi.
+- Authenticated preview smoke bằng session hiện hữu PASS ở Dashboard và Report: reload giữ đúng `/dashboard/` và `/reports/`, không quay về login/root, dữ liệu Report tải từ API cache và không có console error. Trường hợp access cookie hết hạn được xác minh bằng unit/API regression vì không đọc hoặc sửa cookie trình duyệt để giả lập.
+- Không sửa/deploy Apps Script, không migration Supabase, không thay đổi Google Sheet, `SYS_ReportCache`, trigger hoặc dữ liệu nghiệp vụ. Cổng tiếp theo là người dùng xác nhận preview rồi phê duyệt promote đúng deployment bất biến sang production; rollback production vẫn là D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`.
+
 ### E1.6 — Freshness sau chỉnh sửa trực tiếp Sheet Vận tải
 
 Trạng thái: **DONE ngày 2026-07-19; manual edit queue, debounce/retry, structural full refresh và production canary đều PASS**.
@@ -327,7 +341,7 @@ Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_
 11. **Rollback sau E1.5**: runtime tiếp tục ở `supabase`; nếu cần phục hồi cache Sheet, dùng full-workbook backup đã chốt và một migration khôi phục riêng, không copy/paste tay hoặc phục hồi toàn workbook làm ghi đè dữ liệu nghiệp vụ mới.
 12. **Production migration**: migration `010` đã apply; không sửa file migration đã chạy. Mọi schema correction phải là migration `011+`.
 13. **Realtime overlap**: guard E1.3 đã ngăn tick mới khởi động và chờ tick cũ kết thúc trước batch; retry chứng minh không có version xen ngang. Phải giữ regression test cho protocol này và không chạy parity helper song song từ nhiều editor session.
-14. **Session continuity**: access cookie Next hiện giới hạn khoảng 1 giờ trong khi refresh cookie 30 ngày; root Server Component đọc access token trực tiếp và có thể đưa người dùng về login trước khi `/api/session` kịp refresh. Tách thành checkpoint Auth riêng, không trộn với cache E1.6.
+14. **Session continuity**: candidate Auth đã bổ sung proactive refresh/keepalive/root recovery và gate tự động PASS; vẫn phải giữ deployment cũ làm rollback và chỉ promote sau authenticated preview approval. Refresh token hết hạn/revoke đúng nghĩa vẫn yêu cầu đăng nhập lại.
 15. **Manual freshness scope**: E1.6 cài trigger trực tiếp trên workbook Vận tải. Sửa tay workbook Thu chi hoặc thay đổi chỉ lan truyền qua công thức/`IMPORTRANGE` không được bảo đảm cùng SLA 2 phút.
 
 Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
@@ -347,6 +361,7 @@ Baseline hiện tại:
 - Runtime production dùng cùng Apps Script endpoint đã update `@290`; Script Property là `supabase`. E1.5 đã compact `SYS_ReportCache` từ 198.900 xuống đúng 40 dòng vật lý; E1.6 trigger HEAD chốt ở Apps Script `@295` nhưng không update deployment web runtime.
 - Apps Script candidate E1.2 `@286` READY/smoke health 200 ở mode `sheet`; `@285` bị loại, chưa dùng candidate cho production hoặc chạy dual-mode sync.
 - E1.4–E1.6 đều DONE: Supabase cutover ổn định; full backup giữ nguyên 198.900 dòng, production cache Sheet còn 40 dòng, Report/Supabase/fallback smoke hậu migration đều PASS, manual edit Report queue đã canary và rỗng.
+- Auth session continuity candidate `dpl_8f3resbHcr5ZNWMdV4PjP28Gm5yK` trên commit `b50a928` READY tại preview và authenticated smoke PASS; production alias vẫn giữ D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` chờ phê duyệt promote.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

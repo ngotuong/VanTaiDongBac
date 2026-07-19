@@ -513,22 +513,16 @@ Shareholder vẫn cần:
 
 ### 18.1. Session hợp lệ
 
-Browser dùng Supabase SDK với:
-
-- `persistSession=true`;
-- `autoRefreshToken=true`;
-- `detectSessionInUrl=true`.
-
-Mỗi proxy API call vẫn xác minh token với Supabase Auth và allowlist active.
+Next.js giữ access/refresh token trong cookie `HttpOnly`, `SameSite=Strict`; browser JavaScript không đọc token. Shared shell gọi same-origin `GET /api/session` ngay khi mount, mỗi 40 phút và khi tab hoạt động lại sau một khoảng nghỉ tương ứng. Endpoint xoay session khi access token còn không quá 25 phút, sau đó mỗi proxy API call vẫn xác minh token với Supabase Auth và allowlist active.
 
 ### 18.2. Session hết hạn
 
 Khi API trả 401:
 
-- frontend sign out Supabase;
-- clear `sessionStorage`;
-- hiện auth gate;
-- yêu cầu đăng nhập lại.
+- root auth gate gọi `GET /api/session` một lần để thử refresh bằng cookie `HttpOnly` 30 ngày;
+- nếu refresh thành công, reload đúng route hiện tại và không yêu cầu đăng nhập lại;
+- nếu refresh token không còn hợp lệ, server xóa hai cookie rồi mới hiện form đăng nhập;
+- lỗi mạng/5xx không tự xóa refresh cookie và người dùng vẫn có thể thử lại hoặc đăng nhập lại.
 
 ### 18.3. Role/status thay đổi giữa session
 

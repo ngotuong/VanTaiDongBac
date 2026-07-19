@@ -87,6 +87,7 @@ Không đánh dấu Closed nếu source/kiến trúc vẫn còn đường tái d
 | R-031 | Report `latest`/lọc total sai semantics và prefetch route trùng | High | Medium | Mitigated/Monitor |
 | R-032 | Chuyển route không có phản hồi tức thời và thao tác thiếu toast | Medium | High | Mitigated/Monitor |
 | R-033 | `SYS_ReportCache` append-only làm Google Sheet phình và mỗi lần đọc quét gần 2 triệu ô | High | High | Open/Migration E1 |
+| R-034 | Root Next đưa người dùng về login khi access cookie hết hạn dù refresh cookie còn hiệu lực | Medium | High | Mitigated/Monitor |
 
 ## 4. Rủi ro dữ liệu Google Sheets
 
@@ -524,6 +525,25 @@ Kiểm soát phải nằm ở:
 - bound project permissions;
 - trigger ownership;
 - audit/backup.
+
+### R-034 — Session Next bị ngắt quãng sau khoảng một giờ
+
+Tác động: Medium. Khả năng: High. Trạng thái: Mitigated/Monitor.
+
+Nguồn trước checkpoint Auth session continuity:
+
+- access cookie tối đa khoảng một giờ;
+- root Server Component chỉ đọc access cookie và có thể render LoginGate trước khi endpoint session kịp refresh;
+- refresh cookie 30 ngày vì vậy chưa đủ để giữ phiên liên tục.
+
+Kiểm soát hiện tại:
+
+- `GET /api/session` chủ động xoay token trong cửa sổ 25 phút trước hết hạn;
+- shared shell kiểm tra ngay khi mount, heartbeat mỗi 40 phút và kiểm tra lại khi tab hoạt động;
+- LoginGate thử refresh server-side trước khi hiển thị form;
+- refresh lỗi tạm thời không xóa một access token vẫn còn hợp lệ; cookie chỉ bị clear khi session thực sự nhận 401.
+
+Khoảng trống cần theo dõi: trình duyệt có thể suspend tab lâu hơn timer; đường recovery lúc root render là lớp bảo vệ bắt buộc. Refresh token hết hạn/revoke vẫn yêu cầu đăng nhập lại đúng contract.
 
 ## 9. Rủi ro bound script và Thu chi
 

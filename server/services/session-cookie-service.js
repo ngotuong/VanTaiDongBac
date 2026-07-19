@@ -1,6 +1,9 @@
 const ACCESS_COOKIE = 'vtdb_access_token';
 const REFRESH_COOKIE = 'vtdb_refresh_token';
 const COOKIE_MAX_AGE = 60 * 60;
+// Keep this wider than the client keepalive jitter so a 40-minute heartbeat
+// reliably rotates the default one-hour Supabase access token.
+const ACCESS_REFRESH_WINDOW_SECONDS = 25 * 60;
 
 function parseCookies(header = '') {
   return String(header).split(';').reduce((cookies, part) => {
@@ -45,6 +48,18 @@ function refreshTokenFromRequest(req) {
   return parseCookies(req?.headers?.cookie)[REFRESH_COOKIE] || '';
 }
 
+function accessTokenExpiresWithin(token, windowSeconds = ACCESS_REFRESH_WINDOW_SECONDS, nowSeconds = Math.floor(Date.now() / 1000)) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 3) return true;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    const expiresAt = Number(payload.exp || 0);
+    return !expiresAt || expiresAt - Number(nowSeconds) <= Math.max(0, Number(windowSeconds) || 0);
+  } catch {
+    return true;
+  }
+}
+
 function assertSameOrigin(req, httpError) {
   const origin = String(req.headers?.origin || '');
   const host = String(req.headers?.['x-forwarded-host'] || req.headers?.host || '');
@@ -70,6 +85,7 @@ module.exports = {
   REFRESH_COOKIE,
   accessTokenFromRequest,
   refreshTokenFromRequest,
+  accessTokenExpiresWithin,
   sessionCookies,
   clearedSessionCookies,
   assertSameOrigin,

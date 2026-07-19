@@ -248,17 +248,19 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ### E1.5 — Archive/compact `SYS_ReportCache`
 
-Trạng thái: **IN PROGRESS ngày 2026-07-19; dry-run, full-workbook backup và prepared snapshot đã PASS; destructive pass chưa được phê duyệt/chưa chạy**.
+Trạng thái: **DONE ngày 2026-07-19; compact 198.860 dòng stale, post-migration Sheet/Supabase/Report/fallback smoke đều PASS**.
 
-Trạng thái chuẩn bị:
+Kết quả:
 
 - Full-workbook backup riêng đã tạo: `BACKUP E1.5 - VanTaiDongBac_2026 - before SYS_ReportCache compaction - 2026-07-19`, file ID `132EMVW5MI_jxyTtVVuPoXfcXIkM1-v7YVfINC0xV164`. Metadata xác nhận backup giữ nguyên hidden sheet ID `1474417029`, 198.900 hàng và 26 cột vật lý.
 - Apps Script version bất biến `@291` chứa migration riêng `ReportCacheCompactionMigration.gs`; production web-app deployment vẫn giữ `@290`, URL/alias/Vercel env không đổi.
 - Live dry-run PASS ở mode `supabase`: header A:J đúng contract, last column có dữ liệu là J, không có formula trong batch giữ, dòng cuối vẫn 198.900. Batch giữ là 39 dòng `v13`, `dataVersion=1784425021715`, đúng 13 dòng cho mỗi 05/2026, 06/2026, 07/2026; fingerprint `3b4036b626f740526638c5d0a5c4184d4dc7fece03d35569f28efbf70196cd75`.
-- Prepared snapshot đã lưu cùng backup ID và tự xóa mọi approval cũ. Kế hoạch destructive sẽ archive/remove 198.860 dòng stale, giữ header + 39 dòng rollback, đưa sheet về 40 dòng vật lý.
+- Prepared snapshot đã lưu cùng backup ID. Sau phê duyệt riêng của người dùng, one-shot approval khớp đúng fingerprint và migration đã archive/remove 198.860 dòng stale, giữ header + 39 dòng rollback, đưa sheet về 40 dòng vật lý.
 - Migration destructive bị khóa bằng bốn gate: mode phải còn `supabase`, backup riêng phải tồn tại, live row/version/fingerprint phải khớp prepared snapshot và phải có one-shot approval riêng. Approval tự bị xóa trong `finally`.
 - Gate source hiện đạt 301/301 test, lint, typecheck, Next build và `git diff --check`.
-- Chưa gọi `approveReportCacheCompactionForMigration()` hoặc `runReportCacheCompactionForMigration()`; Google Sheet nguồn chưa bị sửa/xóa dòng. Cần người dùng phê duyệt destructive pass riêng trước khi tiếp tục; sau compact phải chạy post-migration Sheet/Supabase/Report/fallback smoke rồi mới đóng E1.5.
+- Post-check Apps Script và Google Sheets API xác nhận hidden sheet vẫn giữ nguyên tên/ID/thứ tự, header A:J exact, không formula, `lastRow=maxRows=40`, đúng 39 dòng `dataVersion=1784425021715`, ba tháng × 13 rowOrder và fingerprint không đổi. Force refresh sau migration không append thêm dòng; backup vẫn nguyên 198.900 hàng.
+- Authenticated production Report PASS cho 05/2026, 06/2026, 07/2026 và `Tất cả` từ Supabase cache. Force refresh `Tất cả` PASS qua Apps Script fallback, reload trở lại Supabase cache, không có HTTP 500.
+- E1 đã hoàn tất từ nền tảng đến cleanup. Chưa mở checkpoint tiếp theo; mọi thay đổi tiếp theo cần checkpoint/phê duyệt riêng.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -307,7 +309,7 @@ Roadmap và tiêu chí hoàn thành từng checkpoint thuộc `NEXTJS_MIGRATION_
 8. **CSS dependency/cascade**: mọi surface tiếp theo phải audit font/script/asset thật, DOM wrapper và selector rò rỉ từ shared CSS; copy stylesheet đơn thuần không đủ.
 9. **Report cache parity**: hash phải loại field volatile và đối chiếu ít nhất 05/2026, 06/2026, 07/2026, `Tất cả` trước khi đổi mode.
 10. **Version amplification**: batch sync phải dùng một `source_data_version`; không gọi force refresh lặp làm tăng version cho từng tháng.
-11. **Rollback**: `REPORT_CACHE_MODE=sheet` phải hoạt động ngay cả khi Supabase thiếu metadata/lỗi; chưa xóa cache Sheet ở E1.2.
+11. **Rollback sau E1.5**: runtime tiếp tục ở `supabase`; nếu cần phục hồi cache Sheet, dùng full-workbook backup đã chốt và một migration khôi phục riêng, không copy/paste tay hoặc phục hồi toàn workbook làm ghi đè dữ liệu nghiệp vụ mới.
 12. **Production migration**: migration `010` đã apply; không sửa file migration đã chạy. Mọi schema correction phải là migration `011+`.
 13. **Realtime overlap**: guard E1.3 đã ngăn tick mới khởi động và chờ tick cũ kết thúc trước batch; retry chứng minh không có version xen ngang. Phải giữ regression test cho protocol này và không chạy parity helper song song từ nhiều editor session.
 
@@ -325,9 +327,9 @@ Baseline hiện tại:
 - Gate cut-forward: 284/284 test, lint, typecheck, build, `git diff --check`; các route chính/PWA 200, session unauthenticated 401, API health 200 và không có HTTP 500 sau smoke.
 - D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` vẫn READY tại production; Apps Script deployment ID hiện ở E1.4 `@290`, rollback code `@282`.
 - Supabase production migration history có đủ `001–010`; `report_bundles` giữ primary key `(spreadsheet_id, report_month)` và metadata E1.1 nullable.
-- Runtime production dùng cùng Apps Script endpoint đã update `@290`; Script Property là `supabase`. `SYS_ReportCache` dừng ở dòng 198.900 qua batch và nhiều trigger, chưa compact/xóa. Source migration E1.5 đã chốt ở Apps Script `@291` nhưng không update deployment runtime.
+- Runtime production dùng cùng Apps Script endpoint đã update `@290`; Script Property là `supabase`. E1.5 đã compact `SYS_ReportCache` từ 198.900 xuống đúng 40 dòng vật lý; source migration chốt ở Apps Script `@291` nhưng không update deployment runtime.
 - Apps Script candidate E1.2 `@286` READY/smoke health 200 ở mode `sheet`; `@285` bị loại, chưa dùng candidate cho production hoặc chạy dual-mode sync.
-- E1.4 đã DONE: technical cutover, no-append, post-trigger, preview và production authenticated stabilization đều PASS. E1.5 dry-run/backup/prepared snapshot đã PASS; destructive compact 198.860 dòng chưa được phê duyệt/chưa chạy.
+- E1.4 và E1.5 đều DONE: Supabase cutover ổn định; full backup giữ nguyên 198.900 dòng, production cache Sheet còn 40 dòng, Report/Supabase/fallback smoke hậu migration đều PASS.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

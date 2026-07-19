@@ -81,11 +81,11 @@ Vai trò dữ liệu hiện tại:
 - Next.js `16.2.10`, React `19.2.7`.
 - Source route/component tiếp tục nằm trong `next-shell/`; root `app/` là Vercel App Router entrypoint mỏng.
 - `next.config.mjs` không còn `basePath` và không dùng `output: 'export'`; App Router phục vụ trực tiếp tại `/`.
-- Production alias đã controlled cut-forward sang D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`; C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, correction trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5` và C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY để rollback.
+- Production alias đã promote Auth session continuity `dpl_8f3resbHcr5ZNWMdV4PjP28Gm5yK`; D1 trước đó `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`, C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` và C2 recovery `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` vẫn READY để rollback.
 - Root layout server-render auth/workbook context; chưa đăng nhập render LoginGate cùng-origin, đăng nhập tạo HttpOnly cookie qua `/api/session`.
 - Các route Next độc lập hiện là production presentation trong giai đoạn stabilization; legacy C2 chỉ được giữ dưới dạng deployment rollback bất biến.
 - Nhánh C3 mới `codex/c3-golden-master` bắt đầu từ nền Next sạch `a5e29bf`; nguồn C2 tại tree `73a0ede` được dùng làm golden reference, không khôi phục DOM bridge vào production.
-- Vercel Production environment và deployment D1 hiện trỏ Apps Script API-only `@282`; recovery `@281` vẫn được giữ để rollback.
+- Vercel Production environment của deployment Auth continuity tiếp tục trỏ Apps Script API-only `@290`; rollback code cùng-ID `@282` và recovery riêng `@281` vẫn được giữ.
 
 ### 3.3. Luồng Report hiện tại
 
@@ -248,7 +248,7 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ### Auth session continuity — Next.js HttpOnly session
 
-Trạng thái: **PREVIEW READY ngày 2026-07-19; source/build/authenticated preview smoke PASS, chờ phê duyệt promote production**.
+Trạng thái: **DONE ngày 2026-07-19; exact candidate đã promote production, authenticated production smoke PASS**.
 
 Kết quả candidate:
 
@@ -256,9 +256,10 @@ Kết quả candidate:
 - Nếu refresh tạm lỗi nhưng access token vẫn còn hợp lệ, request hiện tại vẫn xác minh user bằng token cũ; chỉ khi session thực sự trả 401 mới clear cookie. Không thay đổi allowlist, role hoặc RBAC.
 - Shared Next shell kiểm tra session ngay khi mount, mỗi 40 phút và khi tab hoạt động lại sau khoảng nghỉ tương ứng. Root `LoginGate` thử khôi phục bằng refresh cookie 30 ngày trước khi hiện form đăng nhập và reload đúng route hiện tại khi thành công.
 - Regression gate đạt 309/309 test, lint, typecheck, Next production build và `git diff --check`. Test mới bao phủ token khỏe, token gần hạn, refresh tạm lỗi, access+refresh hết hiệu lực, cookie rotation và recovery/keepalive wiring.
-- Source đã push ở commit `b50a928`. Candidate Vercel bất biến `dpl_8f3resbHcr5ZNWMdV4PjP28Gm5yK` (`vantaidongbac-kx8nct4lk-ngotuong2105.vercel.app`) READY và alias `vantaidongbac-c3-preview.vercel.app` đã trỏ vào candidate; build dùng Production environment nhưng `dongbac.vercel.app` chưa đổi.
+- Source đã push ở commit `b50a928`. Candidate Vercel bất biến `dpl_8f3resbHcr5ZNWMdV4PjP28Gm5yK` (`vantaidongbac-kx8nct4lk-ngotuong2105.vercel.app`) được người dùng phê duyệt và gán trực tiếp cho `dongbac.vercel.app`, không rebuild; alias preview vẫn cùng deployment.
 - Authenticated preview smoke bằng session hiện hữu PASS ở Dashboard và Report: reload giữ đúng `/dashboard/` và `/reports/`, không quay về login/root, dữ liệu Report tải từ API cache và không có console error. Trường hợp access cookie hết hạn được xác minh bằng unit/API regression vì không đọc hoặc sửa cookie trình duyệt để giả lập.
-- Không sửa/deploy Apps Script, không migration Supabase, không thay đổi Google Sheet, `SYS_ReportCache`, trigger hoặc dữ liệu nghiệp vụ. Cổng tiếp theo là người dùng xác nhận preview rồi phê duyệt promote đúng deployment bất biến sang production; rollback production vẫn là D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`.
+- Hậu kiểm production: root/Dashboard/Report HTTP 200, unauthenticated `/api/session/` trả 401 đúng contract, health 200 ở `reportCacheMode=supabase`; session `ngotuong` giữ đúng `/dashboard/` và `/reports/` sau reload, Report đọc API cache, không có console error hoặc log HTTP 5xx. Warning Node `DEP0169` cũ vẫn có thể xuất hiện trên request HTTP 200.
+- Không sửa/deploy Apps Script, không migration Supabase, không thay đổi Google Sheet, `SYS_ReportCache`, trigger hoặc dữ liệu nghiệp vụ. Rollback gần nhất là gán alias về D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`. Chưa có checkpoint triển khai mới được phê duyệt; tiếp tục theo dõi session thực tế trước khi mở thay đổi khác.
 
 ### E1.6 — Freshness sau chỉnh sửa trực tiếp Sheet Vận tải
 
@@ -273,7 +274,7 @@ Kết quả:
 - Production canary full Report hoàn tất trong 110,769 giây; các tick sau ổn định 2,067 giây và 8,454 giây, không còn chuỗi sheet-change mới. Audit lúc `2026-07-19T04:48:42.312Z` xác nhận `pending=null` và `transport_reports_manual_sheet=ok` (sync `2026-07-19T04:41:19.710Z`).
 - Google Sheets metadata read-only xác nhận hidden `SYS_ReportCache` vẫn đúng sheet ID `1474417029`, `rowCount=40`, `columnCount=26`; E1.6 không append cache Sheet, không đổi tên/thứ tự/cột/công thức hoặc schema Supabase.
 - Gate source đạt 304/304 test, lint, typecheck, Next build và `git diff --check`. SLA mục tiêu cho edit thông thường là tối đa khoảng 2 phút; full structural refresh có thể lâu hơn và Apps Script quota/contention vẫn là eventual-consistency risk.
-- Checkpoint đề xuất tiếp theo là **Auth session continuity**: access cookie hiện hết hạn khoảng 1 giờ dù refresh cookie tồn tại 30 ngày; server root guard chưa refresh trước khi redirect login. Việc này tách khỏi E1.6 và cần phê duyệt riêng.
+- Checkpoint **Auth session continuity** sau E1.6 đã hoàn tất production ngày 2026-07-19; E1.6 không còn checkpoint kế tiếp đang mở.
 
 ### E1.5 — Archive/compact `SYS_ReportCache`
 
@@ -351,17 +352,17 @@ Risk register đầy đủ thuộc `docs/quality/KNOWN_RISKS.md`.
 Baseline hiện tại:
 
 - Production `/` chạy Next.js App Router D1 với Apps Script API-only deployment ID cũ đã update lên `@290` và trả 200.
-- Production deployment D1: `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`; rollback C3 `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`; rollback correction trước `dpl_FLv6skataBjSHC2SFjTUaRTgbqd5`; rollback C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; Apps Script recovery `@281`.
+- Production deployment Auth continuity: `dpl_8f3resbHcr5ZNWMdV4PjP28Gm5yK`; rollback D1 gần nhất `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`; rollback C3 `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`; rollback C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg`; Apps Script recovery `@281`.
 - Dashboard golden 07/2026: 270.513.180 / 94.863.960 / 175.649.220 / 341.770.935 / -166.121.715.
 - Nhánh triển khai: `codex/c3-golden-master`, base `a5e29bf`.
 - C3 interaction correction `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF` vẫn READY làm rollback; toàn bộ mười surface là `USER_APPROVED`, C3 đã đóng.
 - Gate cut-forward: 284/284 test, lint, typecheck, build, `git diff --check`; các route chính/PWA 200, session unauthenticated 401, API health 200 và không có HTTP 500 sau smoke.
-- D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` vẫn READY tại production; Apps Script deployment ID hiện ở E1.4 `@290`, rollback code `@282`.
+- Auth continuity `dpl_8f3resbHcr5ZNWMdV4PjP28Gm5yK` hiện READY tại production; D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` vẫn READY làm rollback. Apps Script deployment ID hiện ở E1.4 `@290`, rollback code `@282`.
 - Supabase production migration history có đủ `001–010`; `report_bundles` giữ primary key `(spreadsheet_id, report_month)` và metadata E1.1 nullable.
 - Runtime production dùng cùng Apps Script endpoint đã update `@290`; Script Property là `supabase`. E1.5 đã compact `SYS_ReportCache` từ 198.900 xuống đúng 40 dòng vật lý; E1.6 trigger HEAD chốt ở Apps Script `@295` nhưng không update deployment web runtime.
 - Apps Script candidate E1.2 `@286` READY/smoke health 200 ở mode `sheet`; `@285` bị loại, chưa dùng candidate cho production hoặc chạy dual-mode sync.
 - E1.4–E1.6 đều DONE: Supabase cutover ổn định; full backup giữ nguyên 198.900 dòng, production cache Sheet còn 40 dòng, Report/Supabase/fallback smoke hậu migration đều PASS, manual edit Report queue đã canary và rỗng.
-- Auth session continuity candidate `dpl_8f3resbHcr5ZNWMdV4PjP28Gm5yK` trên commit `b50a928` READY tại preview và authenticated smoke PASS; production alias vẫn giữ D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` chờ phê duyệt promote.
+- Auth session continuity `dpl_8f3resbHcr5ZNWMdV4PjP28Gm5yK` trên commit `b50a928` đã promote production; authenticated Dashboard/Report reload, API health/401 và zero-5xx smoke đều PASS.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

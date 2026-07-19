@@ -103,6 +103,17 @@ Dashboard B2, Manage B3, Catalog B5 và Cashflow B6 giữ cache/fallback hiện 
 
 ## 4. Checkpoint gần nhất đã hoàn thành
 
+### E1.3 — Dual-mode preview và parity
+
+Trạng thái: **DONE ngày 2026-07-19; retry có guard và authenticated preview đều PASS, runtime giữ `dual` chờ cutover riêng**.
+
+- Lần chạy đầu bị realtime trigger chồng lấn và đã rollback an toàn về `sheet`. Retry được phê duyệt bổ sung guard dùng Script Property/Script Cache cùng Script Lock ngắn; wrapper chờ tick cũ kết thúc và tick mới tự skip trong cửa sổ parity.
+- Baseline retry của `SYS_ReportCache` tăng đúng từ 196.937 lên 196.976: 39 dòng cùng `dataVersion=1784398414278`, mỗi tháng 05/2026, 06/2026, 07/2026 có 13 dòng và không có version xen ngang.
+- Supabase có đủ 4/4 exact-version row `cache_version=v13`. Audit bounded/normalized xác nhận hash payload khớp Sheet cho ba tháng và `Tất cả`, mỗi payload có 13 dòng chi tiết.
+- Authenticated preview Report PASS cho latest 07/2026, 05/2026, 06/2026 và `Tất cả`; mọi kỳ đọc từ Supabase API cache, dữ liệu phân biệt đúng. Đổi kỳ hoàn tất khoảng 1–3,6 giây.
+- Một lần force refresh `Tất cả` hoàn tất khoảng 42 giây, hiển thị rõ `Đang đọc fallback từ Apps Script`, giữ đủ dữ liệu tổng hợp, không có lỗi console hoặc dấu hiệu HTTP 500.
+- Source đã push, Apps Script version bất biến `@288` đã tạo; gate đạt 294/294 test, lint, typecheck, Next build và `git diff --check`. Production endpoint vẫn `@282`, Vercel alias/env không đổi, `SYS_ReportCache` chưa compact/xóa và mode hiện giữ `dual`.
+
 ### E1.2 — Apps Script batch/upsert và dual mode
 
 Trạng thái: **DONE ngày 2026-07-19; code/candidate hoàn tất, production vẫn `sheet` trên Apps Script `@282`**.
@@ -223,38 +234,17 @@ Chương trình refactor Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành.
 
 ## 5. Checkpoint hiện tại
 
-### E1.3 — Dual-mode preview và parity
+### E1.4 — Controlled cutover sang Supabase report cache
 
-Trạng thái: **IN PROGRESS ngày 2026-07-19; retry kỹ thuật đã PASS, còn chờ authenticated preview Report để đóng checkpoint**.
+Trạng thái: **PROPOSED/BLOCKED; chờ người dùng phê duyệt checkpoint riêng**.
 
-Kết quả lần chạy có kiểm soát đầu tiên:
+Mục tiêu đề xuất:
 
-- Trước cửa sổ dual, `REPORT_CACHE_MODE` không được cấu hình và fallback đúng về `sheet`. Baseline live của `SYS_ReportCache` có dòng cuối 196.768; batch gần nhất gồm 39 dòng dùng chung `dataVersion=1784396163488` cho 05/2026, 06/2026, 07/2026.
-- Đã bật `dual` và chạy đúng một lần wrapper `runReportCacheParityBatchForMigration()`. Apps Script trả `ok=true`, `dataVersion=1784397123471`, `synced=4`, `failed=0`, gồm `05/2026`, `06/2026`, `07/2026`, `Tất cả`.
-- Batch mục tiêu tự nó ghi đúng 39 dòng Sheet, cùng một `dataVersion`, mỗi tháng 13 dòng. Tuy nhiên trong cùng cửa sổ, dòng cuối tăng từ 196.768 lên 196.872, tổng cộng 104 dòng thay vì 39.
-- 65 dòng ngoài batch mục tiêu đến từ realtime refresh đồng thời: `1784397003981` có 13 dòng, `1784397039851` có 13 dòng và `1784397124190` có 39 dòng. Root cause là trigger `syncRealtimeCache` chạy mỗi phút; vòng quay `reportsRecent`/`reportsAll` gọi `syncReportBundle()` và bump version trong lúc batch parity đang chạy.
-- Supabase audit theo exact `source_data_version=1784397123471` chỉ còn 3 row tháng với `cache_version=v13`; row `Tất cả` đã bị batch concurrent `1784397124190` upsert đè trên primary key `(spreadsheet_id, report_month)`. Vì vậy gate row-count và gate 4/4 bundle cùng version đều fail.
-- Đã rollback ngay `REPORT_CACHE_MODE=sheet`; log xác nhận `previous=dual`, `configured=sheet`, `effective=sheet`, `writeSupabase=false`. Không bật `supabase`, không compact/xóa Sheet, không đổi Vercel alias/env hoặc Apps Script production `@282`.
-- `ReportCacheMode.gs` hiện có các helper editor nội bộ không đi qua HTTP router để đọc mode, bật dual, rollback sheet, chạy đúng một batch và audit metadata Supabase; helper không log payload/credential. Source đã push HEAD; version Apps Script `@287` được tạo cho operations nhưng deployment tạm đã bị xóa, không có endpoint mới hoạt động.
-- Retry đề xuất phải có guard cửa sổ parity để `syncRealtimeCache` không chạy report step đồng thời, chốt lại baseline ngay trước batch và dừng/rollback nếu xuất hiện bất kỳ `dataVersion` ngoài version mục tiêu. Không tự chạy batch thứ hai khi chưa được người dùng phê duyệt.
-
-Kết quả retry đã được người dùng phê duyệt:
-
-- `syncRealtimeCache()` và wrapper parity dùng chung guard ngắn qua Script Lock/Script Property. Wrapper đặt cửa sổ parity, chờ tick realtime đang chạy kết thúc rồi mới chạy batch; tick mới tự skip trong cửa sổ này. Lock không bị giữ suốt thời gian chạy report.
-- Baseline ngay trước retry là dòng cuối 196.937. Đã bật `REPORT_CACHE_MODE=dual` và chạy đúng một batch; kết quả `ok=true`, `dataVersion=1784398414278`, `synced=4`, `failed=0`. Guard chờ tick cũ 44.944 ms trước khi bắt đầu.
-- Sau batch, dòng cuối là 196.976: tăng đúng 39 dòng, tất cả cùng version mục tiêu và mỗi tháng 05/2026, 06/2026, 07/2026 có đúng 13 dòng; không có version xen ngang trong cửa sổ batch.
-- Supabase exact-version có đủ 4/4 row với `cache_version=v13`. Audit payload read-only, bounded 500 dòng cuối, chuẩn hóa text/số rồi hash xác nhận 4/4 payload khớp Sheet: ba tháng và `Tất cả` đều 13 dòng, hash từng cặp giống nhau.
-- `REPORT_CACHE_MODE` hiện giữ `dual` để shadow-write trong E1.3; chưa bật `supabase`, chưa compact/xóa Sheet, chưa đổi Vercel alias/env hoặc Apps Script production `@282`.
-- Source guard/audit đã `clasp push`; Apps Script version bất biến `@288` (`E1.3 guarded report cache parity audit`) đã được tạo để lưu dấu code đã test. Không tạo web deployment mới vì thay đổi này chỉ phục vụ trigger/helper nội bộ và production endpoint vẫn phải giữ `@282`.
-- Preview Report hiện trả đúng trang đăng nhập nhưng phiên browser không còn authenticated. Gate latest/month/all, fallback, thời gian xử lý và log HTTP 500 trong phiên thật còn chờ người dùng đăng nhập lại preview; vì vậy E1.3 chưa được đánh dấu DONE và E1.4 vẫn blocked.
-
-Mục tiêu checkpoint:
-
-- bật `REPORT_CACHE_MODE=dual` trong cửa sổ kiểm soát và dùng Apps Script candidate `@286`, chưa bật `supabase`;
-- chạy một batch sync báo cáo, xác nhận tất cả tháng dùng cùng `dataVersion` và số row Sheet chỉ tăng đúng một batch hiện hành;
-- đối chiếu hash/payload giữa Sheet live, `SYS_ReportCache` và `report_bundles` cho 05/2026, 06/2026, 07/2026, `Tất cả`;
-- kiểm tra authenticated preview Report/latest/month/all, fallback và thời gian xử lý; theo dõi log lỗi/HTTP 500;
-- nếu parity lỗi, rollback ngay `REPORT_CACHE_MODE=sheet`; không compact Sheet, không đổi production Vercel trong E1.3.
+- chốt rollback point và baseline mới trong khi `REPORT_CACHE_MODE=dual`;
+- deploy/smoke Apps Script candidate chứa guard E1.3, sau đó đổi có kiểm soát `REPORT_CACHE_MODE=supabase` nhưng chưa compact/xóa `SYS_ReportCache`;
+- xác nhận report read/write/trigger không append thêm Sheet cache ở mode `supabase`, trong khi fallback Sheet/live compute vẫn hoạt động khi Supabase miss/lỗi;
+- kiểm tra authenticated preview rồi production cho latest/month/all, force refresh, RBAC, latency và HTTP 500; rollback ngay về `dual` hoặc `sheet` nếu gate lỗi;
+- chỉ sau thời gian ổn định và một checkpoint phê duyệt khác mới được lập migration compact/archive `SYS_ReportCache`.
 
 ## 6. Mục tiêu kiến trúc dài hạn
 
@@ -321,9 +311,9 @@ Baseline hiện tại:
 - Gate cut-forward: 284/284 test, lint, typecheck, build, `git diff --check`; các route chính/PWA 200, session unauthenticated 401, API health 200 và không có HTTP 500 sau smoke.
 - D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx` READY tại production với Apps Script API-only `@282`; source/HTTP/authenticated preview/public post-cutover/authenticated production gate đều đạt và D1 đã đóng.
 - Supabase production migration history có đủ `001–010`; `report_bundles` giữ primary key `(spreadsheet_id, report_month)` và metadata E1.1 nullable.
-- Runtime production vẫn Apps Script `@282` và vẫn dùng `SYS_ReportCache`; E1.1 chỉ có Apps Script candidate `@284`, chưa cập nhật `APPS_SCRIPT_URL` production và chưa chuyển mode khỏi `sheet`.
+- Runtime production vẫn dùng Apps Script endpoint `@282`; `SYS_ReportCache` chưa compact/xóa. Script Property hiện là `dual`, nên source/trigger HEAD shadow-write Supabase trong khi endpoint production cũ tiếp tục giữ contract fallback hiện hành.
 - Apps Script candidate E1.2 `@286` READY/smoke health 200 ở mode `sheet`; `@285` bị loại, chưa dùng candidate cho production hoặc chạy dual-mode sync.
-- Attempt E1.3 đầu đã rollback vì realtime overlap. Retry có guard đạt source-data parity: `SYS_ReportCache` tăng đúng từ 196.937 lên 196.976 cho batch `1784398414278`, Supabase có đủ 4/4 exact-version row và normalized payload hash khớp cả bốn kỳ. Mode hiện là `dual`; authenticated preview Report vẫn là gate cuối trước khi đóng E1.3.
+- E1.3 đã DONE: retry guard đạt row/version/hash parity 4/4; authenticated preview latest/month/all và fallback Apps Script đều PASS, không có console error/HTTP 500. Mode giữ `dual`; E1.4 cutover sang `supabase` chưa được phê duyệt.
 
 Mọi checkpoint mới phải chạy lại verification phù hợp và không mặc định baseline này còn đúng nếu source/deployment thay đổi.
 

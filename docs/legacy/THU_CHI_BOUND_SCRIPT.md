@@ -256,7 +256,7 @@ Khi loại là `Trả lãi` và xác nhận:
 5. tạo nội dung có đối tác/mã vay;
 6. append row vào `NHAP_VAY`;
 7. ghi mã ở cột A;
-8. ghi formula filter ở cột N;
+8. để `ARRAYFORMULA` tại `NHAP_VAY!N2` tự tạo helper filter;
 9. reset form và toast thành công.
 
 ### 9.4. Trả nợ toàn bộ
@@ -267,7 +267,7 @@ Khi loại `Trả nợ` và checkbox tất toán true:
 - append row trả nợ vào `NHAP_VAY`;
 - giữ cùng mã khoản vay;
 - tạo nội dung “Tất toán khoản vay”;
-- ghi formula filter;
+- không ghi trực tiếp vào cột N;
 - reset form.
 
 ### 9.5. Trả nợ một phần
@@ -277,7 +277,7 @@ Khi loại `Trả nợ`, tất toán false và có số tiền:
 - lấy số tiền từ form;
 - append row trả một phần;
 - dùng cùng mã vay;
-- ghi nội dung và formula filter;
+- ghi nội dung; helper filter do `N2` tự mở rộng;
 - reset form.
 
 ### 9.6. Mã vay helper
@@ -301,15 +301,16 @@ Bound script append vào các cột:
 | E | Đối tác |
 | F | Số tiền |
 | K | Nội dung |
-| N | Formula lọc |
+| N | Helper lọc do `ARRAYFORMULA` tại `N2` quản lý |
 
-Formula filter quan sát được nối các điều kiện từ `BC_VAY` với các cột A/C/E của row `NHAP_VAY`.
+Formula filter tại `N2` nối các điều kiện từ `BC_VAY` với các cột A/C/E của toàn bộ `NHAP_VAY`.
 
 Contract:
 
 - không chèn cột làm dịch mapping;
 - không đổi vị trí vùng filter `BC_VAY` nếu chưa sửa formula string;
-- không clear cột N khi web app update row;
+- web app và bound script chỉ ghi dữ liệu nghiệp vụ A:K, không ghi trực tiếp vào `N3:N`;
+- khi phát hiện vùng mảng bị chặn, xóa nội dung chặn trong `N3:N` rồi phục hồi `ARRAYFORMULA` tại `N2`;
 - giữ data validation/formula của dòng template.
 
 ## 11. `macro.js`

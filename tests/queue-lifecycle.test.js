@@ -113,7 +113,7 @@ test('failure retries below max attempts and becomes permanent at max attempts',
   assert.equal(failed.status, 'failed');
 });
 
-test('transport retry reuses WRITE_JOB_ID metadata and preserves the original row range', () => {
+test('transport retry reuses its durable reservation and preserves the original row range', () => {
   assert.equal(fixture.transportReplay.metadataKey, 'WRITE_JOB_ID');
   assert.equal(fixture.transportReplay.replayResult.startRow, fixture.transportReplay.firstResult.startRow);
   assert.equal(fixture.transportReplay.replayResult.inserted, fixture.transportReplay.firstResult.inserted);
@@ -121,8 +121,9 @@ test('transport retry reuses WRITE_JOB_ID metadata and preserves the original ro
   assert.match(transportHandler, /context\.submitRows\(payload\.formType, payload\.rows \|\| \[\], \{/);
   assert.match(transportHandler, /jobId: job\.id/);
   assert.match(transportHandler, /idempotencyKey: job\.idempotency_key/);
-  assert.match(entryService, /addDeveloperMetadata\([\s\S]*?'WRITE_JOB_ID'/);
-  assert.match(entryService, /withKey\('WRITE_JOB_ID'\)[\s\S]*?withValue\(jobId\)/);
+  assert.match(entryService, /WRITE_JOB_RESERVATION_/);
+  assert.match(entryService, /PropertiesService\.getScriptProperties\(\)\.setProperty/);
+  assert.match(entryService, /PropertiesService\.getScriptProperties\(\)\.getProperty/);
 });
 
 test('fund full replay succeeds while a partial voucher match stops the entire batch', () => {

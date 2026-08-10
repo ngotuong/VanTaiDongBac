@@ -1,10 +1,10 @@
-# Supabase schema giai đoạn 1
+# SUPABASE_SCHEMA
 
-## Phạm vi thử nghiệm
+## Phạm vi hiện tại
 
-Giai đoạn 1 chỉ dùng Supabase làm database/cache cho màn hình **Báo cáo**. Google Sheet vẫn là nguồn dữ liệu chuẩn. Apps Script vẫn đọc Google Sheet, gom dữ liệu báo cáo thành một payload JSON, rồi ghi một chiều sang Supabase.
+Supabase hiện cung cấp Auth, read model/cache, write queue, sync status và notification state cho nhiều module. Google Sheets vẫn là nguồn dữ liệu chuẩn; Supabase không phải source of truth nghiệp vụ.
 
-Màn hình chọn thử nghiệm: `Báo cáo`
+Migration production đã apply đến `013`. Migration đã chạy là bất biến; correction tiếp theo phải dùng `014+`.
 
 Nguồn Google Sheet:
 
@@ -12,7 +12,7 @@ Nguồn Google Sheet:
 - `BC_BangLuong`
 - `BC_TongHopXe`
 
-Frontend đọc thử từ Supabase trong hàm `loadReportBundle()` tại `client_data.html`. Nếu Supabase chưa cấu hình, chưa có dữ liệu, hoặc bị lỗi, frontend tự quay về API Apps Script cũ `getReportBundle`.
+Next Report đọc qua server boundary trong `next-shell/lib/report-server.ts`. Runtime report là Supabase-only cache; Apps Script live-compute từ Google Sheets và upsert lại bundle khi cache miss/lỗi hoặc force refresh.
 
 ## Bảng `public.report_bundles`
 
@@ -22,6 +22,9 @@ Frontend đọc thử từ Supabase trong hàm `loadReportBundle()` tại `clien
 | `report_month` | `text` | Có | Tháng báo cáo, ví dụ `1`, `2`, `Tất cả`, hoặc tháng được frontend chọn. |
 | `source_sheet_names` | `text[]` | Có | Danh sách sheet nguồn đã dùng để tạo payload. |
 | `payload` | `jsonb` | Có | Dữ liệu trả về từ `ReportService.getReportBundle(month, true)`. |
+| `cache_version` | `text` | Không | Version schema cache chi tiết do Apps Script ghi, ví dụ `v13`. Được thêm ở migration `010`. |
+| `source_data_version` | `text` | Không | Version dữ liệu Google Sheet dùng để tạo bundle. Được thêm ở migration `010`. |
+| `details_hash` | `text` | Không | SHA-256 chữ thường của `overview.details` đã chuẩn hóa để đối soát. Được thêm ở migration `010`. |
 | `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
 | `created_at` | `timestamptz` | Có | Thời điểm tạo row. |
 | `updated_at` | `timestamptz` | Có | Thời điểm cập nhật row gần nhất. |
@@ -42,6 +45,8 @@ RLS:
 - Không cấp quyền ghi cho frontend.
 - Apps Script dùng service role key để upsert dữ liệu.
 
+Migration `010_report_cache_cutover_foundation.sql` không tạo bảng cache thứ hai. Nó giữ nguyên khóa chính trên để mỗi workbook/tháng chỉ có một row JSON, đồng thời thêm metadata cần cho dual-run và parity. Các row cũ được giữ nguyên; ba cột mới nullable cho đến khi E1.2 bắt đầu ghi metadata.
+
 ## Luồng đồng bộ
 
 1. Người dùng nhập/sửa dữ liệu như cũ trong web app hoặc Google Sheet.
@@ -53,14 +58,17 @@ RLS:
 7. Frontend Vercel đọc `report_bundles.payload` bằng anon key.
 8. Nếu đọc Supabase lỗi, frontend tự gọi Apps Script `getReportBundle` như trước.
 
+Từ E1.2, Apps Script cũng có thể đọc `payload.overview.details` theo đúng `cache_version` và `source_data_version`. Khi sync toàn bộ, backend tạo một `dataVersion`, dựng `Tất cả` trước để tính các tháng một lần, rồi upsert từng bundle tháng và `Tất cả` với cùng metadata/hash.
+
 ## File liên quan
 
 - SQL migration: `supabase/migrations/001_report_bundles.sql`
 - SQL migration realtime cache: `supabase/migrations/002_realtime_cache.sql`
 - Apps Script sync: `SupabaseService.gs`
+- Report cache adapter: `SupabaseReportCacheRepository.gs`
 - API expose thủ công: `PublicApi.gs`, `Router.gs`
-- Frontend Supabase client: `client_api.html`
-- Frontend đọc báo cáo thử nghiệm: `client_data.html`
+- Next API clients: `next-shell/lib/platform/`
+- Report server boundary: `next-shell/lib/report-server.ts`
 
 ## Bảng cache giai đoạn 2
 
@@ -131,7 +139,7 @@ Nguồn Google Sheet tương ứng:
 
 Frontend đọc:
 
-- `client_app.html` gọi `readStartupFromSupabase('vanChuyen')` trước.
+- Next module server loaders ưu tiên bundle/cache phù hợp trước khi fallback Apps Script.
 - Nếu thiếu cache/lỗi, frontend fallback về Apps Script `getStartupData`.
 
 ### `public.catalog_bundles`
@@ -160,9 +168,9 @@ Nguồn Google Sheet tương ứng:
 
 Frontend đọc:
 
-- `client_data.html` đọc danh mục nhập liệu bằng `readCatalogsFromSupabase(formType)`.
-- `client_catalog.html` đọc bảng Danh mục bằng `readCatalogDataFromSupabase(displaySheetName)`.
-- `client_cashflow.html` đọc form options/danh mục Quỹ bằng `fund_form_options:YYYY` và `fund_catalog:YYYY:group`.
+- `next-shell/lib/entry-server.ts` tải danh mục nhập liệu.
+- `next-shell/lib/catalog-server.ts` tải bảng Danh mục.
+- `next-shell/lib/cashflow-server.ts` tải form options/danh mục Quỹ bằng key theo year/group.
 - `fund_catalog:YYYY:group` chỉ chứa danh mục cấu hình từ `CAIDAT`/catalog sheet, không trộn các giá trị fallback quét từ giao dịch đã nhập.
 - `fund_loan_bundles` nhận payload từ `FundService.getFundLoanOverview`; khi đọc `NHAP_VAY`, backend chuẩn hóa các biến thể loại dòng trả gốc thành `Trả nợ` để KPI `Đã trả nợ gốc` và `Dư nợ` nhất quán.
 - Nếu cache thiếu/lỗi, frontend fallback về Apps Script `getCatalogs` hoặc `readCatalogData`.
@@ -210,7 +218,7 @@ Nguồn Google Sheet tương ứng:
 
 Frontend đọc:
 
-- `client_manage.html` đọc `recent_500` khi người dùng vào Vận hành ở trạng thái mặc định.
+- `next-shell/lib/manage-server.ts` đọc `recent_500` khi người dùng vào Vận hành ở trạng thái mặc định.
 - Khi chọn đủ khoảng ngày, frontend đọc các cache `month:YYYY-MM` tương ứng rồi ghép và lọc ngay trên trình duyệt.
 - Nếu bấm làm mới, cache thiếu hoặc Supabase lỗi, frontend fallback về Apps Script `readManageData`.
 
@@ -289,3 +297,32 @@ Role ứng dụng:
 - `shareholder`: chỉ đọc báo cáo, bảng Vận hành, giao dịch Thu chi và khoản vay. Proxy từ chối action ghi bằng HTTP 403.
 
 RLS cho phép user `authenticated` đang active đọc cache; ghi cache/queue vẫn chỉ dùng service role. Phân quyền action chi tiết được thực thi tại Vercel API proxy, không dựa riêng vào việc ẩn nút frontend.
+
+### `public.web_push_subscriptions`
+
+Subscription Web Push theo từng tài khoản và thiết bị, được tạo bởi migration `011_web_push_subscriptions.sql`.
+
+Các cột chính:
+
+- `id`: UUID của subscription;
+- `user_id`: tham chiếu `app_users.user_id`, tự xóa khi app user bị xóa;
+- `endpoint_hash`: SHA-256 của endpoint, dùng làm khóa tìm kiếm không lộ endpoint trong query;
+- `endpoint`, `p256dh`, `auth_secret`: credential Web Push của thiết bị;
+- `user_agent`: mô tả trình duyệt đã rút gọn;
+- `created_at`, `updated_at`, `last_seen_at`: vòng đời subscription.
+
+Khóa unique là `(user_id, endpoint_hash)`. Bảng bật RLS nhưng thu hồi toàn bộ quyền của `anon` và `authenticated`; chỉ Vercel server dùng `service_role` được đọc/ghi. Browser thao tác qua `/api/push`, không đọc Supabase trực tiếp. Subscription không chứa dữ liệu nghiệp vụ và checkpoint Web Push đầu tiên không cache HTML/API hoặc dữ liệu offline.
+
+### `public.notification_rule_states`
+
+Trạng thái server-only của các rule thông báo theo lịch, tạo bởi migration `012_notification_rule_states.sql`. Rule đầu tiên có khóa `fund-current-balance-below-10m` và lưu trạng thái đang dưới ngưỡng, giá trị/threshold gần nhất, `last_evaluated_at`, `last_sent_at` cùng kết quả lần chạy.
+
+Bảng bật RLS, thu hồi toàn bộ quyền `anon`/`authenticated` và chỉ cho `service_role` đọc/ghi. Đây không phải nguồn số dư; số dư vẫn lấy từ metric `currentBalance` của `fund_overview_bundles`, cùng dữ liệu card “Số dư hiện tại”.
+
+### Notification preferences và rule config (`013`)
+
+- `notification_preferences`: lựa chọn loại thông báo theo `(user_id, notification_key)`; loại đầu tiên là `fund-low-balance`. Admin/Cổ đông thiếu row được hiểu là bật để giữ default nghiệp vụ, còn lựa chọn tắt được lưu rõ ràng.
+- `notification_rule_configs`: cấu hình admin-editable của rule Quỹ gồm trạng thái sẵn sàng, ngưỡng, cooldown, nhóm nhận và nội dung. `schedule_time` bị constraint ở `08:00`; scheduler vẫn do deployment quản lý.
+- `notification_rule_audit_logs`: trigger ghi `previous_config`/`next_config` và người thay đổi cho mỗi lần admin lưu.
+
+Cả ba bảng bật RLS, revoke `public`/`anon`/`authenticated` và chỉ cấp quyền cho `service_role`. Browser chỉ đi qua API same-origin có session/RBAC.

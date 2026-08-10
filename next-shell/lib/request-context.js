@@ -1,0 +1,30 @@
+import 'server-only';
+
+import { cache } from 'react';
+import { cookies, headers } from 'next/headers';
+import { createAppUserRepository } from '../../server/repositories/app-user-repository.js';
+import { runtimeConfig } from '../../server/runtime-config.js';
+import { createAuthService } from '../../server/services/auth-service.js';
+import { createWorkbookContextService } from '../../server/services/workbook-context-service.js';
+import { correlationIdFromHeaders } from './server-observability.js';
+
+function httpError(status, message) { return Object.assign(new Error(message), { status }); }
+
+const loadAuthenticatedRequest = cache(async () => {
+  const cookieStore = await cookies();
+  const headerStore = await headers();
+  const config = runtimeConfig();
+  const repository = createAppUserRepository({ httpError });
+  const auth = createAuthService({ appUserRepository: repository, httpError });
+  const user = await auth.getAuthenticatedUser({ headers: { cookie: cookieStore.toString() } }, config);
+  return { user, headerStore, correlationId: correlationIdFromHeaders(headerStore) };
+});
+
+export async function loadPlatformContext(input = {}) {
+  const { user, headerStore, correlationId } = await loadAuthenticatedRequest();
+  const workbookService = createWorkbookContextService({ httpError });
+  const matchedPath = headerStore.get('x-matched-path') || headerStore.get('x-invoke-path') || '';
+  const routeModule = /^\/cashflow(?:\/|$)/.test(matchedPath) ? 'cashflow' : input.module;
+  const workbook = workbookService.publicContext({ module: routeModule, year: input.year });
+  return { user, workbook, correlationId };
+}

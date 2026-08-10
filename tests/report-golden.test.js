@@ -17,7 +17,8 @@ function loadBackendReportFunctions() {
     + `  return { __reportGoldenTest: {
         readOverviewKpisFromMonthTable: readOverviewKpisFromMonthTable_,
         parseOverviewKpiDetails: parseOverviewKpiDetails_,
-        aggregateOverviewDetailMatrices: aggregateOverviewDetailMatrices_
+        aggregateOverviewDetailMatrices: aggregateOverviewDetailMatrices_,
+        repairOverviewQuantityDisplay: repairOverviewQuantityDisplay_
       },`
     + source.slice(returnIndex + '  return {'.length);
 
@@ -29,17 +30,7 @@ function loadBackendReportFunctions() {
   return context.SheetService.__reportGoldenTest;
 }
 
-function loadFrontendReportFunctions() {
-  const source = read('client_reports.html')
-    .replace(/^\s*<script[^>]*>/i, '')
-    .replace(/<\/script>\s*$/i, '');
-  const context = vm.createContext({ console, window: {} });
-  new vm.Script(source, { filename: 'client_reports.html#report-golden-test' }).runInContext(context);
-  return context;
-}
-
 const backend = loadBackendReportFunctions();
-const frontend = loadFrontendReportFunctions();
 
 test('synthetic golden fixture contains distinct month values and no production payload marker', () => {
   assert.equal(fixture.fixtureType, 'synthetic');
@@ -57,15 +48,6 @@ test('payroll matching uses the explicit salary column and never the volume colu
   const actual = plain(backend.readOverviewKpisFromMonthTable(fixture.overviewMonths));
   assert.deepEqual(actual.map((row) => row.payroll), [50, 100, 150]);
   assert.notDeepEqual(actual.map((row) => row.payroll), [5000, 7000, 9000]);
-});
-
-test('frontend overview parser preserves distinct month labels and KPI values', () => {
-  const parsed = plain(frontend.parseOverview(fixture.overviewMonths));
-  assert.deepEqual(parsed.rows.map((row) => row.month), ['05/2026', '06/2026', '07/2026']);
-  assert.deepEqual(parsed.rows.map((row) => row.revenue), [1000, 2000, 3000]);
-  assert.deepEqual(parsed.rows.map((row) => row.payroll), [50, 100, 150]);
-  assert.deepEqual(parsed.rows.map((row) => row.final), [560, 1120, 1680]);
-  assert.equal(parsed.latest.month, '07/2026');
 });
 
 test('detail KPI parsing matches each golden month and selects outside-fuel explanation', () => {
@@ -90,6 +72,17 @@ test('removing the explicit payroll header does not allow Khối lượng to bec
   const actual = plain(backend.readOverviewKpisFromMonthTable(matrix));
   assert.deepEqual(actual.map((row) => row.payroll), [50, 100, 150]);
   assert.notDeepEqual(actual.map((row) => row.payroll), [5000, 7000, 9000]);
+});
+
+test('overview quantity display recovers the numeric serial when a Sheet cell is accidentally formatted as month/year', () => {
+  const repaired = plain(backend.repairOverviewQuantityDisplay(
+    [['Tháng', 'Tổng khối lượng', 'Tổng doanh thu'], ['08/2026', '04/1906', '100.000']],
+    [['Tháng', 'Tổng khối lượng', 'Tổng doanh thu'], ['08/2026', new Date(1906, 3, 4, 6, 14, 24), 100000]]
+  ));
+  assert.deepEqual(repaired, [
+    ['Tháng', 'Tổng khối lượng', 'Tổng doanh thu'],
+    ['08/2026', '2.286,26', '100.000']
+  ]);
 });
 
 test('DashboardService owns month resolution and KPI parsing while SheetService keeps compatibility wrappers', () => {

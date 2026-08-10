@@ -86,6 +86,7 @@ var CatalogService = (function () {
     } else if (formType === 'taiXe') {
       needs.vehicles = true;
       needs.people = true;
+      needs.projects = true;
     } else if (formType === 'dau') {
       needs.vehicles = true;
     } else if (formType === 'chamCong') {
@@ -196,6 +197,32 @@ var CatalogService = (function () {
       });
     }
 
+    if (requestedName !== 'DM_ThamSo_TS' && requestedName !== 'DM_ThamSo_GD') {
+      result = projectPrimaryTable_(result);
+    }
+
+    return result;
+  }
+
+  function projectPrimaryTable_(result) {
+    var width = (result.headers || []).length;
+    for (var index = 0; index < width; index++) {
+      if (String(result.headers[index] || '').trim() === '') {
+        width = index;
+        break;
+      }
+    }
+    result.headers = (result.headers || []).slice(0, width);
+    result.rows = (result.rows || []).map(function (row) {
+      return {
+        rowIndex: row.rowIndex,
+        values: (row.values || []).slice(0, width)
+      };
+    }).filter(function (row) {
+      return row.values.some(function (value) {
+        return value !== null && value !== undefined && String(value).trim() !== '';
+      });
+    });
     return result;
   }
 

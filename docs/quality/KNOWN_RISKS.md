@@ -1,11 +1,5 @@
 # KNOWN_RISKS
 
-## Phase 6 — Next.js Report TODO
-
-- Route `/next-accounts/reports/` dùng API `getReportBundle` hiện có và không tạo API mới.
-- API hiện chưa có action bootstrap trả về workbook Vận tải đang được chọn cho standalone Next Report. Vì vậy route gửi `spreadsheetId` khi caller có context; nếu không có, Report API chọn bundle mới nhất theo `report_month`. Trước khi hỗ trợ nhiều workbook cùng tháng trên route độc lập, cần thiết kế contract workbook context riêng và phê duyệt ngoài Phase 6.
-- Session đăng nhập được tái sử dụng từ Supabase Auth cùng origin. Nếu chưa có session, route chỉ hướng người dùng quay lại ứng dụng chính để đăng nhập; Phase 6 không tạo auth API hoặc module đăng nhập mới.
-
 ## 1. Mục đích và phạm vi
 
 Tài liệu này là risk register hiện trạng của hệ thống Vận tải Đông Bắc.
@@ -64,7 +58,7 @@ Không đánh dấu Closed nếu source/kiến trúc vẫn còn đường tái d
 | R-009 | Service role/proxy secret bị lộ | Critical | Low | Mitigated |
 | R-010 | Apps Script direct API bị mở khi Auth rollback/enforcement tắt | Critical | Medium | Monitor |
 | R-011 | Permission drift giữa UI, proxy và RLS | High | Medium | Mitigated/Monitor |
-| R-012 | Frontend global dependency gây lỗi chéo | High | Medium | Open |
+| R-012 | Frontend global dependency gây lỗi chéo | High | Medium | Removed from current source/Monitor rollback only |
 | R-013 | `SheetService`/`SupabaseService` có blast radius lớn | High | Medium | Accepted |
 | R-014 | Apps Script timeout trong report/full sync | High | High | Mitigated/Accepted |
 | R-015 | Sheet tạm báo cáo còn sót | Medium | Medium | Mitigated |
@@ -83,6 +77,10 @@ Không đánh dấu Closed nếu source/kiến trúc vẫn còn đường tái d
 | R-028 | Optimistic row bị coi là dữ liệu đã ghi | High | Medium | Mitigated |
 | R-029 | Job `synced` làm sống lại row đã xóa | High | Low | Mitigated |
 | R-030 | Source bound script snapshot không khớp production | High | High | Documentation gap |
+| R-031 | Report `latest`/lọc total sai semantics và prefetch route trùng | High | Medium | Mitigated/Monitor |
+| R-032 | Chuyển route không có phản hồi tức thời và thao tác thiếu toast | Medium | High | Mitigated/Monitor |
+| R-033 | `SYS_ReportCache` append-only làm Google Sheet phình và mỗi lần đọc quét gần 2 triệu ô | High | High | Open/Migration E1 |
+| R-034 | Root Next đưa người dùng về login khi access cookie hết hạn dù refresh cookie còn hiệu lực | Medium | High | Mitigated/Monitor |
 
 ## 4. Rủi ro dữ liệu Google Sheets
 
@@ -219,6 +217,60 @@ Yêu cầu kiểm soát:
 - đối chiếu ít nhất các tháng đại diện và `Tất cả`;
 - không tối ưu/parser lại trước khi có fixture số liệu;
 - cache sync không thay thế đối soát live Sheet.
+
+### R-031 — Report latest, total rows và route prefetch lệch contract
+
+Tác động: High. Khả năng: Medium. Trạng thái: Mitigated/Monitor.
+
+Sự cố đã quan sát sau C3 cut-forward:
+
+- dùng generic total-row detector cho Báo cáo chi tiết làm mất `Tổng khối lượng`, `Tổng doanh thu`, `Lợi nhuận thực`;
+- alias `latest` lấy row Supabase sync gần nhất, kể cả snapshot Dashboard `__dashboard_latest__`, thay vì bundle của tháng nghiệp vụ mới nhất;
+- filter công ty/biển số có thể stale sau đổi matrix;
+- pointer/focus cùng prefetch một route, cộng thêm auth/API hop làm Next chậm hơn SPA legacy đã giữ data trong memory.
+
+Kiểm soát:
+
+- detail render nguyên source rows; chỉ finance/payroll/vehicles được loại total nguồn trước khi tính subtotal;
+- loại `__dashboard_latest__` khỏi Report lookup, resolve actual latest month từ overview rồi đọc exact `report_month` theo workbook; cache không có matrix tháng phải fallback;
+- filter value phải tồn tại trong option hiện tại;
+- auth memoize trong request, cache read sau auth, intent-prefetch dedupe;
+- luôn retest authenticated desktop/mobile và so latency thực tế trước cut-forward.
+
+### R-032 — Route/action không có phản hồi tức thời
+
+Tác động: Medium. Khả năng: High. Trạng thái: Mitigated/Monitor.
+
+Sự cố đã quan sát trong C3 production stabilization:
+
+- route Next động phải chờ server/data nên khi item menu không đổi state ngay, người dùng cảm giác thao tác bị khựng hoặc không nhận;
+- các module dùng status text cục bộ không nhất quán, đặc biệt trên mobile hoặc khi popup đóng, khiến refresh/export/write/audit có vẻ không phản hồi;
+- tăng prefetch hàng loạt để che latency có thể gọi đồng thời các route dữ liệu nặng và tái diễn R-027/R-031.
+
+Kiểm soát:
+
+- active/pending/progress phải xuất hiện ngay tại AppShell, không đợi route server trả về;
+- mọi pathname phải normalize trailing slash/root alias trước khi kết thúc pending; navigation lỗi phải có fail-safe để progress không chạy vô hạn;
+- pending bottom item không được dùng native `disabled` nếu trạng thái này làm mất active contrast; chống double-tap ở navigation transaction và dùng `aria-busy`/`aria-disabled`;
+- auto-hide/show phải giữ threshold/direction/top-bottom contract C2, dùng passive listener và throttle/rAF để không tạo scroll jank;
+- chỉ prefetch theo intent và dedupe; không tuyên bố cải thiện network latency nếu chưa đo authenticated;
+- dùng một toast contract toàn cục cho loading/success/error của thao tác chủ động, giữ đúng ngôn ngữ pending so với synced;
+- toast phải có `aria-live`, error alert, dismiss, timeout phù hợp và reduced-motion;
+- retest mobile/desktop trên preview trước promote, production giữ deployment rollback bất biến.
+
+### R-033 — `SYS_ReportCache` tăng không giới hạn
+
+Tác động: High. Khả năng: High. Trạng thái: Mitigated/E1.4 DONE; E1.5 cleanup pending.
+
+Audit E1.0 ngày 2026-07-18 xác nhận tab có 196.442 dòng dữ liệu, 6.832 `dataVersion`; chỉ 39 dòng thuộc version hiện hành và 196.403 dòng (99,98%) đã stale. Repository hiện đọc 10 cột của toàn bộ vùng dữ liệu, tương đương khoảng 1.964.420 ô trước khi lọc.
+
+Kiểm soát/chuyển đổi:
+
+- migration `010` giữ mô hình một row Supabase cho mỗi `(spreadsheet_id, report_month)`;
+- `REPORT_CACHE_MODE=sheet` là mặc định an toàn;
+- E1.2 dùng `dual` để ghi Supabase nhưng vẫn đọc Sheet;
+- E1.4 đã chuyển `supabase`; batch, preview/production refresh và audit sau nhiều trigger giữ dòng cuối 198.900, tăng 0;
+- không compact/xóa dòng cũ trước khi production cutover ổn định và có checkpoint riêng.
 
 ### R-015 — Sheet tạm báo cáo còn sót
 
@@ -467,6 +519,25 @@ Kiểm soát phải nằm ở:
 - trigger ownership;
 - audit/backup.
 
+### R-034 — Session Next bị ngắt quãng sau khoảng một giờ
+
+Tác động: Medium. Khả năng: High. Trạng thái: Mitigated/Monitor.
+
+Nguồn trước checkpoint Auth session continuity:
+
+- access cookie tối đa khoảng một giờ;
+- root Server Component chỉ đọc access cookie và có thể render LoginGate trước khi endpoint session kịp refresh;
+- refresh cookie 30 ngày vì vậy chưa đủ để giữ phiên liên tục.
+
+Kiểm soát hiện tại:
+
+- `GET /api/session` chủ động xoay token trong cửa sổ 25 phút trước hết hạn;
+- shared shell kiểm tra ngay khi mount, heartbeat mỗi 40 phút và kiểm tra lại khi tab hoạt động;
+- LoginGate thử refresh server-side trước khi hiển thị form;
+- refresh lỗi tạm thời không xóa một access token vẫn còn hợp lệ; cookie chỉ bị clear khi session thực sự nhận 401.
+
+Khoảng trống cần theo dõi: trình duyệt có thể suspend tab lâu hơn timer; đường recovery lúc root render là lớp bảo vệ bắt buộc. Refresh token hết hạn/revoke vẫn yêu cầu đăng nhập lại đúng contract.
+
 ## 9. Rủi ro bound script và Thu chi
 
 ### R-007 — Bound script bypass web controls
@@ -513,7 +584,7 @@ Kiểm soát: export live, diff, xác nhận trigger/drawing trước mọi thay
 
 ### R-012 — Frontend global dependency
 
-Tác động: High. Khả năng: Medium. Trạng thái: Open.
+Tác động: High. Khả năng: Medium. Trạng thái: Removed from current source/Monitor rollback only.
 
 Đặc điểm:
 
@@ -531,7 +602,7 @@ Sự cố tiềm năng:
 - event handler gọi helper chưa tồn tại;
 - CSS selector ảnh hưởng nhiều module.
 
-Kiểm soát hiện có: fragment source, syntax test, build test, manual UI test.
+Kiểm soát hiện có: D1 đã xóa browser-global fragments, DOM bridge và island flags; production dùng Next import graph, lint, typecheck và build. Rủi ro chỉ còn trong deployment legacy bất biến dùng cho rollback.
 
 ### R-013 — Service blast radius lớn
 
@@ -625,9 +696,9 @@ Nguồn:
 Kiểm soát:
 
 - workflow chỉ sửa source fragments;
-- `scripts/build.js` deterministic theo env/input;
-- syntax test cả source và built scripts;
-- Vercel build command.
+- `next build` là build frontend duy nhất;
+- lint/typecheck/test chạy trên source Next;
+- Vercel build command khóa tại `npm run build:next-accounts`.
 
 ### R-021 — `node_modules`/binary được track
 
@@ -819,5 +890,5 @@ Không xóa risk lịch sử; chuyển trạng thái và ghi kiểm soát đã l
 - Loại tài liệu: risk register hiện trạng.
 - Phạm vi: dữ liệu, báo cáo, cache, queue, Auth/RBAC, Apps Script, frontend, build, repository và bound script.
 - Nguồn kiểm chứng: source repository, schema snapshots, migrations, tests và lịch sử sự cố trong `PROJECT_CONTEXT.md`.
-- Ngày xác nhận gần nhất: 2026-07-11.
+- Ngày hệ thống lại gần nhất: 2026-08-10. Current checkpoint gates ưu tiên mục 8 của `PROJECT_CONTEXT.md`; các risk chi tiết trong file này cần được đối chiếu source trước khi hành động.
 - Cần cập nhật khi: có incident mới, kiểm soát mới, thay kiến trúc/source of truth hoặc một risk thay đổi trạng thái.

@@ -80,12 +80,12 @@ function getFundTransactions(year, filter) {
   return FundService.getFundTransactions(year, filter);
 }
 
-function getFundFormOptions(year) {
-  return FundService.getFundFormOptions(year);
+function getFundFormOptions(year, forceRefresh) {
+  return FundService.getFundFormOptions(year, forceRefresh);
 }
 
-function getFundCatalog(year, group) {
-  return FundService.getFundCatalog(year, group);
+function getFundCatalog(year, group, forceRefresh) {
+  return FundService.getFundCatalog(year, group, forceRefresh);
 }
 
 function updateFundTransaction(year, rowIndex, transaction) {
@@ -233,6 +233,18 @@ function syncRealtimeCache() {
   return SupabaseService.syncRealtimeCache();
 }
 
+function getPendingTransportReportRefresh() {
+  return SupabaseService.getPendingTransportReportRefresh();
+}
+
+function getPendingFundRefresh() {
+  return SupabaseService.getPendingFundRefresh();
+}
+
+function auditManualReportFreshnessQueue() {
+  return SupabaseService.auditManualReportFreshnessQueue();
+}
+
 function syncFullRealtimeCache() {
   return SupabaseService.syncFullRealtimeCache();
 }
@@ -273,12 +285,32 @@ function installTransportSheetSyncTrigger(spreadsheetId) {
   return SupabaseService.installTransportSheetSyncTrigger(spreadsheetId);
 }
 
+function installFundSheetSyncTrigger(spreadsheetId) {
+  return SupabaseService.installFundSheetSyncTrigger(spreadsheetId);
+}
+
+function installE16RTriggers() {
+  return SupabaseService.installE16RTriggers();
+}
+
 function handleTransportSheetEdit(e) {
   return SupabaseService.handleTransportSheetEdit(e);
 }
 
 function handleTransportSheetChange(e) {
   return SupabaseService.handleTransportSheetChange(e);
+}
+
+function handleFundSheetEdit(e) {
+  return SupabaseService.handleFundSheetEdit(e);
+}
+
+function handleFundSheetChange(e) {
+  return SupabaseService.handleFundSheetChange(e);
+}
+
+function syncFundSheetChange(eventType, sheetName) {
+  return SupabaseService.syncFundSheetChange(eventType, sheetName, null);
 }
 
 function syncTransportSheetChange(eventType, sheetName) {
@@ -329,21 +361,27 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'getFundTransactions') {
       return FundService.getFundTransactions(safeParams.year, {
         month: safeParams.month,
+        startDate: safeParams.startDate,
+        endDate: safeParams.endDate,
         limit: safeParams.limit
       });
     }
     if (action === 'getFundOverview') {
       return FundService.getFundOverview(safeParams.year, {
-        month: safeParams.month
+        month: safeParams.month,
+        startDate: safeParams.startDate,
+        endDate: safeParams.endDate
       });
     }
     if (action === 'getFundLoanOverview') {
       return FundService.getFundLoanOverview(safeParams.year, {
-        month: safeParams.month
+        month: safeParams.month,
+        startDate: safeParams.startDate,
+        endDate: safeParams.endDate
       });
     }
-    if (action === 'getFundFormOptions') return FundService.getFundFormOptions(safeParams.year);
-    if (action === 'getFundCatalog') return FundService.getFundCatalog(safeParams.year, safeParams.group);
+    if (action === 'getFundFormOptions') return FundService.getFundFormOptions(safeParams.year, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
+    if (action === 'getFundCatalog') return FundService.getFundCatalog(safeParams.year, safeParams.group, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
     if (action === 'getWriteJobStatus') return SupabaseService.getWriteJobStatus(safeParams.jobId);
     if (action === 'getRecentWriteJobs') return SupabaseService.getRecentWriteJobs(safeParams.module, safeParams.actionName || safeParams.jobAction, safeParams.limit);
     if (action === 'getSupabaseSyncStatus') return SupabaseService.getSupabaseSyncStatus(safeParams.limit, safeParams.module);
@@ -360,7 +398,10 @@ function invokeApi(method, action, params, bodyData) {
       return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.saveSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.rowData); });
     }
     if (action === 'deleteSheetRow') {
-      if (isTransportManageSheet_(safeBody.sheetName) && Array.isArray(safeBody.columnsToClear) && safeBody.columnsToClear.length) {
+      if (isTransportManageSheet_(safeBody.sheetName)) {
+        if (!Array.isArray(safeBody.columnsToClear) || !safeBody.columnsToClear.length) {
+          throw new Error('Xóa dữ liệu Vận hành phải chỉ định các cột cần làm trống; từ chối deleteRow().');
+        }
         return SupabaseService.enqueueTransportDeleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear, safeBody.rowData);
       }
       return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear); });

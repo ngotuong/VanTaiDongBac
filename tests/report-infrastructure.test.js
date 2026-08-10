@@ -73,7 +73,7 @@ function loadCacheRepository() {
   return { properties, repository: context.SheetReportCacheRepository };
 }
 
-test('sheet report cache repository creates the exact schema and round-trips only matching versions', () => {
+test('retired sheet report cache repository remains read-only and never recreates the sheet', () => {
   const stored = [];
   const sheet = {
     hidden: false,
@@ -87,20 +87,19 @@ test('sheet report cache repository creates the exact schema and round-trips onl
     }
   };
   let currentSheet = null;
-  const ss = {
-    getSheetByName: () => currentSheet,
-    insertSheet: () => { currentSheet = sheet; return sheet; }
-  };
+  const ss = { getSheetByName: () => currentSheet };
   const { repository } = loadCacheRepository();
   const options = { sheetName: 'SYS_ReportCache', cacheVersion: 'v13', dataVersion: 'data-1', clean: (value) => String(value || '').trim() };
-  repository.writeDetails(ss, { '2026-07': [['A', 'B', 'C', 'D', 'E']] }, options);
-  assert.equal(sheet.hidden, true);
-  assert.deepEqual(plain(stored[0]), ['cacheVersion', 'dataVersion', 'monthKey', 'monthLabel', 'rowOrder', 'colA', 'colB', 'colC', 'colD', 'colE']);
+  assert.deepEqual(plain(repository.readDetailsMap(ss, options)), {});
+  assert.throws(() => repository.writeDetails(ss, { '2026-07': [['A', 'B', 'C', 'D', 'E']] }, options), /retired/);
+  currentSheet = sheet;
+  stored.push(['cacheVersion', 'dataVersion', 'monthKey', 'monthLabel', 'rowOrder', 'colA', 'colB', 'colC', 'colD', 'colE']);
+  stored.push(['v13', 'data-1', '2026-07', '2026-07', 1, 'A', 'B', 'C', 'D', 'E']);
   assert.deepEqual(plain(repository.readDetailsMap(ss, options)), { '2026-07': [['A', 'B', 'C', 'D', 'E']] });
   assert.deepEqual(plain(repository.readDetailsMap(ss, { ...options, dataVersion: 'other' })), {});
 });
 
-test('report infrastructure version helpers and SheetService delegation preserve compatibility', () => {
+test('report infrastructure keeps versions in Script Properties and has no SYS_ReportCache runtime dependency', () => {
   const { properties, repository } = loadCacheRepository();
   assert.equal(repository.getDataVersion('REPORT_DATA_VERSION_V1'), '0');
   repository.bumpDataVersion('REPORT_DATA_VERSION_V1');
@@ -108,8 +107,10 @@ test('report infrastructure version helpers and SheetService delegation preserve
 
   const source = read('SheetService.gs');
   assert.match(source, /ReportTempSheetService\.computeDetails/);
-  assert.match(source, /SheetReportCacheRepository\.readDetailsMap/);
-  assert.match(source, /SheetReportCacheRepository\.writeDetails/);
+  assert.match(source, /PropertiesService\.getScriptProperties\(\)\.getProperty\(REPORT_DATA_VERSION_PROP\)/);
+  assert.match(source, /SupabaseReportCacheRepository\.readDetailsMap/);
+  assert.doesNotMatch(source, /SheetReportCacheRepository\./);
+  assert.doesNotMatch(source, /SYS_ReportCache/);
   assert.doesNotMatch(source, /sheet\.copyTo\(ss\)/);
   assert.doesNotMatch(source, /function getReportCacheSheet_/);
 });

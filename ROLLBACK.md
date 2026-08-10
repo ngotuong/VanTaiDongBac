@@ -1,116 +1,78 @@
-# Rollback Supabase giai đoạn 1
+# ROLLBACK
 
-## Mục tiêu
+## 1. Nguyên tắc
 
-Quay lại luồng cũ:
+- Rollback presentation bằng deployment Vercel bất biến đã lưu; không rebuild source cũ.
+- Rollback Apps Script bằng version còn lưu trên đúng production deployment ID; không tạo URL mới tùy ý.
+- Google Sheets là source of truth. Không rollback bằng cách restore toàn workbook nếu có thể ghi đè dữ liệu nghiệp vụ mới.
+- Migration Supabase đã chạy là bất biến; rollback ưu tiên code/feature flag hoặc migration mới.
+- Mọi rollback production cần phê duyệt rõ, trừ tình huống đang trong chính cửa sổ cutover đã được phê duyệt và gate bắt buộc thất bại.
 
-```text
-Google Sheet -> Apps Script -> Frontend
-```
+## 2. Baseline rollback hiện hành
 
-Supabase chỉ là cache thử nghiệm nên có thể tắt mà không ảnh hưởng Google Sheet.
+Production đã xác nhận trong `PROJECT_CONTEXT.md`:
 
-## Cách rollback nhanh trên Vercel
+- Vercel hiện tại: `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
+- Vercel rollback gần nhất: `dpl_8f3resbHcr5ZNWMdV4PjP28Gm5yK`.
+- Rollback lịch sử tiếp theo: D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`, C3 `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` nếu vẫn READY.
+- Apps Script production: code version `@315`; rollback gần nhất cùng deployment ID là `@302`.
+- Recovery deployment `@281` đã undeploy, không dùng.
 
-1. Mở Vercel project.
-2. Vào **Settings** → **Environment Variables**.
-3. Đổi:
+Luôn xác minh live deployment ID trước thao tác; không giả định các ID trên còn READY nếu thời gian đã trôi qua.
 
-```text
-VITE_SUPABASE_REPORTS_ENABLED=false
-```
+## 3. Vercel rollback
 
-4. Redeploy frontend.
+1. Ghi lại deployment ID và health fingerprint hiện tại.
+2. Xác minh target rollback READY và có đúng Production environment.
+3. Chỉ đổi alias `dongbac.vercel.app` trong checkpoint rollback được phê duyệt.
+4. Smoke root, routes, session 401, manifest/service worker và health.
+5. Authenticated smoke module bị ảnh hưởng.
+6. Kiểm tra log 5xx và fingerprint.
+7. Ghi kết quả vào `PROJECT_CONTEXT.md`.
 
-Sau bước này, `loadReportBundle()` sẽ không đọc Supabase nữa và quay về Apps Script.
+Không sửa alias Preview để chữa Production và không promote deployment đóng gói Apps Script Preview sang Production.
 
-Các màn hình Tổng quan, Báo cáo, Quỹ, Vận hành, màn hình loading đầu và Danh mục cũng dùng cùng flag này. Khi tắt `VITE_SUPABASE_REPORTS_ENABLED`, toàn bộ cache Supabase ở frontend sẽ dừng đọc.
+## 4. Apps Script rollback
 
-## Cách rollback trong Apps Script-hosted UI
+1. Xác minh production deployment ID canonical.
+2. Update cùng deployment đó về code version rollback đã lưu.
+3. Chờ propagation rồi kiểm tra direct health nhiều lần.
+4. Kiểm tra health qua Vercel và fingerprint đúng deployment production.
+5. Không dùng `@HEAD` hoặc tạo deployment ID mới nếu chưa được phê duyệt.
 
-Trong Apps Script **Script Properties**, đặt:
+HTTP 403 từng xuất hiện dù UI permission đúng. Nếu gặp lại, dừng và xác minh owner authorization/execute-as/access; không chữa bằng cách đổi production alias hoặc dùng Preview endpoint.
 
-```text
-SUPABASE_REPORTS_ENABLED=false
-```
+## 5. `SYS_ReportCache` retirement
 
-Nếu muốn ngừng hẳn khả năng ghi Supabase từ Apps Script, xóa property:
+Tab đã retired bằng migration có guard. Không tạo lại thủ công.
 
-```text
-SUPABASE_SERVICE_ROLE_KEY
-```
+Nếu cần điều tra/restore:
 
-Không cần xóa code ngay.
+1. có phê duyệt restore riêng;
+2. xác minh backup file ID và fingerprint trong `PROJECT_CONTEXT.md`;
+3. chạy dry-run restore của `ReportCacheRetirementMigration.gs`;
+4. xác minh workbook live chưa drift và Supabase exact-version gate;
+5. dùng one-shot approval;
+6. hậu kiểm tên/ID/thứ tự/công thức và Report parity.
 
-Nếu đã cài trigger gần realtime, có thể vào Apps Script **Triggers** và xóa trigger của function:
+Không restore toàn workbook vì có thể ghi đè dữ liệu nghiệp vụ phát sinh sau backup.
 
-```text
-syncRealtimeCache
-```
+## 6. Supabase/cache/queue
 
-Từ 2026-07-06, `syncRealtimeCache` là trigger tick mỗi 1 phút, không còn là full backfill. Full backfill thủ công là `syncFullRealtimeCache`.
+- Không xóa migration `001–013` hoặc sửa migration đã apply.
+- Nếu read cache lỗi, ưu tiên rollback runtime/candidate; Google Sheets vẫn là nguồn đối soát.
+- Không retry hàng loạt write jobs khi chưa biết job nào đã ghi Sheet; dùng exact job ID/idempotency marker.
+- Queue cleanup phải scope đúng project canonical và lưu bằng chứng trước/sau.
+- Cron cảnh báo Quỹ rollback bằng tắt `FUND_LOW_BALANCE_ALERT_ENABLED` và bỏ cron config trong deployment production tiếp theo; không xóa subscription/rule migrations.
 
-## Nếu Supabase có dữ liệu sai
+## 7. Data rollback
 
-Không sửa Google Sheet theo Supabase. Google Sheet vẫn là nguồn chuẩn.
+- Không xóa dòng vật lý trong các sheet có formula/helper/bảng phụ; Vận hành dùng clear-only đúng business columns.
+- Trước data migration destructive: backup riêng, dry-run, fingerprint, exact target và one-shot approval.
+- Sau rollback: đối chiếu Sheet, Supabase bundle, queue và UI authenticated.
 
-Có thể xóa cache Supabase bằng SQL:
+## 8. Trạng thái tài liệu
 
-```sql
-delete from public.report_bundles
-where spreadsheet_id = 'PASTE_SPREADSHEET_ID_HERE';
-```
-
-Xóa cache màn hình đầu và Danh mục nếu cần:
-
-```sql
-truncate table public.startup_bundles;
-truncate table public.catalog_bundles;
-```
-
-Xóa cache Vận hành nếu cần:
-
-```sql
-truncate table public.manage_data_bundles;
-```
-
-Sau đó app sẽ fallback về Apps Script nếu không tìm thấy dữ liệu Supabase.
-
-## Nếu cần rollback code
-
-1. Revert commit tích hợp Supabase.
-2. Chạy:
-
-```bash
-node scripts/build.js
-clasp push
-```
-
-3. Redeploy Vercel từ commit cũ hoặc revert commit trên GitHub.
-
-## Dấu hiệu rollback thành công
-
-- Màn hình **Báo cáo** vẫn mở được.
-- Màn hình loading đầu vẫn vào được dù không có Supabase.
-- Màn hình **Vận hành** vẫn đọc được qua Apps Script.
-- Màn hình **Danh mục** vẫn đọc được qua Apps Script.
-- Không cần bảng `report_bundles`.
-- Không cần Supabase URL/key.
-- Dữ liệu hiển thị khớp luồng Apps Script cũ.
-
-## Rollback Auth / API proxy
-
-1. Đặt Apps Script Property `AUTH_ENFORCEMENT_ENABLED=false` trước để khôi phục API cũ.
-2. Đặt Vercel `VITE_AUTH_ENABLED=false` và redeploy frontend nếu proxy/auth lỗi diện rộng.
-3. Không xóa `app_users`; giữ allowlist để có thể bật lại.
-4. Nếu cần khôi phục anon read tạm thời, tạo migration mới phục hồi policy; không sửa/xóa migration `008` đã chạy.
-5. Rotate `APP_PROXY_SECRET` ở cả Vercel và Apps Script nếu nghi ngờ bị lộ.
-
-Migration `009` chỉ mở rộng giá trị role và thêm `updated_at`, không cần rollback schema. Nếu cần tạm ngừng tài khoản cổ đông, đặt `active=false` trong `app_users` hoặc thao tác tại `Cài đặt > Quản lý tài khoản`. Không đổi role constraint ngược lại khi vẫn còn row `shareholder`.
-
-## Rollback Queue hardening / pilot Quỹ
-
-- Tắt `ASYNC_FUND_TRANSACTION_ADD_ENABLED=false` để thao tác thêm Thu chi quay về ghi trực tiếp.
-- Có thể giữ migration `006`; cột/RPC mới tương thích với dữ liệu job cũ.
-- Không rollback bằng cách bật lại worker đọc mọi job `processing`; dùng RPC atomic claim.
-- Nếu RPC lỗi, tạm tắt các flag queue trước khi deploy code cũ. Các job `pending` phải được kiểm tra thủ công trước khi retry để tránh ghi hai lần.
+- Loại: `CURRENT` rollback runbook.
+- Ngày hệ thống lại: 2026-08-10.
+- Deployment/source hiện hành: `PROJECT_CONTEXT.md`.

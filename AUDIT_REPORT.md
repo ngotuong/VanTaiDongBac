@@ -1,5 +1,7 @@
 # AUDIT_REPORT
 
+> **HISTORICAL BASELINE:** Đây là Technical Audit Phase 2 tại thời điểm 2026-07-11. Báo cáo được giữ để tra cứu nguyên nhân và baseline trước refactor; không mô tả đầy đủ production hiện tại và không quyết định checkpoint tiếp theo. Xem `PROJECT_CONTEXT.md` cho trạng thái sống và `NEXTJS_MIGRATION_PLAN.md` cho roadmap Next.js.
+
 ## 1. Phạm vi và phương pháp kiểm toán
 
 Báo cáo này là kết quả Phase 2 — Technical Audit của dự án Vận tải Đông Bắc.
@@ -1185,10 +1187,11 @@ Không nên bắt đầu bằng rewrite hoặc đổi source of truth.
 
 ## 21. Trạng thái báo cáo
 
-- Phase: 2 — Technical Audit.
+- Trạng thái: `HISTORICAL BASELINE`.
+- Phase ban đầu: 2 — Technical Audit.
 - Phạm vi: toàn bộ source code và execution contexts trong repository.
 - Ngày kiểm toán: 2026-07-11.
 - Loại thay đổi: chỉ tạo báo cáo.
 - Code refactor: không thực hiện.
 - Code/schema/feature changes: không thực hiện.
-- Bước tiếp theo: chỉ bắt đầu refactor planning/implementation khi người dùng phê duyệt phase riêng.
+- Bước tiếp theo lịch sử đã được hoàn thành qua `REFACTOR_PLAN.md`; không dùng dòng này để suy ra bước hiện tại.

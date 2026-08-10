@@ -26,19 +26,26 @@ function literalActions(source) {
 
 function frontendApiCalls() {
   const calls = [];
-  for (const file of fs.readdirSync(root).filter((name) => /^client_.*\.html$/.test(name))) {
-    const source = read(file);
-    for (const match of source.matchAll(/\b(?:callApi|callFetchApi)\(\s*'([A-Z]+)'\s*,\s*'([^']+)'/g)) {
-      calls.push({ file, method: match[1], action: match[2] });
+  const sourceRoot = path.join(root, 'next-shell');
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const target = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(target);
+      if (!entry.isFile() || !/\.(?:ts|tsx|js|jsx)$/.test(entry.name)) continue;
+      const source = fs.readFileSync(target, 'utf8');
+      for (const match of source.matchAll(/\b(?:api|client)\.(get|post)(?:<[^>]+>)?\(\s*'([^']+)'/g)) {
+        calls.push({ file: path.relative(root, target), method: match[1].toUpperCase(), action: match[2] });
+      }
     }
-  }
+  };
+  visit(sourceRoot);
   return calls;
 }
 
 test('literal frontend API calls resolve to a characterized method and handler surface', () => {
   const getActions = new Set(baseline.publicApi.getActions);
   const postActions = new Set(baseline.publicApi.postActions);
-  const proxyLocalActions = new Set(baseline.proxy.localAccountActions);
+  const proxyLocalActions = new Set([...baseline.proxy.localAccountActions, ...baseline.proxy.localFoundationActions]);
   const calls = frontendApiCalls();
   assert.ok(calls.length > 0, 'No literal frontend API calls were found.');
 
@@ -92,6 +99,7 @@ test('shareholder allowlist contains no write, account-admin or operational acti
     'invalidateCaches',
     'listUsers',
     'createUser',
+    'deleteUser',
     'updateUser',
     'resetUserPassword'
   ]);
@@ -105,9 +113,9 @@ test('shareholder allowlist contains no write, account-admin or operational acti
 
 test('proxy enforces shareholder deny-by-default before account and upstream dispatch', () => {
   const proxy = read('api/app.js');
-  const accountService = read('api/services/account-service.js');
-  const appsScriptClient = read('api/services/apps-script-client.js');
-  const authorizationPolicy = read('api/services/authorization-policy.js');
+  const accountService = read('server/services/account-service.js');
+  const appsScriptClient = read('server/services/apps-script-client.js');
+  const authorizationPolicy = read('server/services/authorization-policy.js');
   const authorizeCall = proxy.indexOf('assertAuthorized(user, action);');
   const accountDispatch = proxy.indexOf('accountService.handles(action)');
   const upstreamFetch = proxy.indexOf('await client.forward');
@@ -120,13 +128,13 @@ test('proxy enforces shareholder deny-by-default before account and upstream dis
 });
 
 test('account administration remains admin-only while own-password change remains available', () => {
-  const handler = read('api/services/account-service.js');
+  const handler = read('server/services/account-service.js');
 
   const ownPasswordBranch = handler.indexOf("action === 'changeOwnPassword'");
   const adminGuard = handler.indexOf('assertAdmin(user);', ownPasswordBranch);
   assert.ok(ownPasswordBranch >= 0 && adminGuard > ownPasswordBranch, 'Own-password branch must execute before the admin guard.');
 
-  for (const action of ['listUsers', 'createUser', 'updateUser', 'resetUserPassword']) {
+  for (const action of ['listUsers', 'createUser', 'updateUser', 'resetUserPassword', 'deleteUser']) {
     const branch = handler.indexOf(`action === '${action}'`);
     assert.ok(branch > adminGuard, `${action} must remain behind assertAdmin(user).`);
   }
@@ -134,9 +142,9 @@ test('account administration remains admin-only while own-password change remain
 
 test('proxy authenticates every action except health and forwards only after proxy-secret injection', () => {
   const proxy = read('api/app.js');
-  const authService = read('api/services/auth-service.js');
-  const appsScriptClient = read('api/services/apps-script-client.js');
-  const authorizationPolicy = read('api/services/authorization-policy.js');
+  const authService = read('server/services/auth-service.js');
+  const appsScriptClient = read('server/services/apps-script-client.js');
+  const authorizationPolicy = read('server/services/authorization-policy.js');
   assert.match(proxy, /if \(action !== 'health'\) user = await getAuthenticatedUser\(req, config\);/);
   assert.match(authService, /Vui lòng đăng nhập để tiếp tục/);
   assert.match(proxy, /proxySecret: config\.proxySecret/);

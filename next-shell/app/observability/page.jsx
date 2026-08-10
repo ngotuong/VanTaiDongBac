@@ -1,5 +1,5 @@
-import Observability from '../../components/Observability.jsx';
-export const metadata = { title: 'Trạng thái đồng bộ · Vận tải Đông Bắc' };
-export default function ObservabilityCanaryPage() {
-  return <main className="next-accounts-shell"><Observability bridge={null}/></main>;
+import { ObservabilityModule } from '../../components/observability/ObservabilityModule';
+export const metadata = { title: 'Trạng thái đồng bộ' };
+export default function ObservabilityPage() {
+  return <ObservabilityModule />;
 }

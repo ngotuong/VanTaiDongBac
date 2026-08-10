@@ -1,5 +1,28 @@
 # API_CONTRACTS
 
+## Phase B1 Next Report boundary
+
+- Server Component `/next-accounts/reports/` gọi `getReportBundle` qua shared server API client và truyền workbook ID do server allowlist resolve; initial read không chạy trong `useEffect`.
+- `GET /next-accounts/report-data/?month=<latest|Tất cả|MM/YYYY>&forceRefresh=<true|false>` là same-origin interaction boundary cho đổi tháng/làm mới.
+- Route B1 forward cookie server, validate month, resolve đúng workbook `transport + year` và gọi action `getReportBundle` hiện có; không tạo Apps Script action mới.
+- Response B1 chỉ trả bundle bốn matrix và cache metadata; loại `links`, không trả workbook ID, service role hoặc proxy secret.
+- `getReportBundle` tiếp tục cho phép `admin`, `operator`, `shareholder`; UI role không thay thế proxy RBAC.
+
+## Next Foundation A2 shared client boundary
+
+- Server Components gọi API qua `serverPlatformApi()`: forward cookie server, dùng `cache: 'no-store'` và gắn `X-Correlation-ID` cho mỗi request.
+- Client Components gọi API qua `clientPlatformApi()`: same-origin, `credentials: 'same-origin'`, cùng error envelope với server client.
+- `PlatformApiError` chuẩn hóa `status`, `code`, `correlationId` và payload lỗi; không đưa service role, proxy secret, refresh token hoặc Spreadsheet ID xuống browser.
+- Shared shell chỉ truyền request user và workbook `module + year` đã resolve. API/RBAC boundary vẫn là nơi enforce quyền; việc ẩn navigation không thay thế authorization.
+
+## Next Foundation A1 session/context boundary
+
+- `POST /api/session`: nhận Supabase session từ same-origin browser sau sign-in; bắt buộc `X-VTDB-CSRF: session`; xác minh Auth và active allowlist trước khi đặt cookie `HttpOnly`.
+- `GET /api/session`: đọc cookie server, xác minh request user và chủ động refresh qua Supabase khi access token còn không quá 25 phút hoặc đã hết hạn; chỉ ghi lại cookie khi refresh thành công và không trả token trong response. Nếu refresh tạm lỗi nhưng access token vẫn còn hợp lệ, request hiện tại vẫn được phép hoàn tất bằng token cũ.
+- `DELETE /api/session`: yêu cầu same-origin và CSRF header, sau đó xóa access/refresh cookie.
+- Shared shell gọi `GET /api/session` khi mount, mỗi 40 phút và khi tab hoạt động lại sau khoảng nghỉ tương ứng. Nếu root guard gặp access cookie đã hết hạn, `LoginGate` thử khôi phục bằng refresh cookie trước khi hiển thị form đăng nhập; token vẫn chỉ nằm trong cookie `HttpOnly`.
+- `GET /api/app?action=runtimeContext&module=<transport|cashflow>&year=<YYYY>`: action read-only; resolve workbook từ `WORKBOOK_CONTEXTS_JSON`; chỉ trả user, module và year; không trả Spreadsheet ID, không fallback bundle mới nhất và không gọi Apps Script.
+
 ## 1. Mục đích và phạm vi
 
 Tài liệu này mô tả contract API hiện trạng giữa:
@@ -68,15 +91,9 @@ Apps Script `Router.doPost()` parse envelope rồi gọi:
 invokeApi(method, action, params, body)
 ```
 
-### 2.3. HtmlService transport
+### 2.3. Next same-origin transport
 
-Khi frontend chạy trong Apps Script HtmlService, `client_api.html` gọi:
-
-```text
-google.script.run.invokeApi(method, action, params, body)
-```
-
-Contract action giữ nguyên, nhưng không đi qua Vercel proxy. `SecurityService` vẫn có thể yêu cầu proxy secret tùy cấu hình enforcement.
+Frontend Next gọi same-origin `/api/app` bằng client/server API client. Vercel xác thực session, enforce RBAC và thêm `proxySecret` trước khi forward Apps Script. D1 đã loại bỏ transport `google.script.run`/HtmlService.
 
 ### 2.4. Response thành công
 
@@ -605,7 +622,7 @@ Params:
 
 Public edge handler: `api/services/report-service.js`; action được forward tới `ReportService.getReport()` → `SheetService.getReport()` trong Apps Script; payroll/vehicles table read/filter delegate sang `ReportTableService`.
 
-Side effect có thể có: tính và ghi `SYS_ReportCache` khi cần chi tiết tháng.
+Side effect có thể có: tính chi tiết trên sheet tạm và upsert `report_bundles` khi cache Supabase thiếu; không ghi `SYS_ReportCache`.
 
 ### 8.4. `getReportBundle`
 
@@ -651,8 +668,8 @@ Tên field chính xác phải lấy từ service hiện tại; consumer không �
 
 Side effects có thể có:
 
-- đọc/ghi `SYS_ReportCache`;
-- tạo/xóa sheet tạm từ `BC_TongQuan`;
+- đọc/upsert Supabase `report_bundles`;
+- tạo/xóa sheet tạm từ `BC_TongQuan` khi Supabase miss/lỗi;
 - đọc nhiều `BC_*`.
 
 Supabase cache: `report_bundles` theo `spreadsheet_id` + `report_month`.
@@ -1317,7 +1334,7 @@ Response:
 }
 ```
 
-Tên collection có thể theo implementation service; frontend consumer trong `client_ui.html` là contract thực tế cần đối chiếu khi thay đổi.
+Tên collection có thể theo implementation service; consumer hiện tại trong `next-shell/components/observability/ObservabilityModule.tsx` phải được đối chiếu khi thay đổi.
 
 Action chỉ đọc trạng thái đã ghi, không chạy audit nặng.
 
@@ -1431,6 +1448,30 @@ Consumer phải kiểm tra response `queued/jobId`, không chỉ dựa vào acti
 | `getReportBundle` | có thể ghi `SYS_ReportCache`; không mặc nhiên upsert Supabase trong request |
 
 Report/dashboard sync do `ReportSyncService` sở hữu; Manage recent/month và sheet-change sync do `ManageSyncService` sở hữu; Fund overview/transaction/loan/catalog, month discovery/fallback và after-write sync do `FundSyncService` sở hữu. Tất cả đi qua compatibility facade `SupabaseService`; khi thay đổi sync behavior, phải kiểm tra direct wrapper, trigger và worker path.
+
+### 18.1. Web Push boundary tại Vercel
+
+`/api/push` là endpoint same-origin riêng, không forward Apps Script và không thuộc action registry nghiệp vụ:
+
+| Method | Thao tác | Quyền | Side effect |
+| --- | --- | --- | --- |
+| `GET /api/push` | Trả public VAPID key và số thiết bị của user hiện tại | Mọi app user active | Không |
+| `POST action=subscribe` | Upsert subscription của thiết bị hiện tại | Mọi app user active + same-origin CSRF | Supabase server-only |
+| `POST action=unsubscribe` | Xóa subscription theo user + endpoint hash | Mọi app user active + same-origin CSRF | Supabase server-only |
+| `POST action=test` | Gửi thông báo generic tới đúng thiết bị hiện tại | Mọi app user active + same-origin CSRF | Web Push provider |
+
+Endpoint luôn xác thực session HttpOnly qua `AuthService`, không trả VAPID private key, endpoint hoặc device key. Test push không cho chọn user khác. Subscription hết hạn theo response `404/410` bị xóa. Service worker chỉ xử lý `push` và `notificationclick`, không có `fetch` handler và không cache dữ liệu.
+
+### 18.2. Cảnh báo số dư Quỹ
+
+`/api/fund-alerts` không forward Apps Script:
+
+| Request | Quyền | Side effect |
+| --- | --- | --- |
+| `POST action=dryRun` | Admin + session + same-origin CSRF | Không; chỉ đọc `currentBalance`, recipient và trạng thái cooldown |
+| `GET` | Bearer `CRON_SECRET` và flag `FUND_LOW_BALANCE_ALERT_ENABLED=true` | Gửi tới thiết bị của admin/shareholder active và cập nhật `notification_rule_states` |
+
+Rule dùng đúng metric `currentBalance` trong `fund_overview_bundles`, ngưỡng 10.000.000đ, cooldown tối thiểu 24 giờ và nội dung cố định “Số dư quỹ đã xuống dưới ngưỡng 10 triệu”. Endpoint cron chưa được đăng ký trong `vercel.json` ở Preview.
 
 ## 19. Quy tắc mở rộng API
 

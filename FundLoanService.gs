@@ -16,7 +16,7 @@ var FundLoanService = (function () {
     if (!date) throw new Error('Vui lòng nhập ngày vay hợp lệ.');
     if (!partner) throw new Error('Vui lòng nhập đối tác cho khoản vay.');
     if (!(amount > 0)) throw new Error('Số tiền vay phải lớn hơn 0.');
-    return [context.buildVoucher(), date, 'Vay', context.clean(item.method), partner, amount, context.parseNumber(item.termMonths) || '',
+    return [context.buildVoucher(date), date, 'Vay', context.clean(item.method), partner, amount, context.parseNumber(item.termMonths) || '',
       context.parseNumber(item.annualRate) || '', context.parseNumber(item.interestPeriodMonths) || '', firstInterestDate || '', context.clean(item.content)];
   }
 
@@ -111,7 +111,10 @@ var FundLoanService = (function () {
     var rows = reconcile(readRows(context), context);
     var months = context.buildMonths(rows);
     var monthKey = context.normalizeMonth((filter || {}).month);
-    var period = monthKey ? context.monthPeriod(monthKey) : null;
+    var explicitStart = context.parseDate((filter || {}).startDate, (filter || {}).startDate);
+    var explicitEnd = context.parseDate((filter || {}).endDate, (filter || {}).endDate);
+    if (explicitEnd) explicitEnd.setHours(23, 59, 59, 999);
+    var period = explicitStart && explicitEnd ? { start: explicitStart, end: explicitEnd } : (monthKey ? context.monthPeriod(monthKey) : null);
     var overallMap = buildSummaryMap(rows);
     var filtered = period ? rows.filter(function (row) { return row.dateObj && row.dateObj >= period.start && row.dateObj <= period.end; }) : rows;
     var summary = period ? rows.filter(function (row) { return row.dateObj && row.dateObj <= period.end; }) : rows;

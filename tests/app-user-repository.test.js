@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { createAppUserRepository } = require('../api/repositories/app-user-repository');
+const { createAppUserRepository } = require('../server/repositories/app-user-repository');
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 const config = { supabaseUrl: 'https://example.supabase.co', serviceRoleKey: 'service-secret' };
@@ -25,6 +25,22 @@ test('AppUserRepository reads one active allowlist profile with server credentia
 test('AppUserRepository returns null for an empty allowlist result', async () => {
   const repository = createAppUserRepository({ httpError, fetchImpl: async () => ({ ok: true, json: async () => [] }) });
   assert.equal(await repository.findActiveByUserId(config, 'missing'), null);
+});
+
+test('AppUserRepository reads the current active profile with authenticated RLS token', async () => {
+  let request;
+  const repository = createAppUserRepository({
+    httpError,
+    fetchImpl: async (...args) => {
+      request = args;
+      return { ok: true, json: async () => [{ user_id: 'u1', username: 'operator' }] };
+    }
+  });
+  const row = await repository.findActiveByUserIdWithToken(config, 'u1', 'user-jwt');
+  assert.equal(row.username, 'operator');
+  assert.equal(request[1].headers.apikey, config.anonKey);
+  assert.equal(request[1].headers.Authorization, 'Bearer user-jwt');
+  assert.notEqual(request[1].headers.Authorization, `Bearer ${config.serviceRoleKey}`);
 });
 
 test('AppUserRepository preserves Supabase client errors and masks server errors', async () => {

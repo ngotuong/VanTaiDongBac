@@ -1,1 +1,7 @@
-import ManageEntry from '../../components/ManageEntry.jsx';export const metadata={title:'Vận hành · Vận tải Đông Bắc'};export default function Page(){return <main className="next-accounts-shell"><ManageEntry flags={{filters:true,entryRender:true,entrySubmit:false}}/></main>}
+import { ManageReadOnlyModule } from '../../components/manage/ManageReadOnlyModule';
+import { currentTransportMonthRange, loadManageData } from '../../lib/manage-server';
+export const metadata={title:'Vận hành'};
+export default async function Page(){
+  try { const data=await loadManageData(currentTransportMonthRange()); return <ManageReadOnlyModule initialData={data}/>; }
+  catch(error){ return <ManageReadOnlyModule initialData={null} initialError={error?.message||'Không tải được dữ liệu Vận hành.'}/>; }
+}

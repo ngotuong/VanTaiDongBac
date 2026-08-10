@@ -57,7 +57,7 @@ test('deleteSheetRow blocks physical delete payload and preserves clear/sync arg
   const payload = { sheetName: 'NL_VanChuyen', rowIndex: 9, columnsToClear: [1, 2], rowData: { old: true } };
   loaded.handler.execute({ action: 'deleteSheetRow', payload }, loaded.context);
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.delete)), [['NL_VanChuyen', 9, [1, 2], { old: true }]]);
-  assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.manage)), [['NL_VanChuyen', [], { fast: true }]]);
+  assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.manage)), [['NL_VanChuyen', [{ old: true }], { fast: true }]]);
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.reports)), [['NL_VanChuyen', [{ old: true }], { includeAll: true }]]);
 });
 
@@ -77,4 +77,15 @@ test('SupabaseService delegates transport actions separately from Fund actions',
   assert.match(source, /TransportJobHandler\.execute\(job, transportJobHandlerContext_\(\)\)/);
   assert.match(fundHandler, /context\.addFundTransactions/);
   assert.doesNotMatch(source, /if \(actionName === 'submitRows'\)/);
+});
+
+test('fast transport sync refreshes both recent and touched-month Manage bundles', () => {
+  const service = read('SupabaseService.gs');
+  const syncBody = service.match(/function syncTransportAfterWrite\([\s\S]*?\n  function syncTransportReportsAfterWrite/)[0];
+  const fastGuardIndex = syncBody.indexOf("if (!fastMode) {");
+  const touchedMonthIndex = syncBody.indexOf("touchedMonthKeys.forEach(function (monthKey)");
+  const monthBundleIndex = syncBody.indexOf("syncManageMonthBundle(safeSheetName, monthKey)");
+  assert.ok(touchedMonthIndex > fastGuardIndex, 'touched month derivation remains after the initial non-fast surface block');
+  assert.ok(monthBundleIndex > touchedMonthIndex);
+  assert.ok(monthBundleIndex < syncBody.indexOf("if (!fastMode) {", fastGuardIndex + 1), 'month bundle sync must run before the report-only fast guard');
 });

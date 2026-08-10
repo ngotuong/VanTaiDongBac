@@ -228,6 +228,21 @@ test('Cashflow card headings align consistently and transaction debt control sta
   assert.match(css, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\) !important/);
 });
 
+test('Cashflow keeps business filters compact without exposing implementation notes', () => {
+  const module = read('next-shell/components/cashflow/CashflowModule.tsx');
+  const css = read('next-shell/app/platform.css');
+
+  assert.doesNotMatch(module, /Ghi đúng 4 named range/);
+  assert.doesNotMatch(module, /bút toán phù hợp/);
+  assert.doesNotMatch(module, /className="panel-note">\{props\.total\}/);
+  assert.match(module, /className="platform-visually-hidden">Loại<\/span>/);
+  assert.match(module, /aria-label="Lọc lịch sử theo loại giao dịch"/);
+  assert.match(module, /aria-label="Lọc lịch sử theo nơi vay"/);
+  assert.match(css, /@media \(min-width: 769px\) \{[\s\S]*\.cashflow-filter-stack \{[\s\S]*grid-template-columns: minmax\(250px, 0\.9fr\) minmax\(360px, 2fr\)/);
+  assert.match(css, /\.table-card-head\.fund-loan-history-head > \.fund-loan-history-filters \{[\s\S]*display: grid !important/);
+  assert.match(css, /\.fund-loan-history-head \.table-title \{[\s\S]*font-size: 15px !important/);
+});
+
 test('Cashflow bottom-sheet headers are compact and align titles to the left', () => {
   const css = read('next-shell/app/platform.css');
 

@@ -1256,7 +1256,6 @@ function Transactions(props: { rows: FundTransaction[]; total: number; page: num
     <section className="table-card">
       <div className="table-card-head cashflow-section-head">
         <div className="table-title">{props.debtMode ? 'Danh sách công nợ' : 'Danh sách thu chi'}</div>
-        <div className="panel-note">{props.total} {props.debtMode ? 'khoản nợ' : 'giao dịch'} phù hợp</div>
       </div>
       <div className="table-wrap fund-transactions-scroll" tabIndex={0} aria-label="Danh sách thu chi, cuộn ngang để xem đủ cột">
         <table className="report-table table-wide">
@@ -1367,7 +1366,7 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
         <div className="table-card-head fund-loan-summary-head">
           <div className="table-title">Các khoản vay</div>
           <label className="compact-filter">
-            <span className="compact-filter-label">Nơi vay</span>
+            <span className="platform-visually-hidden">Nơi vay</span>
             <select aria-label="Lọc các khoản vay theo nơi vay" value={props.loanPartner} onChange={(event) => props.setLoanPartner(event.target.value)}>
               <option value="">Tất cả</option>
               {props.partners.map((value) => (
@@ -1424,14 +1423,11 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
       </section>
       <section className="table-card cashflow-loan-history">
         <div className="table-card-head fund-loan-history-head">
-          <div className="cashflow-loan-history-title">
-            <div className="table-title">Lịch sử vay / trả</div>
-            <div className="panel-note">{props.historyTotal} bút toán phù hợp</div>
-          </div>
+          <div className="table-title">Lịch sử vay / trả</div>
           <div className="fund-loan-history-filters">
             <label className="compact-filter">
-              Loại
-              <select value={props.historyType} onChange={(event) => props.setHistoryType(event.target.value)}>
+              <span className="platform-visually-hidden">Loại</span>
+              <select aria-label="Lọc lịch sử theo loại giao dịch" value={props.historyType} onChange={(event) => props.setHistoryType(event.target.value)}>
                 <option value="">Tất cả</option>
                 <option>Vay</option>
                 <option>Trả nợ</option>
@@ -1440,8 +1436,8 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
               </select>
             </label>
             <label className="compact-filter">
-              Nơi vay
-              <select value={props.historyPartner} onChange={(event) => props.setHistoryPartner(event.target.value)}>
+              <span className="platform-visually-hidden">Nơi vay</span>
+              <select aria-label="Lọc lịch sử theo nơi vay" value={props.historyPartner} onChange={(event) => props.setHistoryPartner(event.target.value)}>
                 <option value="">Tất cả</option>
                 {props.partners.map((value) => (
                   <option key={value}>{value}</option>
@@ -1500,7 +1496,6 @@ function FundSettingsCard({ value, setValue, save, busy }: { value: FundSettings
       <div className="table-card-head cashflow-section-head">
         <div>
           <div className="table-title" id="fundSettingsTitle">Thiết lập đầu kỳ</div>
-          <div className="panel-note">Ghi đúng 4 named range TMDK, TKDK, NGAYNHAPLIEU và NGAYTINHVAY trong CAIDAT.</div>
         </div>
       </div>
       <div className="panel-body modal-grid">

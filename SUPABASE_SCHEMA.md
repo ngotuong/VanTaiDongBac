@@ -1,10 +1,10 @@
-# Supabase schema giai đoạn 1
+# SUPABASE_SCHEMA
 
-## Phạm vi thử nghiệm
+## Phạm vi hiện tại
 
-Giai đoạn 1 chỉ dùng Supabase làm database/cache cho màn hình **Báo cáo**. Google Sheet vẫn là nguồn dữ liệu chuẩn. Apps Script vẫn đọc Google Sheet, gom dữ liệu báo cáo thành một payload JSON, rồi ghi một chiều sang Supabase.
+Supabase hiện cung cấp Auth, read model/cache, write queue, sync status và notification state cho nhiều module. Google Sheets vẫn là nguồn dữ liệu chuẩn; Supabase không phải source of truth nghiệp vụ.
 
-Màn hình chọn thử nghiệm: `Báo cáo`
+Migration production đã apply đến `013`. Migration đã chạy là bất biến; correction tiếp theo phải dùng `014+`.
 
 Nguồn Google Sheet:
 
@@ -12,7 +12,7 @@ Nguồn Google Sheet:
 - `BC_BangLuong`
 - `BC_TongHopXe`
 
-Next Report đọc qua server boundary trong `next-shell/lib/report-server.ts`. Nếu Supabase chưa cấu hình, chưa có dữ liệu hoặc lỗi, Vercel service fallback Apps Script action `getReportBundle`.
+Next Report đọc qua server boundary trong `next-shell/lib/report-server.ts`. Runtime report là Supabase-only cache; Apps Script live-compute từ Google Sheets và upsert lại bundle khi cache miss/lỗi hoặc force refresh.
 
 ## Bảng `public.report_bundles`
 
@@ -297,3 +297,32 @@ Role ứng dụng:
 - `shareholder`: chỉ đọc báo cáo, bảng Vận hành, giao dịch Thu chi và khoản vay. Proxy từ chối action ghi bằng HTTP 403.
 
 RLS cho phép user `authenticated` đang active đọc cache; ghi cache/queue vẫn chỉ dùng service role. Phân quyền action chi tiết được thực thi tại Vercel API proxy, không dựa riêng vào việc ẩn nút frontend.
+
+### `public.web_push_subscriptions`
+
+Subscription Web Push theo từng tài khoản và thiết bị, được tạo bởi migration `011_web_push_subscriptions.sql`.
+
+Các cột chính:
+
+- `id`: UUID của subscription;
+- `user_id`: tham chiếu `app_users.user_id`, tự xóa khi app user bị xóa;
+- `endpoint_hash`: SHA-256 của endpoint, dùng làm khóa tìm kiếm không lộ endpoint trong query;
+- `endpoint`, `p256dh`, `auth_secret`: credential Web Push của thiết bị;
+- `user_agent`: mô tả trình duyệt đã rút gọn;
+- `created_at`, `updated_at`, `last_seen_at`: vòng đời subscription.
+
+Khóa unique là `(user_id, endpoint_hash)`. Bảng bật RLS nhưng thu hồi toàn bộ quyền của `anon` và `authenticated`; chỉ Vercel server dùng `service_role` được đọc/ghi. Browser thao tác qua `/api/push`, không đọc Supabase trực tiếp. Subscription không chứa dữ liệu nghiệp vụ và checkpoint Web Push đầu tiên không cache HTML/API hoặc dữ liệu offline.
+
+### `public.notification_rule_states`
+
+Trạng thái server-only của các rule thông báo theo lịch, tạo bởi migration `012_notification_rule_states.sql`. Rule đầu tiên có khóa `fund-current-balance-below-10m` và lưu trạng thái đang dưới ngưỡng, giá trị/threshold gần nhất, `last_evaluated_at`, `last_sent_at` cùng kết quả lần chạy.
+
+Bảng bật RLS, thu hồi toàn bộ quyền `anon`/`authenticated` và chỉ cho `service_role` đọc/ghi. Đây không phải nguồn số dư; số dư vẫn lấy từ metric `currentBalance` của `fund_overview_bundles`, cùng dữ liệu card “Số dư hiện tại”.
+
+### Notification preferences và rule config (`013`)
+
+- `notification_preferences`: lựa chọn loại thông báo theo `(user_id, notification_key)`; loại đầu tiên là `fund-low-balance`. Admin/Cổ đông thiếu row được hiểu là bật để giữ default nghiệp vụ, còn lựa chọn tắt được lưu rõ ràng.
+- `notification_rule_configs`: cấu hình admin-editable của rule Quỹ gồm trạng thái sẵn sàng, ngưỡng, cooldown, nhóm nhận và nội dung. `schedule_time` bị constraint ở `08:00`; scheduler vẫn do deployment quản lý.
+- `notification_rule_audit_logs`: trigger ghi `previous_config`/`next_config` và người thay đổi cho mỗi lần admin lưu.
+
+Cả ba bảng bật RLS, revoke `public`/`anon`/`authenticated` và chỉ cấp quyền cho `service_role`. Browser chỉ đi qua API same-origin có session/RBAC.

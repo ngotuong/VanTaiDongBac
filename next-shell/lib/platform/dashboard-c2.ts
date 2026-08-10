@@ -9,10 +9,45 @@ export type DashboardMonthRow = {
   gross: number;
   cashCost: number;
   final: number;
+  taxTndn: number;
+  taxVat: number;
+  fuelQm: number;
+  fuelOut: number;
+  roadFee: number;
+  payroll: number;
+  fund: number;
   raw: ReportCell[];
 };
 
 export type DashboardMetricKey = 'revenue' | 'operatingCost' | 'gross' | 'cashCost' | 'final';
+
+export function normalizeMonth(input: unknown): string {
+  const text = String(input ?? '').trim();
+  if (!text || text === 'Tất cả' || text === 'latest') return text;
+
+  const dmyMatch = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmyMatch) {
+    const m = dmyMatch[2].padStart(2, '0');
+    const y = dmyMatch[3];
+    return `${m}/${y}`;
+  }
+
+  const myMatch = text.match(/^(\d{1,2})\/(\d{4})$/);
+  if (myMatch) {
+    const m = myMatch[1].padStart(2, '0');
+    const y = myMatch[2];
+    return `${m}/${y}`;
+  }
+
+  const isoMatch = text.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?/);
+  if (isoMatch) {
+    const y = isoMatch[1];
+    const m = isoMatch[2].padStart(2, '0');
+    return `${m}/${y}`;
+  }
+
+  return text;
+}
 
 export function numberValue(value: unknown) {
   const text = String(value ?? '').replace(/[^\d,\-.]/g, '');
@@ -23,7 +58,8 @@ export function numberValue(value: unknown) {
 }
 
 export function normalizeMonthLabel(value: unknown) {
-  const text = String(value ?? '').trim();
+  const normalizedMonth = normalizeMonth(value);
+  const text = String(normalizedMonth ?? '').trim();
   if (!text) return '';
   const vn = text.match(/^(\d{1,2})\/(\d{4})$/);
   if (vn) return `${vn[2]}-${String(Number(vn[1])).padStart(2, '0')}`;
@@ -45,24 +81,41 @@ export function parseDashboardRows(matrix?: ReportMatrix): DashboardMonthRow[] {
   const revenueIndex = column(['doanh thu'], 2);
   const taxTndnIndex = column(['thuế tndn', 'tndn'], 3);
   const taxVatIndex = column(['thuế vat', 'vat'], 4);
-  const fuelIndex = column(['dầu qm', 'quang minh'], 5);
-  const tollIndex = column(['cầu đường', 'phí cầu đường'], 7);
+  const fuelQmIndex = column(['dầu qm', 'quang minh'], 5);
+  const fuelOutIndex = column(['dầu ngoài'], 6);
+  const tollIndex = column(['phí đi đường', 'phí đường', 'cầu đường', 'phí cầu đường'], 7);
   const grossIndex = column(['lợi nhuận gộp'], 8);
-  const finalIndex = column(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận thực'], 10);
+  const payrollIndex = column(['chi phí lương', 'chi lương', 'lương'], 9);
+  const fundIndex = column(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 10);
+  const finalIndex = column(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận thực'], 11);
   const body = headerIndex >= 0 ? matrix.slice(headerIndex + 1) : matrix.slice(1);
   return body.filter((row) => String(row?.[monthIndex] ?? '').trim()).map((raw) => {
     const revenue = numberValue(raw[revenueIndex]);
-    const calculatedGross = revenue - numberValue(raw[taxTndnIndex]) - numberValue(raw[taxVatIndex]) - numberValue(raw[fuelIndex]) - numberValue(raw[tollIndex]);
+    const taxTndn = numberValue(raw[taxTndnIndex]);
+    const taxVat = numberValue(raw[taxVatIndex]);
+    const fuelQm = numberValue(raw[fuelQmIndex]);
+    const fuelOut = numberValue(raw[fuelOutIndex]);
+    const roadFee = numberValue(raw[tollIndex]);
+    const calculatedGross = revenue - taxTndn - taxVat - fuelQm - roadFee;
     const gross = grossIndex >= 0 ? numberValue(raw[grossIndex]) : calculatedGross;
-    const final = numberValue(raw[finalIndex]);
+    const payroll = payrollIndex >= 0 ? numberValue(raw[payrollIndex]) : 0;
+    const fund = fundIndex >= 0 ? numberValue(raw[fundIndex]) : 0;
+    const final = finalIndex >= 0 ? numberValue(raw[finalIndex]) : gross - payroll - fund - fuelOut;
     return {
-      month: String(raw[monthIndex] ?? '').trim(),
+      month: normalizeMonth(raw[monthIndex]),
       volume: numberValue(raw[volumeIndex]),
       revenue,
       operatingCost: revenue - gross,
       gross,
       cashCost: gross - final,
       final,
+      taxTndn,
+      taxVat,
+      fuelQm,
+      fuelOut,
+      roadFee,
+      payroll,
+      fund,
       raw
     };
   }).filter((row) => row.month !== 'Tháng');
@@ -87,6 +140,14 @@ export function metricValue(row: DashboardMonthRow, key: DashboardMetricKey, kpi
 
 export function formatCurrencyText(value: number) {
   return Math.round(Number(value || 0)).toLocaleString('vi-VN');
+}
+
+export function normalizeVehiclePlate(value: unknown) {
+  return String(value ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+export function countUniqueVehicles(trips: Array<{ vehicle?: unknown }> = []) {
+  return new Set(trips.map((trip) => normalizeVehiclePlate(trip.vehicle)).filter(Boolean)).size;
 }
 
 export function growth(current: number, previous: number | undefined, invertGood = false) {

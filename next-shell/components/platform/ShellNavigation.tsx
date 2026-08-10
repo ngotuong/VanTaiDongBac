@@ -56,6 +56,18 @@ export function ShellNavigation({ items, role, mode = 'side', pendingHref = '', 
     PREFETCHED_ROUTES.add(href);
     router.prefetch(href);
   };
+  useEffect(() => {
+    if (mode !== 'side') return;
+    const targets = items
+      .filter((item) => item.roles.includes(role) && !routesEqual(item.href, currentPath))
+      .map((item) => item.href);
+    const timers = targets.map((href, index) => window.setTimeout(() => {
+      if (PREFETCHED_ROUTES.has(href)) return;
+      PREFETCHED_ROUTES.add(href);
+      router.prefetch(href);
+    }, 250 + index * 350));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [currentPath, items, mode, role, router]);
   return <nav className={`${mode === 'bottom' ? 'bottom-nav' : 'nav-stack'}${navHidden ? ' nav-hidden' : ''}`} aria-label={mode === 'bottom' ? 'Điều hướng nhanh' : 'Điều hướng chính'}>
     {visible.map((item) => {
       const optimisticPath = normalizeRoutePath(pendingHref || currentPath);

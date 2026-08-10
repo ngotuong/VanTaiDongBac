@@ -10,7 +10,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 function loadWorker(options = {}) {
   const vmContext = vm.createContext({});
   new vm.Script(read('WriteJobWorker.gs'), { filename: 'WriteJobWorker.gs#test' }).runInContext(vmContext);
-  const calls = { claims: [], processing: [], synced: [], failures: [], executions: [] };
+  const calls = { claims: [], processing: [], synced: [], failures: [], executions: [], releases: [] };
   const jobs = options.jobs || [];
   const context = {
     isEnabled: () => options.enabled !== false,
@@ -26,6 +26,7 @@ function loadWorker(options = {}) {
       markSynced(jobId, result, syncedAt) { calls.synced.push({ jobId, result, syncedAt }); },
       markFailure(jobId, status, error, nextRunAt, details) { calls.failures.push({ jobId, status, error, nextRunAt, details }); }
     },
+    releaseReservation: (jobId) => calls.releases.push(jobId),
     clean: (value) => String(value || '').trim(),
     nowISOString: () => 'synced-at',
     nextRunISOString: (attempts) => `retry-after-${attempts}`
@@ -59,6 +60,7 @@ test('successful lifecycle preserves processing details, result, and synced resp
     jobId: 'job-1', details: { attempt: 1, workerId: 'gas-worker-uuid', claimedAt: 'claimed', idempotencyKey: 'request-1' }
   }]);
   assert.equal(loaded.calls.synced[0].syncedAt, 'synced-at');
+  assert.deepEqual(loaded.calls.releases, ['job-1']);
 });
 
 test('failure remains pending below max attempts and permanent at max attempts', () => {
@@ -81,6 +83,7 @@ test('SupabaseService delegates worker lifecycle and dispatches transport/fund h
   const service = read('SupabaseService.gs');
   assert.match(service, /return WriteJobWorker\.process\(maxJobs, writeJobWorkerContext_\(\)\)/);
   assert.match(service, /executeJob: executeWriteJob_/);
+  assert.match(service, /releaseReservation: EntryService\.releaseWriteJobReservation/);
   assert.match(service, /function executeWriteJob_\(job\)/);
   assert.match(service, /TransportJobHandler\.execute/);
   assert.match(service, /FundJobHandler\.execute/);

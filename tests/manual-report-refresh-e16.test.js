@@ -32,6 +32,7 @@ function loadQueue() {
   return {
     service: vmContext.ManualReportRefreshQueueService,
     context,
+    values,
     advance(ms) { now += ms; }
   };
 }
@@ -74,6 +75,19 @@ test('E1.6 structural changes supersede narrow months and failed claims retry sa
   assert.equal(retry.waitMs, 30000);
 });
 
+test('E1.6R queue supports an isolated property key for Fund refresh work', () => {
+  const queue = loadQueue();
+  queue.context.propertyKey = 'SUPABASE_PENDING_FUND_SYNC';
+  queue.service.enqueue({ months: ['2026-07'], source: 'fund-sheet' }, queue.context);
+  assert.equal(queue.values.SUPABASE_PENDING_TRANSPORT_REPORT_SYNC, undefined);
+  assert.ok(queue.values.SUPABASE_PENDING_FUND_SYNC);
+  queue.advance(15000);
+  const claimed = queue.service.claimDue(queue.context);
+  assert.equal(claimed.due, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(claimed.item.months)), ['2026-07']);
+  assert.equal(queue.values.SUPABASE_PENDING_FUND_SYNC, undefined);
+});
+
 test('E1.6 Supabase facade prioritizes due manual reports and refreshes Tất cả', () => {
   const source = read('SupabaseService.gs');
   const claimOffset = source.indexOf('ManualReportRefreshQueueService.claimDue');
@@ -91,4 +105,48 @@ test('E1.6 Supabase facade prioritizes due manual reports and refreshes Tất c�
   assert.match(read('PublicApi.gs'), /function getPendingTransportReportRefresh\(\)/);
   assert.match(read('PublicApi.gs'), /function auditManualReportFreshnessQueue\(\)/);
   assert.match(source, /E1\.6 audit:/);
+});
+
+test('E1.6R idles between queued work and limits the heavy safety sweep to hourly', () => {
+  const source = read('SupabaseService.gs');
+  assert.match(source, /REALTIME_SWEEP_INTERVAL_MS = 60 \* 60 \* 1000/);
+  assert.match(source, /if \(!claimRealtimeSweep_\(props, nowMillis\)\)[\s\S]*No due refresh work; hourly safety sweep is not due/);
+  const transportClaim = source.indexOf('ManualReportRefreshQueueService.claimDue(manualReportRefreshQueueContext_())');
+  const fundClaim = source.indexOf('ManualReportRefreshQueueService.claimDue(fundRefreshQueueContext_())', transportClaim);
+  const sweepClaim = source.indexOf('claimRealtimeSweep_(props, nowMillis)', fundClaim);
+  assert.ok(transportClaim > -1 && fundClaim > transportClaim && sweepClaim > fundClaim);
+});
+
+test('E1.6R adds direct Fund Sheet triggers and delayed transport downstream refresh', () => {
+  const source = read('SupabaseService.gs');
+  const api = read('PublicApi.gs');
+  assert.match(source, /newTrigger\('handleFundSheetEdit'\)\.forSpreadsheet\(targetSpreadsheetId\)\.onEdit\(\)\.create\(\)/);
+  assert.match(source, /newTrigger\('handleFundSheetChange'\)\.forSpreadsheet\(targetSpreadsheetId\)\.onChange\(\)\.create\(\)/);
+  assert.match(source, /safeSheetName === 'NHAP_THUCHI' \|\| safeSheetName === 'NHAP_VAY'/);
+  assert.match(source, /delayMs: FUND_TO_TRANSPORT_DELAY_MS/);
+  assert.match(source, /step: 'fundPending'/);
+  assert.match(api, /function installE16RTriggers\(\)/);
+  assert.match(api, /function handleFundSheetEdit\(e\)/);
+  assert.match(api, /function handleFundSheetChange\(e\)/);
+});
+
+test('E1.6R polls bounded source tails every five minutes as a trigger-independent fallback', () => {
+  const source = read('SupabaseService.gs');
+  assert.match(source, /SOURCE_POLL_INTERVAL_MS = 5 \* 60 \* 1000/);
+  assert.match(source, /lastRow - 24/);
+  assert.match(source, /sheet\.getRange\(startRow, 1, numRows, source\.width\)\.getValues\(\)/);
+  assert.match(source, /sheetName: 'NL_VanChuyen', width: 7, kind: 'transport'/);
+  assert.match(source, /sheetName: 'NHAP_THUCHI', width: 14, kind: 'fund'/);
+  assert.match(source, /sheetName: 'NHAP_VAY', width: 14, kind: 'fund'/);
+  assert.match(source, /source: 'poll:fund-downstream'/);
+  assert.match(source, /polledTransport[\s\S]*syncManageDataBundle\('NL_VanChuyen'\)/);
+});
+
+test('E1.6R retries queue contention without acknowledging a source fingerprint early', () => {
+  const source = read('SupabaseService.gs');
+  assert.match(source, /REFRESH_QUEUE_LOCK_WAIT_MS = 30 \* 1000/);
+  assert.match(source, /lock\.waitLock\(REFRESH_QUEUE_LOCK_WAIT_MS\)/);
+  assert.match(source, /enqueueRefreshWithFallback_[\s\S]*SOURCE_POLL_NEXT_AT_PROP, '0'/);
+  assert.match(source, /if \(queued && queued\.deferred\) throw new Error[\s\S]*props\.setProperty\(propertyKey, state\.fingerprint\)/);
+  assert.match(source, /SOURCE_POLL_NEXT_AT_PROP, String\(nowMillis \+ SOURCE_POLL_RETRY_MS\)[\s\S]*source_poll_failed:/);
 });

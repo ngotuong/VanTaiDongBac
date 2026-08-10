@@ -26,9 +26,10 @@ export async function loadDashboardData(forceRefresh = false): Promise<Dashboard
           return { dashboard: publicDashboard({ ...(row.payload as DashboardBundle), supabaseCached: true, supabaseSyncedAt: row.synced_at }) };
         }
       }
-    } catch {
-      // Cache is an optimization. Apps Script remains the source fallback.
+    } catch (error) {
+      throw httpError(503, error instanceof Error ? error.message : 'Không đọc được Tổng quan từ Supabase.');
     }
+    throw httpError(503, 'Cache Tổng quan trên Supabase chưa sẵn sàng.');
   }
   const api = await createServerApiClient();
   const dashboard = await api.get<DashboardBundle & { links?: unknown }>('getDashboard', {

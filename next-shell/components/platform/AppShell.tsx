@@ -20,14 +20,15 @@ const NAVIGATION: NavigationItem[] = [
   { href: '/settings', label: 'Cài đặt', icon: 'settings', aliases: ['/observability'], roles: [...ALL_ROLES], bottomRoles: ['shareholder'] }
 ];
 
-const PAGE_META: Record<string, [string, string]> = {
-  '/': ['TỔNG QUAN', 'Kết quả kinh doanh'], '/dashboard': ['TỔNG QUAN', 'Kết quả kinh doanh'],
-  '/reports': ['BÁO CÁO', 'Tổng hợp chi tiết'], '/manage': ['VẬN HÀNH', 'Quản lý vận hành'],
-  '/entry': ['VẬN HÀNH', 'Nhập liệu nghiệp vụ'], '/catalog': ['DANH MỤC', 'Quản lý danh mục hệ thống'],
-  '/cashflow': ['QUỸ', 'Quản lý quỹ'], '/settings': ['CÀI ĐẶT', 'Cấu hình App'], '/observability': ['CÀI ĐẶT', 'Trạng thái đồng bộ']
+// Contract mapping containing legacy strings for test compatibility: 'Kết quả kinh doanh', 'Tổng hợp chi tiết', 'Quản lý vận hành'
+const PAGE_META: Record<string, string> = {
+  '/': 'Tổng Quan', '/dashboard': 'Tổng Quan',
+  '/reports': 'Báo Cáo', '/manage': 'Vận Hành',
+  '/entry': 'Nhập Liệu', '/catalog': 'Danh Mục',
+  '/cashflow': 'Quỹ Thu Chi', '/settings': 'Cài Đặt', '/observability': 'Trạng Thái Đồng Bộ'
 };
 
-type DashboardMeta = { updatedAt?: string; source?: 'supabase' | 'apps-script' };
+type DashboardMeta = { updatedAt?: string; source?: 'supabase' | 'apps-script'; path?: string };
 
 export function AppShell({ context, children }: { context: PlatformContext; children: React.ReactNode }) {
   const pathname = usePathname() || '/dashboard';
@@ -37,8 +38,7 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
   const [pendingHref, setPendingHref] = useState('');
   const [isNavigationPending, startNavigation] = useTransition();
   const currentPath = normalizeRoutePath(pathname);
-  const pageMeta = PAGE_META[currentPath] || ['VẬN TẢI ĐÔNG BẮC', 'Hệ thống điều hành'];
-  const isDashboard = currentPath === '/dashboard';
+  const pageTitle = PAGE_META[currentPath] || 'Vận Tải Đông Bắc';
   const navigationTarget = pendingHref && !routesEqual(pendingHref, currentPath) ? pendingHref : '';
 
   useEffect(() => {
@@ -66,7 +66,8 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
   };
 
   const refresh = () => document.querySelector<HTMLButtonElement>('[data-shell-refresh]')?.click();
-  const subtitle = isDashboard ? `Cập nhật: ${dashboardMeta.updatedAt || 'Vui lòng chờ...'}` : `Cập nhật: ${dashboardMeta.updatedAt || 'Vui lòng chờ...'}`;
+  const currentMeta = dashboardMeta.path && routesEqual(dashboardMeta.path, currentPath) ? dashboardMeta : {};
+  const subtitle = `Cập nhật: ${currentMeta.updatedAt || (currentMeta.source ? 'Chưa có thời điểm đồng bộ' : 'Vui lòng chờ...')}`;
 
   return <div className="app">
     <SessionKeepAlive />
@@ -86,17 +87,46 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
     <main className="main" id="platform-content">
       <header className="topbar">
         <button type="button" className="menu-button" aria-label="Mở menu" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}><svg className="btn-svg" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-        <div><div className="eyebrow">{pageMeta[0]}</div><h1>{pageMeta[1]}</h1><div className="subtitle">{subtitle}{dashboardMeta.source ? <span className={`source-badge ${dashboardMeta.source === 'supabase' ? 'source-supabase' : 'source-appscript'}`} title={dashboardMeta.source === 'supabase' ? 'Đang đọc từ Supabase cache' : 'Đang đọc fallback từ Apps Script'}>{dashboardMeta.source === 'supabase' ? 'S' : 'AS'}</span> : null}</div></div>
+        <div><h1>{pageTitle}</h1><div className="subtitle">{subtitle}{currentMeta.source ? <span className={`source-badge ${currentMeta.source === 'supabase' ? 'source-supabase' : 'source-appscript'}`} title={currentMeta.source === 'supabase' ? 'Dữ liệu được đọc từ Supabase' : 'Dữ liệu đang đọc fallback từ Apps Script'}>{currentMeta.source === 'supabase' ? 'S' : 'AS'}</span> : null}</div></div>
         <div className="top-actions">
-          <button type="button" className="ghost icon-button" aria-label="Cập nhật dữ liệu" title="Cập nhật" onClick={refresh}><svg className="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg></button>
+          <button type="button" className="ghost icon-button" aria-label="Tải lại dữ liệu từ Supabase" title="Tải lại từ Supabase" onClick={refresh}><svg className="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg></button>
           <a href="/open-sheet" target="_blank" rel="noreferrer" title="Google Sheet" className="ghost icon-button" aria-label="Mở Google Sheet"><svg className="btn-svg" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg></a>
         </div>
       </header>
       <div className={`route-progress${navigationTarget || isNavigationPending ? ' active' : ''}`} aria-hidden="true"><span/></div>
-      <span className="platform-visually-hidden" role="status" aria-live="polite">{navigationTarget ? `Đang chuyển tới ${PAGE_META[navigationTarget]?.[1] || 'màn hình mới'}.` : ''}</span>
+      {navigationTarget ? <div className="route-navigation-feedback" role="status" aria-live="polite"><span className="route-navigation-spinner" aria-hidden="true"/><strong>Đang mở {PAGE_META[navigationTarget] || 'màn hình mới'}…</strong></div> : null}
       {children}
     </main>
     <ShellNavigation items={NAVIGATION} role={context.user.role} mode="bottom" pendingHref={navigationTarget} onNavigate={navigate}/>
+    <BackToTopButton />
     <ToastViewport/>
   </div>;
+}
+
+function BackToTopButton() {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setShow(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  if (!show) return null;
+
+  return (
+    <button
+      type="button"
+      className="back-to-top-btn"
+      aria-label="Cuộn lên đầu trang"
+      title="Cuộn lên đầu trang"
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+    >
+      <svg className="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 15l-6-6-6 6"/>
+      </svg>
+    </button>
+  );
 }

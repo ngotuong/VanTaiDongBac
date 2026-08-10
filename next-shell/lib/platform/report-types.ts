@@ -19,4 +19,5 @@ export type ReportBundle = {
 export type ReportDataResponse = {
   bundle: ReportBundle;
   requestedMonth: string;
+  vehicleOwners?: Record<string, string>;
 };

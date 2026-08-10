@@ -17,7 +17,8 @@ function loadBackendReportFunctions() {
     + `  return { __reportGoldenTest: {
         readOverviewKpisFromMonthTable: readOverviewKpisFromMonthTable_,
         parseOverviewKpiDetails: parseOverviewKpiDetails_,
-        aggregateOverviewDetailMatrices: aggregateOverviewDetailMatrices_
+        aggregateOverviewDetailMatrices: aggregateOverviewDetailMatrices_,
+        repairOverviewQuantityDisplay: repairOverviewQuantityDisplay_
       },`
     + source.slice(returnIndex + '  return {'.length);
 
@@ -71,6 +72,17 @@ test('removing the explicit payroll header does not allow Khối lượng to bec
   const actual = plain(backend.readOverviewKpisFromMonthTable(matrix));
   assert.deepEqual(actual.map((row) => row.payroll), [50, 100, 150]);
   assert.notDeepEqual(actual.map((row) => row.payroll), [5000, 7000, 9000]);
+});
+
+test('overview quantity display recovers the numeric serial when a Sheet cell is accidentally formatted as month/year', () => {
+  const repaired = plain(backend.repairOverviewQuantityDisplay(
+    [['Tháng', 'Tổng khối lượng', 'Tổng doanh thu'], ['08/2026', '04/1906', '100.000']],
+    [['Tháng', 'Tổng khối lượng', 'Tổng doanh thu'], ['08/2026', new Date(1906, 3, 4, 6, 14, 24), 100000]]
+  ));
+  assert.deepEqual(repaired, [
+    ['Tháng', 'Tổng khối lượng', 'Tổng doanh thu'],
+    ['08/2026', '2.286,26', '100.000']
+  ]);
 });
 
 test('DashboardService owns month resolution and KPI parsing while SheetService keeps compatibility wrappers', () => {

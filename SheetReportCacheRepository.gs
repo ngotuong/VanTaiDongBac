@@ -27,32 +27,11 @@ var SheetReportCacheRepository = (function () {
   }
 
   function writeDetails(ss, detailsByMonth, options) {
-    var rows = [];
-    Object.keys(detailsByMonth || {}).forEach(function (monthKey) {
-      var matrix = detailsByMonth[monthKey] || [];
-      matrix.forEach(function (row, index) {
-        rows.push([
-          options.cacheVersion, options.dataVersion, monthKey, monthKey, index + 1,
-          row[0] || '', row[1] || '', row[2] || '', row[3] || '', row[4] || ''
-        ]);
-      });
-    });
-    if (!rows.length) return;
-    var sheet = getCacheSheet_(ss, options.sheetName, true);
-    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 10).setValues(rows);
+    throw new Error('SYS_ReportCache is retired and cannot be written or recreated.');
   }
 
-  function getCacheSheet_(ss, sheetName, createIfMissing) {
-    var sheet = ss.getSheetByName(sheetName);
-    if (!sheet && createIfMissing) {
-      sheet = ss.insertSheet(sheetName);
-      sheet.hideSheet();
-      sheet.getRange(1, 1, 1, 10).setValues([[
-        'cacheVersion', 'dataVersion', 'monthKey', 'monthLabel', 'rowOrder',
-        'colA', 'colB', 'colC', 'colD', 'colE'
-      ]]);
-    }
-    return sheet;
+  function getCacheSheet_(ss, sheetName) {
+    return ss.getSheetByName(sheetName);
   }
 
   return {

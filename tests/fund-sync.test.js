@@ -22,8 +22,8 @@ function loadService(overrides = {}) {
     },
     getFundTransactions(year, filter) { calls.reads.push(['transactions', year, filter]); return { kind: 'transactions', year, filter }; },
     getFundLoanOverview(year, filter) { calls.reads.push(['loans', year, filter]); return { kind: 'loans', year, filter }; },
-    getFundFormOptions(year) { calls.reads.push(['formOptions', year]); return { kind: 'formOptions', year }; },
-    getFundCatalog(year, group) { calls.reads.push(['catalog', year, group]); return { kind: 'catalog', year, group }; },
+    getFundFormOptions(year, forceRefresh) { calls.reads.push(['formOptions', year, forceRefresh]); return { kind: 'formOptions', year }; },
+    getFundCatalog(year, group, forceRefresh) { calls.reads.push(['catalog', year, group, forceRefresh]); return { kind: 'catalog', year, group }; },
     parseDateValue(value) {
       const date = new Date(value);
       return Number.isNaN(date.getTime()) ? null : date;
@@ -69,6 +69,7 @@ test('fund catalog sync preserves six targets and stable catalog keys', () => {
     'fund_catalog:2026:incomeCategories', 'fund_catalog:2026:expenseCategories',
     'fund_catalog:2026:actors', 'fund_catalog:2026:partners', 'fund_catalog:2026:loanPartners'
   ]);
+  assert.equal(calls.reads.every((call) => call[call.length - 1] === true), true);
 });
 
 test('full and after-write sync preserve month scope and orchestration result counts', () => {

@@ -39,11 +39,13 @@ var ValidationService = (function () {
   function buildTaiXe_(row, catalogs, line, warnings) {
     var date = requireDate_(row.date, 'Ngay');
     var plate = requireText_(row.vehicle, 'Bien so xe');
+    var project = requireText_(row.project, 'Du an');
     var driver = requireText_(row.driver, 'Tai xe');
     var trips = requirePositiveNumber_(row.trips, 'So chuyen');
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
+    warnIfMissing_(catalogs.projects, 'name', project, 'Dong ' + line + ': Du an chua co trong DM_DuAn.', warnings);
     warnIfMissing_(catalogs.people, 'name', driver, 'Dong ' + line + ': Tai xe chua co trong DM_NhanSu.', warnings);
-    return [date, '', plate, driver, trips, clean_(row.note)];
+    return [date, '', plate, project, driver, trips, clean_(row.note)];
   }
 
   function buildDau_(row, catalogs, line, warnings) {

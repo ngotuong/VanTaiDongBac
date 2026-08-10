@@ -217,7 +217,8 @@ test('repository update/delete write only A:J plus formats and M:N helper cells'
 test('FundService delegates transaction validation and append ownership while retaining lock, cache bump, and rollback adapter', () => {
   const facade = read('FundService.gs');
   assert.match(facade, /FundTransactionService\.validate\(payloads, fundTransactionWriteContext_\(\)\)/);
-  assert.match(facade, /FundTransactionService\.addTransactions\(safePayloads, writeContext, context\)/);
+  assert.match(facade, /assignTransactionVouchers_\(ss, sheet, safePayloads\)/);
+  assert.match(facade, /FundTransactionService\.addTransactions\(preparedPayloads, writeContext, context\)/);
   assert.doesNotMatch(facade, /function rollbackInsertedFundTransactionRows_/);
   assert.match(facade, /if \(result\.idempotentReplay\) return result;\s+bumpFundDataVersion_\(\)/);
   assert.doesNotMatch(facade, /function findFundVoucherRows_/);

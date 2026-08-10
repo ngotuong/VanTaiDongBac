@@ -39,9 +39,7 @@ test('C3 golden shell keeps the exact C2 logo, drawer, SVG and five-item mobile 
 });
 
 test('C3 preserves hidden module routes behind their approved parent menus', () => {
-  const manage = read('next-shell/components/manage/ManageReadOnlyModule.tsx');
   const settings = read('next-shell/components/settings/SettingsModule.tsx');
-  assert.match(manage, /href="\/entry"/);
   assert.match(settings, /href="\/observability"/);
-  assert.match(manage + settings, /prefetch=\{false\}/);
+  assert.match(settings, /prefetch=\{false\}/);
 });

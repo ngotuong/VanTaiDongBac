@@ -15,6 +15,17 @@ function publicBundle(payload:unknown,syncedAt:string):CatalogBundle|null {
   if(value.ok===false||!Array.isArray(value.headers)||!Array.isArray(value.rows)) return null;
   return {...value,headers:value.headers.map(String),supabaseCached:true,supabaseSyncedAt:syncedAt};
 }
+function primaryTable(bundle:CatalogBundle,sheetName:CatalogSheetName):CatalogBundle {
+  if(sheetName==='DM_ThamSo_TS'||sheetName==='DM_ThamSo_GD') return bundle;
+  const emptyIndex=bundle.headers.findIndex((header)=>String(header||'').trim()==='');
+  const width=emptyIndex===-1?bundle.headers.length:emptyIndex;
+  return {
+    ...bundle,
+    headers:bundle.headers.slice(0,width),
+    rows:bundle.rows.map((row)=>({...row,values:(row.values||[]).slice(0,width)}))
+      .filter((row)=>row.values.some((value)=>value!==null&&value!==undefined&&String(value).trim()!==''))
+  };
+}
 
 export async function loadCatalogData(input:{sheetName?:unknown;forceRefresh?:boolean}={}):Promise<CatalogDataResponse>{
   const sheetName=validSheet(input.sheetName);
@@ -26,12 +37,15 @@ export async function loadCatalogData(input:{sheetName?:unknown;forceRefresh?:bo
         const repository=createCatalogBundleRepository({httpError,fetchImpl:(request,init={})=>fetch(request,{...init,signal:AbortSignal.timeout(5000)})});
         const row=await repository.find(config,`catalog_data:${sheetName}`);
         const bundle=row&&publicBundle(row.payload,row.synced_at);
-        if(bundle) return {data:bundle,sheetName};
+        if(bundle) return {data:primaryTable(bundle,sheetName),sheetName};
       }
-    }catch{/* Apps Script remains the authoritative fallback. */}
+    }catch(error){
+      throw httpError(503,error instanceof Error?error.message:'Không đọc được Danh mục từ Supabase.');
+    }
+    throw httpError(503,'Cache Danh mục trên Supabase chưa sẵn sàng.');
   }
   const api=await createServerApiClient();
   const data=await api.get<CatalogBundle>('readCatalogData',{params:{displaySheetName:sheetName,forceRefresh:input.forceRefresh?'true':'',spreadsheetId:workbook.spreadsheetId}});
   if(data.ok===false) throw httpError(502,data.error||'Không đọc được dữ liệu Danh mục.');
-  return {data,sheetName};
+  return {data:primaryTable(data,sheetName),sheetName};
 }

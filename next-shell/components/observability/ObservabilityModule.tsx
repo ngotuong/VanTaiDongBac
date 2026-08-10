@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
+import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import type { ManageAuditRow, ReportAuditRow, SyncStatusRow, WriteJob } from '../../lib/platform/operations-types';
 import { showToast } from '../../lib/platform/toast';
 
@@ -50,7 +51,9 @@ export function ObservabilityModule() {
       ]);
       setSyncRows(sync.rows || []);
       setJobs(recent.jobs || []);
-      setCheckedAt(sync.checkedAt || recent.checkedAt || new Date().toISOString());
+      const nextCheckedAt = sync.checkedAt || recent.checkedAt || new Date().toISOString();
+      setCheckedAt(nextCheckedAt);
+      publishDataSourceMeta({ supabaseSyncedAt: nextCheckedAt }, 'supabase');
       report('Đã tải trạng thái cache và write queue. Audit chưa được chạy.', false, forceRefresh);
     } catch (loadError) {
       report(loadError instanceof Error ? loadError.message : String(loadError), true);
@@ -58,7 +61,10 @@ export function ObservabilityModule() {
   }, [api, user.role]);
 
   useEffect(() => {
-    if (user.role === 'shareholder') return;
+    if (user.role === 'shareholder') {
+      publishDataSourceMeta(null, 'supabase');
+      return;
+    }
     const timer = window.setTimeout(() => { void loadStatus(false); }, 0);
     return () => window.clearTimeout(timer);
   }, [loadStatus, user.role]);

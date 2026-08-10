@@ -21,8 +21,9 @@ test('D1 removes all authored legacy HTML presentation sources and generated she
 test('D1 build is Next-only and no longer publishes island bundles or compatibility rewrites', () => {
   const pkg = JSON.parse(read('package.json'));
   const config = JSON.parse(read('vercel.json'));
-  assert.equal(pkg.scripts.build, 'next build');
-  assert.equal(pkg.scripts['build:next-accounts'], 'next build');
+  assert.equal(pkg.scripts.build, 'node scripts/check-environment-identity.mjs && next build');
+  assert.equal(pkg.scripts['check:identity'], 'node scripts/check-environment-identity.mjs');
+  assert.equal(pkg.scripts['build:next-accounts'], 'node scripts/check-environment-identity.mjs && next build');
   assert.equal(pkg.dependencies.esbuild, undefined);
   assert.equal(config.rewrites, undefined);
   assert.doesNotMatch(JSON.stringify(pkg.scripts), /legacy|react|island|prepare-legacy|scripts\/build\.js/);
@@ -37,4 +38,3 @@ test('D1 keeps Apps Script API entry points but removes HtmlService rendering', 
   assert.doesNotMatch(router, /HtmlService|renderIndex_|function include\(/);
   assert.match(read('ROLLBACK.md'), /dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg/);
 });
-

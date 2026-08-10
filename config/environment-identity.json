@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "appId": "vantaidongbac",
+  "displayName": "Vận tải Đông Bắc",
+  "supabase": {
+    "projectRef": "lyquwesyjbpalnwfxzwl",
+    "projectName": "vtdb",
+    "url": "https://lyquwesyjbpalnwfxzwl.supabase.co"
+  },
+  "vercel": {
+    "projectId": "prj_ksh9aZZowziqFw2G2tWJzbnwtSOG",
+    "projectName": "vantaidongbac",
+    "orgId": "team_1BMzW3A2mFKTuGEyw1Z868Nx",
+    "teamSlug": "ngotuong2105",
+    "productionAlias": "dongbac.vercel.app",
+    "previewAlias": "vantaidongbac-preview.vercel.app"
+  },
+  "appsScript": {
+    "scriptId": "1hNKU7xNvhORJSgv8mNIWKNguHU8bmCmM7mQBjxXLfv5FhawbN2HfJ2GX",
+    "productionDeploymentId": "AKfycbwCew3wyCiZEZq66i5m7JGhDuAZouMJHv61JmjfeA7TAbGCCUxATntR9TjkO6TUlNUtkw",
+    "previewDeploymentId": "AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85"
+  }
+}

@@ -2,7 +2,6 @@ var SheetService = (function () {
   var CACHE_VERSION = 'v13';
   var CATALOG_TTL_SECONDS = 21600;
   var REPORT_TTL_SECONDS = 600;
-  var REPORT_CACHE_SHEET_NAME = 'SYS_ReportCache';
   var REPORT_DATA_VERSION_PROP = 'REPORT_DATA_VERSION_V1';
   var reportDetailsMemoryCache_ = { spreadsheetId: '', dataVersion: '', detailsByMonth: {} };
 
@@ -242,10 +241,46 @@ var SheetService = (function () {
     if (rowCount < 1) return [];
     var lastColumn = sheet.getLastColumn();
     var numColumns = Math.max(11, lastColumn - 7 + 1);
-    return sheet.getRange(1, 7, rowCount, numColumns).getDisplayValues()
+    var range = sheet.getRange(1, 7, rowCount, numColumns);
+    var displayValues = range.getDisplayValues();
+    var rawValues = range.getValues();
+    return repairOverviewQuantityDisplay_(displayValues, rawValues)
       .filter(function (row, index) {
         return index === 0 || row.some(function (cell) { return clean_(cell); });
       });
+  }
+
+  function repairOverviewQuantityDisplay_(displayValues, rawValues) {
+    var rows = (displayValues || []).map(function (row) { return row.slice(); });
+    if (!rows.length) return rows;
+    var headerIndex = rows.findIndex(function (row) {
+      return row.some(function (cell) { return normalizeText_(cell) === 'thang'; });
+    });
+    if (headerIndex < 0) return rows;
+    var volumeIndex = rows[headerIndex].findIndex(function (cell) {
+      var header = normalizeText_(cell);
+      return header.indexOf('tong khoi luong') !== -1 || header.indexOf('khoi luong') !== -1;
+    });
+    if (volumeIndex < 0) return rows;
+
+    for (var rowIndex = headerIndex + 1; rowIndex < rows.length; rowIndex++) {
+      var displayed = clean_(rows[rowIndex] && rows[rowIndex][volumeIndex]);
+      if (!/^\d{1,2}\/\d{4}$/.test(displayed)) continue;
+      var raw = rawValues && rawValues[rowIndex] ? rawValues[rowIndex][volumeIndex] : null;
+      var quantity = null;
+      if (typeof raw === 'number' && isFinite(raw)) {
+        quantity = raw;
+      } else if (Object.prototype.toString.call(raw) === '[object Date]' && !isNaN(raw.getTime())) {
+        quantity = (Date.UTC(
+          raw.getFullYear(), raw.getMonth(), raw.getDate(),
+          raw.getHours(), raw.getMinutes(), raw.getSeconds(), raw.getMilliseconds()
+        ) - Date.UTC(1899, 11, 30)) / 86400000;
+      }
+      if (quantity !== null) {
+        rows[rowIndex][volumeIndex] = Number(quantity).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+      }
+    }
+    return rows;
   }
 
   function getActiveReportMonths_(months) {
@@ -336,7 +371,6 @@ var SheetService = (function () {
       },
       readDetails: readCurrentOverviewDetails_
     });
-    writeReportDetailsCache_(ss, dataVersion, detailsByMonth);
     mergeReportDetailsMemoryCache_(dataVersion, detailsByMonth);
     return detailsByMonth;
   }
@@ -368,55 +402,36 @@ var SheetService = (function () {
   }
 
   function getReportDataVersion_() {
-    return SheetReportCacheRepository.getDataVersion(REPORT_DATA_VERSION_PROP);
+    return PropertiesService.getScriptProperties().getProperty(REPORT_DATA_VERSION_PROP) || '0';
   }
 
   function bumpReportDataVersion_() {
-    return SheetReportCacheRepository.bumpDataVersion(REPORT_DATA_VERSION_PROP);
+    PropertiesService.getScriptProperties().setProperty(REPORT_DATA_VERSION_PROP, String(new Date().getTime()));
   }
 
   function readReportDetailsCacheMap_(ss, dataVersion) {
     if (reportDetailsMemoryCache_.spreadsheetId === APP_CONFIG.spreadsheetId && reportDetailsMemoryCache_.dataVersion === dataVersion) {
       return reportDetailsMemoryCache_.detailsByMonth;
     }
-    var cacheMode = ReportCacheMode.describe();
-    if (cacheMode.readSource === ReportCacheMode.SUPABASE) {
-      try {
-        var supabaseDetails = SupabaseReportCacheRepository.readDetailsMap({
-          spreadsheetId: APP_CONFIG.spreadsheetId,
-          cacheVersion: CACHE_VERSION,
-          dataVersion: dataVersion,
-          clean: clean_
-        });
-        if (Object.keys(supabaseDetails).length) {
-          setReportDetailsMemoryCache_(dataVersion, supabaseDetails);
-          return supabaseDetails;
-        }
-      } catch (err) {
-        console.log('supabase_report_cache_read_failed: ' + (err && err.message ? err.message : err));
+    try {
+      var supabaseDetails = SupabaseReportCacheRepository.readDetailsMap({
+        spreadsheetId: APP_CONFIG.spreadsheetId,
+        cacheVersion: CACHE_VERSION,
+        dataVersion: dataVersion,
+        clean: clean_
+      });
+      if (Object.keys(supabaseDetails).length) {
+        setReportDetailsMemoryCache_(dataVersion, supabaseDetails);
+        return supabaseDetails;
       }
+    } catch (err) {
+      console.log('supabase_report_cache_read_failed_live_compute_next: ' + (err && err.message ? err.message : err));
     }
-    var sheetDetails = SheetReportCacheRepository.readDetailsMap(ss, {
-      sheetName: REPORT_CACHE_SHEET_NAME,
-      cacheVersion: CACHE_VERSION,
-      dataVersion: dataVersion,
-      clean: clean_
-    });
-    setReportDetailsMemoryCache_(dataVersion, sheetDetails);
-    return sheetDetails;
-  }
-
-  function writeReportDetailsCache_(ss, dataVersion, detailsByMonth) {
-    if (!ReportCacheMode.describe().writeSheet) return;
-    return SheetReportCacheRepository.writeDetails(ss, detailsByMonth, {
-      sheetName: REPORT_CACHE_SHEET_NAME,
-      cacheVersion: CACHE_VERSION,
-      dataVersion: dataVersion
-    });
+    setReportDetailsMemoryCache_(dataVersion, {});
+    return {};
   }
 
   function writeReportBundleToSupabase_(month, bundle, dataVersion) {
-    if (!ReportCacheMode.describe().writeSupabase) return;
     try {
       var resolvedMonth = resolveReportMonth_(bundle && bundle.overview && bundle.overview.months, month);
       SupabaseReportCacheRepository.upsertBundle({
@@ -775,6 +790,7 @@ var SheetService = (function () {
         }
         return h;
       });
+      var editableColumnMap = resolveCatalogEditableColumns_(sheetName, rawHeaders, rowData);
 
       var rowNum = parseInt(rowIndex, 10);
       if (isNaN(rowNum) || rowNum <= 0) {
@@ -803,7 +819,10 @@ var SheetService = (function () {
         var headerLower = header.toLowerCase().trim();
         var val = rowData[header];
 
-        if (existingFormulas && existingFormulas[colIdx]) {
+        if (editableColumnMap && !editableColumnMap[colIdx]) {
+          valuesToSet.push(existingValues ? existingValues[colIdx] : '');
+          skippedColumns.push(colIdx);
+        } else if (existingFormulas && existingFormulas[colIdx]) {
           valuesToSet.push(existingFormulas[colIdx]);
         } else if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
           valuesToSet.push('');
@@ -858,6 +877,24 @@ var SheetService = (function () {
     } finally {
       lock.releaseLock();
     }
+  }
+
+  function resolveCatalogEditableColumns_(sheetName, rawHeaders, rowData) {
+    if (String(sheetName || '').indexOf('DM_') !== 0) return null;
+    var editable = {};
+    if (sheetName === 'DM_ThamSo') {
+      if (rowData && rowData['Giá dầu áp dụng'] !== undefined) {
+        [5, 6, 7].forEach(function (index) { editable[index] = true; });
+        return editable;
+      }
+      [0, 1, 2, 3].forEach(function (index) { editable[index] = true; });
+      return editable;
+    }
+    for (var index = 0; index < rawHeaders.length; index++) {
+      if (String(rawHeaders[index] || '').trim() === '') break;
+      editable[index] = true;
+    }
+    return editable;
   }
 
   function deleteSheetRow(sheetName, rowIndex, columnsToClear, expectedRowData) {

@@ -1,0 +1,73 @@
+.settings-section-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0 0 16px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper-soft, #f8fafc);
+}
+
+.settings-section-tabs button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+  box-shadow: none;
+}
+
+.settings-section-tabs button[aria-selected="true"] {
+  background: var(--paper);
+  color: var(--deep);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .08);
+}
+
+.settings-tab-panel[hidden] { display: none !important; }
+.settings-sync-card { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.settings-icon-button { flex: 0 0 44px; width: 44px !important; min-width: 44px !important; height: 44px !important; min-height: 44px !important; max-height: 44px !important; padding: 0 !important; }
+.settings-icon-button .btn-svg { width: 19px; height: 19px; }
+.settings-icon-button .spinning { animation: spin .8s linear infinite; }
+.password-field { grid-template-columns: minmax(0, 1fr) 44px; }
+.password-toggle-btn { min-width: 44px !important; padding: 0 !important; }
+.account-row-actions { justify-content: flex-end; }
+.account-row-actions .settings-icon-button { min-height: 44px; }
+
+.fund-alert-form { gap: 12px; }
+.fund-alert-form > label, .fund-alert-form legend { font-size: 12.5px; }
+.fund-alert-form input[type="number"] { min-height: 40px; padding-block: 6px; }
+.fund-alert-form textarea { min-height: 72px; }
+.fund-alert-role { min-height: 36px; margin-right: 12px; gap: 7px; font-size: 13px; font-weight: 600; }
+#settingsView.settings-c2 .fund-alert-role input[type="checkbox"] {
+  appearance: auto;
+  width: 17px !important;
+  min-width: 17px !important;
+  max-width: 17px !important;
+  height: 17px !important;
+  min-height: 17px !important;
+  max-height: 17px !important;
+  margin: 0;
+}
+.fund-alert-schedule { padding: 10px 12px; }
+.fund-alert-actions { align-items: center; }
+
+@media (max-width: 720px) {
+  .settings-section-tabs { position: sticky; top: 8px; z-index: 8; margin-inline: 0; }
+  .settings-section-tabs button { padding: 0 8px; font-size: 12.5px; }
+  .settings-sync-card { align-items: stretch; flex-direction: column; }
+  .settings-sync-card .settings-route-link { width: 100%; }
+  .settings-c2 .account-row-actions { display: flex; justify-content: flex-end; }
+  .settings-c2 .account-row-actions::before { margin-right: auto; align-self: center; }
+  #settingsView.settings-c2 .fund-alert-role input[type="checkbox"] { font-size: initial !important; }
+  #settingsView.settings-c2 .fund-alert-form input[type="number"],
+  #settingsView.settings-c2 .fund-alert-form textarea { min-height: 44px !important; font-size: 16px !important; }
+  html body main#platform-content section#settingsView.settings-c2 article.fund-alert-settings-card .fund-alert-actions button#saveFundAlertRule {
+    width: 44px !important;
+    max-width: 44px !important;
+  }
+}

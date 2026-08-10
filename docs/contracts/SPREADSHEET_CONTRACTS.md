@@ -155,11 +155,12 @@ Không dùng trạng thái hidden làm permission. Code mở sheet theo tên dù
 | Form type | Sheet | Header row | Số cột row builder |
 | --- | --- | ---: | ---: |
 | `vanChuyen` | `NL_VanChuyen` | 2 | 7 |
-| `taiXe` | `NL_TaiXe` | 1 | 6 |
+| `taiXe` | `NL_TaiXe` | 1 | 7 |
 | `dau` | `NL_Dau` | 2 | 9 |
 | `chamCong` | `NL_ChamCong` | 1 | 11 |
 | `phat` | `NL_Phat` | 1 | 7 |
 | `nghiVanHanh` | `NL_NghiVanHanh` | 1 | 9 |
+| — | `NL_PhanCongLai` | 1 | 4 cột nhập + 1 cột kiểm tra |
 
 Số cột row builder không nhất thiết bằng tổng số cột vật lý của sheet. Snapshot cho thấy một số sheet có nhiều cột helper/formula ở phía sau. Chỉ ghi các segment nghiệp vụ được service cho phép.
 
@@ -210,13 +211,15 @@ Cột nghiệp vụ logic:
 1. Ngày;
 2. Tháng;
 3. Biển số xe;
-4. Tài xế;
-5. Số chuyến;
-6. Ghi chú.
+4. Dự án;
+5. Tài xế;
+6. Số chuyến;
+7. Ghi chú.
 
 Quy tắc:
 
 - Tháng lấy từ Ngày;
+- `Dự án` được bổ sung ở cột D trong live schema ngày 2026-07-24;
 - không ghi vào các cột helper phía sau;
 - dữ liệu dùng để đối soát `NL_VanChuyen` và tính lương chuyến.
 
@@ -225,6 +228,23 @@ Downstream:
 - `XL_DoiSoatChuyen`;
 - `XL_LuongTheoXe`;
 - `XL_ThuongQuanLy`.
+
+### 7.8. `NL_PhanCongLai`
+
+Live schema ngày 2026-07-24:
+
+1. Tháng;
+2. Tài xế;
+3. Công ty;
+4. Ghi chú;
+5. Kiểm tra.
+
+Quy tắc:
+
+- cột `Kiểm tra` là helper/formula, không sửa từ web app;
+- tab Vận hành cho phép đọc và sửa bốn cột nghiệp vụ của dòng hiện có;
+- chưa có contract append riêng, vì vậy web app không hiển thị nút `Nhập mới` khi đang ở tab này;
+- dữ liệu tháng phải giữ dạng Date/tháng của Sheet, không chuyển thành text tùy ý.
 
 ### 7.4. `NL_Dau`
 
@@ -394,6 +414,15 @@ Backend phải:
 - Month cell trong Sheet thường là ngày đầu tháng và chỉ được format hiển thị tháng/năm.
 - Không thay giá trị date serial bằng text nếu công thức downstream cần date thực.
 
+### 8.5. Ranh giới bảng chính trong `DM_*`
+
+Live audit ngày 2026-07-24 xác nhận một số sheet Danh mục chứa thêm bảng phụ/helper ở bên phải, ví dụ `DM_Xe` có bảng chính A:H và bảng phân công J:O.
+
+- Tab Danh mục web chỉ render bảng chính liên tục bắt đầu tại cột A và kết thúc ngay trước header trống đầu tiên.
+- Các header/bảng phụ phía sau không được ghép vào bảng chính chỉ vì `getLastColumn()` tăng.
+- Update/append bảng chính phải skip toàn bộ cột ngoài ranh giới này.
+- Delete trên web phải clear các cột của bảng đang hiển thị, không `deleteRow()` vật lý làm dịch hoặc xóa dữ liệu của bảng phụ cùng hàng.
+
 ## 9. Contract sheet xử lý Vận tải
 
 ### 9.1. `XL_DoiSoatChuyen`
@@ -553,9 +582,9 @@ Contract:
 - giữ subtotal/header/formula;
 - web app chỉ đọc/export.
 
-### 10.4. `SYS_ReportCache`
+### 10.4. `SYS_ReportCache` — retired
 
-Vai trò: cache chi tiết báo cáo theo tháng trong chính file Vận tải.
+Vai trò lịch sử: cache chi tiết báo cáo theo tháng trong file Vận tải. Runtime hiện hành không còn đọc, ghi hoặc tự tạo sheet này.
 
 Logical columns:
 
@@ -568,11 +597,11 @@ Logical columns:
 
 Contract:
 
-- sheet do `SheetService` quản lý;
+- chỉ migration retirement/restore có kiểm soát được truy cập;
 - hidden;
 - không nhập tay;
-- cache được invalidated bằng version;
-- có thể được tạo nếu thiếu bởi service báo cáo;
+- có thể xóa sau dry-run, backup, prepare và one-shot approval;
+- không được tự tạo lại bởi report service;
 - không xem cache là dữ liệu nghiệp vụ chuẩn.
 
 ## 11. Contract danh mục Vận tải
@@ -856,7 +885,7 @@ Header row: 1.
 ### 15.2. Quy tắc mã vay
 
 - Row `Vay` tạo mã khoản vay.
-- Loan/payment mapping, validation và công thức lọc N do `FundLoanService` sở hữu; append A:K và định dạng B/F do `FundLoanRepository` thực hiện qua facade/lock của `FundService`.
+- Loan/payment mapping và validation do `FundLoanService` sở hữu. `FundLoanRepository` append A:K, định dạng B/F và bảo đảm một `ARRAYFORMULA` duy nhất tại `N2` qua facade/lock của `FundService`.
 - Row `Trả nợ`/`Trả lãi` phải tham chiếu mã vay tương ứng.
 - Ưu tiên ghép chính xác theo mã.
 - Chỉ reconcile mã orphan khi có duy nhất một khoản cùng đối tác, phát sinh trước ngày trả và outstanding khớp hoàn toàn số tiền trả.
@@ -865,7 +894,8 @@ Header row: 1.
 
 ### 15.3. Quy tắc ghi
 
-- Giữ công thức cột N và helper L–M.
+- Không ghi trực tiếp vào `N3:N`; cột N do `ARRAYFORMULA` tại `N2` quản lý. Trước mỗi append, repository xóa nội dung chặn trong `N3:N` và phục hồi formula `N2`.
+- Giữ nguyên helper/reserved L–M.
 - Row vay có thể dùng G–J; row trả có thể để trống các field điều khoản.
 - Không cho thanh toán lại khoản hiện đã tất toán.
 - Khi xem tháng lịch sử, outstanding là số dư cuối kỳ theo contract backend.

@@ -12,6 +12,9 @@ test('Apps Script and Vercel API sources are syntactically valid JavaScript', ()
     assert.doesNotThrow(() => new vm.Script(read(file), { filename: file }));
   }
   assert.doesNotThrow(() => new vm.Script(read('api/app.js'), { filename: 'api/app.js' }));
+  assert.doesNotThrow(() => new vm.Script(read('api/push.js'), { filename: 'api/push.js' }));
+  assert.doesNotThrow(() => new vm.Script(read('api/fund-alerts.js'), { filename: 'api/fund-alerts.js' }));
+  assert.doesNotThrow(() => new vm.Script(read('public/sw.js'), { filename: 'public/sw.js' }));
 });
 
 test('queue uses atomic claims and blocks asynchronous physical deletes', () => {
@@ -36,6 +39,9 @@ test('fund queue has stable vouchers and remains disabled by default', () => {
   assert.match(fundTransactions, /idempotentReplay: true/);
   assert.match(fundTransactions, /context\.clean\(item\.voucher\) \|\| context\.buildVoucher/);
   assert.match(fund, /FundTransactionService\.addTransactions/);
+  assert.match(service, /FundService\.prepareFundTransactionVouchers\(safeYear, safeTransactions\)/);
+  assert.match(fund, /payload\.voucher = Number\(prefix \+ \('000000' \+ next\)\.slice\(-6\)\)/);
+  assert.doesNotMatch(service, /voucherSeed \+ '-' \+ String\(index \+ 1\)\.padStart\(2, '0'\)/);
 });
 
 test('auth migration revokes anon and API proxy validates allowlist', () => {
@@ -68,6 +74,7 @@ test('shareholder role is read-only and account administration stays admin-only'
   assert.match(proxy, /createAccountService/);
   assert.match(accountService, /changeOwnPassword/);
   assert.match(accountService, /resetUserPassword/);
+  assert.match(accountService, /deleteUser/);
   assert.match(settings, /Quản lý tài khoản/);
   assert.match(settings, /const isAdmin = user\.role === 'admin'/);
   assert.match(shell, /ALL_ROLES/);

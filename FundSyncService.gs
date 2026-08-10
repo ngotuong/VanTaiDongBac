@@ -149,7 +149,7 @@ var FundSyncService = (function () {
   function syncFundFormOptionsBundle(year, context) {
     var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
     var catalogKey = buildFundFormOptionsKey(safeYear, context.clean);
-    var payload = context.getFundFormOptions(safeYear);
+    var payload = context.getFundFormOptions(safeYear, true);
     var syncedAt = context.nowISOString();
     context.upsertRows(TABLE_CATALOG_BUNDLES, [{ catalog_key: catalogKey, payload: payload, synced_at: syncedAt }], 'catalog_key');
     context.writeSyncStatus('fund_form_options:' + safeYear, 'fund', 'ok', 'Fund form options cache synced.', syncedAt);
@@ -160,7 +160,7 @@ var FundSyncService = (function () {
     var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
     var safeGroup = context.clean(group) || 'all';
     var catalogKey = buildFundCatalogKey(safeYear, safeGroup, context.clean);
-    var payload = context.getFundCatalog(safeYear, safeGroup);
+    var payload = context.getFundCatalog(safeYear, safeGroup, true);
     var syncedAt = context.nowISOString();
     context.upsertRows(TABLE_CATALOG_BUNDLES, [{ catalog_key: catalogKey, payload: payload, synced_at: syncedAt }], 'catalog_key');
     context.writeSyncStatus('fund_catalog:' + safeYear + ':' + safeGroup, 'fund', 'ok', 'Fund catalog cache synced.', syncedAt);

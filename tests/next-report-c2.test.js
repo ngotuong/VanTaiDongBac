@@ -26,4 +26,59 @@ test('C3 Report C2 search is accent-insensitive, multi-term and vehicle filters 
   const filters=helpers.filterOptions('vehicles',head,body);
   assert.deepEqual({companyIdx:filters.companyIdx,plateIdx:filters.plateIdx},{companyIdx:0,plateIdx:1});
   assert.deepEqual(filters.companies,['Đông Bắc','Quang Minh']);
+  const totalRow=helpers.appendTotal(head,[['Đông Bắc','20H-12345','100.000'],['Đông Bắc','20H-67890','200.000'],['Đông Bắc','20H-12345','150.000']]).at(-1);
+  assert.deepEqual(totalRow,['Tổng cộng','2 xe','450.000']);
+});
+
+test('Report totals never coerce identifiers or notes that merely start with digits',async()=>{
+  const helpers=await import('../next-shell/lib/platform/report-c2.ts');
+  assert.equal(helpers.parseCellValue('20H05664'),null);
+  assert.equal(helpers.parseCellValue('T6 dương 4tr833'),null);
+  assert.equal(helpers.parseCellValue('1.527'),1527);
+  assert.equal(helpers.parseCellValue('9.108,94'),9108.94);
+  assert.equal(helpers.parseCellValue('34.378.000 ₫'),34378000);
+});
+
+test('Report display removes currency units and rounds every money column without changing quantities',async()=>{
+  const helpers=await import('../next-shell/lib/platform/report-c2.ts');
+  assert.equal(helpers.formatReportDisplayValue('finance','Tổng doanh thu',['9.108,94','270.513.180,00'],1),'270.513.180');
+  assert.equal(helpers.formatReportDisplayValue('details','Tổng',['Tổng doanh thu','270.513.180 đ'],1),'270.513.180');
+  assert.equal(helpers.formatReportDisplayValue('payroll','Lương chuyến',['Tài xế','945.000 ₫'],1),'945.000');
+  assert.equal(helpers.formatReportDisplayValue('vehicles','Tiền dầu',['20H001','34.378.000 đ'],1),'34.378.000');
+  assert.equal(helpers.formatReportDisplayValue('finance','Tổng khối lượng',['9.108,94'],0),'9.108,94');
+});
+
+test('Report repairs empty company detail columns from vehicle ownership without changing source totals',async()=>{
+  const helpers=await import('../next-shell/lib/platform/report-c2.ts');
+  const details=[
+    ['Danh mục','Tổng','Quang Quân','Minh Vương','Giải thích'],
+    ['Tổng khối lượng','300,00','0,00','0,00',''],
+    ['Tổng doanh thu','32.400.000 ₫','0 ₫','0 ₫',''],
+    ['Doanh thu chưa VAT','30.000.000 ₫','0 ₫','0 ₫',''],
+    ['Thuế TNDN','3.000.000 ₫','0 ₫','0 ₫',''],
+    ['Thuế VAT','2.400.000 ₫','0 ₫','0 ₫',''],
+    ['Chi phí dầu','9.000.000 ₫','4.000.000 ₫','5.000.000 ₫','Nguồn Quang Minh'],
+    ['Lợi nhuận gộp','18.000.000 ₫','-4.000.000 ₫','-5.000.000 ₫','']
+  ];
+  const vehicles=[
+    ['Công ty','Biển số','Tổng khối','Doanh thu'],
+    ['OK','20H-001','100,00','10.800.000 ₫'],
+    ['OK','20H-002','200,00','21.600.000 ₫']
+  ];
+  const repaired=helpers.repairCompanyReport(details,vehicles,{'20H001':'Quang Quân','20H002':'Minh Vương'});
+  assert.deepEqual(repaired.vehicles[1].slice(0,2),['Quang Quân','20H-001']);
+  assert.deepEqual(repaired.vehicles[2].slice(0,2),['Minh Vương','20H-002']);
+  assert.deepEqual(repaired.details[1].slice(1,4),['300,00','100,00','200,00']);
+  assert.deepEqual(repaired.details[2].slice(1,4),['32.400.000 ₫','10.800.000 ₫','21.600.000 ₫']);
+  assert.deepEqual(repaired.details[3].slice(2,4),['10.000.000 ₫','20.000.000 ₫']);
+  assert.deepEqual(repaired.details[7].slice(2,4),['5.000.000 ₫','13.000.000 ₫']);
+});
+
+test('Report detail gives Quang Quân and Minh Vương the same numeric typography contract',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const source=fs.readFileSync(path.resolve(__dirname,'../next-shell/components/report/ReportModule.tsx'),'utf8');
+  const css=fs.readFileSync(path.resolve(__dirname,'../next-shell/app/platform.css'),'utf8');
+  assert.match(source,/normalizedLabel\.includes\('quang quan'\) \|\| normalizedLabel\.includes\('minh vuong'\)/);
+  assert.match(source,/fontSize: '12\.5px', lineHeight: 1\.3, fontWeight: 600/);
+  assert.match(css,/body #reportsView table\.report-data-table-details td\.report-detail-company-cell[\s\S]*font-size: var\(--platform-table-body-font-size\) !important;[\s\S]*font-weight: 600 !important/);
 });

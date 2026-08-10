@@ -9,6 +9,21 @@ function createFundBundleRepository({ fetchImpl = fetch, httpError }) {
     if (!response.ok) throw httpError(502, 'Không đọc được cache Thu chi từ Supabase.');
     return rows[0] || null;
   }
-  return { find };
+  async function upsert(config, table, row, onConflict) {
+    const query = new URLSearchParams({ on_conflict: onConflict });
+    const response = await fetchImpl(`${config.supabaseUrl}/rest/v1/${table}?${query.toString()}`, {
+      method: 'POST',
+      headers: {
+        apikey: config.serviceRoleKey,
+        Authorization: `Bearer ${config.serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify([row])
+    });
+    if (!response.ok) throw httpError(502, 'Không cập nhật được cache Thu chi trong Supabase.');
+    return row;
+  }
+  return { find, upsert };
 }
 module.exports = { createFundBundleRepository };

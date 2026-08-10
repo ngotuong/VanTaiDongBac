@@ -46,16 +46,19 @@ test('Report API serves cached bundle and does not call Apps Script', async () =
   assert.equal(forwarded, 0); assert.equal(response.status, 200); assert.equal(response.body.apiCached, true);
 });
 
-test('Report API force refresh and cache miss fall back to Apps Script compatibility', async () => {
+test('Report API fails closed on an ordinary cache miss and only falls back for an explicit force refresh', async () => {
   let reads = 0; let forwards = 0;
   const service = createReportService({
     reportBundleRepository: { findLatest: async () => { reads += 1; return null; } },
     appsScriptClient: { forward: async () => { forwards += 1; return { status: 200, body: { ok: true, source: 'apps-script' } }; } },
     httpError, send: (_res, status, body) => ({ status, body })
   });
-  await service.handle('getReportBundle', { method: 'GET', query: { month: '07/2026' } }, {}, { appsScriptUrl:'x', proxySecret:'s' }, { id:'u1' });
+  await assert.rejects(
+    () => service.handle('getReportBundle', { method: 'GET', query: { month: '07/2026' } }, {}, { appsScriptUrl:'x', proxySecret:'s' }, { id:'u1' }),
+    (error) => error.status === 503
+  );
   await service.handle('getReportBundle', { method: 'GET', query: { month: '07/2026', forceRefresh:'true' } }, {}, { appsScriptUrl:'x', proxySecret:'s' }, { id:'u1' });
-  assert.equal(reads, 1); assert.equal(forwards, 2);
+  assert.equal(reads, 1); assert.equal(forwards, 1);
 });
 
 test('Report, Dashboard, Entry and Manage use independent Next module boundaries', () => {

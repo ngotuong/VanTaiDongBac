@@ -25,8 +25,9 @@ function createReportService({ reportBundleRepository, appsScriptClient, httpErr
         const row = await reportBundleRepository.findLatest(config, month, spreadsheetId);
         if (row?.payload) return send(res, 200, { ...row.payload, apiCached: true, supabaseCached: true, supabaseSyncedAt: row.synced_at });
       } catch (error) {
-        // Cache is an optimization; Apps Script remains the compatibility fallback.
+        throw httpError(503, error?.message || 'Không đọc được Báo cáo từ Supabase.');
       }
+      throw httpError(503, 'Cache Báo cáo trên Supabase chưa sẵn sàng.');
     }
     const result = await forward(action, req, config, user);
     return send(res, result.status, result.body);

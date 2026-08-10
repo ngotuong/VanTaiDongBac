@@ -1,5 +1,7 @@
 # NEXTJS_MIGRATION_PLAN
 
+> **HISTORICAL — COMPLETED:** Roadmap A1–D1 đã hoàn thành; Next.js App Router hiện là presentation production và Apps Script là API-only. File này chỉ còn dùng để tra dependency, gate và rationale của quá trình migration. Current state và bước tiếp theo thuộc `PROJECT_CONTEXT.md`.
+
 ## 1. Mục đích
 
 Đây là roadmap hữu hạn để đưa Next.js từ static canary thành presentation layer chính của Vận tải Đông Bắc.
@@ -302,10 +304,10 @@ Mỗi checkpoint phải chọn gate theo rủi ro, tối thiểu:
 
 ## 12. Trạng thái tài liệu
 
-- Loại: `CURRENT` bounded migration roadmap.
+- Loại: `HISTORICAL — COMPLETED` bounded migration roadmap.
 - Phạm vi: Next.js foundation, module migration, cutover và legacy removal.
 - Baseline: Phase 6 Report và audit repository ngày 2026-07-12.
 - Owner current checkpoint: `PROJECT_CONTEXT.md`.
 - Owner target architecture: `TARGET_ARCHITECTURE.md`.
-- Ngày xác nhận: 2026-07-14.
-- Cập nhật khi: checkpoint status/dependency/scope hoặc Definition of Done thay đổi.
+- Ngày đóng roadmap: 2026-07-19.
+- Không dùng để mở checkpoint mới; chỉ cập nhật nếu sửa sai lịch sử hoặc link.

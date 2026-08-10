@@ -1,6 +1,6 @@
 # CHANGELOG
 
-Các thay đổi đáng chú ý của repository được ghi tại đây. Trạng thái deployment và roadmap sống vẫn thuộc `PROJECT_CONTEXT.md`.
+> **HISTORICAL / INCOMPLETE:** File này ghi một phần thay đổi cũ nhưng không theo kịp các checkpoint sau migration. Dùng Git history và timeline trong `PROJECT_CONTEXT.md` cho handoff; không dùng mục `Unreleased` bên dưới để suy ra worktree hoặc bước tiếp theo.
 
 ## Unreleased
 

@@ -18,7 +18,7 @@ Khi người dùng yêu cầu đọc dự án, báo trạng thái hoặc “th�
 1. Đọc toàn bộ `AGENTS.md`.
 2. Đọc toàn bộ `PROJECT_CONTEXT.md`.
 3. Kiểm tra `git status --short`.
-4. Kiểm tra source trực tiếp nếu cần xác minh một kết luận có khả năng stale.
+4. Kiểm tra source trực tiếp nếu cần xác minh một kết luận có khả năng stale; timeline rút gọn đã nằm trong `PROJECT_CONTEXT.md`.
 5. Báo ngắn gọn đúng sáu nội dung:
    - dự án và module chính;
    - kiến trúc hiện tại;
@@ -32,14 +32,15 @@ Yêu cầu đọc/báo trạng thái không tự động cho phép sửa file, m
 
 ## 3. Router theo loại tác vụ
 
-### Next.js hoặc migration frontend
+### Kiến trúc đích hoặc điều tra migration Next.js lịch sử
 
 Đọc thêm:
 
-- `NEXTJS_MIGRATION_PLAN.md`;
 - `TARGET_ARCHITECTURE.md`;
 - `docs/architecture/SYSTEM_ARCHITECTURE.md`;
 - source frontend/Next trực tiếp liên quan.
+
+Chỉ đọc `NEXTJS_MIGRATION_PLAN.md` khi cần điều tra roadmap A1–D1 đã hoàn thành hoặc regression lịch sử.
 
 ### API, Auth hoặc RBAC
 
@@ -148,4 +149,4 @@ Không chạy test có khả năng ghi production nếu chưa được phê duy�
 - Owner: thứ tự đọc và routing tài liệu theo tác vụ.
 - Không sở hữu: current state, roadmap, contract hoặc lịch sử.
 - Nguồn current state: `PROJECT_CONTEXT.md`.
-- Ngày xác nhận: 2026-07-12.
+- Ngày xác nhận: 2026-08-10.

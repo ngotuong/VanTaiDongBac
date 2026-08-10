@@ -46,3 +46,12 @@ Quy trình khởi động:
 - Nếu người dùng chỉ yêu cầu đọc/báo trạng thái, báo đúng 6 nội dung trong `PROJECT_CONTEXT.md` rồi dừng.
 - Chỉ đọc tài liệu chuyên biệt theo router trong `docs/ai/AI_START_HERE.md` khi tác vụ yêu cầu.
 - Không sửa file, migration, deploy, commit hoặc push cho đến khi người dùng phê duyệt rõ checkpoint cụ thể.
+
+Quy tắc deploy Vercel Preview:
+- URL preview ổn định duy nhất là `https://vantaidongbac-preview.vercel.app`.
+- Chỉ chạy `npm run deploy:preview`; không chạy `vercel deploy`, `vercel alias set`, `vercel promote` hoặc tự tạo Shareable Link bằng tay.
+- Script preview phải target đúng project ID `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`, dùng Production environment secrets với `--prod --skip-domain`, rồi chỉ gán alias `vantaidongbac-preview.vercel.app`.
+- Tuyệt đối không đổi alias `dongbac.vercel.app`. Production chỉ được promote/rollback khi người dùng phê duyệt rõ trong một yêu cầu riêng.
+- `vantaidongbac-c3-preview.vercel.app` là alias đã nghỉ, không được tái sử dụng.
+- Sau deploy phải xác nhận: gate test/lint/typecheck/build/diff-check PASS; URL preview trả HTTP 200 và title `Vận tải Đông Bắc`; không chuyển tới `vercel.com/login`; deployment ID của `dongbac.vercel.app` trước/sau không đổi.
+- Nếu script guard sai project ID, production alias thay đổi, preview còn Vercel Login hoặc thiếu environment, phải dừng và báo lỗi; không tự sửa bằng cách promote production.

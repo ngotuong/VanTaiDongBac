@@ -1,12 +1,5 @@
 # KNOWN_RISKS
 
-## Phase B1 — Next.js Report
-
-- Route `/next-accounts/reports/` dùng API `getReportBundle` hiện có và không tạo Apps Script action mới.
-- Workbook Vận tải được resolve phía server từ allowlist A2; browser interaction đi qua `/next-accounts/report-data/` và không được gửi workbook ID tùy ý.
-- Initial bundle được tải ở Server Component. Client chỉ giữ interaction state cho tab/search/month/refresh/export.
-- Responsive visual QA đạt đủ 5 viewport ngày 2026-07-13. Project canary không kết nối Git; các `Error Stale` cũ do build/output root sai không ảnh hưởng stable alias đang `READY`.
-
 ## 1. Mục đích và phạm vi
 
 Tài liệu này là risk register hiện trạng của hệ thống Vận tải Đông Bắc.
@@ -897,5 +890,5 @@ Không xóa risk lịch sử; chuyển trạng thái và ghi kiểm soát đã l
 - Loại tài liệu: risk register hiện trạng.
 - Phạm vi: dữ liệu, báo cáo, cache, queue, Auth/RBAC, Apps Script, frontend, build, repository và bound script.
 - Nguồn kiểm chứng: source repository, schema snapshots, migrations, tests và lịch sử sự cố trong `PROJECT_CONTEXT.md`.
-- Ngày xác nhận gần nhất: 2026-07-11.
+- Ngày hệ thống lại gần nhất: 2026-08-10. Current checkpoint gates ưu tiên mục 8 của `PROJECT_CONTEXT.md`; các risk chi tiết trong file này cần được đối chiếu source trước khi hành động.
 - Cần cập nhật khi: có incident mới, kiểm soát mới, thay kiến trúc/source of truth hoặc một risk thay đổi trạng thái.

@@ -28,25 +28,29 @@ API cũng có thể nhận `year`, `spreadsheetId`, hoặc `ssId` để override
 
 ## Deploy
 
-Frontend:
+Preview frontend (lối duy nhất được phép):
 
 ```bash
-npm test
-npm run lint
-npm run typecheck
-npm run build
-vercel deploy --prod
+npm run deploy:preview
 ```
 
-Apps Script API khi có thay đổi backend:
+Script này tự chạy test, lint, typecheck, build, identity/diff gate, deploy candidate và chỉ gán alias `vantaidongbac-preview.vercel.app`. Không chạy trực tiếp `vercel deploy`, `vercel alias set` hoặc `vercel promote`.
+
+Production và Apps Script chỉ deploy khi có checkpoint/phê duyệt riêng. Quy trình chi tiết nằm trong `WORKFLOW.md`; rollback nằm trong `ROLLBACK.md`.
+
+Apps Script source sync/deploy thủ công không phải thao tác khởi động mặc định:
 
 ```bash
 clasp push
-clasp deploy --description "<description>"
+clasp version "<description>"
 ```
+
+Sau đó phải update đúng deployment ID Preview hoặc Production đã được phê duyệt; không tạo deployment tùy ý.
 
 Frontend legacy/HtmlService đã được xóa ở D1. Rollback presentation dùng deployment Vercel C2 đã lưu, không build lại `index.html` trong source hiện tại.
 
 ## Tiếp tục dự án với Codex
 
 Khi mở cuộc trò chuyện mới, yêu cầu Codex đọc `AGENTS.md` và `PROJECT_CONTEXT.md` trước. Hai file này chứa quy tắc làm việc, trạng thái hiện tại và lộ trình tiếp theo.
+
+`PROJECT_CONTEXT.md` cũng chứa timeline rút gọn toàn chương trình. Tài liệu audit/refactor/migration cũ chỉ dùng khi cần điều tra lịch sử.

@@ -1,236 +1,118 @@
-# Workflow làm việc hằng ngày
+# WORKFLOW
 
-## Khi bắt đầu một cuộc trò chuyện mới với Codex
+## 1. Khởi động
 
-1. Yêu cầu Codex đọc `AGENTS.md`.
-2. Yêu cầu Codex đọc `PROJECT_CONTEXT.md`.
-3. Nếu công việc liên quan schema hoặc Supabase, đọc thêm `PROJECT_SCHEMA.md` và `SUPABASE_SCHEMA.md`.
-4. Nếu công việc liên quan deploy/rollback, đọc thêm `WORKFLOW.md` và `ROLLBACK.md`.
-5. Trước khi sửa code, luôn kiểm tra `git status --short`.
+1. Đọc `AGENTS.md` và toàn bộ `PROJECT_CONTEXT.md`.
+2. Chạy `git status --short`.
+3. Chỉ đọc tài liệu chuyên biệt theo `docs/ai/AI_START_HERE.md`.
+4. Xác nhận checkpoint được phê duyệt và giải thích kế hoạch ngắn bằng tiếng Việt.
 
-`PROJECT_CONTEXT.md` là nơi ghi trạng thái/lộ trình sống của dự án. Khi có quyết định mới, cập nhật file đó.
+Không tự sửa/deploy/migration/commit/push khi người dùng mới chỉ yêu cầu đọc hoặc báo trạng thái.
 
-## Khi sửa frontend
+## 2. Phát triển local
 
-1. Sửa route/component/lib trong `next-shell/` hoặc entrypoint mỏng trong `app/`.
-2. Chạy đầy đủ gate:
+- Frontend/source Next.js: `next-shell/`, entrypoint mỏng `app/`, API Vercel trong `api/`.
+- Apps Script standalone backend: các file `*.gs` ở root.
+- Supabase server boundary: `server/` và migrations.
+- Không dùng `SpreadsheetApp.getActiveSpreadsheet()` làm workbook chính; dùng `openById(id)`.
+- Không đổi tên sheet, thứ tự cột hoặc công thức. Thay đổi cấu trúc dùng migration riêng.
+- Giữ nguyên thay đổi người dùng đang có; không reset worktree để giải quyết xung đột.
+
+## 3. Quality gates
+
+Gate local mặc định:
 
 ```bash
 npm test
 npm run lint
 npm run typecheck
 npm run build
+git diff --check
 ```
 
-3. Kiểm tra các route Next và PWA asset.
-4. Commit/push lên GitHub.
-5. Deploy Vercel và smoke production khi checkpoint cho phép.
+`npm run build` bao gồm Environment Identity Guard. Với thay đổi scoped nhỏ có thể chạy targeted test trước, nhưng trước deploy/commit checkpoint phải chạy gate đầy đủ phù hợp.
 
-Không còn build `index.html`, `client_*.html`, `styles_*.html` hoặc React island bundle sau D1.
+Test có ghi Google Sheet/Supabase production chỉ chạy sau phê duyệt rõ và phải biết exact target/cleanup.
 
-## Khi sửa Apps Script
+## 4. Deploy Preview
 
-1. Sửa file `.gs` hoặc `.html` trong repo.
-2. Push lên Apps Script:
+URL Preview ổn định duy nhất:
+
+```text
+https://vantaidongbac-preview.vercel.app
+```
+
+Lệnh duy nhất:
 
 ```bash
-clasp push
+npm run deploy:preview
 ```
 
-3. Test API/function phù hợp trong Apps Script editor hoặc qua proxy.
-4. Nếu ổn, tạo deployment Apps Script mới; không cập nhật rollback deployment cũ.
+Script phải:
 
-## Khi sửa Supabase schema
+- khóa project ID `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`;
+- dùng Production environment secrets với `--prod --skip-domain`;
+- chỉ gán alias Preview;
+- chạy test/lint/typecheck/build/diff/identity gate;
+- xác nhận root HTTP 200, title `Vận tải Đông Bắc`, không Vercel Login;
+- xác nhận deployment ID của `dongbac.vercel.app` không đổi.
 
-1. Tạo file SQL mới trong `supabase/migrations/`.
-2. Không sửa trực tiếp dữ liệu Google Sheet.
-3. Copy SQL vào Supabase SQL Editor.
-4. Run SQL.
-5. Ghi rõ thay đổi vào `SUPABASE_SCHEMA.md`.
-6. Commit file SQL và tài liệu.
+Không chạy trực tiếp `vercel deploy`, `vercel alias set`, `vercel promote`; không dùng alias `vantaidongbac-c3-preview.vercel.app`.
 
-## Khi đồng bộ dữ liệu báo cáo
+## 5. Apps Script Preview
 
-1. Google Sheet vẫn là nguồn chuẩn.
-2. Kiểm tra báo cáo trong Google Sheet trước.
-3. Chạy Apps Script function:
+Khi backend thay đổi và checkpoint cho phép:
 
-```javascript
-syncAllReportBundlesToSupabase()
-```
+1. chạy gate local;
+2. `clasp push` đúng standalone project canonical;
+3. tạo version bất biến có mô tả;
+4. update đúng deployment ID Preview đã khóa;
+5. kiểm tra direct health và health qua Vercel;
+6. xác nhận fingerprint app/Supabase/Vercel/Apps Script;
+7. chạy canary có kiểm soát nếu write/sync path thay đổi;
+8. cleanup exact test jobs/data.
 
-Hoặc chỉ sync tháng cụ thể:
+Không update production deployment trong checkpoint Preview.
 
-```javascript
-syncReportBundleToSupabase('6')
-```
+## 6. Production
 
-4. Kiểm tra bảng `report_bundles` trong Supabase.
-5. Mở Vercel frontend và vào màn hình **Báo cáo**.
+Production chỉ được thay đổi trong yêu cầu/phê duyệt riêng.
 
-## Khi đồng bộ cache gần realtime
+Trước cut-forward:
 
-Chạy thủ công toàn bộ cache chính khi cần backfill:
+- candidate Preview/authenticated QA đã được duyệt;
+- gate local và remote PASS;
+- ghi lại Vercel/Apps Script deployment hiện tại làm rollback;
+- kiểm tra đúng bộ environment Production;
+- nếu có migration destructive: backup, fingerprint, dry-run và one-shot approval.
 
-```javascript
-syncFullRealtimeCache()
-```
+Sau cut-forward:
 
-Cài trigger tự động gần realtime:
+- smoke root, route chính, manifest/service worker, session 401 và health;
+- authenticated smoke cho module bị ảnh hưởng;
+- kiểm tra không 5xx và identity đúng;
+- xác nhận rollback deployment còn READY;
+- cập nhật `PROJECT_CONTEXT.md`.
 
-```javascript
-installSupabaseSyncTriggers()
-```
+## 7. Supabase migration
 
-Trigger này không tự bật nếu chưa chạy hàm cài đặt. Khi đã cài, Apps Script chạy `syncRealtimeCache()` mỗi 1 phút ở chế độ tick luân phiên. Mỗi tick chỉ sync một nhóm nhỏ như dashboard, report gần đây, Quỹ gần đây, startup/danh mục, hoặc một sheet Vận hành gần đây. Không dùng trigger này làm full backfill.
+- Production đã apply `001–013`.
+- Không sửa migration cũ; migration tiếp theo dùng `014+`.
+- Ưu tiên additive migration và rollback runtime/feature flag.
+- RLS/server-only grants và service-role boundary phải có test.
+- Không đưa secret/token vào source, log hoặc tài liệu.
 
-Sau giai đoạn 3, trigger này cũng cập nhật cache màn hình khởi động và Danh mục. Nếu chỉ muốn sync riêng phần này, chạy:
+## 8. Git và handoff
 
-```javascript
-syncAllStartupAndCatalogsToSupabase()
-```
+- Một checkpoint nên có commit có chủ đích; không trộn dependency artifact hoặc dữ liệu tạm.
+- `node_modules/`, `.next/`, local env và `.vercel/` không thuộc source.
+- Trước commit: `git status --short`, `git diff --check`, full gate và rà secret.
+- Sau thay đổi: báo file, mục đích, cách test, phần chưa kiểm tra và rollback.
+- Cập nhật `PROJECT_CONTEXT.md` khi checkpoint/production/architecture/source-of-truth/risk thay đổi.
 
-Sau giai đoạn 4, trigger này cũng cập nhật cache danh sách mặc định của menu Vận hành. Nếu chỉ muốn sync riêng phần này, chạy:
+## 9. Trạng thái tài liệu
 
-```javascript
-syncAllManageDataToSupabase()
-```
-
-Lưu ý vận hành ngày 2026-07-06:
-
-- `syncAllReportBundlesToSupabase()` đã sync thành công `05/2026`, `06/2026`, `07/2026`, `Tất cả`, mất hơn 2 phút.
-- `syncAllStartupAndCatalogsToSupabase()` đã sync thành công 17 bundle, mất dưới 1 phút.
-- `syncAllFundBundlesToSupabase('2026')` đã sync thành công 12 bundle cho `2026-05`, `2026-06`, `2026-07`, mất khoảng 30-60 giây.
-- `syncAllManageDataToSupabase()` đã sync thành công 20 bundle, mất gần 5 phút.
-- Vì vậy không đặt full sync vào request người dùng hoặc trigger ngắn; dùng trigger tick và sync hẹp sau ghi.
-
-Nếu chỉ cần sync lại một tháng cụ thể của một sheet Vận hành:
-
-```javascript
-syncManageMonthToSupabase('NL_VanChuyen', '2026-07')
-```
-
-Frontend dùng cache `month:YYYY-MM` khi người dùng chọn đủ khoảng ngày trong menu Vận hành.
-
-Để bắt chỉnh sửa/xóa tay trong file Google Sheet Vận tải nhanh hơn trigger tick luân phiên, cài installable trigger trực tiếp cho spreadsheet:
-
-```javascript
-installTransportSheetSyncTrigger()
-```
-
-Hàm này xóa trigger cũ cùng handler rồi cài lại 2 handler:
-
-- `handleTransportSheetEdit(e)`: bắt chỉnh sửa ô/dòng trong các sheet `NL_*`, sync `recent_500`, tháng liên quan nếu xác định được, dashboard nếu là `NL_VanChuyen`, rồi debounce 15 giây và xếp tháng Report + `Tất cả` vào hàng đợi ưu tiên.
-- `handleTransportSheetChange(e)`: bắt thay đổi cấu trúc/xóa dòng trong các sheet `NL_*`, sync Manage/dashboard như trước và xếp full Report refresh vào hàng đợi vì row đã xóa có thể không còn đủ dữ liệu để suy ra tháng.
-
-`syncRealtimeCache()` kiểm tra hàng đợi Report trước vòng tick luân phiên. Khi item đã qua debounce, tick sync tháng bị ảnh hưởng và `Tất cả`; nếu là thay đổi cấu trúc thì chạy full Report batch. Lượt tick luân phiên thường không bị tăng index khi item ưu tiên được xử lý. Nếu lỗi, item được merge/requeue sau 30 giây. Mục tiêu vận hành cho edit thông thường là web app thấy cache mới trong khoảng tối đa 2 phút; đây là SLA mục tiêu, không phải transaction guarantee khi Apps Script bị quota, contention hoặc lỗi công thức.
-
-Report refresh dùng token guard trong Script Properties. Các `INSERT_GRID`/`REMOVE_GRID` phát sinh do Apps Script tự tạo/xóa report temp sheet phải trả `skipped` và không được tạo lại pending full refresh; `INSERT_ROW`/`REMOVE_ROW` thực của người dùng vẫn queue full refresh.
-
-Test nhanh sau khi cài:
-
-```javascript
-syncTransportSheetChange('MANUAL_TEST', 'NL_VanChuyen')
-```
-
-Sau đó kiểm tra `Cài đặt > Trạng thái đồng bộ` có key `transport_sheet_change:NL_VanChuyen` và thử xóa/sửa một dòng trong Sheet rồi reload web app không force refresh.
-
-Có thể kiểm tra hàng đợi read-only trong Apps Script editor:
-
-```javascript
-getPendingTransportReportRefresh()
-```
-
-Để ghi một dòng audit đã lọc vào execution log (không chứa payload/secret), chạy:
-
-```javascript
-auditManualReportFreshnessQueue()
-```
-
-Nếu chỉ cần sync lại một tháng giao dịch Quỹ/Thu chi:
-
-```javascript
-syncFundTransactionMonthToSupabase('2026', '2026-07')
-```
-
-Frontend dùng cache `fund_transaction_bundles.filter_key = month:YYYY-MM` khi người dùng chọn đủ khoảng ngày trong tab Giao dịch Quỹ.
-
-## Khi vận hành ghi bất đồng bộ
-
-Trang thai source code: queue Vận hành dùng `ASYNC_TRANSPORT_WRITE_ENABLED=true` cho append/sửa; xóa nguyên dòng chạy trực tiếp, không queue. Pilot thêm Thu chi đọc `ASYNC_FUND_TRANSACTION_ADD_ENABLED` từ Script Properties, mặc định false và production hiện bật true. Flag đại trà `ASYNC_WRITE_ENABLED=false`.
-
-1. Schema queue nằm trong `supabase/migrations/005_write_jobs.sql`.
-2. Worker Apps Script là `processWriteJobs()`, trigger 1 phút cài bằng `installWriteJobTrigger()`.
-3. Nếu `clasp run` không đủ quyền cài trigger, lần enqueue đầu tiên sẽ tự thử cài trigger.
-4. Sửa/xóa tay trong Google Sheet Vận tải dùng `installTransportSheetSyncTrigger()` ở phần cache gần realtime; không dùng `syncRecentManageDataCache()` khi `ASYNC_WRITE_ENABLED=false`.
-5. Kiểm tra trạng thái job bằng `getWriteJobStatus(jobId)`.
-6. Retry job lỗi bằng `retryWriteJob(jobId)`.
-7. Log chi tiết nằm trong Supabase bảng `write_job_logs`.
-8. Trước khi deploy worker mới phải chạy migration `006_write_queue_hardening.sql`; nếu chưa có RPC `claim_write_jobs`, worker sẽ không xử lý job.
-9. Chỉ bật `ASYNC_FUND_TRANSACTION_ADD_ENABLED=true` sau khi test voucher retry, double-click, cache tháng và đối chiếu Sheet.
-
-## Khi bật xác thực nội bộ
-
-- Deploy theo thứ tự: migration 006/007 -> tạo Auth user + `app_users` -> Vercel proxy/frontend auth -> migration 008 RLS cutover -> Apps Script auth enforcement.
-- Proxy secret phải giống nhau giữa Vercel `APP_PROXY_SECRET` và Apps Script Property cùng tên.
-- `SUPABASE_SERVICE_ROLE_KEY` chỉ đặt trong Vercel/Apps Script server env; không dùng prefix `VITE_`.
-- Sau khi bật, test bốn trường hợp: chưa đăng nhập 401, tài khoản ngoài allowlist 403, anon Supabase không đọc được cache, tài khoản allowlist đọc/ghi qua proxy thành công.
-- Chạy `npm test && npm run build` trước push. Build production phải có `VITE_AUTH_ENABLED=true`; build local an toàn mặc định để trống/false.
-- Sau migration `009`, quản trị tài khoản tại `Cài đặt`: `admin` được tạo/sửa/khóa/reset mật khẩu; mọi user active được đổi mật khẩu của chính mình. Không cấp service role key cho frontend.
-- Khi kiểm thử `shareholder`, phải xác nhận các màn hình đọc vẫn hoạt động và thử ít nhất một action ghi qua API nhận HTTP 403; không chỉ kiểm tra nút đã bị ẩn.
-
-## Khi deploy
-
-Nguyen tac sau khi sua code thanh cong theo yeu cau cua user:
-
-- Neu co sua Apps Script/backend: chay build neu can, `clasp push`, va deploy Apps Script.
-- Neu co sua frontend Next: chay test/lint/typecheck/build, commit + push GitHub va deploy Vercel theo checkpoint.
-- Neu co sua Supabase schema/cache contract: chay migration/sync can thiet va ghi lai tai lieu schema.
-- Luon bao ro da deploy/push thanh cong hay buoc nao bi loi.
-
-Frontend Vercel:
-
-1. Commit code lên GitHub.
-2. Vercel deploy từ GitHub.
-3. Kiểm tra biến môi trường:
-
-```text
-VITE_SUPABASE_URL
-VITE_SUPABASE_ANON_KEY
-VITE_SUPABASE_REPORTS_ENABLED
-```
-
-Apps Script:
-
-1. Chạy test liên quan backend.
-2. Chạy `clasp push`.
-3. Tạo deployment web app mới nếu thay đổi cần public ngay; giữ deployment cũ để rollback.
-4. Với E1 report cache, giữ `REPORT_CACHE_MODE=sheet` ở bước nền tảng; chỉ đổi sang `dual`/`supabase` tại checkpoint đã được phê duyệt.
-5. `syncAllReportBundles()` E1.2 phải trả một `dataVersion` chung cho mọi tháng; nếu mỗi result có version khác nhau thì dừng parity/cutover.
-6. Trước batch parity E1.3, phải guard/lock để trigger `syncRealtimeCache` không chạy `reportsRecent` hoặc `reportsAll` đồng thời. Chốt dòng cuối `SYS_ReportCache` ngay trước batch và chỉ chấp nhận đúng 39 dòng của một `dataVersion` mục tiêu.
-7. Nếu xuất hiện version xen ngang, số dòng tăng khác 39 hoặc Supabase không còn đủ 4 row exact-version, rollback ngay `REPORT_CACHE_MODE=sheet` và không tự chạy batch thứ hai khi chưa có phê duyệt mới.
-8. Guard E1.3 dùng Script Property để chặn tick mới, Script Cache để nhận biết tick đang chạy và Script Lock chỉ cho quyết định start/stop ngắn. Không giữ lock trong suốt report sync. Wrapper parity phải xóa property trong `finally`, kể cả khi batch lỗi.
-9. Audit payload E1.3 chỉ đọc tối đa 500 dòng cuối, lọc đúng `REPORT_CACHE_E1_LAST_BATCH_VERSION`, chuẩn hóa text/số và so hash bốn kỳ. Không dùng force refresh hoặc log payload/credential trong audit.
-10. E1.4 chỉ đổi `REPORT_CACHE_MODE=supabase` sau khi đã chốt dòng cuối Sheet. Cutover batch phải chạy dưới cùng realtime guard, đồng bộ đúng 4 bundle và chứng minh dòng cuối `SYS_ReportCache` không đổi; helper tự rollback về `dual` nếu gate lỗi.
-11. Sau cutover, đợi ít nhất một vòng realtime trigger rồi chạy audit lại. Chỉ chấp nhận khi mode vẫn `supabase`, dòng Sheet vẫn bằng baseline và Supabase còn đủ 4 row hiện hành có metadata hợp lệ. Batch cutover ban đầu phải có một exact-version chung; sau đó tick luân phiên có thể upsert từng row bằng version mới khác nhau. Không compact/xóa Sheet trong E1.4.
-12. E1.5 phải tạo full-workbook backup riêng trước, đăng ký ID bằng `REPORT_CACHE_E15_BACKUP_FILE_ID`, rồi chạy `getReportCacheCompactionDryRunForMigration()` và `prepareReportCacheCompactionForMigration()`. Dry-run phải chứng minh header A:J exact, last column dữ liệu là J, batch giữ có đúng 39 dòng/3 tháng/13 rowOrder, không formula và mode còn `supabase`.
-13. Không gọi `approveReportCacheCompactionForMigration()` hoặc `runReportCacheCompactionForMigration()` trong pha chuẩn bị. Destructive pass cần phê duyệt người dùng riêng; trước xóa phải so lại live row/version/fingerprint với prepared snapshot. Approval là one-shot và luôn bị xóa trong `finally`.
-14. Migration E1.5 chỉ copy batch giữ về dòng 2:40 rồi xóa toàn bộ hàng vật lý từ 41 trở xuống; không đổi tên sheet, thứ tự cột hoặc header. Sau chạy phải xác nhận sheet còn đúng 40 hàng, fingerprint không đổi, Supabase đủ bốn bundle và Report/fallback smoke PASS.
-15. E1.6 không ghi thêm vào `SYS_ReportCache`. Manual edit Vận tải phải queue tháng Report bị ảnh hưởng + `Tất cả`; thay đổi cấu trúc/không xác định sheet phải queue full Report sync. Queue dùng Script Property, Script Lock ngắn, debounce 15 giây và retry 30 giây; tick xử lý item đến hạn trước bước luân phiên.
-
-Supabase:
-
-1. Chạy SQL migration bằng SQL Editor.
-2. Không commit secret key.
-3. Chạy sync test thủ công hoặc `syncFullRealtimeCache()`.
-4. Kiểm tra Table Editor có row mới trong các bảng cache vừa thêm.
-
-## Khi rollback
-
-Rollback nhanh nhất là tắt feature flag Supabase:
-
-```text
-VITE_SUPABASE_REPORTS_ENABLED=false
-```
-
-Redeploy Vercel. Frontend sẽ đọc lại Apps Script như luồng cũ.
+- Loại: `CURRENT` operations workflow.
+- Ngày hệ thống lại: 2026-08-10.
+- Owner current deployment/checkpoint: `PROJECT_CONTEXT.md`.
+- Rollback chi tiết: `ROLLBACK.md`.

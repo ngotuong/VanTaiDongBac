@@ -22,3 +22,6 @@ client_secret.json
 node_modules/
 next-shell/.next/
 .next/
+
+# Local QA screenshots and generated evidence
+artifacts/

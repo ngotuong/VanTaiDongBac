@@ -59,6 +59,8 @@ Script phải:
 
 Không chạy trực tiếp `vercel deploy`, `vercel alias set`, `vercel promote`; không dùng alias `vantaidongbac-c3-preview.vercel.app`.
 
+Vercel Git Integration được giữ để liên kết repository nhưng `gitProviderOptions.createDeployments=disabled`. Push GitHub không được tự tạo Preview; mọi Preview phải đi qua script trên để dùng đúng environment và guard.
+
 ## 5. Apps Script Preview
 
 Khi backend thay đổi và checkpoint cho phép:

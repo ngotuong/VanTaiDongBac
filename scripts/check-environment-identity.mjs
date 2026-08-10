@@ -17,8 +17,13 @@ function assertEqual(label, actual, expected) {
 }
 
 function checkLocalLinks() {
-  const clasp = readJson('.clasp.json');
-  assertEqual('Apps Script scriptId', clasp.scriptId, identity.appsScript.scriptId);
+  const claspPath = path.join(root, '.clasp.json');
+  if (fs.existsSync(claspPath)) {
+    const clasp = readJson('.clasp.json');
+    assertEqual('Apps Script scriptId', clasp.scriptId, identity.appsScript.scriptId);
+  } else if (process.env.VERCEL !== '1') {
+    throw new Error('Environment Identity Guard: thiếu liên kết local .clasp.json.');
+  }
 
   const supabaseRefPath = path.join(root, 'supabase/.temp/project-ref');
   if (fs.existsSync(supabaseRefPath)) {

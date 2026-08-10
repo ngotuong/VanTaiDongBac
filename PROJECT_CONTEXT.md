@@ -80,6 +80,7 @@ Preview hiện hành của checkpoint retirement/repository consolidation:
 - Apps Script Preview: `@320`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
 - Gate deploy PASS 467/467 tests, lint, typecheck, Next build, Identity Guard, root/title smoke; Production giữ nguyên `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
+- Vercel Git Integration vẫn liên kết GitHub nhưng auto deployment đã tắt ngày 2026-08-10; push không còn tạo Preview ngoài script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
 
@@ -179,14 +180,15 @@ Definition of Done hiện giữ:
 2. Admin đã smoke production; operator/shareholder chưa có representative production smoke đầy đủ.
 3. Authenticated visual/device QA không thể được thay thế hoàn toàn bằng unit/HTTP/DOM test.
 4. Apps Script public deployment từng trả 403 dù UI permission đúng; health trực tiếp và identity fingerprint phải được kiểm tra sau deploy.
-5. Client từng cài service worker legacy cần theo dõi riêng; service worker hiện tại không cache app/data.
-6. iOS Web Push chỉ hoạt động với app Add to Home Screen và quyền được cấp từ thao tác người dùng.
-7. Mọi thay đổi Google Sheet/Supabase schema phải có migration riêng; migration `001–013` đã chạy là bất biến, correction tiếp theo dùng `014+`.
-8. Không đổi tên sheet, thứ tự cột, công thức hoặc helper range. Xóa Vận hành là clear-only.
-9. Report parity phải dùng exact `source_data_version`, loại field volatile khỏi hash và kiểm tra đủ các tháng hiện hành cùng `Tất cả`.
-10. Manual edit workbook Thu chi hoặc thay đổi chỉ lan qua `IMPORTRANGE` không được bảo đảm cùng SLA freshness với workbook Vận tải.
-11. Rollback Apps Script dùng version còn lưu trên cùng production deployment ID; không dùng recovery deployment `@281` đã undeploy.
-12. Production warning `DEP0169 url.parse()` có thể xuất hiện trên request HTTP 200; chưa có call site trực tiếp trong source.
+5. Identity Guard chỉ yêu cầu `.clasp.json` trong local workspace; Vercel build không có file Git-ignored này và phải dựa vào canonical manifest + runtime environment checks.
+6. Client từng cài service worker legacy cần theo dõi riêng; service worker hiện tại không cache app/data.
+7. iOS Web Push chỉ hoạt động với app Add to Home Screen và quyền được cấp từ thao tác người dùng.
+8. Mọi thay đổi Google Sheet/Supabase schema phải có migration riêng; migration `001–013` đã chạy là bất biến, correction tiếp theo dùng `014+`.
+9. Không đổi tên sheet, thứ tự cột, công thức hoặc helper range. Xóa Vận hành là clear-only.
+10. Report parity phải dùng exact `source_data_version`, loại field volatile khỏi hash và kiểm tra đủ các tháng hiện hành cùng `Tất cả`.
+11. Manual edit workbook Thu chi hoặc thay đổi chỉ lan qua `IMPORTRANGE` không được bảo đảm cùng SLA freshness với workbook Vận tải.
+12. Rollback Apps Script dùng version còn lưu trên cùng production deployment ID; không dùng recovery deployment `@281` đã undeploy.
+13. Production warning `DEP0169 url.parse()` có thể xuất hiện trên request HTTP 200; chưa có call site trực tiếp trong source.
 
 ## 9. Router tài liệu
 

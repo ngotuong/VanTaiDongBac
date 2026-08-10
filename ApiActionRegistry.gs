@@ -36,6 +36,7 @@ var ApiActionRegistry = (function () {
     addFundLoanPayment: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     saveFundCatalogItem: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     deleteFundCatalogItem: { method: 'POST', kind: 'command', permission: 'adminOperator' },
+    updateFundSettings: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     retryWriteJob: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     processWriteJobs: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     debugSheet: { method: 'GET', kind: 'query', permission: 'adminOperator', routerOnly: true },

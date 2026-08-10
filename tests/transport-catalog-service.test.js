@@ -82,7 +82,8 @@ test('catalog form needs remain narrow and unknown forms fall back to the full s
   const drivers = plain(service.readCatalogs(ss, 'taiXe'));
   assert.equal(drivers.vehicles.length, 2);
   assert.equal(drivers.people.length, 2);
-  assert.equal(drivers.projects.length, 1);
+  assert.equal(drivers.projects.length, 0);
+  assert.deepEqual(drivers.assignments, []);
 
   const fallback = plain(service.readCatalogs(ss, 'unknown'));
   assert.equal(fallback.people.length, 2);
@@ -99,4 +100,10 @@ test('CatalogService owns transport catalog implementation while SheetService re
   assert.doesNotMatch(sheet, /function catalogNeeds_/);
   assert.doesNotMatch(sheet, /function readChamCongTypes_/);
   assert.doesNotMatch(sheet, /function readParams_/);
+});
+
+test('fuel price catalog exposes only live input columns and protects the delta formula', () => {
+  const source = read('CatalogService.gs');
+  assert.match(source, /DM_GiaDau:\s*\['Ngày áp dụng', 'Giá dầu áp dụng'\]/);
+  assert.doesNotMatch(source, /DM_GiaDau:\s*\[[^\]]*'Ghi chú'/);
 });

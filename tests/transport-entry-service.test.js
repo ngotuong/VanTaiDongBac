@@ -13,18 +13,22 @@ function loadEntry(buildResult, reservedRange = null) {
   if (reservedRange) {
     properties.set('WRITE_JOB_RESERVATION_job-123', JSON.stringify({ sheetName: 'NL_VanChuyen', startRow: reservedRange.getRow() }));
   }
-  const sheet = {
-    getName: () => 'NL_VanChuyen',
-    getLastColumn: () => 9,
+  const liveHeaders = {
+    NL_VanChuyen: ['Ngày', 'Tháng', 'Biển số xe', 'Dự án', 'Số chuyến', 'Số phiếu', 'Ghi chú', 'Khối lượng thực tế (m³)'],
+    NL_Dau: ['Ngày', 'Tháng', 'Biển số', 'Nguồn dầu', 'Số lít', 'Giá dầu', 'Thành tiền', 'Nguồn chi', 'Công ty sở hữu', 'Ghi Chú']
+  };
+  function makeSheet(sheetName) { return {
+    getName: () => sheetName,
+    getLastColumn: () => liveHeaders[sheetName].length,
     getMaxColumns: () => 12,
     getRange(row, column, rowCount, columnCount) {
       if (row === 2 && rowCount === 1) {
-        return { getValues: () => [['Ngày', 'Tháng', 'Xe', 'Nguồn', 'Lít', 'Giá', 'Thành tiền', 'Nguồn chi', 'Công ty sở hữu']] };
+        return { getDisplayValues: () => [liveHeaders[sheetName]], getValues: () => [liveHeaders[sheetName]] };
       }
       events.push({ type: 'range', row, column, rowCount, columnCount });
       return { getRow: () => row };
     }
-  };
+  }; }
   const lock = { waitLock: (ms) => events.push({ type: 'lock', ms }), releaseLock: () => events.push({ type: 'unlock' }) };
   const context = vm.createContext({
     SheetService: {},
@@ -43,13 +47,17 @@ function loadEntry(buildResult, reservedRange = null) {
       vanChuyen: { name: 'NL_VanChuyen', headerRow: 2 },
       dau: { name: 'NL_Dau', headerRow: 2 }
     },
-    getSpreadsheet: () => ({ getSheetByName: () => sheet }),
+    getSpreadsheet: () => ({ getSheetByName: (sheetName) => makeSheet(sheetName) }),
     getCatalogs: () => ({ vehicles: [] }),
     getAppendRow: () => 10,
     ensureRows: (targetSheet, lastRow) => events.push({ type: 'ensure', targetSheet, lastRow }),
     writeRows: (targetSheet, startRow, values, skipped) => events.push({ type: 'write', targetSheet, startRow, values, skipped }),
     clearAfterSubmitCache: () => events.push({ type: 'clearCache' })
   };
+  submitContext.sheets.vanChuyen.headers = liveHeaders.NL_VanChuyen;
+  submitContext.sheets.vanChuyen.computedHeaders = ['Tháng'];
+  submitContext.sheets.dau.headers = liveHeaders.NL_Dau;
+  submitContext.sheets.dau.computedHeaders = ['Tháng', 'Thành tiền', 'Công ty sở hữu'];
   return { events, service, submitContext };
 }
 
@@ -62,7 +70,7 @@ test('transport submit preserves validation result, append range, cache callback
     idempotentReplay: false, errors: [], warnings: ['synthetic warning']
   });
   assert.equal(events.find((event) => event.type === 'ensure').lastRow, 10);
-  assert.deepEqual(JSON.parse(JSON.stringify(events.find((event) => event.type === 'write').skipped)), []);
+  assert.deepEqual(JSON.parse(JSON.stringify(events.find((event) => event.type === 'write').skipped)), [1]);
   assert.equal(events.filter((event) => event.type === 'clearCache').length, 1);
   assert.equal(events.at(-1).type, 'unlock');
 });
@@ -91,7 +99,7 @@ test('queued submit stores a stable Script Property reservation and replay reuse
 test('fuel submit preserves formula/helper skip columns and queued validation errors never write', () => {
   const valid = loadEntry({ values: [[1, 2, 3, 4, 5, 6, '', 8, '']], errors: [], warnings: [] });
   valid.service.submitRowsWithContext('dau', [{}], null, valid.submitContext);
-  assert.deepEqual(JSON.parse(JSON.stringify(valid.events.find((event) => event.type === 'write').skipped)), [6, 8]);
+  assert.deepEqual(JSON.parse(JSON.stringify(valid.events.find((event) => event.type === 'write').skipped)), [1, 6, 8]);
 
   const invalid = loadEntry({ values: [[1]], errors: ['invalid'], warnings: ['warning'] });
   const response = invalid.service.submitRowsWithContext('vanChuyen', [{}], { jobId: 'job-invalid' }, invalid.submitContext);

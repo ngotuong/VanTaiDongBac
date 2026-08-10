@@ -18,15 +18,15 @@ const FORMS: Record<EntryFormType, { label: string; note: string; fields: Array<
       ['trips', 'Số chuyến', 'number'],
       ['tickets', 'Số phiếu', 'text', false],
       ['note', 'Ghi chú', 'textarea', false],
+      ['actualVolume', 'Khối lượng thực tế (m³)', 'number', false],
     ],
   },
   taiXe: {
     label: 'Tài xế',
-    note: 'Số chuyến theo tài xế & dự án',
+    note: 'Nhóm vận hành được tự xác định theo ngày và xe',
     fields: [
       ['date', 'Ngày', 'date'],
       ['vehicle', 'Biển số', 'vehicles'],
-      ['project', 'Dự án', 'projects'],
       ['driver', 'Tài xế', 'drivers'],
       ['trips', 'Số chuyến', 'number'],
       ['note', 'Ghi chú', 'textarea', false],
@@ -42,6 +42,7 @@ const FORMS: Record<EntryFormType, { label: string; note: string; fields: Array<
       ['liters', 'Số lít dầu', 'number'],
       ['price', 'Giá dầu / lít', 'number'],
       ['sourcePay', 'Nguồn chi', 'fuelPaymentSources'],
+      ['note', 'Ghi chú', 'textarea', false],
     ],
   },
   chamCong: {
@@ -70,8 +71,8 @@ const FORMS: Record<EntryFormType, { label: string; note: string; fields: Array<
     note: 'Báo nghỉ mỏ & giảm KPI',
     fields: [
       ['date', 'Ngày báo nghỉ', 'date'],
-      ['vehicle', 'Biển số xe nghỉ', 'vehicles'],
-      ['project', 'Dự án ảnh hưởng', 'projects'],
+      ['vehicle', 'Phạm vi xe nghỉ', 'stopVehicles'],
+      ['operationGroup', 'Nhóm vận hành', 'operationGroups'],
       ['stopType', 'Lý do dừng máy', 'nghiVanHanhTypes'],
       ['hours', 'Số giờ dừng máy', 'number'],
       ['note', 'Ghi chú chi tiết', 'textarea', false],
@@ -87,6 +88,8 @@ function options(c: EntryCatalogs, source: string) {
   const item = (value: string, label = value) => ({ value, label });
   if (source === 'vehicles') return (c.activeVehicles?.length ? c.activeVehicles : c.vehicles || []).map((x) => item(x.plate || '')).filter((x) => x.value);
   if (source === 'projects') return (c.projects || []).map((x) => item(x.name || '')).filter((x) => x.value);
+  if (source === 'operationGroups') return (c.operationGroups || []).map((x) => item(x.name || '')).filter((x) => x.value);
+  if (source === 'stopVehicles') return [item('TẤT CẢ XE'), ...(c.activeVehicles?.length ? c.activeVehicles : c.vehicles || []).map((x) => item(x.plate || '')).filter((x) => x.value)];
   if (source === 'drivers') return (c.activeDrivers?.length ? c.activeDrivers : c.people || []).map((x) => item(x.name || '')).filter((x) => x.value);
   if (source === 'people') return (c.activePeople?.length ? c.activePeople : c.people || []).map((x) => item(x.name || '', `${x.name || ''}${x.role ? ' - ' + x.role : ''}`)).filter((x) => x.value);
   if (source === 'penalties') return (c.activePenalties || []).map((x) => item(x.code || '', `${x.code || ''} - ${x.content || ''}`)).filter((x) => x.value);

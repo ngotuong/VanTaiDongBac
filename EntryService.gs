@@ -27,6 +27,7 @@ var EntryService = (function () {
       var cfg = context.sheets[formType];
       var sheet = ss.getSheetByName(cfg.name);
       if (!sheet) throw new Error('Khong tim thay sheet ' + cfg.name);
+      var headers = assertLiveHeaders_(sheet, cfg);
 
       var reservedRange = findWriteJobRange_(sheet, writeContext);
       var idempotentReplay = Boolean(reservedRange);
@@ -37,18 +38,10 @@ var EntryService = (function () {
         reservedRange = sheet.getRange(appendRow, 1, 1, sheet.getMaxColumns());
       }
 
-      if (formType === 'dau') {
-        var headers = sheet.getRange(cfg.headerRow, 1, 1, sheet.getLastColumn()).getValues()[0].map(function (header) {
-          return String(header).trim();
-        });
-        var totalColIdx = headers.indexOf('Thành tiền');
-        if (totalColIdx === -1) totalColIdx = 6;
-        var ownerColIdx = headers.indexOf('Công ty sở hữu');
-        if (ownerColIdx === -1) ownerColIdx = 8;
-        context.writeRows(sheet, appendRow, result.values, [totalColIdx, ownerColIdx]);
-      } else {
-        context.writeRows(sheet, appendRow, result.values, []);
-      }
+      var skippedColumns = (cfg.computedHeaders || []).map(function (header) {
+        return headers.indexOf(header);
+      }).filter(function (index) { return index >= 0; });
+      context.writeRows(sheet, appendRow, result.values, skippedColumns);
       context.clearAfterSubmitCache();
       return {
         ok: result.errors.length === 0,
@@ -62,6 +55,20 @@ var EntryService = (function () {
     } finally {
       lock.releaseLock();
     }
+  }
+
+  function assertLiveHeaders_(sheet, cfg) {
+    var expected = cfg.headers || [];
+    if (!expected.length) throw new Error('Chua khai bao schema ghi cho ' + cfg.name + '.');
+    var actual = sheet.getRange(cfg.headerRow, 1, 1, expected.length).getDisplayValues()[0].map(function (header) {
+      return String(header || '').trim();
+    });
+    for (var index = 0; index < expected.length; index++) {
+      if (actual[index] !== String(expected[index]).trim()) {
+        throw new Error('Schema ' + cfg.name + ' khong khop tai cot ' + (index + 1) + ': can "' + expected[index] + '", dang la "' + actual[index] + '".');
+      }
+    }
+    return actual;
   }
 
   function findWriteJobRange_(sheet, writeContext) {

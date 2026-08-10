@@ -33,19 +33,19 @@ var ValidationService = (function () {
     var trips = requirePositiveNumber_(row.trips, 'So chuyen');
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
     warnIfMissing_(catalogs.projects, 'name', project, 'Dong ' + line + ': Du an chua co trong DM_DuAn.', warnings);
-    return [date, '', plate, project, trips, clean_(row.tickets), clean_(row.note)];
+    var actualVolume = optionalPositiveNumber_(row.actualVolume, 'Khoi luong thuc te');
+    return [date, '', plate, project, trips, clean_(row.tickets), clean_(row.note), actualVolume];
   }
 
   function buildTaiXe_(row, catalogs, line, warnings) {
     var date = requireDate_(row.date, 'Ngay');
     var plate = requireText_(row.vehicle, 'Bien so xe');
-    var project = requireText_(row.project, 'Du an');
+    var operationGroup = resolveOperationGroup_(catalogs.assignments || [], date, plate);
     var driver = requireText_(row.driver, 'Tai xe');
     var trips = requirePositiveNumber_(row.trips, 'So chuyen');
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
-    warnIfMissing_(catalogs.projects, 'name', project, 'Dong ' + line + ': Du an chua co trong DM_DuAn.', warnings);
     warnIfMissing_(catalogs.people, 'name', driver, 'Dong ' + line + ': Tai xe chua co trong DM_NhanSu.', warnings);
-    return [date, '', plate, project, driver, trips, clean_(row.note)];
+    return [date, '', plate, operationGroup, driver, trips, clean_(row.note)];
   }
 
   function buildDau_(row, catalogs, line, warnings) {
@@ -55,7 +55,7 @@ var ValidationService = (function () {
     var liters = requirePositiveNumber_(row.liters, 'So lit');
     var price = requirePositiveNumber_(row.price, 'Gia dau');
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
-    return [date, '', plate, source, liters, price, '', clean_(row.sourcePay), ''];
+    return [date, '', plate, source, liters, price, '', clean_(row.sourcePay), '', clean_(row.note)];
   }
 
   function buildChamCong_(row, catalogs, line, warnings) {
@@ -79,12 +79,61 @@ var ValidationService = (function () {
   function buildNghiVanHanh_(row, catalogs, line, warnings) {
     var date = requireDate_(row.date, 'Ngay');
     var plate = requireText_(row.vehicle, 'Bien so xe');
-    var project = requireText_(row.project, 'Du an');
+    var operationGroup = requireText_(row.operationGroup || row.project, 'Nhom van hanh');
     var type = requireText_(row.stopType, 'Loai nghi');
     var hours = requirePositiveNumber_(row.hours, 'So gio nghi');
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
-    warnIfMissing_(catalogs.projects, 'name', project, 'Dong ' + line + ': Du an chua co trong DM_DuAn.', warnings);
-    return [date, '', plate, project, type, hours, '', '', clean_(row.note)];
+    warnIfMissing_(catalogs.operationGroups || [], 'name', operationGroup, 'Dong ' + line + ': Nhom van hanh chua co trong DM_DuAn.', warnings);
+    validateStopAssignment_(catalogs.assignments || [], date, plate, operationGroup);
+    return [date, '', plate, operationGroup, type, hours, '', '', clean_(row.note), ''];
+  }
+
+  function optionalPositiveNumber_(value, label) {
+    if (clean_(value) === '') return '';
+    var number = parseNumber(value, true);
+    if (!(number > 0)) throw new Error(label + ' phai lon hon 0.');
+    return number;
+  }
+
+  function resolveOperationGroup_(assignments, date, plate) {
+    var matches = activeAssignments_(assignments, date).filter(function (item) {
+      return normalize_(item.plate) === normalize_(plate);
+    });
+    var groups = uniqueValues_(matches.map(function (item) { return clean_(item.operationGroup); }));
+    if (!groups.length) throw new Error('Chua co nhom van hanh hieu luc cho xe ' + plate + ' tai ngay da chon.');
+    if (groups.length > 1) throw new Error('Xe ' + plate + ' co nhieu nhom van hanh chong lan tai ngay da chon.');
+    return groups[0];
+  }
+
+  function validateStopAssignment_(assignments, date, plate, operationGroup) {
+    var active = activeAssignments_(assignments, date).filter(function (item) {
+      return normalize_(item.operationGroup) === normalize_(operationGroup);
+    });
+    if (normalize_(plate) === normalize_('TẤT CẢ XE')) {
+      if (!active.length) throw new Error('Nhom van hanh chua co xe duoc phan cong tai ngay da chon.');
+      return;
+    }
+    var matched = active.some(function (item) { return normalize_(item.plate) === normalize_(plate); });
+    if (!matched) throw new Error('Xe khong thuoc nhom van hanh da chon tai ngay nay.');
+  }
+
+  function activeAssignments_(assignments, date) {
+    var time = date.getTime();
+    return (assignments || []).filter(function (item) {
+      var start = parseDate(item.startDate);
+      var end = parseDate(item.endDate);
+      return start && start.getTime() <= time && (!end || end.getTime() >= time);
+    });
+  }
+
+  function uniqueValues_(values) {
+    var seen = {};
+    return values.filter(function (value) {
+      var key = normalize_(value);
+      if (!key || seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
   }
 
   function isBlankRow_(row) {

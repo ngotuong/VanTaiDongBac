@@ -18,6 +18,28 @@ var TransportJobHandler = (function () {
     }
   }
 
+  function isCatalogSheet_(sheetName) {
+    return String(sheetName || '').indexOf('DM_') === 0;
+  }
+
+  function syncAfterRowMutation_(result, payload, context, reportRows) {
+    if (isCatalogSheet_(payload.sheetName)) {
+      var displaySheetName = payload.sheetName === 'DM_ThamSo' ? 'DM_ThamSo_TS' : payload.sheetName;
+      captureSync_(result, 'catalogSync', function () { return context.syncCatalogAfterWrite(displaySheetName); });
+      captureSync_(result, 'reportSync', context.syncAllReportBundles);
+      return;
+    }
+    captureSync_(result, 'supabaseSync', function () {
+      return context.syncTransportAfterWrite(payload.sheetName, [payload.rowData || {}], { fast: true });
+    });
+    if (payload.sheetName === 'NL_VanChuyen') {
+      captureSync_(result, 'dashboardSync', context.syncDashboard);
+    }
+    captureSync_(result, 'reportSync', function () {
+      return context.syncTransportReportsAfterWrite(payload.sheetName, reportRows, { includeAll: true });
+    });
+  }
+
   function execute(job, context) {
     var actionName = context.clean(job.action);
     var payload = job.payload || {};
@@ -42,19 +64,7 @@ var TransportJobHandler = (function () {
       var saveResult = context.saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData || {}, payload.previousRowData || null);
       assertResult_(saveResult, 'Không thể sửa dòng Vận hành.');
       if (saveResult && saveResult.ok !== false) {
-        captureSync_(saveResult, 'supabaseSync', function () {
-          return context.syncTransportAfterWrite(payload.sheetName, [payload.rowData || {}], { fast: true });
-        });
-        if (payload.sheetName === 'NL_VanChuyen') {
-          captureSync_(saveResult, 'dashboardSync', context.syncDashboard);
-        }
-        captureSync_(saveResult, 'reportSync', function () {
-          return context.syncTransportReportsAfterWrite(
-            payload.sheetName,
-            [payload.previousRowData || {}, payload.rowData || {}],
-            { includeAll: true }
-          );
-        });
+        syncAfterRowMutation_(saveResult, payload, context, [payload.previousRowData || {}, payload.rowData || {}]);
       }
       return saveResult;
     }
@@ -70,15 +80,7 @@ var TransportJobHandler = (function () {
       );
       assertResult_(deleteResult, 'Không thể xóa nội dung dòng Vận hành.');
       if (deleteResult && deleteResult.ok !== false) {
-        captureSync_(deleteResult, 'supabaseSync', function () {
-          return context.syncTransportAfterWrite(payload.sheetName, [payload.rowData || {}], { fast: true });
-        });
-        if (payload.sheetName === 'NL_VanChuyen') {
-          captureSync_(deleteResult, 'dashboardSync', context.syncDashboard);
-        }
-        captureSync_(deleteResult, 'reportSync', function () {
-          return context.syncTransportReportsAfterWrite(payload.sheetName, [payload.rowData || {}], { includeAll: true });
-        });
+        syncAfterRowMutation_(deleteResult, payload, context, [payload.rowData || {}]);
       }
       return deleteResult;
     }

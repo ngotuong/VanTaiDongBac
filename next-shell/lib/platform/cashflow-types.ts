@@ -1,13 +1,14 @@
-export type CashflowTab='overview'|'transactions'|'loans'|'catalog';
+export type CashflowTab='overview'|'transactions'|'debts'|'loans'|'catalog';
 export type FundMonth={key:string;label:string};
 export type FundMetric={key:string;label:string;value:number};
-export type FundTransaction={rowIndex?:number;voucher?:string;date:string;dateText?:string;month?:string;type:'Thu'|'Chi';category:string;method?:string;amount:number|string;amountText?:string;actor:string;partner?:string;content?:string;debt?:string|boolean;pending?:boolean;jobId?:string};
+export type FundTransaction={rowIndex?:number;voucher?:string;date:string;dateText?:string;month?:string;type:'Thu'|'Chi';category:string;method?:string;amount:number|string;amountText?:string;actor:string;partner?:string;content?:string;debt?:string|boolean;remainingDebt?:number;pending?:boolean;jobId?:string};
 export type FundOverview={ok?:boolean;months?:FundMonth[];selectedMonth?:string;metrics?:FundMetric[];incomeCategories?:Array<{category:string;amount:number;count?:number;details?:FundTransaction[]}>;expenseCategories?:Array<{category:string;amount:number;count?:number;details?:FundTransaction[]}>;supabaseCached?:boolean;supabaseSyncedAt?:string};
 export type FundTransactions={ok?:boolean;year?:string;months?:FundMonth[];transactions?:FundTransaction[];totalRows?:number;limited?:boolean;supabaseCached?:boolean;supabaseSyncedAt?:string};
 export type FundLoan={code?:string;loanDate?:string;loanDateText?:string;partner:string;borrowed?:number;principalPaid?:number;interestPaid?:number;outstanding:number;currentOutstanding?:number;isCurrentlySettled?:boolean;currentSettlementDate?:string;currentSettlementDateText?:string;content?:string};
 export type FundLoanRow={rowIndex?:number;code?:string;loanKey?:string;reconciledFromCode?:string;date:string;dateText?:string;type:string;partner:string;amount:number;content?:string;isSettled?:boolean;statusLabel?:string};
 export type FundLoans={ok?:boolean;months?:FundMonth[];selectedMonth?:string;metrics?:FundMetric[];loans?:FundLoan[];recentRows?:FundLoanRow[];supabaseCached?:boolean;supabaseSyncedAt?:string};
-export type FundOptions={ok?:boolean;catalogCacheVersion?:string;incomeCategories?:string[];expenseCategories?:string[];actors?:string[];partners?:string[];loanPartners?:string[];supabaseCached?:boolean;supabaseSyncedAt?:string};
+export type FundSettings={cashOpening:number;bankOpening:number;dataStartDate:string;loanStartDate:string};
+export type FundOptions={ok?:boolean;catalogCacheVersion?:string;incomeCategories?:string[];expenseCategories?:string[];actors?:string[];partners?:string[];loanPartners?:string[];settings?:FundSettings;supabaseCached?:boolean;supabaseSyncedAt?:string};
 export type FundCatalogRow={rowIndex:string|number;value:string;source?:string;note?:string};
 export type FundCatalog={ok?:boolean;catalogCacheVersion?:string;selectedGroup?:string;rows?:FundCatalogRow[];groups?:Array<{key:string;label:string;count:number}>;supabaseCached?:boolean;supabaseSyncedAt?:string};
 export type CashflowInitialData={year:string;overview:FundOverview;transactions:FundTransactions;loans:FundLoans;options:FundOptions;catalog?:FundCatalog;warnings:string[]};

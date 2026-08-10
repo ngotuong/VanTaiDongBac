@@ -8,12 +8,15 @@ var StartupCatalogSyncService = (function () {
     'DM_NhanSu',
     'DM_Xe',
     'DM_DuAn',
+    'DM_CheDoLuong',
     'DM_LuongChuyen',
     'DM_ThamSo_TS',
-    'DM_ThamSo_GD',
+    'DM_GiaDau',
     'DM_DonGiaVanChuyen',
     'DM_ThuongQuanLy',
-    'DM_PhatNoiBo'
+    'DM_PhatNoiBo',
+    'DM_PhanCongXe',
+    'DM_UuDaiNoiBo'
   ];
 
   function buildCatalogsKey(formType, clean) {

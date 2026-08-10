@@ -26,7 +26,8 @@ var FundTransactionRepository = (function () {
       actor: requiredHeaderIndex(headers, ['nguoi thu chi', 'người thu chi', 'nguoi thu/chi', 'người thu/chi'], 6 + offset, normalizeHeader),
       partner: requiredHeaderIndex(headers, ['doi tac', 'đối tác'], 7 + offset, normalizeHeader),
       content: requiredHeaderIndex(headers, ['noi dung', 'nội dung'], 8 + offset, normalizeHeader),
-      debt: requiredHeaderIndex(headers, ['cong no', 'công nợ'], 9 + offset, normalizeHeader)
+      debt: requiredHeaderIndex(headers, ['cong no', 'công nợ'], 9 + offset, normalizeHeader),
+      remainingDebt: findHeaderIndex(headers, ['cong no con lai', 'công nợ còn lại'], normalizeHeader)
     };
   }
 

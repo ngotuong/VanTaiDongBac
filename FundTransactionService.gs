@@ -112,7 +112,8 @@ var FundTransactionService = (function () {
         type: incomeCategory ? 'Thu' : (expenseCategory ? 'Chi' : ''), category: incomeCategory || expenseCategory,
         incomeCategory: incomeCategory, expenseCategory: expenseCategory,
         method: context.clean(row[columns.method]), amount: context.parseNumber(row[columns.amount]), amountText: context.clean(row[columns.amount]),
-        actor: context.clean(row[columns.actor]), partner: context.clean(row[columns.partner]), content: context.clean(row[columns.content]), debt: context.clean(row[columns.debt])
+        actor: context.clean(row[columns.actor]), partner: context.clean(row[columns.partner]), content: context.clean(row[columns.content]), debt: context.clean(row[columns.debt]),
+        remainingDebt: columns.remainingDebt >= 0 ? context.parseNumber(row[columns.remainingDebt]) : 0
       };
       if (searchFilter) {
         var searchable = context.normalizeHeader([transaction.voucher, transaction.dateText, transaction.type, transaction.category, transaction.amountText, transaction.actor, transaction.partner, transaction.content, transaction.debt].join(' '));

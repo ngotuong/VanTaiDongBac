@@ -210,8 +210,57 @@ var FundService = (function () {
     context.fallbackPartners = function () { return getFallbackFundPartners_(ss); };
     context.fallbackLoanPartners = function () { return getFallbackFundLoanPartners_(ss); };
     var result = FundCatalogService.getFormOptions(context);
+    result.settings = publicFundSettings_(settings);
     putFundCache_(optionsCacheKey, result, FUND_CATALOG_TTL_SECONDS);
     return result;
+  }
+
+  function publicFundSettings_(settings) {
+    return {
+      cashOpening: Number(settings.cashOpening || 0),
+      bankOpening: Number(settings.bankOpening || 0),
+      dataStartDate: formatDateKey_(settings.dataStartDate),
+      loanStartDate: formatDateKey_(settings.loanStartDate)
+    };
+  }
+
+  function updateFundSettings(year, payload) {
+    var item = payload || {};
+    var cashOpening = parseNumber_(item.cashOpening);
+    var bankOpening = parseNumber_(item.bankOpening);
+    var dataStartDate = parseDate_(item.dataStartDate, item.dataStartDate);
+    var loanStartDate = parseDate_(item.loanStartDate, item.loanStartDate);
+    if (!isFinite(cashOpening) || !isFinite(bankOpening)) throw new Error('Số dư đầu kỳ không hợp lệ.');
+    if (!dataStartDate) throw new Error('Ngày bắt đầu nhập liệu không hợp lệ.');
+    if (!loanStartDate) throw new Error('Ngày bắt đầu tính khoản vay không hợp lệ.');
+    var ss = getFundSpreadsheet_(year);
+    var ranges = {
+      TMDK: ss.getRangeByName('TMDK'),
+      TKDK: ss.getRangeByName('TKDK'),
+      NGAYNHAPLIEU: ss.getRangeByName('NGAYNHAPLIEU'),
+      NGAYTINHVAY: ss.getRangeByName('NGAYTINHVAY')
+    };
+    Object.keys(ranges).forEach(function (name) {
+      if (!ranges[name]) throw new Error('Không tìm thấy named range Thu chi: ' + name + '.');
+    });
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      ranges.TMDK.setValue(cashOpening).setNumberFormat('#,##0');
+      ranges.TKDK.setValue(bankOpening).setNumberFormat('#,##0');
+      ranges.NGAYNHAPLIEU.setValue(dataStartDate).setNumberFormat('dd/MM/yyyy');
+      ranges.NGAYTINHVAY.setValue(loanStartDate).setNumberFormat('dd/MM/yyyy');
+      SpreadsheetApp.flush();
+      bumpFundDataVersion_();
+      return { ok: true, year: clean_(year), settings: publicFundSettings_({
+        cashOpening: cashOpening,
+        bankOpening: bankOpening,
+        dataStartDate: dataStartDate,
+        loanStartDate: loanStartDate
+      }) };
+    } finally {
+      lock.releaseLock();
+    }
   }
 
   function getFundCatalog(year, group, forceRefresh) {
@@ -638,6 +687,7 @@ var FundService = (function () {
     return {
       cashOpening: parseNumber_(readNamedRangeDisplay_(ss, 'TMDK')),
       bankOpening: parseNumber_(readNamedRangeDisplay_(ss, 'TKDK')),
+      dataStartDate: readNamedRangeDate_(ss, 'NGAYNHAPLIEU'),
       loanStartDate: readNamedRangeDate_(ss, 'NGAYTINHVAY'),
       depositName: readNamedRangeDisplay_(ss, 'NOPTIEN') || 'Nộp vào TK',
       withdrawName: readNamedRangeDisplay_(ss, 'RUTTIEN') || 'Rút tiền',
@@ -1091,6 +1141,7 @@ var FundService = (function () {
     getFundOverview: getFundOverview,
     getFundTransactions: getFundTransactions,
     saveFundCatalogItem: saveFundCatalogItem,
+    updateFundSettings: updateFundSettings,
     validateFundTransactions: validateFundTransactions,
     prepareFundTransactionVouchers: prepareFundTransactionVouchers,
     getFundSpreadsheet_: getFundSpreadsheet_

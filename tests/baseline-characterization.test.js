@@ -65,7 +65,7 @@ test('transport form-to-sheet configuration matches the baseline', () => {
   const source = read('AppConfig.gs');
   for (const [formType, config] of Object.entries(baseline.transportForms)) {
     const pattern = new RegExp(
-      `${formType}: \\{ name: '${config.sheet}', headerRow: ${config.headerRow}, columns: ${config.columns} \\}`
+      `${formType}: \\{[\\s\\S]*?name: '${config.sheet}', headerRow: ${config.headerRow}, columns: ${config.columns},`
     );
     assert.match(source, pattern, `Transport form mapping changed: ${formType}`);
   }

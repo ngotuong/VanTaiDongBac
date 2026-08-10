@@ -84,19 +84,20 @@ test('startup and catalog bundle sync preserve rows, conflict keys, status keys,
   ]);
 });
 
-test('full startup/catalog sync preserves the 17 targets and isolated failure response', () => {
+test('full startup/catalog sync preserves the 20 live targets and isolated failure response', () => {
   const original = loadService();
   const result = original.service.syncAllStartupAndCatalogs(original.dependencies);
   assert.equal(result.ok, true);
-  assert.equal(result.synced, 17);
+  assert.equal(result.synced, 20);
   assert.equal(result.failed, 0);
   assert.deepEqual(JSON.parse(JSON.stringify(result.results.map((entry) => entry.name))), [
     'startup:vanChuyen',
     'catalogs:all', 'catalogs:vanChuyen', 'catalogs:taiXe', 'catalogs:dau',
     'catalogs:chamCong', 'catalogs:phat', 'catalogs:nghiVanHanh',
     'catalogData:DM_NhanSu', 'catalogData:DM_Xe', 'catalogData:DM_DuAn',
-    'catalogData:DM_LuongChuyen', 'catalogData:DM_ThamSo_TS', 'catalogData:DM_ThamSo_GD',
-    'catalogData:DM_DonGiaVanChuyen', 'catalogData:DM_ThuongQuanLy', 'catalogData:DM_PhatNoiBo'
+    'catalogData:DM_CheDoLuong', 'catalogData:DM_LuongChuyen', 'catalogData:DM_ThamSo_TS',
+    'catalogData:DM_GiaDau', 'catalogData:DM_DonGiaVanChuyen', 'catalogData:DM_ThuongQuanLy',
+    'catalogData:DM_PhatNoiBo', 'catalogData:DM_PhanCongXe', 'catalogData:DM_UuDaiNoiBo'
   ]);
 
   const failed = loadService({
@@ -107,7 +108,7 @@ test('full startup/catalog sync preserves the 17 targets and isolated failure re
   });
   const failedResult = failed.service.syncAllStartupAndCatalogs(failed.dependencies);
   assert.equal(failedResult.ok, false);
-  assert.equal(failedResult.synced, 16);
+  assert.equal(failedResult.synced, 19);
   assert.equal(failedResult.failed, 1);
   assert.deepEqual(JSON.parse(JSON.stringify(failedResult.errors)), [
     { name: 'catalogData:DM_Xe', error: 'synthetic read failure' }

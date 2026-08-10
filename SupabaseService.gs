@@ -12,6 +12,11 @@ var SupabaseService = (function () {
     'NL_NghiVanHanh',
     'NL_PhanCongLai'
   ];
+  var TRANSPORT_CATALOG_SHEET_NAMES = [
+    'DM_NhanSu', 'DM_Xe', 'DM_DuAn', 'DM_CheDoLuong', 'DM_LuongChuyen',
+    'DM_ThamSo', 'DM_GiaDau', 'DM_DonGiaVanChuyen', 'DM_ThuongQuanLy',
+    'DM_PhatNoiBo', 'DM_PhanCongXe', 'DM_UuDaiNoiBo'
+  ];
   var DEFAULT_MANAGE_FILTER_KEY = 'recent_500';
   var ASYNC_WRITE_ENABLED = false;
   var ASYNC_TRANSPORT_WRITE_ENABLED = true;
@@ -109,6 +114,10 @@ var SupabaseService = (function () {
 
   function syncAllStartupAndCatalogs() {
     return StartupCatalogSyncService.syncAllStartupAndCatalogs(startupCatalogSyncContext_());
+  }
+
+  function syncCatalogAfterWrite(displaySheetName) {
+    return StartupCatalogSyncService.syncCatalogAfterWrite(displaySheetName, startupCatalogSyncContext_());
   }
 
   function syncManageDataBundle(sheetName) {
@@ -226,7 +235,7 @@ var SupabaseService = (function () {
     if (nextAt > nowMillis) return { checked: false };
     props.setProperty(SOURCE_POLL_NEXT_AT_PROP, String(nowMillis + SOURCE_POLL_INTERVAL_MS));
     var sources = [
-      { key: 'transport', spreadsheetId: APP_CONFIG.spreadsheetId, sheetName: 'NL_VanChuyen', width: 7, kind: 'transport' },
+      { key: 'transport', spreadsheetId: APP_CONFIG.spreadsheetId, sheetName: 'NL_VanChuyen', width: 8, kind: 'transport' },
       { key: 'fund_transactions', spreadsheetId: DEFAULT_FUND_SPREADSHEET_ID, sheetName: 'NHAP_THUCHI', width: 14, kind: 'fund' },
       { key: 'fund_loans', spreadsheetId: DEFAULT_FUND_SPREADSHEET_ID, sheetName: 'NHAP_VAY', width: 14, kind: 'fund' }
     ];
@@ -521,8 +530,17 @@ var SupabaseService = (function () {
   }
 
   function syncTransportSheetChange(eventType, sheetName, editedRange) {
+    var safeSheetName = clean_(sheetName);
     var result = ManageSyncService.syncTransportSheetChange(eventType, sheetName, editedRange, manageSyncContext_());
-    if (!result.skipped) {
+    if (TRANSPORT_CATALOG_SHEET_NAMES.indexOf(safeSheetName) !== -1) {
+      var displaySheetName = safeSheetName === 'DM_ThamSo' ? 'DM_ThamSo_TS' : safeSheetName;
+      result.catalogSync = syncCatalogAfterWrite(displaySheetName);
+      result.reportRefresh = enqueueManualReportRefresh_({
+        months: [],
+        full: true,
+        source: 'catalog-sheet:' + safeSheetName + ':' + (clean_(eventType) || 'UNKNOWN')
+      });
+    } else if (!result.skipped) {
       result.reportRefresh = enqueueManualReportRefresh_({
         months: result.months || [],
         full: isStructuralSheetChange_(eventType),
@@ -1350,7 +1368,9 @@ var SupabaseService = (function () {
       },
       syncTransportAfterWrite: syncTransportAfterWrite,
       syncDashboard: syncDashboard,
-      syncTransportReportsAfterWrite: syncTransportReportsAfterWrite
+      syncTransportReportsAfterWrite: syncTransportReportsAfterWrite,
+      syncCatalogAfterWrite: syncCatalogAfterWrite,
+      syncAllReportBundles: syncAllReportBundles
     };
   }
 

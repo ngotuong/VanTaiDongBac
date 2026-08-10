@@ -38,6 +38,7 @@ test('registry classifies read-only POST and operational GET without weakening p
   assert.deepEqual(JSON.parse(JSON.stringify(registry.get('invalidateCaches'))), { method: 'GET', kind: 'command', permission: 'adminOperator' });
   assert.equal(registry.get('addFundTransactions').kind, 'command');
   assert.equal(registry.get('getFundCatalog').permission, 'adminOperator');
+  assert.equal(registry.get('updateFundSettings').permission, 'adminOperator');
 });
 
 test('registry preserves invalid method/action messages and method separation', () => {

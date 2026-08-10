@@ -135,7 +135,7 @@ test('E1.6R polls bounded source tails every five minutes as a trigger-independe
   assert.match(source, /SOURCE_POLL_INTERVAL_MS = 5 \* 60 \* 1000/);
   assert.match(source, /lastRow - 24/);
   assert.match(source, /sheet\.getRange\(startRow, 1, numRows, source\.width\)\.getValues\(\)/);
-  assert.match(source, /sheetName: 'NL_VanChuyen', width: 7, kind: 'transport'/);
+  assert.match(source, /sheetName: 'NL_VanChuyen', width: 8, kind: 'transport'/);
   assert.match(source, /sheetName: 'NHAP_THUCHI', width: 14, kind: 'fund'/);
   assert.match(source, /sheetName: 'NHAP_VAY', width: 14, kind: 'fund'/);
   assert.match(source, /source: 'poll:fund-downstream'/);

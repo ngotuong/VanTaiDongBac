@@ -52,10 +52,14 @@ test('runtime identity fails closed for cross-project configuration', () => {
 
 test('build and preview deploy both execute the canonical guard', () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const guardScript = fs.readFileSync(path.join(root, 'scripts/check-environment-identity.mjs'), 'utf8');
   const deployScript = fs.readFileSync(path.join(root, 'scripts/deploy-preview.mjs'), 'utf8');
   assert.equal(packageJson.scripts['check:identity'], 'node scripts/check-environment-identity.mjs');
   assert.match(packageJson.scripts.build, /check-environment-identity\.mjs/);
   assert.match(packageJson.scripts['build:next-accounts'], /check-environment-identity\.mjs/);
   assert.match(deployScript, /check:identity/);
   assert.match(deployScript, /environment-identity\.json/);
+  assert.match(guardScript, /fs\.existsSync\(claspPath\)/);
+  assert.match(guardScript, /process\.env\.VERCEL !== '1'/);
+  assert.match(guardScript, /assertRuntimeIdentity\(config, process\.env, \{ requireRuntime: runtimeRequired \}\)/);
 });

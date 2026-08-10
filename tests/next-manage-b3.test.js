@@ -5,29 +5,41 @@ const test = require('node:test');
 const root = path.resolve(__dirname,'..');
 const read = (file) => fs.readFileSync(path.join(root,file),'utf8');
 
-test('C3 Manage route server-loads Manage and lazy-loads Entry catalogs without blocking the page',()=>{
+test('C3 Manage route server-loads Manage and reuses the loaded catalogs when opening Entry',()=>{
   const page=read('next-shell/app/manage/page.jsx'),module=read('next-shell/components/manage/ManageReadOnlyModule.tsx');
-  assert.match(page,/loadManageData\(\)/); assert.doesNotMatch(page,/loadEntryCatalogs\(\)/); assert.match(page,/<ManageReadOnlyModule initialData=/);
-  assert.match(module,/entryOpen\?<BodyPortal>[\s\S]*<EntryModule initialCatalogs=\{\{\}\}/); assert.doesNotMatch(module,/loadEntryCatalogs\(\)/);
+  assert.match(page,/loadManageData\(currentTransportMonthRange\(\)\)/); assert.doesNotMatch(page,/loadEntryCatalogs\(\)/); assert.match(page,/<ManageReadOnlyModule initialData=/);
+  assert.match(module,/entryOpen\?<BodyPortal>[\s\S]*<EntryModule initialCatalogs=\{catalogs\}/); assert.doesNotMatch(module,/loadEntryCatalogs\(\)/);
   assert.doesNotMatch(page,/bridge=|next-accounts-shell/);
 });
 
-test('B3 loader allowlists six sheets and preserves recent/month cache with Apps Script fallback',()=>{
+test('B3 loader keeps ordinary Manage reads on Supabase and reserves Apps Script for explicit refresh',()=>{
   const loader=read('next-shell/lib/manage-server.ts');
-  for(const sheet of ['NL_VanChuyen','NL_TaiXe','NL_Dau','NL_ChamCong','NL_Phat','NL_NghiVanHanh']) assert.match(loader,new RegExp(`'${sheet}'`));
+  for(const sheet of ['NL_VanChuyen','NL_TaiXe','NL_Dau','NL_ChamCong','NL_Phat','NL_NghiVanHanh','NL_PhanCongLai']) assert.match(loader,new RegExp(`'${sheet}'`));
   assert.match(loader,/'recent_500'/); assert.match(loader,/`month:\$\{month\}`/); assert.match(loader,/AbortSignal\.timeout\(5000\)/);
+  assert.match(loader,/const \[rows, recentRow\] = await Promise\.all/);
+  assert.match(loader,/if \(recentBundle\) return/);
+  assert.match(loader,/Cache Vận hành trên Supabase chưa sẵn sàng/);
   assert.match(loader,/api\.get<ManageBundle>\('readManageData'/); assert.match(loader,/spreadsheetId: workbook\.spreadsheetId/);
   assert.match(loader,/limit: startDate \|\| endDate \? '500' : '50'/);
+  assert.ok(loader.indexOf("if (!input.forceRefresh)") < loader.indexOf("api.get<ManageBundle>('readManageData'"));
 });
 
 test('C3 Manage ports C2 tabs filters stats pagination and RBAC write lifecycle',()=>{
   const module=read('next-shell/components/manage/ManageReadOnlyModule.tsx');
   assert.match(module,/const PAGE_SIZE=20/); assert.match(module,/row\.rowIndex/); assert.match(module,/id="manageView"/); assert.match(module,/id="manageTabsBar"/); assert.match(module,/manage-horizontal-table/);
   assert.match(module,/className="view active manage-c2"/); assert.match(module,/'getCatalogs'/);
-  for(const label of ['Mới nhất','Hôm nay','7 ngày','Tháng này','Tháng trước','Tùy chọn','Nguồn dầu','Nguồn chi','Tổng số lít','Tổng số chuyến']) assert.match(module,new RegExp(label));
+  for(const label of ['Hôm nay','7 ngày','Tháng này','Tháng trước','Tùy chọn','Nguồn dầu','Nguồn chi','Tổng lít','Tổng chuyến','Tổng tiền']) assert.match(module,new RegExp(label));
   for(const action of ['saveSheetRow','deleteSheetRow','processWriteJobs']) assert.match(module,new RegExp(`'${action}'`));
   assert.match(module,/context\.user\.role!==['"]shareholder['"]/); assert.match(module,/previousRowData/); assert.match(module,/formulaColumn/);
+  assert.match(module,/columnsToClear:clearableColumns\(headers,sheet\)/);
+  assert.match(module,/clearableColumns[\s\S]*normalize\(header\)!==['"]thang['"][\s\S]*!formulaColumn\(header,sheet\)/);
   assert.doesNotMatch(module,/google\.script|SpreadsheetApp|window\.appData/);
+});
+
+test('Manage transport delete API refuses physical row deletion when clear columns are missing',()=>{
+  const api=read('PublicApi.gs');
+  assert.match(api,/if \(isTransportManageSheet_\(safeBody\.sheetName\)\) \{[\s\S]*!Array\.isArray\(safeBody\.columnsToClear\)[\s\S]*từ chối deleteRow\(\)/);
+  assert.ok(api.indexOf('từ chối deleteRow()') < api.indexOf('SupabaseService.enqueueTransportDeleteSheetRow'));
 });
 
 test('B3 Manage repository sends exact Supabase bundle filters with server credentials',async()=>{

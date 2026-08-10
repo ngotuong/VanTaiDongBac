@@ -6,7 +6,7 @@ import { createWorkbookContextService } from '../../server/services/workbook-con
 import { createServerApiClient } from './platform/server-api-client';
 import type { ManageBundle, ManageDataResponse, ManageRow, ManageSheetName } from './platform/manage-types';
 
-export const MANAGE_SHEETS: ManageSheetName[] = ['NL_VanChuyen','NL_TaiXe','NL_Dau','NL_ChamCong','NL_Phat','NL_NghiVanHanh'];
+export const MANAGE_SHEETS: ManageSheetName[] = ['NL_VanChuyen','NL_TaiXe','NL_Dau','NL_ChamCong','NL_Phat','NL_NghiVanHanh','NL_PhanCongLai'];
 const ISO_DATE = /^20\d{2}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/;
 function httpError(status: number, message: string) { return Object.assign(new Error(message), { status }); }
 function sheetName(value: unknown): ManageSheetName {
@@ -18,6 +18,17 @@ function dateValue(value: unknown) {
   const date = String(value || '').trim();
   if (date && !ISO_DATE.test(date)) throw httpError(400, 'Ngày lọc Vận hành không hợp lệ.');
   return date;
+}
+export function currentTransportMonthRange(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const endDate = `${value.year}-${value.month}-${value.day}`;
+  return { startDate: `${value.year}-${value.month}-01`, endDate };
 }
 function monthKeys(startDate: string, endDate: string) {
   if (!startDate || !endDate || startDate > endDate) return [];
@@ -72,15 +83,23 @@ export async function loadManageData(input: { sheetName?: unknown; startDate?: u
       const repository = createManageBundleRepository({ httpError, fetchImpl: fetchWithTimeout });
       const months = monthKeys(startDate, endDate);
       if (config.supabaseUrl && config.serviceRoleKey && months.length) {
-        const rows = await Promise.all(months.map((month) => repository.find(config, requestedSheet, `month:${month}`)));
+        const [rows, recentRow] = await Promise.all([
+          Promise.all(months.map((month) => repository.find(config, requestedSheet, `month:${month}`))),
+          repository.find(config, requestedSheet, 'recent_500')
+        ]);
         const bundles = rows.map((row) => row && publicBundle(row.payload, row.synced_at, true));
         if (bundles.every(Boolean)) return { data: filterDates(combine(bundles as ManageBundle[]), startDate, endDate), sheetName: requestedSheet, startDate, endDate };
+        const recentBundle = recentRow && publicBundle(recentRow.payload, recentRow.synced_at, false);
+        if (recentBundle) return { data: filterDates(recentBundle, startDate, endDate), sheetName: requestedSheet, startDate, endDate };
       } else if (config.supabaseUrl && config.serviceRoleKey) {
         const row = await repository.find(config, requestedSheet, 'recent_500');
         const bundle = row && publicBundle(row.payload, row.synced_at, false);
         if (bundle) return { data: filterDates(bundle, startDate, endDate), sheetName: requestedSheet, startDate, endDate };
       }
-    } catch { /* Apps Script is the compatibility fallback. */ }
+    } catch (error) {
+      throw httpError(503, error instanceof Error ? error.message : 'Không đọc được cache Vận hành từ Supabase.');
+    }
+    throw httpError(503, 'Cache Vận hành trên Supabase chưa sẵn sàng.');
   }
   const api = await createServerApiClient();
   const data = await api.get<ManageBundle>('readManageData', { params: {

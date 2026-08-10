@@ -166,7 +166,7 @@ Payload có thể đọc từ:
 - `BC_BangLuong`;
 - `BC_TongHopXe`;
 - `NL_VanChuyen` cho dashboard/latest trips;
-- `SYS_ReportCache` cho chi tiết tháng.
+- sheet tạm từ `BC_TongQuan` để tính trực tiếp chi tiết tháng khi Supabase miss/lỗi; `SYS_ReportCache` đã nghỉ khỏi runtime.
 
 `source_sheet_names` phải phản ánh các sheet nguồn chính của bundle.
 
@@ -211,13 +211,9 @@ Audit không tự sửa cache. Sync lại là thao tác riêng.
 
 ### 5.6. Feature flag cutover
 
-Apps Script dùng Script Property `REPORT_CACHE_MODE`:
+Apps Script đã khóa vĩnh viễn report cache ở chế độ `supabase`. Script Property `REPORT_CACHE_MODE` chỉ còn là metadata tương thích; giá trị trống, `sheet`, `dual` hoặc không hợp lệ đều được chuẩn hóa thành `supabase`.
 
-- `sheet`: đọc/ghi `SYS_ReportCache` như hiện tại; đây là mặc định và rollback an toàn;
-- `dual`: vẫn đọc Sheet và append Sheet, đồng thời upsert full `report_bundles` với metadata để đối soát;
-- `supabase`: ưu tiên đọc `payload.overview.details` ở Supabase, không append `SYS_ReportCache`, và upsert full bundle sau live compute.
-
-Giá trị trống hoặc không hợp lệ fallback về `sheet`. Nếu Supabase read lỗi/miss, Apps Script fallback cache Sheet còn tồn tại rồi live compute; cache không được làm request báo cáo thất bại khi Google Sheet vẫn đọc được.
+Runtime ưu tiên `payload.overview.details` ở Supabase. Nếu Supabase read lỗi/miss, Apps Script tính trực tiếp bằng bản sao tạm của `BC_TongQuan`, trả kết quả và upsert full bundle; không đọc, ghi hoặc tự tạo `SYS_ReportCache`. Rollback về cache Sheet đã nghỉ và không còn là đường phục hồi hợp lệ.
 
 `syncAllReportBundles()` phải:
 

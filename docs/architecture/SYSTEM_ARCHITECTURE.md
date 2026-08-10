@@ -375,7 +375,7 @@ Web app phải ưu tiên đọc và trình bày bảng/công thức chuẩn thay
 
 `BC_TongQuan!B1` là controller tháng. Để đọc chi tiết tháng mà không làm thay đổi sheet báo cáo gốc, backend tạo sheet tạm từ `BC_TongQuan`, thay controller trên bản tạm, đọc kết quả rồi xóa bản tạm. Cleanup xử lý cả tên sheet tạm chủ động và tên copy mặc định còn sót khi timeout.
 
-`SYS_ReportCache` giữ chi tiết báo cáo theo tháng trong file Vận tải. Supabase `report_bundles` là một lớp cache khác ở ngoài Google Sheet.
+Supabase `report_bundles` là cache chi tiết báo cáo duy nhất của runtime. `SYS_ReportCache` là artifact lịch sử đã nghỉ; cache miss/lỗi được phục hồi bằng cách tính trực tiếp trên sheet tạm từ `BC_TongQuan`, không quay về Sheet cache.
 
 Mọi thay đổi báo cáo phải ưu tiên tính đúng số liệu hơn tốc độ.
 

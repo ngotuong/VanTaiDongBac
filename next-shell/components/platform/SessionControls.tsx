@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import { StartupLoadingScreen } from './StartupLoadingScreen';
 
 type LoginGateProps = { supabaseUrl: string; anonKey: string };
 
@@ -73,14 +74,15 @@ export function LoginGate({ supabaseUrl, anonKey }: LoginGateProps) {
     }
   }
 
-  if (recovering) return <main className="auth-gate">
-    <section className="auth-card" aria-labelledby="authRecoveryTitle" aria-busy="true">
-      <Image className="auth-logo" src="/static/assets/apple-touch-icon.png" alt="Logo Vận tải Đông Bắc" width={80} height={80} priority />
-      <div className="eyebrow">HỆ THỐNG NỘI BỘ</div>
-      <h1 id="authRecoveryTitle">Đang khôi phục phiên</h1>
-      <p>Vui lòng chờ trong giây lát…</p>
-    </section>
-  </main>;
+  if (recovering) return <StartupLoadingScreen
+    message="Đang khôi phục phiên đăng nhập…"
+    detail="Vui lòng chờ trong giây lát."
+  />;
+
+  if (busy) return <StartupLoadingScreen
+    message="Đang xác thực tài khoản…"
+    detail="Đang thiết lập phiên đăng nhập an toàn."
+  />;
 
   return <main className="auth-gate">
     <section className="auth-card" aria-labelledby="authTitle">

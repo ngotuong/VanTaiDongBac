@@ -48,6 +48,25 @@ class FakeRange {
     return this.cells().map((row) => row.map((cell) => cell.formulaR1C1));
   }
 
+  getFormulaR1C1() {
+    assert.equal(this.rowCount, 1);
+    assert.equal(this.columnCount, 1);
+    return this.sheet.cell(this.row, this.column).formulaR1C1;
+  }
+
+  getColumn() {
+    return this.column;
+  }
+
+  setValue(value) {
+    assert.equal(this.rowCount, 1);
+    assert.equal(this.columnCount, 1);
+    const cell = this.sheet.cell(this.row, this.column);
+    cell.value = value;
+    cell.formulaR1C1 = '';
+    return this;
+  }
+
   setFormulaR1C1(formula) {
     assert.equal(this.rowCount, 1);
     assert.equal(this.columnCount, 1);
@@ -201,6 +220,46 @@ test('nonblank incoming value is written when the target has no existing formula
 
   assert.equal(sheet.cell(2, 4).value, 123456);
   assert.equal(sheet.cell(2, 4).formulaR1C1, '');
+});
+
+test('write failures identify the exact Sheet stage without exposing row payloads', () => {
+  const sheet = new FakeSheet(2, fixture.columns.length);
+  applyFixtureRow(sheet, 1, fixture.templateRow);
+  const getRange = sheet.getRange.bind(sheet);
+  sheet.getRange = (row, column, rowCount = 1, columnCount = 1) => {
+    const range = getRange(row, column, rowCount, columnCount);
+    if (row === 2 && typeof range.setValues === 'function') {
+      range.setValues = () => { throw new Error('synthetic permission denied'); };
+    }
+    return range;
+  };
+
+  assert.throws(
+    () => helpers.writeRowsPreservingSheetState(sheet, 2, [fixture.appendRows[0]], []),
+    /sheet_write_stage=write_values: synthetic permission denied/
+  );
+});
+
+test('filtered rows fall back to cell reads and writes while preserving formulas', () => {
+  const sheet = new FakeSheet(2, fixture.columns.length);
+  applyFixtureRow(sheet, 1, fixture.templateRow);
+  sheet.cell(2, 4).formulaR1C1 = '=RC[-1]*1000';
+  const getRange = sheet.getRange.bind(sheet);
+  sheet.getRange = (row, column, rowCount = 1, columnCount = 1) => {
+    const range = getRange(row, column, rowCount, columnCount);
+    if (row === 2 && (rowCount > 1 || columnCount > 1)) {
+      range.getFormulasR1C1 = () => { throw new Error('Thao tác không hỗ trợ trên hàng đã bị lọc bỏ.'); };
+      range.setValues = () => { throw new Error('Thao tác không hỗ trợ trên hàng đã bị lọc bỏ.'); };
+    }
+    return range;
+  };
+
+  helpers.writeRowsPreservingSheetState(sheet, 2, [fixture.appendRows[0]], []);
+
+  assert.equal(sheet.cell(2, 4).formulaR1C1, '=RC[-1]*1000');
+  assert.deepEqual(sheet.getRange(2, 1, 1, 5).getValues()[0], [
+    '11/07/2026', '30A-NEW-1', 4, '', 'append 1'
+  ]);
 });
 
 test('ensureRows grows exactly to the required row and never shrinks the sheet', () => {

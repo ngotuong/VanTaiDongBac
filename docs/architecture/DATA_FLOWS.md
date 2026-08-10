@@ -39,7 +39,7 @@ Tài liệu này không thay thế API contract hoặc spreadsheet contract chi 
 
 - Dữ liệu chuẩn: dữ liệu và công thức trong Google Sheets dùng để đối soát cuối cùng.
 - Cache server: các bundle JSON trong Supabase.
-- Cache Sheet: `SYS_ReportCache` trong file Vận tải.
+- Cache Sheet lịch sử: `SYS_ReportCache` đã nghỉ khỏi runtime và chờ migration retirement.
 - Cache runtime: Apps Script `CacheService`/Script Properties cache.
 - Cache browser: state trong Client Component; session xác thực nằm trong HttpOnly cookie phía Next boundary.
 - Write intent: job trong `write_jobs`, chưa đồng nghĩa đã ghi vào Sheet.
@@ -536,16 +536,16 @@ Frontend render bảng tổng quan/chi tiết từ payload backend. Không tự 
 
 Luồng hiện tại:
 
-1. kiểm tra `SYS_ReportCache` theo data version và month key;
+1. kiểm tra chi tiết đúng `cache_version` + `source_data_version` trong Supabase;
 2. nếu cache hợp lệ, trả chi tiết đã cache;
-3. nếu thiếu, cleanup sheet tạm cũ;
+3. nếu thiếu/lỗi, cleanup sheet tạm cũ;
 4. copy `BC_TongQuan` thành sheet tạm;
 5. đổi tên sheet tạm;
 6. đặt controller tháng trên bản tạm;
 7. flush và đọc kết quả công thức;
-8. ghi chi tiết vào `SYS_ReportCache`;
+8. giữ kết quả trong memory của execution và upsert full `report_bundles`;
 9. xóa sheet tạm trong `finally`;
-10. trả bundle và có thể sync `report_bundles`.
+10. trả bundle. Không đọc, ghi hoặc tái tạo `SYS_ReportCache`.
 
 Nếu execution timeout trước cleanup, lần chạy sau và hàm cleanup thủ công xử lý cả tên `_TMP_BC_TongQuan_*`, `Bản sao của BC_TongQuan...` và `Copy of BC_TongQuan...`.
 

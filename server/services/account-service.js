@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const INTERNAL_EMAIL_DOMAIN = 'dongbac.internal';
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,40}$/;
 const ROLES = new Set(['admin', 'operator', 'shareholder']);
-const ACCOUNT_ACTIONS = new Set(['changeOwnPassword', 'listUsers', 'createUser', 'updateUser', 'resetUserPassword']);
+const ACCOUNT_ACTIONS = new Set(['changeOwnPassword', 'listUsers', 'createUser', 'updateUser', 'resetUserPassword', 'deleteUser']);
 
 function createAccountService({
   fetchImpl = fetch,
@@ -136,6 +136,16 @@ function createAccountService({
     return password;
   }
 
+  async function deleteUser(config, currentUser, body) {
+    const userId = String(body.userId || '').trim();
+    if (!userId) throw httpError(400, 'Thiếu tài khoản cần xóa.');
+    if (userId === currentUser.id) throw httpError(400, 'Bạn không thể tự xóa tài khoản đang đăng nhập.');
+    const response = await fetchImpl(`${config.supabaseUrl}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+      method: 'DELETE', headers: serviceHeaders(config)
+    });
+    await parseJsonResponse(response, 'Không xóa được tài khoản.');
+  }
+
   function handles(action) {
     return ACCOUNT_ACTIONS.has(action);
   }
@@ -163,6 +173,11 @@ function createAccountService({
     if (action === 'resetUserPassword') {
       if (req.method !== 'POST') throw httpError(405, 'Method not allowed.');
       return send(res, 200, { ok: true, temporaryPassword: await resetUserPassword(config, body) });
+    }
+    if (action === 'deleteUser') {
+      if (req.method !== 'POST') throw httpError(405, 'Method not allowed.');
+      await deleteUser(config, user, body);
+      return send(res, 200, { ok: true, message: 'Đã xóa tài khoản.' });
     }
     return null;
   }

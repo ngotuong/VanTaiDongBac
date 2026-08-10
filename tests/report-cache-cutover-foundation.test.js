@@ -34,35 +34,34 @@ function loadMode(propertyValue, shouldThrow = false) {
   return context.ReportCacheMode;
 }
 
-test('REPORT_CACHE_MODE defaults safely to sheet and accepts only declared modes', () => {
-  assert.equal(loadMode(null).get(), 'sheet');
-  assert.equal(loadMode('  DUAL ').get(), 'dual');
+test('retired REPORT_CACHE_MODE is permanently Supabase-only', () => {
+  assert.equal(loadMode(null).get(), 'supabase');
+  assert.equal(loadMode('  DUAL ').get(), 'supabase');
   assert.equal(loadMode('supabase').get(), 'supabase');
-  assert.equal(loadMode('invalid').get(), 'sheet');
-  assert.equal(loadMode(null, true).get(), 'sheet');
+  assert.equal(loadMode('invalid').get(), 'supabase');
+  assert.equal(loadMode(null, true).get(), 'supabase');
 });
 
-test('migration helpers expose the effective mode and reject undeclared writes', () => {
+test('migration helpers expose Supabase retirement state and reject sheet or dual rollback', () => {
   const mode = loadMode('sheet');
   assert.deepEqual(JSON.parse(JSON.stringify(mode.getReportCacheModeForMigration())), {
     configured: 'sheet',
-    effective: 'sheet',
-    behavior: { mode: 'sheet', readSource: 'sheet', writeSheet: true, writeSupabase: false }
+    effective: 'supabase',
+    behavior: { mode: 'supabase', readSource: 'supabase', writeSheet: false, writeSupabase: true, sheetCacheRetired: true }
   });
 
-  assert.deepEqual(JSON.parse(JSON.stringify(mode.setReportCacheModeForMigration(' DUAL '))), {
+  assert.deepEqual(JSON.parse(JSON.stringify(mode.setReportCacheModeForMigration(' supabase '))), {
     previous: 'sheet',
-    configured: 'dual',
-    effective: 'dual',
-    behavior: { mode: 'dual', readSource: 'sheet', writeSheet: true, writeSupabase: true }
+    configured: 'supabase',
+    effective: 'supabase',
+    behavior: { mode: 'supabase', readSource: 'supabase', writeSheet: false, writeSupabase: true, sheetCacheRetired: true }
   });
-  assert.equal(mode.get(), 'dual');
-  assert.throws(() => mode.setReportCacheModeForMigration('invalid'), /Invalid REPORT_CACHE_MODE/);
-  assert.equal(mode.get(), 'dual');
-  assert.equal(mode.setReportCacheModeSheetForMigration().effective, 'sheet');
-  assert.equal(mode.setReportCacheModeDualForMigration().effective, 'dual');
+  assert.equal(mode.get(), 'supabase');
+  assert.throws(() => mode.setReportCacheModeForMigration('invalid'), /retired/);
+  assert.throws(() => mode.setReportCacheModeSheetForMigration(), /retired/);
+  assert.throws(() => mode.setReportCacheModeDualForMigration(), /retired/);
   assert.equal(mode.setReportCacheModeSupabaseForMigration().effective, 'supabase');
-  assert.equal(mode.logs.length, 5);
+  assert.equal(mode.logs.length, 3);
 });
 
 test('E1.3 editor wrappers run one batch and audit Supabase metadata only', () => {
@@ -128,16 +127,16 @@ test('E1.4 post-cutover audit is read-only and requires stable Sheet row plus cu
   assert.doesNotMatch(audit, /setProperty|setReportCacheModeForMigration|syncAllReportBundlesToSupabase|forceRefresh/);
 });
 
-test('report cache mode describes read and write behavior for the next checkpoint', () => {
+test('report cache mode ignores legacy values and describes the retired Sheet cache', () => {
   const mode = loadMode(null);
   assert.deepEqual(JSON.parse(JSON.stringify(mode.describe('sheet'))), {
-    mode: 'sheet', readSource: 'sheet', writeSheet: true, writeSupabase: false
+    mode: 'supabase', readSource: 'supabase', writeSheet: false, writeSupabase: true, sheetCacheRetired: true
   });
   assert.deepEqual(JSON.parse(JSON.stringify(mode.describe('dual'))), {
-    mode: 'dual', readSource: 'sheet', writeSheet: true, writeSupabase: true
+    mode: 'supabase', readSource: 'supabase', writeSheet: false, writeSupabase: true, sheetCacheRetired: true
   });
   assert.deepEqual(JSON.parse(JSON.stringify(mode.describe('supabase'))), {
-    mode: 'supabase', readSource: 'supabase', writeSheet: false, writeSupabase: true
+    mode: 'supabase', readSource: 'supabase', writeSheet: false, writeSupabase: true, sheetCacheRetired: true
   });
 });
 
@@ -155,13 +154,13 @@ test('migration 010 is additive and preserves one report bundle row per workbook
   assert.match(base, /primary key \(spreadsheet_id, report_month\)/);
 });
 
-test('SheetService wires the effective mode to Supabase read, Sheet write, and full-bundle upsert', () => {
+test('SheetService reads Supabase then live-computes and never touches SYS_ReportCache', () => {
   const source = read('SheetService.gs');
   assert.match(source, /reportCacheMode: ReportCacheMode\.get\(\)/);
-  assert.match(source, /cacheMode\.readSource === ReportCacheMode\.SUPABASE/);
-  assert.match(source, /if \(!ReportCacheMode\.describe\(\)\.writeSheet\) return/);
-  assert.match(source, /if \(!ReportCacheMode\.describe\(\)\.writeSupabase\) return/);
   assert.match(source, /SupabaseReportCacheRepository\.readDetailsMap/);
   assert.match(source, /SupabaseReportCacheRepository\.upsertBundle/);
+  assert.match(source, /supabase_report_cache_read_failed_live_compute_next/);
+  assert.doesNotMatch(source, /SheetReportCacheRepository\./);
+  assert.doesNotMatch(source, /SYS_ReportCache/);
   assert.match(source, /beginReportRefreshBatch/);
 });

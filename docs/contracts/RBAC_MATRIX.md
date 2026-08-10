@@ -754,6 +754,26 @@ Contract test local trong `tests/contracts.test.js` hiện kiểm tra:
 
 Regex contract test không thay thế runtime smoke test.
 
+### 27.1. Web Push self-service
+
+Mọi `admin`, `operator`, `shareholder` active được đăng ký, hủy và gửi test tới thiết bị của chính mình qua `/api/push`. Đây không phải quyền gửi thông báo tới user khác và không làm rộng shareholder action allowlist của Apps Script.
+
+### 27.2. Scheduled fund alerts
+
+- `admin`: được chạy dry-run từ Cài đặt; khi lịch production được bật sẽ nhận cảnh báo nếu đã đăng ký thiết bị.
+- `shareholder`: không chạy dry-run nhưng là recipient nếu active và đã đăng ký thiết bị.
+- `operator`: không chạy dry-run và không thuộc recipient của rule số dư Quỹ.
+- Cron sender không dùng session người dùng; bắt buộc bearer secret và feature flag server-only.
+
+Enforcement:
+
+- API xác thực session HttpOnly và active `app_users` trước mọi thao tác;
+- mutation yêu cầu origin/host khớp và `X-VTDB-CSRF: session`;
+- repository luôn scope theo `user_id` hiện tại và SHA-256 endpoint;
+- bảng subscription không cấp quyền trực tiếp cho `authenticated` hoặc `anon`;
+- VAPID private key chỉ tồn tại trong Vercel server environment;
+- notification test không chứa số tiền, tên tài xế hoặc dữ liệu nghiệp vụ trên màn hình khóa.
+
 ## 28. Incident response
 
 ### 28.1. Nghi lộ proxy secret

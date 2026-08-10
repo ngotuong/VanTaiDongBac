@@ -22,7 +22,7 @@ var ManualReportRefreshQueueService = (function () {
         sources: mergeUnique_(current.sources, input.source ? [String(input.source)] : []),
         attempts: Math.max(Number(current.attempts || 0), Number(input.attempts || 0))
       };
-      context.setProperty(PROPERTY_KEY, JSON.stringify(pending));
+      context.setProperty(propertyKey_(context), JSON.stringify(pending));
       return summarize_(pending, now);
     });
   }
@@ -35,7 +35,7 @@ var ManualReportRefreshQueueService = (function () {
       if (Number(pending.notBefore || 0) > now) {
         return { due: false, pending: true, waitMs: Number(pending.notBefore) - now, item: pending };
       }
-      context.deleteProperty(PROPERTY_KEY);
+      context.deleteProperty(propertyKey_(context));
       return { due: true, pending: true, item: pending };
     });
   }
@@ -60,7 +60,11 @@ var ManualReportRefreshQueueService = (function () {
   }
 
   function read_(context) {
-    return parse_(context.getProperty(PROPERTY_KEY));
+    return parse_(context.getProperty(propertyKey_(context)));
+  }
+
+  function propertyKey_(context) {
+    return context && context.propertyKey ? String(context.propertyKey) : PROPERTY_KEY;
   }
 
   function parse_(raw) {

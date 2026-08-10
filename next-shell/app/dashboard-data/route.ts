@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { PlatformApiError } from '../../lib/platform/api-contract';
 import { loadDashboardData } from '../../lib/dashboard-server';
+import { loadPlatformContext } from '../../lib/request-context.js';
 export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
+    await loadPlatformContext({ module: 'transport' });
     const url = new URL(request.url);
     const data = await loadDashboardData(url.searchParams.get('forceRefresh') === 'true');
     return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });

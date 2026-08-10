@@ -1,0 +1,8 @@
+.git
+.next
+.vercel
+.env
+.env.*
+artifacts
+node_modules
+next-shell/.next

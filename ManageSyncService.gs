@@ -2,7 +2,7 @@
 var ManageSyncService = (function () {
   var TABLE_MANAGE_DATA_BUNDLES = 'manage_data_bundles';
   var DEFAULT_MANAGE_FILTER_KEY = 'recent_500';
-  var MANAGE_SHEET_NAMES = ['NL_VanChuyen', 'NL_TaiXe', 'NL_Dau', 'NL_ChamCong', 'NL_Phat', 'NL_NghiVanHanh'];
+  var MANAGE_SHEET_NAMES = ['NL_VanChuyen', 'NL_TaiXe', 'NL_Dau', 'NL_ChamCong', 'NL_Phat', 'NL_NghiVanHanh', 'NL_PhanCongLai'];
 
   function isManageSheetName(sheetName, clean) {
     return MANAGE_SHEET_NAMES.indexOf(clean(sheetName)) !== -1;

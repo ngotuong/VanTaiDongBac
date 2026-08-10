@@ -43,6 +43,8 @@ test('B5 reads cache server-first and keeps Apps Script as authoritative fallbac
   assert.match(server,/spreadsheetId:workbook\.spreadsheetId/);
   assert.match(server,/forceRefresh/);
   assert.doesNotMatch(server,/getActiveSpreadsheet|NEXT_PUBLIC_.*SERVICE|spreadsheetId\?:unknown/);
+  assert.match(server,/primaryTable/);
+  assert.match(server,/findIndex\(\(header\)=>String\(header\|\|''\)\.trim\(\)===''\)/);
 });
 
 test('B5 shares the Manage read boundary to remain within the Vercel Hobby function limit',()=>{

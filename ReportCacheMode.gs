@@ -1,31 +1,25 @@
-/** Safe feature flag contract for the E1 report cache cutover. */
+/** Retired E1 feature flag contract. Runtime is permanently Supabase-first. */
 var ReportCacheMode = (function () {
   var PROPERTY_NAME = 'REPORT_CACHE_MODE';
   var SHEET = 'sheet';
   var DUAL = 'dual';
   var SUPABASE = 'supabase';
 
-  function normalize(value) {
-    var mode = String(value === null || value === undefined ? '' : value).trim().toLowerCase();
-    if (mode === DUAL || mode === SUPABASE) return mode;
-    return SHEET;
+  function normalize() {
+    return SUPABASE;
   }
 
   function get() {
-    try {
-      return normalize(PropertiesService.getScriptProperties().getProperty(PROPERTY_NAME));
-    } catch (err) {
-      return SHEET;
-    }
+    return SUPABASE;
   }
 
-  function describe(value) {
-    var mode = normalize(value === undefined ? get() : value);
+  function describe() {
     return {
-      mode: mode,
-      readSource: mode === SUPABASE ? SUPABASE : SHEET,
-      writeSheet: mode !== SUPABASE,
-      writeSupabase: mode !== SHEET
+      mode: SUPABASE,
+      readSource: SUPABASE,
+      writeSheet: false,
+      writeSupabase: true,
+      sheetCacheRetired: true
     };
   }
 
@@ -56,9 +50,8 @@ function getReportCacheModeForMigration() {
 /** Internal E1 migration helper. Only accepts an explicit declared mode. */
 function setReportCacheModeForMigration(mode) {
   var requested = String(mode === null || mode === undefined ? '' : mode).trim().toLowerCase();
-  var allowed = [ReportCacheMode.SHEET, ReportCacheMode.DUAL, ReportCacheMode.SUPABASE];
-  if (allowed.indexOf(requested) === -1) {
-    throw new Error('Invalid REPORT_CACHE_MODE: ' + requested);
+  if (requested !== ReportCacheMode.SUPABASE) {
+    throw new Error('SYS_ReportCache is retired; REPORT_CACHE_MODE only accepts supabase.');
   }
 
   var properties = PropertiesService.getScriptProperties();

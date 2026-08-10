@@ -62,17 +62,24 @@ test('catalog service preserves normalization, de-duplication, group counts, fil
   assert.equal(service.normalizeGroup('MỤC THU', ctx), 'incomeCategories');
   assert.equal(service.normalizeGroup('người thu/chi', ctx), 'actors');
   const catalog = service.getCatalog('incomeCategories', ctx);
-  assert.equal(catalog.rows.length, 2);
-  assert.equal(catalog.groups.find((item) => item.key === 'incomeCategories').count, 2);
+  assert.equal(catalog.rows.length, 3);
+  assert.equal(catalog.rows[2].value, 'Khoản vay');
+  assert.equal(catalog.rows[2].source, 'fallback');
+  assert.equal(catalog.groups.find((item) => item.key === 'incomeCategories').count, 3);
+  const partners = service.getCatalog('partners', ctx);
+  assert.deepEqual(JSON.parse(JSON.stringify(partners.rows)), [{
+    rowIndex: 'fallback:partners:1', group: 'Đối tác', groupKey: 'partners', value: 'Xe 1', note: '', source: 'fallback'
+  }]);
   assert.deepEqual(JSON.parse(JSON.stringify(service.getFormOptions(ctx))), {
-    ok: true, incomeCategories: ['Cước', 'Khoản vay'], expenseCategories: ['Dầu'], actors: ['An', 'Bình'], partners: ['Xe 1'], loanPartners: ['Ngân hàng']
+    ok: true, catalogCacheVersion: 'fund_catalog_v2', incomeCategories: ['Cước', 'Khoản vay'], expenseCategories: ['Dầu'], actors: ['An', 'Bình'], partners: ['Xe 1'], loanPartners: ['Ngân hàng']
   });
 });
 
 test('FundService keeps cache and spreadsheet resolution while delegating catalog read ownership', () => {
   const facade = read('FundService.gs');
   assert.match(facade, /FundCatalogService\.getFormOptions\(context\)/);
-  assert.match(facade, /FundCatalogService\.getCatalog\(group, fundCatalogReadContext_/);
+  assert.match(facade, /FundCatalogService\.getCatalog\(group, context\)/);
+  assert.match(facade, /forceRefresh \? null : getFundCache_\(catalogCacheKey\)/);
   assert.match(facade, /putFundCache_\(optionsCacheKey, result, FUND_CATALOG_TTL_SECONDS\)/);
   assert.match(facade, /putFundCache_\(catalogCacheKey, result, FUND_CATALOG_TTL_SECONDS\)/);
 });

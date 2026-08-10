@@ -69,7 +69,7 @@ function assertSameOrigin(req, httpError) {
 }
 
 async function refreshSession(fetchImpl, config, refreshToken, httpError) {
-  if (!refreshToken) throw httpError(401, 'Phiên đăng nhập đã hết hạn.');
+  if (!refreshToken || !config.supabaseUrl || !config.supabaseUrl.startsWith('http')) throw httpError(401, 'Phiên đăng nhập đã hết hạn.');
   const response = await fetchImpl(`${config.supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
     method: 'POST',
     headers: { apikey: config.anonKey, 'Content-Type': 'application/json' },

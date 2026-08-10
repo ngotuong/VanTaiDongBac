@@ -9,6 +9,7 @@ function createAuthService({ fetchImpl = fetch, appUserRepository, httpError }) 
   async function getAuthenticatedUser(req, config) {
     const token = bearerToken(req);
     if (!token) throw httpError(401, 'Vui lòng đăng nhập để tiếp tục.');
+    if (!config.supabaseUrl || !config.supabaseUrl.startsWith('http')) throw httpError(401, 'Phiên đăng nhập không hợp lệ hoặc chưa cấu hình Supabase URL.');
     const response = await fetchImpl(`${config.supabaseUrl}/auth/v1/user`, {
       headers: { apikey: config.anonKey, Authorization: `Bearer ${token}` }
     });

@@ -112,7 +112,7 @@ test('feature flag defaults match the characterized baseline', () => {
     new RegExp(`ASYNC_FUND_TRANSACTION_ADD_ENABLED = readBooleanProperty_\\('ASYNC_FUND_TRANSACTION_ADD_ENABLED', ${baseline.featureFlags.ASYNC_FUND_TRANSACTION_ADD_ENABLED}\\)`)
   );
   assert.match(reportCacheMode, /PROPERTY_NAME = 'REPORT_CACHE_MODE'/);
-  assert.match(reportCacheMode, new RegExp(`var SHEET = '${baseline.featureFlags.REPORT_CACHE_MODE}'`));
+  assert.match(reportCacheMode, new RegExp(`var SUPABASE = '${baseline.featureFlags.REPORT_CACHE_MODE}'`));
   assert.match(read('SecurityService.gs'), /AUTH_ENFORCEMENT_ENABLED/);
   assert.doesNotMatch(read('package.json'), /build:legacy|build-[a-z-]+-react|scripts\/build\.js/);
 });

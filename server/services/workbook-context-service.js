@@ -9,7 +9,8 @@ function createWorkbookContextService({ env = process.env, httpError }) {
     } catch (_error) {
       throw httpError(503, 'WORKBOOK_CONTEXTS_JSON không phải JSON hợp lệ.');
     }
-    return { contexts, defaultYear: String(env.DEFAULT_WORKBOOK_YEAR || '').trim() };
+    const defaultYear = String(env.DEFAULT_WORKBOOK_YEAR || '').trim();
+    return { contexts, defaultYear };
   }
 
   function resolve(input = {}) {

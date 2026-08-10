@@ -15,9 +15,9 @@ test('B7 exposes independent Next settings and observability routes without lega
   assert.match(read('app/settings/page.jsx'), /next-shell\/app\/settings/);
 });
 
-test('B7 settings preserves the five proxy-local account actions and keeps secrets client-only', () => {
+test('B7 settings preserves the six proxy-local account actions and keeps secrets client-only', () => {
   const source = read('next-shell/components/settings/SettingsModule.tsx');
-  for (const action of ['changeOwnPassword', 'listUsers', 'createUser', 'updateUser', 'resetUserPassword']) {
+  for (const action of ['changeOwnPassword', 'listUsers', 'createUser', 'updateUser', 'resetUserPassword', 'deleteUser']) {
     assert.match(source, new RegExp(`'${action}'`));
   }
   assert.match(source, /createClientApiClient/);
@@ -69,7 +69,7 @@ test('B7 operational and account role enforcement remains server-side', () => {
   const ownPassword = accounts.indexOf("action === 'changeOwnPassword'");
   const adminGuard = accounts.indexOf('assertAdmin(user);', ownPassword);
   assert.ok(ownPassword >= 0 && adminGuard > ownPassword);
-  for (const action of ['listUsers', 'createUser', 'updateUser', 'resetUserPassword']) {
+  for (const action of ['listUsers', 'createUser', 'updateUser', 'resetUserPassword', 'deleteUser']) {
     assert.ok(accounts.indexOf(`action === '${action}'`) > adminGuard);
   }
 });

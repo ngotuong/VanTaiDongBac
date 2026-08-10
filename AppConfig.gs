@@ -23,11 +23,12 @@ var AppConfig = (function () {
       timezone: 'Asia/Saigon',
       sheets: {
         vanChuyen: { name: 'NL_VanChuyen', headerRow: 2, columns: 7 },
-        taiXe: { name: 'NL_TaiXe', headerRow: 1, columns: 6 },
+        taiXe: { name: 'NL_TaiXe', headerRow: 1, columns: 7 },
         dau: { name: 'NL_Dau', headerRow: 2, columns: 9 },
         chamCong: { name: 'NL_ChamCong', headerRow: 1, columns: 11 },
         phat: { name: 'NL_Phat', headerRow: 1, columns: 7 },
-        nghiVanHanh: { name: 'NL_NghiVanHanh', headerRow: 1, columns: 9 }
+        nghiVanHanh: { name: 'NL_NghiVanHanh', headerRow: 1, columns: 9 },
+        phanCongLai: { name: 'NL_PhanCongLai', headerRow: 1, columns: 4 }
       }
     };
   }

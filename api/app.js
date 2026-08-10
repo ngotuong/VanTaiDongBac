@@ -5,8 +5,11 @@ const { createAccountService } = require('../server/services/account-service');
 const { createAppUserRepository } = require('../server/repositories/app-user-repository');
 const { createReportBundleRepository } = require('../server/repositories/report-bundle-repository');
 const { createReportService } = require('../server/services/report-service');
+const { createCatalogBundleRepository } = require('../server/repositories/catalog-bundle-repository');
+const { createCatalogService } = require('../server/services/catalog-service');
 const { createWorkbookContextService } = require('../server/services/workbook-context-service');
 const { runtimeConfig } = require('../server/runtime-config');
+const { assertRuntimeIdentity, publicEnvironmentIdentity } = require('../server/environment-identity');
 
 function send(res, status, body) {
   res.statusCode = status;
@@ -26,6 +29,11 @@ const accountService = createAccountService({ appUserRepository, assertAdmin, ht
 const appsScriptClient = createAppsScriptClient();
 const reportBundleRepository = createReportBundleRepository({ httpError });
 const reportService = createReportService({ reportBundleRepository, appsScriptClient, httpError, send });
+const catalogBundleRepository = createCatalogBundleRepository({
+  httpError,
+  fetchImpl: (request, init = {}) => fetch(request, { ...init, signal: AbortSignal.timeout(5000) })
+});
+const catalogService = createCatalogService({ catalogBundleRepository, appsScriptClient, httpError, send });
 const workbookContextService = createWorkbookContextService({ httpError });
 
 module.exports = async function handler(req, res) {
@@ -35,8 +43,11 @@ module.exports = async function handler(req, res) {
   if (!action) return send(res, 400, { ok: false, error: 'Thiếu action.' });
   if (!config.supabaseUrl || !config.anonKey) return send(res, 503, { ok: false, error: 'API proxy chưa được cấu hình Auth.' });
   const foundationAction = action === 'authSession' || action === 'runtimeContext';
-  if (!foundationAction && Object.values(config).some((value) => !value)) return send(res, 503, { ok: false, error: 'API proxy chưa được cấu hình đầy đủ.' });
+  const coreConfig = [config.supabaseUrl, config.anonKey, config.serviceRoleKey, config.appsScriptUrl, config.proxySecret];
+  if (!foundationAction && coreConfig.some((value) => !value)) return send(res, 503, { ok: false, error: 'API proxy chưa được cấu hình đầy đủ.' });
   try {
+    assertRuntimeIdentity(config);
+    const environmentIdentity = publicEnvironmentIdentity(config);
     let user = null;
     if (action !== 'health') user = await getAuthenticatedUser(req, config);
     if (action === 'authSession') return send(res, 200, { ok: true, user });
@@ -51,6 +62,9 @@ module.exports = async function handler(req, res) {
     }
     if (reportService.handles(action)) {
       return reportService.handle(action, req, res, config, user);
+    }
+    if (catalogService.handles(action)) {
+      return catalogService.handle(action, req, res, config, user);
     }
 
     const params = req.method === 'GET' ? { ...req.query } : { ...(req.body?.params || {}) };
@@ -68,6 +82,9 @@ module.exports = async function handler(req, res) {
       proxySecret: config.proxySecret,
       requestUser: user
     });
+    if (action === 'health' && result.body && typeof result.body === 'object') {
+      return send(res, result.status, { ...result.body, environmentIdentity });
+    }
     return send(res, result.status, result.body);
   } catch (err) {
     return send(res, err.status || 500, { ok: false, error: err.message || 'Lỗi API proxy.' });

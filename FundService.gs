@@ -32,7 +32,14 @@ var FundService = (function () {
   ];
 
   function getFundOverview(year, filter) {
-    var overviewCacheKey = fundCacheKey_(year, 'overview', normalizeMonthKey_((filter || {}).month) || 'all');
+    var safeFilter = filter || {};
+    var explicitStart = parseDate_(safeFilter.startDate, safeFilter.startDate);
+    var explicitEnd = parseDate_(safeFilter.endDate, safeFilter.endDate);
+    if (explicitEnd) explicitEnd.setHours(23, 59, 59, 999);
+    var rangeKey = explicitStart && explicitEnd
+      ? formatDateKey_(explicitStart) + '_' + formatDateKey_(explicitEnd)
+      : normalizeMonthKey_(safeFilter.month) || 'all';
+    var overviewCacheKey = fundCacheKey_(year, 'overview', rangeKey);
     var overviewCached = getFundCache_(overviewCacheKey);
     if (overviewCached) return overviewCached;
     var ss = getFundSpreadsheet_(year);
@@ -40,8 +47,8 @@ var FundService = (function () {
     var loans = readLoanRows_(ss);
     var settings = readFundSettings_(ss);
     var months = buildMonths_(transactions.concat(loans));
-    var monthKey = normalizeMonthKey_((filter || {}).month) || (months[0] && months[0].key) || '';
-    var period = monthKey ? monthPeriod_(monthKey) : null;
+    var monthKey = normalizeMonthKey_(safeFilter.month) || (!explicitStart && !explicitEnd && (months[0] && months[0].key)) || '';
+    var period = explicitStart && explicitEnd ? { start: explicitStart, end: explicitEnd } : (monthKey ? monthPeriod_(monthKey) : null);
     var openingBase = settings.cashOpening + settings.bankOpening;
     var today = today_();
 
@@ -134,7 +141,11 @@ var FundService = (function () {
   }
 
   function getFundLoanOverview(year, filter) {
-    var loanCacheKey = fundCacheKey_(year, 'loan_overview', normalizeMonthKey_((filter || {}).month) || 'all');
+    var safeFilter = filter || {};
+    var rangeKey = clean_(safeFilter.startDate) && clean_(safeFilter.endDate)
+      ? clean_(safeFilter.startDate) + '_' + clean_(safeFilter.endDate)
+      : normalizeMonthKey_(safeFilter.month) || 'all';
+    var loanCacheKey = fundCacheKey_(year, 'loan_overview', rangeKey);
     var loanCached = getFundCache_(loanCacheKey);
     if (loanCached) return loanCached;
     var result = FundLoanService.getOverview(filter || {}, fundLoanReadContext_(getFundSpreadsheet_(year)));
@@ -155,7 +166,7 @@ var FundService = (function () {
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      var context = fundLoanWriteContext_(sheet);
+      var context = fundLoanWriteContext_(ss, sheet);
       var result = FundLoanService.addLoan(payload, context);
       bumpFundDataVersion_();
       return result;
@@ -171,7 +182,7 @@ var FundService = (function () {
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
-      var context = fundLoanWriteContext_(sheet);
+      var context = fundLoanWriteContext_(ss, sheet);
       var result = FundLoanService.addPayment(payload, context);
       bumpFundDataVersion_();
       return result;
@@ -180,14 +191,15 @@ var FundService = (function () {
     }
   }
 
-  function fundLoanWriteContext_(sheet) {
-    return { repository: FundLoanRepository, sheet: sheet, sheetName: LOAN_SHEET_NAME, clean: clean_, parseDate: parseDate_, parseNumber: parseNumber_, buildVoucher: buildVoucher_,
-      appendOptions: { getAppendRow: getAppendRow_, buildFilterFormula: FundLoanService.buildFilterFormula } };
+  function fundLoanWriteContext_(ss, sheet) {
+    return { repository: FundLoanRepository, sheet: sheet, sheetName: LOAN_SHEET_NAME, clean: clean_, parseDate: parseDate_, parseNumber: parseNumber_,
+      buildVoucher: function (date) { return nextLoanVoucher_(ss, sheet, date); },
+      appendOptions: { getAppendRow: getAppendRow_ } };
   }
 
-  function getFundFormOptions(year) {
+  function getFundFormOptions(year, forceRefresh) {
     var optionsCacheKey = fundCacheKey_(year, 'form_options');
-    var optionsCached = getFundCache_(optionsCacheKey);
+    var optionsCached = forceRefresh ? null : getFundCache_(optionsCacheKey);
     if (optionsCached) return optionsCached;
     var ss = getFundSpreadsheet_(year);
     var settings = readFundSettings_(ss);
@@ -202,12 +214,19 @@ var FundService = (function () {
     return result;
   }
 
-  function getFundCatalog(year, group) {
+  function getFundCatalog(year, group, forceRefresh) {
     var catalogCacheKey = fundCacheKey_(year, 'catalog', FundCatalogService.normalizeGroup(group, fundCatalogReadContext_(null, null)) || 'all');
-    var catalogCached = getFundCache_(catalogCacheKey);
+    var catalogCached = forceRefresh ? null : getFundCache_(catalogCacheKey);
     if (catalogCached) return catalogCached;
     var ss = getFundSpreadsheet_(year);
-    var result = FundCatalogService.getCatalog(group, fundCatalogReadContext_(ss, ensureFundCatalogSheet_(ss)));
+    var settings = readFundSettings_(ss);
+    var context = fundCatalogReadContext_(ss, ensureFundCatalogSheet_(ss));
+    context.fallbackIncome = function () { return getFallbackFundIncomeCategories_(ss, settings); };
+    context.fallbackExpense = function () { return getFallbackFundExpenseCategories_(ss); };
+    context.fallbackActors = function () { return getFallbackFundActors_(ss); };
+    context.fallbackPartners = function () { return getFallbackFundPartners_(ss); };
+    context.fallbackLoanPartners = function () { return getFallbackFundLoanPartners_(ss); };
+    var result = FundCatalogService.getCatalog(group, context);
     putFundCache_(catalogCacheKey, result, FUND_CATALOG_TTL_SECONDS);
     return result;
   }
@@ -295,15 +314,31 @@ var FundService = (function () {
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
+      var preparedPayloads = assignTransactionVouchers_(ss, sheet, safePayloads);
       var context = fundTransactionWriteContext_();
       context.spreadsheet = ss;
       context.sheet = sheet;
       context.appendOptions = { getAppendRow: getAppendRow_, buildDebtFormula: buildDebtFormula_, buildFilterFormula: buildFilterFormula_,
         flush: function () { SpreadsheetApp.flush(); }, warn: function (message, error) { console.warn(message, error); } };
-      var result = FundTransactionService.addTransactions(safePayloads, writeContext, context);
+      var result = FundTransactionService.addTransactions(preparedPayloads, writeContext, context);
       if (result.idempotentReplay) return result;
       bumpFundDataVersion_();
       return result;
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
+  function prepareFundTransactionVouchers(year, payloads) {
+    var safePayloads = Array.isArray(payloads) ? payloads : [];
+    if (!safePayloads.length) return [];
+    var ss = getFundSpreadsheet_(year);
+    var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
+    if (!sheet) throw new Error('Không tìm thấy sheet Thu chi: ' + TRANSACTION_SHEET_NAME);
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      return assignTransactionVouchers_(ss, sheet, safePayloads);
     } finally {
       lock.releaseLock();
     }
@@ -787,6 +822,78 @@ var FundService = (function () {
     return base + suffix;
   }
 
+  function assignTransactionVouchers_(ss, sheet, payloads) {
+    var prepared = (payloads || []).map(function (payload) {
+      var copy = {};
+      Object.keys(payload || {}).forEach(function (key) { copy[key] = payload[key]; });
+      return copy;
+    });
+    var prefixes = {};
+    prepared.forEach(function (payload) {
+      if (clean_(payload.voucher)) return;
+      var date = parseDate_(payload.date, payload.date);
+      if (!date) return;
+      prefixes[Utilities.formatDate(date, APP_CONFIG.timezone, 'yyMMdd')] = true;
+    });
+    var prefixKeys = Object.keys(prefixes);
+    if (!prefixKeys.length) return prepared;
+
+    var maxByPrefix = {};
+    prefixKeys.forEach(function (prefix) { maxByPrefix[prefix] = 0; });
+    var lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      sheet.getRange(2, 1, lastRow - 1, 1).getValues().forEach(function (row) {
+        var match = clean_(row[0]).match(/^(\d{6})(\d{6})$/);
+        if (!match || maxByPrefix[match[1]] === undefined) return;
+        maxByPrefix[match[1]] = Math.max(maxByPrefix[match[1]], Number(match[2]));
+      });
+    }
+
+    var props = PropertiesService.getScriptProperties();
+    prefixKeys.forEach(function (prefix) {
+      var propertyKey = transactionVoucherPropertyKey_(ss.getId(), prefix);
+      maxByPrefix[prefix] = Math.max(maxByPrefix[prefix], Number(props.getProperty(propertyKey) || 0));
+    });
+    prepared.forEach(function (payload) {
+      if (clean_(payload.voucher)) return;
+      var date = parseDate_(payload.date, payload.date);
+      if (!date) return;
+      var prefix = Utilities.formatDate(date, APP_CONFIG.timezone, 'yyMMdd');
+      var next = maxByPrefix[prefix] + 1;
+      if (next > 999999) throw new Error('Đã vượt giới hạn mã giao dịch trong ngày ' + prefix + '.');
+      maxByPrefix[prefix] = next;
+      payload.voucher = Number(prefix + ('000000' + next).slice(-6));
+    });
+    prefixKeys.forEach(function (prefix) {
+      props.setProperty(transactionVoucherPropertyKey_(ss.getId(), prefix), String(maxByPrefix[prefix]));
+    });
+    return prepared;
+  }
+
+  function transactionVoucherPropertyKey_(spreadsheetId, prefix) {
+    return 'FUND_TRANSACTION_VOUCHER_SEQ_' + spreadsheetId + '_' + prefix;
+  }
+
+  function nextLoanVoucher_(ss, sheet, date) {
+    var prefix = Utilities.formatDate(date, APP_CONFIG.timezone, 'yyMMdd');
+    var maxSequence = 0;
+    var lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      sheet.getRange(2, 1, lastRow - 1, 1).getValues().forEach(function (row) {
+        var match = clean_(row[0]).match(/^(\d{6})(\d{6})$/);
+        if (match && match[1] === prefix) maxSequence = Math.max(maxSequence, Number(match[2]));
+      });
+    }
+
+    var properties = PropertiesService.getScriptProperties();
+    var propertyKey = 'FUND_LOAN_VOUCHER_SEQ_' + ss.getId() + '_' + prefix;
+    maxSequence = Math.max(maxSequence, Number(properties.getProperty(propertyKey) || 0));
+    var nextSequence = maxSequence + 1;
+    if (nextSequence > 999999) throw new Error('Đã vượt giới hạn mã khoản vay trong ngày ' + prefix + '.');
+    properties.setProperty(propertyKey, String(nextSequence));
+    return Number(prefix + ('000000' + nextSequence).slice(-6));
+  }
+
   function buildDebtFormula_(rowNumber) {
     var voucherCell = 'A' + rowNumber;
     return '=IF(SUMIFS(F:F;A:A;' + voucherCell + ';J:J;"Có")-SUMIFS(F:F;A:A;' + voucherCell + ';J:J;"="&"")<=0;0;SUMIFS(F:F;A:A;' + voucherCell + ';J:J;"Có")-SUMIFS(F:F;A:A;' + voucherCell + ';J:J;"="&""))';
@@ -985,6 +1092,7 @@ var FundService = (function () {
     getFundTransactions: getFundTransactions,
     saveFundCatalogItem: saveFundCatalogItem,
     validateFundTransactions: validateFundTransactions,
+    prepareFundTransactionVouchers: prepareFundTransactionVouchers,
     getFundSpreadsheet_: getFundSpreadsheet_
   };
 })();

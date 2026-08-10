@@ -99,6 +99,7 @@ test('shareholder allowlist contains no write, account-admin or operational acti
     'invalidateCaches',
     'listUsers',
     'createUser',
+    'deleteUser',
     'updateUser',
     'resetUserPassword'
   ]);
@@ -133,7 +134,7 @@ test('account administration remains admin-only while own-password change remain
   const adminGuard = handler.indexOf('assertAdmin(user);', ownPasswordBranch);
   assert.ok(ownPasswordBranch >= 0 && adminGuard > ownPasswordBranch, 'Own-password branch must execute before the admin guard.');
 
-  for (const action of ['listUsers', 'createUser', 'updateUser', 'resetUserPassword']) {
+  for (const action of ['listUsers', 'createUser', 'updateUser', 'resetUserPassword', 'deleteUser']) {
     const branch = handler.indexOf(`action === '${action}'`);
     assert.ok(branch > adminGuard, `${action} must remain behind assertAdmin(user).`);
   }

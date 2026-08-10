@@ -71,7 +71,7 @@ var TransportJobHandler = (function () {
       assertResult_(deleteResult, 'Không thể xóa nội dung dòng Vận hành.');
       if (deleteResult && deleteResult.ok !== false) {
         captureSync_(deleteResult, 'supabaseSync', function () {
-          return context.syncTransportAfterWrite(payload.sheetName, [], { fast: true });
+          return context.syncTransportAfterWrite(payload.sheetName, [payload.rowData || {}], { fast: true });
         });
         if (payload.sheetName === 'NL_VanChuyen') {
           captureSync_(deleteResult, 'dashboardSync', context.syncDashboard);

@@ -79,6 +79,11 @@ test('catalog form needs remain narrow and unknown forms fall back to the full s
   assert.equal(attendance.vehicles.length, 0);
   assert.equal(attendance.chamCongTypes.length, 2);
 
+  const drivers = plain(service.readCatalogs(ss, 'taiXe'));
+  assert.equal(drivers.vehicles.length, 2);
+  assert.equal(drivers.people.length, 2);
+  assert.equal(drivers.projects.length, 1);
+
   const fallback = plain(service.readCatalogs(ss, 'unknown'));
   assert.equal(fallback.people.length, 2);
   assert.equal(fallback.vehicles.length, 2);

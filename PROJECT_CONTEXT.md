@@ -74,13 +74,13 @@ Production đã xác nhận gần nhất:
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
-Preview hiện hành của checkpoint retirement/repository consolidation:
+Preview hiện hành của checkpoint live workbook parity/UI correction:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_J8V1cKGSeMWN3f3BkRtcQe3zWaPV`, deploy READY ngày 2026-08-10 từ commit `e652da0`.
-- Apps Script Preview: `@320`, deployment ID riêng với Production.
+- Vercel deployment: `dpl_AWq2jcQXoCS4D3L8TzuCuruTHnSj`, READY ngày 2026-08-10.
+- Apps Script Preview: `@322`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 467/467 tests, lint, typecheck, Next build, Identity Guard, root/title smoke; Production giữ nguyên `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
+- Gate deploy PASS 476/476 tests, lint, typecheck, Next build, Identity Guard, root/title smoke; Production giữ nguyên `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -146,8 +146,8 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Không triển khai `INPHIEU`/in phiếu theo yêu cầu rõ của người dùng.
 - Full gate cuối PASS sau regression fix `DM_GiaDau`: 473/473 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`.
 - Copy-canary PASS trên bản sao riêng của cả workbook Vận tải và Thu Chi: các form/danh mục mới giữ công thức, validation, format và computed values; Công nợ M/N và bốn ô thiết lập đầu kỳ ghi/đọc đúng. Marker/dữ liệu test đã được xóa, bốn thiết lập đã khôi phục, rồi hai bản sao TEST đã được xóa vĩnh viễn. Hai workbook Production không bị ghi.
-- Apps Script Preview đã cập nhật version `321`; health trực tiếp HTTP 200. Apps Script Production vẫn ở version `315`.
-- Vercel Preview hiện hành đã deploy bằng đúng `npm run deploy:preview`: `dpl_Hp4u2NDMgxya3MJTyNFdj7J83ZbC` tại `https://vantaidongbac-preview.vercel.app`; title/health HTTP smoke PASS, không Vercel Login.
+- Apps Script Preview hiện ở version `322`; health trực tiếp HTTP 200. Apps Script Production vẫn ở version `315`.
+- Vercel Preview hiện hành đã deploy bằng đúng `npm run deploy:preview`: `dpl_AWq2jcQXoCS4D3L8TzuCuruTHnSj` tại `https://vantaidongbac-preview.vercel.app`; title/health HTTP smoke PASS, không Vercel Login.
 - Đã chạy thành công `syncAllStartupAndCatalogsToSupabase`, `syncAllFundBundlesToSupabase` và `syncAllFundCatalogsToSupabase`; authenticated Preview smoke PASS cho Entry, 12 catalog, `DM_GiaDau` chỉ nhập A:B, Công nợ và đúng 4 thiết lập đầu kỳ. Không có `INPHIEU`/in phiếu và không có console error.
 - Vercel Production deployment trước/sau giữ nguyên `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`; chưa promote Production.
 
@@ -159,6 +159,14 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Các `select` lọc theo danh sách cố định đã dùng chiều rộng nội tại theo lựa chọn dài nhất; ô tìm kiếm và khoảng ngày vẫn co giãn để dùng phần không gian còn lại. Visual QA Preview xác nhận tại 1440px và 390px: bộ lọc đối tác chứa đủ `Quang Quân`, hai bộ lọc lịch sử vay/trả cùng hàng và không tràn viewport.
 - Visual QA có đăng nhập PASS ở 390px, 960px và 1440px cho Tổng quan, Báo cáo, Vận hành, Danh mục, Quỹ/Khoản vay và Cài đặt; mọi route được kiểm tra đều có `scrollWidth === clientWidth` ở cấp trang.
 - Gate Preview PASS 475/475 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`; Production giữ nguyên `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
+
+### UI correction và helper-column hardening — Preview hoàn thành 2026-08-10
+
+- Bộ lọc thời gian Quỹ mobile dùng một grid hàng ngang cho quick period và hai ngày; select co theo giá trị đang chọn bằng `field-sizing: content`, nhãn all-year rút gọn thành `Năm 2026`.
+- Date filter Quỹ desktop hiển thị native date input thật, đã sửa specificity xung đột với C2 golden CSS; authenticated Preview QA xác nhận control `opacity: 1`, `position: static`, click/focus được và ba trường cùng hàng.
+- Mọi nút đóng/hủy và đường lưu thành công của drawer Quỹ, Catalog, Vận hành đi qua swipe-dismiss exit contract 190 ms thay vì unmount ngay.
+- Live `DM_NhanSu!K` mang header `Cột 11` là formula helper spill danh sách tài xế đang làm, không phải business field. Apps Script `@322` và Next catalog boundary đều dùng allowlist business fields để loại helper dù cache cũ hoặc workbook đổi tên helper; authenticated Preview QA xác nhận header còn `Trạng Thái`, `Công ty` và không còn `Cột 11`.
+- Full deploy gate PASS 476/476 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_AWq2jcQXoCS4D3L8TzuCuruTHnSj`; Apps Script Preview `@322`; Production không đổi.
 
 ### Repository consolidation và Vercel deployment guard — hoàn thành 2026-08-10
 

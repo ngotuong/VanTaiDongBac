@@ -251,8 +251,12 @@ test('Fixed-option filters use intrinsic width while search and date controls st
   const css = read('next-shell/app/platform.css');
 
   assert.match(cashflow, /cashflow-quick-period-select platform-content-select/);
+  assert.match(cashflow, /<option value="recent">Năm \{year\}<\/option>/);
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc các khoản vay theo nơi vay"/);
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc lịch sử theo loại giao dịch"/);
+  assert.match(css, /select\.platform-content-select \{[\s\S]*field-sizing: content;/);
+  assert.match(css, /@media \(max-width: 768px\) \{[\s\S]*\.cashflow-filter-stack \{[\s\S]*grid-template-columns: max-content minmax\(0, 1fr\)/);
+  assert.match(css, /html body \.cashflow-c2 \.cashflow-overview-filter-panel \.cashflow-date-input input\.native-date-input,[\s\S]*pointer-events: auto !important;/);
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc lịch sử theo nơi vay"/);
   assert.match(report, /report-payroll-filter platform-content-select/);
   assert.match(manage, /Nguồn chi:<select className="platform-content-select"/);
@@ -327,6 +331,9 @@ test('Cashflow success feedback stays in toast and each drawer owns one portal a
   assert.match(flat(module), /<BodyPortal> <div className=\{`cashflow-drawer-backdrop/);
   assert.doesNotMatch(module, /\{drawer \? <BodyPortal>/);
   assert.match(module, /useSwipeDismiss\(\{ onDismiss: close \}\)/);
+  assert.match(module, /setDrawerCloseRequest\(\(value\) => value \+ 1\)/);
+  assert.match(module, /typeof footer === 'function' \? footer\(swipe\.close\) : footer/);
+  assert.doesNotMatch(module, /onClick=\{close\}/);
 });
 
 test('Every data module publishes route-scoped source metadata to prevent stale badges', () => {

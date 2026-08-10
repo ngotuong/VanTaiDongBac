@@ -62,6 +62,29 @@ test('Catalog projection stops before a secondary table separated by a blank hea
   assert.deepEqual(result.rows, [{ rowIndex: 2, values: [1, '20H05602', 'Quang Quân'] }]);
 });
 
+test('Personnel catalog hides formula helper columns even when the workbook renames them', () => {
+  const source = {
+    ok: true,
+    headers: ['Nhân sự', 'Chức vụ', 'Người tuyển', 'Tính thưởng', 'Dừng thưởng', 'Ngày vào', 'Ngày nghỉ', 'Lương cứng', 'Nghỉ chuẩn', 'Trạng Thái', 'Cột 11', 'Công ty'],
+    rows: [{ rowIndex: 2, values: ['Nguyễn Hữu Phớt', 'Tài xế', 'Huy', '01/07/2026', '', '28/05/2026', '', 10000000, '', 'Đang làm', 'Đỗ Tường Huân', 'Minh Vương'] }]
+  };
+  const context = vm.createContext({
+    SheetService: { getCatalogs: () => ({}) },
+    SheetReadService: { readSheetData: () => plain(source) },
+    ValidationService: { parseNumber: (value) => Number(value) || 0 }
+  });
+  new vm.Script(read('NormalizationUtils.gs'), { filename: 'NormalizationUtils.gs#personnel-helper' }).runInContext(context);
+  new vm.Script(read('CatalogService.gs'), { filename: 'CatalogService.gs#personnel-helper' }).runInContext(context);
+  const result = plain(context.CatalogService.readCatalogData('DM_NhanSu'));
+  assert.deepEqual(result.headers, ['Nhân sự', 'Chức vụ', 'Người tuyển', 'Tính thưởng', 'Dừng thưởng', 'Ngày vào', 'Ngày nghỉ', 'Lương cứng', 'Nghỉ chuẩn', 'Trạng Thái', 'Công ty']);
+  assert.deepEqual(result.rows[0].values, ['Nguyễn Hữu Phớt', 'Tài xế', 'Huy', '01/07/2026', '', '28/05/2026', '', 10000000, '', 'Đang làm', 'Minh Vương']);
+  assert.doesNotMatch(result.headers.join('|'), /Cột 11|DS_TaiXe_DangLam/);
+  const catalogServer = read('next-shell/lib/catalog-server.ts');
+  assert.match(catalogServer, /sheetName==='DM_NhanSu'/);
+  assert.match(catalogServer, /const indexes=bundle\.headers/);
+  assert.match(catalogServer, /visible\.has\(header\)/);
+});
+
 test('Catalog writes and deletes are constrained to the visible primary table', () => {
   const sheetService = read('SheetService.gs');
   const catalogModule = read('next-shell/components/catalog/CatalogModule.tsx');

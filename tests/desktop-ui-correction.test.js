@@ -38,6 +38,7 @@ test('desktop date controls render only one native value', () => {
 
   assert.match(css, /\.manage-filter-panel \.cashflow-date-input \.date-display-text,[\s\S]*display: none !important;/);
   assert.match(css, /\.manage-filter-panel \.cashflow-date-input \.native-date-input,[\s\S]*position: static !important;[\s\S]*opacity: 1 !important;/);
+  assert.match(css, /html body \.cashflow-c2 \.cashflow-overview-filter-panel \.cashflow-date-input input\.native-date-input,[\s\S]*position: static !important;[\s\S]*opacity: 1 !important;/);
 });
 
 test('wide desktop tables and tab bars expose their scroll affordance', () => {

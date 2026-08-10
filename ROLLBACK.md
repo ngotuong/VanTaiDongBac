@@ -12,10 +12,10 @@
 
 Production đã xác nhận trong `PROJECT_CONTEXT.md`:
 
-- Vercel hiện tại: `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
-- Vercel rollback gần nhất: `dpl_8f3resbHcr5ZNWMdV4PjP28Gm5yK`.
+- Vercel hiện tại: `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde`.
+- Vercel rollback gần nhất: `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`; rollback lịch sử tiếp theo là `dpl_8f3resbHcr5ZNWMdV4PjP28Gm5yK`.
 - Rollback lịch sử tiếp theo: D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`, C3 `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` nếu vẫn READY.
-- Apps Script production: code version `@315`; rollback gần nhất cùng deployment ID là `@302`.
+- Apps Script production: code version `@322`; rollback gần nhất cùng deployment ID là `@315`, tiếp theo là `@302`.
 - Recovery deployment `@281` đã undeploy, không dùng.
 
 Luôn xác minh live deployment ID trước thao tác; không giả định các ID trên còn READY nếu thời gian đã trôi qua.

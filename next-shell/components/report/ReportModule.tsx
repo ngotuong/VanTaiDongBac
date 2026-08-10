@@ -147,7 +147,7 @@ function ReportTable({ type, matrix, query, month }: { type: ReportType; matrix:
     {type === 'payroll' && options.companyIdx >= 0 ? (
       <div className="table-card-subhead">
         <label className="compact-filter">
-          <select className="report-payroll-filter" aria-label="Lọc công ty bảng lương" value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}>
+          <select className="report-payroll-filter platform-content-select" aria-label="Lọc công ty bảng lương" value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}>
             <option value="">Tất cả công ty</option>
             {options.companies.map((value) => <option value={value} key={value}>{value}</option>)}
           </select>
@@ -157,13 +157,13 @@ function ReportTable({ type, matrix, query, month }: { type: ReportType; matrix:
     {type === 'vehicles' ? (
       <div className="table-card-subhead">
         <label className="compact-filter">
-          <select className="report-vehicle-filter" aria-label="Lọc công ty tổng hợp xe" value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}>
+          <select className="report-vehicle-filter platform-content-select" aria-label="Lọc công ty tổng hợp xe" value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}>
             <option value="">Tất cả công ty</option>
             {options.companies.map((value) => <option value={value} key={value}>{value}</option>)}
           </select>
         </label>
         <label className="compact-filter">
-          <select className="report-vehicle-filter" aria-label="Lọc biển số xe" value={effectivePlate} onChange={(event) => setPlate(event.target.value)}>
+          <select className="report-vehicle-filter platform-content-select" aria-label="Lọc biển số xe" value={effectivePlate} onChange={(event) => setPlate(event.target.value)}>
             <option value="">Tất cả xe</option>
             {options.plates.map((value) => <option value={value} key={value}>{value}</option>)}
           </select>
@@ -239,7 +239,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
     <button type="button" data-shell-refresh hidden onClick={() => load(month, false, true)} aria-hidden="true" tabIndex={-1}/>
     <div className="sub-tabs-bar app-sticky-tabs" id="reportTabsBar" role="tablist" aria-label="Loại báo cáo">{TABS.map(([type, label]) => <button type="button" role="tab" aria-selected={tab === type} className={`sub-tab${tab === type ? ' active' : ''}`} data-report-tab={type} onClick={() => setTab(type)} key={type}>{label}</button>)}</div>
     <section className="panel report-filter-panel app-sticky-toolbar sticky-after-tabs">
-      <div className="panel-head reports-filter-head"><div className="filter-row reports-filter-row"><input type="search" id="reportSearchInput" aria-label="Tìm trong báo cáo" placeholder="Tìm xe, tài xế..." value={query} onChange={(event) => setQuery(event.target.value)}/><select id="reportMonthFilter" className="cashflow-quick-period-select" aria-label="Chọn tháng báo cáo" aria-busy={loading || undefined} value={month} onChange={(event) => void load(event.target.value)}><option value="Tất cả">Tất cả tháng</option>{months.filter((value) => value !== 'Tất cả').map((value) => <option value={normalizeMonth(value)} key={value}>{normalizeMonth(value)}</option>)}</select></div></div>
+      <div className="panel-head reports-filter-head"><div className="filter-row reports-filter-row"><input type="search" id="reportSearchInput" aria-label="Tìm trong báo cáo" placeholder="Tìm xe, tài xế..." value={query} onChange={(event) => setQuery(event.target.value)}/><select id="reportMonthFilter" className="cashflow-quick-period-select platform-content-select" aria-label="Chọn tháng báo cáo" aria-busy={loading || undefined} value={month} onChange={(event) => void load(event.target.value)}><option value="Tất cả">Tất cả tháng</option>{months.filter((value) => value !== 'Tất cả').map((value) => <option value={normalizeMonth(value)} key={value}>{normalizeMonth(value)}</option>)}</select></div></div>
     </section>
     <div className="platform-visually-hidden" role="status" aria-live="polite">{error || status}</div>
     {error && !bundle ? <section className="table-card report-c2-error" role="alert"><div className="panel-body"><div className="table-title">Không tải được báo cáo</div><p>{error}</p><button type="button" className="sub-tab" onClick={() => load('latest')} disabled={loading}>Thử lại</button></div></section> : null}

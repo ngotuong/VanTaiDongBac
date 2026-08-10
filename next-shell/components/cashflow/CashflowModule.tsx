@@ -986,7 +986,7 @@ function SharedCashflowFilter({ year, period, startDate, endDate, busy, query, s
     <section className="panel cashflow-overview-filter-panel cashflow-shared-filter" aria-label="Bộ lọc chung của module Quỹ">
       <div className="cashflow-filter-stack">
         <div className="cashflow-filter-row-top">
-          <select aria-label="Bộ lọc nhanh thời gian" className="cashflow-quick-period-select" value={period} onChange={(event) => setPeriod(event.target.value as Period)}>
+          <select aria-label="Bộ lọc nhanh thời gian" className="cashflow-quick-period-select platform-content-select" value={period} onChange={(event) => setPeriod(event.target.value as Period)}>
             <option value="thisMonth" disabled={!isCurrentYear}>
               Tháng này
             </option>
@@ -1194,6 +1194,7 @@ function CategoryDrawer({ title, rows, allRows, partner, setPartner, close }: { 
       <div className="cashflow-category-filter">
         <label className="compact-filter">
           <select
+            className="platform-content-select"
             aria-label="Lọc theo đối tác"
             value={partner}
             onChange={(event) => {
@@ -1367,7 +1368,7 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
           <div className="table-title">Các khoản vay</div>
           <label className="compact-filter">
             <span className="platform-visually-hidden">Nơi vay</span>
-            <select aria-label="Lọc các khoản vay theo nơi vay" value={props.loanPartner} onChange={(event) => props.setLoanPartner(event.target.value)}>
+            <select className="platform-content-select" aria-label="Lọc các khoản vay theo nơi vay" value={props.loanPartner} onChange={(event) => props.setLoanPartner(event.target.value)}>
               <option value="">Tất cả</option>
               {props.partners.map((value) => (
                 <option key={value}>{value}</option>
@@ -1427,7 +1428,7 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
           <div className="fund-loan-history-filters">
             <label className="compact-filter">
               <span className="platform-visually-hidden">Loại</span>
-              <select aria-label="Lọc lịch sử theo loại giao dịch" value={props.historyType} onChange={(event) => props.setHistoryType(event.target.value)}>
+              <select className="platform-content-select" aria-label="Lọc lịch sử theo loại giao dịch" value={props.historyType} onChange={(event) => props.setHistoryType(event.target.value)}>
                 <option value="">Tất cả</option>
                 <option>Vay</option>
                 <option>Trả nợ</option>
@@ -1437,7 +1438,7 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
             </label>
             <label className="compact-filter">
               <span className="platform-visually-hidden">Nơi vay</span>
-              <select aria-label="Lọc lịch sử theo nơi vay" value={props.historyPartner} onChange={(event) => props.setHistoryPartner(event.target.value)}>
+              <select className="platform-content-select" aria-label="Lọc lịch sử theo nơi vay" value={props.historyPartner} onChange={(event) => props.setHistoryPartner(event.target.value)}>
                 <option value="">Tất cả</option>
                 {props.partners.map((value) => (
                   <option key={value}>{value}</option>

@@ -207,7 +207,7 @@ test('Cashflow loan headers stay compact and history uses green/red cashflow col
   assert.match(module, /aria-label=\{`Thanh toán khoản vay \$\{item\.partner\}`\}/);
   assert.match(module, /<rect x="3" y="5" width="18" height="14" rx="2"\s*\/>/);
   assert.doesNotMatch(module, />Thanh toán<\/button>/);
-  assert.match(css, /\.cashflow-c2 \.fund-loan-summary-head \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) minmax\(150px, 220px\)/);
+  assert.match(css, /html body \.cashflow-c2 \.fund-loan-summary-head \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) fit-content\(55%\)/);
   assert.match(flat(module), /type === ["']Vay["'] \? ["']emerald["'] : ["']rose["']/);
   assert.match(flat(module), /type === ["']Vay["'] \? ["']cash-in["'] : ["']cash-out["']/);
   assert.match(css, /\.cashflow-c2 \.fund-loan-history-amount\.cash-in/);
@@ -238,9 +238,28 @@ test('Cashflow keeps business filters compact without exposing implementation no
   assert.match(module, /className="platform-visually-hidden">Loại<\/span>/);
   assert.match(module, /aria-label="Lọc lịch sử theo loại giao dịch"/);
   assert.match(module, /aria-label="Lọc lịch sử theo nơi vay"/);
-  assert.match(css, /@media \(min-width: 769px\) \{[\s\S]*\.cashflow-filter-stack \{[\s\S]*grid-template-columns: minmax\(250px, 0\.9fr\) minmax\(360px, 2fr\)/);
+  assert.match(css, /@media \(min-width: 769px\) \{[\s\S]*\.cashflow-filter-stack \{[\s\S]*grid-template-columns: max-content minmax\(360px, 1fr\)/);
   assert.match(css, /\.table-card-head\.fund-loan-history-head > \.fund-loan-history-filters \{[\s\S]*display: grid !important/);
   assert.match(css, /\.fund-loan-history-head \.table-title \{[\s\S]*font-size: 15px !important/);
+});
+
+test('Fixed-option filters use intrinsic width while search and date controls stay fluid', () => {
+  const cashflow = read('next-shell/components/cashflow/CashflowModule.tsx');
+  const report = read('next-shell/components/report/ReportModule.tsx');
+  const manage = read('next-shell/components/manage/ManageReadOnlyModule.tsx');
+  const catalog = read('next-shell/components/catalog/CatalogModule.tsx');
+  const css = read('next-shell/app/platform.css');
+
+  assert.match(cashflow, /cashflow-quick-period-select platform-content-select/);
+  assert.match(cashflow, /className="platform-content-select" aria-label="Lọc các khoản vay theo nơi vay"/);
+  assert.match(cashflow, /className="platform-content-select" aria-label="Lọc lịch sử theo loại giao dịch"/);
+  assert.match(cashflow, /className="platform-content-select" aria-label="Lọc lịch sử theo nơi vay"/);
+  assert.match(report, /report-payroll-filter platform-content-select/);
+  assert.match(manage, /Nguồn chi:<select className="platform-content-select"/);
+  assert.match(catalog, /id="catalogVehicleOwnerFilter" className="platform-content-select"/);
+  assert.match(css, /html body select\.platform-content-select \{[\s\S]*width: fit-content !important;[\s\S]*max-width: 100% !important;/);
+  assert.match(css, /html body \.cashflow-c2 \.fund-loan-history-filters \{[\s\S]*grid-template-columns: repeat\(2, max-content\) !important;/);
+  assert.match(css, /html body \.reports-filter-row \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) max-content !important;/);
 });
 
 test('Cashflow bottom-sheet headers are compact and align titles to the left', () => {

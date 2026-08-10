@@ -17,6 +17,18 @@ function publicBundle(payload:unknown,syncedAt:string):CatalogBundle|null {
 }
 function primaryTable(bundle:CatalogBundle,sheetName:CatalogSheetName):CatalogBundle {
   if(sheetName==='DM_ThamSo_TS') return bundle;
+  if(sheetName==='DM_NhanSu'){
+    const visible=new Set(['nhân sự','chức vụ','người tuyển','tính thưởng','dừng thưởng','ngày vào','ngày nghỉ','lương cứng','nghỉ chuẩn','trạng thái','công ty']);
+    const indexes=bundle.headers.map((header,index)=>({header:String(header||'').trim().toLocaleLowerCase('vi-VN'),index})).filter(({header})=>visible.has(header)).map(({index})=>index);
+    const headers=indexes.map((index)=>bundle.headers[index]);
+    return {
+      ...bundle,
+      headers,
+      editableHeaders:(bundle.editableHeaders||[]).filter((header)=>headers.includes(header)),
+      rows:bundle.rows.map((row)=>({...row,values:indexes.map((index)=>(row.values||[])[index])}))
+        .filter((row)=>row.values.some((value)=>value!==null&&value!==undefined&&String(value).trim()!==''))
+    };
+  }
   const emptyIndex=bundle.headers.findIndex((header)=>String(header||'').trim()==='');
   const width=emptyIndex===-1?bundle.headers.length:emptyIndex;
   return {

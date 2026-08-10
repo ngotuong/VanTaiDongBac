@@ -200,14 +200,15 @@ var CatalogService = (function () {
     };
 
     if (requestedName === 'DM_NhanSu') {
-      var colIdx = result.headers.indexOf('DS_TaiXe_DangLam');
-      if (colIdx !== -1) {
-        result.headers.splice(colIdx, 1);
-        result.rows = result.rows.map(function (row) {
-          row.values.splice(colIdx, 1);
-          return row;
-        });
-      }
+      // DM_NhanSu contains a formula spill column between Trạng Thái and Công ty.
+      // Its workbook label has changed over time (for example
+      // DS_TaiXe_DangLam and Cột 11), so expose only the stable business fields
+      // instead of relying on one helper-column name.
+      result = projectColumns_(result, [
+        'Nhân sự', 'Chức vụ', 'Người tuyển', 'Tính thưởng', 'Dừng thưởng',
+        'Ngày vào', 'Ngày nghỉ', 'Lương cứng', 'Nghỉ chuẩn', 'Trạng Thái',
+        'Công ty'
+      ]);
     } else if (requestedName === 'DM_ThamSo_TS') {
       result.headers = ['Mã tham số', 'Tên tham số', 'Giá trị', 'Ngày áp dụng tham số'];
       result.rows = result.rows.map(function (row) {
@@ -264,6 +265,25 @@ var CatalogService = (function () {
       return row.values.some(function (value) {
         return value !== null && value !== undefined && String(value).trim() !== '';
       });
+    });
+    return result;
+  }
+
+  function projectColumns_(result, allowedHeaders) {
+    var allowed = {};
+    (allowedHeaders || []).forEach(function (header) {
+      allowed[String(header || '').trim().toLowerCase()] = true;
+    });
+    var indexes = [];
+    (result.headers || []).forEach(function (header, index) {
+      if (allowed[String(header || '').trim().toLowerCase()]) indexes.push(index);
+    });
+    result.headers = indexes.map(function (index) { return result.headers[index]; });
+    result.rows = (result.rows || []).map(function (row) {
+      return {
+        rowIndex: row.rowIndex,
+        values: indexes.map(function (index) { return (row.values || [])[index]; })
+      };
     });
     return result;
   }

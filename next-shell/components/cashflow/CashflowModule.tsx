@@ -297,6 +297,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   const [historyPartner, setHistoryPartner] = useState('');
   const [historyType, setHistoryType] = useState('');
   const [drawer, setDrawer] = useState<Drawer>(null);
+  const [drawerCloseRequest, setDrawerCloseRequest] = useState(0);
   const [transactionRows, setTransactionRows] = useState<FundTransaction[]>([blankTransaction()]);
   const [loanRows, setLoanRows] = useState<LoanForm[]>([blankLoan()]);
   const [payment, setPayment] = useState<PaymentForm>({
@@ -603,7 +604,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
           void api.post('processWriteJobs', { body: { maxJobs: 2 } }).catch(() => {});
         }
       }
-      setDrawer(null);
+      setDrawerCloseRequest((value) => value + 1);
       report(prepared[0].rowIndex ? 'Đã cập nhật giao dịch.' : 'Đã nhận giao dịch và đưa vào hàng chờ đồng bộ.');
     } catch (writeError) {
       report(writeError instanceof Error ? writeError.message : String(writeError), true);
@@ -668,7 +669,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
       setLoanPage(1);
       setLoanSummaryPage(1);
       if (tab === 'loans') setPageMetaPayload(nextLoans);
-      setDrawer(null);
+      setDrawerCloseRequest((value) => value + 1);
       report(loanRows.length > 1 ? `Đã lưu ${loanRows.length} khoản vay. Cache Supabase sẽ tự đồng bộ nền.` : 'Đã lưu khoản vay. Cache Supabase sẽ tự đồng bộ nền.');
     } catch (e) {
       if (savedCount > 0) {
@@ -704,7 +705,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
           payment: { ...payment, amount: String(amount(payment.amount)) },
         },
       });
-      setDrawer(null);
+      setDrawerCloseRequest((value) => value + 1);
       report('Đã ghi thanh toán khoản vay và đồng bộ cache.');
       await refresh('loans', true);
       void refresh('overview', true);
@@ -876,10 +877,10 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
         />
       ) : null}
       {tab === 'catalog' && canWrite ? <><FundSettingsCard value={settingsEdit} setValue={setSettingsEdit} save={() => void saveFundSettings()} busy={busy} /><Catalog data={catalog} group={group} edit={catalogEdit} setEdit={setCatalogEdit} selectGroup={selectGroup} save={() => void saveCatalog()} remove={deleteCatalog} busy={busy} page={catalogPage} setPage={setCatalogPage} /></> : null}
-      {drawer === 'transactions' ? <TransactionDrawer rows={transactionRows} setRows={setTransactionRows} options={options} busy={busy} close={() => setDrawer(null)} submit={() => void submitTransactions()} /> : null}
-      {drawer === 'loan' ? <LoanDrawer rows={loanRows} setRows={setLoanRows} options={options} busy={busy} close={() => setDrawer(null)} submit={() => void submitLoan()} /> : null}
-      {drawer === 'payment' ? <PaymentDrawer value={payment} setValue={setPayment} busy={busy} close={() => setDrawer(null)} submit={() => void submitPayment()} /> : null}
-      {drawer === 'category' && category ? <CategoryDrawer title={category.title} rows={categoryRows} allRows={category.rows} partner={categoryPartner} setPartner={setCategoryPartner} close={() => setDrawer(null)} /> : null}
+      {drawer === 'transactions' ? <TransactionDrawer rows={transactionRows} setRows={setTransactionRows} options={options} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitTransactions()} /> : null}
+      {drawer === 'loan' ? <LoanDrawer rows={loanRows} setRows={setLoanRows} options={options} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitLoan()} /> : null}
+      {drawer === 'payment' ? <PaymentDrawer value={payment} setValue={setPayment} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitPayment()} /> : null}
+      {drawer === 'category' && category ? <CategoryDrawer title={category.title} rows={categoryRows} allRows={category.rows} partner={categoryPartner} setPartner={setCategoryPartner} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} /> : null}
       {deletingTransaction ? (
         <BodyPortal>
           <div
@@ -985,7 +986,7 @@ function SharedCashflowFilter({ year, period, startDate, endDate, busy, query, s
   return (
     <section className="panel cashflow-overview-filter-panel cashflow-shared-filter" aria-label="Bộ lọc chung của module Quỹ">
       <div className="cashflow-filter-stack">
-        <div className="cashflow-filter-row-top">
+        <div className={`cashflow-filter-row-top${canAdd ? ' has-action' : ''}`}>
           <select aria-label="Bộ lọc nhanh thời gian" className="cashflow-quick-period-select platform-content-select" value={period} onChange={(event) => setPeriod(event.target.value as Period)}>
             <option value="thisMonth" disabled={!isCurrentYear}>
               Tháng này
@@ -999,7 +1000,7 @@ function SharedCashflowFilter({ year, period, startDate, endDate, busy, query, s
             <option value="lastMonth" disabled={!isCurrentYear || today().slice(5, 7) === '01'}>
               Tháng trước
             </option>
-            <option value="recent">Tất cả năm {year}</option>
+            <option value="recent">Năm {year}</option>
             <option value="custom">Tùy chọn</option>
           </select>
           {canAdd ? (
@@ -1174,7 +1175,7 @@ function CategorySection({
   );
 }
 
-function CategoryDrawer({ title, rows, allRows, partner, setPartner, close }: { title: string; rows: FundTransaction[]; allRows: FundTransaction[]; partner: string; setPartner: (value: string) => void; close: () => void }) {
+function CategoryDrawer({ title, rows, allRows, partner, setPartner, closeRequest, close }: { title: string; rows: FundTransaction[]; allRows: FundTransaction[]; partner: string; setPartner: (value: string) => void; closeRequest: number; close: () => void }) {
   const partners = Array.from(new Set(allRows.map((row) => row.partner || '').filter(Boolean))).sort();
   const [page, setPage] = useState(1);
   const currentPage = Math.min(page, Math.max(1, Math.ceil(rows.length / PAGE_SIZE)));
@@ -1184,12 +1185,13 @@ function CategoryDrawer({ title, rows, allRows, partner, setPartner, close }: { 
       id="fundCategoryDetailDrawer"
       title={title}
       close={close}
+      closeRequest={closeRequest}
       hideHeaderClose
-      footer={
-        <button type="button" className="outline primary grow touch-action-btn" onClick={close}>
+      footer={(requestClose) => (
+        <button type="button" className="outline primary grow touch-action-btn" onClick={requestClose}>
           Đóng chi tiết
         </button>
-      }
+      )}
     >
       <div className="cashflow-category-filter">
         <label className="compact-filter">
@@ -1592,9 +1594,15 @@ function Catalog({ data, group, edit, setEdit, selectGroup, save, remove, busy, 
   );
 }
 
-function DrawerShell({ id, title, children, footer, close, hideHeaderClose = false }: { id: string; title: string; children: React.ReactNode; footer?: React.ReactNode; close: () => void; hideHeaderClose?: boolean }) {
+function DrawerShell({ id, title, children, footer, close, closeRequest = 0, hideHeaderClose = false }: { id: string; title: string; children: React.ReactNode; footer?: React.ReactNode | ((requestClose: () => void) => React.ReactNode); close: () => void; closeRequest?: number; hideHeaderClose?: boolean }) {
   const swipe = useSwipeDismiss({ onDismiss: close });
+  const seenCloseRequest = useRef(closeRequest);
   const [entered, setEntered] = useState(false);
+  useEffect(() => {
+    if (closeRequest === seenCloseRequest.current) return;
+    seenCloseRequest.current = closeRequest;
+    swipe.close();
+  }, [closeRequest, swipe]);
   useEffect(() => {
     let enterFrame = 0;
     const prepareFrame = window.requestAnimationFrame(() => {
@@ -1637,7 +1645,7 @@ function DrawerShell({ id, title, children, footer, close, hideHeaderClose = fal
         <div className="cashflow-drawer-body" data-overlay-scroll="cashflow">
           {children}
         </div>
-        {footer ? <footer className="modal-footer submit-bar">{footer}</footer> : null}
+        {footer ? <footer className="modal-footer submit-bar">{typeof footer === 'function' ? footer(swipe.close) : footer}</footer> : null}
       </section>
     </BodyPortal>
   );
@@ -1719,14 +1727,15 @@ function TransactionFields({ row, setRow, options }: { row: FundTransaction; set
   );
 }
 
-function TransactionDrawer({ rows, setRows, options, busy, close, submit }: { rows: FundTransaction[]; setRows: (rows: FundTransaction[]) => void; options: FundOptions; busy: boolean; close: () => void; submit: () => void }) {
+function TransactionDrawer({ rows, setRows, options, busy, closeRequest, close, submit }: { rows: FundTransaction[]; setRows: (rows: FundTransaction[]) => void; options: FundOptions; busy: boolean; closeRequest: number; close: () => void; submit: () => void }) {
   const editing = Boolean(rows[0]?.rowIndex);
   return (
     <DrawerShell
       id="fundTransactionAddDrawer"
       title={editing ? 'Sửa giao dịch' : 'Thêm giao dịch thu chi'}
       close={close}
-      footer={
+      closeRequest={closeRequest}
+      footer={(requestClose) => (
         <>
           <button type="button" className="primary grow" onClick={submit} disabled={busy}>
             <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
@@ -1750,14 +1759,14 @@ function TransactionDrawer({ rows, setRows, options, busy, close, submit }: { ro
               </button>
             </>
           ) : null}
-          <button type="button" className="outline icon-button touch-action-btn" title="Hủy bỏ/Đóng" aria-label="Hủy bỏ/Đóng" onClick={close}>
+          <button type="button" className="outline icon-button touch-action-btn" title="Hủy bỏ/Đóng" aria-label="Hủy bỏ/Đóng" onClick={requestClose}>
             <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </>
-      }
+      )}
     >
       <div className="fund-transaction-rows">
         {rows.map((row, index) => (
@@ -1867,13 +1876,14 @@ function LoanFields({ value, setValue, options }: { value: LoanForm; setValue: (
   );
 }
 
-function LoanDrawer({ rows, setRows, options, busy, close, submit }: { rows: LoanForm[]; setRows: (rows: LoanForm[]) => void; options: FundOptions; busy: boolean; close: () => void; submit: () => void }) {
+function LoanDrawer({ rows, setRows, options, busy, closeRequest, close, submit }: { rows: LoanForm[]; setRows: (rows: LoanForm[]) => void; options: FundOptions; busy: boolean; closeRequest: number; close: () => void; submit: () => void }) {
   return (
     <DrawerShell
       id="fundLoanAddDrawer"
       title="Thêm khoản vay"
       close={close}
-      footer={
+      closeRequest={closeRequest}
+      footer={(requestClose) => (
         <>
           <button type="button" className="primary grow" onClick={submit} disabled={busy}>
             <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
@@ -1893,14 +1903,14 @@ function LoanDrawer({ rows, setRows, options, busy, close, submit }: { rows: Loa
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </button>
-          <button type="button" className="outline icon-button touch-action-btn" title="Hủy bỏ/Đóng" aria-label="Hủy bỏ/Đóng" onClick={close}>
+          <button type="button" className="outline icon-button touch-action-btn" title="Hủy bỏ/Đóng" aria-label="Hủy bỏ/Đóng" onClick={requestClose}>
             <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </>
-      }
+      )}
     >
       <div className="loan-entry-rows">
         {rows.map((row, index) => (
@@ -1924,14 +1934,15 @@ function LoanDrawer({ rows, setRows, options, busy, close, submit }: { rows: Loa
   );
 }
 
-function PaymentDrawer({ value, setValue, busy, close, submit }: { value: PaymentForm; setValue: (value: PaymentForm) => void; busy: boolean; close: () => void; submit: () => void }) {
+function PaymentDrawer({ value, setValue, busy, closeRequest, close, submit }: { value: PaymentForm; setValue: (value: PaymentForm) => void; busy: boolean; closeRequest: number; close: () => void; submit: () => void }) {
   const set = (key: string, next: string) => setValue({ ...value, [key]: next });
   return (
     <DrawerShell
       id="fundLoanPaymentDrawer"
       title="Thanh toán khoản vay"
       close={close}
-      footer={
+      closeRequest={closeRequest}
+      footer={(requestClose) => (
         <>
           <button type="button" className="primary grow" onClick={submit} disabled={busy}>
             <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
@@ -1939,14 +1950,14 @@ function PaymentDrawer({ value, setValue, busy, close, submit }: { value: Paymen
             </svg>
             {busy ? 'Đang lưu…' : 'Lưu thanh toán'}
           </button>
-          <button type="button" className="outline icon-button touch-action-btn" title="Hủy bỏ/Đóng" aria-label="Hủy bỏ/Đóng" onClick={close}>
+          <button type="button" className="outline icon-button touch-action-btn" title="Hủy bỏ/Đóng" aria-label="Hủy bỏ/Đóng" onClick={requestClose}>
             <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </>
-      }
+      )}
     >
       <div className="modal-grid">
         <label>

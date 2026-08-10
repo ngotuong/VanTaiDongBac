@@ -2937,6 +2937,7 @@ body #reportsView table.report-data-table-details td.report-detail-company-cell 
     max-width: 240px !important;
   }
 
+  html body .cashflow-c2 .cashflow-overview-filter-panel .cashflow-date-input .date-display-text,
   .manage-filter-panel .cashflow-date-input .date-display-text,
   .manage-entry-embedded #entryShell .custom-date-box .date-display-text,
   body > .modal-overlay.side-drawer-overlay .custom-date-box .date-display-text,
@@ -2944,6 +2945,7 @@ body #reportsView table.report-data-table-details td.report-detail-company-cell 
     display: none !important;
   }
 
+  html body .cashflow-c2 .cashflow-overview-filter-panel .cashflow-date-input input.native-date-input,
   .manage-filter-panel .cashflow-date-input .native-date-input,
   .manage-entry-embedded #entryShell .custom-date-box .native-date-input,
   body > .modal-overlay.side-drawer-overlay .custom-date-box .native-date-input,
@@ -2963,6 +2965,9 @@ body #reportsView table.report-data-table-details td.report-detail-company-cell 
     line-height: 1.25 !important;
     text-align: left !important;
     cursor: pointer !important;
+    pointer-events: auto !important;
+    appearance: auto !important;
+    -webkit-appearance: auto !important;
   }
 
   .manage-entry-embedded.swipe-dismiss-surface {
@@ -3353,6 +3358,7 @@ body #reportsView table.report-data-table-details td.report-detail-company-cell 
  */
 html body select.platform-content-select {
   width: fit-content !important;
+  field-sizing: content;
   min-width: 0 !important;
   max-width: 100% !important;
   flex: 0 0 auto !important;
@@ -3402,6 +3408,76 @@ html body .catalog-c2 #catalogVehicleOwnerFilterWrap {
 }
 
 @media (max-width: 768px) {
+  html body .cashflow-overview-filter-panel {
+    padding: 10px !important;
+  }
+
+  html body .cashflow-filter-stack {
+    display: grid !important;
+    grid-template-columns: max-content minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  html body .cashflow-filter-row-top {
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  html body .cashflow-filter-row-bottom {
+    width: auto !important;
+    min-width: 0 !important;
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
+  }
+
+  html body .cashflow-filter-row-top:has(.cashflow-filter-add),
+  html body .cashflow-filter-row-top:has(.manage-add-top-btn) {
+    display: contents !important;
+  }
+
+  html body .cashflow-filter-row-top:has(.cashflow-filter-add) > select,
+  html body .cashflow-filter-row-top:has(.manage-add-top-btn) > select {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  html body .cashflow-filter-row-top:has(.cashflow-filter-add) > button,
+  html body .cashflow-filter-row-top:has(.manage-add-top-btn) > button {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+  }
+
+  html body .cashflow-filter-row-bottom:has(.cashflow-filter-apply) {
+    grid-column: 1 / -1 !important;
+  }
+
+  html body .cashflow-filter-row-search {
+    grid-column: 1 / -1 !important;
+  }
+
+  html body .cashflow-quick-period-select {
+    width: auto !important;
+    max-width: 132px !important;
+    padding-inline: 9px !important;
+  }
+
+  html body .cashflow-date-input {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  html body .cashflow-date-input .date-display-text {
+    padding-inline: 7px !important;
+    font-size: 13px !important;
+    white-space: nowrap !important;
+  }
+
+  html body .date-range-separator {
+    font-size: 12px !important;
+  }
+
   html body .catalog-filter-main {
     grid-template-columns: minmax(132px, 1fr) max-content !important;
   }

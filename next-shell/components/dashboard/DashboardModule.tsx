@@ -53,7 +53,7 @@ function HeroMetricCard({ row, previous, kpiMap, effectiveMonth, months, onSelec
       <div className="kpi-hero-label">{HERO_SPEC.label.toUpperCase()}</div>
       <div className="dashboard-month-title platform-visually-hidden">{effectiveMonth}</div>
       <div className="kpi-hero-select-wrap">
-        <select aria-label="Chọn tháng tổng quan" className="kpi-hero-select" value={effectiveMonth} onChange={(event) => onSelectMonth(event.target.value)}>
+        <select aria-label="Chọn tháng tổng quan" className="kpi-hero-select platform-content-select" value={effectiveMonth} onChange={(event) => onSelectMonth(event.target.value)}>
           {months.map((m) => <option value={m} key={m}>{m === 'Tất cả' ? 'Tất cả tháng' : m}</option>)}
         </select>
       </div>

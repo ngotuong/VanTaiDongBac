@@ -3345,3 +3345,70 @@ body #reportsView table.report-data-table-details td.report-detail-company-cell 
     font-size: 16px !important;
   }
 }
+
+/*
+ * Intrinsic filter sizing (2026-08-10).
+ * Fixed-option filters reserve only enough room for their longest option.
+ * Search and date controls stay fluid so they can use the spare space.
+ */
+html body select.platform-content-select {
+  width: fit-content !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  flex: 0 0 auto !important;
+}
+
+html body .cashflow-c2 .compact-filter select.platform-content-select,
+html body .table-card-subhead .compact-filter select.platform-content-select,
+html body .catalog-c2 .filter-container select.platform-content-select,
+html body #manageDauFilterBlock select.platform-content-select {
+  width: fit-content !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  flex: 0 0 auto !important;
+}
+
+html body .cashflow-c2 .fund-loan-summary-head {
+  grid-template-columns: minmax(0, 1fr) fit-content(55%) !important;
+}
+
+html body .cashflow-c2 .fund-loan-history-filters {
+  grid-template-columns: repeat(2, max-content) !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  justify-content: end !important;
+}
+
+html body .table-card-subhead {
+  grid-template-columns: repeat(2, max-content) !important;
+  justify-content: end !important;
+}
+
+html body .reports-filter-row {
+  grid-template-columns: minmax(0, 1fr) max-content !important;
+}
+
+html body .catalog-c2 #catalogPersonnelStatusFilterWrap,
+html body .catalog-c2 #catalogVehicleOwnerFilterWrap {
+  width: auto !important;
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+@media (min-width: 769px) {
+  html body .cashflow-filter-stack {
+    grid-template-columns: max-content minmax(360px, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  html body .catalog-filter-main {
+    grid-template-columns: minmax(132px, 1fr) max-content !important;
+  }
+}
+
+@media (max-width: 640px) {
+  html body .cashflow-c2 .fund-loan-history-filters {
+    justify-content: start !important;
+  }
+}

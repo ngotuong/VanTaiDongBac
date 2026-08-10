@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { createAuthorizationPolicy, SHAREHOLDER_ACTIONS } = require('../api/services/authorization-policy');
+const { createAuthorizationPolicy, SHAREHOLDER_ACTIONS } = require('../server/services/authorization-policy');
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 const policy = createAuthorizationPolicy({ httpError });

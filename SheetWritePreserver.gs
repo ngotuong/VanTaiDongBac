@@ -12,9 +12,9 @@ var SheetWritePreserver = (function () {
     var skipMap = buildSkipMap_(skippedColumns);
 
     copyRowFormatSafely_(sheet, startRow, rows.length, columnCount);
-    var existingFormulas = sheet.getRange(startRow, 1, rows.length, columnCount).getFormulasR1C1();
+    var existingFormulas = readFormulaMatrixSafely_(sheet, startRow, rows.length, columnCount, 'read_existing_formulas');
     var sourceFormulas = startRow > 1
-      ? sheet.getRange(startRow - 1, 1, 1, columnCount).getFormulasR1C1()[0]
+      ? readFormulaMatrixSafely_(sheet, startRow - 1, 1, columnCount, 'read_source_formulas')[0]
       : [];
 
     rows.forEach(function (values, rowOffset) {
@@ -25,13 +25,47 @@ var SheetWritePreserver = (function () {
         if (existingFormulas[rowOffset] && existingFormulas[rowOffset][colIdx]) rowSkipMap[colIdx] = true;
         if (!rowSkipMap[colIdx] && isBlankCell_(values[colIdx]) && sourceFormulas[colIdx]) {
           rowSkipMap[colIdx] = true;
-          sheet.getRange(rowNum, colIdx + 1).setFormulaR1C1(sourceFormulas[colIdx]);
+          runWriteStage_('write_formula', function () {
+            sheet.getRange(rowNum, colIdx + 1).setFormulaR1C1(sourceFormulas[colIdx]);
+          });
         }
       }
       writeRowSegments_(sheet, rowNum, values, rowSkipMap, function (range, segment) {
-        range.setValues([segment]);
+        writeSegmentSafely_(sheet, range, rowNum, segment, 'write_values');
       });
     });
+  }
+
+  function readFormulaMatrixSafely_(sheet, startRow, rowCount, columnCount, stage) {
+    try {
+      return sheet.getRange(startRow, 1, rowCount, columnCount).getFormulasR1C1();
+    } catch (error) {
+      if (!isFilteredRangeError_(error)) throwStageError_(stage, error);
+      var formulas = [];
+      for (var rowOffset = 0; rowOffset < rowCount; rowOffset++) {
+        var formulaRow = [];
+        for (var colOffset = 0; colOffset < columnCount; colOffset++) {
+          formulaRow.push(runWriteStage_(stage + '_cell', function () {
+            return sheet.getRange(startRow + rowOffset, colOffset + 1).getFormulaR1C1();
+          }));
+        }
+        formulas.push(formulaRow);
+      }
+      return formulas;
+    }
+  }
+
+  function writeSegmentSafely_(sheet, range, rowNum, segment, stage) {
+    try {
+      range.setValues([segment]);
+    } catch (error) {
+      if (!isFilteredRangeError_(error)) throwStageError_(stage, error);
+      for (var columnOffset = 0; columnOffset < segment.length; columnOffset++) {
+        runWriteStage_(stage + '_cell', function () {
+          sheet.getRange(rowNum, range.getColumn() + columnOffset).setValue(segment[columnOffset]);
+        });
+      }
+    }
   }
 
   function ensureRows(sheet, requiredLastRow) {
@@ -91,6 +125,24 @@ var SheetWritePreserver = (function () {
 
   function isBlankCell_(value) {
     return value === null || value === undefined || String(value).trim() === '';
+  }
+
+  function runWriteStage_(stage, callback) {
+    try {
+      return callback();
+    } catch (error) {
+      throwStageError_(stage, error);
+    }
+  }
+
+  function throwStageError_(stage, error) {
+    var message = error && error.message ? error.message : String(error);
+    throw new Error('sheet_write_stage=' + stage + ': ' + message);
+  }
+
+  function isFilteredRangeError_(error) {
+    var message = error && error.message ? error.message : String(error || '');
+    return /filtered\s*out|filter(?:ed)?\s*row|lọc\s*bỏ/i.test(message);
   }
 
   function writeRowSegments_(sheet, rowNum, values, skipMap, writeFn) {

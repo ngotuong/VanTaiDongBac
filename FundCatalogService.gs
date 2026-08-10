@@ -38,7 +38,7 @@ var FundCatalogService = (function () {
 
   function getFormOptions(context) {
     var catalogs = readGroups(context);
-    return { ok: true,
+    return { ok: true, catalogCacheVersion: 'fund_catalog_v2',
       incomeCategories: unique(catalogs.incomeCategories.concat(context.fallbackIncome()), context),
       expenseCategories: unique(catalogs.expenseCategories.concat(context.fallbackExpense()), context),
       actors: unique(catalogs.actors.concat(context.fallbackActors()), context),
@@ -46,13 +46,50 @@ var FundCatalogService = (function () {
       loanPartners: unique(catalogs.loanPartners.concat(context.fallbackLoanPartners()), context) };
   }
 
-  function getCatalog(group, context) {
+  function fallbackValues(groupKey, context) {
+    var readers = {
+      incomeCategories: context.fallbackIncome,
+      expenseCategories: context.fallbackExpense,
+      actors: context.fallbackActors,
+      partners: context.fallbackPartners,
+      loanPartners: context.fallbackLoanPartners
+    };
+    return typeof readers[groupKey] === 'function' ? readers[groupKey]() : [];
+  }
+
+  function rowsWithFallbacks(context) {
     var rows = readRows(context);
+    var seen = {};
+    context.groups.forEach(function (group) { seen[group.key] = {}; });
+    rows.forEach(function (row) {
+      if (!row.groupKey || !seen[row.groupKey]) return;
+      seen[row.groupKey][context.normalizeHeader(row.value)] = true;
+    });
+    context.groups.forEach(function (group) {
+      unique(fallbackValues(group.key, context), context).forEach(function (value, index) {
+        var normalized = context.normalizeHeader(value);
+        if (!normalized || seen[group.key][normalized]) return;
+        seen[group.key][normalized] = true;
+        rows.push({
+          rowIndex: 'fallback:' + group.key + ':' + (index + 1),
+          group: group.label,
+          groupKey: group.key,
+          value: value,
+          note: '',
+          source: 'fallback'
+        });
+      });
+    });
+    return rows;
+  }
+
+  function getCatalog(group, context) {
+    var rows = rowsWithFallbacks(context);
     var selected = normalizeGroup(group, context);
     var counts = {};
     context.groups.forEach(function (item) { counts[item.key] = 0; });
     rows.forEach(function (row) { if (counts[row.groupKey] !== undefined) counts[row.groupKey] += 1; });
-    return { ok: true, sheetName: context.sheetName,
+    return { ok: true, catalogCacheVersion: 'fund_catalog_v2', sheetName: context.sheetName,
       groups: context.groups.map(function (item) { return { key: item.key, label: item.label, count: counts[item.key] || 0 }; }),
       selectedGroup: selected, rows: selected ? rows.filter(function (row) { return row.groupKey === selected; }) : rows };
   }

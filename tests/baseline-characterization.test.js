@@ -44,8 +44,8 @@ test('Router-only and disabled actions remain explicit and outside PublicApi', (
 
 test('proxy authentication and shareholder action surfaces match the baseline', () => {
   const proxy = read('api/app.js');
-  const policy = read('api/services/authorization-policy.js');
-  const accountService = read('api/services/account-service.js');
+  const policy = read('server/services/authorization-policy.js');
+  const accountService = read('server/services/account-service.js');
   const shareholderBlock = policy.match(/const SHAREHOLDER_ACTIONS = new Set\(\[([\s\S]*?)\]\);/);
   assert.ok(shareholderBlock, 'Missing SHAREHOLDER_ACTIONS block.');
   const shareholderActions = sorted([...shareholderBlock[1].matchAll(/'([^']+)'/g)].map((match) => match[1]));
@@ -55,6 +55,7 @@ test('proxy authentication and shareholder action surfaces match the baseline', 
     const owner = action === 'authSession' ? proxy : accountService;
     assert.match(owner, new RegExp(`'${action}'`));
   }
+  for (const action of baseline.proxy.localFoundationActions) assert.match(proxy, new RegExp(`'${action}'`));
   for (const action of baseline.proxy.unauthenticatedActions) {
     assert.match(proxy, new RegExp(`action !== '${action}'`));
   }
@@ -75,6 +76,7 @@ test('Supabase tables and stable cache/job keys remain represented in runtime an
     read('SupabaseService.gs'),
     read('StartupCatalogSyncService.gs'),
     read('ReportSyncService.gs'),
+    read('SupabaseReportCacheRepository.gs'),
     read('ManageSyncService.gs'),
     read('FundSyncService.gs'),
     read('WriteJobRepository.gs'),
@@ -102,13 +104,15 @@ test('Supabase tables and stable cache/job keys remain represented in runtime an
 
 test('feature flag defaults match the characterized baseline', () => {
   const service = read('SupabaseService.gs');
+  const reportCacheMode = read('ReportCacheMode.gs');
   assert.match(service, new RegExp(`ASYNC_WRITE_ENABLED = ${baseline.featureFlags.ASYNC_WRITE_ENABLED}`));
   assert.match(service, new RegExp(`ASYNC_TRANSPORT_WRITE_ENABLED = ${baseline.featureFlags.ASYNC_TRANSPORT_WRITE_ENABLED}`));
   assert.match(
     service,
     new RegExp(`ASYNC_FUND_TRANSACTION_ADD_ENABLED = readBooleanProperty_\\('ASYNC_FUND_TRANSACTION_ADD_ENABLED', ${baseline.featureFlags.ASYNC_FUND_TRANSACTION_ADD_ENABLED}\\)`)
   );
+  assert.match(reportCacheMode, /PROPERTY_NAME = 'REPORT_CACHE_MODE'/);
+  assert.match(reportCacheMode, new RegExp(`var SUPABASE = '${baseline.featureFlags.REPORT_CACHE_MODE}'`));
   assert.match(read('SecurityService.gs'), /AUTH_ENFORCEMENT_ENABLED/);
-  assert.match(read('scripts/build.js'), /VITE_AUTH_ENABLED/);
-  assert.match(read('scripts/build.js'), /VITE_SUPABASE_REPORTS_ENABLED/);
+  assert.doesNotMatch(read('package.json'), /build:legacy|build-[a-z-]+-react|scripts\/build\.js/);
 });

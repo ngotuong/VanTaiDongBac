@@ -46,7 +46,7 @@ Presentation Layer không được:
 - chứa Supabase service role key hoặc server secret;
 - tự vượt qua API/RBAC contract.
 
-Trong giai đoạn migration, frontend vanilla hiện tại có thể tiếp tục hoạt động. Mỗi màn hình chỉ chuyển sang Next.js theo step độc lập đã được phê duyệt.
+Sau D1, Next.js là presentation layer duy nhất trong source hiện hành. Frontend vanilla chỉ còn trong Git/deployment rollback lịch sử, không còn được build hoặc deploy từ nhánh hiện tại.
 
 ## 4. Edge/API Layer
 
@@ -83,9 +83,7 @@ Apps Script chịu trách nhiệm:
 - chạy worker, trigger, đồng bộ cache và audit;
 - bảo toàn idempotency và rollback semantics.
 
-Apps Script không render HTML sau khi migration frontend hoàn tất.
-
-Trong thời gian chuyển đổi, HtmlService và frontend source hiện tại được giữ để bảo đảm compatibility cho đến khi từng consumer đã được thay thế và xác nhận ổn định.
+Apps Script không render HTML sau khi migration frontend hoàn tất; `doGet`/`doPost` chỉ giữ API/integration boundary.
 
 ## 6. Domain Layer
 
@@ -187,22 +185,15 @@ Nếu một thay đổi không phục vụ trực tiếp kiến trúc mục tiê
 
 ## 10. Trạng thái chuyển đổi hiện tại
 
-Kiến trúc hiện tại chưa phải kiến trúc đích:
+Kiến trúc hiện tại chưa phải kiến trúc đích. Tóm tắt current state, checkpoint gần nhất và checkpoint tiếp theo chỉ thuộc `PROJECT_CONTEXT.md`.
 
-- frontend vẫn chủ yếu là vanilla HTML/CSS/JavaScript;
-- Vercel API proxy đã đảm nhiệm auth/RBAC public edge;
-- Apps Script vẫn chứa nhiều orchestration và implementation lớn;
-- Google Sheets vẫn là source of truth;
-- Supabase đang làm Auth, cache, read model, queue và sync status;
-- refactor đang thực hiện tuần tự theo `REFACTOR_PLAN.md`.
-
-Checkpoint hiện tại và step kế tiếp không được ghi cố định tại đây. Luôn đọc `PROJECT_CONTEXT.md` để biết trạng thái sống.
+Roadmap migration Next.js hữu hạn thuộc `NEXTJS_MIGRATION_PLAN.md`. Chương trình Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành và chỉ còn là tài liệu lịch sử.
 
 ## 11. Cổng phê duyệt dành cho Coding Agent
 
 Khi bắt đầu một cuộc trò chuyện mới, Coding Agent phải:
 
-1. Đọc tài liệu theo `docs/ai/AI_START_HERE.md`.
+1. Đọc `AGENTS.md` và toàn bộ `PROJECT_CONTEXT.md`.
 2. Kiểm tra `git status --short`.
 3. Báo lại ngắn gọn:
    - dự án là gì;
@@ -219,27 +210,18 @@ Việc người dùng yêu cầu đọc dự án hoặc báo trạng thái khôn
 ## 12. Prompt chuẩn cho cuộc trò chuyện mới
 
 ```text
-Hãy đọc AGENTS.md và thực hiện đúng quy trình khởi động trong docs/ai/AI_START_HERE.md.
-
-Sau đó đọc PROJECT_CONTEXT.md, TARGET_ARCHITECTURE.md, PROJECT_SCHEMA.md và REFACTOR_PLAN.md để báo lại:
-
-1. Dự án là gì và gồm những module chính nào.
-2. Kiến trúc hiện tại đang ở trạng thái nào.
-3. Checkpoint/refactor step gần nhất đã hoàn thành.
-4. Bước tiếp theo được đề xuất là gì.
-5. Mục tiêu kiến trúc dài hạn là gì.
-6. Rủi ro và điều kiện cần kiểm tra trước bước tiếp theo.
-
-Chỉ báo cáo và đề xuất kế hoạch ngắn. Không sửa file, không chạy migration, không deploy, không commit và không push.
-
-Sau khi báo cáo xong, hãy dừng và chờ tôi phê duyệt rõ ràng trước khi bắt đầu bất kỳ thay đổi nào.
+Hãy đọc AGENTS.md và thực hiện quy trình khởi động của dự án.
+Chỉ báo cáo trạng thái và dừng chờ phê duyệt.
 ```
+
+`AGENTS.md` và `PROJECT_CONTEXT.md` là hai file bắt buộc. `docs/ai/AI_START_HERE.md` chỉ định tài liệu chuyên biệt cần đọc khi loại tác vụ yêu cầu.
 
 ## 13. Quyền sở hữu tài liệu
 
 - Kiến trúc đích: `TARGET_ARCHITECTURE.md`.
 - Trạng thái/checkpoint sống: `PROJECT_CONTEXT.md`.
-- Kế hoạch refactor tuần tự: `REFACTOR_PLAN.md`.
+- Roadmap Next.js hữu hạn: `NEXTJS_MIGRATION_PLAN.md`.
+- Lịch sử refactor Step 1–36: `REFACTOR_PLAN.md`.
 - Kiến trúc hiện tại: `docs/architecture/SYSTEM_ARCHITECTURE.md`.
 - Module ownership: `docs/architecture/MODULE_MAP.md`.
 - Contract: `docs/contracts/`.

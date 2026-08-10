@@ -39,9 +39,9 @@ Tài liệu này không thay thế API contract hoặc spreadsheet contract chi 
 
 - Dữ liệu chuẩn: dữ liệu và công thức trong Google Sheets dùng để đối soát cuối cùng.
 - Cache server: các bundle JSON trong Supabase.
-- Cache Sheet: `SYS_ReportCache` trong file Vận tải.
+- Cache Sheet lịch sử: `SYS_ReportCache` đã nghỉ khỏi runtime và chờ migration retirement.
 - Cache runtime: Apps Script `CacheService`/Script Properties cache.
-- Cache browser: state trong trang và `sessionStorage`.
+- Cache browser: state trong Client Component; session xác thực nằm trong HttpOnly cookie phía Next boundary.
 - Write intent: job trong `write_jobs`, chưa đồng nghĩa đã ghi vào Sheet.
 - Optimistic row: dòng frontend hiển thị tạm trước khi worker xác nhận.
 
@@ -96,11 +96,9 @@ sequenceDiagram
 - Username được nhớ riêng trong `localStorage` để hỗ trợ form đăng nhập.
 - Proxy là điểm enforce permission cho API từ Vercel.
 
-### 4.2. Khởi động khi chạy trong HtmlService
+### 4.2. Apps Script root sau D1
 
-Khi có `google.script.run`, frontend gọi `invokeApi()` trực tiếp trong Apps Script runtime thay vì HTTP fetch.
-
-Apps Script vẫn chạy `SecurityService.assertProxyRequest()`. Khả năng hoạt động phụ thuộc cấu hình Auth/enforcement của deployment. Production chính hiện hướng tới Vercel frontend và proxy.
+Apps Script không còn khởi động giao diện. Request không có `action` nhận JSON hướng dẫn mở ứng dụng Next; request API hợp lệ tiếp tục qua proxy-secret gate và service hiện hữu.
 
 ### 4.3. Dữ liệu startup
 
@@ -207,13 +205,7 @@ Không được giả định một bundle tháng tự chứa dữ liệu ngoài
 
 ### 7.1. Các tầng
 
-Frontend có thể giữ dữ liệu trong:
-
-- biến global của trang;
-- report bundle cache trong memory;
-- `sessionStorage` cho sheet data và response;
-- Supabase SDK persistent Auth session;
-- `localStorage` cho username và một số preference còn hiệu lực.
+Frontend Next có thể giữ dữ liệu trong state của Client Component. Session server dùng HttpOnly cookie; `localStorage` chỉ dùng cho preference không nhạy cảm như theme.
 
 ### 7.2. Invalidation
 
@@ -544,16 +536,16 @@ Frontend render bảng tổng quan/chi tiết từ payload backend. Không tự 
 
 Luồng hiện tại:
 
-1. kiểm tra `SYS_ReportCache` theo data version và month key;
+1. kiểm tra chi tiết đúng `cache_version` + `source_data_version` trong Supabase;
 2. nếu cache hợp lệ, trả chi tiết đã cache;
-3. nếu thiếu, cleanup sheet tạm cũ;
+3. nếu thiếu/lỗi, cleanup sheet tạm cũ;
 4. copy `BC_TongQuan` thành sheet tạm;
 5. đổi tên sheet tạm;
 6. đặt controller tháng trên bản tạm;
 7. flush và đọc kết quả công thức;
-8. ghi chi tiết vào `SYS_ReportCache`;
+8. giữ kết quả trong memory của execution và upsert full `report_bundles`;
 9. xóa sheet tạm trong `finally`;
-10. trả bundle và có thể sync `report_bundles`.
+10. trả bundle. Không đọc, ghi hoặc tái tạo `SYS_ReportCache`.
 
 Nếu execution timeout trước cleanup, lần chạy sau và hàm cleanup thủ công xử lý cả tên `_TMP_BC_TongQuan_*`, `Bản sao của BC_TongQuan...` và `Copy of BC_TongQuan...`.
 
@@ -592,6 +584,8 @@ sequenceDiagram
     opt NL_VanChuyen
         S->>C: Sync dashboard
     end
+    S-->>S: Debounce + merge month vào pending Report queue
+    S->>C: Tick ưu tiên sync month + Tất cả
     S->>C: Ghi sync_status
 ```
 
@@ -599,7 +593,7 @@ sequenceDiagram
 
 `onChange` có thể không cung cấp active sheet đáng tin cậy. Khi biết sheet, hệ thống sync recent bundle, tháng gần nhất và dashboard nếu cần.
 
-Khi không biết sheet, fallback hiện tập trung hẹp vào `NL_VanChuyen`, hai tháng gần nhất và dashboard để tránh full sync kéo dài.
+Khi không biết sheet, Manage/dashboard fallback hiện tập trung hẹp vào `NL_VanChuyen` và hai tháng gần nhất. Riêng Report queue được nâng thành `full=true`, vì row đã xóa hoặc structural event không còn đủ dữ liệu để suy ra tháng an toàn.
 
 ### 15.3. Giới hạn
 
@@ -607,6 +601,8 @@ Khi không biết sheet, fallback hiện tập trung hẹp vào `NL_VanChuyen`, 
 - không phải mọi thay đổi công thức lan truyền đều phát ra event phù hợp;
 - Apps Script có execution limit;
 - cache vẫn có thể tạm thời cũ;
+- mục tiêu edit thông thường là cache mới trong khoảng tối đa 2 phút; full structural refresh có thể lâu hơn;
+- trigger trực tiếp hiện chỉ cài trên workbook Vận tải; thay đổi thủ công ở workbook Thu chi/công thức lan truyền không tự động có cùng SLA;
 - `sync_status` và audit dùng để quan sát, không phải transaction guarantee.
 
 ## 16. Luồng liên kết Thu chi → Vận tải
@@ -802,7 +798,7 @@ Trước khi thay đổi hành vi đọc/ghi:
 
 1. Xác định màn hình và action khởi phát.
 2. Xác định user role cần thiết.
-3. Xác định endpoint: `google.script.run`, Vercel proxy hay Supabase REST.
+3. Xác định endpoint Next same-origin/Vercel proxy và Apps Script action hoặc Supabase repository phía server.
 4. Xác định source được ưu tiên và fallback.
 5. Xác định Spreadsheet ID/year resolution.
 6. Xác định sheet, header row, cột và công thức.

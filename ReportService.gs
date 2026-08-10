@@ -11,14 +11,29 @@ var ReportService = (function () {
     return SheetService.getReport(type, month, forceRefresh);
   }
 
-  function getReportBundle(month, forceRefresh) {
-    return SheetService.getReportBundle(month, forceRefresh);
+  function getReportBundle(month, forceRefresh, options) {
+    return SheetService.getReportBundle(month, forceRefresh, options);
+  }
+
+  function beginReportRefreshBatch() {
+    return SheetService.beginReportRefreshBatch();
+  }
+
+  function getReportDataVersion() {
+    return SheetService.getReportDataVersion();
+  }
+
+  function getReportCacheVersion() {
+    return SheetService.getReportCacheVersion();
   }
 
   return {
     getDashboard: getDashboard,
     getReports: getReports,
     getReport: getReport,
-    getReportBundle: getReportBundle
+    getReportBundle: getReportBundle,
+    beginReportRefreshBatch: beginReportRefreshBatch,
+    getReportDataVersion: getReportDataVersion,
+    getReportCacheVersion: getReportCacheVersion
   };
 })();

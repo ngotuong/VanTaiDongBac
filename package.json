@@ -1,22 +1,25 @@
 {
   "scripts": {
-    "build": "node scripts/build.js && node scripts/build-accounts-react.js && node scripts/build-observability-react.js && node scripts/build-catalog-react.js && node scripts/build-fund-catalog-react.js && node scripts/build-dashboard-react.js && node scripts/build-reports-react.js && node scripts/build-manage-react.js && node scripts/build-cashflow-react.js && next build next-shell && node scripts/copy-next-accounts.js",
-    "build:legacy": "node scripts/build.js",
-    "build:accounts": "node scripts/build-accounts-react.js",
-    "build:observability": "node scripts/build-observability-react.js",
-    "build:catalog": "node scripts/build-catalog-react.js",
-    "build:fund-catalog": "node scripts/build-fund-catalog-react.js",
-    "build:dashboard": "node scripts/build-dashboard-react.js",
-    "build:reports": "node scripts/build-reports-react.js",
-    "build:manage": "node scripts/build-manage-react.js",
-    "build:cashflow": "node scripts/build-cashflow-react.js",
-    "build:next-accounts": "next build next-shell && node scripts/copy-next-accounts.js",
+    "build": "node scripts/check-environment-identity.mjs && next build",
+    "build:next-accounts": "node scripts/check-environment-identity.mjs && next build",
+    "check:identity": "node scripts/check-environment-identity.mjs",
+    "deploy:preview": "node scripts/deploy-preview.mjs",
+    "lint": "eslint app next-shell/components/platform next-shell/components/report next-shell/components/dashboard next-shell/components/manage next-shell/components/entry next-shell/components/catalog next-shell/components/cashflow next-shell/components/settings next-shell/components/observability next-shell/lib/platform next-shell/lib/report-server.ts next-shell/lib/dashboard-server.ts next-shell/lib/manage-server.ts next-shell/lib/entry-server.ts next-shell/lib/catalog-server.ts next-shell/lib/cashflow-server.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.platform.json",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {
-    "esbuild": "^0.28.1",
-    "next": "^16.2.10",
+    "next": "^16.2.11",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.2.11",
+    "typescript": "^5.9.3"
   }
 }

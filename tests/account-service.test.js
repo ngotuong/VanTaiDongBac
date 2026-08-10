@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { createAccountService, ACCOUNT_ACTIONS } = require('../api/services/account-service');
+const { createAccountService, ACCOUNT_ACTIONS } = require('../server/services/account-service');
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 const send = (res, status, body) => ({ status, body });
@@ -24,9 +24,9 @@ function create(overrides = {}) {
   });
 }
 
-test('AccountService owns exactly the five proxy-local account actions', () => {
+test('AccountService owns exactly the six proxy-local account actions', () => {
   const service = create();
-  assert.deepEqual([...ACCOUNT_ACTIONS], ['changeOwnPassword', 'listUsers', 'createUser', 'updateUser', 'resetUserPassword']);
+  assert.deepEqual([...ACCOUNT_ACTIONS], ['changeOwnPassword', 'listUsers', 'createUser', 'updateUser', 'resetUserPassword', 'deleteUser']);
   for (const action of ACCOUNT_ACTIONS) assert.equal(service.handles(action), true);
   assert.equal(service.handles('getDashboard'), false);
 });
@@ -158,4 +158,22 @@ test('AccountService resets password and retains six-character validation', asyn
   }, {}, config, admin);
   assert.deepEqual(result, { status: 200, body: { ok: true, temporaryPassword: '123456' } });
   assert.match(requests[0].url, /admin\/users\/user%2F1$/);
+});
+
+test('AccountService deletes a non-current auth user and blocks self-deletion', async () => {
+  const requests = [];
+  const service = create({
+    fetchImpl: async (url, options) => {
+      requests.push({ url, options });
+      return { ok: true, json: async () => ({}) };
+    }
+  });
+  await assert.rejects(
+    () => service.handle('deleteUser', { method: 'POST', body: { userId: admin.id } }, {}, config, admin),
+    { status: 400, message: 'Bạn không thể tự xóa tài khoản đang đăng nhập.' }
+  );
+  const result = await service.handle('deleteUser', { method: 'POST', body: { userId: 'test/user' } }, {}, config, admin);
+  assert.deepEqual(result, { status: 200, body: { ok: true, message: 'Đã xóa tài khoản.' } });
+  assert.equal(requests[0].options.method, 'DELETE');
+  assert.match(requests[0].url, /admin\/users\/test%2Fuser$/);
 });

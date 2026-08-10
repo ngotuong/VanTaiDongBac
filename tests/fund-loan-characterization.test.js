@@ -29,12 +29,14 @@ function loadFund(rows, options = {}) {
         },
         getValues() {
           if (row === 2 && column === 2 && width === 1) return rawDates;
+          if (row === 2 && column === 1 && width === 1) return displayRows.map((item) => [item[0]]);
           if (row === 1 && column === 2) return [['']];
           return [];
         },
         setValues: (value) => calls.push(['values', key, value]),
         setNumberFormat: (value) => calls.push(['format', key, value]),
-        setFormula: (value) => calls.push(['formula', key, value])
+        setFormula: (value) => calls.push(['formula', key, value]),
+        clearContent: () => calls.push(['clear', key])
       };
     }
   };
@@ -87,6 +89,17 @@ test('historical month keeps period metrics but computes end-of-month outstandin
   assert.equal(result.recentRows[0].statusLabel, 'Đã trả gốc');
 });
 
+test('explicit shared date range filters loan metrics and history while preserving end-date outstanding', () => {
+  const rows = [loan('L1', '2026-05-01', 'Vay', 'A', 1000), loan('L1', '2026-06-10', 'Trả nợ', 'A', 400),
+    loan('L2', '2026-06-12', 'Vay', 'B', 700), loan('L1', '2026-07-10', 'Trả nợ', 'A', 600)];
+  const result = loadFund(rows).service.getFundLoanOverview('2026', { startDate: '2026-06-01', endDate: '2026-06-30' });
+  assert.deepEqual(JSON.parse(JSON.stringify(result.metrics.map((item) => [item.key, item.value]))),
+    [['borrowed', 700], ['principalPaid', 400], ['interestPaid', 0], ['outstanding', 1300]]);
+  assert.equal(result.recentRows.length, 2);
+  assert.equal(result.recentRows.every((row) => row.date >= '2026-06-01' && row.date <= '2026-06-30'), true);
+  assert.equal(result.loans.length, 2);
+});
+
 test('safe orphan reconciliation accepts one exact balance and records original code', () => {
   const rows = [loan('L1', '2026-05-01', 'Vay', 'A', 1000), loan('WRONG', '2026-06-01', 'Trả nợ', 'A', 1000)];
   const result = loadFund(rows).service.getFundLoanOverview('2026', {});
@@ -119,7 +132,7 @@ test('loan row reader preserves type variants, terms, rate, first-interest date,
   assert.equal(result.recentRows[1].firstInterestDate, '01/08/2026');
 });
 
-test('add loan preserves A:K mapping, formats B/F, formula N, growth, lock, and response', () => {
+test('add loan preserves A:K mapping, formats B/F, repairs the N2 array formula, growth, lock, and response', () => {
   const app = loadFund([], { empty: true, maxRows: 1 });
   const result = app.service.addFundLoan('2026', { date: '2026-07-11', partner: 'Bank', amount: 1000, method: 'CK', termMonths: 12, annualRate: 8, interestPeriodMonths: 3, firstInterestDate: '2026-08-01', content: 'Vay vốn' });
   assert.equal(result.ok, true);
@@ -128,8 +141,10 @@ test('add loan preserves A:K mapping, formats B/F, formula N, growth, lock, and 
   const written = app.calls.find((call) => call[0] === 'values')[2][0];
   assert.equal(written.length, 11);
   assert.deepEqual(JSON.parse(JSON.stringify(written.slice(2, 6))), ['Vay', 'CK', 'Bank', 1000]);
-  assert.equal(app.calls.some((call) => call[0] === 'formula' && call[1] === '2:14:1:1'), true);
+  assert.equal(app.calls.some((call) => call[0] === 'formula' && call[1] === '2:14:1:1' && /ARRAYFORMULA/.test(call[2])), true);
+  assert.equal(app.calls.some((call) => call[0] === 'formula' && call[1] !== '2:14:1:1'), false);
   assert.deepEqual(app.calls.find((call) => call[0] === 'grow'), ['grow', 1, 1]);
+  assert.match(String(result.code), /^260711\d{6}$/);
 });
 
 test('add payment preserves loan code/type and rejects invalid loan/payment payloads before write', () => {
@@ -145,13 +160,23 @@ test('add payment preserves loan code/type and rejects invalid loan/payment payl
   assert.throws(() => loadFund([], { empty: true }).service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L', type: 'Khác', partner: 'A', amount: 1 }), /Trả nợ hoặc Trả lãi/);
 });
 
-test('loan filter formula contract and FundService ownership markers remain explicit before extraction', () => {
+test('loan append clears blocking helper cells below N2 before restoring the array formula', () => {
+  const rows = [loan('L1', '2026-07-01', 'Vay', 'A', 1000), loan('L2', '2026-07-02', 'Vay', 'B', 2000)];
+  const app = loadFund(rows);
+  app.service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L1', type: 'Trả lãi', partner: 'A', amount: 50 });
+  assert.deepEqual(app.calls.find((call) => call[0] === 'clear'), ['clear', '3:14:1:1']);
+  assert.equal(app.calls.some((call) => call[0] === 'formula' && call[1] === '2:14:1:1' && /ARRAYFORMULA/.test(call[2])), true);
+});
+
+test('loan filter array formula contract and FundService ownership markers remain explicit before extraction', () => {
   const source = read('FundService.gs');
+  const repository = read('FundLoanRepository.gs');
   const implementation = read('FundLoanService.gs');
-  assert.match(implementation, /function buildFilterFormula\(rowNumber\)/);
-  assert.match(implementation, /BC_VAY!\$P\$9/);
-  assert.match(implementation, /BC_VAY!\$R\$9/);
-  assert.match(implementation, /BC_VAY!\$S\$9/);
+  assert.match(repository, /FILTER_ARRAY_FORMULA/);
+  assert.match(repository, /BC_VAY!\$P\$9/);
+  assert.match(repository, /BC_VAY!\$R\$9/);
+  assert.match(repository, /BC_VAY!\$S\$9/);
+  assert.doesNotMatch(repository, /targetRow,\s*14\)\.setFormula/);
   assert.match(source, /FundLoanService\.getOverview\(filter \|\| \{\}/);
   assert.match(implementation, /function reconcile\(rows, context\)/);
   assert.match(source, /FundLoanService\.addLoan\(payload, context\)/);

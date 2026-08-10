@@ -9,30 +9,31 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 function loadEntry(buildResult, reservedRange = null) {
   const events = [];
-  const metadataRange = {
-    addDeveloperMetadata(key, value, visibility) { events.push({ type: 'metadata', key, value, visibility }); }
-  };
+  const properties = new Map();
+  if (reservedRange) {
+    properties.set('WRITE_JOB_RESERVATION_job-123', JSON.stringify({ sheetName: 'NL_VanChuyen', startRow: reservedRange.getRow() }));
+  }
   const sheet = {
+    getName: () => 'NL_VanChuyen',
     getLastColumn: () => 9,
+    getMaxColumns: () => 12,
     getRange(row, column, rowCount, columnCount) {
       if (row === 2 && rowCount === 1) {
         return { getValues: () => [['Ngày', 'Tháng', 'Xe', 'Nguồn', 'Lít', 'Giá', 'Thành tiền', 'Nguồn chi', 'Công ty sở hữu']] };
       }
-      return metadataRange;
-    },
-    createDeveloperMetadataFinder() {
-      return {
-        withKey() { return this; },
-        withValue() { return this; },
-        find: () => reservedRange ? [{ getLocation: () => ({ getRange: () => reservedRange }) }] : []
-      };
+      events.push({ type: 'range', row, column, rowCount, columnCount });
+      return { getRow: () => row };
     }
   };
   const lock = { waitLock: (ms) => events.push({ type: 'lock', ms }), releaseLock: () => events.push({ type: 'unlock' }) };
   const context = vm.createContext({
     SheetService: {},
     LockService: { getScriptLock: () => lock },
-    SpreadsheetApp: { DeveloperMetadataVisibility: { DOCUMENT: 'DOCUMENT' } },
+    PropertiesService: { getScriptProperties: () => ({
+      getProperty: (key) => properties.get(key) || null,
+      setProperty(key, value) { properties.set(key, value); events.push({ type: 'reservation', key, value }); },
+      deleteProperty(key) { properties.delete(key); events.push({ type: 'release', key }); }
+    }) },
     ValidationService: { buildRows: () => buildResult }
   });
   new vm.Script(read('EntryService.gs'), { filename: 'EntryService.gs#test' }).runInContext(context);
@@ -66,13 +67,17 @@ test('transport submit preserves validation result, append range, cache callback
   assert.equal(events.at(-1).type, 'unlock');
 });
 
-test('queued submit attaches stable WRITE_JOB_ID metadata and replay reuses its original range', () => {
+test('queued submit stores a stable Script Property reservation and replay reuses its original range', () => {
   const result = { values: [[1], [2]], errors: [], warnings: [] };
   const first = loadEntry(result);
   const firstResponse = first.service.submitRowsWithContext('vanChuyen', [{}, {}], { jobId: 'job-123' }, first.submitContext);
   assert.equal(firstResponse.startRow, 10);
-  assert.deepEqual(first.events.find((event) => event.type === 'metadata'), {
-    type: 'metadata', key: 'WRITE_JOB_ID', value: 'job-123', visibility: 'DOCUMENT'
+  assert.deepEqual(first.events.find((event) => event.type === 'reservation'), {
+    type: 'reservation', key: 'WRITE_JOB_RESERVATION_job-123',
+    value: JSON.stringify({ sheetName: 'NL_VanChuyen', startRow: 10 })
+  });
+  assert.deepEqual(first.events.find((event) => event.type === 'range'), {
+    type: 'range', row: 10, column: 1, rowCount: 1, columnCount: 12
   });
 
   const replayRange = { getRow: () => 27 };
@@ -80,7 +85,7 @@ test('queued submit attaches stable WRITE_JOB_ID metadata and replay reuses its 
   const replayResponse = replay.service.submitRowsWithContext('vanChuyen', [{}, {}], { jobId: 'job-123' }, replay.submitContext);
   assert.equal(replayResponse.startRow, 27);
   assert.equal(replayResponse.idempotentReplay, true);
-  assert.equal(replay.events.some((event) => event.type === 'metadata'), false);
+  assert.equal(replay.events.some((event) => event.type === 'reservation'), false);
 });
 
 test('fuel submit preserves formula/helper skip columns and queued validation errors never write', () => {

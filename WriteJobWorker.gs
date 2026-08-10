@@ -39,6 +39,11 @@ var WriteJobWorker = (function () {
     try {
       var result = context.executeJob(job);
       context.repository.markSynced(jobId, result, context.nowISOString());
+      try {
+        context.releaseReservation(jobId);
+      } catch (releaseError) {
+        console.log('write_job_reservation_release_failed: ' + releaseError.message);
+      }
       return { ok: true, jobId: jobId, status: 'synced', result: result };
     } catch (err) {
       var errorMessage = err && err.message ? err.message : String(err);

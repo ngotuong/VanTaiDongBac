@@ -1,9 +1,14 @@
 docs/**
 scripts/**
 api/**
+app/**
+next-shell/**
+server/**
 tests/**
 assets/**
 *.md
+.next/**
+.vercel/**
 .git/**
 .gitignore
 .claspignore
@@ -11,3 +16,10 @@ public/**
 manifest.json
 *.bak
 node_modules/**
+.env*
+package.json
+package-lock.json
+next.config.mjs
+eslint.config.mjs
+tsconfig*.json
+vercel*.json

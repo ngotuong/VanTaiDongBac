@@ -1,5 +1,7 @@
 # REFACTOR_PLAN
 
+> **HISTORICAL — COMPLETED:** Chương trình refactor Step 1–36 trong tài liệu này đã hoàn thành. File được giữ để tra cứu rationale, phạm vi và rollback history; không dùng để xác định checkpoint hiện tại hoặc bước tiếp theo. Trạng thái sống thuộc `PROJECT_CONTEXT.md`; roadmap Next.js còn lại thuộc `NEXTJS_MIGRATION_PLAN.md`.
+
 ## 1. Mục đích và phạm vi
 
 Đây là kế hoạch refactor được xây dựng từ `AUDIT_REPORT.md` cho hệ thống Vận tải Đông Bắc.
@@ -1347,11 +1349,14 @@ Chương trình chỉ được coi là hoàn tất khi:
 
 ## 47. Trạng thái tài liệu
 
-- Phase: 3 — Refactor Planning.
+- Trạng thái: `HISTORICAL — COMPLETED` (Step 1–36).
+- Phase ban đầu: 3 — Refactor Planning.
 - Nguồn: `docs/ai/AI_START_HERE.md`, `PROJECT_CONTEXT.md`, `docs/architecture/SYSTEM_ARCHITECTURE.md`, `AUDIT_REPORT.md`.
 - Lưu ý tên: `AI.md` và `ARCHITECTURE.md` không tồn tại; đã dùng hai tài liệu chuẩn tương đương ở trên.
-- Loại thay đổi hiện tại: chỉ tạo kế hoạch.
+- Loại hiện tại: reference/history; không phải living roadmap.
 - Code/schema/UI/business changes: không thực hiện.
 - Thứ tự: từ rủi ro thấp nhất đến cao nhất.
 - Mỗi bước: độc lập, deploy được và rollback được theo contract mô tả.
 - Ngày lập: 2026-07-11.
+- Ngày đóng chương trình: 2026-07-12.
+- Roadmap kế nhiệm: `NEXTJS_MIGRATION_PLAN.md`.

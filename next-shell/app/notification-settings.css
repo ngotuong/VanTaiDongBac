@@ -1,0 +1,15 @@
+/* Isolated overrides keep notification settings resilient to the legacy C2 cascade. */
+@media (max-width: 720px) {
+  #settingsView.settings-c2 .fund-alert-form input[type="number"],
+  #settingsView.settings-c2 .fund-alert-form textarea {
+    font-size: 16px !important;
+  }
+
+  html body #platform-content #settingsView.settings-c2 .fund-alert-actions button#saveFundAlertRule.primary,
+  #settingsView.settings-c2 .fund-alert-actions button.ghost {
+    width: 100%;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: none !important;
+  }
+}

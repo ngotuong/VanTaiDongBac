@@ -140,7 +140,12 @@ Columns:
 - `report_month text`;
 - `source_sheet_names text[]`;
 - `payload jsonb`;
+- `cache_version text`, nullable cho row legacy;
+- `source_data_version text`, nullable cho row legacy;
+- `details_hash text`, nullable hoặc SHA-256 chữ thường 64 ký tự;
 - `synced_at`, `created_at`, `updated_at`.
+
+Ba cột metadata được thêm bằng migration `010`. Chúng phục vụ cutover khỏi `SYS_ReportCache`; không thay primary key và không biến Supabase thành source of truth.
 
 ### 5.2. Key convention
 
@@ -161,7 +166,7 @@ Payload có thể đọc từ:
 - `BC_BangLuong`;
 - `BC_TongHopXe`;
 - `NL_VanChuyen` cho dashboard/latest trips;
-- `SYS_ReportCache` cho chi tiết tháng.
+- sheet tạm từ `BC_TongQuan` để tính trực tiếp chi tiết tháng khi Supabase miss/lỗi; `SYS_ReportCache` đã nghỉ khỏi runtime.
 
 `source_sheet_names` phải phản ánh các sheet nguồn chính của bundle.
 
@@ -174,9 +179,22 @@ Các đường sync:
 - sync tất cả report months;
 - sync tháng liên quan sau write Vận tải;
 - tick luân phiên report recent/`Tất cả`;
+- hàng đợi ưu tiên sau chỉnh sửa trực tiếp Sheet Vận tải;
 - full backfill.
 
 Sau write Vận tải, month key được lấy từ payload row rồi đổi sang report label. Có thể sync thêm `Tất cả`.
+
+Chỉnh sửa trực tiếp `NL_*` dùng Script Property `SUPABASE_PENDING_TRANSPORT_REPORT_SYNC` làm hàng đợi debounce một item:
+
+- các edit trong cùng cửa sổ 15 giây được gộp và dedupe theo `YYYY-MM`;
+- edit thông thường sync từng tháng bị ảnh hưởng rồi sync `Tất cả`;
+- xóa dòng/thay đổi cấu trúc/không xác định được sheet nâng item thành `full=true`;
+- `syncRealtimeCache()` atomically claim item đến hạn trước vòng tick thường và không tăng rotation index cho lượt ưu tiên;
+- edit mới trong khi item đang chạy tạo item kế tiếp, không bị claim cũ ghi đè;
+- lỗi requeue toàn scope sau 30 giây để đảm bảo eventual consistency.
+- report compute đăng ký token guard; `INSERT_GRID`/`REMOVE_GRID` do temp sheet nội bộ phải skip để queue không tự tạo vòng lặp, nhưng row-level structural changes vẫn phải queue.
+
+SLA mục tiêu cho edit thông thường là tối đa khoảng 2 phút từ lúc edit đến khi Supabase có bundle mới, gồm debounce, độ trễ trigger tick và thời gian compute. Đây không phải transaction guarantee khi Apps Script bị quota/contention hoặc công thức chưa tính xong. Full refresh do structural change có thể lâu hơn.
 
 ### 5.5. Audit
 
@@ -190,6 +208,22 @@ Report audit:
 6. trả trạng thái missing/stale/ok/error.
 
 Audit không tự sửa cache. Sync lại là thao tác riêng.
+
+### 5.6. Feature flag cutover
+
+Apps Script đã khóa vĩnh viễn report cache ở chế độ `supabase`. Script Property `REPORT_CACHE_MODE` chỉ còn là metadata tương thích; giá trị trống, `sheet`, `dual` hoặc không hợp lệ đều được chuẩn hóa thành `supabase`.
+
+Runtime ưu tiên `payload.overview.details` ở Supabase. Nếu Supabase read lỗi/miss, Apps Script tính trực tiếp bằng bản sao tạm của `BC_TongQuan`, trả kết quả và upsert full bundle; không đọc, ghi hoặc tự tạo `SYS_ReportCache`. Rollback về cache Sheet đã nghỉ và không còn là đường phục hồi hợp lệ.
+
+`syncAllReportBundles()` phải:
+
+1. invalidation đúng một lần và lấy một `source_data_version`;
+2. dựng bundle `Tất cả` trước để batch-compute toàn bộ tháng thiếu;
+3. giữ map chi tiết trong memory theo `(spreadsheet_id, dataVersion)` trong cùng execution;
+4. dựng/upsert từng tháng và `Tất cả` với cùng version;
+5. không gọi force refresh làm tăng version riêng cho từng tháng.
+
+E1.2 triển khai code/candidate nhưng production vẫn giữ `sheet`. Việc bật `dual` và chạy parity thuộc E1.3.
 
 ## 6. `startup_bundles`
 
@@ -1202,6 +1236,6 @@ Queue/cache change phải kiểm tra:
 
 - Loại tài liệu: cache và write queue contract hiện trạng.
 - Phạm vi: Supabase schema, Apps Script sync/worker, frontend cache/pending state và RLS liên quan.
-- Nguồn kiểm chứng: `SupabaseService.gs`, `client_api.html`, pending-job frontend modules, Supabase migrations và contract tests.
-- Ngày xác nhận gần nhất: 2026-07-11.
+- Nguồn kiểm chứng: `SupabaseService.gs`, `next-shell/components/entry/`, `next-shell/components/cashflow/`, `next-shell/lib/platform/`, Supabase migrations và contract tests.
+- Ngày xác nhận gần nhất: 2026-07-13 (D1).
 - Cần cập nhật khi: thêm/đổi bảng, key, payload, sync step, feature flag, job action/status, retry, idempotency, RLS hoặc pending UI behavior.

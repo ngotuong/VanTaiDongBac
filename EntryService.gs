@@ -33,12 +33,8 @@ var EntryService = (function () {
       var appendRow = reservedRange ? reservedRange.getRow() : context.getAppendRow(sheet, cfg.headerRow);
       context.ensureRows(sheet, appendRow + result.values.length - 1);
       if (!reservedRange && writeContext && writeContext.jobId) {
-        reservedRange = sheet.getRange(appendRow, 1, result.values.length, Math.max(1, result.values[0].length));
-        reservedRange.addDeveloperMetadata(
-          'WRITE_JOB_ID',
-          String(writeContext.jobId),
-          SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT
-        );
+        reserveWriteJobRange_(sheet, writeContext.jobId, appendRow);
+        reservedRange = sheet.getRange(appendRow, 1, 1, sheet.getMaxColumns());
       }
 
       if (formType === 'dau') {
@@ -71,13 +67,34 @@ var EntryService = (function () {
   function findWriteJobRange_(sheet, writeContext) {
     var jobId = writeContext && writeContext.jobId ? String(writeContext.jobId).trim() : '';
     if (!jobId) return null;
-    var metadata = sheet.createDeveloperMetadataFinder()
-      .withKey('WRITE_JOB_ID')
-      .withValue(jobId)
-      .find();
-    if (!metadata || !metadata.length) return null;
-    var location = metadata[0].getLocation();
-    return location && location.getRange ? location.getRange() : null;
+    var raw = PropertiesService.getScriptProperties().getProperty(reservationKey_(jobId));
+    if (!raw) return null;
+    try {
+      var reservation = JSON.parse(raw);
+      var startRow = Number(reservation.startRow);
+      if (String(reservation.sheetName || '') !== String(sheet.getName() || '')) return null;
+      if (!Number.isInteger(startRow) || startRow <= 0) return null;
+      return sheet.getRange(startRow, 1, 1, sheet.getMaxColumns());
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function reserveWriteJobRange_(sheet, jobId, startRow) {
+    PropertiesService.getScriptProperties().setProperty(reservationKey_(jobId), JSON.stringify({
+      sheetName: sheet.getName(),
+      startRow: startRow
+    }));
+  }
+
+  function releaseWriteJobReservation(jobId) {
+    var safeJobId = jobId ? String(jobId).trim() : '';
+    if (!safeJobId) return;
+    PropertiesService.getScriptProperties().deleteProperty(reservationKey_(safeJobId));
+  }
+
+  function reservationKey_(jobId) {
+    return 'WRITE_JOB_RESERVATION_' + String(jobId);
   }
 
   function checkTripReconciliation(rows) {
@@ -95,6 +112,7 @@ var EntryService = (function () {
   return {
     submitRows: submitRows,
     submitRowsWithContext: submitRowsWithContext,
+    releaseWriteJobReservation: releaseWriteJobReservation,
     checkTripReconciliation: checkTripReconciliation,
     saveSheetRow: saveSheetRow,
     deleteSheetRow: deleteSheetRow

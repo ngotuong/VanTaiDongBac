@@ -1,8 +1,38 @@
 # CHANGELOG
 
-Các thay đổi đáng chú ý của repository được ghi tại đây. Trạng thái deployment và roadmap sống vẫn thuộc `PROJECT_CONTEXT.md`.
+> **HISTORICAL / INCOMPLETE:** File này ghi một phần thay đổi cũ nhưng không theo kịp các checkpoint sau migration. Dùng Git history và timeline trong `PROJECT_CONTEXT.md` cho handoff; không dùng mục `Unreleased` bên dưới để suy ra worktree hoặc bước tiếp theo.
 
 ## Unreleased
+
+### Phase B1 — Next Report
+
+- Chuyển initial Report read sang Server Component và shared server API client với workbook Vận tải được resolve phía server.
+- Thêm same-origin `/next-accounts/report-data/` cho đổi tháng/làm mới; browser không nhận workbook ID hoặc Sheet links.
+- Render nguyên bốn matrix backend, giữ tab, search, month, CSV và legacy Report rollback.
+- Thêm loading/empty/error/retry, accessible tab/table semantics và responsive design-token styles.
+
+### Next Foundation A2 — Application shell và shared platform
+
+- Thêm dynamic root layout với server auth guard, role-aware navigation và rollback link về `/` legacy.
+- Thêm workbook context provider, typed server/client API clients, correlation logging và loading/error/not-found boundaries.
+- Chuẩn hóa semantic design tokens, focus/touch/responsive/dark/reduced-motion states cho shared shell.
+- Thêm ESLint, TypeScript quality gates và A2 characterization tests; chưa chuyển business module nào của Phase B.
+
+### Next Foundation A1 — Runtime, cookie auth và workbook context
+
+- Chuyển Next canary sang Vercel Next runtime động và reverse-proxy `/next-accounts/*` cùng origin, giữ `/` legacy.
+- Thêm Supabase server cookie session, CSRF/origin guard, refresh và sign-out cleanup.
+- Dùng authenticated JWT + RLS cho active user profile và server allowlist cho workbook `module + year`.
+- Thêm vertical slice read-only `/next-accounts/foundation/`; không migration hoặc ghi Google Sheet.
+- Production smoke đạt cho admin sign-in/context/sign-out; RBAC parity còn lại được bảo vệ bằng contract tests.
+
+### Documentation — Bounded Next.js migration handoff
+
+- Thêm `NEXTJS_MIGRATION_PLAN.md` với 12 checkpoint hữu hạn từ foundation đến legacy removal và Definition of Done rõ cho từng module.
+- Viết lại `PROJECT_CONTEXT.md` thành current-state handoff duy nhất trả lời sáu câu hỏi khởi động.
+- Rút `docs/ai/AI_START_HERE.md` thành router tài liệu theo tác vụ và cập nhật `AGENTS.md` để mặc định chỉ bắt buộc đọc `AGENTS.md` + `PROJECT_CONTEXT.md`.
+- Đánh dấu `REFACTOR_PLAN.md` Step 1–36 và `AUDIT_REPORT.md` là historical; không còn dùng để suy ra bước tiếp theo.
+- Cập nhật documentation ownership; không thay đổi code, runtime, API, schema, Google Sheet hoặc deployment.
 
 ### Documentation — Target architecture and Agent handoff
 

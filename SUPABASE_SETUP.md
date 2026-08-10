@@ -1,14 +1,13 @@
-# Thiết lập Supabase giai đoạn 1
+# SUPABASE_SETUP
 
-Tài liệu này dùng cho project Supabase trống. Chỉ copy/paste các phần cần thiết, không đưa key bí mật vào GitHub.
+Tài liệu này là runbook cấu hình/thẩm tra Supabase hiện hành. Chỉ thao tác trên project canonical đã được Environment Identity Guard xác nhận; không đưa key bí mật vào Git.
 
-## 1. Tạo bảng trong Supabase
+## 1. Bootstrap project mới (chỉ khi được phê duyệt)
 
 1. Mở Supabase project.
 2. Vào **SQL Editor**.
-3. Mở file `supabase/migrations/001_report_bundles.sql`.
-4. Copy toàn bộ SQL.
-5. Paste vào SQL Editor và bấm **Run**.
+3. Apply migrations `001` đến `013` theo đúng thứ tự bằng quy trình migration được phê duyệt.
+4. Không sửa migration đã chạy; correction tiếp theo dùng `014+`.
 
 ## 2. Lấy Project URL và keys
 
@@ -47,17 +46,17 @@ VITE_SUPABASE_REPORTS_ENABLED=true
 6. Chọn môi trường cần dùng, thường là **Production**, **Preview**, và **Development** nếu anh deploy đủ các môi trường.
 7. Redeploy Vercel sau khi thêm biến.
 
-Repo đã có `package.json` và `vercel.json` để Vercel chạy build:
+Repo đã có `package.json` và `vercel.json` để Vercel chạy Next build:
 
 ```bash
-node scripts/build.js
+npm run build:next-accounts
 ```
 
 Nếu Vercel Project Settings đang override build command, hãy đặt:
 
 ```text
-Build Command: node scripts/build.js
-Output Directory: .
+Build Command: npm run build:next-accounts
+Framework Preset: Next.js
 ```
 
 Muốn rollback nhanh trên frontend:
@@ -81,14 +80,16 @@ Trong Apps Script:
 SUPABASE_URL=Project URL lấy từ Supabase
 SUPABASE_ANON_KEY=anon/public/publishable key lấy từ Supabase
 SUPABASE_REPORTS_ENABLED=false
+REPORT_CACHE_MODE=sheet
 SUPABASE_SERVICE_ROLE_KEY=service_role key hoặc secret key
 ```
 
 Giải thích:
 
-- `SUPABASE_URL`: dùng cho Apps Script ghi và nếu cần render web app từ Apps Script.
-- `SUPABASE_ANON_KEY`: chỉ là public key, dùng khi render frontend từ Apps Script nếu cần.
-- `SUPABASE_REPORTS_ENABLED=false`: giữ Apps Script-hosted UI không tự đọc Supabase nếu chưa muốn.
+- `SUPABASE_URL`: dùng cho Apps Script ghi/cache sync.
+- `SUPABASE_ANON_KEY`: public key tương thích cho các integration còn cần.
+- `SUPABASE_REPORTS_ENABLED=false`: tắt read-cache compatibility phía Apps Script khi cần.
+- `REPORT_CACHE_MODE=sheet`: rollback an toàn về cache Sheet. E1.3 đã đạt dual-run parity và hiện giữ `dual`; chỉ bật `supabase` sau khi E1.4 cutover được phê duyệt riêng.
 - `SUPABASE_SERVICE_ROLE_KEY`: key bí mật để Apps Script ghi dữ liệu sang Supabase.
 
 ## 5. Chạy test sync thủ công
@@ -174,6 +175,56 @@ Sau migration giai đoạn 3, `syncRealtimeCache()` đồng bộ thêm:
 
 - `startup_bundles`: dữ liệu khởi động ban đầu.
 - `catalog_bundles`: danh mục nhập liệu và bảng Danh mục.
+
+## 9. Migration nền tảng report cache E1.1
+
+Chạy migration mới sau `009_shareholder_role.sql`:
+
+```text
+supabase/migrations/010_report_cache_cutover_foundation.sql
+```
+
+Migration này giữ nguyên dữ liệu và khóa chính `(spreadsheet_id, report_month)`, chỉ thêm `cache_version`, `source_data_version`, `details_hash` cùng index/constraint phục vụ dual-run. Sau khi apply, vẫn giữ:
+
+```text
+REPORT_CACHE_MODE=sheet
+```
+
+Không xóa hoặc compact `SYS_ReportCache` ở E1.1 hoặc E1.2.
+
+E1.3 đã đạt dual parity. E1.4 đã DONE với `REPORT_CACHE_MODE=supabase`: batch, nhiều trigger và force refresh authenticated preview/production giữ `SYS_ReportCache` không tăng; Supabase đủ bốn row hiện hành có metadata hợp lệ. E1.5 đã DONE sau dry-run, full-workbook backup và phê duyệt destructive riêng: 198.860 dòng stale đã được compact, production `SYS_ReportCache` còn header + 39 dòng rollback (40 dòng vật lý), còn backup giữ nguyên 198.900 dòng. Production deployment ID hiện ở Apps Script `@290`, rollback cùng-ID là `@282`; migration helper bất biến ở `@291`.
+
+Checkpoint retirement tiếp theo khóa runtime ở Supabase-only: `sheet`/`dual` không còn được chấp nhận, cache miss/lỗi tính trực tiếp từ sheet tạm và upsert lại `report_bundles`. Không xóa `SYS_ReportCache` thủ công. Chỉ chạy các wrapper `ReportCacheRetirementMigration` theo đúng thứ tự dry-run → refresh nếu cần → backup → prepare → approve → run; thao tác delete production vẫn cần phê duyệt destructive sau khi Preview gate PASS.
+
+## 10. Web Push foundation
+
+Sau migration `010`, apply migration additive:
+
+```text
+supabase/migrations/011_web_push_subscriptions.sql
+```
+
+Migration chỉ tạo bảng subscription server-only, không sửa cache/dữ liệu nghiệp vụ. Trên Vercel Production environment — cũng là environment mà script preview khóa sử dụng — đặt ba biến server-only:
+
+```text
+WEB_PUSH_VAPID_PUBLIC_KEY=<public VAPID key>
+WEB_PUSH_VAPID_PRIVATE_KEY=<private VAPID key>
+WEB_PUSH_VAPID_SUBJECT=https://dongbac.vercel.app
+```
+
+Không đặt private key với prefix `NEXT_PUBLIC_` hoặc `VITE_`. Sau deploy Preview, test trên `Cài đặt > Thông báo trên thiết bị`. iPhone/iPad phải Add to Home Screen và mở từ icon trước khi xin quyền. Rollback code có thể bỏ UI/API/service worker; migration `011` additive nên giữ nguyên bảng, hoặc xóa subscription rows bằng migration/operation riêng nếu cần thu hồi endpoint.
+
+## 11. Cảnh báo số dư Quỹ
+
+Apply migration additive `supabase/migrations/012_notification_rule_states.sql` sau `011`.
+
+`POST /api/fund-alerts` chỉ cho admin chạy `dryRun` từ Cài đặt và tuyệt đối không gửi. `GET /api/fund-alerts` dành riêng cho Vercel Cron, yêu cầu `Authorization: Bearer $CRON_SECRET` và chỉ gửi khi `FUND_LOW_BALANCE_ALERT_ENABLED=true`.
+
+Không thêm `crons` vào `vercel.json` trong checkpoint Preview: Vercel chỉ kích hoạt Cron trên production deployment, còn script Preview dùng `--prod --skip-domain`. Khi người dùng phê duyệt production riêng, cấu hình lịch `0 1 * * *` (01:00 UTC = 08:00 Việt Nam), tạo `CRON_SECRET` và bật `FUND_LOW_BALANCE_ALERT_ENABLED=true` trong cùng deployment production được phê duyệt.
+
+Sau `012`, apply `supabase/migrations/013_notification_preferences_and_rule_configs.sql`. Migration tạo preferences theo tài khoản, cấu hình rule và audit log server-only. `/api/push` cho người dùng tự đổi preference của chính họ; `/api/fund-alerts` cho admin đọc/lưu rule hoặc dry-run bản nháp. Việc bật rule trong webapp chỉ đánh dấu cấu hình sẵn sàng, không tự tạo Vercel Cron hay bật feature flag production.
+
+Vercel Hobby chỉ bảo đảm cron theo độ chính xác giờ; mốc `08:00` có thể chạy trong khung `08:00–08:59`. Đổi lịch cần deploy config riêng, không phải thao tác runtime từ webapp.
 
 Nguồn tham khảo chính thức:
 

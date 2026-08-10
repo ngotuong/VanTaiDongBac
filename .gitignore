@@ -21,9 +21,7 @@ client_secret.json
 # Reproducible frontend dependencies and generated React/Next artifacts
 node_modules/
 next-shell/.next/
-next-shell/out/
-next-accounts/
-public/static/accounts-react.js
-public/static/observability-react.js
-public/static/catalog-react.js
-public/static/fund-catalog-react.js
+.next/
+
+# Local QA screenshots and generated evidence
+artifacts/

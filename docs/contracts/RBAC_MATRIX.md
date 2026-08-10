@@ -129,6 +129,7 @@ Mục đích: cổ đông/chủ sở hữu chỉ xem dữ liệu được cho ph
 Quyền hiện tại:
 
 - đăng nhập và xem session;
+- đọc `runtimeContext` đã được resolve từ allowlist server;
 - đổi mật khẩu cá nhân;
 - đọc startup;
 - xem Tổng quan và Báo cáo;
@@ -154,9 +155,9 @@ Không có quyền:
 
 Source:
 
-- `client_accounts.html`;
-- các consumer của `canWriteData()`/`requireWritePermission()`;
-- role-dependent navigation/button markup.
+- `next-shell/components/platform/AppShell.tsx`;
+- `next-shell/components/settings/SettingsModule.tsx`;
+- các module Next có role-dependent navigation/button markup.
 
 Trách nhiệm:
 
@@ -269,6 +270,7 @@ Ký hiệu:
 | --- | --- | --- | --- | --- | --- |
 | `health` | GET | R | R | R | Không yêu cầu Auth tại proxy |
 | `authSession` | GET | R | R | R | Session + allowlist |
+| `runtimeContext` | GET | R | R | R | Session + allowlist workbook server |
 | `changeOwnPassword` | POST | W | W | W | Proxy account handler |
 | `listUsers` | GET | A | — | — | `assertAdmin` |
 | `createUser` | POST | A | — | — | `assertAdmin` |
@@ -511,22 +513,16 @@ Shareholder vẫn cần:
 
 ### 18.1. Session hợp lệ
 
-Browser dùng Supabase SDK với:
-
-- `persistSession=true`;
-- `autoRefreshToken=true`;
-- `detectSessionInUrl=true`.
-
-Mỗi proxy API call vẫn xác minh token với Supabase Auth và allowlist active.
+Next.js giữ access/refresh token trong cookie `HttpOnly`, `SameSite=Strict`; browser JavaScript không đọc token. Shared shell gọi same-origin `GET /api/session` ngay khi mount, mỗi 40 phút và khi tab hoạt động lại sau một khoảng nghỉ tương ứng. Endpoint xoay session khi access token còn không quá 25 phút, sau đó mỗi proxy API call vẫn xác minh token với Supabase Auth và allowlist active.
 
 ### 18.2. Session hết hạn
 
 Khi API trả 401:
 
-- frontend sign out Supabase;
-- clear `sessionStorage`;
-- hiện auth gate;
-- yêu cầu đăng nhập lại.
+- root auth gate gọi `GET /api/session` một lần để thử refresh bằng cookie `HttpOnly` 30 ngày;
+- nếu refresh thành công, reload đúng route hiện tại và không yêu cầu đăng nhập lại;
+- nếu refresh token không còn hợp lệ, server xóa hai cookie rồi mới hiện form đăng nhập;
+- lỗi mạng/5xx không tự xóa refresh cookie và người dùng vẫn có thể thử lại hoặc đăng nhập lại.
 
 ### 18.3. Role/status thay đổi giữa session
 
@@ -556,15 +552,15 @@ Do đó khi thay đổi RLS phải test riêng:
 - authenticated active shareholder;
 - authenticated inactive user.
 
-## 20. Direct Apps Script và HtmlService
+## 20. Direct Apps Script và vận hành nội bộ
 
 ### 20.1. Direct HTTP
 
 Khi enforcement bật, direct request không có proxy secret phải bị từ chối dù có biết deployment URL.
 
-### 20.2. HtmlService UI
+### 20.2. Apps Script root sau D1
 
-HtmlService gọi `invokeApi()` bằng `google.script.run`, không tự đi qua Vercel proxy. Nếu production cần hỗ trợ đồng thời HtmlService UI khi enforcement bật, phải có thiết kế xác thực riêng; không tắt enforcement mặc định chỉ để đường cũ hoạt động.
+Apps Script không còn render UI. Request root trả JSON hướng người dùng sang Next; mọi action production vẫn phải đi qua Vercel proxy và shared secret.
 
 ### 20.3. `clasp run`/Apps Script editor
 
@@ -758,6 +754,26 @@ Contract test local trong `tests/contracts.test.js` hiện kiểm tra:
 
 Regex contract test không thay thế runtime smoke test.
 
+### 27.1. Web Push self-service
+
+Mọi `admin`, `operator`, `shareholder` active được đăng ký, hủy và gửi test tới thiết bị của chính mình qua `/api/push`. Đây không phải quyền gửi thông báo tới user khác và không làm rộng shareholder action allowlist của Apps Script.
+
+### 27.2. Scheduled fund alerts
+
+- `admin`: được chạy dry-run từ Cài đặt; khi lịch production được bật sẽ nhận cảnh báo nếu đã đăng ký thiết bị.
+- `shareholder`: không chạy dry-run nhưng là recipient nếu active và đã đăng ký thiết bị.
+- `operator`: không chạy dry-run và không thuộc recipient của rule số dư Quỹ.
+- Cron sender không dùng session người dùng; bắt buộc bearer secret và feature flag server-only.
+
+Enforcement:
+
+- API xác thực session HttpOnly và active `app_users` trước mọi thao tác;
+- mutation yêu cầu origin/host khớp và `X-VTDB-CSRF: session`;
+- repository luôn scope theo `user_id` hiện tại và SHA-256 endpoint;
+- bảng subscription không cấp quyền trực tiếp cho `authenticated` hoặc `anon`;
+- VAPID private key chỉ tồn tại trong Vercel server environment;
+- notification test không chứa số tiền, tên tài xế hoặc dữ liệu nghiệp vụ trên màn hình khóa.
+
 ## 28. Incident response
 
 ### 28.1. Nghi lộ proxy secret
@@ -794,7 +810,7 @@ Rollback theo `ROLLBACK.md`. Không tắt Auth enforcement mà không hiểu dir
 - Một số read action hợp lý với shareholder vẫn bị chặn do allowlist chưa bao gồm; đây là deny-by-default, không phải lỗi nếu UI không cần.
 - Google Sheet direct access nằm ngoài web RBAC.
 - Bound script Thu chi nằm ngoài proxy RBAC.
-- HtmlService path cần xem xét riêng khi enforcement bật.
+- Source frontend legacy/HtmlService đã bị loại bỏ; deployment C2 chỉ còn là rollback presentation bất biến.
 - Permission definitions phân tán giữa proxy, frontend, SQL migration và test.
 
 Các điểm này là mô tả hiện trạng, không phải phê duyệt thay đổi.
@@ -819,6 +835,6 @@ Các điểm này là mô tả hiện trạng, không phải phê duyệt thay �
 
 - Loại tài liệu: Auth/RBAC contract hiện trạng.
 - Phạm vi: Supabase Auth, `app_users`, frontend role UX, Vercel proxy permissions, Supabase RLS và Apps Script proxy-secret enforcement.
-- Nguồn kiểm chứng: `api/app.js`, `client_accounts.html`, `client_api.html`, migrations `007`–`009`, `SecurityService.gs` và RBAC tests.
-- Ngày xác nhận gần nhất: 2026-07-11.
+- Nguồn kiểm chứng: `api/app.js`, `next-shell/components/`, `next-shell/lib/platform/`, migrations `007`–`009`, `SecurityService.gs` và RBAC tests.
+- Ngày xác nhận gần nhất: 2026-07-13 (D1).
 - Cần cập nhật khi: thêm/đổi role, action permission, account operation, RLS policy, Auth flow, proxy secret enforcement hoặc Google Sheet access model.

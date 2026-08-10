@@ -75,20 +75,27 @@ Không dùng `SpreadsheetApp.getActiveSpreadsheet()` làm nguồn dữ liệu ch
 | `XL_*` | Xử lý/đối soát | Không ghi dữ liệu nghiệp vụ trực tiếp |
 | `BC_*` | Báo cáo | Chủ yếu đọc, giữ controller/công thức |
 | `IMP_ThuChi` | Import Thu chi | Không append từ web app |
-| `SYS_ReportCache` | Cache báo cáo trong Sheet | Chỉ report service quản lý |
+| `SYS_ReportCache` | Cache báo cáo Sheet đã nghỉ | Không còn thuộc runtime; chỉ migration retirement/restore được phép truy cập |
 
 ### 4.2. Sheet nhập liệu được web app hỗ trợ
 
 | Form | Sheet | Header row | Row builder columns |
 | --- | --- | ---: | ---: |
 | `vanChuyen` | `NL_VanChuyen` | 2 | 7 |
-| `taiXe` | `NL_TaiXe` | 1 | 6 |
+| `taiXe` | `NL_TaiXe` | 1 | 7 |
 | `dau` | `NL_Dau` | 2 | 9 |
 | `chamCong` | `NL_ChamCong` | 1 | 11 |
 | `phat` | `NL_Phat` | 1 | 7 |
 | `nghiVanHanh` | `NL_NghiVanHanh` | 1 | 9 |
+| — | `NL_PhanCongLai` | 1 | 4 cột nhập + 1 cột kiểm tra |
 
 Số cột row builder không bằng tổng số cột vật lý trong mọi sheet. Các cột vật lý phía sau có thể là formula/helper; không được mở rộng write range chỉ dựa vào `getLastColumn()`.
+
+Live audit ngày 2026-07-24 xác nhận:
+
+- `NL_TaiXe` đã có cột `Dự án` ở vị trí D; row builder phải ghi 7 giá trị theo thứ tự `Ngày, Tháng, Biển số, Dự án, Tài xế, Số chuyến, Ghi chú`.
+- `NL_PhanCongLai` là sheet nhập/đối soát mới gồm `Tháng, Tài xế, Công ty, Ghi chú, Kiểm tra`; web app hiện chỉ cho xem/sửa dòng có sẵn, chưa có form append riêng.
+- Nhiều `DM_*` chứa bảng phụ/helper ở bên phải bảng chính, được ngăn bằng cột header trống. Tab Danh mục web chỉ được đọc/ghi/clear bảng chính liên tục từ cột A đến trước header trống đầu tiên.
 
 ### 4.3. Sheet xử lý và báo cáo chính
 
@@ -103,7 +110,7 @@ Snapshot hiện có:
 - `BC_BangLuong`;
 - `BC_TongHopXe`.
 
-`BC_TongQuan!B1` là controller tháng. Web app không được đổi controller trên sheet gốc để đọc kỳ khác; implementation hiện dùng sheet tạm và `SYS_ReportCache`.
+`BC_TongQuan!B1` là controller tháng. Web app không được đổi controller trên sheet gốc để đọc kỳ khác; implementation dùng sheet tạm, ưu tiên cache Supabase và tính trực tiếp khi cache miss. `SYS_ReportCache` không còn tham gia runtime.
 
 ### 4.4. Danh mục chính
 
@@ -172,7 +179,7 @@ Header row 1. Các cột chính:
 - F `Số tiền`;
 - G–J điều khoản vay;
 - K `Nội dung`;
-- L–N helper/filter phải bảo toàn.
+- L–M là helper/reserved phải bảo toàn; N là helper filter do một `ARRAYFORMULA` tại `N2` quản lý và writer không được ghi trực tiếp vào `N3:N`.
 
 Không thay đổi mã vay hoặc reconciliation rule khi chưa có đối soát/migration riêng.
 
@@ -311,6 +318,6 @@ Agent không cần đọc tất cả tài liệu trong mọi tác vụ. Thứ t�
 - Loại tài liệu: schema index.
 - Phạm vi: hai workbook Google Sheets và đường dẫn đến contract/schema chi tiết.
 - Nguồn kiểm chứng: source, schema snapshots và bộ tài liệu contract Phase 1.
-- Ngày xác nhận gần nhất: 2026-07-11.
+- Ngày xác nhận gần nhất: 2026-08-10 theo source/schema contract hiện có; live workbook vẫn phải được audit read-only trước migration cấu trúc.
 - Nội dung lịch sử chi tiết trước đây đã được thay bằng các owner docs trong `docs/` để tránh trùng lặp và stale.
 - Cần cập nhật khi: workbook/sheet/named range/source snapshot hoặc schema owner thay đổi.

@@ -41,11 +41,13 @@ var ApiActionRegistry = (function () {
     debugSheet: { method: 'GET', kind: 'query', permission: 'adminOperator', routerOnly: true },
     submitRowsGet: { method: 'GET', kind: 'disabled', permission: 'adminOperator', routerOnly: true, disabled: true },
     authSession: { method: 'GET', kind: 'query', permission: 'shareholder', proxyLocal: true },
+    runtimeContext: { method: 'GET', kind: 'query', permission: 'shareholder', proxyLocal: true },
     changeOwnPassword: { method: 'POST', kind: 'command', permission: 'shareholder', proxyLocal: true },
     listUsers: { method: 'GET', kind: 'query', permission: 'admin', proxyLocal: true },
     createUser: { method: 'POST', kind: 'command', permission: 'admin', proxyLocal: true },
     updateUser: { method: 'POST', kind: 'command', permission: 'admin', proxyLocal: true },
-    resetUserPassword: { method: 'POST', kind: 'command', permission: 'admin', proxyLocal: true }
+    resetUserPassword: { method: 'POST', kind: 'command', permission: 'admin', proxyLocal: true },
+    deleteUser: { method: 'POST', kind: 'command', permission: 'admin', proxyLocal: true }
   };
 
   function get(action) { return ACTIONS[String(action || '')] || null; }

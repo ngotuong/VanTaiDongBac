@@ -63,9 +63,8 @@ npm test
 `tests/contracts.test.js` hiện kiểm tra:
 
 - syntax `.gs`;
-- syntax script trong `client_*.html`;
 - syntax `api/app.js`;
-- syntax inline script trong `index.html`;
+- lint/typecheck/build source Next;
 - atomic queue claim;
 - cấm queued physical delete;
 - stable fund voucher/queue flag;
@@ -174,7 +173,7 @@ Mục đích:
 
 Các môi trường:
 
-- local static build với test backend;
+- local Next build với test backend;
 - Vercel preview;
 - production smoke read-only.
 
@@ -273,18 +272,11 @@ npm test
 npm run build
 ```
 
-Sau build kiểm tra:
+Sau build kiểm tra route manifest, server/client boundary, asset link/PWA manifest và không có source legacy/HtmlService quay trở lại.
 
-- `index.html` được tạo;
-- không còn `<?!= include(...) ?>` ngoài ý muốn;
-- build-time config được inject đúng kiểu string/boolean;
-- inline scripts syntax hợp lệ;
-- asset link/manifest tồn tại;
-- source fragment và artifact cùng thay đổi.
+### 7.2. Không commit artifact runtime
 
-### 7.2. Không sửa artifact trực tiếp
-
-Test review phải phát hiện logic chỉ đổi trong `index.html` nhưng không đổi `client_*.html`/template tương ứng.
+`.next/` là artifact build và không phải source chỉnh sửa. D1 gate phải phát hiện việc tái tạo `index.html`, `client_*.html`, React island bundle hoặc compatibility bridge.
 
 ### 7.3. DOM/load-order smoke
 
@@ -346,9 +338,18 @@ Test:
 - non-JSON upstream → 502;
 - missing action → 400;
 - missing proxy config → 503;
-- browser nhận 401 thì sign out/clear session.
+- browser nhận 401 thì reload về auth gate; server session endpoint clear cookie khi refresh token cũng không còn hợp lệ.
 
-### 8.4. Spreadsheet context test
+### 8.4. Next session continuity
+
+- access token còn xa hạn không gọi refresh và không ghi lại cookie;
+- access token nằm trong cửa sổ 25 phút gọi refresh đúng một lần, xác minh user bằng token mới và đặt lại hai cookie `HttpOnly`;
+- refresh lỗi nhưng access token còn hợp lệ không làm mất phiên hiện tại;
+- access và refresh đều không hợp lệ trả 401 và clear cookie;
+- LoginGate thử recovery trước form đăng nhập; shared shell kiểm tra khi mount, heartbeat mỗi 40 phút và kiểm tra lại khi tab trở về foreground;
+- smoke preview phải giữ nguyên route sau recovery và không thay đổi RBAC/allowlist.
+
+### 8.5. Spreadsheet context test
 
 - explicit `spreadsheetId` thắng year property;
 - year property đúng;
@@ -948,7 +949,7 @@ Theo rủi ro hiện tại, thứ tự ưu tiên hợp lý:
 3. Queue worker/idempotency runtime tests.
 4. Cache key parity và sync-scope tests.
 5. API action registry/RBAC matrix automated check.
-6. Frontend smoke cho global dependency/load order.
+6. Frontend interaction smoke cho Next server/client boundary.
 7. Fund transaction batch/voucher/rollback tests.
 8. Trigger installer/event tests.
 9. Bound script source verification và manual regression suite.

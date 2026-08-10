@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { createAuthService } = require('../api/services/auth-service');
+const { createAuthService } = require('../server/services/auth-service');
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 const config = { supabaseUrl: 'https://example.supabase.co', anonKey: 'anon-key' };
@@ -62,4 +62,34 @@ test('AuthService returns the existing request-user shape and display-name fallb
   assert.deepEqual(user, {
     id: 'user-1', username: 'tester', email: 'tester@dongbac.internal', role: 'operator', displayName: 'tester'
   });
+});
+
+test('AuthService accepts the server HttpOnly cookie when bearer header is absent', async () => {
+  const service = createAuthService({
+    httpError,
+    fetchImpl: async (_url, options) => {
+      assert.equal(options.headers.Authorization, 'Bearer cookie-token');
+      return { ok: true, json: async () => ({ id: 'user-1' }) };
+    },
+    appUserRepository: { findActiveByUserId: async () => ({ username: 'tester', email: 'tester@dongbac.internal', role: 'operator' }) }
+  });
+  const user = await service.getAuthenticatedUser({ headers: { cookie: 'vtdb_access_token=cookie-token' } }, config);
+  assert.equal(user.username, 'tester');
+});
+
+test('AuthService prefers authenticated RLS profile lookup for the current user', async () => {
+  let lookup;
+  const service = createAuthService({
+    httpError,
+    fetchImpl: async () => ({ ok: true, json: async () => ({ id: 'user-1' }) }),
+    appUserRepository: {
+      findActiveByUserIdWithToken: async (...args) => {
+        lookup = args;
+        return { username: 'tester', email: 'tester@dongbac.internal', role: 'operator' };
+      },
+      findActiveByUserId: async () => { throw new Error('service-role lookup must not run'); }
+    }
+  });
+  await service.getAuthenticatedUser({ headers: { authorization: 'Bearer user-jwt' } }, config);
+  assert.deepEqual(lookup, [config, 'user-1', 'user-jwt']);
 });

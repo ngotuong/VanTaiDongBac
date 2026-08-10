@@ -80,7 +80,7 @@ Preview hiện hành của checkpoint retirement/repository consolidation:
 - Apps Script Preview: `@320`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
 - Gate deploy PASS 467/467 tests, lint, typecheck, Next build, Identity Guard, root/title smoke; Production giữ nguyên `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
-- Vercel Git Integration vẫn liên kết GitHub nhưng auto deployment đã tắt ngày 2026-08-10; push không còn tạo Preview ngoài script chuẩn.
+- Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
 
@@ -134,6 +134,15 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
+### Repository consolidation và Vercel deployment guard — hoàn thành 2026-08-10
+
+- Runtime, test và tài liệu tích lũy đã được hợp nhất qua PR `#1`; `main` tại merge commit `1d3579a` là nhánh canonical.
+- Local và remote chỉ còn `main`; 17 remote checkpoint branches và 19 local branches cũ đã được dọn sau khi merge.
+- Hai đầu divergent và ba backup branch cần bảo tồn được lưu bằng năm annotated tag `archive/*-20260810` hoặc `archive/pre-rollback-*` trên remote.
+- Hai automatic Preview trước đó thất bại vì Vercel checkout không có `.clasp.json` Git-ignored. Identity Guard nay bắt buộc file này ở local, còn Vercel dùng canonical manifest và runtime environment checks fail-closed.
+- Regression fix `36a8176` đã PASS full gate 467/467 tests, lint, typecheck, Next build và `git diff --check`; Git-triggered verification deployment sau fix đã READY.
+- Vercel Git Integration đã disconnect; Preview chỉ deploy bằng `npm run deploy:preview`. Production deployment vẫn giữ nguyên `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
+
 ### Retirement `SYS_ReportCache` — hoàn thành 2026-08-08
 
 Trạng thái: **RETIRED trên workbook; Preview runtime PASS; Production runtime chưa promote**.
@@ -154,10 +163,9 @@ Không có checkpoint code mới được tự động mở.
 
 Thứ tự đề xuất:
 
-1. **Hợp nhất repository/worktree hiện tại**: phân loại source/test/docs/dependency, chạy lại full gate và commit các checkpoint đã hoàn tất thành lịch sử Git rõ ràng.
-2. **Theo dõi Preview retirement**: xác nhận Report normal read, force refresh/live-compute và không tái tạo `SYS_ReportCache`.
-3. **Production promotion riêng**: chỉ sau phê duyệt mới deploy Apps Script/Vercel runtime retirement lên Production; không đổi production alias bằng lệnh thủ công.
-4. **Cron cảnh báo Quỹ riêng**: chỉ khi có phê duyệt khác, kiểm tra recipient/subscription, tạo/rotate `CRON_SECRET`, bật feature flag và thêm lịch 08:00 Việt Nam.
+1. **Theo dõi Preview retirement**: xác nhận Report normal read, force refresh/live-compute và không tái tạo `SYS_ReportCache`.
+2. **Production promotion riêng**: chỉ sau phê duyệt mới deploy Apps Script/Vercel runtime retirement lên Production; không đổi production alias bằng lệnh thủ công.
+3. **Cron cảnh báo Quỹ riêng**: chỉ khi có phê duyệt khác, kiểm tra recipient/subscription, tạo/rotate `CRON_SECRET`, bật feature flag và thêm lịch 08:00 Việt Nam.
 
 ## 7. Mục tiêu kiến trúc dài hạn
 
@@ -176,7 +184,7 @@ Definition of Done hiện giữ:
 
 ## 8. Rủi ro và gate bắt buộc
 
-1. Worktree phải được phân loại và commit trước checkpoint mới; không reset/xóa thay đổi chưa rõ nguồn.
+1. `main` là nhánh canonical duy nhất; không khôi phục branch cũ từ archive tag nếu chưa xác định rõ commit cần lấy. Không reset/xóa thay đổi chưa rõ nguồn.
 2. Admin đã smoke production; operator/shareholder chưa có representative production smoke đầy đủ.
 3. Authenticated visual/device QA không thể được thay thế hoàn toàn bằng unit/HTTP/DOM test.
 4. Apps Script public deployment từng trả 403 dù UI permission đúng; health trực tiếp và identity fingerprint phải được kiểm tra sau deploy.

@@ -59,7 +59,7 @@ Script phải:
 
 Không chạy trực tiếp `vercel deploy`, `vercel alias set`, `vercel promote`; không dùng alias `vantaidongbac-c3-preview.vercel.app`.
 
-Vercel Git Integration được giữ để liên kết repository nhưng `gitProviderOptions.createDeployments=disabled`. Push GitHub không được tự tạo Preview; mọi Preview phải đi qua script trên để dùng đúng environment và guard.
+Vercel Git Integration đã disconnect và `gitProviderOptions.createDeployments=disabled`. Push/merge GitHub không tự tạo deployment; mọi Preview phải đi qua script trên để dùng đúng environment và guard.
 
 ## 5. Apps Script Preview
 
@@ -106,6 +106,8 @@ Sau cut-forward:
 
 ## 8. Git và handoff
 
+- `main` là nhánh canonical; branch checkpoint đã merge phải được xóa thay vì tích lũy lâu dài.
+- Chỉ dùng archive tag cho đầu nhánh divergent/backup thật sự cần bảo tồn; không tạo lại branch nếu chưa cần khôi phục commit cụ thể.
 - Một checkpoint nên có commit có chủ đích; không trộn dependency artifact hoặc dữ liệu tạm.
 - `node_modules/`, `.next/`, local env và `.vercel/` không thuộc source.
 - Trước commit: `git status --short`, `git diff --check`, full gate và rà secret.

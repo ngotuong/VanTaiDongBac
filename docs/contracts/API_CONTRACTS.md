@@ -569,7 +569,10 @@ Response logic:
 }
 ```
 
-`DM_ThamSo_TS` và `DM_ThamSo_GD` là display sheet ảo được map vào `DM_ThamSo`.
+`DM_ThamSo_TS` là display sheet ảo được map vào `DM_ThamSo`.
+
+`DM_GiaDau` là sheet vật lý riêng cho lịch sử giá dầu. Display sheet ảo cũ
+`DM_ThamSo_GD` đã nghỉ và không được chấp nhận ở API catalog.
 
 Cache: `catalog_bundles` theo display sheet key.
 

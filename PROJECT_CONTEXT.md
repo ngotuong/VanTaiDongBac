@@ -25,7 +25,8 @@ Hai domain độc lập:
    - Tổng quan, Báo cáo, Vận hành/Nhập liệu và Danh mục.
 2. **Thu chi/Quỹ**
    - workbook riêng theo năm;
-   - Tổng quan quỹ, Giao dịch, Khoản vay và Danh mục Quỹ;
+   - Tổng quan quỹ, Giao dịch, Công nợ, Khoản vay, Danh mục và thiết lập đầu kỳ;
+   - web app không triển khai in phiếu Thu/Chi theo quyết định của người dùng ngày 2026-08-10;
    - là module/menu riêng, không chỉ là nguồn import cho Vận tải.
 
 Một số liên kết giữa hai workbook do công thức/`IMPORTRANGE` thực hiện. Không gộp workbook, đổi tên sheet, đổi thứ tự cột hoặc sửa công thức nếu chưa có migration riêng được phê duyệt.
@@ -112,7 +113,7 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 - Hoàn thành design system, shell/navigation và nâng cấp toàn bộ module.
 - Sửa sticky table, export PNG, mobile bottom sheet/swipe, input zoom, numeric formatting và navigation performance.
-- Audit schema drift workbook thật: bảng phụ trong `DM_*`, `NL_TaiXe` thêm `Dự án`, `NL_PhanCongLai`; write path chỉ tác động native business range và bảo toàn helper/formula.
+- Audit schema drift workbook thật tại checkpoint tháng 7 từng ghi nhận `NL_TaiXe` có `Dự án`; kết luận này là lịch sử và đã được live audit 2026-08-10 thay thế bằng schema 7 cột có `Nhóm vận hành`. Write path vẫn chỉ tác động native business range và bảo toàn helper/formula.
 - Đọc Dashboard/Report/Manage/Catalog/Cashflow chuyển Supabase-first/fail-closed; Apps Script chỉ live-read khi force refresh hoặc fallback có chủ đích.
 - Thu chi có shared date range, pagination, optimistic writes và form khoản vay nhiều dòng.
 - Sửa toàn vẹn `NHAP_VAY`: chỉ ghi A:K, bảo vệ `ARRAYFORMULA` N2 và dùng mã khoản vay 12 chữ số có lock/sequence.
@@ -133,6 +134,22 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Live Google Sheet parity — Preview hoàn thành 2026-08-10, chờ phê duyệt Production riêng
+
+- Nhánh làm việc đã push: `codex/live-sheet-parity`; gồm đúng 2 commit (code/test và tài liệu). Production vẫn giữ nguyên.
+- Đã đối chiếu live workbook Vận tải 37 sheet và workbook Thu Chi 9 sheet.
+- Write contract Vận tải đã khóa theo exact live headers; `NL_VanChuyen` 8 cột, `NL_TaiXe` dùng `Nhóm vận hành` lấy từ phân công xe theo hiệu lực, `NL_Dau` 10 cột và `NL_NghiVanHanh` 10 cột.
+- Đã thêm các danh mục live `DM_CheDoLuong`, `DM_GiaDau`, `DM_PhanCongXe`, `DM_UuDaiNoiBo`; loại virtual catalog cũ `DM_ThamSo_GD`; UI/backend chỉ cho sửa cột nhập, giữ cột công thức. Live canary xác nhận `DM_GiaDau!C` dù mang header `Ghi chú` là công thức chênh lệch nên webapp khóa cột này và helper append sao chép công thức bị skip từ dòng trước.
+- Thay đổi danh mục từ web app hoặc trực tiếp trong Sheet làm mới catalog cache và full report dependency; source poll `NL_VanChuyen` đã đọc đủ 8 cột.
+- Thu Chi có tab `Công nợ` đọc `Công nợ còn lại` tại cột M và admin/operator có thể sửa đúng 4 named range `TMDK`, `TKDK`, `NGAYNHAPLIEU`, `NGAYTINHVAY` trong `CAIDAT`.
+- Không triển khai `INPHIEU`/in phiếu theo yêu cầu rõ của người dùng.
+- Full gate cuối PASS sau regression fix `DM_GiaDau`: 473/473 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`.
+- Copy-canary PASS trên bản sao riêng của cả workbook Vận tải và Thu Chi: các form/danh mục mới giữ công thức, validation, format và computed values; Công nợ M/N và bốn ô thiết lập đầu kỳ ghi/đọc đúng. Marker/dữ liệu test đã được xóa, bốn thiết lập đã khôi phục, rồi hai bản sao TEST đã được xóa vĩnh viễn. Hai workbook Production không bị ghi.
+- Apps Script Preview đã cập nhật version `321`; health trực tiếp HTTP 200. Apps Script Production vẫn ở version `315`.
+- Vercel Preview đã deploy bằng đúng `npm run deploy:preview`: `dpl_3HGzXVHjHBvKuWLeiX54P6SrCX2n` tại `https://vantaidongbac-preview.vercel.app`; title/health HTTP smoke PASS, không Vercel Login.
+- Đã chạy thành công `syncAllStartupAndCatalogsToSupabase`, `syncAllFundBundlesToSupabase` và `syncAllFundCatalogsToSupabase`; authenticated Preview smoke PASS cho Entry, 12 catalog, `DM_GiaDau` chỉ nhập A:B, Công nợ và đúng 4 thiết lập đầu kỳ. Không có `INPHIEU`/in phiếu và không có console error.
+- Vercel Production deployment trước/sau giữ nguyên `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`; chưa promote Production.
 
 ### Repository consolidation và Vercel deployment guard — hoàn thành 2026-08-10
 
@@ -159,13 +176,9 @@ Trạng thái: **RETIRED trên workbook; Preview runtime PASS; Production runtim
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-Không có checkpoint code mới được tự động mở.
-
-Thứ tự đề xuất:
-
-1. **Theo dõi Preview retirement**: xác nhận Report normal read, force refresh/live-compute và không tái tạo `SYS_ReportCache`.
-2. **Production promotion riêng**: chỉ sau phê duyệt mới deploy Apps Script/Vercel runtime retirement lên Production; không đổi production alias bằng lệnh thủ công.
-3. **Cron cảnh báo Quỹ riêng**: chỉ khi có phê duyệt khác, kiểm tra recipient/subscription, tạo/rotate `CRON_SECRET`, bật feature flag và thêm lịch 08:00 Việt Nam.
+1. **Người dùng duyệt Preview**: kiểm tra `https://vantaidongbac-preview.vercel.app` với quy trình nghiệp vụ mong muốn.
+2. **Production promotion riêng**: chỉ thực hiện khi người dùng phê duyệt rõ trong yêu cầu riêng; phải ghi rollback ID và lặp lại production smoke/identity guard.
+3. **Cron cảnh báo Quỹ riêng**: vẫn là checkpoint độc lập, chưa bật.
 
 ## 7. Mục tiêu kiến trúc dài hạn
 
@@ -197,6 +210,7 @@ Definition of Done hiện giữ:
 11. Manual edit workbook Thu chi hoặc thay đổi chỉ lan qua `IMPORTRANGE` không được bảo đảm cùng SLA freshness với workbook Vận tải.
 12. Rollback Apps Script dùng version còn lưu trên cùng production deployment ID; không dùng recovery deployment `@281` đã undeploy.
 13. Production warning `DEP0169 url.parse()` có thể xuất hiện trên request HTTP 200; chưa có call site trực tiếp trong source.
+14. Live parity đã PASS copy-canary, full gate và authenticated Preview; chưa promote Production. Không dùng `INPHIEU` làm tiêu chí parity vì người dùng đã loại chức năng này.
 
 ## 9. Router tài liệu
 

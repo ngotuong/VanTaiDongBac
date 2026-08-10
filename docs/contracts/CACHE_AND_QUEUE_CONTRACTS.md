@@ -296,13 +296,15 @@ Hai phía phải khớp:
 
 ### 7.3. Virtual sheet
 
-Catalog data cho `DM_ThamSo_TS` và `DM_ThamSo_GD` dùng display key riêng dù nguồn vật lý cùng là `DM_ThamSo`.
+Catalog data cho `DM_ThamSo_TS` dùng display key riêng dù nguồn vật lý là `DM_ThamSo`.
+`DM_GiaDau` là catalog vật lý và dùng key riêng theo chính tên sheet này.
 
 Khi `DM_ThamSo` thay đổi, phải sync:
 
 - catalog nguồn/form liên quan;
 - `DM_ThamSo_TS` bundle;
-- `DM_ThamSo_GD` bundle.
+
+Không tạo hoặc đồng bộ bundle `DM_ThamSo_GD`; display key này đã nghỉ.
 
 ### 7.4. Fund catalog
 

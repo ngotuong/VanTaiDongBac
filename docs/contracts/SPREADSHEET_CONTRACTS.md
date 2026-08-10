@@ -154,12 +154,12 @@ Không dùng trạng thái hidden làm permission. Code mở sheet theo tên dù
 
 | Form type | Sheet | Header row | Số cột row builder |
 | --- | --- | ---: | ---: |
-| `vanChuyen` | `NL_VanChuyen` | 2 | 7 |
+| `vanChuyen` | `NL_VanChuyen` | 2 | 8 |
 | `taiXe` | `NL_TaiXe` | 1 | 7 |
-| `dau` | `NL_Dau` | 2 | 9 |
+| `dau` | `NL_Dau` | 2 | 10 |
 | `chamCong` | `NL_ChamCong` | 1 | 11 |
 | `phat` | `NL_Phat` | 1 | 7 |
-| `nghiVanHanh` | `NL_NghiVanHanh` | 1 | 9 |
+| `nghiVanHanh` | `NL_NghiVanHanh` | 1 | 10 |
 | — | `NL_PhanCongLai` | 1 | 4 cột nhập + 1 cột kiểm tra |
 
 Số cột row builder không nhất thiết bằng tổng số cột vật lý của sheet. Snapshot cho thấy một số sheet có nhiều cột helper/formula ở phía sau. Chỉ ghi các segment nghiệp vụ được service cho phép.
@@ -171,7 +171,7 @@ Contract:
 - header row: 2;
 - frozen rows: 2;
 - frozen columns: 3;
-- row builder: 7 giá trị.
+- row builder: 8 giá trị.
 
 Cột nghiệp vụ logic:
 
@@ -182,6 +182,7 @@ Cột nghiệp vụ logic:
 5. Số chuyến;
 6. Số phiếu;
 7. Ghi chú.
+8. Khối lượng thực tế (m³), input tùy chọn.
 
 Quy tắc:
 
@@ -203,7 +204,7 @@ Downstream:
 Contract:
 
 - header row: 1;
-- row builder: 6 giá trị;
+- row builder: 7 giá trị.
 - snapshot có vùng cột vật lý mở rộng cho helper/formula.
 
 Cột nghiệp vụ logic:
@@ -211,7 +212,7 @@ Cột nghiệp vụ logic:
 1. Ngày;
 2. Tháng;
 3. Biển số xe;
-4. Dự án;
+4. Nhóm vận hành;
 5. Tài xế;
 6. Số chuyến;
 7. Ghi chú.
@@ -219,7 +220,7 @@ Cột nghiệp vụ logic:
 Quy tắc:
 
 - Tháng lấy từ Ngày;
-- `Dự án` được bổ sung ở cột D trong live schema ngày 2026-07-24;
+- `Nhóm vận hành` ở cột D được suy ra từ một phân công xe hiệu lực duy nhất trong `DM_PhanCongXe`; thiếu hoặc chồng lấn phân công thì backend fail-closed;
 - không ghi vào các cột helper phía sau;
 - dữ liệu dùng để đối soát `NL_VanChuyen` và tính lương chuyến.
 
@@ -253,7 +254,7 @@ Contract:
 - header row: 2;
 - frozen rows: 2;
 - frozen columns: 3;
-- row builder: 9 giá trị;
+- row builder: 10 giá trị;
 - snapshot có nhiều cột helper/formula sau vùng nghiệp vụ.
 
 Cột nghiệp vụ logic:
@@ -265,13 +266,14 @@ Cột nghiệp vụ logic:
 5. Số lít;
 6. Giá dầu;
 7. Thành tiền;
-8. Ghi chú;
-9. field nghiệp vụ/helper theo schema hiện hành.
+8. Nguồn chi;
+9. Công ty sở hữu;
+10. Ghi Chú.
 
 Quy tắc:
 
 - Tháng lấy từ Ngày;
-- Thành tiền có thể là công thức `Số lít × Giá dầu`;
+- Thành tiền và Công ty sở hữu là công thức, không cho sửa từ form/manage;
 - có cell số lít do người dùng nhập công thức cộng tay, ví dụ dạng `=120+340+160`;
 - không thay công thức người dùng bằng display value;
 - không gọi format rộng trên typed column sau ghi;
@@ -349,7 +351,7 @@ Contract:
 
 - header row: 1;
 - frozen columns: 3;
-- row builder: 9 giá trị;
+- row builder: 10 giá trị;
 - snapshot có 10 cột vật lý.
 
 Cột nghiệp vụ logic:
@@ -357,20 +359,21 @@ Cột nghiệp vụ logic:
 1. Ngày;
 2. Tháng;
 3. Biển số xe;
-4. Dự án;
+4. Nhóm vận hành;
 5. Loại nghỉ;
 6. Số giờ nghỉ;
 7. Tính KPI?;
 8. Giảm KPI;
-9. Ghi chú.
+9. Lý do;
+10. Kiểm tra.
 
 Quy tắc:
 
 - Tháng lấy từ Ngày;
 - `Tính KPI?` được suy ra theo loại nghỉ;
 - `Giảm KPI` phụ thuộc số giờ và tham số KPI;
-- validation xe/dự án phải được giữ;
-- không ghi vào cột helper thứ 10 nếu không có contract rõ.
+- Nhóm vận hành phải khớp phân công xe hiệu lực; cho phép `TẤT CẢ XE` theo contract live;
+- `Tính KPI?`, `Giảm KPI` và `Kiểm tra` là cột tính toán, không sửa từ web app.
 
 Downstream:
 
@@ -668,19 +671,12 @@ Contract:
 - không xóa row nhân sự cũ nếu báo cáo lịch sử còn phụ thuộc;
 - ưu tiên cập nhật trạng thái/ngày nghỉ việc.
 
-### 11.4. `DM_ThamSo`
+### 11.4. `DM_ThamSo` và `DM_GiaDau`
 
-Chứa hai vùng logic:
-
-- tham số hệ thống;
-- lịch sử giá dầu theo ngày.
-
-Virtual display sheets:
-
-- `DM_ThamSo_TS` → vùng tham số;
-- `DM_ThamSo_GD` → vùng giá dầu.
-
-Hai tên trên không phải sheet vật lý trong snapshot. API phải map về `DM_ThamSo` và không gọi `getSheetByName()` trực tiếp với tên ảo mà không qua mapping.
+- `DM_ThamSo` giữ tham số hệ thống; frontend dùng virtual display name `DM_ThamSo_TS` map về sheet này.
+- Lịch sử giá dầu live đã chuyển sang sheet vật lý `DM_GiaDau` với `Ngày áp dụng`, `Giá dầu áp dụng`, `Ghi chú`.
+- Dù mang header `Ghi chú`, cột C từ dòng 3 trở đi là công thức chênh lệch giá; webapp chỉ cho sửa hai cột A:B và phải sao chép/bảo toàn công thức cột C khi thêm hoặc sửa dòng.
+- Virtual display name cũ `DM_ThamSo_GD` đã nghỉ và không được route về `DM_ThamSo`.
 
 Tham số active quan trọng quan sát được:
 
@@ -698,6 +694,14 @@ Contract:
 - không đổi mã tham số đã được công thức/code tham chiếu;
 - thay đổi giá trị phải hiểu phạm vi lịch sử;
 - giá dầu phải thêm mốc theo ngày thay vì sửa đè lịch sử.
+
+### 11.4a. Danh mục live bổ sung
+
+- `DM_CheDoLuong`: web app sửa 7 cột input, giữ cột trạng thái/công thức phía sau.
+- `DM_PhanCongXe`: web app sửa biển số, nhóm vận hành, hai mốc hiệu lực và ghi chú; trạng thái là công thức.
+- `DM_UuDaiNoiBo`: web app sửa dự án, ưu đãi và khoảng hiệu lực.
+
+Append phải kế thừa format/formula từ dòng mẫu; edit/delete chỉ tác động các cột input được allowlist.
 
 ### 11.5. `DM_LuongChuyen`
 
@@ -856,6 +860,7 @@ Transaction object chứa các field logic như:
 - partner;
 - content/note;
 - debt flag.
+- remaining debt đọc từ cột M `Công nợ còn lại` cho màn hình Công nợ; writer không ghi trực tiếp field này.
 
 Mapping chính xác do `FundTransactionService.buildRow()` sở hữu; `FundService.buildTransactionRow_()` chỉ là compatibility wrapper nội bộ. Append/update A:J, format B/F, helper formulas M:N, physical delete và batch rollback A:N do `FundTransactionRepository` thực hiện. Không duplicate mapping theo index ở frontend.
 
@@ -940,6 +945,7 @@ Contract:
 - giữ giới hạn vùng danh mục hiện tại;
 - CRUD web app phải kiểm tra row nằm trong start/end row;
 - append danh mục không được tràn sang vùng kế bên.
+- API thiết lập đầu kỳ chỉ được set value cho `TMDK`, `TKDK`, `NGAYNHAPLIEU`, `NGAYTINHVAY` sau khi xác nhận cả bốn named range tồn tại; không đổi tên/di chuyển range.
 
 ### 16.3. Catalog source priority
 
@@ -950,6 +956,10 @@ Contract:
 3. giá trị đã tồn tại trong giao dịch làm fallback.
 
 Fallback không thay đổi contract của named range và không cho phép ghi tùy ý ngoài vùng.
+
+### 16.4. Phạm vi web app không triển khai
+
+Theo quyết định người dùng ngày 2026-08-10, web app không triển khai in phiếu Thu/Chi và không ghi vào `INPHIEU`. Bound script/Sheet có thể tiếp tục giữ chức năng đó độc lập.
 
 ## 17. `BC_THUCHI`, `BC_VAY` và `INPHIEU`
 
@@ -1194,9 +1204,9 @@ Contract an toàn:
 
 Ví dụ:
 
-- `NL_TaiXe`: row builder 6, snapshot vật lý 26;
-- `NL_Dau`: row builder 9, snapshot vật lý 27;
-- `NL_NghiVanHanh`: row builder 9, snapshot vật lý 10.
+- `NL_TaiXe`: row builder 7;
+- `NL_Dau`: row builder 10;
+- `NL_NghiVanHanh`: row builder 10.
 
 Điều này có thể do helper/formula/format ranges. Không mở rộng row builder để ghi toàn bộ physical columns.
 

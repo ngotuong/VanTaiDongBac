@@ -137,7 +137,7 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ### Live Google Sheet parity — Preview hoàn thành 2026-08-10, chờ phê duyệt Production riêng
 
-- Nhánh làm việc đã push: `codex/live-sheet-parity`; gồm đúng 2 commit (code/test và tài liệu). Production vẫn giữ nguyên.
+- Nhánh làm việc: `codex/live-sheet-parity`; checkpoint live parity ban đầu gồm 2 commit (code/test và tài liệu), sau đó có thêm checkpoint UI/UX density polish. Production vẫn giữ nguyên.
 - Đã đối chiếu live workbook Vận tải 37 sheet và workbook Thu Chi 9 sheet.
 - Write contract Vận tải đã khóa theo exact live headers; `NL_VanChuyen` 8 cột, `NL_TaiXe` dùng `Nhóm vận hành` lấy từ phân công xe theo hiệu lực, `NL_Dau` 10 cột và `NL_NghiVanHanh` 10 cột.
 - Đã thêm các danh mục live `DM_CheDoLuong`, `DM_GiaDau`, `DM_PhanCongXe`, `DM_UuDaiNoiBo`; loại virtual catalog cũ `DM_ThamSo_GD`; UI/backend chỉ cho sửa cột nhập, giữ cột công thức. Live canary xác nhận `DM_GiaDau!C` dù mang header `Ghi chú` là công thức chênh lệch nên webapp khóa cột này và helper append sao chép công thức bị skip từ dòng trước.
@@ -147,9 +147,17 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Full gate cuối PASS sau regression fix `DM_GiaDau`: 473/473 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`.
 - Copy-canary PASS trên bản sao riêng của cả workbook Vận tải và Thu Chi: các form/danh mục mới giữ công thức, validation, format và computed values; Công nợ M/N và bốn ô thiết lập đầu kỳ ghi/đọc đúng. Marker/dữ liệu test đã được xóa, bốn thiết lập đã khôi phục, rồi hai bản sao TEST đã được xóa vĩnh viễn. Hai workbook Production không bị ghi.
 - Apps Script Preview đã cập nhật version `321`; health trực tiếp HTTP 200. Apps Script Production vẫn ở version `315`.
-- Vercel Preview đã deploy bằng đúng `npm run deploy:preview`: `dpl_3HGzXVHjHBvKuWLeiX54P6SrCX2n` tại `https://vantaidongbac-preview.vercel.app`; title/health HTTP smoke PASS, không Vercel Login.
+- Vercel Preview hiện hành đã deploy bằng đúng `npm run deploy:preview`: `dpl_4RwwxsssGe44xnWnCUCapfVwdfR8` tại `https://vantaidongbac-preview.vercel.app`; title/health HTTP smoke PASS, không Vercel Login.
 - Đã chạy thành công `syncAllStartupAndCatalogsToSupabase`, `syncAllFundBundlesToSupabase` và `syncAllFundCatalogsToSupabase`; authenticated Preview smoke PASS cho Entry, 12 catalog, `DM_GiaDau` chỉ nhập A:B, Công nợ và đúng 4 thiết lập đầu kỳ. Không có `INPHIEU`/in phiếu và không có console error.
 - Vercel Production deployment trước/sau giữ nguyên `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`; chưa promote Production.
+
+### UI/UX density polish — Preview hoàn thành 2026-08-10
+
+- Đã loại chú thích triển khai/named range và các dòng đếm kết quả lặp khỏi bề mặt nghiệp vụ Quỹ; nhãn lọc Khoản vay được giữ ẩn cho trình đọc màn hình qua `aria-label`.
+- Bộ lọc thời gian dùng chung của Quỹ và Vận hành hiển thị ba trường trên một hàng từ 769px; mobile giữ hai ngày trên cùng một hàng. Bộ lọc lịch sử vay/trả trên mobile hiển thị hai select cạnh nhau.
+- Tiêu đề bảng Khoản vay đã chuẩn hóa về cùng cỡ 15px và chiều cao header 51px; card lịch sử mobile giảm từ 174px xuống 82px.
+- Visual QA có đăng nhập PASS ở 390px, 960px và 1440px cho Tổng quan, Báo cáo, Vận hành, Danh mục, Quỹ/Khoản vay và Cài đặt; mọi route được kiểm tra đều có `scrollWidth === clientWidth` ở cấp trang.
+- Gate Preview PASS 474/474 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`; Production giữ nguyên `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
 
 ### Repository consolidation và Vercel deployment guard — hoàn thành 2026-08-10
 

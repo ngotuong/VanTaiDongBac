@@ -1978,9 +1978,9 @@ body > #fundCategoryDetailDrawer.cashflow-c2.fund-detail-drawer.swipe-dismiss-su
 .cashflow-c2 .fund-loan-summary-head,
 .cashflow-c2 .fund-loan-history-head {
   min-height: 0 !important;
-  padding: 12px 14px !important;
+  padding: 6px 12px !important;
   gap: 10px !important;
-  align-items: end !important;
+  align-items: center !important;
 }
 
 .cashflow-c2 .fund-loan-summary-head {
@@ -1996,7 +1996,7 @@ body > #fundCategoryDetailDrawer.cashflow-c2.fund-detail-drawer.swipe-dismiss-su
 .cashflow-c2 .fund-loan-summary-head .table-title,
 .cashflow-c2 .fund-loan-history-head .table-title {
   min-width: 0 !important;
-  font-size: 16px !important;
+  font-size: 15px !important;
   line-height: 1.3 !important;
   font-weight: 800 !important;
 }
@@ -2031,6 +2031,15 @@ body > #fundCategoryDetailDrawer.cashflow-c2.fund-detail-drawer.swipe-dismiss-su
   min-width: 0 !important;
   margin-left: 0 !important;
   gap: 8px !important;
+}
+
+.cashflow-c2 .table-card-head.fund-loan-history-head > .fund-loan-history-filters {
+  display: grid !important;
+}
+
+.cashflow-c2 .fund-loan-history-filters .compact-filter {
+  display: block !important;
+  width: auto !important;
 }
 
 .cashflow-c2 .fund-loan-history-amount.borrowed {
@@ -2090,6 +2099,39 @@ body > #fundCategoryDetailDrawer.cashflow-c2.fund-detail-drawer.swipe-dismiss-su
   .cashflow-c2 .fund-loan-history-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     width: 100% !important;
+  }
+}
+
+/* Shared filter density: tablet and desktop keep the three time filters on one row. */
+@media (min-width: 769px) {
+  .cashflow-filter-stack {
+    display: grid !important;
+    grid-template-columns: minmax(250px, 0.9fr) minmax(360px, 2fr) !important;
+    align-items: center !important;
+    gap: 10px 14px !important;
+  }
+
+  .cashflow-filter-row-top,
+  .cashflow-filter-row-bottom {
+    min-width: 0 !important;
+  }
+
+  .cashflow-filter-row-bottom {
+    flex-wrap: nowrap !important;
+  }
+
+  .cashflow-quick-period-select {
+    max-width: none !important;
+  }
+
+  .cashflow-date-input {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .cashflow-filter-row-search {
+    grid-column: 1 / -1 !important;
   }
 }
 

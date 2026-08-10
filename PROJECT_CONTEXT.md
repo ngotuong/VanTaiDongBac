@@ -73,12 +73,13 @@ Production đã xác nhận gần nhất:
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
-Preview hiện hành của checkpoint retirement:
+Preview hiện hành của checkpoint retirement/repository consolidation:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_F2wWCd2rsKCeXF67Q8PkxBMZV3ew`.
+- Vercel deployment: `dpl_J8V1cKGSeMWN3f3BkRtcQe3zWaPV`, deploy READY ngày 2026-08-10 từ commit `e652da0`.
 - Apps Script Preview: `@320`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
+- Gate deploy PASS 467/467 tests, lint, typecheck, Next build, Identity Guard, root/title smoke; Production giữ nguyên `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
 
 ## 4. Quá trình dự án đã hoàn thành
 

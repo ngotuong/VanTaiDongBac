@@ -6,7 +6,7 @@ import { createWorkbookContextService } from '../../server/services/workbook-con
 import { createServerApiClient } from './platform/server-api-client';
 import type { CatalogBundle, CatalogDataResponse, CatalogSheetName } from './platform/catalog-types';
 
-export const CATALOG_SHEETS: CatalogSheetName[] = ['DM_NhanSu','DM_Xe','DM_DuAn','DM_LuongChuyen','DM_ThamSo_TS','DM_ThamSo_GD','DM_DonGiaVanChuyen','DM_ThuongQuanLy','DM_PhatNoiBo'];
+export const CATALOG_SHEETS: CatalogSheetName[] = ['DM_NhanSu','DM_Xe','DM_DuAn','DM_CheDoLuong','DM_LuongChuyen','DM_ThamSo_TS','DM_GiaDau','DM_DonGiaVanChuyen','DM_ThuongQuanLy','DM_PhatNoiBo','DM_PhanCongXe','DM_UuDaiNoiBo'];
 function httpError(status:number,message:string){ return Object.assign(new Error(message),{status}); }
 function validSheet(value:unknown):CatalogSheetName { const name=String(value||'DM_NhanSu').trim() as CatalogSheetName; if(!CATALOG_SHEETS.includes(name)) throw httpError(400,'Danh mục không hợp lệ.'); return name; }
 function publicBundle(payload:unknown,syncedAt:string):CatalogBundle|null {
@@ -16,12 +16,13 @@ function publicBundle(payload:unknown,syncedAt:string):CatalogBundle|null {
   return {...value,headers:value.headers.map(String),supabaseCached:true,supabaseSyncedAt:syncedAt};
 }
 function primaryTable(bundle:CatalogBundle,sheetName:CatalogSheetName):CatalogBundle {
-  if(sheetName==='DM_ThamSo_TS'||sheetName==='DM_ThamSo_GD') return bundle;
+  if(sheetName==='DM_ThamSo_TS') return bundle;
   const emptyIndex=bundle.headers.findIndex((header)=>String(header||'').trim()==='');
   const width=emptyIndex===-1?bundle.headers.length:emptyIndex;
   return {
     ...bundle,
     headers:bundle.headers.slice(0,width),
+    editableHeaders:(bundle.editableHeaders||[]).filter((header)=>bundle.headers.slice(0,width).includes(header)),
     rows:bundle.rows.map((row)=>({...row,values:(row.values||[]).slice(0,width)}))
       .filter((row)=>row.values.some((value)=>value!==null&&value!==undefined&&String(value).trim()!==''))
   };

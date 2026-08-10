@@ -22,13 +22,41 @@ var AppConfig = (function () {
       spreadsheetId: spreadsheetId,
       timezone: 'Asia/Saigon',
       sheets: {
-        vanChuyen: { name: 'NL_VanChuyen', headerRow: 2, columns: 7 },
-        taiXe: { name: 'NL_TaiXe', headerRow: 1, columns: 7 },
-        dau: { name: 'NL_Dau', headerRow: 2, columns: 9 },
-        chamCong: { name: 'NL_ChamCong', headerRow: 1, columns: 11 },
-        phat: { name: 'NL_Phat', headerRow: 1, columns: 7 },
-        nghiVanHanh: { name: 'NL_NghiVanHanh', headerRow: 1, columns: 9 },
-        phanCongLai: { name: 'NL_PhanCongLai', headerRow: 1, columns: 4 }
+        vanChuyen: {
+          name: 'NL_VanChuyen', headerRow: 2, columns: 8,
+          headers: ['Ngày', 'Tháng', 'Biển số xe', 'Dự án', 'Số chuyến', 'Số phiếu', 'Ghi chú', 'Khối lượng thực tế (m³)'],
+          computedHeaders: ['Tháng']
+        },
+        taiXe: {
+          name: 'NL_TaiXe', headerRow: 1, columns: 7,
+          headers: ['Ngày', 'Tháng', 'Biển số', 'Nhóm vận hành', 'Tài xế', 'Số chuyến', 'Ghi chú'],
+          computedHeaders: ['Tháng']
+        },
+        dau: {
+          name: 'NL_Dau', headerRow: 2, columns: 10,
+          headers: ['Ngày', 'Tháng', 'Biển số', 'Nguồn dầu', 'Số lít', 'Giá dầu', 'Thành tiền', 'Nguồn chi', 'Công ty sở hữu', 'Ghi Chú'],
+          computedHeaders: ['Tháng', 'Thành tiền', 'Công ty sở hữu']
+        },
+        chamCong: {
+          name: 'NL_ChamCong', headerRow: 1, columns: 11,
+          headers: ['Từ ngày', 'Đến ngày', 'Tháng', 'Nhân sự', 'Hình thức', 'Số ngày', 'Tính lương cứng', 'Nhóm xử lý', 'Ghi chú', 'Loại ngày công hợp lệ', 'Lưu ý'],
+          computedHeaders: ['Tháng', 'Số ngày', 'Tính lương cứng', 'Nhóm xử lý', 'Loại ngày công hợp lệ', 'Lưu ý']
+        },
+        phat: {
+          name: 'NL_Phat', headerRow: 1, columns: 7,
+          headers: ['Ngày', 'Tháng', 'Nhân sự', 'Mã phạt', 'Nội dung phạt', 'Số tiền phạt', 'Ghi chú'],
+          computedHeaders: ['Tháng', 'Nội dung phạt', 'Số tiền phạt']
+        },
+        nghiVanHanh: {
+          name: 'NL_NghiVanHanh', headerRow: 1, columns: 10,
+          headers: ['Ngày', 'Tháng', 'Biển số xe', 'Dự án', 'Loại nghỉ', 'Số giờ nghỉ', 'Tính KPI?', 'Giảm KPI', 'Lý do', 'Kiểm tra'],
+          computedHeaders: ['Tháng', 'Tính KPI?', 'Giảm KPI', 'Kiểm tra']
+        },
+        phanCongLai: {
+          name: 'NL_PhanCongLai', headerRow: 1, columns: 5,
+          headers: ['Tháng', 'Tài xế', 'Công ty', 'Ghi chú', 'Kiểm tra'],
+          computedHeaders: ['Kiểm tra']
+        }
       }
     };
   }

@@ -161,6 +161,12 @@ function deleteFundCatalogItem(year, item) {
   });
 }
 
+function updateFundSettings(year, settings) {
+  return withFundSync_(year, { fundCatalog: true }, function () {
+    return FundService.updateFundSettings(year, settings);
+  });
+}
+
 function syncReportBundleToSupabase(month) {
   return SupabaseService.syncReportBundle(month);
 }
@@ -419,6 +425,7 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'addFundLoanPayment') return withFundSync_(safeBody.year, { payment: safeBody.payment }, function () { return FundService.addFundLoanPayment(safeBody.year, safeBody.payment); });
     if (action === 'saveFundCatalogItem') return withFundSync_(safeBody.year, { fundCatalog: true }, function () { return FundService.saveFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody); });
     if (action === 'deleteFundCatalogItem') return withFundSync_(safeBody.year, { fundCatalog: true }, function () { return FundService.deleteFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody); });
+    if (action === 'updateFundSettings') return withFundSync_(safeBody.year, { fundCatalog: true }, function () { return FundService.updateFundSettings(safeBody.year, safeBody.settings || safeBody.payload || safeBody); });
     if (action === 'retryWriteJob') return SupabaseService.retryWriteJob(safeBody.jobId);
     if (action === 'processWriteJobs') return SupabaseService.processWriteJobs(safeBody.maxJobs || 3);
     throw new Error('Hành động POST không hợp lệ: ' + action);
@@ -453,11 +460,8 @@ function withSheetRowSync_(sheetName, fn) {
   var safeSheetName = String(sheetName || '').trim();
   try {
     if (safeSheetName.indexOf('DM_') === 0) {
-      SupabaseService.syncCatalogAfterWrite(safeSheetName);
-      if (safeSheetName === 'DM_ThamSo') {
-        SupabaseService.syncCatalogDataBundle('DM_ThamSo_TS');
-        SupabaseService.syncCatalogDataBundle('DM_ThamSo_GD');
-      }
+      SupabaseService.syncCatalogAfterWrite(safeSheetName === 'DM_ThamSo' ? 'DM_ThamSo_TS' : safeSheetName);
+      SupabaseService.syncAllReportBundles();
     } else if (safeSheetName.indexOf('NL_') === 0) {
       result.supabaseSync = { ok: true, deferred: true, handler: 'syncRealtimeCache' };
     }

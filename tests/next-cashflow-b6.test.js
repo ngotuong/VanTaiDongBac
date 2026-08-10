@@ -66,6 +66,19 @@ test('B6 applies existing RBAC: shareholder reads cashflow but cannot see fund c
   assert.match(registry,/getFundCatalog: \{ method: 'GET', kind: 'query', permission: 'adminOperator'/);
 });
 
+test('Cashflow parity includes debt balances and guarded CAIDAT first-use settings without printing',()=>{
+  const source=read('next-shell/components/cashflow/CashflowModule.tsx');
+  const service=read('FundService.gs');
+  const transaction=read('FundTransactionService.gs');
+  const registry=read('ApiActionRegistry.gs');
+  assert.match(source,/\['debts', 'Công nợ'\]/);
+  assert.match(source,/Công nợ còn lại/);
+  assert.match(transaction,/remainingDebt/);
+  for(const range of ['TMDK','TKDK','NGAYNHAPLIEU','NGAYTINHVAY']) assert.match(service,new RegExp(`getRangeByName\\('${range}'\\)`));
+  assert.match(registry,/updateFundSettings: \{ method: 'POST', kind: 'command', permission: 'adminOperator'/);
+  assert.doesNotMatch(source,/INPHIEU|in phiếu/i);
+});
+
 test('fund cache repository scopes exact server-side keys and credentials',async()=>{
   const {createFundBundleRepository}=require('../server/repositories/fund-bundle-repository.js');let request;
   const repository=createFundBundleRepository({httpError:(status,message)=>Object.assign(new Error(message),{status}),fetchImpl:async(url,options)=>{request={url,options};return{ok:true,json:async()=>[{payload:{ok:true},synced_at:'2026-07-13T00:00:00Z'}]};}});

@@ -193,6 +193,16 @@ test('append preserves an existing target formula and propagates the template fo
   ]);
 });
 
+test('append propagates a template formula even when the computed column is skipped', () => {
+  const sheet = new FakeSheet(2, fixture.columns.length);
+  applyFixtureRow(sheet, 1, fixture.templateRow);
+
+  helpers.writeRowsPreservingSheetState(sheet, 2, [fixture.appendRows[0]], [3]);
+
+  assert.equal(sheet.cell(2, 4).formulaR1C1, '=RC[-1]*1000');
+  assert.equal(sheet.cell(2, 4).value, '');
+});
+
 test('format copy does not overwrite formulas, validations, or metadata', () => {
   const sheet = new FakeSheet(4, fixture.columns.length);
   applyFixtureRow(sheet, 1, fixture.templateRow);

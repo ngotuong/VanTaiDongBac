@@ -58,7 +58,7 @@ function context(repository, targetSheet) {
 test('repository resolves accented headers and preserves the legacy no-voucher fallback', () => {
   const { FundTransactionRepository: repository } = load();
   const columns = repository.getColumns(['Ngày', 'Mục thu', 'Mục chi', 'Hình thức', 'Số tiền', 'Người Thu/Chi', 'Đối tác', 'Nội dung', 'Công nợ'], normalize);
-  assert.deepEqual(JSON.parse(JSON.stringify(columns)), { voucher: -1, date: 0, income: 1, expense: 2, method: 3, amount: 4, actor: 5, partner: 6, content: 7, debt: 8 });
+  assert.deepEqual(JSON.parse(JSON.stringify(columns)), { voucher: -1, date: 0, income: 1, expense: 2, method: 3, amount: 4, actor: 5, partner: 6, content: 7, debt: 8, remainingDebt: -1 });
 });
 
 test('read service preserves mapping, month list, filtering, sorting, and limit contract', () => {
@@ -75,7 +75,7 @@ test('read service preserves mapping, month list, filtering, sorting, and limit 
   assert.deepEqual(JSON.parse(JSON.stringify(result.transactions[0])), {
     rowIndex: 4, voucher: 'PT3', date: '2026-07-11', dateText: '11/07/2026', month: '2026-07', monthLabel: '07/2026',
     type: 'Thu', category: 'Khác', incomeCategory: 'Khác', expenseCategory: '', method: 'TM', amount: 300000,
-    amountText: '300.000', actor: 'Chi', partner: 'C', content: 'Thu khác', debt: ''
+    amountText: '300.000', actor: 'Chi', partner: 'C', content: 'Thu khác', debt: '', remainingDebt: 0
   });
 });
 

@@ -793,7 +793,8 @@ var SheetService = (function () {
       var editableColumnMap = resolveCatalogEditableColumns_(sheetName, rawHeaders, rowData);
 
       var rowNum = parseInt(rowIndex, 10);
-      if (isNaN(rowNum) || rowNum <= 0) {
+      var isAppend = isNaN(rowNum) || rowNum <= 0;
+      if (isAppend) {
         rowNum = getAppendRowForRowData_(sheet, headerRow, headers, rowData);
         ensureRows_(sheet, rowNum);
       }
@@ -860,7 +861,11 @@ var SheetService = (function () {
         }
       }
 
-      writeRowSkippingColumns_(sheet, rowNum, valuesToSet, skippedColumns);
+      if (isAppend) {
+        writeRowsPreservingSheetState_(sheet, rowNum, [valuesToSet], skippedColumns);
+      } else {
+        writeRowSkippingColumns_(sheet, rowNum, valuesToSet, skippedColumns);
+      }
 
       clearAfterSubmitCache_();
 
@@ -888,6 +893,22 @@ var SheetService = (function () {
         return editable;
       }
       [0, 1, 2, 3].forEach(function (index) { editable[index] = true; });
+      return editable;
+    }
+    var explicitHeaders = {
+      DM_DuAn: ['Tên dự án', 'Số km', 'Từ ngày', 'Đến ngày', 'Ghi chú', 'Áp dụng lương chuyến?', 'Áp dụng thưởng QL?'],
+      DM_Xe: ['Biển số xe', 'Biển số rơ mooc', 'Khối lượng', 'Loại xe', 'Trạng thái', 'Ghi chú', 'Công ty sở hữu'],
+      DM_NhanSu: ['Nhân sự', 'Chức vụ', 'Người tuyển', 'Tính thưởng', 'Dừng thưởng', 'Ngày vào', 'Ngày nghỉ', 'Lương cứng', 'Nghỉ chuẩn', 'Công ty'],
+      DM_CheDoLuong: ['Nhân sự', 'Chế độ lương', 'Mức khoán', 'Hiệu lực từ', 'Hiệu lực đến', 'Dự án', 'Ghi chú'],
+      DM_PhanCongXe: ['Biển số xe', 'Nhóm vận hành', 'Hiệu lực từ', 'Hiệu lực đến', 'Ghi chú'],
+      DM_GiaDau: ['Ngày áp dụng', 'Giá dầu áp dụng', 'Ghi chú'],
+      DM_UuDaiNoiBo: ['Dự án', 'Ưu đãi nội bộ', 'Hiệu lực từ', 'Hiệu lực đến', 'Ghi chú']
+    };
+    if (explicitHeaders[sheetName]) {
+      explicitHeaders[sheetName].forEach(function (header) {
+        var columnIndex = rawHeaders.indexOf(header);
+        if (columnIndex >= 0) editable[columnIndex] = true;
+      });
       return editable;
     }
     for (var index = 0; index < rawHeaders.length; index++) {

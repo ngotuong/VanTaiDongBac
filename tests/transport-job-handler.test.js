@@ -10,7 +10,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 function loadHandler(overrides = {}) {
   const vmContext = vm.createContext({});
   new vm.Script(read('TransportJobHandler.gs'), { filename: 'TransportJobHandler.gs#test' }).runInContext(vmContext);
-  const calls = { submit: [], save: [], delete: [], manage: [], dashboard: 0, reports: [] };
+  const calls = { submit: [], save: [], delete: [], manage: [], dashboard: 0, reports: [], catalogs: [], allReports: 0 };
   const context = {
     clean: (value) => String(value || '').trim(),
     submitRows(...args) { calls.submit.push(args); return { ok: true, inserted: 2, sheetName: 'NL_VanChuyen' }; },
@@ -19,6 +19,8 @@ function loadHandler(overrides = {}) {
     syncTransportAfterWrite(...args) { calls.manage.push(args); return { ok: true, kind: 'manage' }; },
     syncDashboard() { calls.dashboard += 1; return { ok: true, kind: 'dashboard' }; },
     syncTransportReportsAfterWrite(...args) { calls.reports.push(args); return { ok: true, kind: 'report' }; },
+    syncCatalogAfterWrite(...args) { calls.catalogs.push(args); return { ok: true, kind: 'catalog' }; },
+    syncAllReportBundles() { calls.allReports += 1; return { ok: true, kind: 'allReports' }; },
     ...overrides
   };
   return { handler: vmContext.TransportJobHandler, context, calls };
@@ -59,6 +61,15 @@ test('deleteSheetRow blocks physical delete payload and preserves clear/sync arg
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.delete)), [['NL_VanChuyen', 9, [1, 2], { old: true }]]);
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.manage)), [['NL_VanChuyen', [{ old: true }], { fast: true }]]);
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.reports)), [['NL_VanChuyen', [{ old: true }], { includeAll: true }]]);
+});
+
+test('catalog row mutations refresh catalog options and all reports without creating manage bundles', () => {
+  const loaded = loadHandler();
+  loaded.handler.execute({ action: 'saveSheetRow', payload: { sheetName: 'DM_PhanCongXe', rowIndex: 4, rowData: { 'Biển số xe': '20A' } } }, loaded.context);
+  assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.catalogs)), [['DM_PhanCongXe']]);
+  assert.equal(loaded.calls.allReports, 1);
+  assert.deepEqual(loaded.calls.manage, []);
+  assert.deepEqual(loaded.calls.reports, []);
 });
 
 test('sync failures remain isolated while write failures propagate to lifecycle wrapper', () => {

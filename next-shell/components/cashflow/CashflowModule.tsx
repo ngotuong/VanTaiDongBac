@@ -7,7 +7,7 @@ import { exportCardAsImage } from '../../lib/platform/export-card';
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { formatVietnameseNumberInput } from '../../lib/platform/numeric-input';
 import { showToast } from '../../lib/platform/toast';
-import type { CashflowInitialData, CashflowTab, FundCatalog, FundCatalogRow, FundLoan, FundLoans, FundOptions, FundOverview, FundTransaction, FundTransactions, FundWriteJob } from '../../lib/platform/cashflow-types';
+import type { CashflowInitialData, CashflowTab, FundCatalog, FundCatalogRow, FundLoan, FundLoans, FundOptions, FundOverview, FundSettings, FundTransaction, FundTransactions, FundWriteJob } from '../../lib/platform/cashflow-types';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import { useSwipeDismiss } from '../platform/useSwipeDismiss';
 import { useVisibleRevalidation } from '../platform/useVisibleRevalidation';
@@ -26,6 +26,7 @@ const GROUPS = [
 const TABS: Array<[CashflowTab, string]> = [
   ['overview', 'Tổng quan'],
   ['transactions', 'Danh sách thu chi'],
+  ['debts', 'Công nợ'],
   ['loans', 'Khoản vay'],
   ['catalog', 'Danh mục'],
 ];
@@ -277,6 +278,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   const [transactions, setTransactions] = useState(initialData.transactions);
   const [loans, setLoans] = useState(initialData.loans);
   const [options, setOptions] = useState(initialData.options);
+  const [settingsEdit, setSettingsEdit] = useState<FundSettings>(initialData.options.settings || { cashOpening: 0, bankOpening: 0, dataStartDate: '', loanStartDate: '' });
   const [catalog, setCatalog] = useState<FundCatalog>(initialData.catalog || { rows: [] });
   const [group, setGroup] = useState('incomeCategories');
   const [busy, setBusy] = useState(false);
@@ -407,7 +409,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
         const next = await readSurface<FundOverview>(year, 'overview', { startDate, endDate }, force, bypassClientCache);
         setOverview(next);
         setPageMetaPayload(next);
-      } else if (view === 'transactions') {
+    } else if (view === 'transactions' || view === 'debts') {
         const next = await readSurface<FundTransactions>(year, 'transactions', { startDate, endDate }, force, bypassClientCache);
         setTransactions(next);
         setPageMetaPayload(next);
@@ -439,7 +441,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
       if (!isCurrent()) return;
       setOverview(next);
       setPageMetaPayload(next);
-    } else if (target.tab === 'transactions') {
+    } else if (target.tab === 'transactions' || target.tab === 'debts') {
       const next = await readSurface<FundTransactions>(year, 'transactions', { startDate: target.startDate, endDate: target.endDate }, false, true);
       if (!isCurrent()) return;
       setTransactions(next);
@@ -505,7 +507,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   };
   const reloadOptions = () =>
     readSurface<FundOptions>(year, 'options', {}, true)
-      .then(setOptions)
+      .then((next) => { setOptions(next); if (next.settings) setSettingsEdit(next.settings); })
       .catch(() => {});
 
   const queued = useMemo(
@@ -532,6 +534,8 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     [queued, transactions, query, startDate, endDate],
   );
   const txRows = shownTransactions.slice((txPage - 1) * PAGE_SIZE, txPage * PAGE_SIZE);
+  const shownDebts = shownTransactions.filter((item) => item.debt === true || item.debt === 'Có');
+  const debtRows = shownDebts.slice((txPage - 1) * PAGE_SIZE, txPage * PAGE_SIZE);
   const loanPartners = useMemo(() => Array.from(new Set((loans.loans || []).map((item) => item.partner).filter(Boolean))).sort(), [loans]);
   const filteredLoans = useMemo(() => (loans.loans || []).filter((item) => !loanPartner || item.partner === loanPartner), [loans, loanPartner]);
   const filteredLoanMetrics = useMemo(() => {
@@ -768,6 +772,23 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     }
   };
 
+  const saveFundSettings = async () => {
+    if (!settingsEdit.dataStartDate || !settingsEdit.loanStartDate) return report('Vui lòng nhập đủ hai ngày bắt đầu.', true);
+    setBusy(true);
+    showToast('Đang lưu thiết lập Quỹ…', 'loading');
+    try {
+      const result = await api.post<{ settings?: FundSettings }>('updateFundSettings', { body: { year, settings: settingsEdit } });
+      if (result.settings) setSettingsEdit(result.settings);
+      report('Đã cập nhật số dư đầu kỳ và ngày bắt đầu trong CAIDAT.');
+      await reloadOptions();
+      void refresh('overview', true);
+    } catch (e) {
+      report(e instanceof Error ? e.message : String(e), true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const visibleTabs = [...TABS.filter(([value]) => value !== 'catalog'), ...(canWrite ? [['catalog', 'Danh mục']] : [])] as Array<[CashflowTab, string]>;
   return (
     <section id="cashflowView" className="view active cashflow-c2" data-next-cashflow="true" aria-label="Thu chi">
@@ -793,16 +814,16 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
           startDate={startDate}
           endDate={endDate}
           busy={busy}
-          query={tab === 'transactions' ? query : undefined}
+          query={tab === 'transactions' || tab === 'debts' ? query : undefined}
           setQuery={
-            tab === 'transactions'
+            tab === 'transactions' || tab === 'debts'
               ? (value) => {
                   setQuery(value);
                   setTxPage(1);
                 }
               : undefined
           }
-          canAdd={canWrite && (tab === 'transactions' || tab === 'loans')}
+          canAdd={canWrite && (tab === 'transactions' || tab === 'debts' || tab === 'loans')}
           add={tab === 'loans' ? openLoan : () => openTransactions()}
           addLabel={tab === 'loans' ? 'Nhập khoản vay mới' : 'Nhập giao dịch mới'}
           setPeriod={changePeriod}
@@ -822,6 +843,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
         />
       ) : null}
       {tab === 'transactions' ? <Transactions rows={txRows} total={shownTransactions.length} page={txPage} setPage={setTxPage} canWrite={canWrite} edit={openTransactions} remove={deleteTransaction} retry={retry} /> : null}
+      {tab === 'debts' ? <Transactions rows={debtRows} total={shownDebts.length} page={txPage} setPage={setTxPage} canWrite={canWrite} edit={openTransactions} remove={deleteTransaction} retry={retry} debtMode /> : null}
       {tab === 'loans' ? (
         <Loans
           metrics={filteredLoanMetrics}
@@ -853,7 +875,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
           pay={openPayment}
         />
       ) : null}
-      {tab === 'catalog' && canWrite ? <Catalog data={catalog} group={group} edit={catalogEdit} setEdit={setCatalogEdit} selectGroup={selectGroup} save={() => void saveCatalog()} remove={deleteCatalog} busy={busy} page={catalogPage} setPage={setCatalogPage} /> : null}
+      {tab === 'catalog' && canWrite ? <><FundSettingsCard value={settingsEdit} setValue={setSettingsEdit} save={() => void saveFundSettings()} busy={busy} /><Catalog data={catalog} group={group} edit={catalogEdit} setEdit={setCatalogEdit} selectGroup={selectGroup} save={() => void saveCatalog()} remove={deleteCatalog} busy={busy} page={catalogPage} setPage={setCatalogPage} /></> : null}
       {drawer === 'transactions' ? <TransactionDrawer rows={transactionRows} setRows={setTransactionRows} options={options} busy={busy} close={() => setDrawer(null)} submit={() => void submitTransactions()} /> : null}
       {drawer === 'loan' ? <LoanDrawer rows={loanRows} setRows={setLoanRows} options={options} busy={busy} close={() => setDrawer(null)} submit={() => void submitLoan()} /> : null}
       {drawer === 'payment' ? <PaymentDrawer value={payment} setValue={setPayment} busy={busy} close={() => setDrawer(null)} submit={() => void submitPayment()} /> : null}
@@ -1227,13 +1249,14 @@ function CategoryDrawer({ title, rows, allRows, partner, setPartner, close }: { 
   );
 }
 
-function Transactions(props: { rows: FundTransaction[]; total: number; page: number; setPage: (value: number) => void; canWrite: boolean; edit: (row: FundTransaction) => void; remove: (row: FundTransaction) => void; retry: (jobId: string) => void }) {
+function Transactions(props: { rows: FundTransaction[]; total: number; page: number; setPage: (value: number) => void; canWrite: boolean; edit: (row: FundTransaction) => void; remove: (row: FundTransaction) => void; retry: (jobId: string) => void; debtMode?: boolean }) {
   const pageTotalNet = props.rows.reduce((sum, r) => sum + (r.type === 'Thu' ? amount(r.amount) : -amount(r.amount)), 0);
+  const pageRemainingDebt = props.rows.reduce((sum, row) => sum + Number(row.remainingDebt || 0), 0);
   return (
     <section className="table-card">
       <div className="table-card-head cashflow-section-head">
-        <div className="table-title">Danh sách thu chi</div>
-        <div className="panel-note">{props.total} giao dịch phù hợp</div>
+        <div className="table-title">{props.debtMode ? 'Danh sách công nợ' : 'Danh sách thu chi'}</div>
+        <div className="panel-note">{props.total} {props.debtMode ? 'khoản nợ' : 'giao dịch'} phù hợp</div>
       </div>
       <div className="table-wrap fund-transactions-scroll" tabIndex={0} aria-label="Danh sách thu chi, cuộn ngang để xem đủ cột">
         <table className="report-table table-wide">
@@ -1246,6 +1269,7 @@ function Transactions(props: { rows: FundTransaction[]; total: number; page: num
               <th>Người Thu/Chi</th>
               <th>Đối tác</th>
               <th>Nội dung</th>
+              {props.debtMode ? <th>Công nợ còn lại</th> : null}
               {props.canWrite ? <th className="sticky-col-right">Thao tác</th> : null}
             </tr>
           </thead>
@@ -1263,6 +1287,7 @@ function Transactions(props: { rows: FundTransaction[]; total: number; page: num
                   <td>{row.actor}</td>
                   <td>{row.partner || '—'}</td>
                   <td>{row.content || '—'}</td>
+                  {props.debtMode ? <td className="tabular-nums fund-expense"><strong>{money(row.remainingDebt || 0)}</strong></td> : null}
                   {props.canWrite ? (
                     <td className="sticky-col-right manage-row-actions">
                       {row.pending ? (
@@ -1293,8 +1318,8 @@ function Transactions(props: { rows: FundTransaction[]; total: number; page: num
               ))
             ) : (
               <tr>
-                <td colSpan={props.canWrite ? 8 : 7} className="cashflow-empty">
-                  Không có giao dịch phù hợp.
+                <td colSpan={(props.canWrite ? 8 : 7) + (props.debtMode ? 1 : 0)} className="cashflow-empty">
+                  {props.debtMode ? 'Không có công nợ phù hợp.' : 'Không có giao dịch phù hợp.'}
                 </td>
               </tr>
             )}
@@ -1309,7 +1334,9 @@ function Transactions(props: { rows: FundTransaction[]; total: number; page: num
                 <td className={`tabular-nums ${pageTotalNet >= 0 ? 'fund-income' : 'fund-expense'}`}>
                   <strong>{money(pageTotalNet)}</strong>
                 </td>
-                <td colSpan={props.canWrite ? 4 : 3}>—</td>
+                <td colSpan={3}>—</td>
+                {props.debtMode ? <td className="tabular-nums fund-expense"><strong>{money(pageRemainingDebt)}</strong></td> : null}
+                {props.canWrite ? <td>—</td> : null}
               </tr>
             </tfoot>
           ) : null}
@@ -1463,6 +1490,27 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
         <Pager page={props.page} total={props.historyTotal} setPage={props.setPage} />
       </section>
     </>
+  );
+}
+
+function FundSettingsCard({ value, setValue, save, busy }: { value: FundSettings; setValue: (value: FundSettings) => void; save: () => void; busy: boolean }) {
+  const set = (field: keyof FundSettings, next: string | number) => setValue({ ...value, [field]: next });
+  return (
+    <section className="table-card fund-settings-card" aria-labelledby="fundSettingsTitle">
+      <div className="table-card-head cashflow-section-head">
+        <div>
+          <div className="table-title" id="fundSettingsTitle">Thiết lập đầu kỳ</div>
+          <div className="panel-note">Ghi đúng 4 named range TMDK, TKDK, NGAYNHAPLIEU và NGAYTINHVAY trong CAIDAT.</div>
+        </div>
+      </div>
+      <div className="panel-body modal-grid">
+        <label><span>Số dư tiền mặt đầu kỳ</span><input type="text" inputMode="numeric" value={formatVietnameseNumberInput(String(value.cashOpening || ''), false)} onChange={(event) => set('cashOpening', amount(event.target.value))} /></label>
+        <label><span>Số dư tài khoản đầu kỳ</span><input type="text" inputMode="numeric" value={formatVietnameseNumberInput(String(value.bankOpening || ''), false)} onChange={(event) => set('bankOpening', amount(event.target.value))} /></label>
+        <label><span>Ngày bắt đầu nhập liệu</span><input type="date" value={value.dataStartDate || ''} onChange={(event) => set('dataStartDate', event.target.value)} /></label>
+        <label><span>Ngày bắt đầu tính khoản vay</span><input type="date" value={value.loanStartDate || ''} onChange={(event) => set('loanStartDate', event.target.value)} /></label>
+      </div>
+      <div className="modal-footer"><button type="button" className="primary" onClick={save} disabled={busy}>{busy ? 'Đang lưu…' : 'Lưu thiết lập'}</button></div>
+    </section>
   );
 }
 

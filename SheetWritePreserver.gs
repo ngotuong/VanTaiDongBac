@@ -21,14 +21,15 @@ var SheetWritePreserver = (function () {
       var rowNum = startRow + rowOffset;
       var rowSkipMap = {};
       for (var colIdx = 0; colIdx < columnCount; colIdx++) {
-        if (skipMap[colIdx]) rowSkipMap[colIdx] = true;
-        if (existingFormulas[rowOffset] && existingFormulas[rowOffset][colIdx]) rowSkipMap[colIdx] = true;
-        if (!rowSkipMap[colIdx] && isBlankCell_(values[colIdx]) && sourceFormulas[colIdx]) {
+        var hasExistingFormula = Boolean(existingFormulas[rowOffset] && existingFormulas[rowOffset][colIdx]);
+        if (hasExistingFormula) rowSkipMap[colIdx] = true;
+        if (!hasExistingFormula && isBlankCell_(values[colIdx]) && sourceFormulas[colIdx]) {
           rowSkipMap[colIdx] = true;
           runWriteStage_('write_formula', function () {
             sheet.getRange(rowNum, colIdx + 1).setFormulaR1C1(sourceFormulas[colIdx]);
           });
         }
+        if (skipMap[colIdx]) rowSkipMap[colIdx] = true;
       }
       writeRowSegments_(sheet, rowNum, values, rowSkipMap, function (range, segment) {
         writeSegmentSafely_(sheet, range, rowNum, segment, 'write_values');

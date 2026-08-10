@@ -88,6 +88,7 @@
       "saveFundCatalogItem",
       "saveSheetRow",
       "submitRows",
+      "updateFundSettings",
       "updateFundTransaction"
     ],
     "routerOnlyActions": [
@@ -135,7 +136,7 @@
     "vanChuyen": {
       "sheet": "NL_VanChuyen",
       "headerRow": 2,
-      "columns": 7
+      "columns": 8
     },
     "taiXe": {
       "sheet": "NL_TaiXe",
@@ -145,7 +146,7 @@
     "dau": {
       "sheet": "NL_Dau",
       "headerRow": 2,
-      "columns": 9
+      "columns": 10
     },
     "chamCong": {
       "sheet": "NL_ChamCong",
@@ -160,12 +161,12 @@
     "nghiVanHanh": {
       "sheet": "NL_NghiVanHanh",
       "headerRow": 1,
-      "columns": 9
+      "columns": 10
     },
     "phanCongLai": {
       "sheet": "NL_PhanCongLai",
       "headerRow": 1,
-      "columns": 4
+      "columns": 5
     }
   },
   "supabase": {

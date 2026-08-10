@@ -10,6 +10,7 @@ var CatalogService = (function () {
     var vehicleRows = needs.vehicles ? readRows_(ss, 'DM_Xe') : [];
     var projectRows = needs.projects ? readRows_(ss, 'DM_DuAn') : [];
     var penaltyRows = needs.penalties ? readRows_(ss, 'DM_PhatNoiBo') : [];
+    var assignmentRows = needs.assignments ? readRows_(ss, 'DM_PhanCongXe') : [];
     var chamCongTypes = needs.chamCongTypes ? readChamCongTypes_(ss) : [];
 
     var people = peopleRows.map(function (row) {
@@ -54,6 +55,19 @@ var CatalogService = (function () {
     var activeDrivers = people.filter(function (item) {
       return (item.status === 'Dang lam' || item.status === 'Đang làm') && item.role === 'Tài xế';
     });
+    var assignments = assignmentRows.map(function (row) {
+      return {
+        plate: clean_(row[0]),
+        operationGroup: clean_(row[1]),
+        startDate: formatDateValue_(row[2]),
+        endDate: formatDateValue_(row[3]),
+        note: clean_(row[4]),
+        status: clean_(row[5])
+      };
+    }).filter(function (item) { return item.plate && item.operationGroup && item.startDate; });
+    var operationGroups = uniqueNamed_(projectRows.map(function (row) {
+      return { name: clean_(row[8]) };
+    }));
 
     return {
       vehicles: vehicles,
@@ -66,7 +80,8 @@ var CatalogService = (function () {
       activePenalties: penalties.filter(function (item) {
         return item.status === 'Dang ap dung' || item.status === 'Đang áp dụng';
       }),
-      assignments: [],
+      assignments: assignments,
+      operationGroups: operationGroups,
       params: params,
       chamCongTypes: chamCongTypes,
       nghiVanHanhTypes: ['Mỏ báo nghỉ', 'Mưa', 'Lễ/Tết', 'Xe hỏng', 'Khác'],
@@ -86,7 +101,7 @@ var CatalogService = (function () {
     } else if (formType === 'taiXe') {
       needs.vehicles = true;
       needs.people = true;
-      needs.projects = true;
+      needs.assignments = true;
     } else if (formType === 'dau') {
       needs.vehicles = true;
     } else if (formType === 'chamCong') {
@@ -99,6 +114,7 @@ var CatalogService = (function () {
       needs.vehicles = true;
       needs.projects = true;
       needs.params = true;
+      needs.assignments = true;
     } else {
       return catalogNeeds_();
     }
@@ -149,9 +165,26 @@ var CatalogService = (function () {
     return ValidationService.parseNumber(value, false);
   }
 
+  function formatDateValue_(value) {
+    if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) {
+      return Utilities.formatDate(value, APP_CONFIG.timezone, 'yyyy-MM-dd');
+    }
+    return clean_(value);
+  }
+
+  function uniqueNamed_(items) {
+    var seen = {};
+    return (items || []).filter(function (item) {
+      var key = clean_(item && item.name).toLowerCase();
+      if (!key || seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
+  }
+
   function readCatalogData(displaySheetName) {
     var requestedName = String(displaySheetName || '').trim();
-    var sheetName = (requestedName === 'DM_ThamSo_TS' || requestedName === 'DM_ThamSo_GD') ? 'DM_ThamSo' : requestedName;
+    var sheetName = requestedName === 'DM_ThamSo_TS' ? 'DM_ThamSo' : requestedName;
     var data = SheetReadService.readSheetData(sheetName, '', '', 500);
     if (!data || data.ok === false) return data;
 
@@ -185,23 +218,32 @@ var CatalogService = (function () {
       }).filter(function (row) {
         return String(row.values[0] || '').trim() !== '';
       });
-    } else if (requestedName === 'DM_ThamSo_GD') {
-      result.headers = ['Giá dầu áp dụng', 'Ngày áp dụng giá dầu', 'Ghi chú'];
-      result.rows = result.rows.map(function (row) {
-        return {
-          rowIndex: row.rowIndex,
-          values: [row.values[6], row.values[5], row.values[7]]
-        };
-      }).filter(function (row) {
-        return String(row.values[0] || '').trim() !== '';
-      });
     }
 
-    if (requestedName !== 'DM_ThamSo_TS' && requestedName !== 'DM_ThamSo_GD') {
+    if (requestedName !== 'DM_ThamSo_TS') {
       result = projectPrimaryTable_(result);
     }
+    result.editableHeaders = editableHeadersForSheet_(requestedName, result.headers);
 
     return result;
+  }
+
+  function editableHeadersForSheet_(sheetName, headers) {
+    var explicit = {
+      DM_DuAn: ['Tên dự án', 'Số km', 'Từ ngày', 'Đến ngày', 'Ghi chú', 'Áp dụng lương chuyến?', 'Áp dụng thưởng QL?'],
+      DM_Xe: ['Biển số xe', 'Biển số rơ mooc', 'Khối lượng', 'Loại xe', 'Trạng thái', 'Ghi chú', 'Công ty sở hữu'],
+      DM_NhanSu: ['Nhân sự', 'Chức vụ', 'Người tuyển', 'Tính thưởng', 'Dừng thưởng', 'Ngày vào', 'Ngày nghỉ', 'Lương cứng', 'Nghỉ chuẩn', 'Công ty'],
+      DM_CheDoLuong: ['Nhân sự', 'Chế độ lương', 'Mức khoán', 'Hiệu lực từ', 'Hiệu lực đến', 'Dự án', 'Ghi chú'],
+      DM_PhanCongXe: ['Biển số xe', 'Nhóm vận hành', 'Hiệu lực từ', 'Hiệu lực đến', 'Ghi chú'],
+      // Column C is labelled "Ghi chú" in the live workbook, but rows 3+
+      // contain the price-delta formula. Keep it read-only so an append copies
+      // the preceding formula instead of replacing it with user input.
+      DM_GiaDau: ['Ngày áp dụng', 'Giá dầu áp dụng'],
+      DM_UuDaiNoiBo: ['Dự án', 'Ưu đãi nội bộ', 'Hiệu lực từ', 'Hiệu lực đến', 'Ghi chú']
+    };
+    if (sheetName === 'DM_ThamSo_TS') return ['Mã tham số', 'Tên tham số', 'Giá trị', 'Ngày áp dụng tham số'];
+    var allowed = explicit[sheetName] || headers;
+    return allowed.filter(function (header) { return headers.indexOf(header) !== -1; });
   }
 
   function projectPrimaryTable_(result) {

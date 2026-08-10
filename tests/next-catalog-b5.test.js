@@ -14,13 +14,15 @@ test('B5 Catalog is a standalone Next route without a legacy bridge',()=>{
   for(const action of ['saveSheetRow','deleteSheetRow']) assert.match(module,new RegExp(`'${action}'`));
 });
 
-test('B5 preserves the nine display catalogs and virtual DM_ThamSo mapping',()=>{
+test('B5 exposes the twelve live display catalogs and only the current virtual DM_ThamSo mapping',()=>{
   const server=read('next-shell/lib/catalog-server.ts');
   const module=read('next-shell/components/catalog/CatalogModule.tsx');
-  const names=['DM_NhanSu','DM_Xe','DM_DuAn','DM_LuongChuyen','DM_ThamSo_TS','DM_ThamSo_GD','DM_DonGiaVanChuyen','DM_ThuongQuanLy','DM_PhatNoiBo'];
+  const names=['DM_NhanSu','DM_Xe','DM_DuAn','DM_CheDoLuong','DM_LuongChuyen','DM_ThamSo_TS','DM_GiaDau','DM_DonGiaVanChuyen','DM_ThuongQuanLy','DM_PhatNoiBo','DM_PhanCongXe','DM_UuDaiNoiBo'];
   for(const name of names){ assert.match(server,new RegExp(name)); assert.match(module,new RegExp(name)); }
-  assert.match(module,/DM_ThamSo_TS'\|\|sheet==='DM_ThamSo_GD'\?'DM_ThamSo'/);
-  for(const header of ['Mã tham số','Tên tham số','Giá trị','Ngày áp dụng tham số','Giá dầu áp dụng','Ngày áp dụng giá dầu','Ghi chú']) assert.match(module,new RegExp(header));
+  assert.match(module,/sheet==='DM_ThamSo_TS'\?'DM_ThamSo':sheet/);
+  assert.doesNotMatch(module,/DM_ThamSo_GD/);
+  assert.doesNotMatch(server,/DM_ThamSo_GD/);
+  for(const label of ['Mã tham số','Tên tham số','Giá trị','Ngày áp dụng tham số','Lịch sử giá dầu','Chế độ lương','Phân công xe','Ưu đãi nội bộ']) assert.match(module,new RegExp(label));
 });
 
 test('C3 Catalog restores the C2 golden-master surface instead of redesigning it',()=>{

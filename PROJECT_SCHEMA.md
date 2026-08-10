@@ -81,19 +81,22 @@ Không dùng `SpreadsheetApp.getActiveSpreadsheet()` làm nguồn dữ liệu ch
 
 | Form | Sheet | Header row | Row builder columns |
 | --- | --- | ---: | ---: |
-| `vanChuyen` | `NL_VanChuyen` | 2 | 7 |
+| `vanChuyen` | `NL_VanChuyen` | 2 | 8 |
 | `taiXe` | `NL_TaiXe` | 1 | 7 |
-| `dau` | `NL_Dau` | 2 | 9 |
+| `dau` | `NL_Dau` | 2 | 10 |
 | `chamCong` | `NL_ChamCong` | 1 | 11 |
 | `phat` | `NL_Phat` | 1 | 7 |
-| `nghiVanHanh` | `NL_NghiVanHanh` | 1 | 9 |
+| `nghiVanHanh` | `NL_NghiVanHanh` | 1 | 10 |
 | — | `NL_PhanCongLai` | 1 | 4 cột nhập + 1 cột kiểm tra |
 
 Số cột row builder không bằng tổng số cột vật lý trong mọi sheet. Các cột vật lý phía sau có thể là formula/helper; không được mở rộng write range chỉ dựa vào `getLastColumn()`.
 
-Live audit ngày 2026-07-24 xác nhận:
+Live audit ngày 2026-08-10 xác nhận:
 
-- `NL_TaiXe` đã có cột `Dự án` ở vị trí D; row builder phải ghi 7 giá trị theo thứ tự `Ngày, Tháng, Biển số, Dự án, Tài xế, Số chuyến, Ghi chú`.
+- `NL_VanChuyen` có thêm cột H `Khối lượng thực tế (m³)`; cột này là input tùy chọn.
+- `NL_TaiXe` dùng cột D `Nhóm vận hành`, tự xác định theo `DM_PhanCongXe` và ngày hiệu lực; web app không cho ghi một dự án chi tiết vào cột này.
+- `NL_Dau` có 10 cột; `Thành tiền` và `Công ty sở hữu` là cột công thức, `Ghi Chú` ở cột J là input.
+- `NL_NghiVanHanh` có 10 cột và dùng Nhóm vận hành/`TẤT CẢ XE`; các cột KPI/kiểm tra do Sheet tính.
 - `NL_PhanCongLai` là sheet nhập/đối soát mới gồm `Tháng, Tài xế, Công ty, Ghi chú, Kiểm tra`; web app hiện chỉ cho xem/sửa dòng có sẵn, chưa có form append riêng.
 - Nhiều `DM_*` chứa bảng phụ/helper ở bên phải bảng chính, được ngăn bằng cột header trống. Tab Danh mục web chỉ được đọc/ghi/clear bảng chính liên tục từ cột A đến trước header trống đầu tiên.
 
@@ -125,12 +128,15 @@ Snapshot hiện có:
 - `DM_ThuongQuanLy`;
 - `DM_PhatNoiBo`.
 
-Hai tên hiển thị frontend:
+Live workbook còn có các danh mục nghiệp vụ đã được web app hỗ trợ:
 
-- `DM_ThamSo_TS`;
-- `DM_ThamSo_GD`;
+- `DM_CheDoLuong`;
+- `DM_GiaDau`;
+- `DM_PhanCongXe`;
+- `DM_UuDaiNoiBo`.
 
-là virtual sheets map về các vùng trong `DM_ThamSo`, không phải sheet vật lý.
+`DM_ThamSo_TS` là tên hiển thị frontend map về `DM_ThamSo`. Lịch sử giá dầu hiện dùng sheet vật lý `DM_GiaDau`; virtual catalog cũ `DM_ThamSo_GD` đã nghỉ.
+Cột C `Ghi chú` của `DM_GiaDau` là cột công thức chênh lệch giá từ dòng 3; webapp chỉ được sửa A:B.
 
 ## 5. File Thu chi theo năm
 
@@ -164,6 +170,8 @@ Header row 1. Các cột chính:
 - H `Đối tác`;
 - I `Nội dung`;
 - J–N là vùng công nợ/helper/filter phải bảo toàn.
+
+Web app đọc cột M `Công nợ còn lại` cho màn hình Công nợ nhưng không ghi trực tiếp vào cột công thức này.
 
 Voucher là identity/idempotency quan trọng cho queued add transaction.
 
@@ -201,6 +209,8 @@ Named ranges quan trọng trong snapshot:
 
 Không đổi tên hoặc di chuyển range nếu chưa cập nhật cả `FundService`, formula, validation và bound script.
 
+Admin/operator web app chỉ được cập nhật giá trị của `TMDK`, `TKDK`, `NGAYNHAPLIEU`, `NGAYTINHVAY`; không tạo hoặc di chuyển named range.
+
 ## 6. Bound script Thu chi
 
 Source snapshot nằm tại:
@@ -218,6 +228,8 @@ Bound script:
 - có thể ghi `NHAP_THUCHI`/`NHAP_VAY` trực tiếp;
 - phụ thuộc tọa độ cố định trong `BC_THUCHI`, `BC_VAY`, `INPHIEU`;
 - nằm ngoài Vercel proxy, web RBAC và write queue.
+
+Theo quyết định người dùng ngày 2026-08-10, web app không triển khai luồng in phiếu/`INPHIEU`; đây không phải phần parity bắt buộc.
 
 Source trong repository là reference snapshot, chưa mặc nhiên đồng bộ production live. Xem `docs/legacy/THU_CHI_BOUND_SCRIPT.md` trước mọi thay đổi.
 

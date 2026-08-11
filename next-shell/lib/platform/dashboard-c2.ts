@@ -14,6 +14,7 @@ export type DashboardMonthRow = {
   fuelQm: number;
   fuelOut: number;
   roadFee: number;
+  wardFee: number;
   payroll: number;
   fund: number;
   raw: ReportCell[];
@@ -84,6 +85,7 @@ export function parseDashboardRows(matrix?: ReportMatrix): DashboardMonthRow[] {
   const fuelQmIndex = column(['dầu qm', 'quang minh'], 5);
   const fuelOutIndex = column(['dầu ngoài'], 6);
   const tollIndex = column(['phí đi đường', 'phí đường', 'cầu đường', 'phí cầu đường'], 7);
+  const wardFeeIndex = column(['phí phường'], -1);
   const grossIndex = column(['lợi nhuận gộp'], 8);
   const payrollIndex = column(['chi phí lương', 'chi lương', 'lương'], 9);
   const fundIndex = column(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 10);
@@ -96,7 +98,8 @@ export function parseDashboardRows(matrix?: ReportMatrix): DashboardMonthRow[] {
     const fuelQm = numberValue(raw[fuelQmIndex]);
     const fuelOut = numberValue(raw[fuelOutIndex]);
     const roadFee = numberValue(raw[tollIndex]);
-    const calculatedGross = revenue - taxTndn - taxVat - fuelQm - roadFee;
+    const wardFee = numberValue(raw[wardFeeIndex]);
+    const calculatedGross = revenue - taxTndn - taxVat - fuelQm - roadFee - wardFee;
     const gross = grossIndex >= 0 ? numberValue(raw[grossIndex]) : calculatedGross;
     const payroll = payrollIndex >= 0 ? numberValue(raw[payrollIndex]) : 0;
     const fund = fundIndex >= 0 ? numberValue(raw[fundIndex]) : 0;
@@ -114,6 +117,7 @@ export function parseDashboardRows(matrix?: ReportMatrix): DashboardMonthRow[] {
       fuelQm,
       fuelOut,
       roadFee,
+      wardFee,
       payroll,
       fund,
       raw

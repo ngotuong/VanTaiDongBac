@@ -74,13 +74,13 @@ Production đã xác nhận gần nhất:
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
-Preview hiện hành của checkpoint live workbook parity/UI toolbar correction:
+Preview hiện hành của checkpoint dashboard Phí Phường/UI toolbar columns:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_GCcDLkxAT9JiwKnLUtNsx243z494`, READY ngày 2026-08-10.
+- Vercel deployment: `dpl_9ScEMdJKuHE8hQKqj5tf1c2cWxc3`, READY ngày 2026-08-11.
 - Apps Script Preview: `@322`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 477/477 tests, lint, typecheck, Next build, Identity Guard, root/title smoke; candidate này đã được promote Production ngày 2026-08-10 bằng deployment đóng gói lại với Apps Script Production.
+- Gate deploy PASS 478/478 tests, lint, typecheck, Next build, Identity Guard, root/title smoke. Candidate này chưa được promote; Production vẫn là `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,14 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Dashboard Phí Phường và toolbar hai cột — Preview hoàn thành 2026-08-11
+
+- Đã đọc live `BC_TongQuan!G3:S15` từ workbook Vận tải canonical. Header tháng có thêm `Phí Phường`; tháng 07/2026 có `Phí Đi Đường = 64.000.000` và `Phí Phường = 16.500.000`, còn tháng 08/2026 cả hai bằng 0. Không ghi hay thay đổi Google Sheet.
+- Parser dashboard resolve `Phí Phường` theo header thay vì vị trí cố định, đưa khoản này vào fallback lợi nhuận gộp và tổng hợp `Tất cả tháng`. Biểu đồ đổi nhãn thành `Phường & Luật` và cộng `Phí Đi Đường + Phí Phường`; authenticated Preview QA tháng 07/2026 hiển thị đúng `80.500.000`.
+- Toolbar Quỹ và Vận hành dùng một contract hai cột ở mọi breakpoint: khoảng ngày bên trái bằng đúng chiều rộng ô tìm kiếm; kỳ nhanh bên phải bằng đúng chiều rộng nút `Nhập mới`. Native select indicator được loại bỏ và text filter căn trái.
+- Authenticated Preview QA PASS tại 390x844 và 1440x900 cho Vận hành/Vận chuyển và Quỹ/Danh sách thu chi: mobile lần lượt 222/118 px, desktop 960/118 px; hai cặp cột khớp tuyệt đối, không tràn ngang, không console error.
+- Full deploy gate PASS 478/478 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_9ScEMdJKuHE8hQKqj5tf1c2cWxc3`; Apps Script Preview vẫn `@322`; Production giữ nguyên `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde`.
 
 ### Live Google Sheet parity — Production hoàn thành 2026-08-10
 
@@ -265,5 +273,5 @@ Definition of Done hiện giữ:
 - Owner: current state, timeline rút gọn, checkpoint gần nhất, checkpoint tiếp theo và gates.
 - Không sở hữu: contract/schema/runbook chi tiết.
 - Nguồn kiểm chứng: source, tests, migrations, deployment checkpoint và Git.
-- Ngày hệ thống lại: 2026-08-10.
+- Ngày hệ thống lại: 2026-08-11.
 - Cập nhật khi: production/preview/checkpoint/architecture/source-of-truth/blocker thay đổi.

@@ -122,6 +122,8 @@ function FinancialDonutChart({ row, kpi }: { row?: DashboardMonthRow; kpi?: Retu
   const fuelOutside = row.fuelOut ?? parseNum(raw[6]);
   const totalFuel = fuelQM + fuelOutside || Number(kpi?.fuelOut || 0);
   const roadFee = row.roadFee ?? parseNum(raw[7]);
+  const wardFee = row.wardFee || 0;
+  const wardAndRoadFee = roadFee + wardFee;
   const netProfit = row.final;
 
   const payrollCost = row.payroll || Number(kpi?.payroll || 0);
@@ -129,7 +131,7 @@ function FinancialDonutChart({ row, kpi }: { row?: DashboardMonthRow; kpi?: Retu
 
   const allCategories = [
     { label: 'Xăng dầu', value: Math.max(0, totalFuel), chartValue: Math.max(0, totalFuel), color: '#f97316' },
-    { label: 'Phí đi đường', value: Math.max(0, roadFee), chartValue: Math.max(0, roadFee), color: '#8b5cf6' },
+    { label: 'Phường & Luật', value: Math.max(0, wardAndRoadFee), chartValue: Math.max(0, wardAndRoadFee), color: '#8b5cf6' },
     { label: 'Thuế DN & VAT', value: Math.max(0, taxTNDN + taxVAT), chartValue: Math.max(0, taxTNDN + taxVAT), color: '#ef4444' },
     { label: 'Chi lương', value: Math.max(0, payrollCost), chartValue: Math.max(0, payrollCost), color: '#f59e0b' },
     { label: 'Chi quỹ', value: Math.max(0, fundCost), chartValue: Math.max(0, fundCost), color: '#64748b' },
@@ -236,6 +238,7 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
       fuelQm: rows.reduce((sum, r) => sum + (r.fuelQm || 0), 0),
       fuelOut: rows.reduce((sum, r) => sum + (r.fuelOut || 0), 0),
       roadFee: rows.reduce((sum, r) => sum + (r.roadFee || 0), 0),
+      wardFee: rows.reduce((sum, r) => sum + (r.wardFee || 0), 0),
       payroll: rows.reduce((sum, r) => sum + (r.payroll || 0), 0),
       fund: rows.reduce((sum, r) => sum + (r.fund || 0), 0),
       raw: []

@@ -987,6 +987,39 @@ function SharedCashflowFilter({ year, period, startDate, endDate, busy, query, s
     <section className="panel cashflow-overview-filter-panel cashflow-shared-filter" aria-label="Bộ lọc chung của module Quỹ">
       <div className="cashflow-filter-stack">
         <div className="cashflow-filter-row-top">
+          <div className="cashflow-filter-row-bottom">
+            <div className="custom-date-box cashflow-date-input">
+              <span className="date-display-text">{formatDisplayDate(startDate)}</span>
+              <input
+                type="date"
+                min={`${year}-01-01`}
+                max={`${year}-12-31`}
+                aria-label="Từ ngày"
+                className="native-date-input vi-date-input"
+                value={startDate}
+                onChange={(event) => {
+                  setStartDate(event.target.value);
+                  setPeriod('custom');
+                }}
+              />
+            </div>
+            <span className="date-range-separator">→</span>
+            <div className="custom-date-box cashflow-date-input">
+              <span className="date-display-text">{formatDisplayDate(endDate)}</span>
+              <input
+                type="date"
+                min={`${year}-01-01`}
+                max={`${year}-12-31`}
+                aria-label="Đến ngày"
+                className="native-date-input vi-date-input"
+                value={endDate}
+                onChange={(event) => {
+                  setEndDate(event.target.value);
+                  setPeriod('custom');
+                }}
+              />
+            </div>
+          </div>
           <select aria-label="Bộ lọc nhanh thời gian" className="cashflow-quick-period-select platform-content-select" value={period} onChange={(event) => setPeriod(event.target.value as Period)}>
             <option value="thisMonth" disabled={!isCurrentYear}>
               Tháng này
@@ -1003,53 +1036,22 @@ function SharedCashflowFilter({ year, period, startDate, endDate, busy, query, s
             <option value="recent">Năm {year}</option>
             <option value="custom">Tùy chọn</option>
           </select>
-          <div className="cashflow-filter-row-bottom">
-            <div className="custom-date-box cashflow-date-input">
-            <span className="date-display-text">{formatDisplayDate(startDate)}</span>
-            <input
-              type="date"
-              min={`${year}-01-01`}
-              max={`${year}-12-31`}
-              aria-label="Từ ngày"
-              className="native-date-input vi-date-input"
-              value={startDate}
-              onChange={(event) => {
-                setStartDate(event.target.value);
-                setPeriod('custom');
-              }}
-            />
-            </div>
-            <span className="date-range-separator">→</span>
-            <div className="custom-date-box cashflow-date-input">
-            <span className="date-display-text">{formatDisplayDate(endDate)}</span>
-            <input
-              type="date"
-              min={`${year}-01-01`}
-              max={`${year}-12-31`}
-              aria-label="Đến ngày"
-              className="native-date-input vi-date-input"
-              value={endDate}
-              onChange={(event) => {
-                setEndDate(event.target.value);
-                setPeriod('custom');
-              }}
-            />
-            </div>
-          </div>
         </div>
         {(query !== undefined && setQuery) || canAdd || period === 'custom' ? (
           <div className="cashflow-filter-row-search">
             {query !== undefined && setQuery ? <input type="search" className="cashflow-filter-search-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Mục, người, đối tác, nội dung…" aria-label="Tìm kiếm giao dịch thu chi" /> : <span className="cashflow-filter-action-spacer" />}
-            {period === 'custom' ? (
-              <button type="button" className="secondary cashflow-filter-apply" onClick={applyCustom} disabled={busy}>
-                Áp dụng
-              </button>
-            ) : null}
-            {canAdd ? (
-              <button type="button" className="primary cashflow-filter-add touch-action-btn" aria-label={addLabel} onClick={add}>
-                ＋ Nhập mới
-              </button>
-            ) : null}
+            <span className="cashflow-filter-actions">
+              {period === 'custom' ? (
+                <button type="button" className="secondary cashflow-filter-apply" onClick={applyCustom} disabled={busy}>
+                  Áp dụng
+                </button>
+              ) : null}
+              {canAdd ? (
+                <button type="button" className="primary cashflow-filter-add touch-action-btn" aria-label={addLabel} onClick={add}>
+                  ＋ Nhập mới
+                </button>
+              ) : null}
+            </span>
           </div>
         ) : null}
       </div>

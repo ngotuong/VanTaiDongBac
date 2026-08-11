@@ -3490,25 +3490,26 @@ html body .catalog-c2 #catalogVehicleOwnerFilterWrap {
 }
 
 /*
- * Shared filter-toolbar contract (2026-08-10):
- * row 1 = quick period + date range; row 2 = search + primary action.
- * Keep the same information order on phone, tablet and desktop.
+ * Shared filter-toolbar contract (2026-08-11):
+ * row 1 = date range + quick period; row 2 = search + primary action.
+ * Both rows share the same columns on phone, tablet and desktop.
  */
 html body .cashflow-filter-stack {
   display: grid !important;
-  grid-template-columns: minmax(0, 1fr) !important;
-  gap: 8px !important;
-}
-
-html body .cashflow-shared-filter .cashflow-filter-row-top {
-  display: grid !important;
-  grid-template-columns: max-content minmax(0, 1fr) !important;
+  grid-template-columns: minmax(0, 1fr) max-content !important;
+  grid-template-areas:
+    "dates quick"
+    "search action" !important;
   align-items: center !important;
   gap: 8px !important;
-  width: 100% !important;
 }
 
-html body .cashflow-filter-row-bottom {
+html body .cashflow-overview-filter-panel :is(.cashflow-filter-row-top, .cashflow-filter-row-search) {
+  display: contents !important;
+}
+
+html body .cashflow-overview-filter-panel .cashflow-filter-row-bottom {
+  grid-area: dates !important;
   display: flex !important;
   align-items: center !important;
   flex-wrap: nowrap !important;
@@ -3517,53 +3518,52 @@ html body .cashflow-filter-row-bottom {
   min-width: 0 !important;
 }
 
-html body .cashflow-filter-row-search {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
+html body .cashflow-overview-filter-panel .cashflow-quick-period-select {
+  grid-area: quick !important;
+  width: 100% !important;
+  min-width: 118px !important;
+  max-width: none !important;
+}
+
+html body .cashflow-overview-filter-panel :is(.cashflow-filter-search-input, .manage-card-search-input, .cashflow-filter-action-spacer) {
+  grid-area: search !important;
   width: 100% !important;
   min-width: 0 !important;
 }
 
-html body .cashflow-filter-row-search :is(.cashflow-filter-search-input, .manage-card-search-input),
-html body .cashflow-filter-action-spacer {
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-}
-
-html body .cashflow-filter-row-search :is(.cashflow-filter-add, .cashflow-filter-apply) {
-  flex: 0 0 auto !important;
-  width: auto !important;
-}
-
-html body .manage-filter-panel .cashflow-filter-stack {
-  grid-template-columns: max-content minmax(0, 1fr) max-content !important;
-  grid-template-areas:
-    "quick dates dates"
-    "search search action" !important;
-  align-items: center !important;
-}
-
-html body .manage-filter-panel .cashflow-filter-row-top {
-  display: contents !important;
-}
-
-html body .manage-filter-panel .cashflow-filter-row-top > .cashflow-quick-period-select {
-  grid-area: quick !important;
-}
-
-html body .manage-filter-panel .cashflow-filter-row-top > .manage-add-top-btn {
+html body .cashflow-filter-actions {
   grid-area: action !important;
-  width: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
   min-width: 118px !important;
 }
 
-html body .manage-filter-panel .cashflow-filter-row-bottom {
-  grid-area: dates !important;
+html body .cashflow-filter-actions > :only-child {
+  width: 100% !important;
 }
 
-html body .manage-filter-panel .cashflow-filter-row-search {
-  grid-area: search !important;
+html body .cashflow-filter-actions :is(.cashflow-filter-add, .cashflow-filter-apply) {
+  flex: 0 0 auto !important;
+}
+
+html body .manage-filter-panel .manage-add-top-btn {
+  grid-area: action !important;
+  width: 100% !important;
+  min-width: 118px !important;
+}
+
+html body select.platform-content-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-image: none !important;
+  text-align: left !important;
+  text-align-last: left !important;
+}
+
+html body .cashflow-overview-filter-panel :is(input, select, .date-display-text) {
+  text-align: left !important;
+  text-align-last: left !important;
 }
 
 @media (max-width: 768px) {
@@ -3572,7 +3572,8 @@ html body .manage-filter-panel .cashflow-filter-row-search {
   }
 
   html body .cashflow-quick-period-select {
-    max-width: 132px !important;
+    min-width: 112px !important;
+    max-width: none !important;
     padding-inline: 9px !important;
   }
 
@@ -3588,9 +3589,13 @@ html body .manage-filter-panel .cashflow-filter-row-search {
     white-space: nowrap !important;
   }
 
-  html body .manage-filter-panel .cashflow-filter-row-top > .manage-add-top-btn {
-    width: auto !important;
+  html body .manage-filter-panel .manage-add-top-btn,
+  html body .cashflow-filter-actions {
+    width: 100% !important;
     min-width: 112px !important;
+  }
+
+  html body .manage-filter-panel .manage-add-top-btn {
     padding-inline: 12px !important;
   }
 }

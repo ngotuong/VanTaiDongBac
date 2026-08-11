@@ -266,18 +266,18 @@ test('Fixed-option filters use intrinsic width while search and date controls st
   assert.match(css, /html body \.reports-filter-row \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) max-content !important;/);
 });
 
-test('Shared filter toolbar keeps time controls together and search beside the primary action', () => {
+test('Shared filter toolbar aligns dates/search left and quick/action right without select arrows', () => {
   const cashflow = read('next-shell/components/cashflow/CashflowModule.tsx');
   const manage = read('next-shell/components/manage/ManageReadOnlyModule.tsx');
   const css = read('next-shell/app/platform.css');
 
-  assert.match(cashflow, /className="cashflow-filter-row-top">[\s\S]*cashflow-quick-period-select[\s\S]*className="cashflow-filter-row-bottom"/);
-  assert.match(cashflow, /className="cashflow-filter-row-search">[\s\S]*cashflow-filter-search-input[\s\S]*cashflow-filter-add/);
-  assert.match(manage, /cashflow-filter-row-top[\s\S]*cashflow-quick-period-select[\s\S]*manage-add-top-btn[\s\S]*cashflow-filter-row-bottom[\s\S]*cashflow-filter-row-search/);
+  assert.match(cashflow, /className="cashflow-filter-row-top">[\s\S]*className="cashflow-filter-row-bottom"[\s\S]*cashflow-quick-period-select/);
+  assert.match(cashflow, /className="cashflow-filter-row-search">[\s\S]*cashflow-filter-search-input[\s\S]*cashflow-filter-actions[\s\S]*cashflow-filter-add/);
+  assert.match(manage, /cashflow-filter-row-top[\s\S]*cashflow-filter-row-bottom[\s\S]*cashflow-quick-period-select[\s\S]*cashflow-filter-row-search[\s\S]*manage-card-search-input[\s\S]*manage-add-top-btn/);
   assert.match(css, /Shared filter-toolbar contract/);
-  assert.match(css, /grid-template-areas:\s*"quick dates dates"\s*"search search action" !important;/);
-  assert.match(css, /\.cashflow-shared-filter \.cashflow-filter-row-top \{[\s\S]*grid-template-columns: max-content minmax\(0, 1fr\)/);
-  assert.match(css, /\.cashflow-filter-row-search \{[\s\S]*display: flex !important;/);
+  assert.match(css, /grid-template-columns: minmax\(0, 1fr\) max-content !important;[\s\S]*grid-template-areas:\s*"dates quick"\s*"search action" !important;/);
+  assert.match(css, /\.cashflow-overview-filter-panel :is\(\.cashflow-filter-row-top, \.cashflow-filter-row-search\) \{[\s\S]*display: contents !important;/);
+  assert.match(css, /select\.platform-content-select \{[\s\S]*appearance: none !important;[\s\S]*text-align: left !important;/);
 });
 
 test('Cashflow bottom-sheet headers are compact and align titles to the left', () => {

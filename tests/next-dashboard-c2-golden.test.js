@@ -29,6 +29,21 @@ test('Dashboard recent trips counts one physical vehicle once across projects an
   ]), 2);
 });
 
+test('Dashboard reads live Phí Phường and groups it with road fees in the chart', async () => {
+  const { parseDashboardRows } = await import(helperUrl);
+  const matrix = [
+    ['Tháng', 'Tổng Khối Lượng', 'Tổng Doanh Thu', 'Thuế TNDN', 'Thuế VAT', 'Dầu Quang Minh', 'Phí Đi Đường', 'Phí Phường', 'Lợi Nhuận Gộp', 'Dầu ngoài', 'Chi phí lương', 'Chi Quỹ', 'Lợi Nhuận Thực'],
+    ['08/2026', 100, 1_000, 10, 20, 30, 40, 50, 850, 60, 70, 80, 640]
+  ];
+  const [row] = parseDashboardRows(matrix);
+  assert.equal(row.roadFee, 40);
+  assert.equal(row.wardFee, 50);
+
+  const source = require('node:fs').readFileSync(path.resolve(__dirname, '../next-shell/components/dashboard/DashboardModule.tsx'), 'utf8');
+  assert.match(source, /const wardAndRoadFee = roadFee \+ wardFee/);
+  assert.match(source, /label: 'Phường & Luật'/);
+});
+
 test('Dashboard places financial structure immediately above recent trips and uses approved labels and colors', () => {
   const fs = require('node:fs');
   const source = fs.readFileSync(path.resolve(__dirname, '../next-shell/components/dashboard/DashboardModule.tsx'), 'utf8');

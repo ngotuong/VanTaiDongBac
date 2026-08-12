@@ -291,6 +291,14 @@ function syncTripNotifications() {
   return SupabaseService.syncTripNotifications();
 }
 
+function syncOperationalNotifications() {
+  return SupabaseService.syncOperationalNotifications();
+}
+
+function dispatchNotifications() {
+  return SupabaseService.dispatchNotifications();
+}
+
 function installTransportSheetSyncTrigger(spreadsheetId) {
   return SupabaseService.installTransportSheetSyncTrigger(spreadsheetId);
 }

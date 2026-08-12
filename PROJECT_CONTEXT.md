@@ -135,17 +135,19 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
-### Trung tâm thông báo đối soát, trạng thái đã đọc và PWA badge — Preview hoàn thành 2026-08-12
+### Trung tâm thông báo đa nguồn, Web Push và daily digest — candidate 2026-08-12
 
 - Header đã bỏ icon mở Google Sheet và thay bằng chuông thông báo có badge, panel responsive, loading/error/empty state và đóng bằng backdrop/Escape. UI không hiển thị tên sheet/kỹ thuật cho người dùng.
-- `TripNotificationSyncService` chỉ đọc 17 cột công thức của `XL_DoiSoatChuyen`, lấy chênh lệch chuyến và thưởng nóng cần kiểm tra trong 45 ngày gần nhất, rồi ghi một bundle nhỏ `manage_data_bundles` với key `XL_DoiSoatChuyen/notifications:active`. Không ghi, đổi công thức hoặc cấu trúc Google Sheet.
+- `TripNotificationSyncService` chỉ đọc 17 cột công thức của `XL_DoiSoatChuyen`, lấy chênh lệch/thiếu chuyến và thưởng nóng cần kiểm tra trong 45 ngày gần nhất. `OperationalNotificationSyncService` chỉ tin cột công thức `Lưu ý` của `NL_ChamCong` và `Kiểm tra` của `NL_PhanCongLai`; không tự suy diễn quy tắc chấm công/phân công. Hai service chỉ ghi bundle Supabase, không ghi, đổi công thức hoặc cấu trúc Google Sheet.
 - Worker `syncRealtimeCache` cập nhật bundle tối đa mỗi 5 phút; frontend action proxy-local `getNotifications` xác thực session/RBAC rồi chỉ đọc Supabase.
 - Panel có hai chế độ `Xem tất cả`/`Chưa đọc`, đánh dấu từng thông báo hoặc tất cả đã đọc; chưa đọc có nền đậm, chấm trạng thái và tiêu đề đậm. Trạng thái đã đọc được lưu theo tài khoản trên từng thiết bị, không cần migration và không ghi Google Sheet. Fingerprint gồm ID + nội dung nghiệp vụ nên cảnh báo thay đổi sẽ trở thành chưa đọc.
-- Badge chuông dùng số chưa đọc. Client đồng bộ cùng số sang Badging API; service worker nhận cả message foreground và `unreadCount`/`badgeCount` trong Web Push để cập nhật icon PWA khi xử lý nền. iOS/iPadOS yêu cầu web app đã thêm vào Màn hình chính, phiên bản 16.4+ và người dùng cho phép thông báo/badge. Loại cảnh báo đối soát hiện chưa có job gửi Web Push tự động, nên cảnh báo mới khi app đóng hoàn toàn chỉ tăng badge sau lần mở app kế tiếp cho tới khi bổ sung delivery job.
+- API trung tâm hợp nhất năm nhóm đã duyệt: đối soát/thưởng, số dư Quỹ dưới ngưỡng, chấm công/phân công cần kiểm tra, sync/write queue lỗi và tổng hợp cuối ngày. Cảnh báo hệ thống chỉ hiện/gửi cho admin; operator nhận nghiệp vụ Vận hành; shareholder giữ quyền xem đối soát cũ và nhận cảnh báo Quỹ.
+- Delivery Web Push gom sự kiện mới theo nhóm để chống nhiễu, tạo baseline lần đầu để không bắn lại cảnh báo cũ, gửi daily digest lúc 20:00 Việt Nam và cập nhật PWA badge qua `unreadCount`/`badgeCount`. Preference mở rộng lưu server-only trong `notification_rule_states`, không cần migration mới; fund preference tiếp tục dùng bảng hiện hành.
+- Apps Script dispatch có feature gate `NOTIFICATION_DISPATCH_ENABLED`; candidate/Preview giữ tắt. Production chỉ bật sau khi Vercel endpoint đã cut-forward và đặt đúng `NOTIFICATION_DISPATCH_URL`/`NOTIFICATION_DISPATCH_SECRET`, tránh trigger HEAD gọi nhầm môi trường.
 - Authenticated Preview có 28 cảnh báo thực tế. QA PASS ở 390x844 và 1440x900: đọc một mục làm số chưa đọc và badge giảm 28→27; `Chưa đọc` hiển thị đúng 27 mục; `Xem tất cả` hiển thị 28 mục gồm 1 đã đọc; nền/chấm/trọng lượng chữ đổi đúng trạng thái, panel không tràn viewport, không còn text nguồn và không có console warning/error.
 - Toàn bộ `select.platform-content-select` giữ 40px gutter cho chevron, text căn trái và không dùng `field-sizing` làm mất phần đệm. Danh mục chỉ render bộ lọc phù hợp với tab; search, filter và icon Nhập mới đều 44px, cùng một hàng tại 390px và 1440px. Audit Vận hành, Quỹ và Báo cáo xác nhận select visible đều có `padding-right: 40px`, text trái và trang không tràn ngang.
-- Full deploy gate PASS 485/485 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Preview giữ `@327` vì checkpoint chỉ sửa Next/PWA; Vercel Preview `dpl_73tjf6H3ByCGnShAKiY9FMUgL29U`. Production không đổi tại `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` / Apps Script `@325`.
-- Checkpoint tiếp theo: chờ người dùng duyệt trực quan Preview; chỉ promote Production khi có phê duyệt riêng. Nếu cần badge tự tăng khi app đóng hoàn toàn, bổ sung delivery job Web Push cho cảnh báo đối soát là checkpoint tách biệt.
+- Full deploy gate PASS 489/489 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Preview `@328`; Vercel Preview `dpl_D91md3tiXGKG46TKJcWqFihRymj5`. Production không đổi tại `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` / Apps Script `@325`.
+- Authenticated Preview QA PASS: trung tâm hợp nhất 30 cảnh báo active, trong đó có cảnh báo chấm công lấy đúng helper workbook và lỗi refresh queue lấy từ `sync_status`; 5 preference hiển thị đúng ở Cài đặt, không có runtime log warning/error. Delivery gate vẫn tắt nên không phát Web Push thật.
 
 ### Auth hydration và filter-control contract — Preview hoàn thành 2026-08-12
 
@@ -250,10 +252,9 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-1. **Duyệt Preview notification/filter**: người dùng kiểm tra chuông, nội dung cảnh báo, Danh mục trên mobile/desktop tại `https://vantaidongbac-preview.vercel.app`.
-2. **Production cut-forward riêng**: nếu được phê duyệt, cập nhật Apps Script Production từ `@325` sang candidate notification hiện hành rồi build/promote Vercel Production với Production environment; giữ rollback bất biến.
-3. **Mở rộng trạng thái thông báo**: nếu cần badge “chưa đọc” theo user hoặc Web Push cho đối soát chuyến, tạo checkpoint/migration riêng; không suy ra từ badge cảnh báo active hiện tại.
-4. **Cron cảnh báo Quỹ riêng**: vẫn là checkpoint độc lập, chưa bật.
+1. **Duyệt Preview notification đa nguồn**: kiểm tra chuông, nội dung theo vai trò và năm loại preference tại `https://vantaidongbac-preview.vercel.app`.
+2. **Production cut-forward riêng**: nếu được phê duyệt, deploy Vercel endpoint trước, cập nhật Apps Script Production từ `@325`, rồi mới bật ba Script Properties của notification dispatch; kiểm tra baseline không gửi cảnh báo cũ.
+3. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
 
 ## 7. Mục tiêu kiến trúc dài hạn
 

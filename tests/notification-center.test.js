@@ -20,6 +20,28 @@ test('notification cache is derived read-only from XL_DoiSoatChuyen and synced e
   assert.match(facade, /syncTripNotificationsIfDue_\(props, nowMillis\)/);
 });
 
+test('operations notifications trust only workbook helper columns and never write Google Sheets', () => {
+  const sync = read('OperationalNotificationSyncService.gs');
+  assert.match(sync, /NL_ChamCong/);
+  assert.match(sync, /NL_PhanCongLai/);
+  assert.match(sync, /row\[10\]/);
+  assert.match(sync, /row\[4\]/);
+  assert.match(sync, /operations:active/);
+  assert.doesNotMatch(sync, /setValue|setValues|appendRow|deleteRow/);
+});
+
+test('notification delivery is opt-in, baselined and disabled in Apps Script until production rollout', () => {
+  const dispatch = read('NotificationDispatchService.gs');
+  const service = read('server/services/notification-dispatch-service.js');
+  const preferences = read('server/repositories/notification-preference-repository.js');
+  assert.match(dispatch, /NOTIFICATION_DISPATCH_ENABLED/);
+  assert.match(dispatch, /Notification dispatch is disabled/);
+  assert.match(service, /notification-dispatch-baseline-v1/);
+  assert.match(service, /Daily digest is scheduled at 20:00/);
+  assert.match(preferences, /notification-preference:/);
+  assert.match(preferences, /notification_rule_states/);
+});
+
 test('notification API remains authenticated, shareholder-readable and Supabase-only', () => {
   const proxy = read('api/app.js');
   const policy = read('server/services/authorization-policy.js');

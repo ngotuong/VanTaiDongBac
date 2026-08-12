@@ -63,7 +63,7 @@ Không restore toàn workbook vì có thể ghi đè dữ liệu nghiệp vụ p
 - Nếu read cache lỗi, ưu tiên rollback runtime/candidate; Google Sheets vẫn là nguồn đối soát.
 - Không retry hàng loạt write jobs khi chưa biết job nào đã ghi Sheet; dùng exact job ID/idempotency marker.
 - Queue cleanup phải scope đúng project canonical và lưu bằng chứng trước/sau.
-- Cron cảnh báo Quỹ rollback bằng tắt `FUND_LOW_BALANCE_ALERT_ENABLED` và bỏ cron config trong deployment production tiếp theo; không xóa subscription/rule migrations.
+- Cron cảnh báo Quỹ cũ rollback bằng tắt `FUND_LOW_BALANCE_ALERT_ENABLED`. Pipeline đa nguồn rollback tức thời bằng Script Property `NOTIFICATION_DISPATCH_ENABLED=false`; không xóa subscription, preference, baseline hoặc rule state.
 
 ## 7. Data rollback
 

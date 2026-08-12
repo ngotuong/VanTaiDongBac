@@ -4010,6 +4010,12 @@ html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg 
   background: #ffedd5;
 }
 
+.notification-item.error .notification-item-icon {
+  color: #b42318;
+  background: #fee4e2;
+  border-color: #fecdca;
+}
+
 .notification-item.success .notification-item-icon {
   color: #047857;
   background: #d1fae5;

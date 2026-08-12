@@ -1,16 +1,23 @@
 const FUND_NOTIFICATION_KEY = 'fund-low-balance';
 const FUND_RULE_KEY = 'fund-current-balance-below-10m';
 const FUND_ROLES = new Set(['admin', 'shareholder']);
+const NOTIFICATION_TYPES = Object.freeze([
+  { key: 'trip-reconciliation', label: 'Đối soát chuyến & thưởng', description: 'Chênh lệch, thiếu chuyến và thưởng nóng mới.', roles: ['admin', 'operator'] },
+  { key: FUND_NOTIFICATION_KEY, label: 'Cảnh báo số dư Quỹ', description: 'Số dư hiện tại xuống dưới ngưỡng đã đặt.', roles: ['admin', 'shareholder'] },
+  { key: 'operations-integrity', label: 'Kiểm tra vận hành', description: 'Chấm công hoặc phân công lái được workbook báo bất thường.', roles: ['admin', 'operator'] },
+  { key: 'system-health', label: 'Lỗi đồng bộ & hàng đợi', description: 'Cache cũ, đồng bộ lỗi hoặc thao tác ghi bị treo.', roles: ['admin'] },
+  { key: 'daily-digest', label: 'Tổng hợp cuối ngày', description: 'Một bản tổng hợp lúc 20:00 thay cho nhiều thông báo rời.', roles: ['admin', 'operator', 'shareholder'] }
+]);
 
 function createNotificationSettingsService({ preferenceRepository, ruleConfigRepository, httpError, now = () => new Date() }) {
-  function canUseFund(user) { return FUND_ROLES.has(user.role); }
+  function allowedTypes(user) { return NOTIFICATION_TYPES.filter((type) => type.roles.includes(user.role)); }
   async function preferences(config, user) {
     const rows = await preferenceRepository.listByUser(config, user.id);
     const stored = new Map(rows.map((row) => [row.notification_key, Boolean(row.enabled)]));
-    return { types: canUseFund(user) ? [{ key: FUND_NOTIFICATION_KEY, label: 'Cảnh báo số dư Quỹ', description: 'Nhận cảnh báo khi tổng Số dư hiện tại xuống dưới ngưỡng.', enabled: stored.get(FUND_NOTIFICATION_KEY) ?? true }] : [] };
+    return { types: allowedTypes(user).map(({ key, label, description }) => ({ key, label, description, enabled: stored.get(key) ?? true })) };
   }
   async function setPreference(config, user, key, enabled) {
-    if (key !== FUND_NOTIFICATION_KEY || !canUseFund(user)) throw httpError(403, 'Tài khoản không được sử dụng loại thông báo này.');
+    if (!allowedTypes(user).some((type) => type.key === key)) throw httpError(403, 'Tài khoản không được sử dụng loại thông báo này.');
     if (typeof enabled !== 'boolean') throw httpError(400, 'Trạng thái lựa chọn thông báo không hợp lệ.');
     await preferenceRepository.upsert(config, user.id, key, enabled, now().toISOString());
     return { notificationKey: key, enabled };
@@ -41,4 +48,4 @@ function createNotificationSettingsService({ preferenceRepository, ruleConfigRep
   }
   return { preferences, setPreference, normalizeRule, getRule, updateRule, publicRule };
 }
-module.exports = { createNotificationSettingsService, FUND_NOTIFICATION_KEY, FUND_RULE_KEY };
+module.exports = { createNotificationSettingsService, FUND_NOTIFICATION_KEY, FUND_RULE_KEY, NOTIFICATION_TYPES };

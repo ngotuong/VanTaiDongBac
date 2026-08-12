@@ -19,9 +19,10 @@ test('eligible users default to the fund alert and can persist their own prefere
   assert.deepEqual(writes[0], { userId: 'shareholder-1', key: 'fund-low-balance', enabled: false });
 });
 
-test('operators cannot opt into the fund alert', async () => {
+test('operators receive operations channels but cannot opt into the fund alert', async () => {
   const service = createNotificationSettingsService({ preferenceRepository: { async listByUser() { return []; } }, ruleConfigRepository: {}, httpError });
-  assert.deepEqual(await service.preferences({}, { id: 'operator-1', role: 'operator' }), { types: [] });
+  const keys = (await service.preferences({}, { id: 'operator-1', role: 'operator' })).types.map((type) => type.key);
+  assert.deepEqual(keys, ['trip-reconciliation', 'operations-integrity', 'daily-digest']);
   await assert.rejects(() => service.setPreference({}, { id: 'operator-1', role: 'operator' }, 'fund-low-balance', true), /không được sử dụng/);
 });
 

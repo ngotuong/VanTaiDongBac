@@ -135,15 +135,17 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
-### Trung tâm thông báo đối soát và filter gutter — Preview hoàn thành 2026-08-12
+### Trung tâm thông báo đối soát, trạng thái đã đọc và PWA badge — Preview hoàn thành 2026-08-12
 
-- Header đã bỏ icon mở Google Sheet và thay bằng chuông thông báo có badge, panel responsive, loading/error/empty state, đóng bằng backdrop/Escape và nguồn hiển thị rõ `XL_DoiSoatChuyen`.
+- Header đã bỏ icon mở Google Sheet và thay bằng chuông thông báo có badge, panel responsive, loading/error/empty state và đóng bằng backdrop/Escape. UI không hiển thị tên sheet/kỹ thuật cho người dùng.
 - `TripNotificationSyncService` chỉ đọc 17 cột công thức của `XL_DoiSoatChuyen`, lấy chênh lệch chuyến và thưởng nóng cần kiểm tra trong 45 ngày gần nhất, rồi ghi một bundle nhỏ `manage_data_bundles` với key `XL_DoiSoatChuyen/notifications:active`. Không ghi, đổi công thức hoặc cấu trúc Google Sheet.
-- Worker `syncRealtimeCache` cập nhật bundle tối đa mỗi 5 phút; frontend action proxy-local `getNotifications` xác thực session/RBAC rồi chỉ đọc Supabase. Checkpoint hiện chưa có trạng thái đã đọc/chưa đọc theo từng người dùng và chưa gửi Web Push cho loại cảnh báo này.
-- Authenticated Preview đang có 28 cảnh báo thực tế. QA panel PASS ở 390x844 và 1440x900; badge/panel hoạt động, không tràn viewport.
+- Worker `syncRealtimeCache` cập nhật bundle tối đa mỗi 5 phút; frontend action proxy-local `getNotifications` xác thực session/RBAC rồi chỉ đọc Supabase.
+- Panel có hai chế độ `Xem tất cả`/`Chưa đọc`, đánh dấu từng thông báo hoặc tất cả đã đọc; chưa đọc có nền đậm, chấm trạng thái và tiêu đề đậm. Trạng thái đã đọc được lưu theo tài khoản trên từng thiết bị, không cần migration và không ghi Google Sheet. Fingerprint gồm ID + nội dung nghiệp vụ nên cảnh báo thay đổi sẽ trở thành chưa đọc.
+- Badge chuông dùng số chưa đọc. Client đồng bộ cùng số sang Badging API; service worker nhận cả message foreground và `unreadCount`/`badgeCount` trong Web Push để cập nhật icon PWA khi xử lý nền. iOS/iPadOS yêu cầu web app đã thêm vào Màn hình chính, phiên bản 16.4+ và người dùng cho phép thông báo/badge. Loại cảnh báo đối soát hiện chưa có job gửi Web Push tự động, nên cảnh báo mới khi app đóng hoàn toàn chỉ tăng badge sau lần mở app kế tiếp cho tới khi bổ sung delivery job.
+- Authenticated Preview có 28 cảnh báo thực tế. QA PASS ở 390x844 và 1440x900: đọc một mục làm số chưa đọc và badge giảm 28→27; `Chưa đọc` hiển thị đúng 27 mục; `Xem tất cả` hiển thị 28 mục gồm 1 đã đọc; nền/chấm/trọng lượng chữ đổi đúng trạng thái, panel không tràn viewport, không còn text nguồn và không có console warning/error.
 - Toàn bộ `select.platform-content-select` giữ 40px gutter cho chevron, text căn trái và không dùng `field-sizing` làm mất phần đệm. Danh mục chỉ render bộ lọc phù hợp với tab; search, filter và icon Nhập mới đều 44px, cùng một hàng tại 390px và 1440px. Audit Vận hành, Quỹ và Báo cáo xác nhận select visible đều có `padding-right: 40px`, text trái và trang không tràn ngang.
-- Full deploy gate PASS 485/485 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Preview `@327`; Vercel Preview `dpl_9wojS6Y1GVauiKugpRq9WPiACSpZ`; Production giữ nguyên `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` / Apps Script `@325`.
-- Checkpoint tiếp theo: chờ người dùng duyệt trực quan Preview; chỉ promote Production khi có phê duyệt riêng.
+- Full deploy gate PASS 485/485 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Preview giữ `@327` vì checkpoint chỉ sửa Next/PWA; Vercel Preview `dpl_73tjf6H3ByCGnShAKiY9FMUgL29U`. Production không đổi tại `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` / Apps Script `@325`.
+- Checkpoint tiếp theo: chờ người dùng duyệt trực quan Preview; chỉ promote Production khi có phê duyệt riêng. Nếu cần badge tự tăng khi app đóng hoàn toàn, bổ sung delivery job Web Push cho cảnh báo đối soát là checkpoint tách biệt.
 
 ### Auth hydration và filter-control contract — Preview hoàn thành 2026-08-12
 

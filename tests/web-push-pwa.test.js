@@ -10,6 +10,9 @@ test('Web Push service worker handles visible notifications without caching app 
   const worker = read('public/sw.js');
   assert.match(worker, /addEventListener\('push'/);
   assert.match(worker, /showNotification/);
+  assert.match(worker, /self\.navigator\.setAppBadge/);
+  assert.match(worker, /payload\.unreadCount/);
+  assert.match(worker, /event\.data\?\.type !== 'SET_APP_BADGE'/);
   assert.match(worker, /addEventListener\('notificationclick'/);
   assert.doesNotMatch(worker, /addEventListener\(['"]fetch['"]/);
   assert.doesNotMatch(worker, /caches\.|CacheStorage|indexedDB/);

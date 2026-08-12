@@ -4,14 +4,25 @@ self.addEventListener('push', (event) => {
   const title = String(payload.title || 'Vận tải Đông Bắc').slice(0, 80);
   const body = String(payload.body || 'Bạn có một thông báo mới.').slice(0, 180);
   const target = typeof payload.url === 'string' && payload.url.startsWith('/') ? payload.url : '/';
-  event.waitUntil(self.registration.showNotification(title, {
+  const tasks = [self.registration.showNotification(title, {
     body,
     icon: '/static/assets/icon-192.png',
     badge: '/static/assets/favicon.png',
     tag: String(payload.tag || 'vtdb-notification').slice(0, 80),
     renotify: false,
     data: { url: target }
-  }));
+  })];
+  const badgeCount = Number(payload.unreadCount ?? payload.badgeCount);
+  if (Number.isFinite(badgeCount) && badgeCount >= 0 && 'setAppBadge' in self.navigator) {
+    tasks.push(badgeCount > 0 ? self.navigator.setAppBadge(badgeCount) : self.navigator.clearAppBadge());
+  }
+  event.waitUntil(Promise.all(tasks));
+});
+self.addEventListener('message', (event) => {
+  if (event.data?.type !== 'SET_APP_BADGE' || !('setAppBadge' in self.navigator)) return;
+  const count = Number(event.data.count);
+  if (!Number.isFinite(count) || count < 0) return;
+  event.waitUntil(count > 0 ? self.navigator.setAppBadge(count) : self.navigator.clearAppBadge());
 });
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();

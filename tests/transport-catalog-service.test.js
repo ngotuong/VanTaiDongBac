@@ -50,6 +50,22 @@ const sheetRows = {
     ['', '', '', '', '', '', '', '', '', 'Ngày công'],
     ['', '', '', '', '', '', '', '', '', 'Ngày công'],
     ['', '', '', '', '', '', '', '', '', 'Nghỉ phép']
+  ],
+  NL_Dau: [
+    [],
+    ['Ngày', 'Tháng', 'Biển số', 'Nguồn dầu', '', '', '', 'Nguồn chi'],
+    ['', '', '', 'Quang Minh', '', '', '', 'Quang Quân'],
+    ['', '', '', 'Đổ ngoài', '', '', '', 'Quỹ']
+  ],
+  NL_NghiVanHanh: [
+    ['Ngày', 'Tháng', 'Biển số xe', 'Dự án', 'Loại nghỉ'],
+    ['', '', '', '', 'Mỏ báo nghỉ']
+  ],
+  SYS_DanhSach: [
+    ['DS_NhomVanHanh'],
+    ['Tràng Duệ'],
+    ['Amata'],
+    ['Dự án nhỏ']
   ]
 };
 
@@ -60,10 +76,14 @@ test('catalog reader preserves the full baseline payload and active filters', ()
   assert.deepEqual(result.activePeople.map((item) => item.name), ['An']);
   assert.deepEqual(result.activeDrivers.map((item) => item.name), ['An']);
   assert.deepEqual(result.projects, [{ name: 'Mỏ A', distanceKm: 12.5 }]);
+  assert.deepEqual(result.operationGroups.map((item) => item.name), ['Tràng Duệ', 'Amata', 'Dự án nhỏ']);
   assert.deepEqual(result.activePenalties.map((item) => item.code), ['P01']);
   assert.deepEqual(result.params, { KPI: 25 });
   assert.deepEqual(result.chamCongTypes.map((item) => item.name), ['Ngày công', 'Nghỉ phép']);
   assert.deepEqual(result.assignments, []);
+  assert.deepEqual(result.fuelSources, ['Quang Minh', 'Đổ ngoài']);
+  assert.deepEqual(result.fuelPaymentSources, ['Quang Quân', 'Quỹ']);
+  assert.deepEqual(result.nghiVanHanhTypes, ['Mỏ báo nghỉ']);
 });
 
 test('catalog form needs remain narrow and unknown forms fall back to the full set', () => {
@@ -82,7 +102,7 @@ test('catalog form needs remain narrow and unknown forms fall back to the full s
   const drivers = plain(service.readCatalogs(ss, 'taiXe'));
   assert.equal(drivers.vehicles.length, 2);
   assert.equal(drivers.people.length, 2);
-  assert.equal(drivers.projects.length, 0);
+  assert.equal(drivers.projects.length, 1);
   assert.deepEqual(drivers.assignments, []);
 
   const fallback = plain(service.readCatalogs(ss, 'unknown'));

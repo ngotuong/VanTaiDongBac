@@ -149,21 +149,21 @@ test('add loan preserves A:K mapping, formats B/F, repairs the N2 array formula,
 
 test('add payment preserves loan code/type and rejects invalid loan/payment payloads before write', () => {
   const app = loadFund([], { empty: true });
-  const result = app.service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L1', type: 'Trả lãi', partner: 'Bank', amount: 50, content: 'Lãi kỳ 1' });
+  const result = app.service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L1', type: 'Trả lãi', method: 'Tài khoản', partner: 'Bank', amount: 50, content: 'Lãi kỳ 1' });
   const written = app.calls.find((call) => call[0] === 'values')[2][0];
   assert.equal(result.code, 'L1');
   assert.equal(written[0], 'L1');
   assert.equal(written[2], 'Trả lãi');
-  assert.deepEqual(JSON.parse(JSON.stringify(written.slice(3, 6))), ['', 'Bank', 50]);
-  assert.throws(() => loadFund([], { empty: true }).service.addFundLoan('2026', { date: '', partner: 'A', amount: 1 }), /ngày vay hợp lệ/);
-  assert.throws(() => loadFund([], { empty: true }).service.addFundLoanPayment('2026', { date: '2026-07-11', code: '', type: 'Trả nợ', partner: 'A', amount: 1 }), /Thiếu mã khoản vay/);
-  assert.throws(() => loadFund([], { empty: true }).service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L', type: 'Khác', partner: 'A', amount: 1 }), /Trả nợ hoặc Trả lãi/);
+  assert.deepEqual(JSON.parse(JSON.stringify(written.slice(3, 6))), ['Tài khoản', 'Bank', 50]);
+  assert.throws(() => loadFund([], { empty: true }).service.addFundLoan('2026', { date: '', partner: 'A', method: 'Tiền mặt', amount: 1 }), /ngày vay hợp lệ/);
+  assert.throws(() => loadFund([], { empty: true }).service.addFundLoanPayment('2026', { date: '2026-07-11', code: '', type: 'Trả nợ', method: 'Tiền mặt', partner: 'A', amount: 1 }), /Thiếu mã khoản vay/);
+  assert.throws(() => loadFund([], { empty: true }).service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L', type: 'Khác', method: 'Tiền mặt', partner: 'A', amount: 1 }), /Trả nợ hoặc Trả lãi/);
 });
 
 test('loan append clears blocking helper cells below N2 before restoring the array formula', () => {
   const rows = [loan('L1', '2026-07-01', 'Vay', 'A', 1000), loan('L2', '2026-07-02', 'Vay', 'B', 2000)];
   const app = loadFund(rows);
-  app.service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L1', type: 'Trả lãi', partner: 'A', amount: 50 });
+  app.service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L1', type: 'Trả lãi', method: 'Tài khoản', partner: 'A', amount: 50 });
   assert.deepEqual(app.calls.find((call) => call[0] === 'clear'), ['clear', '3:14:1:1']);
   assert.equal(app.calls.some((call) => call[0] === 'formula' && call[1] === '2:14:1:1' && /ARRAYFORMULA/.test(call[2])), true);
 });

@@ -8,19 +8,20 @@ const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
-test('Tài xế builder resolves Nhóm vận hành by effective vehicle assignment', () => {
+test('Tài xế builder preserves the explicitly selected Nhóm vận hành dropdown value', () => {
   const context = vm.createContext({});
   new vm.Script(read('NormalizationUtils.gs'), { filename: 'NormalizationUtils.gs#schema-drift' }).runInContext(context);
   new vm.Script(read('ValidationService.gs'), { filename: 'ValidationService.gs#schema-drift' }).runInContext(context);
   const result = context.ValidationService.buildRows('taiXe', [{
     date: '2026-07-24',
     vehicle: '20H05602',
+    operationGroup: 'Amata',
     driver: 'Nguyễn Văn A',
     trips: '3,5',
     note: 'Ca tối'
   }], {
     vehicles: [], people: [],
-    assignments: [{ plate: '20H05602', operationGroup: 'Amata', startDate: '2026-07-01', endDate: '2026-07-31' }]
+    operationGroups: [{ name: 'Amata' }]
   });
   assert.equal(result.values[0][0].getFullYear(), 2026);
   assert.equal(result.values[0][0].getMonth(), 6);
@@ -30,18 +31,13 @@ test('Tài xế builder resolves Nhóm vận hành by effective vehicle assignme
   ]);
 });
 
-test('Tài xế builder fails closed when assignment is missing or overlaps', () => {
+test('Tài xế builder requires an explicit Nhóm vận hành selection', () => {
   const context = vm.createContext({});
   new vm.Script(read('NormalizationUtils.gs')).runInContext(context);
   new vm.Script(read('ValidationService.gs')).runInContext(context);
   const row = { date: '2026-07-24', vehicle: '20H05602', driver: 'Nguyễn Văn A', trips: 1 };
-  const missing = context.ValidationService.buildRows('taiXe', [row], { vehicles: [], people: [], assignments: [] });
-  assert.match(missing.errors[0], /Chua co nhom van hanh/);
-  const overlap = context.ValidationService.buildRows('taiXe', [row], { vehicles: [], people: [], assignments: [
-    { plate: '20H05602', operationGroup: 'Amata', startDate: '2026-07-01', endDate: '2026-07-31' },
-    { plate: '20H05602', operationGroup: 'Tràng Duệ', startDate: '2026-07-20', endDate: '2026-08-01' }
-  ] });
-  assert.match(overlap.errors[0], /nhieu nhom van hanh chong lan/);
+  const missing = context.ValidationService.buildRows('taiXe', [row], { vehicles: [], people: [], operationGroups: [] });
+  assert.match(missing.errors[0], /Nhom van hanh/);
 });
 
 test('Catalog projection stops before a secondary table separated by a blank header', () => {
@@ -106,9 +102,11 @@ test('Manage exposes NL_PhanCongLai without routing its add button to another fo
   assert.match(manageSync, /'NL_PhanCongLai'/);
 });
 
-test('Manage editor protects live formula-derived transport columns', () => {
+test('Manage editor protects formulas while keeping live operation-group dropdowns editable', () => {
   const manageModule = read('next-shell/components/manage/ManageReadOnlyModule.tsx');
-  assert.match(manageModule, /sheet==='NL_TaiXe'&&h==='nhom van hanh'/);
+  assert.doesNotMatch(manageModule, /formulaColumn[^\n]*NL_TaiXe[^\n]*nhom van hanh/);
+  assert.match(manageModule, /h==='nhom van hanh'\|\|\(sheet==='NL_NghiVanHanh'/);
+  assert.match(manageModule, /manageOptions\(header,catalogs,sheet\)/);
   assert.match(manageModule, /sheet==='NL_Dau'&&\['thanh tien','cong ty so huu'\]\.includes\(h\)/);
   assert.match(manageModule, /sheet==='NL_NghiVanHanh'&&\['tinh kpi','giam kpi','kiem tra'\]/);
 });

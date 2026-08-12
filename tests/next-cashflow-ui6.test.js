@@ -336,6 +336,15 @@ test('Cashflow prefetches the first Fund catalog group from Supabase', () => {
   assert.match(module, /catalogPrefetchStarted\.current = true/);
 });
 
+test('Cashflow forms use live Sheet methods and the canonical loan payment types', () => {
+  const module = read('next-shell/components/cashflow/CashflowModule.tsx');
+  const types = read('next-shell/lib/platform/cashflow-types.ts');
+  assert.match(types, /methods\?:string\[\]/);
+  assert.match(module, /\(options\.methods \|\| \[\]\)\.map/);
+  assert.doesNotMatch(module, /<option>Trả gốc<\/option>/);
+  assert.match(module, /<option>Trả nợ<\/option>[\s\S]*<option>Trả lãi<\/option>/);
+});
+
 test('Cashflow success feedback stays in toast and each drawer owns one portal and backdrop', () => {
   const module = read('next-shell/components/cashflow/CashflowModule.tsx');
 

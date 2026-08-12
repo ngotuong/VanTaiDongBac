@@ -11,24 +11,26 @@ var FundLoanService = (function () {
   }
 
   function buildLoanRow(payload, context) {
-    var item = payload || {}, date = context.parseDate(item.date, item.date), partner = context.clean(item.partner), amount = context.parseNumber(item.amount);
+    var item = payload || {}, date = context.parseDate(item.date, item.date), partner = context.clean(item.partner), method = context.clean(item.method), amount = context.parseNumber(item.amount);
     var firstInterestDate = context.parseDate(item.firstInterestDate, item.firstInterestDate);
     if (!date) throw new Error('Vui lòng nhập ngày vay hợp lệ.');
     if (!partner) throw new Error('Vui lòng nhập đối tác cho khoản vay.');
+    if (!method) throw new Error('Vui lòng chọn hình thức cho khoản vay.');
     if (!(amount > 0)) throw new Error('Số tiền vay phải lớn hơn 0.');
-    return [context.buildVoucher(date), date, 'Vay', context.clean(item.method), partner, amount, context.parseNumber(item.termMonths) || '',
+    return [context.buildVoucher(date), date, 'Vay', method, partner, amount, context.parseNumber(item.termMonths) || '',
       context.parseNumber(item.annualRate) || '', context.parseNumber(item.interestPeriodMonths) || '', firstInterestDate || '', context.clean(item.content)];
   }
 
   function buildPaymentRow(payload, context) {
     var item = payload || {}, date = context.parseDate(item.date, item.date), code = context.clean(item.code), type = context.clean(item.type);
-    var partner = context.clean(item.partner), amount = context.parseNumber(item.amount);
+    var partner = context.clean(item.partner), method = context.clean(item.method), amount = context.parseNumber(item.amount);
     if (!date) throw new Error('Vui lòng nhập ngày thanh toán hợp lệ.');
     if (!code) throw new Error('Thiếu mã khoản vay cần thanh toán.');
     if (type !== 'Trả nợ' && type !== 'Trả lãi') throw new Error('Vui lòng chọn Trả nợ hoặc Trả lãi.');
     if (!partner) throw new Error('Vui lòng nhập đối tác cho khoản vay.');
+    if (!method) throw new Error('Vui lòng chọn hình thức thanh toán.');
     if (!(amount > 0)) throw new Error('Số tiền thanh toán phải lớn hơn 0.');
-    return [code, date, type, '', partner, amount, '', '', '', '', context.clean(item.content)];
+    return [code, date, type, method, partner, amount, '', '', '', '', context.clean(item.content)];
   }
 
   function buildFilterFormula(rowNumber) {

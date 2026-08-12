@@ -1,5 +1,5 @@
 var FundService = (function () {
-  var FUND_CACHE_VERSION = 'fund_v7';
+  var FUND_CACHE_VERSION = 'fund_v8';
   var FUND_TTL_SECONDS = 300;
   var FUND_CATALOG_TTL_SECONDS = 21600;
   var FUND_DATA_VERSION_PROP = 'FUND_DATA_VERSION_V1';
@@ -210,6 +210,7 @@ var FundService = (function () {
     context.fallbackPartners = function () { return getFallbackFundPartners_(ss); };
     context.fallbackLoanPartners = function () { return getFallbackFundLoanPartners_(ss); };
     var result = FundCatalogService.getFormOptions(context);
+    result.methods = readNamedRangeValues_(ss, 'HINHTHUC');
     result.settings = publicFundSettings_(settings);
     putFundCache_(optionsCacheKey, result, FUND_CATALOG_TTL_SECONDS);
     return result;
@@ -706,13 +707,13 @@ var FundService = (function () {
   }
 
   function getFallbackFundIncomeCategories_(ss, settings) {
-    var values = readValuesByTransactionType_(ss, 'Thu', 3);
+    var values = readFundDropdownValues_(ss, 5, 3, 13).concat(readValuesByTransactionType_(ss, 'Thu', 3));
     if (settings && settings.loanIncomeName) values.unshift(settings.loanIncomeName);
     return values;
   }
 
   function getFallbackFundExpenseCategories_(ss) {
-    return readValuesByTransactionType_(ss, 'Chi', 4);
+    return readFundDropdownValues_(ss, 8, 3, 38).concat(readValuesByTransactionType_(ss, 'Chi', 4));
   }
 
   function getFallbackFundActors_(ss) {
@@ -963,6 +964,17 @@ var FundService = (function () {
     var sheet = ss.getSheetByName(sheetName);
     if (!sheet || sheet.getLastRow() < startRow) return [];
     return flattenValues_(sheet.getRange(startRow, column, sheet.getLastRow() - startRow + 1, 1).getDisplayValues());
+  }
+
+  function readFundDropdownValues_(ss, column, startRow, endRow) {
+    var sheet = ss.getSheetByName(CATALOG_SHEET_NAME);
+    if (!sheet || endRow < startRow) return [];
+    return flattenValues_(sheet.getRange(startRow, column, endRow - startRow + 1, 1).getDisplayValues());
+  }
+
+  function readNamedRangeValues_(ss, name) {
+    var range = ss.getRangeByName(name);
+    return range ? flattenValues_(range.getDisplayValues()) : [];
   }
 
   function readPartners_(ss) {

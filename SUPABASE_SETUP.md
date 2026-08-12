@@ -226,6 +226,18 @@ Sau `012`, apply `supabase/migrations/013_notification_preferences_and_rule_conf
 
 Vercel Hobby chỉ bảo đảm cron theo độ chính xác giờ; mốc `08:00` có thể chạy trong khung `08:00–08:59`. Đổi lịch cần deploy config riêng, không phải thao tác runtime từ webapp.
 
+### 11.1. Delivery thông báo đa nguồn
+
+Apps Script tick 5 phút có thể gọi `POST /api/notification-dispatch`, nhưng mặc định luôn tắt. Preview không bật delivery tự động. Khi production được phê duyệt, deploy Vercel trước rồi đặt Script Properties:
+
+```text
+NOTIFICATION_DISPATCH_ENABLED=true
+NOTIFICATION_DISPATCH_URL=https://dongbac.vercel.app/api/notification-dispatch
+NOTIFICATION_DISPATCH_SECRET=<cùng giá trị CRON_SECRET của Vercel>
+```
+
+Lần chạy đầu chỉ tạo baseline cho cảnh báo đang active và không gửi. Các lần sau gom sự kiện mới theo nhóm; daily digest chỉ đánh giá lúc 20:00 Việt Nam. Rollback nhanh bằng `NOTIFICATION_DISPATCH_ENABLED=false`; không xóa subscription, preference hoặc rule state.
+
 Nguồn tham khảo chính thức:
 
 - [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys)

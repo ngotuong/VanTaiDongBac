@@ -6,8 +6,9 @@ import { createClientApiClient } from '../../lib/platform/client-api-client';
 
 type NotificationItem = {
   id: string;
-  type: 'reconciliation' | 'hot-bonus';
-  severity: 'warning' | 'success';
+  type: 'reconciliation' | 'hot-bonus' | 'attendance' | 'driver-assignment' | 'fund-low-balance' | 'sync-stale' | 'sync-failure' | 'write-failure';
+  notificationKey?: 'trip-reconciliation' | 'fund-low-balance' | 'operations-integrity' | 'system-health';
+  severity: 'error' | 'warning' | 'success' | 'info';
   title: string;
   message: string;
   date: string;
@@ -15,6 +16,8 @@ type NotificationItem = {
   project?: string;
   amount?: number;
   excessTrips?: number;
+  threshold?: number;
+  url?: string;
 };
 
 type NotificationResponse = {
@@ -216,13 +219,13 @@ export function NotificationCenter({ userId }: { userId: string }) {
         <div className="notification-panel-body" aria-live="polite">
           {loading && !loaded ? <div className="notification-state"><span className="notification-spinner" aria-hidden="true"/>Đang tải thông báo…</div> : null}
           {error ? <div className="notification-state notification-error" role="alert"><span>{error}</span><button type="button" onClick={() => void load(true)}>Thử lại</button></div> : null}
-          {!loading && !error && !items.length ? <div className="notification-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg><strong>Không có cảnh báo mới</strong><span>Dữ liệu đối soát {data.lookbackDays || 45} ngày gần đây đang ổn.</span></div> : null}
+          {!loading && !error && !items.length ? <div className="notification-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg><strong>Không có cảnh báo mới</strong><span>Đối soát, vận hành, Quỹ và đồng bộ hệ thống đang ổn.</span></div> : null}
           {!loading && !error && items.length > 0 && !visibleItems.length ? <div className="notification-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg><strong>Đã xem tất cả thông báo</strong><span>Chọn “Xem tất cả” để xem lại lịch sử đang hoạt động.</span></div> : null}
           {visibleItems.length ? <ul className="notification-list">{visibleItems.map((item) => {
             const unread = !readKeys.has(notificationKey(item));
             return <li className={`notification-item ${item.severity}${unread ? ' unread' : ' read'}`} key={notificationKey(item)}>
               <button type="button" className="notification-item-action" aria-label={`${unread ? 'Đánh dấu đã đọc' : 'Đã đọc'}: ${item.title}`} onClick={() => markRead(item)}>
-                <span className="notification-item-icon" aria-hidden="true">{item.type === 'hot-bonus' ? '₫' : '!'}</span>
+                <span className="notification-item-icon" aria-hidden="true">{item.type === 'hot-bonus' || item.type === 'fund-low-balance' ? '₫' : '!'}</span>
                 <div><div className="notification-item-heading"><strong>{item.title}</strong><time dateTime={item.date}>{dateLabel(item.date)}</time></div><p>{item.message}</p>{item.type === 'hot-bonus' ? <div className="notification-item-meta"><span>{Number(item.excessTrips || 0)} chuyến vượt</span><strong>{money(item.amount)} đ</strong></div> : null}</div>
                 {unread ? <span className="notification-unread-dot" aria-hidden="true"/> : null}
               </button>

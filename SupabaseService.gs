@@ -143,6 +143,7 @@ var SupabaseService = (function () {
     runSyncStep_(results, errors, 'fund', function () { return syncAllFundBundles(DEFAULT_FUND_YEAR); });
     runSyncStep_(results, errors, 'manageData', function () { return syncAllManageDataBundles(); });
     runSyncStep_(results, errors, 'tripNotifications', function () { return syncTripNotifications(); });
+    runSyncStep_(results, errors, 'operationalNotifications', function () { return syncOperationalNotifications(); });
     var syncedAt = new Date().toISOString();
     writeSyncStatus_('realtime_cache', 'system', errors.length ? 'error' : 'ok', errors.length ? JSON.stringify(errors) : 'Realtime cache synced.', syncedAt);
     return {
@@ -238,18 +239,31 @@ var SupabaseService = (function () {
     return TripNotificationSyncService.sync(tripNotificationSyncContext_());
   }
 
+  function syncOperationalNotifications() {
+    return OperationalNotificationSyncService.sync(tripNotificationSyncContext_());
+  }
+
+  function dispatchNotifications() {
+    return NotificationDispatchService.dispatch(tripNotificationSyncContext_());
+  }
+
   function syncTripNotificationsIfDue_(props, nowMillis) {
     var nextAt = Number(props.getProperty(TRIP_NOTIFICATION_NEXT_AT_PROP) || 0);
     if (nextAt > nowMillis) return { checked: false };
     props.setProperty(TRIP_NOTIFICATION_NEXT_AT_PROP, String(nowMillis + TRIP_NOTIFICATION_INTERVAL_MS));
-    try {
-      return syncTripNotifications();
-    } catch (err) {
+    var results = [];
+    var errors = [];
+    runSyncStep_(results, errors, 'tripNotifications', function () { return syncTripNotifications(); });
+    runSyncStep_(results, errors, 'operationalNotifications', function () { return syncOperationalNotifications(); });
+    runSyncStep_(results, errors, 'notificationDispatch', function () { return dispatchNotifications(); });
+    if (errors.length) {
       props.setProperty(TRIP_NOTIFICATION_NEXT_AT_PROP, String(nowMillis + SOURCE_POLL_RETRY_MS));
-      writeSyncStatus_('trip_notifications', 'transport', 'error', err && err.message ? err.message : String(err), new Date(nowMillis).toISOString());
-      console.log('trip_notification_sync_failed: ' + (err && err.message ? err.message : err));
-      return { checked: true, ok: false, error: err && err.message ? err.message : String(err) };
+      writeSyncStatus_('notification_pipeline', 'system', 'error', JSON.stringify(errors), new Date(nowMillis).toISOString());
+      console.log('notification_pipeline_failed: ' + JSON.stringify(errors));
+      return { checked: true, ok: false, results: results, errors: errors };
     }
+    writeSyncStatus_('notification_pipeline', 'system', 'ok', 'Notification bundles synced and delivery evaluated.', new Date(nowMillis).toISOString());
+    return { checked: true, ok: true, results: results };
   }
 
   function enqueueDetectedSourceChangesIfDue_(props, nowMillis) {
@@ -1639,6 +1653,8 @@ var SupabaseService = (function () {
     syncFullRealtimeCache: syncFullRealtimeCache,
     syncRealtimeCache: syncRealtimeCache,
     syncTripNotifications: syncTripNotifications,
+    syncOperationalNotifications: syncOperationalNotifications,
+    dispatchNotifications: dispatchNotifications,
     getPendingTransportReportRefresh: getPendingTransportReportRefresh,
     getPendingFundRefresh: getPendingFundRefresh,
     auditManualReportFreshnessQueue: auditManualReportFreshnessQueue,

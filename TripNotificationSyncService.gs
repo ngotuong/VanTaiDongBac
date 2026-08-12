@@ -49,18 +49,21 @@ var TripNotificationSyncService = (function () {
       var sourceRow = index + 2;
 
       if (difference !== 0 || (reconciliationStatus && reconciliationStatus.toLowerCase() !== 'khớp')) {
+        var missingTrip = difference !== 0 && (reported === 0 || actual === 0);
         items.push({
           id: eventId_('reconciliation', dateKey, plate, project, sourceRow),
           type: 'reconciliation',
+          notificationKey: 'trip-reconciliation',
           severity: 'warning',
-          title: reconciliationStatus || 'Chênh lệch số chuyến',
+          title: missingTrip ? 'Thiếu chuyến cần kiểm tra' : (reconciliationStatus || 'Chênh lệch số chuyến'),
           message: [plate || 'Chưa có biển số', project || 'Chưa có dự án'].join(' · ') + ': báo cáo ' + reported + ', tài xế ' + actual + ', lệch ' + difference + '.',
           date: dateKey,
           plate: plate,
           project: project,
           amount: 0,
           excessTrips: 0,
-          sourceRow: sourceRow
+          sourceRow: sourceRow,
+          url: '/entry/'
         });
       }
 
@@ -68,6 +71,7 @@ var TripNotificationSyncService = (function () {
         items.push({
           id: eventId_('hot-bonus', dateKey, plate, project, sourceRow),
           type: 'hot-bonus',
+          notificationKey: 'trip-reconciliation',
           severity: 'success',
           title: 'Thưởng nóng cần kiểm tra',
           message: [plate || 'Chưa có biển số', project || 'Chưa có dự án'].join(' · ') + ': ' + (rewardCondition || rewardNote || 'Có chuyến vượt mốc') + '.',
@@ -76,7 +80,8 @@ var TripNotificationSyncService = (function () {
           project: project,
           amount: totalReward || dailyReward + monthlyReward,
           excessTrips: dailyExcess + monthlyExcess,
-          sourceRow: sourceRow
+          sourceRow: sourceRow,
+          url: '/entry/'
         });
       }
     });

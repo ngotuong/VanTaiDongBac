@@ -244,7 +244,9 @@ Luồng đúng cho thông báo:
 2. Apps Script trigger đọc sheet này theo chu kỳ 1-5 phút.
 3. `TripNotificationSyncService` ghi một bundle nhỏ vào `manage_data_bundles` với `sheet_name=XL_DoiSoatChuyen`, `filter_key=notifications:active`; bundle chứa tối đa 100 cảnh báo của 45 ngày gần nhất.
 4. Frontend gọi proxy-local `getNotifications`; API xác thực session/RBAC và chỉ đọc Supabase, không gọi Apps Script khi mở chuông.
-5. Bundle hiện biểu diễn cảnh báo active, chưa lưu trạng thái đã đọc/chưa đọc theo từng user. Nếu bổ sung unread state, Web Push/PWA hoặc Telegram phải dùng checkpoint/migration riêng.
+5. `OperationalNotificationSyncService` ghi bundle `SYSTEM_NOTIFICATIONS/operations:active` từ đúng hai helper công thức `NL_ChamCong.Lưu ý` và `NL_PhanCongLai.Kiểm tra`.
+6. API hợp nhất thêm số dư Quỹ, `sync_status` và `write_jobs`; không gọi Apps Script khi mở chuông.
+7. Web Push delivery dùng `notification_rule_states` cho baseline/idempotency và preference mở rộng. Read-state của panel vẫn lưu theo tài khoản trên từng thiết bị; đồng bộ read-state đa thiết bị cần migration riêng.
 
 ## Bảng ghi bất đồng bộ giai đoạn 5
 

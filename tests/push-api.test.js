@@ -42,6 +42,7 @@ function authenticatedFetch(url) {
   if (url.includes('/rest/v1/app_users')) return Promise.resolve({ ok: true, status: 200, json: async () => [{ user_id: 'user-1', username: 'operator', email: 'operator@dongbac.internal', role: 'operator', active: true }] });
   if (url.includes('/rest/v1/web_push_subscriptions')) return Promise.resolve({ ok: true, status: 200, json: async () => [] });
   if (url.includes('/rest/v1/notification_preferences')) return Promise.resolve({ ok: true, status: 200, json: async () => [] });
+  if (url.includes('/rest/v1/notification_rule_states')) return Promise.resolve({ ok: true, status: 200, json: async () => [] });
   throw new Error(`Unexpected URL: ${url}`);
 }
 

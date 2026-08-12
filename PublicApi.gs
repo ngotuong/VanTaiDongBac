@@ -287,6 +287,10 @@ function syncRecentManageDataCache() {
   return SupabaseService.syncRecentManageDataCache();
 }
 
+function syncTripNotifications() {
+  return SupabaseService.syncTripNotifications();
+}
+
 function installTransportSheetSyncTrigger(spreadsheetId) {
   return SupabaseService.installTransportSheetSyncTrigger(spreadsheetId);
 }

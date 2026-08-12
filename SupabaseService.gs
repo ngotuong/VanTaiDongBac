@@ -36,6 +36,8 @@ var SupabaseService = (function () {
   var REALTIME_HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
   var SOURCE_POLL_INTERVAL_MS = 5 * 60 * 1000;
   var SOURCE_POLL_RETRY_MS = 60 * 1000;
+  var TRIP_NOTIFICATION_NEXT_AT_PROP = 'SUPABASE_TRIP_NOTIFICATION_NEXT_AT';
+  var TRIP_NOTIFICATION_INTERVAL_MS = 5 * 60 * 1000;
   var REFRESH_QUEUE_LOCK_WAIT_MS = 30 * 1000;
   var REALTIME_TICK_RUNNING_TTL_SECONDS = 300;
   var TRANSPORT_SHEET_SYNC_RUNNING_TTL_SECONDS = 120;
@@ -140,6 +142,7 @@ var SupabaseService = (function () {
     runSyncStep_(results, errors, 'reports', function () { return syncAllReportBundles(); });
     runSyncStep_(results, errors, 'fund', function () { return syncAllFundBundles(DEFAULT_FUND_YEAR); });
     runSyncStep_(results, errors, 'manageData', function () { return syncAllManageDataBundles(); });
+    runSyncStep_(results, errors, 'tripNotifications', function () { return syncTripNotifications(); });
     var syncedAt = new Date().toISOString();
     writeSyncStatus_('realtime_cache', 'system', errors.length ? 'error' : 'ok', errors.length ? JSON.stringify(errors) : 'Realtime cache synced.', syncedAt);
     return {
@@ -177,6 +180,7 @@ var SupabaseService = (function () {
 
     try {
       var nowMillis = new Date().getTime();
+      syncTripNotificationsIfDue_(props, nowMillis);
       enqueueDetectedSourceChangesIfDue_(props, nowMillis);
       var pendingClaim = ManualReportRefreshQueueService.claimDue(manualReportRefreshQueueContext_());
       if (pendingClaim.due) {
@@ -227,6 +231,24 @@ var SupabaseService = (function () {
       };
     } finally {
       runtimeCache.remove(REALTIME_TICK_RUNNING_CACHE_KEY);
+    }
+  }
+
+  function syncTripNotifications() {
+    return TripNotificationSyncService.sync(tripNotificationSyncContext_());
+  }
+
+  function syncTripNotificationsIfDue_(props, nowMillis) {
+    var nextAt = Number(props.getProperty(TRIP_NOTIFICATION_NEXT_AT_PROP) || 0);
+    if (nextAt > nowMillis) return { checked: false };
+    props.setProperty(TRIP_NOTIFICATION_NEXT_AT_PROP, String(nowMillis + TRIP_NOTIFICATION_INTERVAL_MS));
+    try {
+      return syncTripNotifications();
+    } catch (err) {
+      props.setProperty(TRIP_NOTIFICATION_NEXT_AT_PROP, String(nowMillis + SOURCE_POLL_RETRY_MS));
+      writeSyncStatus_('trip_notifications', 'transport', 'error', err && err.message ? err.message : String(err), new Date(nowMillis).toISOString());
+      console.log('trip_notification_sync_failed: ' + (err && err.message ? err.message : err));
+      return { checked: true, ok: false, error: err && err.message ? err.message : String(err) };
     }
   }
 
@@ -1340,6 +1362,17 @@ var SupabaseService = (function () {
     };
   }
 
+  function tripNotificationSyncContext_() {
+    return {
+      nowISOString: function () { return new Date().toISOString(); },
+      formatDate: function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); },
+      upsertRows: function (tableName, rows, onConflict) {
+        return SupabaseBundleRepository.upsertRows(tableName, rows, onConflict);
+      },
+      writeSyncStatus: writeSyncStatus_
+    };
+  }
+
   function writeJobWorkerContext_() {
     return {
       isEnabled: isWriteJobEnabled_,
@@ -1605,6 +1638,7 @@ var SupabaseService = (function () {
     syncAllManageDataBundles: syncAllManageDataBundles,
     syncFullRealtimeCache: syncFullRealtimeCache,
     syncRealtimeCache: syncRealtimeCache,
+    syncTripNotifications: syncTripNotifications,
     getPendingTransportReportRefresh: getPendingTransportReportRefresh,
     getPendingFundRefresh: getPendingFundRefresh,
     auditManualReportFreshnessQueue: auditManualReportFreshnessQueue,

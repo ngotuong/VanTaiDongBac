@@ -254,7 +254,8 @@ test('Fixed-option filters use intrinsic width while search and date controls st
   assert.match(cashflow, /<option value="recent">Năm \{year\}<\/option>/);
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc các khoản vay theo nơi vay"/);
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc lịch sử theo loại giao dịch"/);
-  assert.match(css, /select\.platform-content-select \{[\s\S]*field-sizing: content;/);
+  assert.doesNotMatch(css, /select\.platform-content-select \{[\s\S]*field-sizing: content;/);
+  assert.match(css, /select\.platform-content-select\.platform-content-select \{[\s\S]*padding-inline: var\(--platform-control-padding-x, 12px\) 40px !important;/);
   assert.match(css, /@media \(max-width: 768px\) \{[\s\S]*\.cashflow-filter-stack \{[\s\S]*grid-template-columns: max-content minmax\(0, 1fr\)/);
   assert.match(css, /html body \.cashflow-c2 \.cashflow-overview-filter-panel \.cashflow-date-input input\.native-date-input,[\s\S]*pointer-events: auto !important;/);
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc lịch sử theo nơi vay"/);

@@ -3358,7 +3358,6 @@ body #reportsView table.report-data-table-details td.report-detail-company-cell 
  */
 html body select.platform-content-select {
   width: fit-content !important;
-  field-sizing: content;
   min-width: 0 !important;
   max-width: 100% !important;
   flex: 0 0 auto !important;
@@ -3687,4 +3686,362 @@ html body .catalog-c2 .catalog-filter-actions {
   html body .catalog-c2 #catalogVehicleOwnerFilterWrap {
     width: fit-content !important;
   }
+}
+
+/* Filter controls reserve a dedicated chevron gutter; logical padding wins
+ * over legacy padding-inline declarations on every responsive breakpoint. */
+html body select.platform-content-select,
+html body .cashflow-overview-filter-panel select.platform-content-select,
+html body .cashflow-c2 select.platform-content-select,
+html body .manage-c2 select.platform-content-select,
+html body .catalog-c2 .filter-container select.platform-content-select {
+  box-sizing: border-box !important;
+  padding: 0 40px 0 var(--platform-control-padding-x, 12px) !important;
+  padding-inline: var(--platform-control-padding-x, 12px) 40px !important;
+  background-position: right 12px center !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* The legacy control contract uses :is(...:not()) selectors with high
+ * specificity. This final platform selector deliberately outranks it. */
+html body .app main.main#platform-content .view.active select.platform-content-select.platform-content-select {
+  padding: 0 40px 0 var(--platform-control-padding-x, 12px) !important;
+  padding-inline: var(--platform-control-padding-x, 12px) 40px !important;
+  background-position: right 12px center !important;
+}
+
+/* Catalog toolbar controls use one 44px interaction box and one baseline. */
+html body #catalogView .catalog-sticky-toolbar .filter-container,
+html body #catalogView .catalog-sticky-toolbar .catalog-filter-main {
+  align-items: center !important;
+}
+
+html body #catalogView .catalog-sticky-toolbar .filter-container :is(input, select),
+html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions,
+html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .icon-button {
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+}
+
+html body .app main.main#platform-content #catalogView.view.active.catalog-c2 .filter-bar.catalog-sticky-toolbar .filter-container :is(input, select),
+html body .app main.main#platform-content #catalogView.view.active.catalog-c2 .filter-bar.catalog-sticky-toolbar .catalog-filter-actions,
+html body .app main.main#platform-content #catalogView.view.active.catalog-c2 .filter-bar.catalog-sticky-toolbar .catalog-filter-actions .icon-button {
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+}
+
+html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+@media (max-width: 420px) {
+  html body .catalog-c2 .catalog-filter-main {
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+  }
+}
+
+/* Header notification center. */
+.notification-center {
+  position: relative;
+  flex: none;
+}
+
+.notification-trigger {
+  position: relative;
+}
+
+.notification-trigger .btn-svg,
+.notification-empty svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  padding-inline: 5px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--paper, #fff);
+  border-radius: 999px;
+  color: #fff;
+  background: #c62828;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 3px 10px rgba(198, 40, 40, .3);
+}
+
+.notification-backdrop {
+  position: fixed;
+  z-index: 1090;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(15, 23, 42, .18);
+  backdrop-filter: blur(1px);
+}
+
+.notification-panel {
+  position: fixed;
+  z-index: 1100;
+  top: var(--notification-anchor-top, 72px);
+  right: var(--notification-anchor-right, 16px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(390px, calc(100vw - 32px));
+  max-height: min(650px, calc(100dvh - 110px));
+  overflow: hidden;
+  border: 1px solid rgba(13, 148, 136, .24);
+  border-radius: 16px;
+  color: var(--ink, #0f172a);
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 22px 60px rgba(15, 23, 42, .24);
+  animation: notification-panel-in .2s ease-out both;
+}
+
+.notification-panel-header,
+.notification-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.notification-panel-header {
+  border-bottom: 1px solid var(--line, #dbe3ec);
+  background: linear-gradient(135deg, #f0fdfa, #fff);
+}
+
+.notification-panel-header h2 {
+  margin: 0;
+  color: var(--deep, #063b36);
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.notification-panel-header p {
+  margin: 3px 0 0;
+  color: var(--muted, #64748b);
+  font-size: 11px;
+}
+
+.notification-close {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  color: var(--muted, #64748b);
+  background: transparent;
+  font-size: 27px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.notification-panel-body {
+  min-height: 150px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.notification-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notification-item {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line, #e2e8f0);
+}
+
+.notification-item-icon {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.notification-item.warning .notification-item-icon {
+  color: #9a3412;
+  background: #ffedd5;
+}
+
+.notification-item.success .notification-item-icon {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.notification-item-heading,
+.notification-item-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notification-item-heading strong {
+  min-width: 0;
+  color: var(--deep, #063b36);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.notification-item-heading time,
+.notification-item-meta,
+.notification-panel-footer {
+  color: var(--muted, #64748b);
+  font-size: 11px;
+}
+
+.notification-item-heading time {
+  flex: none;
+}
+
+.notification-item p {
+  margin: 4px 0 0;
+  color: #334155;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.notification-item-meta {
+  margin-top: 7px;
+}
+
+.notification-item-meta strong {
+  color: #047857;
+}
+
+.notification-state,
+.notification-empty {
+  display: flex;
+  min-height: 180px;
+  padding: 24px;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted, #64748b);
+  text-align: center;
+}
+
+.notification-state {
+  gap: 10px;
+}
+
+.notification-error {
+  flex-direction: column;
+  color: #b91c1c;
+}
+
+.notification-state button,
+.notification-panel-footer button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line, #dbe3ec);
+  border-radius: 9px;
+  color: var(--deep, #063b36);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.notification-empty {
+  flex-direction: column;
+  gap: 5px;
+}
+
+.notification-empty svg {
+  width: 34px;
+  height: 34px;
+  margin-bottom: 5px;
+  color: #0d9488;
+}
+
+.notification-empty strong {
+  color: var(--deep, #063b36);
+  font-size: 14px;
+}
+
+.notification-empty span {
+  font-size: 12px;
+}
+
+.notification-panel-footer {
+  border-top: 1px solid var(--line, #dbe3ec);
+  background: #f8fafc;
+}
+
+.notification-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #cbd5e1;
+  border-top-color: #0d9488;
+  border-radius: 999px;
+  animation: spin .7s linear infinite;
+}
+
+@keyframes notification-panel-in {
+  from { opacity: 0; transform: translateY(-6px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 640px) {
+  .notification-panel {
+    position: fixed;
+    top: auto;
+    right: 10px;
+    bottom: calc(84px + env(safe-area-inset-bottom));
+    left: 10px;
+    width: auto;
+    max-height: min(68dvh, 620px);
+    border-radius: 18px;
+    animation-name: notification-sheet-in;
+  }
+
+  .notification-panel-header,
+  .notification-panel-footer {
+    padding-inline: 14px;
+  }
+
+  .notification-item {
+    padding-inline: 14px;
+  }
+}
+
+@keyframes notification-sheet-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-panel { animation: none; }
 }

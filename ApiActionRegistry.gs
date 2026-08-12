@@ -43,6 +43,7 @@ var ApiActionRegistry = (function () {
     submitRowsGet: { method: 'GET', kind: 'disabled', permission: 'adminOperator', routerOnly: true, disabled: true },
     authSession: { method: 'GET', kind: 'query', permission: 'shareholder', proxyLocal: true },
     runtimeContext: { method: 'GET', kind: 'query', permission: 'shareholder', proxyLocal: true },
+    getNotifications: { method: 'GET', kind: 'query', permission: 'shareholder', proxyLocal: true },
     changeOwnPassword: { method: 'POST', kind: 'command', permission: 'shareholder', proxyLocal: true },
     listUsers: { method: 'GET', kind: 'query', permission: 'admin', proxyLocal: true },
     createUser: { method: 'POST', kind: 'command', permission: 'admin', proxyLocal: true },

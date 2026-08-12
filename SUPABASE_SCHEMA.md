@@ -234,7 +234,7 @@ RLS:
 - `anon` và `authenticated` chỉ được `select`.
 - Apps Script dùng service role key để ghi.
 
-## Định hướng thông báo in-app
+## Thông báo in-app đối soát chuyến
 
 Không đọc trực tiếp `XL_DoiSoatChuyen` mỗi lần mở app vì sẽ chậm.
 
@@ -242,9 +242,9 @@ Luồng đúng cho thông báo:
 
 1. Google Sheet vẫn tính đối soát/thưởng nóng trong `XL_DoiSoatChuyen`.
 2. Apps Script trigger đọc sheet này theo chu kỳ 1-5 phút.
-3. Apps Script ghi các sự kiện mới vào Supabase, ví dụ bảng `notification_events`.
-4. Frontend chỉ đọc Supabase để hiển thị chuông thông báo, trạng thái đã đọc/chưa đọc.
-5. Sau đó có thể mở rộng sang web push/PWA hoặc Telegram nếu cần thông báo ngoài app.
+3. `TripNotificationSyncService` ghi một bundle nhỏ vào `manage_data_bundles` với `sheet_name=XL_DoiSoatChuyen`, `filter_key=notifications:active`; bundle chứa tối đa 100 cảnh báo của 45 ngày gần nhất.
+4. Frontend gọi proxy-local `getNotifications`; API xác thực session/RBAC và chỉ đọc Supabase, không gọi Apps Script khi mở chuông.
+5. Bundle hiện biểu diễn cảnh báo active, chưa lưu trạng thái đã đọc/chưa đọc theo từng user. Nếu bổ sung unread state, Web Push/PWA hoặc Telegram phải dùng checkpoint/migration riêng.
 
 ## Bảng ghi bất đồng bộ giai đoạn 5
 

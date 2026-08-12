@@ -13,6 +13,7 @@ const SHAREHOLDER_ACTIONS = new Set([
   'getFundOverview',
   'getFundLoanOverview',
   'getFundFormOptions',
+  'getNotifications',
   'checkTripReconciliation'
 ]);
 

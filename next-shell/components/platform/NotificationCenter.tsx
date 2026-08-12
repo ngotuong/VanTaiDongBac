@@ -211,16 +211,23 @@ export function NotificationCenter({ userId }: { userId: string }) {
         </header>
         <div className="notification-panel-toolbar" aria-label="Bộ lọc thông báo">
           <div className="notification-view-switch">
-            <button type="button" className={view === 'all' ? 'active' : ''} aria-pressed={view === 'all'} onClick={() => setView('all')}>Xem tất cả <span>{items.length}</span></button>
+            <button type="button" className={view === 'all' ? 'active' : ''} aria-pressed={view === 'all'} onClick={() => setView('all')}>Tất cả <span>{items.length}</span></button>
             <button type="button" className={view === 'unread' ? 'active' : ''} aria-pressed={view === 'unread'} onClick={() => setView('unread')}>Chưa đọc <span>{unreadCount}</span></button>
           </div>
-          <button type="button" className="notification-mark-all" disabled={!unreadCount} onClick={markAllRead}>Đánh dấu tất cả đã đọc</button>
+          <div className="notification-toolbar-actions">
+            <button type="button" className="notification-toolbar-icon" aria-label="Đánh dấu tất cả là đã đọc" title="Đánh dấu tất cả là đã đọc" disabled={!unreadCount} onClick={markAllRead}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2.5 12.5 4 4L15 8"/><path d="m11 15.5 2 2L21.5 9"/></svg>
+            </button>
+            <button type="button" className="notification-toolbar-icon" aria-label="Làm mới thông báo" title="Làm mới thông báo" disabled={loading} onClick={() => void load(true)}>
+              <svg className={loading ? 'spinning' : ''} viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+            </button>
+          </div>
         </div>
         <div className="notification-panel-body" aria-live="polite">
           {loading && !loaded ? <div className="notification-state"><span className="notification-spinner" aria-hidden="true"/>Đang tải thông báo…</div> : null}
           {error ? <div className="notification-state notification-error" role="alert"><span>{error}</span><button type="button" onClick={() => void load(true)}>Thử lại</button></div> : null}
           {!loading && !error && !items.length ? <div className="notification-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg><strong>Không có cảnh báo mới</strong><span>Đối soát, vận hành, Quỹ và đồng bộ hệ thống đang ổn.</span></div> : null}
-          {!loading && !error && items.length > 0 && !visibleItems.length ? <div className="notification-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg><strong>Đã xem tất cả thông báo</strong><span>Chọn “Xem tất cả” để xem lại lịch sử đang hoạt động.</span></div> : null}
+          {!loading && !error && items.length > 0 && !visibleItems.length ? <div className="notification-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg><strong>Đã xem tất cả thông báo</strong><span>Chọn “Tất cả” để xem lại lịch sử đang hoạt động.</span></div> : null}
           {visibleItems.length ? <ul className="notification-list">{visibleItems.map((item) => {
             const unread = !readKeys.has(notificationKey(item));
             return <li className={`notification-item ${item.severity}${unread ? ' unread' : ' read'}`} key={notificationKey(item)}>
@@ -232,7 +239,7 @@ export function NotificationCenter({ userId }: { userId: string }) {
             </li>;
           })}</ul> : null}
         </div>
-        <footer className="notification-panel-footer"><span>{items.length} thông báo đang hoạt động</span><button type="button" disabled={loading} onClick={() => void load(true)}>{loading ? 'Đang tải…' : 'Làm mới'}</button></footer>
+        <footer className="notification-panel-footer"><span>{items.length} thông báo đang hoạt động</span></footer>
       </section>
     </BodyPortal> : null}
   </div>;

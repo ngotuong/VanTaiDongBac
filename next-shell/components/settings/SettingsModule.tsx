@@ -9,7 +9,6 @@ import type { AccountUser } from '../../lib/platform/operations-types';
 import type { AppRole } from '../../lib/platform/types';
 import { showToast } from '../../lib/platform/toast';
 import { PushNotificationSettings } from './PushNotificationSettings';
-import { FundAlertSettings } from './FundAlertSettings';
 import { PillSwitch } from './PillSwitch';
 
 const ROLE_LABELS: Record<AppRole, string> = {
@@ -160,8 +159,7 @@ export function SettingsModule() {
       {availableTabs.map((tab) => <button key={tab.key} type="button" role="tab" aria-selected={activeTab === tab.key} aria-controls={`settings-panel-${tab.key}`} id={`settings-tab-${tab.key}`} onClick={() => setActiveTab(tab.key)}>{tab.label}</button>)}
     </div>
     <div id="settings-panel-notifications" className="settings-tab-panel settings-grid" role="tabpanel" aria-labelledby="settings-tab-notifications" hidden={activeTab !== 'notifications'}>
-      <PushNotificationSettings />
-      {isAdmin && <FundAlertSettings />}
+      <PushNotificationSettings isAdmin={isAdmin} />
     </div>
 
     <div id="settings-panel-accounts" className="settings-tab-panel settings-grid" role="tabpanel" aria-labelledby="settings-tab-accounts" hidden={activeTab !== 'accounts'}>

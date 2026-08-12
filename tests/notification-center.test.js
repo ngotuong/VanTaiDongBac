@@ -63,11 +63,27 @@ test('header uses an accessible bell and filter controls reserve a chevron gutte
   assert.match(center, /aria-expanded=\{open\}/);
   assert.match(center, /role="dialog"/);
   assert.match(center, /aria-live="polite"/);
-  assert.match(center, /Xem tất cả/);
-  assert.match(center, /Đánh dấu tất cả đã đọc/);
+  assert.match(center, />Tất cả <span>/);
+  assert.match(center, />Chưa đọc <span>/);
+  assert.match(center, /aria-label="Đánh dấu tất cả là đã đọc"/);
+  assert.match(center, /aria-label="Làm mới thông báo"/);
+  assert.doesNotMatch(center, />Đánh dấu tất cả đã đọc</);
+  assert.doesNotMatch(center, />Làm mới</);
   assert.match(center, /localStorage\.setItem\(storageKey/);
   assert.match(center, /updateAppBadge\(unreadCount\)/);
   assert.doesNotMatch(center, /Nguồn: XL_DoiSoatChuyen/);
   assert.match(css, /padding-inline: var\(--platform-control-padding-x, 12px\) 40px !important/);
   assert.match(css, /catalog-sticky-toolbar[\s\S]*height: 44px !important/);
+  assert.match(css, /\.notification-toolbar-actions \{[\s\S]*display: flex;/);
+  assert.match(css, /\.notification-toolbar-icon \{[\s\S]*width: 44px;[\s\S]*height: 44px;/);
+});
+
+test('all date controls use one final left-alignment contract including Safari native values', () => {
+  const css = read('next-shell/app/platform.css');
+  assert.match(css, /Final date-control contract/);
+  assert.match(css, /html body \.custom-date-box \{[\s\S]*justify-content: flex-start !important;[\s\S]*text-align: left !important;/);
+  assert.match(css, /html body \.custom-date-box \.date-display-text \{[\s\S]*width: 100% !important;[\s\S]*text-align: left !important;/);
+  assert.match(css, /input\[type="date"\]::\-webkit-date-and-time-value[\s\S]*text-align: left !important;/);
+  assert.match(css, /cashflow-overview-filter-panel \.cashflow-filter-stack \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) 142px !important;/);
+  assert.match(css, /cashflow-overview-filter-panel \.cashflow-date-input \.date-display-text \{[\s\S]*font-size: 13px !important;/);
 });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { showToast } from '../../lib/platform/toast';
+import { FundAlertSettings } from './FundAlertSettings';
 import { PillSwitch } from './PillSwitch';
 
 type PushStatus = {
@@ -49,7 +50,7 @@ async function postPush(action: string, body: Record<string, unknown>) {
   return parseResponse(response);
 }
 
-export function PushNotificationSettings() {
+export function PushNotificationSettings({ isAdmin = false }: { isAdmin?: boolean }) {
   const [support, setSupport] = useState<SupportState>('checking');
   const [publicKey, setPublicKey] = useState('');
   const [subscription, setSubscription] = useState<PushSubscription | null>(null);
@@ -183,7 +184,10 @@ export function PushNotificationSettings() {
     {deviceCount > 0 ? <p className="push-device-count">Tài khoản hiện có {deviceCount} thiết bị đăng ký.</p> : null}
     {types.length ? <section className="notification-type-settings" aria-labelledby="notification-type-heading">
       <div className="notification-type-heading"><h3 id="notification-type-heading">Loại thông báo</h3></div>
-      <div className="notification-type-list">{types.map((item) => <div className="notification-type-row" key={item.key}><div><strong>{item.label}</strong><span>{item.description}</span></div><PillSwitch checked={item.enabled} disabled={Boolean(busy)} label={`${item.enabled ? 'Tắt' : 'Bật'} ${item.label}`} onChange={(value) => void toggleType(item.key, value)} /></div>)}</div>
+      <div className="notification-type-list">{types.map((item) => <div className={`notification-type-item${item.key === 'fund-low-balance' ? ' fund-alert-type-item' : ''}`} key={item.key}>
+        <div className="notification-type-row"><div><strong>{item.label}</strong><span>{item.description}</span></div><PillSwitch checked={item.enabled} disabled={Boolean(busy)} label={`${item.enabled ? 'Tắt' : 'Bật'} ${item.label}`} onChange={(value) => void toggleType(item.key, value)} /></div>
+        {item.key === 'fund-low-balance' && isAdmin ? <FundAlertSettings /> : null}
+      </div>)}</div>
     </section> : null}
     <div className="push-settings-actions">
       {support === 'supported' && enabled ?

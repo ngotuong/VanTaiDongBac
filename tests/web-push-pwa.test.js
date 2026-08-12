@@ -39,7 +39,7 @@ test('Settings asks permission only from an explicit accessible switch and expos
   const component = read('next-shell/components/settings/PushNotificationSettings.tsx');
   const pillSwitch = read('next-shell/components/settings/PillSwitch.tsx');
   const settings = read('next-shell/components/settings/SettingsModule.tsx');
-  assert.match(settings, /<PushNotificationSettings \/>/);
+  assert.match(settings, /<PushNotificationSettings isAdmin=\{isAdmin\} \/>/);
   assert.match(component, /Notification\.requestPermission\(\)/);
   assert.match(component, /<PillSwitch checked=\{enabled\}/);
   assert.match(component, /nextEnabled \? enable\(\) : disable\(\)/);

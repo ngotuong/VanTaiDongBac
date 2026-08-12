@@ -68,9 +68,9 @@ Runtime chính:
 Production đã xác nhận gần nhất:
 
 - URL: `https://dongbac.vercel.app`.
-- Vercel deployment: `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde`.
-- Apps Script production cùng deployment ID: code version `@322`; rollback gần nhất `@315`.
-- Vercel rollback gần nhất: `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
+- Vercel deployment: `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
+- Apps Script production cùng deployment ID: code version `@325`; rollback gần nhất `@322`.
+- Vercel rollback gần nhất: `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde`.
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
@@ -80,7 +80,7 @@ Preview hiện hành của checkpoint đồng bộ dropdown theo ngữ nghĩa wo
 - Vercel deployment: `dpl_Gvy4VJJswccvxyzRFA3J4g1ntJaP`, READY ngày 2026-08-12.
 - Apps Script Preview: `@325`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 481/481 tests, lint, typecheck, Next build, Identity Guard, root/title/API smoke. Candidate này chưa được promote; Production vẫn là `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde` và Apps Script Production vẫn `@322`.
+- Gate deploy PASS 481/481 tests, lint, typecheck, Next build, Identity Guard, root/title/API smoke. Candidate Preview giữ riêng; Production đã build lại bằng Production environment thành `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` với Apps Script Production `@325`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -135,7 +135,7 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
-### Live dropdown semantics — Preview hoàn thành 2026-08-12
+### Live dropdown semantics và session stability — Production hoàn thành 2026-08-12
 
 - Đã audit read-only hai workbook canonical theo từng sheet/cột và đối chiếu validation vật lý, helper list, header cùng dữ liệu thực. Dropdown được ánh xạ theo ngữ nghĩa trường thay vì suy luận chung từ chữ `Dự án`.
 - `NL_TaiXe.Nhóm vận hành` nay là trường chọn bắt buộc và lấy đúng `SYS_DanhSach!DS_NhomVanHanh`: `Tràng Duệ`, `Amata`, `Dự án nhỏ`; không còn tự suy ra từ phân công xe hoặc hiển thị dự án đơn lẻ. `NL_NghiVanHanh.Dự án` cũng dùng nhóm vận hành theo dữ liệu live, còn `NL_VanChuyen.Dự án` tiếp tục dùng danh sách dự án đơn lẻ.
@@ -144,7 +144,9 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Đã chạy thành công ba tác vụ cache `syncAllStartupAndCatalogsToSupabase`, `syncAllFundBundlesToSupabase`, `syncAllFundCatalogsToSupabase`. Apps Script Preview `@325` health HTTP 200; OAuth được cấp lại để khôi phục health của cả hai deployment nhưng không thay đổi code/deployment Production.
 - Authenticated Preview QA xác nhận: `NL_VanChuyen` có dự án đơn lẻ; `NL_TaiXe` và `NL_NghiVanHanh` chỉ có ba nhóm `Tràng Duệ`, `Amata`, `Dự án nhỏ`; form Quỹ có đúng `HINHTHUC`, mục chi `Trả nợ`/`Trả lãi`, không có `Trả gốc`; không ghi dữ liệu nghiệp vụ và không có console warning/error.
 - `SessionKeepAlive` không còn gọi lại `/api/session` ngay sau khi server vừa xác thực. Việc kiểm tra vẫn chạy mỗi 40 phút hoặc khi quay lại tab sau 40 phút, loại vòng app → khôi phục đăng nhập → app do lần xác thực client trùng. Ba lần reload authenticated liên tiếp trên Preview đều giữ app ổn định, không hiện LoginGate.
-- Full deploy gate PASS 481/481 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_Gvy4VJJswccvxyzRFA3J4g1ntJaP`; Production giữ nguyên Vercel `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde` và Apps Script `@322`.
+- Full deploy gate PASS 481/481 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_Gvy4VJJswccvxyzRFA3J4g1ntJaP`; Production Vercel `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` và Apps Script `@325`.
+- Post-cutover public Production smoke PASS cho root, Dashboard, Báo cáo, Vận hành, Danh mục, Quỹ, Cài đặt, manifest và service worker; session không cookie trả 401; health đúng app/Supabase/Vercel Production/Apps Script Production. Không có request 5xx trong log cửa sổ cutover. Phiên Preview đã authenticated QA; Production còn chờ người dùng đăng nhập vì cookie không dùng chung domain.
+- Rollback READY: Vercel `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde`, Apps Script `@322` trên cùng deployment ID Production.
 
 ### Dashboard Phí Phường và toolbar hai cột — Preview hoàn thành 2026-08-11
 
@@ -227,10 +229,9 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-1. **Authenticated Preview dropdown confirmation**: sau khi máy Mac được mở khóa, xác nhận trực tiếp `NL_TaiXe` chỉ có ba nhóm vận hành, `NL_NghiVanHanh` dùng nhóm và `NL_VanChuyen` vẫn dùng dự án đơn lẻ; chỉ đọc/mở/đóng form, không ghi dữ liệu nghiệp vụ.
-2. **Authenticated Production confirmation**: người dùng đăng nhập `https://dongbac.vercel.app` và kiểm tra nhanh Quỹ, Vận hành, Danh mục; không cần chạy write canary mới nếu chỉ xác nhận UI/read path.
-3. **Production stabilization**: theo dõi lỗi 5xx và regression phiên đăng nhập sau cut-forward; rollback ngay về Vercel `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6` + Apps Script `@315` nếu phát hiện lỗi nghiệp vụ nghiêm trọng.
-4. **Cron cảnh báo Quỹ riêng**: vẫn là checkpoint độc lập, chưa bật.
+1. **Authenticated Production confirmation**: người dùng đăng nhập `https://dongbac.vercel.app`; xác nhận nhanh Tài xế/Nghỉ vận hành/Vận chuyển, Quỹ và ba lần mở/reload không quay lại LoginGate. Không cần write canary nếu chỉ xác nhận UI/read path.
+2. **Production stabilization**: theo dõi lỗi 5xx và regression phiên đăng nhập sau cut-forward; rollback về Vercel `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde` + Apps Script `@322` nếu phát hiện lỗi nghiệp vụ nghiêm trọng.
+3. **Cron cảnh báo Quỹ riêng**: vẫn là checkpoint độc lập, chưa bật.
 
 ## 7. Mục tiêu kiến trúc dài hạn
 
@@ -250,7 +251,7 @@ Definition of Done hiện giữ:
 ## 8. Rủi ro và gate bắt buộc
 
 1. `main` là nhánh canonical duy nhất; không khôi phục branch cũ từ archive tag nếu chưa xác định rõ commit cần lấy. Không reset/xóa thay đổi chưa rõ nguồn.
-2. Authenticated Preview đã PASS; deployment Production mới chưa có authenticated smoke vì browser kiểm thử không giữ phiên đăng nhập. Operator/shareholder vẫn chưa có representative production smoke đầy đủ.
+2. Authenticated Preview đã PASS; Production mới đã public smoke nhưng chưa có authenticated smoke vì cookie Preview không dùng chung domain. Operator/shareholder vẫn chưa có representative production smoke đầy đủ.
 3. Authenticated visual/device QA không thể được thay thế hoàn toàn bằng unit/HTTP/DOM test.
 4. Apps Script public deployment từng trả 403 dù UI permission đúng; health trực tiếp và identity fingerprint phải được kiểm tra sau deploy.
 5. Identity Guard chỉ yêu cầu `.clasp.json` trong local workspace; Vercel build không có file Git-ignored này và phải dựa vào canonical manifest + runtime environment checks.

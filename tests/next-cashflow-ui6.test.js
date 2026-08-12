@@ -266,7 +266,7 @@ test('Fixed-option filters use intrinsic width while search and date controls st
   assert.match(css, /html body \.reports-filter-row \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) max-content !important;/);
 });
 
-test('Shared filter toolbar aligns dates/search left and quick/action right without select arrows', () => {
+test('Shared filter toolbar aligns controls and renders one consistent select chevron', () => {
   const cashflow = read('next-shell/components/cashflow/CashflowModule.tsx');
   const manage = read('next-shell/components/manage/ManageReadOnlyModule.tsx');
   const css = read('next-shell/app/platform.css');
@@ -277,7 +277,10 @@ test('Shared filter toolbar aligns dates/search left and quick/action right with
   assert.match(css, /Shared filter-toolbar contract/);
   assert.match(css, /grid-template-columns: minmax\(0, 1fr\) max-content !important;[\s\S]*grid-template-areas:\s*"dates quick"\s*"search action" !important;/);
   assert.match(css, /\.cashflow-overview-filter-panel :is\(\.cashflow-filter-row-top, \.cashflow-filter-row-search\) \{[\s\S]*display: contents !important;/);
-  assert.match(css, /select\.platform-content-select \{[\s\S]*appearance: none !important;[\s\S]*text-align: left !important;/);
+  assert.match(css, /Unified filter-control contract/);
+  assert.match(css, /select\.platform-content-select \{[\s\S]*appearance: none !important;[\s\S]*background-image: url\([\s\S]*font-weight: 500 !important;[\s\S]*text-align: left !important;/);
+  assert.match(css, /background-position: right 10px center !important;/);
+  assert.match(css, /\.cashflow-overview-filter-panel select\.platform-content-select,[\s\S]*padding-right: 34px !important;/);
 });
 
 test('Cashflow bottom-sheet headers are compact and align titles to the left', () => {

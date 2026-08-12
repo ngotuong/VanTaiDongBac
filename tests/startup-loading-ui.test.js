@@ -13,6 +13,7 @@ test('root layout streams a branded startup fallback before authenticated conten
   assert.match(layout, /async function AuthenticatedPlatform/);
   assert.match(layout, /await loadPlatformContext\(\)/);
   assert.match(layout, /<LoginGate/);
+  assert.doesNotMatch(layout, /return <C2Document><LoginGate/);
   assert.match(layout, /<WorkbookContextProvider value=\{context\}>/);
   assert.match(layout, /id="startup-loading-critical"/);
   assert.match(layout, /startup-loading-screen\{position:fixed;inset:0/);

@@ -74,13 +74,13 @@ Production đã xác nhận gần nhất:
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
-Preview hiện hành của checkpoint đồng bộ dropdown theo ngữ nghĩa workbook:
+Preview hiện hành của checkpoint auth/UI filter:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_Gvy4VJJswccvxyzRFA3J4g1ntJaP`, READY ngày 2026-08-12.
+- Vercel deployment: `dpl_Ed3bseChDUbmwtwrwv4uziBtiae8`, READY ngày 2026-08-12.
 - Apps Script Preview: `@325`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 481/481 tests, lint, typecheck, Next build, Identity Guard, root/title/API smoke. Candidate Preview giữ riêng; Production đã build lại bằng Production environment thành `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` với Apps Script Production `@325`.
+- Gate deploy PASS 482/482 tests, lint, typecheck, Next build, Identity Guard, `git diff --check`, root/title/API smoke. Candidate Preview giữ riêng; Production không đổi tại `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` với Apps Script Production `@325`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,15 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Auth hydration và filter-control contract — Preview hoàn thành 2026-08-12
+
+- Nhánh chưa xác thực trong root layout không còn render một `C2Document` thứ hai bên trong document gốc. Cấu trúc Preview chỉ có một `html`/`body`, loại repaint/hydration không cần thiết khi chuyển từ loading sang LoginGate hoặc app.
+- Danh mục bỏ nhãn `Tìm kiếm` khỏi giao diện nhưng giữ tên truy cập qua visually-hidden/`aria-label`; icon `Nhập mới` 44px nằm cùng hàng với ô tìm kiếm trên mobile 390px và desktop 1440px. Bộ lọc trạng thái/chủ xe nằm ở hàng phụ khi thiếu không gian.
+- Tất cả `select.platform-content-select` dùng cùng contract: text căn trái, font-weight 500, một chevron xuống ở mép phải; không quay lại native up/down indicator. Vận hành và Quỹ đã authenticated QA tại 390px; Danh mục đã QA tại 390px và 1440px.
+- Authenticated reload QA lấy mẫu mỗi 100ms: loading hiển thị đến khoảng 770ms rồi chuyển thẳng sang app từ khoảng 928ms; 12/12 mẫu không xuất hiện LoginGate. Đây là xác nhận reload với phiên sẵn có; không chủ động đăng xuất/xác thực lại để tránh làm mất phiên người dùng.
+- Full deploy gate PASS 482/482 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_Ed3bseChDUbmwtwrwv4uziBtiae8`; Production giữ nguyên `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` và Apps Script `@325`.
+- Checkpoint tiếp theo: chờ người dùng duyệt trực quan Preview; chỉ promote Production khi có phê duyệt riêng.
 
 ### Live dropdown semantics và session stability — Production hoàn thành 2026-08-12
 

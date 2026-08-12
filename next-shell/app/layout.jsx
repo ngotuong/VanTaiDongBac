@@ -60,7 +60,7 @@ async function AuthenticatedPlatform({ children }) {
     context = await loadPlatformContext();
   } catch (error) {
     if (error?.status === 401 || error?.status === 403) {
-      return <C2Document><LoginGate supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} anonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''} /></C2Document>;
+      return <LoginGate supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL || ''} anonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''} />;
     }
     logPlatformError('root-layout', error, 'bootstrap');
     throw error;

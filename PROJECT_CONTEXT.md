@@ -68,9 +68,9 @@ Runtime chính:
 Production đã xác nhận gần nhất:
 
 - URL: `https://dongbac.vercel.app`.
-- Vercel deployment: `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
-- Apps Script production cùng deployment ID: code version `@325`; rollback gần nhất `@322`.
-- Vercel rollback gần nhất: `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde`.
+- Vercel deployment: `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, READY và cut-forward ngày 2026-08-13.
+- Apps Script production cùng deployment ID canonical: code version `@328`; rollback gần nhất `@325`.
+- Vercel rollback gần nhất: `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`; rollback lịch sử tiếp theo là `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde`.
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
@@ -80,7 +80,7 @@ Preview hiện hành của checkpoint notification/filter:
 - Vercel deployment: `dpl_HHEGzBLGvZn3cz8EnBrySzYduTVh`, READY ngày 2026-08-13.
 - Apps Script Preview: `@328`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 490/490 tests, lint, typecheck, Next build, Identity Guard, `git diff --check`, authenticated responsive/API smoke. Candidate Preview giữ riêng; Production không đổi tại `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` với Apps Script Production `@325`.
+- Gate deploy PASS 490/490 tests, lint, typecheck, Next build, Identity Guard, `git diff --check`, authenticated responsive/API smoke. Preview giữ deployment riêng; Production hiện tại là `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q` với Apps Script Production `@328`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -135,7 +135,7 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
-### Trung tâm thông báo đa nguồn, Web Push và daily digest — candidate 2026-08-12
+### Trung tâm thông báo đa nguồn, Web Push và daily digest — Production hoàn thành 2026-08-13
 
 - Header đã bỏ icon mở Google Sheet và thay bằng chuông thông báo có badge, panel responsive, loading/error/empty state và đóng bằng backdrop/Escape. UI không hiển thị tên sheet/kỹ thuật cho người dùng.
 - `TripNotificationSyncService` chỉ đọc 17 cột công thức của `XL_DoiSoatChuyen`, lấy chênh lệch/thiếu chuyến và thưởng nóng cần kiểm tra trong 45 ngày gần nhất. `OperationalNotificationSyncService` chỉ tin cột công thức `Lưu ý` của `NL_ChamCong` và `Kiểm tra` của `NL_PhanCongLai`; không tự suy diễn quy tắc chấm công/phân công. Hai service chỉ ghi bundle Supabase, không ghi, đổi công thức hoặc cấu trúc Google Sheet.
@@ -143,13 +143,16 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Panel có hai tab `Tất cả`/`Chưa đọc`, đánh dấu từng thông báo hoặc tất cả đã đọc; thao tác đánh dấu tất cả và làm mới dùng hai icon 44px trên cùng toolbar. Chưa đọc có nền đậm, chấm trạng thái và tiêu đề đậm. Trạng thái đã đọc được lưu theo tài khoản trên từng thiết bị, không cần migration và không ghi Google Sheet. Fingerprint gồm ID + nội dung nghiệp vụ nên cảnh báo thay đổi sẽ trở thành chưa đọc.
 - API trung tâm hợp nhất năm nhóm đã duyệt: đối soát/thưởng, số dư Quỹ dưới ngưỡng, chấm công/phân công cần kiểm tra, sync/write queue lỗi và tổng hợp cuối ngày. Cảnh báo hệ thống chỉ hiện/gửi cho admin; operator nhận nghiệp vụ Vận hành; shareholder giữ quyền xem đối soát cũ và nhận cảnh báo Quỹ.
 - Delivery Web Push gom sự kiện mới theo nhóm để chống nhiễu, tạo baseline lần đầu để không bắn lại cảnh báo cũ, gửi daily digest lúc 20:00 Việt Nam và cập nhật PWA badge qua `unreadCount`/`badgeCount`. Preference mở rộng lưu server-only trong `notification_rule_states`, không cần migration mới; fund preference tiếp tục dùng bảng hiện hành.
-- Apps Script dispatch có feature gate `NOTIFICATION_DISPATCH_ENABLED`; candidate/Preview giữ tắt. Production chỉ bật sau khi Vercel endpoint đã cut-forward và đặt đúng `NOTIFICATION_DISPATCH_URL`/`NOTIFICATION_DISPATCH_SECRET`, tránh trigger HEAD gọi nhầm môi trường.
+- Apps Script dispatch có feature gate `NOTIFICATION_DISPATCH_ENABLED`; Production đã bật sau khi Vercel endpoint cut-forward và ba Script Properties `NOTIFICATION_DISPATCH_ENABLED`, `NOTIFICATION_DISPATCH_URL`, `NOTIFICATION_DISPATCH_SECRET` được cấu hình đồng bộ với Production. Preview tiếp tục không phát delivery thật.
 - Authenticated Preview có 28 cảnh báo thực tế. QA PASS ở 390x844 và 1440x900: đọc một mục làm số chưa đọc và badge giảm 28→27; `Chưa đọc` hiển thị đúng 27 mục; `Xem tất cả` hiển thị 28 mục gồm 1 đã đọc; nền/chấm/trọng lượng chữ đổi đúng trạng thái, panel không tràn viewport, không còn text nguồn và không có console warning/error.
 - Toàn bộ `select.platform-content-select` giữ 40px gutter cho chevron, text căn trái và không dùng `field-sizing` làm mất phần đệm. Danh mục chỉ render bộ lọc phù hợp với tab; search, filter và icon Nhập mới đều 44px, cùng một hàng tại 390px và 1440px. Audit Vận hành, Quỹ và Báo cáo xác nhận select visible đều có `padding-right: 40px`, text trái và trang không tràn ngang.
-- Full deploy gate PASS 489/489 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Preview `@328`; Vercel Preview `dpl_D91md3tiXGKG46TKJcWqFihRymj5`. Production không đổi tại `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` / Apps Script `@325`.
+- Gate cuối trước cut-forward PASS 490/490 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Production đã cập nhật cùng deployment ID canonical lên `@328`; Vercel Production là `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`.
 - Authenticated Preview QA PASS: trung tâm hợp nhất 30 cảnh báo active, trong đó có cảnh báo chấm công lấy đúng helper workbook và lỗi refresh queue lấy từ `sync_status`; 5 preference hiển thị đúng ở Cài đặt, không có runtime log warning/error. Delivery gate vẫn tắt nên không phát Web Push thật.
 - Cấu hình rule số dư Quỹ của admin đã được gộp ngay dưới preference `Cảnh báo số dư Quỹ` theo progressive disclosure; công tắc nhận thông báo theo tài khoản và công tắc rule tự động toàn hệ thống vẫn tách nghĩa rõ ràng, không đổi API/nghiệp vụ.
-- Date-control contract cuối cùng áp dụng cho text overlay và native `input[type=date|month]`, gồm pseudo-element Safari; mobile 390x844 hiển thị đủ hai ngày cùng hàng, căn trái và `Tháng này` không ellipsis, desktop 1440x900 dùng native date có pointer interaction và căn trái. QA trực quan chuông, settings và Quỹ PASS trên Preview `dpl_HHEGzBLGvZn3cz8EnBrySzYduTVh`; gate PASS 490/490, Production không đổi.
+- Date-control contract cuối cùng áp dụng cho text overlay và native `input[type=date|month]`, gồm pseudo-element Safari; mobile 390x844 hiển thị đủ hai ngày cùng hàng, căn trái và `Tháng này` không ellipsis, desktop 1440x900 dùng native date có pointer interaction và căn trái. QA trực quan chuông, settings và Quỹ PASS trên Preview `dpl_HHEGzBLGvZn3cz8EnBrySzYduTVh`.
+- Lần gọi dispatcher Production đầu tiên chỉ tạo baseline 30 mục, `sent=0`, nên không phát lại cảnh báo cũ. Các chu kỳ sau chỉ gửi sự kiện mới và daily digest theo contract.
+- Public Production smoke PASS cho root, Dashboard, Báo cáo, Vận hành, Danh mục, Quỹ, Cài đặt, manifest và service worker; session không cookie và dispatcher không bearer đều trả 401; health trả 200 với đúng app/Supabase/Vercel project/Apps Script Production. Không có request 5xx trong cửa sổ cut-forward. Authenticated Production smoke chưa chạy vì phiên đăng nhập Preview không dùng chung cookie với domain Production.
+- Rollback READY: Vercel `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`; Apps Script `@325` trên cùng deployment ID canonical. Có thể ngắt delivery ngay bằng `NOTIFICATION_DISPATCH_ENABLED=false` nếu cần cô lập riêng kênh thông báo.
 
 ### Auth hydration và filter-control contract — Preview hoàn thành 2026-08-12
 
@@ -254,8 +257,8 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-1. **Duyệt Preview notification đa nguồn**: kiểm tra chuông, nội dung theo vai trò và năm loại preference tại `https://vantaidongbac-preview.vercel.app`.
-2. **Production cut-forward riêng**: nếu được phê duyệt, deploy Vercel endpoint trước, cập nhật Apps Script Production từ `@325`, rồi mới bật ba Script Properties của notification dispatch; kiểm tra baseline không gửi cảnh báo cũ.
+1. **Tiếp tục phát triển trên Preview**: giữ Production tại Vercel `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q` và Apps Script `@328`; mọi thay đổi tiếp theo chỉ lên `https://vantaidongbac-preview.vercel.app` cho tới phê duyệt Production riêng.
+2. **Xác nhận authenticated Production**: khi người dùng đăng nhập Production, kiểm tra nhanh chuông, Cài đặt thông báo, Quỹ/date control và auth hydration; không ghi dữ liệu nghiệp vụ trong smoke test.
 3. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
 
 ## 7. Mục tiêu kiến trúc dài hạn

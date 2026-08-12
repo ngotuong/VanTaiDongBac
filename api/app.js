@@ -8,6 +8,8 @@ const { createReportService } = require('../server/services/report-service');
 const { createCatalogBundleRepository } = require('../server/repositories/catalog-bundle-repository');
 const { createCatalogService } = require('../server/services/catalog-service');
 const { createWorkbookContextService } = require('../server/services/workbook-context-service');
+const { createNotificationBundleRepository } = require('../server/repositories/notification-bundle-repository');
+const { createNotificationCenterService } = require('../server/services/notification-center-service');
 const { runtimeConfig } = require('../server/runtime-config');
 const { assertRuntimeIdentity, publicEnvironmentIdentity } = require('../server/environment-identity');
 
@@ -35,6 +37,8 @@ const catalogBundleRepository = createCatalogBundleRepository({
 });
 const catalogService = createCatalogService({ catalogBundleRepository, appsScriptClient, httpError, send });
 const workbookContextService = createWorkbookContextService({ httpError });
+const notificationBundleRepository = createNotificationBundleRepository({ httpError });
+const notificationCenterService = createNotificationCenterService({ repository: notificationBundleRepository, httpError, send });
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return send(res, 405, { ok: false, error: 'Method not allowed.' });
@@ -43,8 +47,10 @@ module.exports = async function handler(req, res) {
   if (!action) return send(res, 400, { ok: false, error: 'Thiếu action.' });
   if (!config.supabaseUrl || !config.anonKey) return send(res, 503, { ok: false, error: 'API proxy chưa được cấu hình Auth.' });
   const foundationAction = action === 'authSession' || action === 'runtimeContext';
+  const notificationAction = action === 'getNotifications';
   const coreConfig = [config.supabaseUrl, config.anonKey, config.serviceRoleKey, config.appsScriptUrl, config.proxySecret];
-  if (!foundationAction && coreConfig.some((value) => !value)) return send(res, 503, { ok: false, error: 'API proxy chưa được cấu hình đầy đủ.' });
+  const requiredConfig = notificationAction ? [config.supabaseUrl, config.anonKey, config.serviceRoleKey] : coreConfig;
+  if (!foundationAction && requiredConfig.some((value) => !value)) return send(res, 503, { ok: false, error: 'API proxy chưa được cấu hình đầy đủ.' });
   try {
     assertRuntimeIdentity(config);
     const environmentIdentity = publicEnvironmentIdentity(config);
@@ -65,6 +71,9 @@ module.exports = async function handler(req, res) {
     }
     if (catalogService.handles(action)) {
       return catalogService.handle(action, req, res, config, user);
+    }
+    if (notificationCenterService.handles(action)) {
+      return notificationCenterService.handle(action, req, res, config, user);
     }
 
     const params = req.method === 'GET' ? { ...req.query } : { ...(req.body?.params || {}) };

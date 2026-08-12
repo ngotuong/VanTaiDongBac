@@ -74,13 +74,13 @@ Production đã xác nhận gần nhất:
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
-Preview hiện hành của checkpoint auth/UI filter:
+Preview hiện hành của checkpoint notification/filter:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_Ed3bseChDUbmwtwrwv4uziBtiae8`, READY ngày 2026-08-12.
-- Apps Script Preview: `@325`, deployment ID riêng với Production.
+- Vercel deployment: `dpl_9wojS6Y1GVauiKugpRq9WPiACSpZ`, READY ngày 2026-08-12.
+- Apps Script Preview: `@327`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 482/482 tests, lint, typecheck, Next build, Identity Guard, `git diff --check`, root/title/API smoke. Candidate Preview giữ riêng; Production không đổi tại `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` với Apps Script Production `@325`.
+- Gate deploy PASS 485/485 tests, lint, typecheck, Next build, Identity Guard, `git diff --check`, authenticated responsive/API smoke. Candidate Preview giữ riêng; Production không đổi tại `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` với Apps Script Production `@325`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,16 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Trung tâm thông báo đối soát và filter gutter — Preview hoàn thành 2026-08-12
+
+- Header đã bỏ icon mở Google Sheet và thay bằng chuông thông báo có badge, panel responsive, loading/error/empty state, đóng bằng backdrop/Escape và nguồn hiển thị rõ `XL_DoiSoatChuyen`.
+- `TripNotificationSyncService` chỉ đọc 17 cột công thức của `XL_DoiSoatChuyen`, lấy chênh lệch chuyến và thưởng nóng cần kiểm tra trong 45 ngày gần nhất, rồi ghi một bundle nhỏ `manage_data_bundles` với key `XL_DoiSoatChuyen/notifications:active`. Không ghi, đổi công thức hoặc cấu trúc Google Sheet.
+- Worker `syncRealtimeCache` cập nhật bundle tối đa mỗi 5 phút; frontend action proxy-local `getNotifications` xác thực session/RBAC rồi chỉ đọc Supabase. Checkpoint hiện chưa có trạng thái đã đọc/chưa đọc theo từng người dùng và chưa gửi Web Push cho loại cảnh báo này.
+- Authenticated Preview đang có 28 cảnh báo thực tế. QA panel PASS ở 390x844 và 1440x900; badge/panel hoạt động, không tràn viewport.
+- Toàn bộ `select.platform-content-select` giữ 40px gutter cho chevron, text căn trái và không dùng `field-sizing` làm mất phần đệm. Danh mục chỉ render bộ lọc phù hợp với tab; search, filter và icon Nhập mới đều 44px, cùng một hàng tại 390px và 1440px. Audit Vận hành, Quỹ và Báo cáo xác nhận select visible đều có `padding-right: 40px`, text trái và trang không tràn ngang.
+- Full deploy gate PASS 485/485 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Preview `@327`; Vercel Preview `dpl_9wojS6Y1GVauiKugpRq9WPiACSpZ`; Production giữ nguyên `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG` / Apps Script `@325`.
+- Checkpoint tiếp theo: chờ người dùng duyệt trực quan Preview; chỉ promote Production khi có phê duyệt riêng.
 
 ### Auth hydration và filter-control contract — Preview hoàn thành 2026-08-12
 
@@ -238,9 +248,10 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-1. **Authenticated Production confirmation**: người dùng đăng nhập `https://dongbac.vercel.app`; xác nhận nhanh Tài xế/Nghỉ vận hành/Vận chuyển, Quỹ và ba lần mở/reload không quay lại LoginGate. Không cần write canary nếu chỉ xác nhận UI/read path.
-2. **Production stabilization**: theo dõi lỗi 5xx và regression phiên đăng nhập sau cut-forward; rollback về Vercel `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde` + Apps Script `@322` nếu phát hiện lỗi nghiệp vụ nghiêm trọng.
-3. **Cron cảnh báo Quỹ riêng**: vẫn là checkpoint độc lập, chưa bật.
+1. **Duyệt Preview notification/filter**: người dùng kiểm tra chuông, nội dung cảnh báo, Danh mục trên mobile/desktop tại `https://vantaidongbac-preview.vercel.app`.
+2. **Production cut-forward riêng**: nếu được phê duyệt, cập nhật Apps Script Production từ `@325` sang candidate notification hiện hành rồi build/promote Vercel Production với Production environment; giữ rollback bất biến.
+3. **Mở rộng trạng thái thông báo**: nếu cần badge “chưa đọc” theo user hoặc Web Push cho đối soát chuyến, tạo checkpoint/migration riêng; không suy ra từ badge cảnh báo active hiện tại.
+4. **Cron cảnh báo Quỹ riêng**: vẫn là checkpoint độc lập, chưa bật.
 
 ## 7. Mục tiêu kiến trúc dài hạn
 

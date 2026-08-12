@@ -176,6 +176,7 @@ Các action Vận tải có thể nhận context qua params hoặc body:
 - `getFundOverview`;
 - `getFundLoanOverview`;
 - `getFundFormOptions`;
+- `getNotifications`;
 - `checkTripReconciliation`.
 
 Mọi action khác nhận HTTP 403 với shareholder, kể cả khi action chỉ đọc nhưng chưa có trong allowlist.
@@ -219,6 +220,7 @@ Inventory nội bộ được biểu diễn tại `ApiActionRegistry.gs` với `
 | `getFundOverview` | GET | Thu chi | Có | Không |
 | `getFundLoanOverview` | GET | Thu chi | Có | Không |
 | `getFundFormOptions` | GET | Thu chi | Có | Không |
+| `getNotifications` | GET | Thông báo | Có | Không |
 | `getFundCatalog` | GET | Thu chi | Không | Không |
 | `addFundTransaction` | POST | Thu chi | Không | Direct |
 | `addFundTransactions` | POST | Thu chi | Không | Queue có điều kiện hoặc direct |

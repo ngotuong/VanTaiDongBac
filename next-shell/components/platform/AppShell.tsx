@@ -8,6 +8,7 @@ import type { PlatformContext } from '../../lib/platform/types';
 import { ShellNavigation, type NavigationItem } from './ShellNavigation';
 import { SessionKeepAlive, SignOutButton } from './SessionControls';
 import { ToastViewport } from './ToastViewport';
+import { NotificationCenter } from './NotificationCenter';
 
 const ALL_ROLES = ['admin', 'operator', 'shareholder'] as const;
 const WRITE_ROLES = ['admin', 'operator'] as const;
@@ -90,7 +91,7 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
         <div><h1>{pageTitle}</h1><div className="subtitle">{subtitle}{currentMeta.source ? <span className={`source-badge ${currentMeta.source === 'supabase' ? 'source-supabase' : 'source-appscript'}`} title={currentMeta.source === 'supabase' ? 'Dữ liệu được đọc từ Supabase' : 'Dữ liệu đang đọc fallback từ Apps Script'}>{currentMeta.source === 'supabase' ? 'S' : 'AS'}</span> : null}</div></div>
         <div className="top-actions">
           <button type="button" className="ghost icon-button" aria-label="Tải lại dữ liệu từ Supabase" title="Tải lại từ Supabase" onClick={refresh}><svg className="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg></button>
-          <a href="/open-sheet" target="_blank" rel="noreferrer" title="Google Sheet" className="ghost icon-button" aria-label="Mở Google Sheet"><svg className="btn-svg" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg></a>
+          <NotificationCenter />
         </div>
       </header>
       <div className={`route-progress${navigationTarget || isNavigationPending ? ' active' : ''}`} aria-hidden="true"><span/></div>

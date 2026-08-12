@@ -112,7 +112,8 @@
       "updateUser"
     ],
     "localFoundationActions": [
-      "runtimeContext"
+      "runtimeContext",
+      "getNotifications"
     ],
     "shareholderActions": [
       "authSession",
@@ -125,6 +126,7 @@
       "getFundLoanOverview",
       "getFundOverview",
       "getFundTransactions",
+      "getNotifications",
       "getReport",
       "getReportBundle",
       "getReports",

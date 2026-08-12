@@ -3860,7 +3860,7 @@ html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg 
 }
 
 .notification-view-switch button,
-.notification-mark-all {
+.notification-toolbar-icon {
   min-height: 44px;
   border: 1px solid var(--line, #dbe3ec);
   border-radius: 10px;
@@ -3906,21 +3906,47 @@ html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg 
   background: #0f766e;
 }
 
-.notification-mark-all {
+.notification-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notification-toolbar-icon {
+  display: inline-flex;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
   min-height: 44px;
-  padding: 0 6px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
   border-color: transparent;
   color: #0f766e;
   background: transparent;
 }
 
-.notification-mark-all:disabled {
+.notification-toolbar-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.notification-toolbar-icon .spinning {
+  animation: spin .7s linear infinite;
+}
+
+.notification-toolbar-icon:disabled {
   color: #94a3b8;
   cursor: default;
 }
 
 .notification-view-switch button:focus-visible,
-.notification-mark-all:focus-visible,
+.notification-toolbar-icon:focus-visible,
 .notification-item-action:focus-visible {
   outline: 3px solid rgba(13, 148, 136, .28);
   outline-offset: -3px;
@@ -4133,6 +4159,7 @@ html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg 
 }
 
 .notification-panel-footer {
+  justify-content: center;
   border-top: 1px solid var(--line, #dbe3ec);
   background: #f8fafc;
 }
@@ -4186,4 +4213,61 @@ html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg 
 @media (prefers-reduced-motion: reduce) {
   .notification-panel { animation: none; }
   .notification-item { transition: none; }
+  .notification-toolbar-icon .spinning { animation: none; }
+}
+
+/* Final date-control contract: every displayed date starts at the left edge. */
+html body .custom-date-box {
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+html body .custom-date-box .date-display-text {
+  display: block;
+  width: 100% !important;
+  min-width: 0;
+  box-sizing: border-box;
+  text-align: left !important;
+  text-align-last: left !important;
+}
+
+html body input[type="date"],
+html body input[type="month"] {
+  text-align: left !important;
+  text-align-last: left !important;
+}
+
+html body input[type="date"]::-webkit-date-and-time-value,
+html body input[type="month"]::-webkit-date-and-time-value,
+html body input[type="date"]::-webkit-datetime-edit,
+html body input[type="month"]::-webkit-datetime-edit {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  text-align: left !important;
+}
+
+@media (max-width: 768px) {
+  html body .cashflow-overview-filter-panel .cashflow-filter-stack {
+    grid-template-columns: minmax(0, 1fr) 142px !important;
+  }
+
+  html body .cashflow-overview-filter-panel .cashflow-quick-period-select {
+    width: 142px !important;
+    min-width: 142px !important;
+    max-width: 142px !important;
+  }
+
+  html body .cashflow-overview-filter-panel .cashflow-date-input {
+    padding-inline: 6px !important;
+  }
+
+  html body .app main.main#platform-content .view.active .cashflow-overview-filter-panel .cashflow-date-input .date-display-text {
+    flex: 1 1 auto;
+    width: auto !important;
+    padding-inline: 0 !important;
+    font-size: 13px !important;
+  }
 }

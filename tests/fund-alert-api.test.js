@@ -16,10 +16,15 @@ test('fund alert endpoint reserves live sends for cron and admin-managed setting
   assert.match(api, /settings\.updateRule\(config, user/);
 });
 
-test('fund alert Settings card is admin-only and cannot send notifications', () => {
+test('fund alert rule is embedded in the admin fund preference and cannot send notifications', () => {
   const settings = read('next-shell/components/settings/SettingsModule.tsx');
+  const pushSettings = read('next-shell/components/settings/PushNotificationSettings.tsx');
   const card = read('next-shell/components/settings/FundAlertSettings.tsx');
-  assert.match(settings, /isAdmin && <FundAlertSettings/);
+  assert.match(settings, /<PushNotificationSettings isAdmin=\{isAdmin\}/);
+  assert.doesNotMatch(settings, /<FundAlertSettings/);
+  assert.match(pushSettings, /item\.key === 'fund-low-balance' && isAdmin \? <FundAlertSettings/);
+  assert.match(card, /fund-alert-settings-embedded/);
+  assert.match(card, /Mở rộng quy tắc cảnh báo/);
   assert.match(card, /post\('dryRun'/);
   assert.match(card, /Kiểm tra bản nháp — không gửi/);
   assert.doesNotMatch(card, /action: ['"]send/);

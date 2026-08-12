@@ -35,6 +35,8 @@ test('Dense Settings actions use progressive disclosure and only persistent stat
   const fundAlert = read('next-shell/components/settings/FundAlertSettings.tsx');
   assert.match(settings, /<details className="account-create-disclosure">/);
   assert.match(fundAlert, /<details className="fund-alert-disclosure">/);
+  assert.match(fundAlert, /fund-alert-rule-toggle/);
+  assert.match(fundAlert, /Mở rộng quy tắc cảnh báo/);
   assert.match(fundAlert, /Kiểm tra bản nháp — không gửi/);
   assert.match(fundAlert, /<PillSwitch checked=\{rule\.enabled\}/);
   assert.doesNotMatch(fundAlert, /label=.*Kiểm tra.*PillSwitch/);

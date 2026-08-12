@@ -77,10 +77,10 @@ Production đã xác nhận gần nhất:
 Preview hiện hành của checkpoint đồng bộ dropdown theo ngữ nghĩa workbook:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_5KTTgbsnJr68Kh7QygJGybeKmwvN`, READY ngày 2026-08-12.
+- Vercel deployment: `dpl_Gvy4VJJswccvxyzRFA3J4g1ntJaP`, READY ngày 2026-08-12.
 - Apps Script Preview: `@325`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 480/480 tests, lint, typecheck, Next build, Identity Guard, root/title/API smoke. Candidate này chưa được promote; Production vẫn là `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde` và Apps Script Production vẫn `@322`.
+- Gate deploy PASS 481/481 tests, lint, typecheck, Next build, Identity Guard, root/title/API smoke. Candidate này chưa được promote; Production vẫn là `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde` và Apps Script Production vẫn `@322`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -142,8 +142,9 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Catalog editor dùng mapping sheet-aware cho các tham chiếu dự án, nhóm vận hành, xe, nhân sự và cờ Có/Không; các trường định danh chính của từng danh mục không bị biến thành dropdown tự tham chiếu.
 - Module Quỹ đã đồng bộ `HINHTHUC`, mở rộng đúng phạm vi `MUCTHU`/`MUCCHI`, yêu cầu hình thức cho thu/chi/vay/trả và giữ đúng loại thanh toán `Vay`, `Trả nợ`, `Trả lãi` (không phát sinh `Trả gốc`).
 - Đã chạy thành công ba tác vụ cache `syncAllStartupAndCatalogsToSupabase`, `syncAllFundBundlesToSupabase`, `syncAllFundCatalogsToSupabase`. Apps Script Preview `@325` health HTTP 200; OAuth được cấp lại để khôi phục health của cả hai deployment nhưng không thay đổi code/deployment Production.
-- Full deploy gate PASS 480/480 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_5KTTgbsnJr68Kh7QygJGybeKmwvN`; Production giữ nguyên Vercel `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde` và Apps Script `@322`.
-- Authenticated visual QA của candidate mới còn chờ máy Mac được mở khóa; source contract, unit/HTTP smoke và cache sync đã PASS, nhưng chưa coi visual interaction này là bằng chứng đã hoàn tất.
+- Authenticated Preview QA xác nhận: `NL_VanChuyen` có dự án đơn lẻ; `NL_TaiXe` và `NL_NghiVanHanh` chỉ có ba nhóm `Tràng Duệ`, `Amata`, `Dự án nhỏ`; form Quỹ có đúng `HINHTHUC`, mục chi `Trả nợ`/`Trả lãi`, không có `Trả gốc`; không ghi dữ liệu nghiệp vụ và không có console warning/error.
+- `SessionKeepAlive` không còn gọi lại `/api/session` ngay sau khi server vừa xác thực. Việc kiểm tra vẫn chạy mỗi 40 phút hoặc khi quay lại tab sau 40 phút, loại vòng app → khôi phục đăng nhập → app do lần xác thực client trùng. Ba lần reload authenticated liên tiếp trên Preview đều giữ app ổn định, không hiện LoginGate.
+- Full deploy gate PASS 481/481 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_Gvy4VJJswccvxyzRFA3J4g1ntJaP`; Production giữ nguyên Vercel `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde` và Apps Script `@322`.
 
 ### Dashboard Phí Phường và toolbar hai cột — Preview hoàn thành 2026-08-11
 

@@ -115,7 +115,6 @@ export function SessionKeepAlive() {
         if (active && (response.status === 401 || response.status === 403)) window.location.reload();
       } catch {}
     }
-    refreshIfNeeded();
     const interval = window.setInterval(refreshIfNeeded, 40 * 60 * 1000);
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible' && Date.now() - lastAttemptAt >= 40 * 60 * 1000) refreshIfNeeded();

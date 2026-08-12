@@ -36,7 +36,8 @@ test('Next session controls synchronize and clear the server session', () => {
   assert.match(auth, /X-VTDB-CSRF/);
   assert.match(auth, /Đang khôi phục phiên/);
   assert.match(auth, /40 \* 60 \* 1000/);
-  assert.match(auth, /refreshIfNeeded\(\);\s*const interval/);
+  assert.doesNotMatch(auth, /refreshIfNeeded\(\);\s*const interval/);
+  assert.match(auth, /const interval = window\.setInterval\(refreshIfNeeded, 40 \* 60 \* 1000\)/);
   assert.match(auth, /visibilitychange/);
   assert.match(read('next-shell/components/platform/AppShell.tsx'), /<SessionKeepAlive \/>/);
   const endpoint = read('api/session.js');

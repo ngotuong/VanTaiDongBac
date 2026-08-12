@@ -27,6 +27,14 @@ test('login recovery and submit use honest full-screen loading phases', () => {
   assert.match(controls, /disabled=\{busy\}/);
 });
 
+test('authenticated shell does not immediately recheck the session after server authentication', () => {
+  const controls = read('next-shell/components/platform/SessionControls.tsx');
+  const keepAlive = controls.slice(controls.indexOf('export function SessionKeepAlive'), controls.indexOf('export function SignOutButton'));
+  assert.doesNotMatch(keepAlive, /\n\s*refreshIfNeeded\(\);\n\s*const interval/);
+  assert.match(keepAlive, /setInterval\(refreshIfNeeded, 40 \* 60 \* 1000\)/);
+  assert.match(keepAlive, /Date\.now\(\) - lastAttemptAt >= 40 \* 60 \* 1000/);
+});
+
 test('startup loader is accessible, branded and does not expose fake progress', () => {
   const component = read('next-shell/components/platform/StartupLoadingScreen.tsx');
   assert.match(component, /role="status"/);

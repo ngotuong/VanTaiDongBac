@@ -36,11 +36,16 @@ test('header uses an accessible bell and filter controls reserve a chevron gutte
   const shell = read('next-shell/components/platform/AppShell.tsx');
   const center = read('next-shell/components/platform/NotificationCenter.tsx');
   const css = read('next-shell/app/platform.css');
-  assert.match(shell, /<NotificationCenter \/>/);
+  assert.match(shell, /<NotificationCenter userId=\{context\.user\.id\} \/>/);
   assert.doesNotMatch(shell, /aria-label="Mở Google Sheet"/);
   assert.match(center, /aria-expanded=\{open\}/);
   assert.match(center, /role="dialog"/);
   assert.match(center, /aria-live="polite"/);
+  assert.match(center, /Xem tất cả/);
+  assert.match(center, /Đánh dấu tất cả đã đọc/);
+  assert.match(center, /localStorage\.setItem\(storageKey/);
+  assert.match(center, /updateAppBadge\(unreadCount\)/);
+  assert.doesNotMatch(center, /Nguồn: XL_DoiSoatChuyen/);
   assert.match(css, /padding-inline: var\(--platform-control-padding-x, 12px\) 40px !important/);
   assert.match(css, /catalog-sticky-toolbar[\s\S]*height: 44px !important/);
 });

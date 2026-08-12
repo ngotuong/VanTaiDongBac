@@ -14,6 +14,7 @@ var FundTransactionService = (function () {
     if (!date) throw new Error('Vui lòng nhập ngày hợp lệ.');
     if (type !== 'Thu' && type !== 'Chi') throw new Error('Vui lòng chọn loại Thu hoặc Chi.');
     if (!category) throw new Error('Vui lòng nhập mục thu/chi.');
+    if (!method) throw new Error('Vui lòng chọn hình thức.');
     if (!(amount > 0)) throw new Error('Số tiền phải lớn hơn 0.');
     if (!actor) throw new Error('Vui lòng nhập Người Thu/Chi.');
     if (debt && !partner) throw new Error('Khoản công nợ cần có Đối tác.');

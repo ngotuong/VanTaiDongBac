@@ -23,10 +23,11 @@ const FORMS: Record<EntryFormType, { label: string; note: string; fields: Array<
   },
   taiXe: {
     label: 'Tài xế',
-    note: 'Nhóm vận hành được tự xác định theo ngày và xe',
+    note: 'Ghi nhận chuyến theo nhóm vận hành',
     fields: [
       ['date', 'Ngày', 'date'],
       ['vehicle', 'Biển số', 'vehicles'],
+      ['operationGroup', 'Nhóm vận hành', 'operationGroups'],
       ['driver', 'Tài xế', 'drivers'],
       ['trips', 'Số chuyến', 'number'],
       ['note', 'Ghi chú', 'textarea', false],
@@ -93,10 +94,10 @@ function options(c: EntryCatalogs, source: string) {
   if (source === 'drivers') return (c.activeDrivers?.length ? c.activeDrivers : c.people || []).map((x) => item(x.name || '')).filter((x) => x.value);
   if (source === 'people') return (c.activePeople?.length ? c.activePeople : c.people || []).map((x) => item(x.name || '', `${x.name || ''}${x.role ? ' - ' + x.role : ''}`)).filter((x) => x.value);
   if (source === 'penalties') return (c.activePenalties || []).map((x) => item(x.code || '', `${x.code || ''} - ${x.content || ''}`)).filter((x) => x.value);
-  if (source === 'fuelSources') return (c.fuelSources || ['Quang Minh', 'Đổ ngoài']).map((x) => item(x));
-  if (source === 'fuelPaymentSources') return (c.fuelPaymentSources || ['Quang Quân', 'Minh Vương', 'Quỹ']).map((x) => item(x));
+  if (source === 'fuelSources') return (c.fuelSources || []).map((x) => item(x));
+  if (source === 'fuelPaymentSources') return (c.fuelPaymentSources || []).map((x) => item(x));
   if (source === 'chamCongTypes') return (c.chamCongTypes || []).map((x) => item(x.name || '')).filter((x) => x.value);
-  if (source === 'nghiVanHanhTypes') return (c.nghiVanHanhTypes || ['Mỏ báo nghỉ', 'Mưa', 'Lễ/Tết', 'Xe hỏng', 'Khác']).map((x) => item(x));
+  if (source === 'nghiVanHanhTypes') return (c.nghiVanHanhTypes || []).map((x) => item(x));
   return [];
 }
 function normalizeJob(value: unknown): WriteJob {

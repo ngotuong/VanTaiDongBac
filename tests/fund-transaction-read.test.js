@@ -110,20 +110,20 @@ test('write service preserves validation messages, row mapping, and stable batch
   const { FundTransactionService: service } = load();
   const context = writeContext();
   assert.deepEqual(JSON.parse(JSON.stringify(service.validate([
-    { date: '11/07/2026', type: 'Thu', category: 'Cước', amount: '1.200.000', actor: 'An' }
+    { date: '11/07/2026', type: 'Thu', category: 'Cước', method: 'Tiền mặt', amount: '1.200.000', actor: 'An' }
   ], context))), { ok: true, count: 1 });
-  const row = service.buildRow({ date: '11/07/2026', type: 'Chi', category: 'Dầu', amount: '500.000', actor: 'Bình', debt: true, partner: 'Xe 1' }, 'seed', 1, context);
+  const row = service.buildRow({ date: '11/07/2026', type: 'Chi', category: 'Dầu', method: 'Tài khoản', amount: '500.000', actor: 'Bình', debt: true, partner: 'Xe 1' }, 'seed', 1, context);
   assert.equal(row[0], 'seed-02');
-  assert.deepEqual(JSON.parse(JSON.stringify(row.slice(2))), ['', 'Dầu', '', 500000, 'Bình', 'Xe 1', '', 'Có']);
+  assert.deepEqual(JSON.parse(JSON.stringify(row.slice(2))), ['', 'Dầu', 'Tài khoản', 500000, 'Bình', 'Xe 1', '', 'Có']);
   assert.throws(() => service.validate([{ type: 'Thu' }], context), /Dòng 1: Vui lòng nhập ngày hợp lệ/);
-  assert.throws(() => service.buildRow({ date: '11/07/2026', type: 'Thu', category: 'Cước', amount: 1, actor: 'An', debt: true }, '', 0, context), /Khoản công nợ cần có Đối tác/);
+  assert.throws(() => service.buildRow({ date: '11/07/2026', type: 'Thu', category: 'Cước', method: 'Tiền mặt', amount: 1, actor: 'An', debt: true }, '', 0, context), /Khoản công nợ cần có Đối tác/);
 });
 
 test('write service preserves append result, full replay, and partial-voucher conflict', () => {
   const { FundTransactionService: service } = load();
   const payloads = [
-    { voucher: 'V1', date: '11/07/2026', type: 'Thu', category: 'Cước', amount: 100, actor: 'An' },
-    { voucher: 'V2', date: '11/07/2026', type: 'Chi', category: 'Dầu', amount: 50, actor: 'Bình' }
+    { voucher: 'V1', date: '11/07/2026', type: 'Thu', category: 'Cước', method: 'Tiền mặt', amount: 100, actor: 'An' },
+    { voucher: 'V2', date: '11/07/2026', type: 'Chi', category: 'Dầu', method: 'Tài khoản', amount: 50, actor: 'Bình' }
   ];
   let appended;
   const repository = {
@@ -186,7 +186,7 @@ test('update and delete preserve existing voucher/method, helper formulas, resul
     deleteRow(sheetValue, rowNumber) { calls.push(['delete', rowNumber]); }
   };
   const context = writeContext({ repository, headers: Array(10).fill(''), writeOptions: { marker: true } });
-  const updated = service.updateTransaction('12', { date: '11/07/2026', type: 'Chi', category: 'Dầu', amount: 500, actor: 'An' }, context);
+  const updated = service.updateTransaction('12', { date: '11/07/2026', type: 'Chi', category: 'Dầu', method: 'Chuyển khoản', amount: 500, actor: 'An' }, context);
   assert.deepEqual(JSON.parse(JSON.stringify(updated)), { ok: true, rowIndex: 12, voucher: 'OLD-VOUCHER', sheetName: 'NHAP_THUCHI' });
   assert.equal(calls[0][2][4], 'Chuyển khoản');
   assert.deepEqual(JSON.parse(JSON.stringify(service.deleteTransaction(12, context))), { ok: true, rowIndex: 12, sheetName: 'NHAP_THUCHI' });

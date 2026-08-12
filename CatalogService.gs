@@ -12,6 +12,10 @@ var CatalogService = (function () {
     var penaltyRows = needs.penalties ? readRows_(ss, 'DM_PhatNoiBo') : [];
     var assignmentRows = needs.assignments ? readRows_(ss, 'DM_PhanCongXe') : [];
     var chamCongTypes = needs.chamCongTypes ? readChamCongTypes_(ss) : [];
+    var fuelSources = needs.fuelOptions ? readColumnOptions_(ss, 'NL_Dau', 2, ['Nguồn dầu']) : [];
+    var fuelPaymentSources = needs.fuelOptions ? readColumnOptions_(ss, 'NL_Dau', 2, ['Nguồn chi']) : [];
+    var nghiVanHanhTypes = needs.stopTypes ? readColumnOptions_(ss, 'NL_NghiVanHanh', 1, ['Loại nghỉ']) : [];
+    var companies = needs.companies ? readColumnOptions_(ss, 'DM_Xe', 1, ['Công ty sở hữu']) : [];
 
     var people = peopleRows.map(function (row) {
       return {
@@ -65,8 +69,12 @@ var CatalogService = (function () {
         status: clean_(row[5])
       };
     }).filter(function (item) { return item.plate && item.operationGroup && item.startDate; });
-    var operationGroups = uniqueNamed_(projectRows.map(function (row) {
-      return { name: clean_(row[8]) };
+    var operationGroupValues = needs.projects ? readColumnOptions_(ss, 'SYS_DanhSach', 1, ['DS_NhomVanHanh']) : [];
+    if (!operationGroupValues.length) {
+      operationGroupValues = projectRows.map(function (row) { return clean_(row[8]); });
+    }
+    var operationGroups = uniqueNamed_(operationGroupValues.map(function (name) {
+      return { name: clean_(name) };
     }));
 
     return {
@@ -84,16 +92,17 @@ var CatalogService = (function () {
       operationGroups: operationGroups,
       params: params,
       chamCongTypes: chamCongTypes,
-      nghiVanHanhTypes: ['Mỏ báo nghỉ', 'Mưa', 'Lễ/Tết', 'Xe hỏng', 'Khác'],
-      fuelSources: ['Quang Minh', 'Đổ ngoài'],
-      fuelPaymentSources: ['Quang Quân', 'Minh Vương', 'Quỹ']
+      nghiVanHanhTypes: nghiVanHanhTypes,
+      fuelSources: fuelSources,
+      fuelPaymentSources: fuelPaymentSources,
+      companies: companies
     };
   }
 
   function catalogNeeds_(formType) {
-    var needs = { params: false, people: false, vehicles: false, projects: false, penalties: false, assignments: false, chamCongTypes: false };
+    var needs = { params: false, people: false, vehicles: false, projects: false, penalties: false, assignments: false, chamCongTypes: false, fuelOptions: false, stopTypes: false, companies: false };
     if (!formType) {
-      return { params: true, people: true, vehicles: true, projects: true, penalties: true, assignments: false, chamCongTypes: true };
+      return { params: true, people: true, vehicles: true, projects: true, penalties: true, assignments: false, chamCongTypes: true, fuelOptions: true, stopTypes: true, companies: true };
     }
     if (formType === 'vanChuyen') {
       needs.vehicles = true;
@@ -101,9 +110,10 @@ var CatalogService = (function () {
     } else if (formType === 'taiXe') {
       needs.vehicles = true;
       needs.people = true;
-      needs.assignments = true;
+      needs.projects = true;
     } else if (formType === 'dau') {
       needs.vehicles = true;
+      needs.fuelOptions = true;
     } else if (formType === 'chamCong') {
       needs.people = true;
       needs.chamCongTypes = true;
@@ -115,6 +125,7 @@ var CatalogService = (function () {
       needs.projects = true;
       needs.params = true;
       needs.assignments = true;
+      needs.stopTypes = true;
     } else {
       return catalogNeeds_();
     }
@@ -143,6 +154,93 @@ var CatalogService = (function () {
       result.push({ name: name, group: '', salary: '' });
     });
     return result;
+  }
+
+  function uniqueStrings_(values) {
+    var seen = {};
+    var result = [];
+    (values || []).forEach(function (value) {
+      var text = clean_(value);
+      var key = text.toLowerCase();
+      if (!text || seen[key]) return;
+      seen[key] = true;
+      result.push(text);
+    });
+    return result;
+  }
+
+  function validationOptions_(range) {
+    if (!range || typeof range.getDataValidations !== 'function') return [];
+    var result = [];
+    range.getDataValidations().forEach(function (row) {
+      row.forEach(function (rule) {
+        if (!rule) return;
+        var criteria = rule.getCriteriaType();
+        var values = rule.getCriteriaValues();
+        if (criteria === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
+          result = result.concat(values[0] || []);
+        } else if (criteria === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE && values[0]) {
+          values[0].getDisplayValues().forEach(function (sourceRow) {
+            result = result.concat(sourceRow);
+          });
+        }
+      });
+    });
+    return uniqueStrings_(result);
+  }
+
+  function readColumnOptions_(ss, sheetName, headerRow, headerNames) {
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet || sheet.getLastColumn() < 1) return [];
+    var headers = sheet.getRange(headerRow, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
+    var wanted = (headerNames || []).map(function (header) { return normalizeCatalogHeader_(header); });
+    var column = -1;
+    headers.some(function (header, index) {
+      if (wanted.indexOf(normalizeCatalogHeader_(header)) < 0) return false;
+      column = index + 1;
+      return true;
+    });
+    if (column < 1) return [];
+    var startRow = headerRow + 1;
+    var rowCount = Math.max(1, Math.min(Math.max(sheet.getLastRow(), startRow) - startRow + 1, 500));
+    var range = sheet.getRange(startRow, column, rowCount, 1);
+    var validationValues = validationOptions_(range);
+    if (validationValues.length) return validationValues;
+    return uniqueStrings_(range.getDisplayValues().map(function (row) { return row[0]; }));
+  }
+
+  function normalizeCatalogHeader_(value) {
+    return String(value || '').trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9?]+/g, ' ').trim();
+  }
+
+  function readCatalogFieldOptions_(sheetName, result) {
+    var optionHeaders = {
+      DM_DuAn: ['Nhóm vận hành', 'Áp dụng lương chuyến?', 'Áp dụng thưởng QL?'],
+      DM_NhanSu: ['Chức vụ', 'Người tuyển', 'Trạng Thái', 'Công ty'],
+      DM_Xe: ['Loại xe', 'Trạng thái', 'Công ty sở hữu'],
+      DM_CheDoLuong: ['Chế độ lương'],
+      DM_LuongChuyen: ['Mã loại tính', 'Nhóm vận hành'],
+      DM_DonGiaVanChuyen: ['Cách tính'],
+      DM_ThuongQuanLy: ['Trạng thái', 'Nhóm vận hành'],
+      DM_PhatNoiBo: ['Trạng thái'],
+      DM_PhanCongXe: ['Nhóm vận hành']
+    };
+    var requested = optionHeaders[sheetName] || [];
+    if (!requested.length) return {};
+    var options = {};
+    var spreadsheet;
+    try { spreadsheet = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId); } catch (error) { spreadsheet = null; }
+    requested.forEach(function (requestedHeader) {
+      var headerIndex = (result.headers || []).findIndex(function (header) {
+        return normalizeCatalogHeader_(header) === normalizeCatalogHeader_(requestedHeader);
+      });
+      if (headerIndex < 0) return;
+      var header = result.headers[headerIndex];
+      var values = spreadsheet ? readColumnOptions_(spreadsheet, sheetName, 1, [header]) : [];
+      if (values.length) options[header] = values;
+    });
+    return options;
   }
 
   function readParams_(ss) {
@@ -225,6 +323,7 @@ var CatalogService = (function () {
       result = projectPrimaryTable_(result);
     }
     result.editableHeaders = editableHeadersForSheet_(requestedName, result.headers);
+    result.fieldOptions = readCatalogFieldOptions_(requestedName, result);
 
     return result;
   }

@@ -74,13 +74,13 @@ Production đã xác nhận gần nhất:
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
-Preview hiện hành của checkpoint dashboard Phí Phường/UI toolbar columns:
+Preview hiện hành của checkpoint đồng bộ dropdown theo ngữ nghĩa workbook:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_9ScEMdJKuHE8hQKqj5tf1c2cWxc3`, READY ngày 2026-08-11.
-- Apps Script Preview: `@322`, deployment ID riêng với Production.
+- Vercel deployment: `dpl_5KTTgbsnJr68Kh7QygJGybeKmwvN`, READY ngày 2026-08-12.
+- Apps Script Preview: `@325`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 478/478 tests, lint, typecheck, Next build, Identity Guard, root/title smoke. Candidate này chưa được promote; Production vẫn là `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde`.
+- Gate deploy PASS 480/480 tests, lint, typecheck, Next build, Identity Guard, root/title/API smoke. Candidate này chưa được promote; Production vẫn là `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde` và Apps Script Production vẫn `@322`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -135,6 +135,16 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
+### Live dropdown semantics — Preview hoàn thành 2026-08-12
+
+- Đã audit read-only hai workbook canonical theo từng sheet/cột và đối chiếu validation vật lý, helper list, header cùng dữ liệu thực. Dropdown được ánh xạ theo ngữ nghĩa trường thay vì suy luận chung từ chữ `Dự án`.
+- `NL_TaiXe.Nhóm vận hành` nay là trường chọn bắt buộc và lấy đúng `SYS_DanhSach!DS_NhomVanHanh`: `Tràng Duệ`, `Amata`, `Dự án nhỏ`; không còn tự suy ra từ phân công xe hoặc hiển thị dự án đơn lẻ. `NL_NghiVanHanh.Dự án` cũng dùng nhóm vận hành theo dữ liệu live, còn `NL_VanChuyen.Dự án` tiếp tục dùng danh sách dự án đơn lẻ.
+- Catalog editor dùng mapping sheet-aware cho các tham chiếu dự án, nhóm vận hành, xe, nhân sự và cờ Có/Không; các trường định danh chính của từng danh mục không bị biến thành dropdown tự tham chiếu.
+- Module Quỹ đã đồng bộ `HINHTHUC`, mở rộng đúng phạm vi `MUCTHU`/`MUCCHI`, yêu cầu hình thức cho thu/chi/vay/trả và giữ đúng loại thanh toán `Vay`, `Trả nợ`, `Trả lãi` (không phát sinh `Trả gốc`).
+- Đã chạy thành công ba tác vụ cache `syncAllStartupAndCatalogsToSupabase`, `syncAllFundBundlesToSupabase`, `syncAllFundCatalogsToSupabase`. Apps Script Preview `@325` health HTTP 200; OAuth được cấp lại để khôi phục health của cả hai deployment nhưng không thay đổi code/deployment Production.
+- Full deploy gate PASS 480/480 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_5KTTgbsnJr68Kh7QygJGybeKmwvN`; Production giữ nguyên Vercel `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde` và Apps Script `@322`.
+- Authenticated visual QA của candidate mới còn chờ máy Mac được mở khóa; source contract, unit/HTTP smoke và cache sync đã PASS, nhưng chưa coi visual interaction này là bằng chứng đã hoàn tất.
+
 ### Dashboard Phí Phường và toolbar hai cột — Preview hoàn thành 2026-08-11
 
 - Đã đọc live `BC_TongQuan!G3:S15` từ workbook Vận tải canonical. Header tháng có thêm `Phí Phường`; tháng 07/2026 có `Phí Đi Đường = 64.000.000` và `Phí Phường = 16.500.000`, còn tháng 08/2026 cả hai bằng 0. Không ghi hay thay đổi Google Sheet.
@@ -147,7 +157,7 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 - Checkpoint được phát triển trên `codex/live-sheet-parity`, sau đó fast-forward vào `main` canonical tại commit `d5707ae` trước production cut-forward.
 - Đã đối chiếu live workbook Vận tải 37 sheet và workbook Thu Chi 9 sheet.
-- Write contract Vận tải đã khóa theo exact live headers; `NL_VanChuyen` 8 cột, `NL_TaiXe` dùng `Nhóm vận hành` lấy từ phân công xe theo hiệu lực, `NL_Dau` 10 cột và `NL_NghiVanHanh` 10 cột.
+- Write contract Vận tải đã khóa theo exact live headers; `NL_VanChuyen` 8 cột, `NL_TaiXe` dùng `Nhóm vận hành`, `NL_Dau` 10 cột và `NL_NghiVanHanh` 10 cột. Cơ chế cũ tự suy ra nhóm từ phân công xe đã được checkpoint 2026-08-12 thay bằng lựa chọn explicit từ `SYS_DanhSach!DS_NhomVanHanh`.
 - Đã thêm các danh mục live `DM_CheDoLuong`, `DM_GiaDau`, `DM_PhanCongXe`, `DM_UuDaiNoiBo`; loại virtual catalog cũ `DM_ThamSo_GD`; UI/backend chỉ cho sửa cột nhập, giữ cột công thức. Live canary xác nhận `DM_GiaDau!C` dù mang header `Ghi chú` là công thức chênh lệch nên webapp khóa cột này và helper append sao chép công thức bị skip từ dòng trước.
 - Thay đổi danh mục từ web app hoặc trực tiếp trong Sheet làm mới catalog cache và full report dependency; source poll `NL_VanChuyen` đã đọc đủ 8 cột.
 - Thu Chi có tab `Công nợ` đọc `Công nợ còn lại` tại cột M và admin/operator có thể sửa đúng 4 named range `TMDK`, `TKDK`, `NGAYNHAPLIEU`, `NGAYTINHVAY` trong `CAIDAT`.
@@ -216,9 +226,10 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-1. **Authenticated Production confirmation**: người dùng đăng nhập `https://dongbac.vercel.app` và kiểm tra nhanh Quỹ, Vận hành, Danh mục; không cần chạy write canary mới nếu chỉ xác nhận UI/read path.
-2. **Production stabilization**: theo dõi lỗi 5xx và regression phiên đăng nhập sau cut-forward; rollback ngay về Vercel `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6` + Apps Script `@315` nếu phát hiện lỗi nghiệp vụ nghiêm trọng.
-3. **Cron cảnh báo Quỹ riêng**: vẫn là checkpoint độc lập, chưa bật.
+1. **Authenticated Preview dropdown confirmation**: sau khi máy Mac được mở khóa, xác nhận trực tiếp `NL_TaiXe` chỉ có ba nhóm vận hành, `NL_NghiVanHanh` dùng nhóm và `NL_VanChuyen` vẫn dùng dự án đơn lẻ; chỉ đọc/mở/đóng form, không ghi dữ liệu nghiệp vụ.
+2. **Authenticated Production confirmation**: người dùng đăng nhập `https://dongbac.vercel.app` và kiểm tra nhanh Quỹ, Vận hành, Danh mục; không cần chạy write canary mới nếu chỉ xác nhận UI/read path.
+3. **Production stabilization**: theo dõi lỗi 5xx và regression phiên đăng nhập sau cut-forward; rollback ngay về Vercel `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6` + Apps Script `@315` nếu phát hiện lỗi nghiệp vụ nghiêm trọng.
+4. **Cron cảnh báo Quỹ riêng**: vẫn là checkpoint độc lập, chưa bật.
 
 ## 7. Mục tiêu kiến trúc dài hạn
 

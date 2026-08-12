@@ -58,6 +58,7 @@ const blankTransaction = (): FundTransaction => ({
   date: today(),
   type: 'Chi',
   category: '',
+  method: '',
   amount: '',
   actor: '',
   partner: '',
@@ -67,6 +68,7 @@ const blankTransaction = (): FundTransaction => ({
 type LoanForm = {
   date: string;
   partner: string;
+  method: string;
   amount: string;
   termMonths: string;
   annualRate: string;
@@ -77,6 +79,7 @@ type LoanForm = {
 const blankLoan = (): LoanForm => ({
   date: today(),
   partner: '',
+  method: '',
   amount: '',
   termMonths: '',
   annualRate: '',
@@ -89,6 +92,7 @@ type PaymentForm = {
   code: string;
   type: string;
   partner: string;
+  method: string;
   amount: string;
   content: string;
 };
@@ -305,6 +309,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     code: '',
     type: 'Trả nợ',
     partner: '',
+    method: '',
     amount: '',
     content: '',
   });
@@ -561,8 +566,8 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     setDrawer('transactions');
   };
   const submitTransactions = async () => {
-    const invalid = transactionRows.some((row) => !row.date || !row.category || !row.actor || amount(row.amount) <= 0);
-    if (invalid) return report('Vui lòng điền ngày, mục thu/chi, số tiền và người Thu/Chi cho mọi dòng.', true);
+    const invalid = transactionRows.some((row) => !row.date || !row.category || !row.method || !row.actor || amount(row.amount) <= 0);
+    if (invalid) return report('Vui lòng điền ngày, mục thu/chi, hình thức, số tiền và người Thu/Chi cho mọi dòng.', true);
     setBusy(true);
     showToast('Đang lưu giao dịch…', 'loading');
     try {
@@ -649,7 +654,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     setDrawer('loan');
   };
   const submitLoan = async () => {
-    if (loanRows.some((loan) => !loan.date || !loan.partner || amount(loan.amount) <= 0)) return report('Vui lòng nhập ngày vay, nơi vay và số tiền hợp lệ cho mọi khoản vay.', true);
+    if (loanRows.some((loan) => !loan.date || !loan.partner || !loan.method || amount(loan.amount) <= 0)) return report('Vui lòng nhập ngày vay, nơi vay, hình thức và số tiền hợp lệ cho mọi khoản vay.', true);
     setBusy(true);
     showToast(loanRows.length > 1 ? `Đang lưu ${loanRows.length} khoản vay…` : 'Đang lưu khoản vay…', 'loading');
     let nextLoans = loans;
@@ -690,13 +695,14 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
       code: item.code || '',
       type: 'Trả nợ',
       partner: item.partner,
+      method: '',
       amount: '',
       content: `Trả một phần khoản vay [${item.partner}] mã vay [${item.code || ''}]`,
     });
     setDrawer('payment');
   };
   const submitPayment = async () => {
-    if (!payment.date || !payment.code || !payment.partner || amount(payment.amount) <= 0) return report('Vui lòng nhập đủ thông tin thanh toán khoản vay.', true);
+    if (!payment.date || !payment.code || !payment.partner || !payment.method || amount(payment.amount) <= 0) return report('Vui lòng nhập đủ thông tin thanh toán khoản vay.', true);
     setBusy(true);
     try {
       await api.post('addFundLoanPayment', {
@@ -879,7 +885,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
       {tab === 'catalog' && canWrite ? <><FundSettingsCard value={settingsEdit} setValue={setSettingsEdit} save={() => void saveFundSettings()} busy={busy} /><Catalog data={catalog} group={group} edit={catalogEdit} setEdit={setCatalogEdit} selectGroup={selectGroup} save={() => void saveCatalog()} remove={deleteCatalog} busy={busy} page={catalogPage} setPage={setCatalogPage} /></> : null}
       {drawer === 'transactions' ? <TransactionDrawer rows={transactionRows} setRows={setTransactionRows} options={options} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitTransactions()} /> : null}
       {drawer === 'loan' ? <LoanDrawer rows={loanRows} setRows={setLoanRows} options={options} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitLoan()} /> : null}
-      {drawer === 'payment' ? <PaymentDrawer value={payment} setValue={setPayment} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitPayment()} /> : null}
+      {drawer === 'payment' ? <PaymentDrawer value={payment} setValue={setPayment} options={options} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitPayment()} /> : null}
       {drawer === 'category' && category ? <CategoryDrawer title={category.title} rows={categoryRows} allRows={category.rows} partner={categoryPartner} setPartner={setCategoryPartner} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} /> : null}
       {deletingTransaction ? (
         <BodyPortal>
@@ -1436,7 +1442,6 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
                 <option value="">Tất cả</option>
                 <option>Vay</option>
                 <option>Trả nợ</option>
-                <option>Trả gốc</option>
                 <option>Trả lãi</option>
               </select>
             </label>
@@ -1704,6 +1709,13 @@ function TransactionFields({ row, setRow, options }: { row: FundTransaction; set
         <input inputMode="numeric" value={String(row.amount)} onChange={(event) => set('amount', formatVietnameseNumberInput(event.target.value, false))} />
       </label>
       <label>
+        <span>Hình thức *</span>
+        <select value={row.method || ''} onChange={(event) => set('method', event.target.value)}>
+          <option value="">Chọn hình thức</option>
+          {(options.methods || []).map((value) => <option key={value}>{value}</option>)}
+        </select>
+      </label>
+      <label>
         <span>Người Thu/Chi *</span>
         <select value={row.actor} onChange={(event) => set('actor', event.target.value)}>
           <option value="">Chọn người</option>
@@ -1840,6 +1852,13 @@ function LoanFields({ value, setValue, options }: { value: LoanForm; setValue: (
               ))}
             </select>
           </label>
+          <label>
+            <LoanFieldLabel icon="money">Hình thức *</LoanFieldLabel>
+            <select value={value.method} onChange={(event) => set('method', event.target.value)}>
+              <option value="">Chọn hình thức</option>
+              {(options.methods || []).map((item) => <option key={item}>{item}</option>)}
+            </select>
+          </label>
           <label className="full-width">
             <LoanFieldLabel icon="money">Số tiền *</LoanFieldLabel>
             <input inputMode="numeric" value={value.amount} placeholder="0" onChange={(event) => set('amount', formatVietnameseNumberInput(event.target.value, false))} />
@@ -1936,7 +1955,7 @@ function LoanDrawer({ rows, setRows, options, busy, closeRequest, close, submit 
   );
 }
 
-function PaymentDrawer({ value, setValue, busy, closeRequest, close, submit }: { value: PaymentForm; setValue: (value: PaymentForm) => void; busy: boolean; closeRequest: number; close: () => void; submit: () => void }) {
+function PaymentDrawer({ value, setValue, options, busy, closeRequest, close, submit }: { value: PaymentForm; setValue: (value: PaymentForm) => void; options: FundOptions; busy: boolean; closeRequest: number; close: () => void; submit: () => void }) {
   const set = (key: string, next: string) => setValue({ ...value, [key]: next });
   return (
     <DrawerShell
@@ -1977,7 +1996,6 @@ function PaymentDrawer({ value, setValue, busy, closeRequest, close, submit }: {
           <span>Loại *</span>
           <select value={value.type} onChange={(event) => set('type', event.target.value)}>
             <option>Trả nợ</option>
-            <option>Trả gốc</option>
             <option>Trả lãi</option>
           </select>
         </label>
@@ -1988,6 +2006,13 @@ function PaymentDrawer({ value, setValue, busy, closeRequest, close, submit }: {
         <label>
           <span>Số tiền *</span>
           <input inputMode="numeric" value={value.amount} onChange={(event) => set('amount', formatVietnameseNumberInput(event.target.value, false))} />
+        </label>
+        <label>
+          <span>Hình thức *</span>
+          <select value={value.method} onChange={(event) => set('method', event.target.value)}>
+            <option value="">Chọn hình thức</option>
+            {(options.methods || []).map((item) => <option key={item}>{item}</option>)}
+          </select>
         </label>
         <label className="full-width">
           <span>Nội dung</span>

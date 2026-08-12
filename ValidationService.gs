@@ -40,10 +40,11 @@ var ValidationService = (function () {
   function buildTaiXe_(row, catalogs, line, warnings) {
     var date = requireDate_(row.date, 'Ngay');
     var plate = requireText_(row.vehicle, 'Bien so xe');
-    var operationGroup = resolveOperationGroup_(catalogs.assignments || [], date, plate);
+    var operationGroup = requireText_(row.operationGroup || row.project, 'Nhom van hanh');
     var driver = requireText_(row.driver, 'Tai xe');
     var trips = requirePositiveNumber_(row.trips, 'So chuyen');
     warnIfMissing_(catalogs.vehicles, 'plate', plate, 'Dong ' + line + ': Bien so xe chua co trong DM_Xe.', warnings);
+    warnIfMissing_(catalogs.operationGroups || [], 'name', operationGroup, 'Dong ' + line + ': Nhom van hanh chua co trong SYS_DanhSach.', warnings);
     warnIfMissing_(catalogs.people, 'name', driver, 'Dong ' + line + ': Tai xe chua co trong DM_NhanSu.', warnings);
     return [date, '', plate, operationGroup, driver, trips, clean_(row.note)];
   }
@@ -93,16 +94,6 @@ var ValidationService = (function () {
     var number = parseNumber(value, true);
     if (!(number > 0)) throw new Error(label + ' phai lon hon 0.');
     return number;
-  }
-
-  function resolveOperationGroup_(assignments, date, plate) {
-    var matches = activeAssignments_(assignments, date).filter(function (item) {
-      return normalize_(item.plate) === normalize_(plate);
-    });
-    var groups = uniqueValues_(matches.map(function (item) { return clean_(item.operationGroup); }));
-    if (!groups.length) throw new Error('Chua co nhom van hanh hieu luc cho xe ' + plate + ' tai ngay da chon.');
-    if (groups.length > 1) throw new Error('Xe ' + plate + ' co nhieu nhom van hanh chong lan tai ngay da chon.');
-    return groups[0];
   }
 
   function validateStopAssignment_(assignments, date, plate, operationGroup) {

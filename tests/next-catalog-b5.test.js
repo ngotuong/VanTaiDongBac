@@ -5,6 +5,15 @@ const path=require('node:path');
 const root=path.join(__dirname,'..');
 const read=(file)=>fs.readFileSync(path.join(root,file),'utf8');
 
+test('Catalog dropdowns use sheet-aware foreign keys instead of header-only guesses',()=>{
+  const source=read('next-shell/components/catalog/CatalogModule.tsx');
+  assert.match(source,/fieldOptions\(sheet:CatalogSheetName,header:string/);
+  assert.match(source,/sheet==='DM_DuAn'&&h==='nhom van hanh'/);
+  assert.match(source,/sheet==='DM_CheDoLuong'&&\['du an','ten du an'\]/);
+  assert.match(source,/fieldOptions\(sheet,header,catalogs,data\.fieldOptions\)/);
+  assert.doesNotMatch(source,/if\(\['du an','ten du an'\]\.includes\(h\)\)return\(catalogs\.projects/);
+});
+
 test('B5 Catalog is a standalone Next route without a legacy bridge',()=>{
   const page=read('next-shell/app/catalog/page.jsx');
   const module=read('next-shell/components/catalog/CatalogModule.tsx');

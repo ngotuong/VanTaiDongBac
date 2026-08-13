@@ -32,7 +32,7 @@ test('Entry, Cashflow and Manage apply grouping only to business numeric values'
   const entry = read('next-shell/components/entry/EntryModule.tsx');
   const cashflow = read('next-shell/components/cashflow/CashflowModule.tsx');
   const manage = read('next-shell/components/manage/ManageReadOnlyModule.tsx');
-  assert.match(entry, /key === 'tickets' \|\| kind === 'number' \? 'decimal'/);
+  assert.match(entry, /kind === 'number' \? 'decimal' : key === 'tickets' \? 'text'/);
   assert.match(entry, /kind === 'number' \? formatVietnameseNumberInput\(e\.target\.value\)/);
   assert.match(cashflow, /formatVietnameseNumberInput\(event\.target\.value, false\)/);
   assert.match(manage, /numeric\?formatVietnameseNumberInput\(event\.target\.value\)/);

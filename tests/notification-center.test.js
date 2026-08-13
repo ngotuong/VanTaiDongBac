@@ -121,6 +121,11 @@ test('header uses an accessible bell and filter controls reserve a chevron gutte
   assert.match(center, /COPY_LONG_PRESS_MS = 550/);
   assert.match(center, /Nhấn giữ để sao chép nội dung/);
   assert.match(center, /navigator\.clipboard\.writeText/);
+  assert.match(center, /legacyCopyText\(value\)/);
+  assert.match(center, /textarea\.setSelectionRange\(0, value\.length\)/);
+  assert.match(center, /state\?\.triggered/);
+  assert.match(center, /onPointerUp=\{\(\) => endLongPress\(item\)\}/);
+  assert.match(center, /window\.location\.assign\(item\.url\)/);
   assert.match(center, /aria-keyshortcuts="Control\+C Meta\+C"/);
   assert.match(center, /onCopy=\{\(event\) =>/);
   assert.match(center, /event\.clipboardData\.setData\('text\/plain', notificationClipboardText\(item\)\)/);
@@ -131,6 +136,7 @@ test('header uses an accessible bell and filter controls reserve a chevron gutte
   assert.match(css, /\.notification-toolbar-actions \{[\s\S]*display: flex;/);
   assert.match(css, /\.notification-toolbar-icon \{[\s\S]*width: 44px;[\s\S]*height: 44px;/);
   assert.match(css, /\.notification-item-action \{[\s\S]*touch-action: pan-y;/);
+  assert.match(css, /\.notification-item-action \{[\s\S]*-webkit-touch-callout: none;/);
   assert.match(css, /\.notification-item-action\.copy-pressing/);
 });
 

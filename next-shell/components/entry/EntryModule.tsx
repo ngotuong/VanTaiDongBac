@@ -115,13 +115,13 @@ function formatDisplayDate(isoDate: string): string {
   return isoDate;
 }
 
-export function EntryModule({ initialCatalogs, initialError = '', onClose }: { initialCatalogs: EntryCatalogs; initialError?: string; onClose?: () => void }) {
+export function EntryModule({ initialCatalogs, initialError = '', initialForm = 'vanChuyen', onClose }: { initialCatalogs: EntryCatalogs; initialError?: string; initialForm?: EntryFormType; onClose?: () => void }) {
   const hasInitialCatalogs = Object.keys(initialCatalogs).length > 0;
   const context = useWorkbookContext();
-  const [form, setForm] = useState<EntryFormType>('vanChuyen');
+  const [form, setForm] = useState<EntryFormType>(initialForm);
   const [catalogs, setCatalogs] = useState<Record<string, EntryCatalogs>>(hasInitialCatalogs ? catalogsForAllForms(initialCatalogs) : {});
   const initialCatalogsRequested = useRef(Object.keys(initialCatalogs).length > 0);
-  const [rows, setRows] = useState<EntryRow[]>([blank('vanChuyen')]);
+  const [rows, setRows] = useState<EntryRow[]>([blank(initialForm)]);
   const [jobs, setJobs] = useState<WriteJob[]>([]);
   const [busy, setBusy] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(!hasInitialCatalogs);
@@ -205,8 +205,9 @@ export function EntryModule({ initialCatalogs, initialError = '', onClose }: { i
       if (!queued.jobId) throw new Error('API không trả về mã write job.');
       setJobs((old) => [queued, ...old.filter((j) => j.jobId !== queued.jobId)].slice(0, 12));
       setRows([blank(form)]);
-      report(`Đã nhận lệnh. Job ${queued.jobId} đang chờ đồng bộ Google Sheet.`);
+      report('Đã nhận lệnh. Dữ liệu sẽ được đồng bộ nền.');
       void api.post('processWriteJobs', { body: { maxJobs: 2 } }).catch(() => {});
+      onClose?.();
     } catch (submitError) {
       report(submitError instanceof Error ? submitError.message : String(submitError), true);
     } finally {
@@ -309,7 +310,7 @@ export function EntryModule({ initialCatalogs, initialError = '', onClose }: { i
                           </datalist>
                         </>
                       ) : ['text', 'number'].includes(kind) ? (
-                        <input type={kind === 'number' ? 'text' : kind} inputMode={key === 'tickets' || kind === 'number' ? 'decimal' : undefined} value={row[key] || ''} onChange={(e) => update(index, key, kind === 'number' ? formatVietnameseNumberInput(e.target.value) : e.target.value)} />
+                        <input type={kind === 'number' ? 'text' : kind} inputMode={kind === 'number' ? 'decimal' : key === 'tickets' ? 'text' : undefined} autoCapitalize={key === 'tickets' ? 'none' : undefined} value={row[key] || ''} onChange={(e) => update(index, key, kind === 'number' ? formatVietnameseNumberInput(e.target.value) : e.target.value)} />
                       ) : (
                         <select value={row[key] || ''} disabled={catalogLoading} onChange={(e) => update(index, key, e.target.value)}>
                           <option value="">{catalogLoading ? 'Đang tải danh mục…' : `Chọn ${label.toLocaleLowerCase('vi-VN')}`}</option>

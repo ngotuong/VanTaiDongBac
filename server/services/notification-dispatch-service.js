@@ -1,5 +1,5 @@
 const CHANNELS = Object.freeze({
-  'trip-reconciliation': { roles: ['admin', 'operator'], title: 'Đối soát chuyến', url: '/entry/' },
+  'trip-reconciliation': { roles: ['admin', 'operator'], title: 'Đối soát chuyến', url: '/manage/?entry=vanChuyen' },
   'fund-low-balance': { roles: ['admin', 'shareholder'], title: 'Cảnh báo Quỹ', url: '/cashflow/' },
   'operations-integrity': { roles: ['admin', 'operator'], title: 'Kiểm tra vận hành', url: '/manage/' },
   'system-health': { roles: ['admin'], title: 'Hệ thống cần kiểm tra', url: '/observability/' }

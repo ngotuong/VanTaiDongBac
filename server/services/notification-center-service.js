@@ -74,7 +74,7 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
     const currentTime = now();
     const fund = fundItem(snapshot.fund, currentTime);
     const items = [
-      ...safeItems(snapshot.trip).map((item) => ({ notificationKey: 'trip-reconciliation', url: '/entry/', ...item })),
+      ...safeItems(snapshot.trip).map((item) => ({ ...item, notificationKey: 'trip-reconciliation', url: '/manage/?entry=vanChuyen' })),
       ...safeItems(snapshot.operations),
       ...(fund ? [fund] : []),
       ...systemItems(snapshot, currentTime)

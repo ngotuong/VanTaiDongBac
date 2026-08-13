@@ -75,22 +75,37 @@ function notificationClipboardText(item: NotificationItem) {
   return lines.filter(Boolean).join('\n');
 }
 
-async function writeClipboardText(value: string) {
+function legacyCopyText(value: string) {
+  const textarea = document.createElement('textarea');
+  textarea.value = value;
+  textarea.style.position = 'fixed';
+  textarea.style.inset = '0 auto auto 0';
+  textarea.style.width = '1px';
+  textarea.style.height = '1px';
+  textarea.style.padding = '0';
+  textarea.style.border = '0';
+  textarea.style.opacity = '0';
+  textarea.style.fontSize = '16px';
+  document.body.appendChild(textarea);
   try {
+    textarea.focus({ preventScroll: true });
+    textarea.select();
+    textarea.setSelectionRange(0, value.length);
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    textarea.remove();
+  }
+}
+
+async function writeClipboardText(value: string) {
+  if (legacyCopyText(value)) return;
+  if (window.navigator.clipboard?.writeText) {
     await window.navigator.clipboard.writeText(value);
     return;
-  } catch {
-    const textarea = document.createElement('textarea');
-    textarea.value = value;
-    textarea.setAttribute('readonly', '');
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    const copied = document.execCommand('copy');
-    textarea.remove();
-    if (!copied) throw new Error('Không thể sao chép nội dung thông báo.');
   }
+  throw new Error('Không thể sao chép nội dung thông báo.');
 }
 
 async function updateAppBadge(count: number) {
@@ -230,8 +245,6 @@ export function NotificationCenter({ userId }: { userId: string }) {
       if (pressStateRef.current !== state) return;
       state.triggered = true;
       suppressClickRef.current = key;
-      setPressingKey('');
-      void copyNotification(item);
     }, COPY_LONG_PRESS_MS);
   };
   const moveLongPress = (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -239,7 +252,12 @@ export function NotificationCenter({ userId }: { userId: string }) {
     if (!state || state.triggered) return;
     if (Math.hypot(event.clientX - state.startX, event.clientY - state.startY) > COPY_MOVE_TOLERANCE_PX) clearLongPress();
   };
-  const endLongPress = () => clearLongPress();
+  const endLongPress = (item?: NotificationItem) => {
+    const state = pressStateRef.current;
+    const shouldCopy = Boolean(item && state?.triggered && state.key === notificationKey(item));
+    clearLongPress();
+    if (shouldCopy && item) void copyNotification(item);
+  };
   const close = () => {
     clearLongPress();
     setOpen(false);
@@ -314,11 +332,15 @@ export function NotificationCenter({ userId }: { userId: string }) {
                     return;
                   }
                   markRead(item);
+                  if (item.url) {
+                    close();
+                    window.location.assign(item.url);
+                  }
                 }}
                 onPointerDown={(event) => beginLongPress(event, item)}
                 onPointerMove={moveLongPress}
-                onPointerUp={endLongPress}
-                onPointerCancel={endLongPress}
+                onPointerUp={() => endLongPress(item)}
+                onPointerCancel={() => endLongPress()}
                 onPointerLeave={(event) => { if (event.pointerType === 'mouse') endLongPress(); }}
                 onContextMenu={(event) => event.preventDefault()}
                 onCopy={(event) => {

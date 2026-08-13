@@ -4011,6 +4011,7 @@ html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg 
   text-align: left;
   cursor: pointer;
   touch-action: pan-y;
+  -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
   transition: background-color .16s ease, box-shadow .16s ease;

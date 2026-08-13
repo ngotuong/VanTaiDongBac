@@ -14,6 +14,7 @@ test('Web Push service worker handles visible notifications without caching app 
   assert.match(worker, /payload\.unreadCount/);
   assert.match(worker, /event\.data\?\.type !== 'SET_APP_BADGE'/);
   assert.match(worker, /addEventListener\('notificationclick'/);
+  assert.match(worker, /notificationTarget === '\/entry\/' \? '\/manage\/\?entry=vanChuyen'/);
   assert.doesNotMatch(worker, /addEventListener\(['"]fetch['"]/);
   assert.doesNotMatch(worker, /caches\.|CacheStorage|indexedDB/);
 });

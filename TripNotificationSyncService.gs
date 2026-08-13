@@ -63,7 +63,7 @@ var TripNotificationSyncService = (function () {
           amount: 0,
           excessTrips: 0,
           sourceRow: sourceRow,
-          url: '/entry/'
+          url: '/manage/?entry=vanChuyen'
         });
       }
 
@@ -81,7 +81,7 @@ var TripNotificationSyncService = (function () {
           amount: totalReward || dailyReward + monthlyReward,
           excessTrips: dailyExcess + monthlyExcess,
           sourceRow: sourceRow,
-          url: '/entry/'
+          url: '/manage/?entry=vanChuyen'
         });
       }
     });

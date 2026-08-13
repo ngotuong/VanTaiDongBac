@@ -2,6 +2,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
+const { createNotificationCenterService } = require('../server/services/notification-center-service');
 
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -36,10 +38,33 @@ test('notification delivery is opt-in, baselined and disabled in Apps Script unt
   const preferences = read('server/repositories/notification-preference-repository.js');
   assert.match(dispatch, /NOTIFICATION_DISPATCH_ENABLED/);
   assert.match(dispatch, /Notification dispatch is disabled/);
+  assert.match(dispatch, /replace\(\/\\\/\+\$\/, ''\) \+ '\/'/);
+  assert.match(dispatch, /method: 'post'/);
   assert.match(service, /notification-dispatch-baseline-v1/);
   assert.match(service, /Daily digest is scheduled at 20:00/);
   assert.match(preferences, /notification-preference:/);
   assert.match(preferences, /notification_rule_states/);
+});
+
+test('Apps Script dispatch normalizes the trailing slash and preserves POST', () => {
+  const request = {};
+  const sandbox = {
+    PropertiesService: { getScriptProperties: () => ({ getProperty: (key) => ({
+      NOTIFICATION_DISPATCH_ENABLED: 'true',
+      NOTIFICATION_DISPATCH_URL: 'https://dongbac.vercel.app/api/notification-dispatch',
+      NOTIFICATION_DISPATCH_SECRET: 'test-secret'
+    })[key] || '' }) },
+    UrlFetchApp: { fetch: (url, options) => {
+      request.url = url;
+      request.options = options;
+      return { getResponseCode: () => 200, getContentText: () => '{"ok":true}' };
+    } }
+  };
+  vm.runInNewContext(read('NotificationDispatchService.gs'), sandbox);
+  const result = sandbox.NotificationDispatchService.dispatch({ nowISOString: () => '2026-08-13T00:00:00.000Z' });
+  assert.equal(result.ok, true);
+  assert.equal(request.url, 'https://dongbac.vercel.app/api/notification-dispatch/');
+  assert.equal(request.options.method, 'post');
 });
 
 test('notification API remains authenticated, shareholder-readable and Supabase-only', () => {
@@ -52,6 +77,28 @@ test('notification API remains authenticated, shareholder-readable and Supabase-
   assert.match(service, /action === 'getNotifications'/);
   assert.match(repository, /manage_data_bundles/);
   assert.doesNotMatch(service + repository, /appsScriptClient|APPS_SCRIPT_URL/);
+});
+
+test('notification center expires old incidental sync failures but keeps critical workers as stale', async () => {
+  const service = createNotificationCenterService({
+    repository: { find: async () => ({
+      trip: null, operations: null, fund: null, writeJobs: [],
+      syncStatuses: [
+        { sync_key: 'refresh_queue_deferred:transport', status: 'error', message: 'old lock', updated_at: '2026-08-11T00:00:00.000Z' },
+        { sync_key: 'recent_incidental', status: 'error', message: 'recent error', updated_at: '2026-08-13T00:30:00.000Z' },
+        { sync_key: 'notification_pipeline', status: 'error', message: 'old pipeline error', updated_at: '2026-08-11T00:00:00.000Z' }
+      ]
+    }) },
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    send: () => {},
+    now: () => new Date('2026-08-13T01:00:00.000Z')
+  });
+  const result = await service.list({});
+  assert.equal(result.items.some((item) => item.message.includes('old lock')), false);
+  assert.equal(result.items.some((item) => item.message.includes('recent error')), true);
+  const critical = result.items.find((item) => item.message.includes('notification_pipeline'));
+  assert.equal(critical.type, 'sync-stale');
+  assert.equal(critical.title, 'Dữ liệu chưa được đồng bộ mới');
 });
 
 test('header uses an accessible bell and filter controls reserve a chevron gutter', () => {
@@ -71,11 +118,20 @@ test('header uses an accessible bell and filter controls reserve a chevron gutte
   assert.doesNotMatch(center, />Làm mới</);
   assert.match(center, /localStorage\.setItem\(storageKey/);
   assert.match(center, /updateAppBadge\(unreadCount\)/);
+  assert.match(center, /COPY_LONG_PRESS_MS = 550/);
+  assert.match(center, /Nhấn giữ để sao chép nội dung/);
+  assert.match(center, /navigator\.clipboard\.writeText/);
+  assert.match(center, /aria-keyshortcuts="Control\+C Meta\+C"/);
+  assert.match(center, /onCopy=\{\(event\) =>/);
+  assert.match(center, /event\.clipboardData\.setData\('text\/plain', notificationClipboardText\(item\)\)/);
+  assert.match(center, /suppressClickRef\.current === key/);
   assert.doesNotMatch(center, /Nguồn: XL_DoiSoatChuyen/);
   assert.match(css, /padding-inline: var\(--platform-control-padding-x, 12px\) 40px !important/);
   assert.match(css, /catalog-sticky-toolbar[\s\S]*height: 44px !important/);
   assert.match(css, /\.notification-toolbar-actions \{[\s\S]*display: flex;/);
   assert.match(css, /\.notification-toolbar-icon \{[\s\S]*width: 44px;[\s\S]*height: 44px;/);
+  assert.match(css, /\.notification-item-action \{[\s\S]*touch-action: pan-y;/);
+  assert.match(css, /\.notification-item-action\.copy-pressing/);
 });
 
 test('all date controls use one final left-alignment contract including Safari native values', () => {

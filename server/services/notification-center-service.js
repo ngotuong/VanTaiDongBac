@@ -6,6 +6,7 @@ const CRITICAL_SYNC_KEYS = new Map([
   ['operational_notifications', 15],
   ['notification_pipeline', 15]
 ]);
+const SYSTEM_FAILURE_LOOKBACK_MINUTES = 24 * 60;
 
 function createNotificationCenterService({ repository, httpError, send, now = () => new Date() }) {
   function handles(action) { return action === 'getNotifications'; }
@@ -42,7 +43,9 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
       const ageMinutes = Number.isNaN(updated.getTime()) ? Infinity : (currentTime.getTime() - updated.getTime()) / 60000;
       if (status === 'ok' && (!maxAge || ageMinutes <= maxAge)) continue;
       if (status === 'ok' && maxAge && ageMinutes <= maxAge) continue;
-      const stale = status === 'ok';
+      const expiredFailure = status !== 'ok' && ageMinutes > SYSTEM_FAILURE_LOOKBACK_MINUTES;
+      if (expiredFailure && !maxAge) continue;
+      const stale = status === 'ok' || expiredFailure;
       result.push({
         id: id('sync-health', row.sync_key, row.status, row.updated_at, stale ? 'stale' : row.message),
         type: stale ? 'sync-stale' : 'sync-failure', notificationKey: 'system-health', severity: 'error',
@@ -98,4 +101,4 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
   return { handles, handle, list };
 }
 
-module.exports = { createNotificationCenterService, CRITICAL_SYNC_KEYS };
+module.exports = { createNotificationCenterService, CRITICAL_SYNC_KEYS, SYSTEM_FAILURE_LOOKBACK_MINUTES };

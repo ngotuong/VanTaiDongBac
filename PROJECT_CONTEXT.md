@@ -77,10 +77,10 @@ Production đã xác nhận gần nhất:
 Preview hiện hành của checkpoint notification/filter:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_HHEGzBLGvZn3cz8EnBrySzYduTVh`, READY ngày 2026-08-13.
-- Apps Script Preview: `@328`, deployment ID riêng với Production.
+- Vercel deployment: `dpl_DuAtNhrpdZVRgDWVgdeuL2rxpdcx`, READY ngày 2026-08-13.
+- Apps Script Preview: `@330`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 490/490 tests, lint, typecheck, Next build, Identity Guard, `git diff --check`, authenticated responsive/API smoke. Preview giữ deployment riêng; Production hiện tại là `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q` với Apps Script Production `@328`.
+- Gate deploy PASS 492/492 tests, lint, typecheck, Next build, Identity Guard, `git diff --check`, authenticated responsive/API smoke. Preview giữ deployment riêng; Production hiện tại là `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q` với Apps Script Production `@328`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,15 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Notification dispatch URL và nhấn giữ sao chép — Preview hoàn thành 2026-08-13
+
+- Cảnh báo `notification_pipeline ... Notification dispatch HTTP 405` không phải lỗi Google Sheet. Nguyên nhân là Apps Script gọi endpoint thiếu dấu `/` cuối trong khi Next.js bật `trailingSlash`; redirect từ `/api/notification-dispatch` sang `/api/notification-dispatch/` làm hỏng POST. `NotificationDispatchService` nay tự chuẩn hóa URL có đúng một `/` cuối và giữ nguyên POST.
+- Apps Script project HEAD đã nhận bản sửa nên installable time trigger dùng source mới; Apps Script Preview được khóa tại `@330`. Apps Script Production web API vẫn giữ `@328` và Vercel Production vẫn giữ `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`.
+- Lỗi sync không trọng yếu chỉ còn active trong 24 giờ. Lỗi cũ hơn bị bỏ khỏi trung tâm; nếu là worker trọng yếu thì chuyển thành `Dữ liệu chưa được đồng bộ mới` thay vì giữ vô thời hạn thông báo lỗi sự kiện cũ.
+- Mỗi notification item hỗ trợ nhấn giữ 550ms để sao chép tiêu đề, ngày, nội dung và metadata chuyến/tiền nếu có. Di chuyển quá 12px hủy gesture để không xung đột cuộn dọc; long press không đồng thời đánh dấu đã đọc. Có pressed feedback, rung xác nhận best-effort, toast `Đã sao chép nội dung thông báo`, fallback clipboard và `Cmd/Ctrl+C` khi item có focus.
+- Authenticated Preview QA PASS tại mobile 390x844 và desktop 1280x720: không còn `HTTP 405` hoặc lock timeout ngày 11/08, nội dung sao chép đúng 4 dòng với cảnh báo thưởng, toast hiện đúng, panel nằm trong viewport, trang không tràn ngang, `touch-action: pan-y`, không có console warning/error.
+- Full gate PASS 492/492 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_DuAtNhrpdZVRgDWVgdeuL2rxpdcx`; Production Vercel không đổi.
 
 ### Trung tâm thông báo đa nguồn, Web Push và daily digest — Production hoàn thành 2026-08-13
 
@@ -257,7 +266,7 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-1. **Tiếp tục phát triển trên Preview**: giữ Production tại Vercel `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q` và Apps Script `@328`; mọi thay đổi tiếp theo chỉ lên `https://vantaidongbac-preview.vercel.app` cho tới phê duyệt Production riêng.
+1. **Duyệt Preview notification copy/sync**: kiểm tra nhấn giữ sao chép trên thiết bị thật và xác nhận danh sách không còn lỗi sync cũ tại `https://vantaidongbac-preview.vercel.app`; chỉ cut-forward Vercel/Apps Script Production khi có phê duyệt riêng.
 2. **Xác nhận authenticated Production**: khi người dùng đăng nhập Production, kiểm tra nhanh chuông, Cài đặt thông báo, Quỹ/date control và auth hydration; không ghi dữ liệu nghiệp vụ trong smoke test.
 3. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
 

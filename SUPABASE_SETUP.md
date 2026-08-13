@@ -232,7 +232,7 @@ Apps Script tick 5 phút có thể gọi `POST /api/notification-dispatch`, như
 
 ```text
 NOTIFICATION_DISPATCH_ENABLED=true
-NOTIFICATION_DISPATCH_URL=https://dongbac.vercel.app/api/notification-dispatch
+NOTIFICATION_DISPATCH_URL=https://dongbac.vercel.app/api/notification-dispatch/
 NOTIFICATION_DISPATCH_SECRET=<cùng giá trị CRON_SECRET của Vercel>
 ```
 

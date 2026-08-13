@@ -77,7 +77,7 @@ Production đã xác nhận gần nhất:
 Preview hiện hành của checkpoint notification/filter:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_8pEhCtFTDbLZp1Nr7xvTGUJGmAMQ`, READY ngày 2026-08-13.
+- Vercel deployment: `dpl_2aLud9TWeStqx2ufVjGvfZ3qseYx`, READY ngày 2026-08-13.
 - Apps Script Preview: `@331`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
 - Gate deploy PASS 492/492 tests, lint, typecheck, Next build, Identity Guard, `git diff --check`, authenticated responsive/API smoke. Preview giữ deployment riêng; Production hiện tại là `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q` với Apps Script Production `@328`.
@@ -142,7 +142,7 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Khi API chấp nhận lệnh `submitRows`, drawer đóng qua exit animation ngay, người dùng quay lại Vận hành và nhận toast `Dữ liệu sẽ được đồng bộ nền`; khối trạng thái job không còn có thể chồng lên form trong overlay mobile. Nếu enqueue lỗi, drawer vẫn mở để giữ dữ liệu và hiển thị lỗi.
 - `Số phiếu` là input text với `inputmode=text`, cho phép số, dấu `-` và khoảng trắng; các trường số nghiệp vụ khác vẫn giữ keyboard decimal và định dạng số Việt Nam.
 - Authenticated Preview QA PASS tại 390x844: notification `Thiếu chuyến cần kiểm tra` mở đúng drawer mobile, drawer rộng đúng viewport và không tràn ngang, `Số phiếu` giữ nguyên `12- 34`, không có `entry-job-panel` trong drawer, sao chép bằng keyboard cho đúng ba dòng nội dung và không có console warning/error. Không chạy write canary trên workbook thật.
-- Full gate PASS 492/492 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_8pEhCtFTDbLZp1Nr7xvTGUJGmAMQ`; Apps Script Preview `@331`. Production giữ nguyên Vercel `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q` và Apps Script `@328`.
+- Full gate PASS 492/492 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_2aLud9TWeStqx2ufVjGvfZ3qseYx`; Apps Script Preview `@331`. Production giữ nguyên Vercel `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q` và Apps Script `@328`.
 
 ### Notification dispatch URL và nhấn giữ sao chép — Preview hoàn thành 2026-08-13
 

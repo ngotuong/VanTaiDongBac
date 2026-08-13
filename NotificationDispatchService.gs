@@ -1,11 +1,15 @@
 /** Calls the Vercel delivery endpoint only after production rollout enables it. */
 var NotificationDispatchService = (function () {
+  function normalizeUrl_(value) {
+    return String(value || '').trim().replace(/\/+$/, '') + '/';
+  }
+
   function dispatch(context) {
     var properties = PropertiesService.getScriptProperties();
     if (String(properties.getProperty('NOTIFICATION_DISPATCH_ENABLED') || '').toLowerCase() !== 'true') {
       return { ok: true, skipped: true, reason: 'Notification dispatch is disabled.' };
     }
-    var url = String(properties.getProperty('NOTIFICATION_DISPATCH_URL') || '').trim();
+    var url = normalizeUrl_(properties.getProperty('NOTIFICATION_DISPATCH_URL'));
     var secret = String(properties.getProperty('NOTIFICATION_DISPATCH_SECRET') || '').trim();
     if (!/^https:\/\//.test(url) || !secret) throw new Error('Thiếu cấu hình notification dispatch URL/secret.');
     var response = UrlFetchApp.fetch(url, {

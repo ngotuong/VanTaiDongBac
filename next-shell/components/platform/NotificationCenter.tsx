@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
+import { showToast } from '../../lib/platform/toast';
 
 type NotificationItem = {
   id: string;
@@ -32,6 +33,8 @@ type NotificationResponse = {
 const api = createClientApiClient();
 const READ_STORAGE_VERSION = 'v1';
 const EMPTY_ITEMS: NotificationItem[] = [];
+const COPY_LONG_PRESS_MS = 550;
+const COPY_MOVE_TOLERANCE_PX = 12;
 
 type NotificationView = 'all' | 'unread';
 type BadgeNavigator = Navigator & {
@@ -64,6 +67,32 @@ function notificationKey(item: NotificationItem) {
   return [item.id, item.type, item.title, item.message, item.amount || 0, item.excessTrips || 0].join('|');
 }
 
+function notificationClipboardText(item: NotificationItem) {
+  const lines = [item.title, dateLabel(item.date), item.message];
+  if (item.type === 'hot-bonus') {
+    lines.push(`${Number(item.excessTrips || 0)} chuyến vượt · ${money(item.amount)} đ`);
+  }
+  return lines.filter(Boolean).join('\n');
+}
+
+async function writeClipboardText(value: string) {
+  try {
+    await window.navigator.clipboard.writeText(value);
+    return;
+  } catch {
+    const textarea = document.createElement('textarea');
+    textarea.value = value;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand('copy');
+    textarea.remove();
+    if (!copied) throw new Error('Không thể sao chép nội dung thông báo.');
+  }
+}
+
 async function updateAppBadge(count: number) {
   const badgeNavigator = window.navigator as BadgeNavigator;
   try {
@@ -89,9 +118,13 @@ export function NotificationCenter({ userId }: { userId: string }) {
   const [view, setView] = useState<NotificationView>('all');
   const [readKeys, setReadKeys] = useState<Set<string>>(() => new Set());
   const [readHydrated, setReadHydrated] = useState(false);
+  const [pressingKey, setPressingKey] = useState('');
   const [anchor, setAnchor] = useState({ top: 72, right: 16 });
   const buttonRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const pressTimerRef = useRef<number | null>(null);
+  const pressStateRef = useRef<{ key: string; startX: number; startY: number; triggered: boolean } | null>(null);
+  const suppressClickRef = useRef('');
   const storageKey = `vtdb:notification-read:${READ_STORAGE_VERSION}:${userId}`;
 
   const load = useCallback(async (force = false) => {
@@ -171,7 +204,44 @@ export function NotificationCenter({ userId }: { userId: string }) {
     setReadKeys((current) => current.has(key) ? current : new Set([...current, key]));
   };
   const markAllRead = () => setReadKeys(new Set(items.map(notificationKey)));
+  const clearLongPress = useCallback(() => {
+    if (pressTimerRef.current !== null) window.clearTimeout(pressTimerRef.current);
+    pressTimerRef.current = null;
+    pressStateRef.current = null;
+    setPressingKey('');
+  }, []);
+  const copyNotification = useCallback(async (item: NotificationItem) => {
+    try {
+      await writeClipboardText(notificationClipboardText(item));
+      showToast('Đã sao chép nội dung thông báo.', 'success');
+      window.navigator.vibrate?.(18);
+    } catch (copyError) {
+      showToast(copyError instanceof Error ? copyError.message : 'Không thể sao chép nội dung thông báo.', 'error');
+    }
+  }, []);
+  const beginLongPress = (event: React.PointerEvent<HTMLButtonElement>, item: NotificationItem) => {
+    if (event.button !== 0) return;
+    clearLongPress();
+    const key = notificationKey(item);
+    const state = { key, startX: event.clientX, startY: event.clientY, triggered: false };
+    pressStateRef.current = state;
+    setPressingKey(key);
+    pressTimerRef.current = window.setTimeout(() => {
+      if (pressStateRef.current !== state) return;
+      state.triggered = true;
+      suppressClickRef.current = key;
+      setPressingKey('');
+      void copyNotification(item);
+    }, COPY_LONG_PRESS_MS);
+  };
+  const moveLongPress = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const state = pressStateRef.current;
+    if (!state || state.triggered) return;
+    if (Math.hypot(event.clientX - state.startX, event.clientY - state.startY) > COPY_MOVE_TOLERANCE_PX) clearLongPress();
+  };
+  const endLongPress = () => clearLongPress();
   const close = () => {
+    clearLongPress();
     setOpen(false);
     buttonRef.current?.focus();
   };
@@ -229,9 +299,34 @@ export function NotificationCenter({ userId }: { userId: string }) {
           {!loading && !error && !items.length ? <div className="notification-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg><strong>Không có cảnh báo mới</strong><span>Đối soát, vận hành, Quỹ và đồng bộ hệ thống đang ổn.</span></div> : null}
           {!loading && !error && items.length > 0 && !visibleItems.length ? <div className="notification-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg><strong>Đã xem tất cả thông báo</strong><span>Chọn “Tất cả” để xem lại lịch sử đang hoạt động.</span></div> : null}
           {visibleItems.length ? <ul className="notification-list">{visibleItems.map((item) => {
-            const unread = !readKeys.has(notificationKey(item));
+            const key = notificationKey(item);
+            const unread = !readKeys.has(key);
             return <li className={`notification-item ${item.severity}${unread ? ' unread' : ' read'}`} key={notificationKey(item)}>
-              <button type="button" className="notification-item-action" aria-label={`${unread ? 'Đánh dấu đã đọc' : 'Đã đọc'}: ${item.title}`} onClick={() => markRead(item)}>
+              <button
+                type="button"
+                className={`notification-item-action${pressingKey === key ? ' copy-pressing' : ''}`}
+                aria-label={`${unread ? 'Đánh dấu đã đọc' : 'Đã đọc'}: ${item.title}. Nhấn giữ để sao chép nội dung.`}
+                aria-keyshortcuts="Control+C Meta+C"
+                title="Nhấn giữ để sao chép nội dung"
+                onClick={() => {
+                  if (suppressClickRef.current === key) {
+                    suppressClickRef.current = '';
+                    return;
+                  }
+                  markRead(item);
+                }}
+                onPointerDown={(event) => beginLongPress(event, item)}
+                onPointerMove={moveLongPress}
+                onPointerUp={endLongPress}
+                onPointerCancel={endLongPress}
+                onPointerLeave={(event) => { if (event.pointerType === 'mouse') endLongPress(); }}
+                onContextMenu={(event) => event.preventDefault()}
+                onCopy={(event) => {
+                  event.preventDefault();
+                  event.clipboardData.setData('text/plain', notificationClipboardText(item));
+                  showToast('Đã sao chép nội dung thông báo.', 'success');
+                }}
+              >
                 <span className="notification-item-icon" aria-hidden="true">{item.type === 'hot-bonus' || item.type === 'fund-low-balance' ? '₫' : '!'}</span>
                 <div><div className="notification-item-heading"><strong>{item.title}</strong><time dateTime={item.date}>{dateLabel(item.date)}</time></div><p>{item.message}</p>{item.type === 'hot-bonus' ? <div className="notification-item-meta"><span>{Number(item.excessTrips || 0)} chuyến vượt</span><strong>{money(item.amount)} đ</strong></div> : null}</div>
                 {unread ? <span className="notification-unread-dot" aria-hidden="true"/> : null}

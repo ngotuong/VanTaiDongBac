@@ -4010,6 +4010,10 @@ html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg 
   font: inherit;
   text-align: left;
   cursor: pointer;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background-color .16s ease, box-shadow .16s ease;
 }
 
 .notification-item-action:hover {
@@ -4018,6 +4022,11 @@ html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg 
 
 .notification-item-action:active {
   background: rgba(15, 118, 110, .1);
+}
+
+.notification-item-action.copy-pressing {
+  background: rgba(15, 118, 110, .1);
+  box-shadow: inset 0 -3px 0 rgba(13, 148, 136, .42);
 }
 
 .notification-item-icon {
@@ -4213,6 +4222,7 @@ html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg 
 @media (prefers-reduced-motion: reduce) {
   .notification-panel { animation: none; }
   .notification-item { transition: none; }
+  .notification-item-action { transition: none; }
   .notification-toolbar-icon .spinning { animation: none; }
 }
 

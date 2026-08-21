@@ -68,9 +68,9 @@ Runtime chính:
 Production đã xác nhận gần nhất:
 
 - URL: `https://dongbac.vercel.app`.
-- Vercel deployment: `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, READY và cut-forward ngày 2026-08-21.
+- Vercel deployment: `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, READY và cut-forward ngày 2026-08-21.
 - Apps Script production cùng deployment ID canonical: code version `@340`; rollback gần nhất `@338`, tiếp theo `@337`.
-- Vercel rollback gần nhất: `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`; rollback lịch sử tiếp theo là `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, rồi `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
+- Vercel rollback gần nhất: `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`; rollback lịch sử tiếp theo là `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, rồi `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
@@ -135,14 +135,15 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
-### Báo cáo ma trận 12 tháng và lọc khoảng tháng — Preview 2026-08-21
+### Báo cáo ma trận 12 tháng và lọc khoảng tháng — Production 2026-08-21
 
 - `Báo Cáo Tổng Quan` trên web đã chuyển từ mỗi tháng một dòng sang ma trận: `Danh mục`, T01–T12 và `Tổng năm`. Tên danh mục lấy nguyên từ matrix backend; tháng chưa có dữ liệu hiển thị `—` và không bị cộng như số 0 giả.
 - Toolbar Báo cáo có hai bộ lọc `Từ tháng`/`Đến tháng` và nút `Cả năm`. Cả năm hiển thị đủ 12 tháng; khoảng tùy chọn chỉ hiển thị các tháng trong kỳ cùng `Tổng kỳ`.
 - Khoảng tháng được ghép server-side từ đúng các `report_bundles` tháng trong Supabase. Báo cáo Chi tiết dùng cùng semantics cộng từng tháng của Apps Script; Bảng lương và Tổng hợp xe ghép đúng source rows. Request fail-closed nếu khoảng đảo chiều, endpoint không tồn tại hoặc thiếu bundle tháng; không đọc/ghi `BC_TongQuan!B1`, không sửa Google Sheet và không có migration.
-- Authenticated Preview QA PASS tại 1440×900 và mobile 390×844. Khoảng 06/2026–07/2026 cho Tổng doanh thu/Tổng kỳ `2.638.752.743`, khớp Tổng doanh thu Báo cáo Chi tiết cùng kỳ; Cả năm trả đủ 14 cột hiển thị, trang mobile không tràn ngang, vùng bảng cuộn ngang và cột Danh mục sticky. Không có console error.
-- Full deploy gate PASS 530/530 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Vercel Preview `dpl_Dipc9qMB58hYUA8cxBCaJucGpFWJ`; Apps Script Preview giữ `@340`; Production giữ nguyên `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`/`@340`.
-- Rollback Preview: gán lại alias bằng đúng quy trình preview tới deployment trước `dpl_Hqp9579pEZqpPnkm8rwsgQ79qTvm`. Production chỉ được cut-forward khi người dùng phê duyệt trong yêu cầu riêng.
+- Authenticated Preview QA PASS tại 1440×900 và mobile 390×844. Sau phê duyệt riêng, authenticated Production QA cũng PASS trên desktop và mobile 390×844: Cả năm có `Danh mục`, T01–T12, `Tổng năm`; khoảng 06/2026–07/2026 có `T06`, `T07`, `Tổng kỳ`, Tổng doanh thu `2.638.752.743` khớp Báo cáo Chi tiết. Không có console error.
+- Full deploy gate PASS 530/530 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview giữ `dpl_Dipc9qMB58hYUA8cxBCaJucGpFWJ`; Apps Script Preview/Production giữ `@340`. Production candidate được đóng gói riêng với endpoint Apps Script Production thành `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, rồi alias `dongbac.vercel.app` mới được cut-forward.
+- Public Production smoke PASS cho root, Dashboard, Báo cáo, Vận hành, Danh mục, Quỹ, Cài đặt, Observability, `/manifest.json`, service worker, session 401, health/identity và watchdog 401. Health xác nhận đúng app/Supabase/Vercel Production/Apps Script Production. Không có HTTP 5xx; chỉ có warning `DEP0169` đã biết trên request health HTTP 200.
+- Rollback READY: Vercel `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`; Apps Script không đổi và vẫn có `@338` trên cùng deployment ID Production. Rollback Preview riêng là `dpl_Hqp9579pEZqpPnkm8rwsgQ79qTvm`.
 
 ### Khôi phục đồng bộ và watchdog ngoài Apps Script — Production 2026-08-21
 
@@ -377,12 +378,11 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-1. **Người dùng duyệt checkpoint Báo cáo trên Preview**: xác nhận ma trận 12 tháng và bộ lọc khoảng đúng nhu cầu; Production chỉ cut-forward khi có phê duyệt riêng.
-2. **Theo dõi lượt sync watchdog theo lịch đầu tiên**: xác nhận GitHub event `schedule` hoàn thành SUCCESS và `external_sync_watchdog` tiếp tục tươi; manual dispatch đã PASS nhưng không thay thế bằng chứng scheduler tự chạy.
-3. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
-4. **Người dùng duyệt business form system trên Preview**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS thật, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng; chỉ đưa lên Production khi có phê duyệt riêng.
-5. **Duyệt notification copy trên thiết bị thật**: kiểm tra nhấn giữ sao chép trên Safari/iOS và xác nhận danh sách không còn lỗi sync cũ.
-6. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
+1. **Theo dõi lượt sync watchdog theo lịch đầu tiên**: xác nhận GitHub event `schedule` hoàn thành SUCCESS và `external_sync_watchdog` tiếp tục tươi; manual dispatch đã PASS nhưng không thay thế bằng chứng scheduler tự chạy.
+2. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
+3. **Người dùng duyệt business form system trên Preview**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS thật, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng; chỉ đưa lên Production khi có phê duyệt riêng.
+4. **Duyệt notification copy trên thiết bị thật**: kiểm tra nhấn giữ sao chép trên Safari/iOS và xác nhận danh sách không còn lỗi sync cũ.
+5. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
 
 ## 7. Mục tiêu kiến trúc dài hạn
 

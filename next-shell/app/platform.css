@@ -3477,14 +3477,14 @@ html body #reportsView .report-filter-row-search #reportSearchInput {
 html body .report-data-table-finance th,
 html body .report-data-table-finance td {
   min-width: 96px !important;
-  text-align: right !important;
+  text-align: left !important;
 }
 
 html body .report-data-table-finance th:first-child,
 html body .report-data-table-finance td:first-child {
-  min-width: 210px !important;
-  width: 210px !important;
-  max-width: 210px !important;
+  min-width: 176px !important;
+  width: 176px !important;
+  max-width: 176px !important;
   text-align: left !important;
 }
 
@@ -4862,6 +4862,16 @@ html body .app main.main#platform-content #reportsView .report-quick-period-sele
   width: 142px !important;
   min-width: 142px !important;
   max-width: 142px !important;
+}
+
+html body .app main.main#platform-content #reportsView .report-month-input .date-display-text,
+html body .app main.main#platform-content #reportsView .report-quick-period-select.platform-content-select {
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
 }
 
 @media (max-width: 768px) {

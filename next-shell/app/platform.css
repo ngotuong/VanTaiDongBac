@@ -3390,7 +3390,68 @@ html body .table-card-subhead {
 }
 
 html body .reports-filter-row {
-  grid-template-columns: minmax(0, 1fr) max-content !important;
+  grid-template-columns: minmax(220px, 1fr) minmax(132px, 160px) minmax(132px, 160px) max-content !important;
+  align-items: end !important;
+  max-width: none !important;
+}
+
+html body .reports-filter-row #reportSearchInput {
+  align-self: end !important;
+}
+
+html body .report-period-field {
+  display: grid !important;
+  gap: 3px !important;
+  min-width: 0 !important;
+  color: var(--platform-muted, #64748b) !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+}
+
+html body .report-period-field > span {
+  padding-left: 2px !important;
+}
+
+html body .report-whole-year-button {
+  height: var(--platform-control-height, 38px) !important;
+  min-height: var(--platform-control-height, 38px) !important;
+  padding: 0 14px !important;
+  border: 1px solid var(--platform-border, #cbd5e1) !important;
+  border-radius: var(--platform-control-radius, 10px) !important;
+  background: var(--platform-surface, #ffffff) !important;
+  color: var(--platform-muted, #475569) !important;
+  font-size: var(--platform-control-font-size, 13.5px) !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+}
+
+html body .report-whole-year-button.active {
+  border-color: #0f766e !important;
+  background: #ccfbf1 !important;
+  color: #115e59 !important;
+}
+
+html body .report-data-table-finance th,
+html body .report-data-table-finance td {
+  min-width: 96px !important;
+  text-align: right !important;
+}
+
+html body .report-data-table-finance th:first-child,
+html body .report-data-table-finance td:first-child {
+  min-width: 210px !important;
+  width: 210px !important;
+  max-width: 210px !important;
+  text-align: left !important;
+}
+
+html body .report-data-table-finance .report-period-total {
+  min-width: 128px !important;
+  background: #ecfeff !important;
+  border-left: 1px solid #a5f3fc !important;
+  font-weight: 800 !important;
 }
 
 html body .catalog-c2 #catalogPersonnelStatusFilterWrap,
@@ -3407,6 +3468,31 @@ html body .catalog-c2 #catalogVehicleOwnerFilterWrap {
 }
 
 @media (max-width: 768px) {
+  html body .reports-filter-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-areas:
+      "search search"
+      "from to"
+      "year year" !important;
+  }
+
+  html body .reports-filter-row #reportSearchInput {
+    grid-area: search !important;
+  }
+
+  html body .reports-filter-row .report-period-field:first-of-type {
+    grid-area: from !important;
+  }
+
+  html body .reports-filter-row .report-period-field:last-of-type {
+    grid-area: to !important;
+  }
+
+  html body .report-whole-year-button {
+    grid-area: year !important;
+    width: 100% !important;
+  }
+
   html body .cashflow-overview-filter-panel {
     padding: 10px !important;
   }

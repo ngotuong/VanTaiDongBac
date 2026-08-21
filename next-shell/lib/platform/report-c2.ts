@@ -1,4 +1,4 @@
-import type { ReportCell, ReportMatrix } from './report-types';
+import type { ReportBundle, ReportCell, ReportMatrix } from './report-types';
 
 export type ReportType = 'finance' | 'details' | 'payroll' | 'vehicles';
 
@@ -52,6 +52,106 @@ export function latestReportMonth(matrix: ReportMatrix | undefined) {
   return reportMonths(matrix).filter((month) => /^(0?[1-9]|1[0-2])\/20\d{2}$/.test(month)).at(-1) || '';
 }
 
+function monthOrdinal(input: unknown) {
+  const normalized = normalizeMonth(input);
+  const match = normalized.match(/^(\d{2})\/(20\d{2})$/);
+  return match ? Number(match[2]) * 12 + Number(match[1]) - 1 : null;
+}
+
+export function compareReportMonths(left: unknown, right: unknown) {
+  const leftOrdinal = monthOrdinal(left);
+  const rightOrdinal = monthOrdinal(right);
+  if (leftOrdinal === null || rightOrdinal === null) return normalizeMonth(left).localeCompare(normalizeMonth(right), 'vi');
+  return leftOrdinal - rightOrdinal;
+}
+
+export function calendarMonthRange(fromMonth: unknown, toMonth: unknown) {
+  const fromOrdinal = monthOrdinal(fromMonth);
+  const toOrdinal = monthOrdinal(toMonth);
+  if (fromOrdinal === null || toOrdinal === null || fromOrdinal > toOrdinal) return [];
+  const months: string[] = [];
+  for (let ordinal = fromOrdinal; ordinal <= toOrdinal; ordinal += 1) {
+    const year = Math.floor(ordinal / 12);
+    const month = ordinal % 12 + 1;
+    months.push(`${String(month).padStart(2, '0')}/${year}`);
+  }
+  return months;
+}
+
+export function reportYearMonths(months: string[]) {
+  const latest = [...months].map(normalizeMonth).filter((month) => monthOrdinal(month) !== null).sort(compareReportMonths).at(-1);
+  const year = latest?.match(/\/(20\d{2})$/)?.[1];
+  return year ? Array.from({ length: 12 }, (_, index) => `${String(index + 1).padStart(2, '0')}/${year}`) : [];
+}
+
+export function monthsWithinRange(months: string[], fromMonth: unknown, toMonth: unknown) {
+  return [...new Set(months.map(normalizeMonth))]
+    .filter((month) => compareReportMonths(month, fromMonth) >= 0 && compareReportMonths(month, toMonth) <= 0)
+    .sort(compareReportMonths);
+}
+
+export function transposeOverviewMatrix(matrix: ReportMatrix | undefined, selectedMonths: string[], totalLabel: string): ReportMatrix {
+  const { head, body } = matrixRows(matrix);
+  if (head.length < 2 || !selectedMonths.length) return [];
+  const rowsByMonth = new Map(body.map((row) => [normalizeMonth(row[0]), row]));
+  const visibleMonths = selectedMonths.map(normalizeMonth);
+  const result: ReportMatrix = [['Danh mục', ...visibleMonths.map((month) => `T${month.slice(0, 2)}`), totalLabel]];
+
+  for (let column = 1; column < head.length; column += 1) {
+    const category = head[column];
+    if (!String(category ?? '').trim()) continue;
+    const values = visibleMonths.map((month) => rowsByMonth.get(month)?.[column] ?? '—');
+    const numericValues = values.map(parseCellValue).filter((value): value is number => value !== null);
+    const sample = values.find((value) => parseCellValue(value) !== null);
+    const total = numericValues.length ? formatValueLike(numericValues.reduce((sum, value) => sum + value, 0), sample) : '';
+    result.push([category, ...values, total]);
+  }
+  return result;
+}
+
+export function aggregateDetailMatrices(matrices: Array<ReportMatrix | undefined>): ReportMatrix {
+  const valid = matrices.map(matrixRows).filter(({ head }) => head.length);
+  if (!valid.length) return [];
+  const result: ReportMatrix = [[...valid[0].head]];
+  const rowCount = Math.max(...valid.map(({ body }) => body.length));
+  for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+    const templates = valid.map(({ body }) => body[rowIndex]).filter((row): row is ReportCell[] => Boolean(row));
+    if (!templates.length) continue;
+    const template = [...templates[0]];
+    const category = String(template[0] ?? '').trim();
+    if (!category || templates.some((row) => String(row[0] ?? '').trim() !== category)) continue;
+    for (let column = 1; column < Math.min(4, template.length); column += 1) {
+      const sample = templates.find((row) => parseCellValue(row[column]) !== null)?.[column];
+      const values = templates.map((row) => parseCellValue(row[column])).filter((value): value is number => value !== null);
+      if (values.length) template[column] = formatValueLike(values.reduce((sum, value) => sum + value, 0), sample);
+    }
+    result.push(template);
+  }
+  return result;
+}
+
+function mergeMonthlyMatrices(matrices: Array<ReportMatrix | undefined>): ReportMatrix {
+  const valid = matrices.map(matrixRows).filter(({ head }) => head.length);
+  if (!valid.length) return [];
+  return [[...valid[0].head], ...valid.flatMap(({ body }) => body.map((row) => [...row]))];
+}
+
+export function aggregateReportBundles(bundles: ReportBundle[], includedMonths: string[]): ReportBundle {
+  if (!bundles.length) return {};
+  const latest = bundles[bundles.length - 1];
+  return {
+    ...latest,
+    month: includedMonths.length === 1 ? includedMonths[0] : `${includedMonths[0]}–${includedMonths.at(-1)}`,
+    overview: {
+      ...latest.overview,
+      months: latest.overview?.months,
+      details: aggregateDetailMatrices(bundles.map((bundle) => bundle.overview?.details))
+    },
+    payroll: mergeMonthlyMatrices(bundles.map((bundle) => bundle.payroll)),
+    vehicles: mergeMonthlyMatrices(bundles.map((bundle) => bundle.vehicles))
+  };
+}
+
 export function filterOverviewMatrix(matrix: ReportMatrix | undefined, month: string): ReportMatrix {
   const { head, body } = matrixRows(matrix);
   if (!head.length) return [];
@@ -102,7 +202,7 @@ export function formatReportDisplayValue(type: ReportType, header: ReportCell, r
 
   if (index > 0 && !headerLabel.includes('giai thich') && !headerLabel.includes('noi dung')) {
     if (type === 'finance') {
-      isMoney = isMoney || !headerLabel.includes('khoi luong');
+      isMoney = isMoney || !categoryLabel.includes('khoi luong');
     } else if (type === 'details') {
       isMoney = isMoney || (!categoryLabel.includes('khoi luong') && [
         'doanh thu', 'thue', 'chi phi', 'phi di duong', 'loi nhuan', 'chi quy'

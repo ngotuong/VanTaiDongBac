@@ -3389,48 +3389,89 @@ html body .table-card-subhead {
   justify-content: end !important;
 }
 
-html body .reports-filter-row {
-  grid-template-columns: minmax(220px, 1fr) minmax(132px, 160px) minmax(132px, 160px) max-content !important;
-  align-items: end !important;
-  max-width: none !important;
-}
-
-html body .reports-filter-row #reportSearchInput {
-  align-self: end !important;
-}
-
-html body .report-period-field {
+html body #reportsView .report-filter-stack {
   display: grid !important;
-  gap: 3px !important;
+  grid-template-columns: minmax(0, 1fr) max-content !important;
+  grid-template-areas:
+    "months quick"
+    "search search" !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+html body #reportsView .report-filter-row-top {
+  display: contents !important;
+}
+
+html body #reportsView .report-month-range {
+  grid-area: months !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
   min-width: 0 !important;
-  color: var(--platform-muted, #64748b) !important;
-  font-size: 10.5px !important;
-  font-weight: 700 !important;
-  line-height: 1 !important;
 }
 
-html body .report-period-field > span {
-  padding-left: 2px !important;
-}
-
-html body .report-whole-year-button {
-  height: var(--platform-control-height, 38px) !important;
-  min-height: var(--platform-control-height, 38px) !important;
-  padding: 0 14px !important;
-  border: 1px solid var(--platform-border, #cbd5e1) !important;
-  border-radius: var(--platform-control-radius, 10px) !important;
-  background: var(--platform-surface, #ffffff) !important;
-  color: var(--platform-muted, #475569) !important;
-  font-size: var(--platform-control-font-size, 13.5px) !important;
-  font-weight: 700 !important;
-  white-space: nowrap !important;
+html body #reportsView .report-month-input {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  flex: 0 1 180px !important;
+  width: min(180px, 100%) !important;
+  min-width: 0 !important;
+  height: 44px !important;
+  padding: 0 12px !important;
+  border-radius: 12px !important;
   cursor: pointer !important;
 }
 
-html body .report-whole-year-button.active {
-  border-color: #0f766e !important;
-  background: #ccfbf1 !important;
-  color: #115e59 !important;
+html body #reportsView .report-month-input .date-display-text {
+  width: 100% !important;
+  padding: 0 !important;
+  color: var(--platform-text, #0f172a) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+}
+
+html body #reportsView .report-month-input select {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0 !important;
+  cursor: pointer !important;
+}
+
+html body #reportsView .report-month-input:has(select:focus-visible) {
+  outline: 3px solid var(--platform-focus, rgba(13, 148, 136, 0.28)) !important;
+  outline-offset: 2px !important;
+}
+
+html body #reportsView .report-quick-period-select {
+  grid-area: quick !important;
+  width: 142px !important;
+  min-width: 142px !important;
+  max-width: 142px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+}
+
+html body #reportsView .report-filter-row-search {
+  grid-area: search !important;
+  min-width: 0 !important;
+}
+
+html body #reportsView .report-filter-row-search #reportSearchInput {
+  width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--platform-border, #cbd5e1) !important;
+  background: var(--platform-surface, #ffffff) !important;
+  padding: 0 12px !important;
+  font-size: 14px !important;
 }
 
 html body .report-data-table-finance th,
@@ -3468,29 +3509,25 @@ html body .catalog-c2 #catalogVehicleOwnerFilterWrap {
 }
 
 @media (max-width: 768px) {
-  html body .reports-filter-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
-    grid-template-areas:
-      "search search"
-      "from to"
-      "year year" !important;
+  html body #reportsView .report-filter-stack {
+    grid-template-columns: minmax(0, 1fr) 124px !important;
   }
 
-  html body .reports-filter-row #reportSearchInput {
-    grid-area: search !important;
+  html body #reportsView .report-quick-period-select {
+    width: 124px !important;
+    min-width: 124px !important;
+    max-width: 124px !important;
+    padding-inline: 9px 28px !important;
   }
 
-  html body .reports-filter-row .report-period-field:first-of-type {
-    grid-area: from !important;
+  html body #reportsView .report-month-input {
+    flex: 1 1 0 !important;
+    width: auto !important;
+    padding-inline: 7px !important;
   }
 
-  html body .reports-filter-row .report-period-field:last-of-type {
-    grid-area: to !important;
-  }
-
-  html body .report-whole-year-button {
-    grid-area: year !important;
-    width: 100% !important;
+  html body #reportsView .report-month-input .date-display-text {
+    font-size: 13px !important;
   }
 
   html body .cashflow-overview-filter-panel {

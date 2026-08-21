@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { ReportBundle, ReportCell, ReportDataResponse, ReportMatrix } from '../../lib/platform/report-types';
-import { appendTotal, calendarMonthRange, compareReportMonths, filterOptions, formatReportDisplayValue, formatValueLike, isTotalRow, matchesReportRow, matrixRows, normalizeMonth, parseCellValue, removeAccents, repairCompanyReport, reportMonths, reportSourceRows, reportYearMonths, stripMonthColumn, transposeOverviewMatrix, type ReportType } from '../../lib/platform/report-c2';
+import { appendTotal, compareReportMonths, filterOptions, formatReportDisplayValue, formatValueLike, isTotalRow, matchesReportRow, matrixRows, monthsWithinRange, normalizeMonth, parseCellValue, removeAccents, repairCompanyReport, reportDataMonths, reportQuarterMonths, reportSourceRows, stripMonthColumn, transposeOverviewMatrix, type ReportType } from '../../lib/platform/report-c2';
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { exportCardAsImage, exportTableAsCsv } from '../../lib/platform/export-card';
 import { showToast } from '../../lib/platform/toast';
@@ -26,6 +26,13 @@ const LABELS: Record<ReportType, string> = {
 const reportResponseCache = new Map<string, ReportDataResponse>();
 const reportInflight = new Map<string, Promise<ReportDataResponse>>();
 type ReportPeriodMode = 'year' | 'range';
+type ReportQuickPeriod = 'year' | 'q1' | 'q2' | 'q3' | 'q4' | 'custom';
+
+function formatMonthControlLabel(month: string) {
+  const normalized = normalizeMonth(month);
+  const match = normalized.match(/^(\d{2})\/(20\d{2})$/);
+  return match ? `Tháng ${Number(match[1])}/${match[2]}` : normalized;
+}
 
 function reportPeriodKey(mode: ReportPeriodMode, fromMonth = '', toMonth = '') {
   return mode === 'year' ? 'year' : `range:${fromMonth}:${toMonth}`;
@@ -201,12 +208,13 @@ function ReportTable({ type, matrix, query, periodLabel }: { type: ReportType; m
 }
 
 export function ReportModule({ initialBundle, initialVehicleOwners = {}, initialError = '' }: { initialBundle: ReportBundle | null; initialVehicleOwners?: Record<string, string>; initialError?: string }) {
-  const initialMonths = reportMonths(initialBundle?.overview?.months);
+  const initialMonths = reportDataMonths(initialBundle?.overview?.months);
   const initialFromMonth = normalizeMonth(initialMonths[0] || '');
   const initialToMonth = normalizeMonth(initialMonths.at(-1) || '');
   const [bundle, setBundle] = useState(initialBundle);
   const [vehicleOwners, setVehicleOwners] = useState(initialVehicleOwners);
   const [periodMode, setPeriodMode] = useState<ReportPeriodMode>('year');
+  const [quickPeriod, setQuickPeriod] = useState<ReportQuickPeriod>('year');
   const [fromMonth, setFromMonth] = useState(initialFromMonth);
   const [toMonth, setToMonth] = useState(initialToMonth);
   const [renderedPeriod, setRenderedPeriod] = useState<string | null>(initialBundle ? 'year' : null);
@@ -220,8 +228,8 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   const visiblePeriodRef = useRef({ mode: periodMode, fromMonth, toMonth });
   useEffect(() => { visiblePeriodRef.current = { mode: periodMode, fromMonth, toMonth }; }, [periodMode, fromMonth, toMonth]);
   const periodKey = reportPeriodKey(periodMode, fromMonth, toMonth);
-  const financeMonths = useMemo(() => periodMode === 'year' ? reportYearMonths(availableMonths) : calendarMonthRange(fromMonth, toMonth), [periodMode, availableMonths, fromMonth, toMonth]);
-  const finance = useMemo(() => transposeOverviewMatrix(bundle?.overview?.months, financeMonths, periodMode === 'year' ? 'Tổng năm' : 'Tổng kỳ'), [bundle, financeMonths, periodMode]);
+  const financeMonths = useMemo(() => periodMode === 'year' ? availableMonths : monthsWithinRange(availableMonths, fromMonth, toMonth), [periodMode, availableMonths, fromMonth, toMonth]);
+  const finance = useMemo(() => transposeOverviewMatrix(bundle?.overview?.months, financeMonths, 'Tổng'), [bundle, financeMonths]);
   const repairedCompanyReport = useMemo(() => repairCompanyReport(bundle?.overview?.details, bundle?.vehicles, vehicleOwners), [bundle, vehicleOwners]);
   const matrices: Record<ReportType, ReportMatrix | undefined> = { finance, details: repairedCompanyReport.details, payroll: bundle?.payroll, vehicles: repairedCompanyReport.vehicles };
   const visibleTypes: ReportType[] = tab === 'all' ? ['finance', 'details', 'payroll', 'vehicles'] : [tab];
@@ -250,7 +258,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
     if (cached) {
       setBundle(cached.bundle);
       setVehicleOwners(cached.vehicleOwners || {});
-      setAvailableMonths(reportMonths(cached.bundle.overview?.months));
+      setAvailableMonths(reportDataMonths(cached.bundle.overview?.months));
       setRenderedPeriod(targetKey);
       setError('');
       setStatus(cached.bundle.apiCached ? 'Dữ liệu từ API cache.' : 'Dữ liệu từ API.');
@@ -268,7 +276,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
       if (!requestState.isCurrent()) return;
       setBundle(data.bundle);
       setVehicleOwners(data.vehicleOwners || {});
-      const loadedMonths = reportMonths(data.bundle.overview?.months);
+      const loadedMonths = reportDataMonths(data.bundle.overview?.months);
       setAvailableMonths(loadedMonths);
       if (targetMode === 'year' && loadedMonths.length) {
         setFromMonth(normalizeMonth(loadedMonths[0]));
@@ -291,7 +299,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
     if (reportPeriodKey(visiblePeriodRef.current.mode, visiblePeriodRef.current.fromMonth, visiblePeriodRef.current.toMonth) !== targetKey) return;
     setBundle(data.bundle);
     setVehicleOwners(data.vehicleOwners || {});
-    setAvailableMonths(reportMonths(data.bundle.overview?.months));
+    setAvailableMonths(reportDataMonths(data.bundle.overview?.months));
     setRenderedPeriod(targetKey);
     setError('');
     setStatus(data.bundle.apiCached ? 'Dữ liệu từ API cache.' : 'Dữ liệu từ API.');
@@ -300,25 +308,56 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   const selectFromMonth = (value: string) => {
     const nextFrom = normalizeMonth(value);
     const nextTo = compareReportMonths(nextFrom, toMonth) > 0 ? nextFrom : toMonth;
+    setQuickPeriod('custom');
     void loadPeriod('range', nextFrom, nextTo);
   };
 
   const selectToMonth = (value: string) => {
     const nextTo = normalizeMonth(value);
     const nextFrom = compareReportMonths(fromMonth, nextTo) > 0 ? nextTo : fromMonth;
+    setQuickPeriod('custom');
     void loadPeriod('range', nextFrom, nextTo);
+  };
+
+  const selectQuickPeriod = (value: ReportQuickPeriod) => {
+    setQuickPeriod(value);
+    if (value === 'custom') return;
+    if (value === 'year') {
+      void loadPeriod('year');
+      return;
+    }
+    const months = reportQuarterMonths(availableMonths, Number(value.slice(1)));
+    if (!months.length) return;
+    void loadPeriod('range', months[0], months.at(-1)!);
   };
 
   return <section id="reportsView" className="view active" data-next-report="true">
     <button type="button" data-shell-refresh hidden onClick={() => loadPeriod(periodMode, fromMonth, toMonth, false, true)} aria-hidden="true" tabIndex={-1}/>
     <div className="sub-tabs-bar app-sticky-tabs" id="reportTabsBar" role="tablist" aria-label="Loại báo cáo">{TABS.map(([type, label]) => <button type="button" role="tab" aria-selected={tab === type} className={`sub-tab${tab === type ? ' active' : ''}`} data-report-tab={type} onClick={() => setTab(type)} key={type}>{label}</button>)}</div>
-    <section className="panel report-filter-panel app-sticky-toolbar sticky-after-tabs">
-      <div className="panel-head reports-filter-head"><div className="filter-row reports-filter-row">
-        <input type="search" id="reportSearchInput" aria-label="Tìm trong báo cáo" placeholder="Tìm xe, tài xế..." value={query} onChange={(event) => setQuery(event.target.value)}/>
-        <label className="report-period-field"><span>Từ tháng</span><select id="reportMonthFromFilter" className="platform-content-select" aria-label="Từ tháng" aria-busy={loading || undefined} value={fromMonth} onChange={(event) => selectFromMonth(event.target.value)}>{availableMonths.map((value) => <option value={normalizeMonth(value)} key={value}>{normalizeMonth(value)}</option>)}</select></label>
-        <label className="report-period-field"><span>Đến tháng</span><select id="reportMonthToFilter" className="platform-content-select" aria-label="Đến tháng" aria-busy={loading || undefined} value={toMonth} onChange={(event) => selectToMonth(event.target.value)}>{availableMonths.map((value) => <option value={normalizeMonth(value)} key={value}>{normalizeMonth(value)}</option>)}</select></label>
-        <button type="button" id="reportWholeYearFilter" className={`report-whole-year-button${periodMode === 'year' ? ' active' : ''}`} aria-pressed={periodMode === 'year'} onClick={() => void loadPeriod('year')}>Cả năm</button>
-      </div></div>
+    <section className="panel report-filter-panel cashflow-overview-filter-panel app-sticky-toolbar sticky-after-tabs" aria-label="Bộ lọc thời gian Báo cáo">
+      <div className="report-filter-stack">
+        <div className="report-filter-row-top">
+          <div className="report-month-range">
+            <label className="custom-date-box report-month-input">
+              <span className="date-display-text">{formatMonthControlLabel(fromMonth)}</span>
+              <select id="reportMonthFromFilter" aria-label="Từ tháng" aria-busy={loading || undefined} value={fromMonth} onChange={(event) => selectFromMonth(event.target.value)}>{availableMonths.map((value) => <option value={normalizeMonth(value)} key={value}>{formatMonthControlLabel(value)}</option>)}</select>
+            </label>
+            <span className="date-range-separator" aria-hidden="true">→</span>
+            <label className="custom-date-box report-month-input">
+              <span className="date-display-text">{formatMonthControlLabel(toMonth)}</span>
+              <select id="reportMonthToFilter" aria-label="Đến tháng" aria-busy={loading || undefined} value={toMonth} onChange={(event) => selectToMonth(event.target.value)}>{availableMonths.map((value) => <option value={normalizeMonth(value)} key={value}>{formatMonthControlLabel(value)}</option>)}</select>
+            </label>
+          </div>
+          <select id="reportQuickPeriodFilter" aria-label="Bộ lọc nhanh thời gian Báo cáo" className="report-quick-period-select cashflow-quick-period-select platform-content-select" value={quickPeriod} onChange={(event) => selectQuickPeriod(event.target.value as ReportQuickPeriod)}>
+            <option value="year">Năm nay</option>
+            {[1, 2, 3, 4].map((quarter) => <option value={`q${quarter}`} disabled={!reportQuarterMonths(availableMonths, quarter).length} key={quarter}>Quý {quarter}</option>)}
+            <option value="custom">Tùy chọn</option>
+          </select>
+        </div>
+        <div className="report-filter-row-search">
+          <input type="search" id="reportSearchInput" aria-label="Tìm trong báo cáo" placeholder="Tìm xe, tài xế..." value={query} onChange={(event) => setQuery(event.target.value)}/>
+        </div>
+      </div>
     </section>
     <div className="platform-visually-hidden" role="status" aria-live="polite">{error || status}</div>
     {error && !hasCurrentBundle ? <section className="table-card report-c2-error" role="alert"><div className="panel-body"><div className="table-title">Không tải được báo cáo</div><p>{error}</p><button type="button" className="sub-tab" onClick={() => loadPeriod(periodMode, fromMonth, toMonth)} disabled={loading}>Thử lại</button></div></section> : null}

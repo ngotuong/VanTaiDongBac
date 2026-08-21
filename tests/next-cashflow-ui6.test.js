@@ -270,7 +270,7 @@ test('Fixed-option filters use intrinsic width while search and date controls st
   assert.match(css, /html body select\.platform-content-select \{[\s\S]*width: fit-content !important;[\s\S]*max-width: 100% !important;/);
   assert.match(css, /#platform-content \.view\.active select\.platform-content-select\.platform-content-select\[data-adaptive-filter="selected"\],[\s\S]*width: min\(var\(--platform-filter-selected-width\), 100%\) !important;[\s\S]*padding-inline: 10px 30px !important;/);
   assert.match(css, /html body \.cashflow-c2 \.fund-loan-history-filters \{[\s\S]*grid-template-columns: repeat\(2, max-content\) !important;/);
-  assert.match(css, /html body \.reports-filter-row \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) max-content !important;/);
+  assert.match(css, /html body #reportsView \.report-filter-stack \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) max-content !important;[\s\S]*"months quick"[\s\S]*"search search"/);
 });
 
 test('Shared filter toolbar aligns controls and renders one consistent select chevron', () => {

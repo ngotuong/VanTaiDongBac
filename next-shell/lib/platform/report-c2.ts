@@ -48,6 +48,15 @@ export function reportMonths(matrix: ReportMatrix | undefined) {
   return [...new Set(body.map((row) => normalizeMonth(row[0])).filter(Boolean))];
 }
 
+export function reportDataMonths(matrix: ReportMatrix | undefined) {
+  const { body } = matrixRows(matrix);
+  return [...new Set(body
+    .filter((row) => row.slice(1).some((cell) => parseCellValue(cell) !== null))
+    .map((row) => normalizeMonth(row[0]))
+    .filter((month) => /^(0[1-9]|1[0-2])\/20\d{2}$/.test(month)))]
+    .sort(compareReportMonths);
+}
+
 export function latestReportMonth(matrix: ReportMatrix | undefined) {
   return reportMonths(matrix).filter((month) => /^(0?[1-9]|1[0-2])\/20\d{2}$/.test(month)).at(-1) || '';
 }
@@ -90,12 +99,65 @@ export function monthsWithinRange(months: string[], fromMonth: unknown, toMonth:
     .sort(compareReportMonths);
 }
 
-export function transposeOverviewMatrix(matrix: ReportMatrix | undefined, selectedMonths: string[], totalLabel: string): ReportMatrix {
+export function reportQuarterMonths(months: string[], quarter: number) {
+  if (!Number.isInteger(quarter) || quarter < 1 || quarter > 4) return [];
+  const start = (quarter - 1) * 3 + 1;
+  const end = start + 2;
+  return [...new Set(months.map(normalizeMonth))]
+    .filter((month) => {
+      const match = month.match(/^(\d{2})\/20\d{2}$/);
+      const value = Number(match?.[1] || 0);
+      return value >= start && value <= end;
+    })
+    .sort(compareReportMonths);
+}
+
+export function ensureOverviewProfitColumns(matrix: ReportMatrix | undefined): ReportMatrix {
   const { head, body } = matrixRows(matrix);
+  if (head.length < 2) return [];
+  const normalized = head.map(normalizedHeader);
+  const find = (...labels: string[]) => normalized.findIndex((header) => labels.some((label) => header === label));
+  const revenueIdx = find('tong doanh thu', 'doanh thu');
+  if (revenueIdx < 0) return [head, ...body];
+
+  const tndnIdx = find('thue tndn');
+  const vatIdx = find('thue vat');
+  const mainFuelIdx = find('dau quang minh', 'chi phi dau');
+  const roadIdx = find('phi di duong', 'phi duong bo');
+  const wardIdx = find('phi phuong');
+  const outsideFuelIdx = find('dau ngoai', 'dau do ngoai');
+  const salaryIdx = find('chi phi luong');
+  const fundIdx = find('chi quy', 'chi quy thuc te');
+  const grossIdx = find('loi nhuan gop');
+  const netIdx = find('loi nhuan thuc', 'loi nhuan thuc te');
+  if (grossIdx >= 0 && netIdx >= 0) return [head, ...body];
+
+  const valueAt = (row: ReportCell[], index: number) => index < 0 ? 0 : parseCellValue(row[index]) || 0;
+  const nextHead = [...head];
+  if (grossIdx < 0) nextHead.push('Lợi nhuận gộp');
+  if (netIdx < 0) nextHead.push('Lợi nhuận thực');
+  const nextBody = body.map((row) => {
+    const next = [...row];
+    const gross = grossIdx >= 0
+      ? valueAt(row, grossIdx)
+      : valueAt(row, revenueIdx) - valueAt(row, tndnIdx) - valueAt(row, vatIdx) - valueAt(row, mainFuelIdx) - valueAt(row, roadIdx) - valueAt(row, wardIdx);
+    const net = netIdx >= 0
+      ? valueAt(row, netIdx)
+      : gross - valueAt(row, outsideFuelIdx) - valueAt(row, salaryIdx) - valueAt(row, fundIdx);
+    const sample = row[revenueIdx];
+    if (grossIdx < 0) next.push(formatValueLike(gross, sample));
+    if (netIdx < 0) next.push(formatValueLike(net, sample));
+    return next;
+  });
+  return [nextHead, ...nextBody];
+}
+
+export function transposeOverviewMatrix(matrix: ReportMatrix | undefined, selectedMonths: string[], totalLabel: string): ReportMatrix {
+  const { head, body } = matrixRows(ensureOverviewProfitColumns(matrix));
   if (head.length < 2 || !selectedMonths.length) return [];
   const rowsByMonth = new Map(body.map((row) => [normalizeMonth(row[0]), row]));
   const visibleMonths = selectedMonths.map(normalizeMonth);
-  const result: ReportMatrix = [['Danh mục', ...visibleMonths.map((month) => `T${month.slice(0, 2)}`), totalLabel]];
+  const result: ReportMatrix = [['Danh mục', ...visibleMonths.map((month) => `Tháng ${Number(month.slice(0, 2))}`), totalLabel]];
 
   for (let column = 1; column < head.length; column += 1) {
     const category = head[column];

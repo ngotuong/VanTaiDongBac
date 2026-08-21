@@ -5,7 +5,7 @@ import { runtimeConfig } from '../../server/runtime-config.js';
 import { createWorkbookContextService } from '../../server/services/workbook-context-service.js';
 import { loadPlatformContext } from './request-context.js';
 import { createServerApiClient } from './platform/server-api-client';
-import { aggregateReportBundles, compareReportMonths, latestReportMonth, monthsWithinRange, reportMonths } from './platform/report-c2';
+import { aggregateReportBundles, compareReportMonths, latestReportMonth, monthsWithinRange, reportDataMonths } from './platform/report-c2';
 import type { ReportBundle, ReportDataResponse } from './platform/report-types';
 import { loadCatalogData } from './catalog-server';
 
@@ -82,7 +82,7 @@ export async function loadReportRangeData(fromInput: unknown, toInput: unknown, 
     const referenceRow = await repository.findLatest(config, toMonth, workbook.spreadsheetId);
     if (!referenceRow?.payload) throw httpError(503, `Chưa có cache Báo cáo tháng ${toMonth}.`);
 
-    const availableMonths = reportMonths((referenceRow.payload as ReportBundle).overview?.months);
+    const availableMonths = reportDataMonths((referenceRow.payload as ReportBundle).overview?.months);
     const includedMonths = monthsWithinRange(availableMonths, fromMonth, toMonth);
     if (!includedMonths.length || includedMonths[0] !== fromMonth || includedMonths.at(-1) !== toMonth) {
       throw httpError(400, 'Khoảng tháng đã chọn không nằm trọn trong dữ liệu Báo cáo hiện có.');

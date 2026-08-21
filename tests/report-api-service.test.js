@@ -35,6 +35,20 @@ test('Report repository resolves latest from the newest synced workbook report b
   assert.equal(url.searchParams.get('spreadsheet_id'), 'eq.sheet-1');
 });
 
+test('Report repository reads an exact set of range bundles in one scoped query', async () => {
+  let requestedUrl = '';
+  const repository = createReportBundleRepository({ httpError, fetchImpl: async (url) => {
+    requestedUrl = String(url);
+    return { ok: true, json: async () => [{ report_month: '05/2026' }, { report_month: '06/2026' }] };
+  }});
+  const rows = await repository.findMonths({ supabaseUrl: 'https://db.example', serviceRoleKey: 'server-secret' }, ['05/2026', '06/2026'], 'sheet-1');
+  assert.equal(rows.length, 2);
+  const url = new URL(requestedUrl);
+  assert.equal(url.searchParams.get('spreadsheet_id'), 'eq.sheet-1');
+  assert.equal(url.searchParams.get('report_month'), 'in.(05/2026,06/2026)');
+  assert.equal(url.searchParams.get('limit'), '2');
+});
+
 test('Report API serves cached bundle and does not call Apps Script', async () => {
   let forwarded = 0; let response;
   const service = createReportService({

@@ -11,6 +11,33 @@ test('C3 Report C2 helpers preserve actual months, month filtering and formatted
   assert.deepEqual(helpers.appendTotal(prepared.head,prepared.body).at(-1),['Tổng cộng','500.000']);
 });
 
+test('Report overview pivots categories into twelve calendar months and totals only real values',async()=>{
+  const helpers=await import('../next-shell/lib/platform/report-c2.ts');
+  const matrix=[['Tháng','Tổng khối lượng','Doanh thu'],['05/2026','10,50','1.000.000 ₫'],['07/2026','20,25','2.500.000 ₫']];
+  const yearMonths=helpers.reportYearMonths(helpers.reportMonths(matrix));
+  assert.deepEqual(yearMonths,['01/2026','02/2026','03/2026','04/2026','05/2026','06/2026','07/2026','08/2026','09/2026','10/2026','11/2026','12/2026']);
+  const pivot=helpers.transposeOverviewMatrix(matrix,yearMonths,'Tổng năm');
+  assert.deepEqual(pivot[0],['Danh mục','T01','T02','T03','T04','T05','T06','T07','T08','T09','T10','T11','T12','Tổng năm']);
+  assert.equal(pivot[1][1],'—');
+  assert.equal(pivot[1][5],'10,50');
+  assert.equal(pivot[1][7],'20,25');
+  assert.equal(pivot[1].at(-1),'30,75');
+  assert.equal(pivot[2].at(-1),'3.500.000');
+});
+
+test('Report calendar range and bundle aggregation preserve month order and detail semantics',async()=>{
+  const helpers=await import('../next-shell/lib/platform/report-c2.ts');
+  assert.deepEqual(helpers.calendarMonthRange('05/2026','07/2026'),['05/2026','06/2026','07/2026']);
+  assert.deepEqual(helpers.monthsWithinRange(['07/2026','05/2026','06/2026'],'05/2026','06/2026'),['05/2026','06/2026']);
+  const months=[['Tháng','Doanh thu'],['05/2026','100'],['06/2026','200']];
+  const first={overview:{months,details:[['Danh mục','Tổng','A','B','Giải thích'],['Doanh thu','100','60','40','Nguồn']]},payroll:[['Tháng','Nhân sự','Tổng lương'],['05/2026','An','10']],vehicles:[['Tháng','Biển số','Doanh thu'],['05/2026','20A','100']]};
+  const second={overview:{months,details:[['Danh mục','Tổng','A','B','Giải thích'],['Doanh thu','200','120','80','Nguồn']]},payroll:[['Tháng','Nhân sự','Tổng lương'],['06/2026','Bình','20']],vehicles:[['Tháng','Biển số','Doanh thu'],['06/2026','20B','200']]};
+  const aggregate=helpers.aggregateReportBundles([first,second],['05/2026','06/2026']);
+  assert.deepEqual(aggregate.overview.details[1],['Doanh thu','300','180','120','Nguồn']);
+  assert.deepEqual(aggregate.payroll.slice(1).map(row=>row[0]),['05/2026','06/2026']);
+  assert.deepEqual(aggregate.vehicles.slice(1).map(row=>row[0]),['05/2026','06/2026']);
+});
+
 test('C3 Report keeps source totals and profit rows in the detail matrix only',async()=>{
   const helpers=await import('../next-shell/lib/platform/report-c2.ts');
   const rows=[['Tổng khối lượng','1.000'],['Tổng doanh thu','2.000'],['Chi phí dầu','300'],['Lợi nhuận thực','1.700']];

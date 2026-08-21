@@ -6,28 +6,28 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('Report month selection clears stale rows immediately and only the latest request may render', () => {
+test('Report period selection clears stale rows immediately and only the latest request may render', () => {
   const source = read('next-shell/components/report/ReportModule.tsx');
-  const normalized = source.indexOf('const normalizedTarget = normalizeMonth(target)');
-  const immediate = source.indexOf("if (normalizedTarget !== 'latest') setMonth(normalizedTarget)");
-  const clearStale = source.indexOf('setRenderedMonth(null)');
-  const request = source.indexOf('await requestReport(normalizedTarget');
+  const normalized = source.indexOf('const normalizedFrom = normalizeMonth(targetFrom)');
+  const immediate = source.indexOf('setPeriodMode(targetMode)');
+  const clearStale = source.indexOf('setRenderedPeriod(null)');
+  const request = source.indexOf('await requestReport(targetMode');
 
   assert.ok(normalized >= 0 && immediate > normalized && clearStale > immediate && clearStale < request);
   assert.match(source, /const latestRequest = useLatestAsyncRequest\(\)/);
   assert.match(source, /if \(!requestState\.isCurrent\(\)\) return/);
-  assert.match(source, /const hasCurrentBundle = Boolean\(bundle && renderedMonth === month\)/);
+  assert.match(source, /const hasCurrentBundle = Boolean\(bundle && renderedPeriod === periodKey\)/);
   assert.match(source, /loading && !hasCurrentBundle/);
   assert.match(source, /aria-busy=\{loading \|\| undefined\}/);
-  assert.doesNotMatch(source, /id="reportMonthFilter"[^>]*disabled=\{loading\}/);
+  assert.doesNotMatch(source, /id="reportMonth(?:From|To)Filter"[^>]*disabled=\{loading\}/);
 });
 
-test('Report cache, adjacent-month prefetch and reduced-motion crossfade follow the shared fast-filter contract', () => {
+test('Report range cache, in-flight de-duplication and reduced-motion crossfade follow the fast-filter contract', () => {
   const source = read('next-shell/components/report/ReportModule.tsx');
   const hook = read('next-shell/components/platform/useLatestAsyncRequest.ts');
   const css = read('next-shell/app/platform.css');
-  assert.match(source, /reportResponseCache\.get\(normalizedTarget\)/);
-  assert.match(source, /neighbors\.forEach[\s\S]*requestReport\(targetMonth, false\)/);
+  assert.match(source, /reportResponseCache\.get\(targetKey\)/);
+  assert.match(source, /reportInflight\.has\(key\)/);
   assert.match(source, /report-stack report-stack-enter/);
   assert.match(hook, /controllerRef\.current\?\.abort\(\)/);
   assert.match(hook, /sequence === sequenceRef\.current/);

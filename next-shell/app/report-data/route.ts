@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { PlatformApiError } from '../../lib/platform/api-contract';
-import { loadReportData } from '../../lib/report-server';
+import { loadReportData, loadReportRangeData } from '../../lib/report-server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   try {
-    const data = await loadReportData(url.searchParams.get('month'), url.searchParams.get('forceRefresh') === 'true');
+    const fromMonth = url.searchParams.get('fromMonth');
+    const toMonth = url.searchParams.get('toMonth');
+    const forceRefresh = url.searchParams.get('forceRefresh') === 'true';
+    const data = fromMonth || toMonth
+      ? await loadReportRangeData(fromMonth, toMonth, forceRefresh)
+      : await loadReportData(url.searchParams.get('month'), forceRefresh);
     return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const status = error instanceof PlatformApiError ? error.status : Number((error as { status?: number })?.status) || 500;

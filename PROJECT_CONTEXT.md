@@ -77,10 +77,10 @@ Production đã xác nhận gần nhất:
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_Hqp9579pEZqpPnkm8rwsgQ79qTvm`, READY ngày 2026-08-21.
+- Vercel deployment: `dpl_Dipc9qMB58hYUA8cxBCaJucGpFWJ`, READY ngày 2026-08-21.
 - Apps Script Preview: `@340`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 527/527 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; fresh-skip và forced-recovery canary đều PASS, health đúng Apps Script Preview và Production Vercel không đổi trong checkpoint Preview.
+- Gate deploy PASS 530/530 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; authenticated Report QA desktop/mobile PASS, health đúng Apps Script Preview và Production Vercel không đổi trong checkpoint Preview.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,15 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Báo cáo ma trận 12 tháng và lọc khoảng tháng — Preview 2026-08-21
+
+- `Báo Cáo Tổng Quan` trên web đã chuyển từ mỗi tháng một dòng sang ma trận: `Danh mục`, T01–T12 và `Tổng năm`. Tên danh mục lấy nguyên từ matrix backend; tháng chưa có dữ liệu hiển thị `—` và không bị cộng như số 0 giả.
+- Toolbar Báo cáo có hai bộ lọc `Từ tháng`/`Đến tháng` và nút `Cả năm`. Cả năm hiển thị đủ 12 tháng; khoảng tùy chọn chỉ hiển thị các tháng trong kỳ cùng `Tổng kỳ`.
+- Khoảng tháng được ghép server-side từ đúng các `report_bundles` tháng trong Supabase. Báo cáo Chi tiết dùng cùng semantics cộng từng tháng của Apps Script; Bảng lương và Tổng hợp xe ghép đúng source rows. Request fail-closed nếu khoảng đảo chiều, endpoint không tồn tại hoặc thiếu bundle tháng; không đọc/ghi `BC_TongQuan!B1`, không sửa Google Sheet và không có migration.
+- Authenticated Preview QA PASS tại 1440×900 và mobile 390×844. Khoảng 06/2026–07/2026 cho Tổng doanh thu/Tổng kỳ `2.638.752.743`, khớp Tổng doanh thu Báo cáo Chi tiết cùng kỳ; Cả năm trả đủ 14 cột hiển thị, trang mobile không tràn ngang, vùng bảng cuộn ngang và cột Danh mục sticky. Không có console error.
+- Full deploy gate PASS 530/530 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Vercel Preview `dpl_Dipc9qMB58hYUA8cxBCaJucGpFWJ`; Apps Script Preview giữ `@340`; Production giữ nguyên `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`/`@340`.
+- Rollback Preview: gán lại alias bằng đúng quy trình preview tới deployment trước `dpl_Hqp9579pEZqpPnkm8rwsgQ79qTvm`. Production chỉ được cut-forward khi người dùng phê duyệt trong yêu cầu riêng.
 
 ### Khôi phục đồng bộ và watchdog ngoài Apps Script — Production 2026-08-21
 
@@ -368,11 +377,12 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-1. **Theo dõi lượt sync watchdog theo lịch đầu tiên**: xác nhận GitHub event `schedule` hoàn thành SUCCESS và `external_sync_watchdog` tiếp tục tươi; manual dispatch đã PASS nhưng không thay thế bằng chứng scheduler tự chạy.
-2. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
-3. **Người dùng duyệt business form system trên Preview**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS thật, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng; chỉ đưa lên Production khi có phê duyệt riêng.
-4. **Duyệt notification copy trên thiết bị thật**: kiểm tra nhấn giữ sao chép trên Safari/iOS và xác nhận danh sách không còn lỗi sync cũ.
-5. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
+1. **Người dùng duyệt checkpoint Báo cáo trên Preview**: xác nhận ma trận 12 tháng và bộ lọc khoảng đúng nhu cầu; Production chỉ cut-forward khi có phê duyệt riêng.
+2. **Theo dõi lượt sync watchdog theo lịch đầu tiên**: xác nhận GitHub event `schedule` hoàn thành SUCCESS và `external_sync_watchdog` tiếp tục tươi; manual dispatch đã PASS nhưng không thay thế bằng chứng scheduler tự chạy.
+3. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
+4. **Người dùng duyệt business form system trên Preview**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS thật, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng; chỉ đưa lên Production khi có phê duyệt riêng.
+5. **Duyệt notification copy trên thiết bị thật**: kiểm tra nhấn giữ sao chép trên Safari/iOS và xác nhận danh sách không còn lỗi sync cũ.
+6. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
 
 ## 7. Mục tiêu kiến trúc dài hạn
 

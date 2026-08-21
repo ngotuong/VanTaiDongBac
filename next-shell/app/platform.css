@@ -4847,6 +4847,32 @@ html body .cashflow-c2 .fund-loan-history-filters {
   }
 }
 
+/* Report month-filter contract: keep the shared adaptive sizing from shrinking
+ * the visible controls or their touch targets below the 44px module standard. */
+html body .app main.main#platform-content #reportsView .report-month-input.custom-date-box,
+html body .app main.main#platform-content #reportsView .report-quick-period-select.platform-content-select,
+html body .app main.main#platform-content #reportsView .report-quick-period-select.platform-content-select[data-adaptive-filter="selected"] {
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+}
+
+html body .app main.main#platform-content #reportsView .report-quick-period-select.platform-content-select,
+html body .app main.main#platform-content #reportsView .report-quick-period-select.platform-content-select[data-adaptive-filter="selected"] {
+  width: 142px !important;
+  min-width: 142px !important;
+  max-width: 142px !important;
+}
+
+@media (max-width: 768px) {
+  html body .app main.main#platform-content #reportsView .report-quick-period-select.platform-content-select,
+  html body .app main.main#platform-content #reportsView .report-quick-period-select.platform-content-select[data-adaptive-filter="selected"] {
+    width: 124px !important;
+    min-width: 124px !important;
+    max-width: 124px !important;
+  }
+}
+
 /* Business form sheet system (2026-08-16).
  * One mobile contract for Entry, Manage/Catalog edit and Cashflow write forms.
  * Sheets size to their content, clamp only when content exceeds the viewport,

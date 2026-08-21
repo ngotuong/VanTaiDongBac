@@ -77,10 +77,10 @@ Production đã xác nhận gần nhất:
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_BtUtVyehu2iaWDf281erLVY6kyQL`, READY ngày 2026-08-21.
+- Vercel deployment: `dpl_AMh8SapMaTrb3wPwRr7QivApE6hs`, READY ngày 2026-08-21.
 - Apps Script Preview: `@340`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 531/531 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; authenticated Report QA desktop/mobile PASS, health đúng Apps Script Preview và Production Vercel không đổi trong checkpoint Preview.
+- Gate deploy PASS 531/531 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; authenticated Report QA PASS, HTTP/title/console PASS và Production Vercel không đổi trong checkpoint Preview.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,16 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Báo cáo tinh chỉnh typography và căn chỉnh ma trận — Preview 2026-08-21
+
+- Hai ô chọn tháng hiển thị thống nhất `MM/YYYY`, dùng cùng font 14px/500 với bộ lọc nhanh và không còn chữ `Tháng`/uppercase trong control.
+- Cột `Danh mục` của ma trận Tổng Quan giảm từ 210px xuống 176px; toàn bộ nhãn cột và số liệu căn trái.
+- `Lợi Nhuận Gộp` và `Lợi Nhuận Thực` vẫn giữ semantic màu chữ/độ đậm nhưng không còn nhận lớp nền `total-row`.
+- Khi khoảng chỉ có một tháng, tiêu đề dùng dạng `(08/2026)`; ma trận chỉ hiện `Danh mục`, `Tháng 8`, `Tổng`.
+- Authenticated Preview QA xác nhận computed typography hai control giống nhau, cột đầu đúng 176px, header/số liệu `text-align: left`, hai dòng lợi nhuận không có `total-row`, console không lỗi. HTTP 200, title `Báo cáo · Vận tải Đông Bắc` và không chuyển Vercel Login.
+- Preview Vercel `dpl_AMh8SapMaTrb3wPwRr7QivApE6hs`; Production giữ nguyên `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`; Apps Script Preview/Production giữ nguyên `@340`, không thay đổi Google Sheet.
+- Gate PASS 531/531 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`.
 
 ### Báo cáo chỉ hiện tháng có dữ liệu, lợi nhuận và bộ lọc quý — Preview 2026-08-21
 

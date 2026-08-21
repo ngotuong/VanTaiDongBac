@@ -31,7 +31,7 @@ type ReportQuickPeriod = 'year' | 'q1' | 'q2' | 'q3' | 'q4' | 'custom';
 function formatMonthControlLabel(month: string) {
   const normalized = normalizeMonth(month);
   const match = normalized.match(/^(\d{2})\/(20\d{2})$/);
-  return match ? `Tháng ${Number(match[1])}/${match[2]}` : normalized;
+  return match ? `${match[1]}/${match[2]}` : normalized;
 }
 
 function reportPeriodKey(mode: ReportPeriodMode, fromMonth = '', toMonth = '') {
@@ -201,7 +201,7 @@ function ReportTable({ type, matrix, query, periodLabel }: { type: ReportType; m
       <table className={`report-data-table report-data-table-${type}`}>
         {type === 'details' ? <colgroup>{prepared.head.map((cell, index) => <col key={index} style={index === 0 ? { width: 190, minWidth: 190 } : explanation(cell) ? { width: 300, minWidth: 300 } : { width: 142, minWidth: 142 }}/>)}</colgroup> : null}
         <thead><tr>{prepared.head.map((cell, index) => <th scope="col" key={index} className={`${sticky(type, index) ? 'sticky-col' : ''}${type === 'details' && explanation(cell) ? ' report-detail-explanation-head' : ''}${type === 'finance' && index === prepared.head.length - 1 ? ' report-period-total' : ''}`.trim()} style={sticky(type, index)}>{String(cell ?? '')}</th>)}</tr></thead>
-        <tbody>{visibleRows.length ? visibleRows.map((row, rowIndex) => { const total = isTotalRow(row); const grand = total && rowIndex === visibleRows.length - 1; return <tr key={rowIndex} className={type !== 'details' && total ? `total-row${grand ? ' grand-total-row' : ''}` : undefined} style={{ fontWeight: total ? 800 : 500, fontSize: total ? 13 : 12.5, color: total ? 'var(--deep)' : undefined }}>{prepared.head.map((header, index) => <td key={index} className={`${sticky(type, index) ? 'sticky-col' : ''}${type === 'details' && explanation(header) ? ' report-detail-explanation-cell' : ''}${companyDetail(header) ? ' report-detail-company-cell' : ''}${type === 'finance' && index === prepared.head.length - 1 ? ' report-period-total' : ''}${index > 0 ? ' tabular-nums' : ''}`.trim()} style={cellStyle(type, header, row, index)}>{formatReportDisplayValue(type, header, row, index)}</td>)}</tr>; }) : <tr><td colSpan={Math.max(1, prepared.head.length)} className="report-c2-empty">Không có dữ liệu phù hợp với bộ lọc.</td></tr>}</tbody>
+        <tbody>{visibleRows.length ? visibleRows.map((row, rowIndex) => { const total = isTotalRow(row); const grand = total && rowIndex === visibleRows.length - 1; return <tr key={rowIndex} className={type !== 'details' && type !== 'finance' && total ? `total-row${grand ? ' grand-total-row' : ''}` : undefined} style={{ fontWeight: total ? 800 : 500, fontSize: total ? 13 : 12.5, color: total ? 'var(--deep)' : undefined }}>{prepared.head.map((header, index) => <td key={index} className={`${sticky(type, index) ? 'sticky-col' : ''}${type === 'details' && explanation(header) ? ' report-detail-explanation-cell' : ''}${companyDetail(header) ? ' report-detail-company-cell' : ''}${type === 'finance' && index === prepared.head.length - 1 ? ' report-period-total' : ''}${index > 0 ? ' tabular-nums' : ''}`.trim()} style={cellStyle(type, header, row, index)}>{formatReportDisplayValue(type, header, row, index)}</td>)}</tr>; }) : <tr><td colSpan={Math.max(1, prepared.head.length)} className="report-c2-empty">Không có dữ liệu phù hợp với bộ lọc.</td></tr>}</tbody>
       </table>
     </div>
   </section>;
@@ -234,7 +234,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   const matrices: Record<ReportType, ReportMatrix | undefined> = { finance, details: repairedCompanyReport.details, payroll: bundle?.payroll, vehicles: repairedCompanyReport.vehicles };
   const visibleTypes: ReportType[] = tab === 'all' ? ['finance', 'details', 'payroll', 'vehicles'] : [tab];
   const reportYear = financeMonths.at(-1)?.slice(-4) || toMonth.slice(-4);
-  const periodLabel = periodMode === 'year' ? `Năm ${reportYear}` : `${fromMonth} – ${toMonth}`;
+  const periodLabel = periodMode === 'year' ? `Năm ${reportYear}` : fromMonth === toMonth ? fromMonth : `${fromMonth} – ${toMonth}`;
   const hasCurrentBundle = Boolean(bundle && renderedPeriod === periodKey);
 
   useEffect(() => {

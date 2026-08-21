@@ -201,6 +201,16 @@ Vận hành và giao dịch Thu chi có thể chia khoảng ngày thành các mo
 
 Không được giả định một bundle tháng tự chứa dữ liệu ngoài tháng đó.
 
+### 6.4. Luồng notification, daily digest và app badge
+
+Mỗi tick notification chạy theo thứ tự: đồng bộ đối soát chuyến, đồng bộ cảnh báo vận hành, tổng hợp ngày Việt Nam liền trước từ `XL_VanChuyen`, rồi dispatch. Lúc 12:00 trưa ngày hôm sau, Vercel ghép bundle Vận tải này với đúng bundle Tổng quan Quỹ của tháng chứa ngày liền trước và lọc `details` theo exact date. Push gồm số chuyến, doanh thu, Chi/Thu Quỹ, số xe, tổng khối lượng và số dự án; khoản Quỹ giữ cùng quy tắc KPI nên bao gồm cả trả nợ/trả lãi. Khi thiếu một nguồn, thông báo phải nêu rõ nguồn chưa có dữ liệu, không thay bằng 0 hoặc số lượng cảnh báo chung.
+
+Chuông và icon PWA dùng một nghĩa duy nhất: số thông báo chưa đọc trên thiết bị. Khi app mở, client gửi số tuyệt đối cho service worker. Khi app đóng và có sự kiện nghiệp vụ mới, push chỉ cộng `unreadDelta`; daily digest giữ nguyên badge. Badge state là một con số cục bộ, tách khỏi cache nghiệp vụ và được sửa lại theo trạng thái chuông ở lần app hoạt động tiếp theo.
+
+### 6.5. Bộ lọc kỳ Tổng quan
+
+Dashboard không suy diễn số liệu tài chính theo ngày. Browser lấy các dòng báo cáo tháng đã có trong `BC_TongQuan` qua dashboard bundle, chọn inclusive từ tháng đầu đến tháng cuối rồi cộng toàn bộ trường doanh thu, chi phí, thuế, nhiên liệu, phí, lương, quỹ và lợi nhuận. KPI override đã hydrate tiếp tục được ưu tiên cho từng tháng trước khi cộng. So sánh tăng/giảm dùng khoảng liền trước có cùng số tháng nếu đủ dữ liệu; biểu đồ lợi nhuận chỉ render các tháng trong khoảng. Bảng chuyến gần đây vẫn là snapshot ngày mới nhất độc lập.
+
 ## 7. Cache phía Browser
 
 ### 7.1. Các tầng
@@ -602,7 +612,8 @@ Khi không biết sheet, Manage/dashboard fallback hiện tập trung hẹp vào
 - Apps Script có execution limit;
 - cache vẫn có thể tạm thời cũ;
 - mục tiêu edit thông thường là cache mới trong khoảng tối đa 2 phút; full structural refresh có thể lâu hơn;
-- trigger trực tiếp hiện chỉ cài trên workbook Vận tải; thay đổi thủ công ở workbook Thu chi/công thức lan truyền không tự động có cùng SLA;
+- trigger trực tiếp được cài trên cả workbook Vận tải và Thu chi; edit `NHAP_THUCHI` queue báo cáo Vận tải sau 30 giây, worker chạy ở tick một phút và hậu kiểm lại sau 2 phút;
+- edit Vận tải tạo thêm một lượt hậu kiểm báo cáo sau 2 phút; poll 5 phút fingerprint trực tiếp `BC_TongQuan`, `BC_BangLuong` và `BC_TongHopXe` theo từng tháng để bắt các thay đổi công thức xuất hiện sau snapshot đầu tiên;
 - `sync_status` và audit dùng để quan sát, không phải transaction guarantee.
 
 ## 16. Luồng liên kết Thu chi → Vận tải
@@ -622,6 +633,7 @@ Liên kết được thực hiện bằng công thức Google Sheets như `IMPOR
 - ghi Thu chi có thể gián tiếp thay đổi báo cáo Vận tải;
 - thay đổi này không nhất thiết đi qua API Vận tải;
 - cache báo cáo Vận tải có thể cần sync sau khi công thức đã cập nhật;
+- installable trigger Thu chi queue refresh báo cáo sau 30 giây với một lượt xác minh sau 2 phút; lượt đầu thường tới Supabase trong 1–2 phút, frontend revalidate mỗi 60 giây và poll 5 phút là safety net khi trigger/công thức bị trễ;
 - không được gộp hai file hoặc thay liên kết bằng copy dữ liệu nếu chưa có yêu cầu kiến trúc riêng.
 
 ## 17. Luồng bound script Thu chi

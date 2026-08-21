@@ -156,7 +156,9 @@ var SheetService = (function () {
       if (cached) return cached;
     }
     var ss = getSpreadsheet_();
-    var reportTables = readReportTables_(ss, forceRefresh && !requestOptions.skipInvalidation);
+    // skipInvalidation prevents repeated global cache eviction inside a batch; it must
+    // never turn a force refresh back into a cached report-table read.
+    var reportTables = readReportTables_(ss, forceRefresh);
     var dataVersion = clean_(requestOptions.dataVersion) || getReportDataVersion_();
     var bundle = {
       updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),

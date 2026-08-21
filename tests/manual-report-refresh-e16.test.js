@@ -75,6 +75,18 @@ test('E1.6 structural changes supersede narrow months and failed claims retry sa
   assert.equal(retry.waitMs, 30000);
 });
 
+test('E1.6 formula verification survives queue merge and retry', () => {
+  const queue = loadQueue();
+  queue.service.enqueue({ months: ['2026-08'], source: 'catalog-edit', verificationPasses: 1 }, queue.context);
+  const merged = queue.service.enqueue({ months: ['2026-08'], source: 'second-edit' }, queue.context);
+  assert.equal(merged.verificationPasses, 1);
+  queue.advance(15000);
+  const claimed = queue.service.claimDue(queue.context);
+  assert.equal(claimed.item.verificationPasses, 1);
+  const retry = queue.service.requeue(claimed.item, queue.context);
+  assert.equal(retry.verificationPasses, 1);
+});
+
 test('E1.6R queue supports an isolated property key for Fund refresh work', () => {
   const queue = loadQueue();
   queue.context.propertyKey = 'SUPABASE_PENDING_FUND_SYNC';
@@ -123,7 +135,9 @@ test('E1.6R adds direct Fund Sheet triggers and delayed transport downstream ref
   assert.match(source, /newTrigger\('handleFundSheetEdit'\)\.forSpreadsheet\(targetSpreadsheetId\)\.onEdit\(\)\.create\(\)/);
   assert.match(source, /newTrigger\('handleFundSheetChange'\)\.forSpreadsheet\(targetSpreadsheetId\)\.onChange\(\)\.create\(\)/);
   assert.match(source, /safeSheetName === 'NHAP_THUCHI' \|\| safeSheetName === 'NHAP_VAY'/);
+  assert.match(source, /FUND_TO_TRANSPORT_DELAY_MS = 30 \* 1000/);
   assert.match(source, /delayMs: FUND_TO_TRANSPORT_DELAY_MS/);
+  assert.match(source, /source: 'fund-sheet-downstream:'[\s\S]*verificationPasses: 1|verificationPasses: 1,[\s\S]*source: 'fund-sheet-downstream:'/);
   assert.match(source, /step: 'fundPending'/);
   assert.match(api, /function installE16RTriggers\(\)/);
   assert.match(api, /function handleFundSheetEdit\(e\)/);
@@ -139,7 +153,19 @@ test('E1.6R polls bounded source tails every five minutes as a trigger-independe
   assert.match(source, /sheetName: 'NHAP_THUCHI', width: 14, kind: 'fund'/);
   assert.match(source, /sheetName: 'NHAP_VAY', width: 14, kind: 'fund'/);
   assert.match(source, /source: 'poll:fund-downstream'/);
+  assert.match(source, /verificationPasses: 1,[\s\S]*source: 'poll:fund-downstream'/);
   assert.match(source, /polledTransport[\s\S]*syncManageDataBundle\('NL_VanChuyen'\)/);
+});
+
+test('E1.6R polls computed report outputs by month and schedules one delayed verification pass', () => {
+  const source = read('SupabaseService.gs');
+  assert.match(source, /REPORT_OUTPUT_FINGERPRINT_PROP/);
+  assert.match(source, /ReportTableService\.readFreshnessTables\(ss\)/);
+  assert.match(source, /ReportOutputFreshnessService\.changedMonths/);
+  assert.match(source, /source: 'poll:report-outputs'/);
+  assert.match(source, /verificationPasses: 1/);
+  assert.match(source, /TRANSPORT_REPORT_VERIFICATION_DELAY_MS = 120000/);
+  assert.match(source, /source: 'verification:report-formulas'/);
 });
 
 test('E1.6R retries queue contention without acknowledging a source fingerprint early', () => {

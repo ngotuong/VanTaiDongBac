@@ -248,6 +248,7 @@ test('Fixed-option filters use intrinsic width while search and date controls st
   const report = read('next-shell/components/report/ReportModule.tsx');
   const manage = read('next-shell/components/manage/ManageReadOnlyModule.tsx');
   const catalog = read('next-shell/components/catalog/CatalogModule.tsx');
+  const adaptive = read('next-shell/components/platform/AdaptiveFilterSizing.tsx');
   const css = read('next-shell/app/platform.css');
 
   assert.match(cashflow, /cashflow-quick-period-select platform-content-select/);
@@ -255,7 +256,11 @@ test('Fixed-option filters use intrinsic width while search and date controls st
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc các khoản vay theo nơi vay"/);
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc lịch sử theo loại giao dịch"/);
   assert.doesNotMatch(css, /select\.platform-content-select \{[\s\S]*field-sizing: content;/);
-  assert.match(css, /select\.platform-content-select\.platform-content-select \{[\s\S]*padding-inline: var\(--platform-control-padding-x, 12px\) 40px !important;/);
+  assert.match(adaptive, /FILTER_SELECTOR = 'select\.platform-content-select'/);
+  assert.match(adaptive, /selectedLabel\(select\)/);
+  assert.match(adaptive, /--platform-filter-selected-width/);
+  assert.match(adaptive, /MutationObserver\(schedule\)/);
+  assert.match(adaptive, /observer\.observe\(document\.body/);
   assert.match(css, /@media \(max-width: 768px\) \{[\s\S]*\.cashflow-filter-stack \{[\s\S]*grid-template-columns: max-content minmax\(0, 1fr\)/);
   assert.match(css, /html body \.cashflow-c2 \.cashflow-overview-filter-panel \.cashflow-date-input input\.native-date-input,[\s\S]*pointer-events: auto !important;/);
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc lịch sử theo nơi vay"/);
@@ -263,6 +268,7 @@ test('Fixed-option filters use intrinsic width while search and date controls st
   assert.match(manage, /Nguồn chi:<select className="platform-content-select"/);
   assert.match(catalog, /id="catalogVehicleOwnerFilter" className="platform-content-select"/);
   assert.match(css, /html body select\.platform-content-select \{[\s\S]*width: fit-content !important;[\s\S]*max-width: 100% !important;/);
+  assert.match(css, /#platform-content \.view\.active select\.platform-content-select\.platform-content-select\[data-adaptive-filter="selected"\],[\s\S]*width: min\(var\(--platform-filter-selected-width\), 100%\) !important;[\s\S]*padding-inline: 10px 30px !important;/);
   assert.match(css, /html body \.cashflow-c2 \.fund-loan-history-filters \{[\s\S]*grid-template-columns: repeat\(2, max-content\) !important;/);
   assert.match(css, /html body \.reports-filter-row \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) max-content !important;/);
 });
@@ -281,7 +287,7 @@ test('Shared filter toolbar aligns controls and renders one consistent select ch
   assert.match(css, /Unified filter-control contract/);
   assert.match(css, /select\.platform-content-select \{[\s\S]*appearance: none !important;[\s\S]*background-image: url\([\s\S]*font-weight: 500 !important;[\s\S]*text-align: left !important;/);
   assert.match(css, /background-position: right 10px center !important;/);
-  assert.match(css, /\.cashflow-overview-filter-panel select\.platform-content-select,[\s\S]*padding-right: 34px !important;/);
+  assert.match(css, /data-adaptive-filter="selected"[\s\S]*background-position: right 8px center !important;/);
 });
 
 test('Cashflow bottom-sheet headers are compact and align titles to the left', () => {
@@ -347,6 +353,18 @@ test('Cashflow forms use live Sheet methods and the canonical loan payment types
   assert.match(module, /\(options\.methods \|\| \[\]\)\.map/);
   assert.doesNotMatch(module, /<option>Trả gốc<\/option>/);
   assert.match(module, /<option>Trả nợ<\/option>[\s\S]*<option>Trả lãi<\/option>/);
+});
+
+test('Fund opening settings share the standard date and numeric input contracts', () => {
+  const module = read('next-shell/components/cashflow/CashflowModule.tsx');
+  const css = read('next-shell/app/platform.css');
+
+  assert.match(module, /className="panel-body modal-grid fund-settings-grid"/);
+  assert.match(module, /formatVietnameseNumberInput\(String\(value\.cashOpening/);
+  assert.match(module, /formatVietnameseNumberInput\(String\(value\.bankOpening/);
+  assert.match(flat(module), /Ngày bắt đầu nhập liệu<\/span><div className="custom-date-box">/);
+  assert.match(flat(module), /Ngày bắt đầu tính khoản vay<\/span><div className="custom-date-box">/);
+  assert.match(css, /fund-settings-grid > label \{[\s\S]*grid-template-rows: minmax\(34px, auto\) var\(--platform-control-height\)/);
 });
 
 test('Cashflow success feedback stays in toast and each drawer owns one portal and backdrop', () => {

@@ -37,17 +37,36 @@ function createNotificationBundleRepository({ fetchImpl = fetch, httpError }) {
     return { rule: rules[0] || null, bundle: monthRows[0] || fallbackRows[0] || null };
   }
 
-  async function find(config) {
+  async function findDailySummary(config) {
+    return findBundle(config, 'XL_VanChuyen', 'daily-summary:latest');
+  }
+
+  async function findFundDailySummary(config, dateKey) {
+    const match = String(dateKey || '').match(/^(\d{4})-(\d{2})-\d{2}$/);
+    if (!match) return null;
+    const query = new URLSearchParams({
+      select: 'payload,synced_at,month_key',
+      year: `eq.${match[1]}`,
+      month_key: `eq.${match[1]}-${match[2]}`,
+      limit: '1'
+    });
+    const rows = await read(config, 'fund_overview_bundles', query, 'Không đọc được tổng hợp Quỹ theo ngày.');
+    return rows[0] || null;
+  }
+
+  async function find(config, summaryDateKey) {
     const syncQuery = new URLSearchParams({ select: 'sync_key,module,status,message,synced_at,updated_at', order: 'updated_at.desc', limit: '200' });
     const jobsQuery = new URLSearchParams({ select: 'id,module,action,status,attempts,max_attempts,last_error,next_run_at,locked_at,claimed_at,created_at,updated_at', status: 'in.(pending,processing,failed)', order: 'updated_at.desc', limit: '100' });
-    const [trip, operations, fund, syncStatuses, writeJobs] = await Promise.all([
+    const [trip, operations, fund, dailySummary, dailyFundSummary, syncStatuses, writeJobs] = await Promise.all([
       findBundle(config, 'XL_DoiSoatChuyen', 'notifications:active'),
       findBundle(config, 'SYSTEM_NOTIFICATIONS', 'operations:active'),
       findFund(config),
+      findDailySummary(config),
+      findFundDailySummary(config, summaryDateKey),
       read(config, 'sync_status', syncQuery, 'Không đọc được trạng thái đồng bộ.'),
       read(config, 'write_jobs', jobsQuery, 'Không đọc được trạng thái hàng đợi ghi.')
     ]);
-    return { trip, operations, fund, syncStatuses, writeJobs };
+    return { trip, operations, fund, dailySummary, dailyFundSummary, syncStatuses, writeJobs };
   }
 
   return { find };

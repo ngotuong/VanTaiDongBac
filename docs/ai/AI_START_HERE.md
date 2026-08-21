@@ -100,6 +100,15 @@ Bound script và Apps Script backend standalone là hai execution context khác 
 - `docs/quality/KNOWN_RISKS.md`;
 - test source trực tiếp liên quan.
 
+### UI/UX, form hoặc drawer nhập liệu
+
+Đọc thêm:
+
+- `docs/contracts/BUSINESS_FORM_SHEET_CONTRACT.md`;
+- component và stylesheet trực tiếp liên quan.
+
+Form ghi dữ liệu mobile phải dùng contract chung; không thêm chiều cao cố định, typography hoặc footer riêng theo module.
+
 ### Lịch sử refactor
 
 Chỉ khi cần rationale hoặc điều tra regression, đọc:

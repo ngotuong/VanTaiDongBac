@@ -1,10 +1,16 @@
 const crypto = require('crypto');
+const { vietnamClock } = require('./vietnam-time');
 
 const CRITICAL_SYNC_KEYS = new Map([
   ['realtime_cache_worker', 15],
   ['trip_notifications', 15],
   ['operational_notifications', 15],
   ['notification_pipeline', 15]
+]);
+const REALTIME_WORKER_DEPENDENCIES = new Set([
+  'trip_notifications',
+  'operational_notifications',
+  'notification_pipeline'
 ]);
 const SYSTEM_FAILURE_LOOKBACK_MINUTES = 24 * 60;
 
@@ -34,23 +40,82 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
       url: '/cashflow/'
     };
   }
+  function dailyFundTotals(row, targetDateKey) {
+    const payload = row?.payload;
+    if (!payload || typeof payload !== 'object') return { fundAvailable: false, fundIncome: null, fundExpense: null, fundNet: null };
+    const totalFor = (groups) => (Array.isArray(groups) ? groups : [])
+      .flatMap((group) => Array.isArray(group?.details) ? group.details : [])
+      .filter((item) => String(item?.date || '').slice(0, 10) === targetDateKey)
+      .reduce((sum, item) => sum + (Number.isFinite(Number(item?.amount)) ? Number(item.amount) : 0), 0);
+    const fundIncome = totalFor(payload.incomeCategories);
+    const fundExpense = totalFor(payload.expenseCategories);
+    return { fundAvailable: true, fundIncome, fundExpense, fundNet: fundIncome - fundExpense };
+  }
+  function dailySummary(row, fundRow, currentTime, targetDateKey) {
+    const payload = row?.payload;
+    if (!payload || typeof payload !== 'object') return null;
+    return {
+      date: isoDate(payload.date || row.synced_at, currentTime),
+      displayDate: String(payload.displayDate || ''),
+      trips: Number(payload.trips) || 0,
+      volume: Number(payload.volume) || 0,
+      revenue: Number(payload.revenue) || 0,
+      vehicleCount: Number(payload.vehicleCount) || 0,
+      projectCount: Number(payload.projectCount) || 0,
+      syncedAt: payload.syncedAt || row.synced_at || null,
+      fundSyncedAt: fundRow?.synced_at || null,
+      ...dailyFundTotals(fundRow, targetDateKey)
+    };
+  }
   function systemItems(snapshot, currentTime) {
     const result = [];
-    for (const row of snapshot.syncStatuses || []) {
+    const syncStatuses = snapshot.syncStatuses || [];
+    const worker = syncStatuses.find((row) => row.sync_key === 'realtime_cache_worker');
+    const workerUpdated = new Date(worker?.updated_at || worker?.synced_at || 0);
+    const workerAgeMinutes = Number.isNaN(workerUpdated.getTime())
+      ? Infinity
+      : (currentTime.getTime() - workerUpdated.getTime()) / 60000;
+    const workerStale = Boolean(worker) && workerAgeMinutes > CRITICAL_SYNC_KEYS.get('realtime_cache_worker');
+    const watchdogFailure = syncStatuses.find((row) => row.sync_key === 'external_sync_watchdog' && String(row.status || '').toLowerCase() !== 'ok');
+    const watchdogAuthorizationRequired = String(watchdogFailure?.status || '').toLowerCase() === 'authorization_required';
+
+    if (workerStale) {
+      result.push({
+        id: id('sync-health', 'realtime-cache-worker', worker.updated_at || worker.synced_at, 'stale'),
+        type: 'sync-stale', notificationKey: 'system-health', severity: 'error',
+        title: watchdogAuthorizationRequired ? 'Đồng bộ cần được cấp lại quyền' : (watchdogFailure ? 'Không thể tự khôi phục đồng bộ' : 'Đồng bộ tự động đã dừng'),
+        message: watchdogAuthorizationRequired
+          ? 'Google đang chặn tiến trình đồng bộ. Hãy mở Apps Script và chạy một hàm bất kỳ để cấp lại quyền.'
+          : (watchdogFailure
+            ? 'Watchdog đã phát hiện gián đoạn nhưng lượt tự khôi phục chưa thành công. Hãy kiểm tra Trạng thái hệ thống.'
+            : `Dữ liệu chưa cập nhật trong ${Math.floor(workerAgeMinutes)} phút. Các tác vụ dữ liệu và thông báo đang tạm dừng.`),
+        date: isoDate(worker.updated_at || worker.synced_at, currentTime), url: '/observability/'
+      });
+    }
+    for (const row of syncStatuses) {
       const status = String(row.status || '').toLowerCase();
       const maxAge = CRITICAL_SYNC_KEYS.get(row.sync_key);
       const updated = new Date(row.updated_at || row.synced_at || 0);
       const ageMinutes = Number.isNaN(updated.getTime()) ? Infinity : (currentTime.getTime() - updated.getTime()) / 60000;
+      if (workerStale && row.sync_key === 'realtime_cache_worker') continue;
+      if (workerStale && REALTIME_WORKER_DEPENDENCIES.has(row.sync_key) && ageMinutes > maxAge) continue;
+      if (workerStale && row.sync_key === 'external_sync_watchdog') continue;
       if (status === 'ok' && (!maxAge || ageMinutes <= maxAge)) continue;
       if (status === 'ok' && maxAge && ageMinutes <= maxAge) continue;
       const expiredFailure = status !== 'ok' && ageMinutes > SYSTEM_FAILURE_LOOKBACK_MINUTES;
       if (expiredFailure && !maxAge) continue;
       const stale = status === 'ok' || expiredFailure;
+      const externalWatchdogFailure = row.sync_key === 'external_sync_watchdog' && status !== 'ok';
+      const externalWatchdogAuthorizationRequired = externalWatchdogFailure && status === 'authorization_required';
       result.push({
         id: id('sync-health', row.sync_key, row.status, row.updated_at, stale ? 'stale' : row.message),
         type: stale ? 'sync-stale' : 'sync-failure', notificationKey: 'system-health', severity: 'error',
-        title: stale ? 'Dữ liệu chưa được đồng bộ mới' : 'Đồng bộ dữ liệu gặp lỗi',
-        message: stale ? `${row.sync_key} chưa cập nhật trong ${Math.floor(ageMinutes)} phút.` : `${row.sync_key}: ${String(row.message || row.status).slice(0, 160)}.`,
+        title: externalWatchdogAuthorizationRequired ? 'Đồng bộ cần được cấp lại quyền' : (externalWatchdogFailure ? 'Không thể tự khôi phục đồng bộ' : (stale ? 'Dữ liệu chưa được đồng bộ mới' : 'Đồng bộ dữ liệu gặp lỗi')),
+        message: externalWatchdogAuthorizationRequired
+          ? 'Google đang chặn tiến trình đồng bộ. Hãy mở Apps Script và chạy một hàm bất kỳ để cấp lại quyền.'
+          : (externalWatchdogFailure
+            ? 'Watchdog đã phát hiện gián đoạn nhưng lượt tự khôi phục chưa thành công. Hãy kiểm tra Trạng thái hệ thống.'
+            : (stale ? `${row.sync_key} chưa cập nhật trong ${Math.floor(ageMinutes)} phút.` : `${row.sync_key}: ${String(row.message || row.status).slice(0, 160)}.`)),
         date: isoDate(row.updated_at || row.synced_at, currentTime), url: '/observability/'
       });
     }
@@ -70,8 +135,9 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
     return result;
   }
   async function list(config) {
-    const snapshot = await repository.find(config);
     const currentTime = now();
+    const clock = vietnamClock(currentTime);
+    const snapshot = await repository.find(config, clock.previousDateKey);
     const fund = fundItem(snapshot.fund, currentTime);
     const items = [
       ...safeItems(snapshot.trip).map((item) => ({ ...item, notificationKey: 'trip-reconciliation', url: '/manage/?entry=vanChuyen' })),
@@ -84,7 +150,7 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
       return (weight[left.severity] ?? 3) - (weight[right.severity] ?? 3);
     }).slice(0, 200);
     const syncedAt = [snapshot.trip?.synced_at, snapshot.operations?.synced_at].filter(Boolean).sort().pop() || null;
-    return { ok: true, source: 'supabase', count: items.length, items, syncedAt, lookbackDays: 120 };
+    return { ok: true, source: 'supabase', count: items.length, items, syncedAt, lookbackDays: 120, dailySummary: dailySummary(snapshot.dailySummary, snapshot.dailyFundSummary, currentTime, clock.previousDateKey) };
   }
   async function handle(action, req, res, config, user) {
     if (!handles(action)) throw httpError(400, 'Hành động thông báo không hợp lệ.');
@@ -96,7 +162,9 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
         ? new Set(['trip-reconciliation', 'operations-integrity'])
         : new Set(['trip-reconciliation', 'fund-low-balance']);
     const items = allowed ? result.items.filter((item) => allowed.has(item.notificationKey)) : result.items;
-    return send(res, 200, { ...result, count: items.length, items });
+    const publicResult = { ...result };
+    delete publicResult.dailySummary;
+    return send(res, 200, { ...publicResult, count: items.length, items });
   }
   return { handles, handle, list };
 }

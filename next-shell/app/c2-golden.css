@@ -6674,14 +6674,16 @@ body > .cashflow-c2.fund-detail-drawer.open {
 .notification-type-row strong { font-size: 14px; }
 .notification-type-row span { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
 .fund-alert-settings-embedded { padding: 0 0 14px; }
-.fund-alert-rule-toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper-soft, #f8fafc); }
+.fund-alert-rule-card { border: 1px solid var(--line); border-radius: 12px; background: var(--paper-soft, #f8fafc); overflow: clip; }
+.fund-alert-rule-toggle { padding: 12px 14px; }
 .fund-alert-rule-toggle > div:first-child { display: grid; min-width: 0; gap: 3px; }
+.fund-alert-rule-title-row { display: flex; min-height: 44px; align-items: center; justify-content: space-between; gap: 12px; }
 .fund-alert-rule-toggle strong { color: var(--deep); font-size: 13px; }
 .fund-alert-rule-toggle > div:first-child span, .fund-alert-embedded-loading { color: var(--muted); font-size: 12px; line-height: 1.45; }
 .fund-alert-embedded-loading { padding: 12px 0; }
 .fund-alert-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .fund-alert-form > label { display: grid; gap: 7px; color: var(--deep); font-size: 13px; font-weight: 700; }
-.fund-alert-form input[type="number"], .fund-alert-form textarea { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface, #fff); color: var(--deep); font: inherit; }
+.fund-alert-form input[type="text"], .fund-alert-form textarea { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface, #fff); color: var(--deep); font-family: inherit; font-size: 14.5px; font-weight: 500; line-height: 1.45; }
 .fund-alert-form textarea { resize: vertical; }
 .fund-alert-form input:focus-visible, .fund-alert-form textarea:focus-visible { outline: 3px solid rgba(14, 116, 144, .2); border-color: #0f766e; }
 .fund-alert-form fieldset { border: 0; padding: 0; margin: 0; }
@@ -6701,6 +6703,14 @@ body > .cashflow-c2.fund-detail-drawer.open {
   border-radius: 12px;
   background: var(--paper-soft, #f8fafc);
   overflow: clip;
+}
+
+.fund-alert-rule-card .fund-alert-disclosure {
+  margin-top: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
 }
 
 .account-create-disclosure > summary,
@@ -6801,11 +6811,10 @@ body > .cashflow-c2.fund-detail-drawer.open {
   .settings-c2 .fund-alert-form > *, .settings-c2 .fund-alert-body-field, .settings-c2 .fund-alert-schedule, .settings-c2 .fund-alert-actions, .settings-c2 .fund-alert-dry-run { grid-column: 1; }
   .settings-c2 .fund-alert-actions { display: grid; }
   .settings-c2 .fund-alert-actions button { width: 100%; height: 44px !important; min-height: 44px !important; max-height: none !important; }
-  .settings-c2 .fund-alert-form input[type="number"],
+  .settings-c2 .fund-alert-form input[type="text"],
   .settings-c2 .fund-alert-form textarea { font-size: 16px !important; }
   .settings-c2 .notification-type-row { align-items: flex-start; }
-  .settings-c2 .fund-alert-rule-toggle { align-items: flex-start; flex-direction: column; }
-  .settings-c2 .fund-alert-rule-toggle .push-switch-control { width: 100%; justify-content: space-between; }
+  .settings-c2 .fund-alert-rule-title-row { display: flex; align-items: center; }
 
   .settings-c2 .account-users-wrap {
     width: 100% !important;

@@ -142,6 +142,28 @@ export function metricValue(row: DashboardMonthRow, key: DashboardMetricKey, kpi
   return override === undefined || override === null || !Number.isFinite(Number(override)) ? row[key] : Number(override);
 }
 
+export function aggregateDashboardPeriod(rows: DashboardMonthRow[], kpiMap: Map<string, DashboardKpi>, label: string): DashboardMonthRow | undefined {
+  if (!rows.length) return undefined;
+  return {
+    month: label,
+    volume: rows.reduce((sum, row) => sum + row.volume, 0),
+    revenue: rows.reduce((sum, row) => sum + metricValue(row, 'revenue', kpiMap), 0),
+    operatingCost: rows.reduce((sum, row) => sum + metricValue(row, 'operatingCost', kpiMap), 0),
+    gross: rows.reduce((sum, row) => sum + metricValue(row, 'gross', kpiMap), 0),
+    cashCost: rows.reduce((sum, row) => sum + metricValue(row, 'cashCost', kpiMap), 0),
+    final: rows.reduce((sum, row) => sum + metricValue(row, 'final', kpiMap), 0),
+    taxTndn: rows.reduce((sum, row) => sum + row.taxTndn, 0),
+    taxVat: rows.reduce((sum, row) => sum + row.taxVat, 0),
+    fuelQm: rows.reduce((sum, row) => sum + row.fuelQm, 0),
+    fuelOut: rows.reduce((sum, row) => sum + row.fuelOut, 0),
+    roadFee: rows.reduce((sum, row) => sum + row.roadFee, 0),
+    wardFee: rows.reduce((sum, row) => sum + row.wardFee, 0),
+    payroll: rows.reduce((sum, row) => sum + row.payroll, 0),
+    fund: rows.reduce((sum, row) => sum + row.fund, 0),
+    raw: []
+  };
+}
+
 export function formatCurrencyText(value: number) {
   return Math.round(Number(value || 0)).toLocaleString('vi-VN');
 }

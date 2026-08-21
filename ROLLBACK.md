@@ -12,10 +12,10 @@
 
 Production đã xác nhận trong `PROJECT_CONTEXT.md`:
 
-- Vercel hiện tại: `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`.
-- Vercel rollback gần nhất: `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`; rollback lịch sử tiếp theo là `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde`, rồi `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
+- Vercel hiện tại: `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`.
+- Vercel rollback gần nhất: `dpl_85PsF73o52beq8SuKrK8915nzu4f`; rollback lịch sử tiếp theo là `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`, `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde`, rồi `dpl_4q2n4BYGHLa4T75WptiTrGi1VNW6`.
 - Rollback lịch sử tiếp theo: D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`, C3 `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` nếu vẫn READY.
-- Apps Script production: code version `@328`; rollback gần nhất cùng deployment ID là `@325`, tiếp theo là `@322`, rồi `@315`.
+- Apps Script production: code version `@338`; rollback gần nhất cùng deployment ID là `@337`, tiếp theo là `@335`, `@328`, `@325`, `@322`, rồi `@315`.
 - Kênh notification dispatch có thể được cô lập ngay bằng Script Property `NOTIFICATION_DISPATCH_ENABLED=false` mà không rollback toàn bộ webapp.
 - Recovery deployment `@281` đã undeploy, không dùng.
 

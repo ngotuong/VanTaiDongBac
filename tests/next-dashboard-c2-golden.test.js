@@ -20,6 +20,27 @@ test('C3 Dashboard KPI cards prefer the hydrated C2 kpis over derived matrix val
   assert.equal(formatCurrencyText(metricValue(rows[0], 'final', map)), '-166.121.715');
 });
 
+test('Dashboard month range aggregates every financial field and respects hydrated KPI overrides', async () => {
+  const { aggregateDashboardPeriod, buildKpiMap, parseDashboardRows } = await import(helperUrl);
+  const rows = parseDashboardRows([
+    ['Tháng', 'Tổng khối lượng', 'Tổng doanh thu', 'Thuế TNDN', 'Thuế VAT', 'Dầu Quang Minh', 'Dầu ngoài', 'Phí đi đường', 'Lợi nhuận gộp', 'Chi phí lương', 'Chi quỹ', 'Lợi nhuận thực'],
+    ['07/2026', 10, 1000, 10, 20, 30, 40, 50, 890, 60, 70, 760],
+    ['08/2026', 20, 2000, 20, 40, 60, 80, 100, 1780, 120, 140, 1520]
+  ]);
+  const kpis = buildKpiMap([{ monthKey: '2026-08', revenue: 2100, operatingCost: 220, gross: 1880, cashCost: 300, final: 1580 }]);
+  const aggregate = aggregateDashboardPeriod(rows, kpis, '07/2026–08/2026');
+  assert.equal(aggregate.month, '07/2026–08/2026');
+  assert.equal(aggregate.volume, 30);
+  assert.equal(aggregate.revenue, 3100);
+  assert.equal(aggregate.operatingCost, 330);
+  assert.equal(aggregate.gross, 2770);
+  assert.equal(aggregate.cashCost, 430);
+  assert.equal(aggregate.final, 2340);
+  assert.equal(aggregate.taxTndn, 30);
+  assert.equal(aggregate.payroll, 180);
+  assert.equal(aggregate.fund, 210);
+});
+
 test('Dashboard recent trips counts one physical vehicle once across projects and plate formatting', async () => {
   const { countUniqueVehicles } = await import(helperUrl);
   assert.equal(countUniqueVehicles([

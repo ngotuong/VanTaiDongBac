@@ -14,6 +14,10 @@ var ManualReportRefreshQueueService = (function () {
         full: full,
         includeAll: input.includeAll !== false || current.includeAll === true,
         months: full ? [] : mergeUnique_(current.months, incomingMonths).sort(),
+        verificationPasses: Math.max(
+          Number(current.verificationPasses || 0),
+          Number(input.verificationPasses || 0)
+        ),
         notBefore: Math.max(
           Number(current.notBefore || 0),
           now + Number(input.delayMs === undefined ? context.debounceMs || DEFAULT_DEBOUNCE_MS : input.delayMs)
@@ -48,7 +52,8 @@ var ManualReportRefreshQueueService = (function () {
       months: pending.months || [],
       source: 'retry',
       delayMs: context.retryDelayMs || DEFAULT_RETRY_DELAY_MS,
-      attempts: Number(pending.attempts || 0) + 1
+      attempts: Number(pending.attempts || 0) + 1,
+      verificationPasses: Number(pending.verificationPasses || 0)
     }, context);
   }
 
@@ -108,7 +113,8 @@ var ManualReportRefreshQueueService = (function () {
       waitMs: Math.max(0, Number(pending.notBefore || 0) - now),
       updatedAt: pending.updatedAt || '',
       sources: (pending.sources || []).slice(),
-      attempts: Number(pending.attempts || 0)
+      attempts: Number(pending.attempts || 0),
+      verificationPasses: Number(pending.verificationPasses || 0)
     };
   }
 

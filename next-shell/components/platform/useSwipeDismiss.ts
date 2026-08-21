@@ -71,7 +71,11 @@ export function useSwipeDismiss({
     const startedOnHandle = Boolean(target.closest('[data-swipe-dismiss-handle]'));
     const startedAtEdge = event.touches[0].clientX <= 36;
     const canStartAwayFromHandle = direction === 'right' && startedAtEdge;
-    if (!startedOnHandle && !canStartAwayFromHandle) return;
+    const scrollRegion = target.closest<HTMLElement>('[data-overlay-scroll]');
+    const startedOnBlankContent = direction === 'down'
+      && !target.closest(INTERACTIVE_SELECTOR)
+      && (!scrollRegion || scrollRegion.scrollTop <= 0);
+    if (!startedOnHandle && !canStartAwayFromHandle && !startedOnBlankContent) return;
     if (!startedOnHandle && target.closest(INTERACTIVE_SELECTOR)) return;
     const now = performance.now();
     const touch = event.touches[0];

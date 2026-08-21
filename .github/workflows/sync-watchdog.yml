@@ -1,0 +1,24 @@
+name: Sync watchdog
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: sync-watchdog
+  cancel-in-progress: false
+
+jobs:
+  recover-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check and recover synchronization
+        env:
+          WATCHDOG_SECRET: ${{ secrets.SYNC_WATCHDOG_SECRET }}
+        run: |
+          curl --fail-with-body --retry 2 --retry-delay 10 \
+            --max-time 90 \
+            --header "Authorization: Bearer ${WATCHDOG_SECRET}" \
+            https://dongbac.vercel.app/api/sync-watchdog/

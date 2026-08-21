@@ -23,6 +23,9 @@ test('operators receive operations channels but cannot opt into the fund alert',
   const service = createNotificationSettingsService({ preferenceRepository: { async listByUser() { return []; } }, ruleConfigRepository: {}, httpError });
   const keys = (await service.preferences({}, { id: 'operator-1', role: 'operator' })).types.map((type) => type.key);
   assert.deepEqual(keys, ['trip-reconciliation', 'operations-integrity', 'daily-digest']);
+  const dailyDigest = (await service.preferences({}, { id: 'operator-1', role: 'operator' })).types.find((type) => type.key === 'daily-digest');
+  assert.equal(dailyDigest.label, 'Tổng hợp ngày hôm trước');
+  assert.match(dailyDigest.description, /12:00/);
   await assert.rejects(() => service.setPreference({}, { id: 'operator-1', role: 'operator' }, 'fund-low-balance', true), /không được sử dụng/);
 });
 

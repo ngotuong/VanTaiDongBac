@@ -5,15 +5,14 @@ const CHANNELS = Object.freeze({
   'system-health': { roles: ['admin'], title: 'Hệ thống cần kiểm tra', url: '/observability/' }
 });
 const BASELINE_KEY = 'notification-dispatch-baseline-v1';
+const { vietnamClock } = require('./vietnam-time');
 
 function createNotificationDispatchService({ centerService, deliveryRepository, preferenceRepository, appUserRepository, subscriptionRepository, webPush, httpError, now = () => new Date() }) {
   function assertConfigured(config) {
     if (!config.supabaseUrl || !config.serviceRoleKey || !config.vapidPublicKey || !config.vapidPrivateKey || !config.vapidSubject) throw httpError(503, 'Delivery thông báo chưa được cấu hình đầy đủ.');
   }
   function localClock(currentTime) {
-    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }).formatToParts(currentTime);
-    const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-    return { dateKey: `${value.year}-${value.month}-${value.day}`, hour: Number(value.hour) };
+    return vietnamClock(currentTime);
   }
   async function recipients(config, channelKey, roles) {
     const users = (await appUserRepository.list(config)).filter((user) => user.active && roles.includes(user.role));
@@ -68,7 +67,7 @@ function createNotificationDispatchService({ centerService, deliveryRepository, 
       const body = group.length === 1 ? first.message : `Có ${group.length} cảnh báo mới. Mở ứng dụng để xem chi tiết.`;
       const delivery = await sendToSubscriptions(config, target.subscriptions, {
         title: channel.title, body, tag: `vtdb-${channelKey}`, url: first.url || channel.url,
-        unreadCount: items.length, badgeCount: items.length
+        unreadDelta: group.length
       });
       const result = delivery.sent ? 'sent' : target.subscriptions.length ? 'failed' : 'no-subscriptions';
       if (result !== 'failed') {
@@ -79,17 +78,20 @@ function createNotificationDispatchService({ centerService, deliveryRepository, 
     await deliveryRepository.upsert(config, stateRows);
     return { newItemCount: fresh.length, channels: results };
   }
-  async function sendDigest(config, items, currentTime, currentIso, force) {
+  function formatNumber(value, maximumFractionDigits = 0) {
+    return Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits });
+  }
+  async function sendDigest(config, items, dailySummary, currentTime, currentIso, force) {
     const clock = localClock(currentTime);
-    if (!force && clock.hour !== 20) return { skipped: true, reason: 'Daily digest is scheduled at 20:00 Asia/Ho_Chi_Minh.' };
-    const digestKey = `notification-digest:${clock.dateKey}`;
+    if (!force && clock.hour !== 12) return { skipped: true, reason: 'Daily digest is scheduled at 12:00 Asia/Ho_Chi_Minh for the previous day.' };
+    const digestKey = `notification-digest:${clock.previousDateKey}`;
     if ((await deliveryRepository.list(config, [digestKey])).length) return { skipped: true, reason: 'Daily digest was already evaluated.' };
     const target = await recipients(config, 'daily-digest', ['admin', 'operator', 'shareholder']);
-    const counts = items.reduce((map, item) => (map[item.notificationKey] = (map[item.notificationKey] || 0) + 1, map), {});
-    const body = items.length
-      ? `${items.length} việc đang cần theo dõi: ${counts['trip-reconciliation'] || 0} chuyến, ${counts['operations-integrity'] || 0} vận hành, ${counts['fund-low-balance'] || 0} quỹ, ${counts['system-health'] || 0} hệ thống.`
-      : 'Hôm nay không còn cảnh báo đang hoạt động.';
-    const delivery = await sendToSubscriptions(config, target.subscriptions, { title: 'Tổng hợp cuối ngày', body, tag: `vtdb-digest-${clock.dateKey}`, url: '/', unreadCount: items.length, badgeCount: items.length });
+    const summary = dailySummary?.date === clock.previousDateKey ? dailySummary : null;
+    const body = summary
+      ? `${formatNumber(summary.trips, 2)} chuyến · doanh thu ${formatNumber(summary.revenue)} đ · ${summary.fundAvailable ? `chi Quỹ ${formatNumber(summary.fundExpense)} đ · thu Quỹ ${formatNumber(summary.fundIncome)} đ` : 'chi Quỹ chưa có dữ liệu'} · ${formatNumber(summary.vehicleCount)} xe · ${formatNumber(summary.volume, 2)} m³ · ${formatNumber(summary.projectCount)} dự án.`
+      : 'Chưa có dữ liệu tổng hợp của ngày hôm qua.';
+    const delivery = await sendToSubscriptions(config, target.subscriptions, { title: `Tổng hợp ngày ${clock.previousDateKey.split('-').reverse().join('/')}`, body, tag: `vtdb-digest-${clock.previousDateKey}`, url: '/dashboard/', unreadDelta: 0, preserveBadge: true });
     await deliveryRepository.upsert(config, [stateRow(digestKey, delivery.sent ? 'sent' : target.subscriptions.length ? 'failed' : 'no-subscriptions', currentIso, delivery.sent > 0)]);
     return { itemCount: items.length, recipientCount: target.userIds.length, subscriptionCount: target.subscriptions.length, ...delivery };
   }
@@ -99,11 +101,11 @@ function createNotificationDispatchService({ centerService, deliveryRepository, 
     const center = await centerService.list(config); const items = center.items || [];
     if (dryRun) {
       const counts = items.reduce((map, item) => (map[item.notificationKey] = (map[item.notificationKey] || 0) + 1, map), {});
-      return { dryRun: true, count: items.length, counts, digestDue: forceDigest || localClock(currentTime).hour === 20 };
+      return { dryRun: true, count: items.length, counts, digestDue: forceDigest || localClock(currentTime).hour === 12 };
     }
     const initialized = await baseline(config, items, currentIso);
     if (initialized) return initialized;
-    return { immediate: await sendImmediate(config, items, currentIso), digest: await sendDigest(config, items, currentTime, currentIso, forceDigest) };
+    return { immediate: await sendImmediate(config, items, currentIso), digest: await sendDigest(config, items, center.dailySummary, currentTime, currentIso, forceDigest) };
   }
   return { run, localClock };
 }

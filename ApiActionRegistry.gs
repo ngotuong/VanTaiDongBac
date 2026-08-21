@@ -39,6 +39,7 @@ var ApiActionRegistry = (function () {
     updateFundSettings: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     retryWriteJob: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     processWriteJobs: { method: 'POST', kind: 'command', permission: 'adminOperator' },
+    recoverSyncInfrastructure: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     debugSheet: { method: 'GET', kind: 'query', permission: 'adminOperator', routerOnly: true },
     submitRowsGet: { method: 'GET', kind: 'disabled', permission: 'adminOperator', routerOnly: true, disabled: true },
     authSession: { method: 'GET', kind: 'query', permission: 'shareholder', proxyLocal: true },

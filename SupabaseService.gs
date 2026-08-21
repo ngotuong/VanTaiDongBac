@@ -27,6 +27,7 @@ var SupabaseService = (function () {
   var REALTIME_HEARTBEAT_NEXT_AT_PROP = 'SUPABASE_REALTIME_HEARTBEAT_NEXT_AT';
   var SOURCE_POLL_NEXT_AT_PROP = 'SUPABASE_SOURCE_POLL_NEXT_AT';
   var SOURCE_FINGERPRINT_PREFIX = 'SUPABASE_SOURCE_FINGERPRINT_';
+  var REPORT_OUTPUT_FINGERPRINT_PROP = 'SUPABASE_SOURCE_FINGERPRINT_REPORT_OUTPUTS';
   var REALTIME_TICK_RUNNING_CACHE_KEY = 'SUPABASE_REALTIME_TICK_RUNNING';
   var REPORT_CACHE_E1_PARITY_RUNNING_PROP = 'REPORT_CACHE_E1_PARITY_RUNNING';
   var INTERNAL_REPORT_REFRESH_TOKENS_PROP = 'SUPABASE_INTERNAL_REPORT_REFRESH_TOKENS';
@@ -42,11 +43,12 @@ var SupabaseService = (function () {
   var REALTIME_TICK_RUNNING_TTL_SECONDS = 300;
   var TRANSPORT_SHEET_SYNC_RUNNING_TTL_SECONDS = 120;
   var TRANSPORT_REPORT_DEBOUNCE_MS = 15000;
+  var TRANSPORT_REPORT_VERIFICATION_DELAY_MS = 120000;
   var TRANSPORT_REPORT_RETRY_DELAY_MS = 30000;
   var FUND_REFRESH_PROPERTY_KEY = 'SUPABASE_PENDING_FUND_SYNC';
   var FUND_REFRESH_DEBOUNCE_MS = 15000;
   var FUND_REFRESH_RETRY_DELAY_MS = 30000;
-  var FUND_TO_TRANSPORT_DELAY_MS = 120000;
+  var FUND_TO_TRANSPORT_DELAY_MS = 30 * 1000;
   var DEFAULT_FUND_SPREADSHEET_ID = '1PWwGC6HCdskiV2fEZjDFiAt6kA_nsx64twrVTgrRerw';
   var INTERNAL_REPORT_REFRESH_GUARD_TTL_MS = 600000;
 
@@ -184,16 +186,16 @@ var SupabaseService = (function () {
       syncTripNotificationsIfDue_(props, nowMillis);
       enqueueDetectedSourceChangesIfDue_(props, nowMillis);
       var pendingClaim = ManualReportRefreshQueueService.claimDue(manualReportRefreshQueueContext_());
+      var pendingFundClaim = ManualReportRefreshQueueService.claimDue(fundRefreshQueueContext_());
+      writeRealtimeHeartbeatIfDue_(props, nowMillis, pendingClaim, pendingFundClaim);
       if (pendingClaim.due) {
         return runPendingTransportReportSync_(pendingClaim.item);
       }
-      var pendingFundClaim = ManualReportRefreshQueueService.claimDue(fundRefreshQueueContext_());
       if (pendingFundClaim.due) {
         return runPendingFundSync_(pendingFundClaim.item);
       }
 
       if (!claimRealtimeSweep_(props, nowMillis)) {
-        writeRealtimeHeartbeatIfDue_(props, nowMillis, pendingClaim, pendingFundClaim);
         return {
           ok: true,
           mode: 'tick',
@@ -243,6 +245,10 @@ var SupabaseService = (function () {
     return OperationalNotificationSyncService.sync(tripNotificationSyncContext_());
   }
 
+  function syncDailyBusinessSummary() {
+    return DailyBusinessSummaryService.sync(tripNotificationSyncContext_());
+  }
+
   function dispatchNotifications() {
     return NotificationDispatchService.dispatch(tripNotificationSyncContext_());
   }
@@ -255,6 +261,7 @@ var SupabaseService = (function () {
     var errors = [];
     runSyncStep_(results, errors, 'tripNotifications', function () { return syncTripNotifications(); });
     runSyncStep_(results, errors, 'operationalNotifications', function () { return syncOperationalNotifications(); });
+    runSyncStep_(results, errors, 'dailyBusinessSummary', function () { return syncDailyBusinessSummary(); });
     runSyncStep_(results, errors, 'notificationDispatch', function () { return dispatchNotifications(); });
     if (errors.length) {
       props.setProperty(TRIP_NOTIFICATION_NEXT_AT_PROP, String(nowMillis + SOURCE_POLL_RETRY_MS));
@@ -297,6 +304,7 @@ var SupabaseService = (function () {
               months: state.months,
               full: !state.months.length,
               delayMs: FUND_TO_TRANSPORT_DELAY_MS,
+              verificationPasses: 1,
               source: 'poll:fund-downstream'
             });
             if (downstream && downstream.deferred) queued = downstream;
@@ -309,7 +317,49 @@ var SupabaseService = (function () {
         console.log('source_poll_failed:' + source.key + ': ' + (err && err.message ? err.message : err));
       }
     });
+    try {
+      var reportOutputChanges = enqueueDetectedReportOutputChanges_(props);
+      if (reportOutputChanges.changed) changed.push(reportOutputChanges);
+    } catch (err) {
+      props.setProperty(SOURCE_POLL_NEXT_AT_PROP, String(nowMillis + SOURCE_POLL_RETRY_MS));
+      console.log('source_poll_failed:report_outputs: ' + (err && err.message ? err.message : err));
+    }
     return { checked: true, changed: changed };
+  }
+
+  function enqueueDetectedReportOutputChanges_(props) {
+    var state = readReportOutputState_();
+    var previous = ReportOutputFreshnessService.parseFingerprintMap(props.getProperty(REPORT_OUTPUT_FINGERPRINT_PROP));
+    var changedMonths = ReportOutputFreshnessService.changedMonths(previous, state.fingerprints);
+    if (!changedMonths.length) return { key: 'report_outputs', changed: false, months: [] };
+    var queued = enqueueManualReportRefresh_({
+      months: changedMonths,
+      full: false,
+      includeAll: true,
+      source: 'poll:report-outputs'
+    });
+    if (queued && queued.deferred) throw new Error(queued.error || 'Report output refresh queue was deferred.');
+    props.setProperty(REPORT_OUTPUT_FINGERPRINT_PROP, JSON.stringify(state.fingerprints));
+    return { key: 'report_outputs', changed: true, months: changedMonths, rows: state.rows };
+  }
+
+  function readReportOutputState_() {
+    var ss = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
+    var tables = ReportTableService.readFreshnessTables(ss);
+    return ReportOutputFreshnessService.buildState(tables, {
+      resolveMonthKey: function (value) {
+        var date = parseDateValue_(value);
+        return date ? Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM') : normalizeYearMonthKey_(value);
+      },
+      hash: sha256Hex_
+    });
+  }
+
+  function sha256Hex_(value) {
+    return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(value || '')).map(function (item) {
+      var byte = item < 0 ? item + 256 : item;
+      return ('0' + byte.toString(16)).slice(-2);
+    }).join('');
   }
 
   function readSourceTailState_(source) {
@@ -450,7 +500,18 @@ var SupabaseService = (function () {
 
     var syncedAt = new Date().toISOString();
     var retry = null;
-    if (errors.length) retry = ManualReportRefreshQueueService.requeue(pending, context);
+    if (errors.length) {
+      retry = ManualReportRefreshQueueService.requeue(pending, context);
+    } else if (Number(pending.verificationPasses || 0) > 0) {
+      retry = enqueueManualReportRefresh_({
+        full: pending.full === true,
+        includeAll: pending.includeAll !== false,
+        months: pending.months || [],
+        delayMs: TRANSPORT_REPORT_VERIFICATION_DELAY_MS,
+        verificationPasses: Number(pending.verificationPasses || 0) - 1,
+        source: 'verification:report-formulas'
+      });
+    }
     writeSyncStatus_(
       'transport_reports_manual_sheet',
       'transport',
@@ -574,12 +635,14 @@ var SupabaseService = (function () {
       result.reportRefresh = enqueueManualReportRefresh_({
         months: [],
         full: true,
+        verificationPasses: 1,
         source: 'catalog-sheet:' + safeSheetName + ':' + (clean_(eventType) || 'UNKNOWN')
       });
     } else if (!result.skipped) {
       result.reportRefresh = enqueueManualReportRefresh_({
         months: result.months || [],
         full: isStructuralSheetChange_(eventType),
+        verificationPasses: 1,
         source: 'sheet:' + clean_(sheetName) + ':' + (clean_(eventType) || 'UNKNOWN')
       });
     }
@@ -621,6 +684,7 @@ var SupabaseService = (function () {
         months: months,
         full: full,
         delayMs: FUND_TO_TRANSPORT_DELAY_MS,
+        verificationPasses: 1,
         source: 'fund-sheet-downstream:' + (safeSheetName || 'unknown') + ':' + safeEventType
       });
     }
@@ -1378,6 +1442,7 @@ var SupabaseService = (function () {
 
   function tripNotificationSyncContext_() {
     return {
+      nowDate: function () { return new Date(); },
       nowISOString: function () { return new Date().toISOString(); },
       formatDate: function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); },
       upsertRows: function (tableName, rows, onConflict) {

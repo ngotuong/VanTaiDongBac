@@ -133,7 +133,7 @@ export function stripMonthColumn(type: ReportType, head: ReportCell[], body: Rep
 
 export function isTotalRow(row: ReportCell[]) {
   const first = removeAccents(String(row[0] ?? '').toLowerCase());
-  return ['tong', 'cong', 'trung binh', 'thuc nhan', 'loi nhuan'].some((part) => first.includes(part));
+  return ['tong', 'cong', 'trung binh', 'thuc nhan', 'loi nhuan'].some((part) => first === part || first.startsWith(`${part} `));
 }
 
 export function reportSourceRows(type: ReportType, rows: ReportCell[][]) {
@@ -151,6 +151,10 @@ export function appendTotal(head: ReportCell[], rows: ReportCell[][]) {
       total[index] = plates.size ? `${plates.size} xe` : '';
       continue;
     }
+    if (label === 'chuc vu') {
+      total[index] = `${data.length} nhân sự`;
+      continue;
+    }
     const sample = data.find((row) => String(row[index] ?? '').trim() && String(row[index] ?? '').trim() !== '-')?.[index];
     const values = data.map((row) => parseCellValue(row[index])).filter((value): value is number => value !== null);
     total[index] = values.length ? formatValueLike(values.reduce((sum, value) => sum + value, 0), sample) : '';
@@ -166,9 +170,10 @@ export function filterOptions(type: ReportType, head: ReportCell[], body: Report
   };
   const companyIdx = type === 'vehicles' ? find(['cong ty', 'chu xe', 'nha xe', 'don vi'], 0) : find(['cong ty', 'don vi', 'bo phan', 'to doi', 'nhom', 'tuyen dung']);
   const plateIdx = type === 'vehicles' ? find(['bien so', 'bien xe', 'xe'], 1) : -1;
+  const jobIdx = type === 'payroll' ? find(['chuc vu']) : -1;
   const data = body.filter((row) => !isTotalRow(row));
   const unique = (index: number) => index < 0 ? [] : [...new Set(data.map((row) => String(row[index] ?? '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi'));
-  return { companyIdx, plateIdx, companies: unique(companyIdx), plates: unique(plateIdx) };
+  return { companyIdx, plateIdx, jobIdx, companies: unique(companyIdx), plates: unique(plateIdx), jobs: unique(jobIdx) };
 }
 
 export function matchesReportRow(row: ReportCell[], query: string) {

@@ -68,19 +68,19 @@ Runtime chính:
 Production đã xác nhận gần nhất:
 
 - URL: `https://dongbac.vercel.app`.
-- Vercel deployment: `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, READY và cut-forward ngày 2026-08-13.
-- Apps Script production cùng deployment ID canonical: code version `@328`; rollback gần nhất `@325`.
-- Vercel rollback gần nhất: `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`; rollback lịch sử tiếp theo là `dpl_9jD9FkXuUUSTv9MmUTZCV3JGSHde`.
+- Vercel deployment: `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, READY và cut-forward ngày 2026-08-16.
+- Apps Script production cùng deployment ID canonical: code version `@338`; rollback gần nhất `@337`.
+- Vercel rollback gần nhất: `dpl_85PsF73o52beq8SuKrK8915nzu4f`; rollback lịch sử tiếp theo là `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, rồi `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
-Preview hiện hành của checkpoint notification/filter:
+Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_2aLud9TWeStqx2ufVjGvfZ3qseYx`, READY ngày 2026-08-13.
-- Apps Script Preview: `@331`, deployment ID riêng với Production.
+- Vercel deployment: `dpl_gsozfZBzAKVyMZSQnv66yrKHDpHJ`, READY ngày 2026-08-20.
+- Apps Script Preview: `@339`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 492/492 tests, lint, typecheck, Next build, Identity Guard, `git diff --check`, authenticated responsive/API smoke. Preview giữ deployment riêng; Production hiện tại là `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q` với Apps Script Production `@328`.
+- Gate deploy PASS 522/522 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; health đúng Apps Script Preview và Production Vercel không đổi.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,96 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Khôi phục đồng bộ và watchdog ngoài Apps Script — Preview 2026-08-20
+
+- Sự cố được xác định không phải bốn pipeline độc lập: toàn bộ trigger Apps Script ngừng chạy sau lượt `syncRealtimeCache` thành công lúc 15:43 ngày 19/08/2026, đồng thời hai web deployment Apps Script trả HTTP 403. Sau khi owner `ngotuong077@gmail.com` cấp lại quyền, trigger `syncRealtimeCache` và `processWriteJobs` tiếp tục chạy mỗi phút từ 10:53 ngày 20/08/2026; các lượt được quan sát liên tiếp đã hoàn thành, health Preview/Production trả HTTP 200.
+- Preview authenticated hiển thị `Cập nhật: 10:53 20/08/2026`, xác nhận Supabase đã nhận heartbeat mới. Dữ liệu chuyến hiện có tới ngày 19/08; không suy diễn thiếu ngày 20/08 khi source chưa có dòng mới.
+- Trung tâm thông báo gom `realtime_cache_worker` và ba pipeline phụ thuộc thành một cảnh báo nghiệp vụ. Nếu external watchdog xác định Apps Script bị Google chặn quyền, cảnh báo duy nhất là `Đồng bộ cần được cấp lại quyền` với hướng dẫn mở Apps Script và chạy một hàm; không hiển thị tên worker hoặc mã HTTP kỹ thuật.
+- Candidate thêm endpoint server-only `/api/sync-watchdog`: mỗi 5 phút đọc heartbeat Supabase; worker còn tươi thì chỉ xác nhận trạng thái, worker stale thì gọi action admin `recoverSyncInfrastructure` để cài lại trigger và chạy một lượt sync. Watchdog ghi trạng thái của chính nó vào `sync_status`, nên trường hợp tự phục hồi thất bại vẫn xuất hiện trong webapp.
+- Giới hạn bắt buộc: watchdog tự chữa được trigger bị mất/dừng khi Apps Script vẫn còn quyền; không thể tự cấp lại OAuth nếu Google thu hồi quyền của owner. Trong trường hợp này hệ thống phải phát hiện trong tối đa khoảng 10–15 phút và hướng dẫn cấp lại quyền, thay vì im lặng dừng hơn 18 giờ.
+- Apps Script Preview đã cập nhật version bất biến `@339`; Apps Script Production giữ `@338`. Vercel Preview `dpl_gsozfZBzAKVyMZSQnv66yrKHDpHJ` READY; Production giữ `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`.
+- Full gate PASS 522/522 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Endpoint watchdog không có bearer đúng trả 401; root/title/health Preview PASS và fingerprint trỏ đúng Apps Script Preview.
+- External schedule GitHub Actions và secret dùng chung chưa kích hoạt trên Production; đây là phần của cut-forward Production cần phê duyệt riêng cùng Apps Script `@339`, Vercel candidate và secret configuration.
+
+### Business form sheet system — Preview 2026-08-16
+
+- Toàn bộ form ghi dữ liệu mobile của Vận hành, sửa Vận hành, Danh mục, Thu/Chi, Khoản vay và Trả vay dùng chung `data-business-form-sheet` và một contract duy nhất trong `platform.css`; drawer chỉ cao theo nội dung và chỉ clamp khi vượt `92dvh`.
+- Typography/mật độ được khóa: title 18/700, group title 14/700, label 11.5/600, control 16/500, input/select/date 44px và textarea 64–112px. Footer theo ngay sau nội dung, cao 60px có iOS safe-area; từ 360px dùng hai cột và dưới 360px chuyển một cột.
+- `useSwipeDismiss` cho phép vuốt xuống từ handle hoặc vùng trống không tương tác khi scroll đang ở đầu; input/select/textarea/button/link không bị gesture chiếm quyền.
+- Contract được ghi tại `docs/contracts/BUSINESS_FORM_SHEET_CONTRACT.md` và router AI đã dẫn tới tài liệu này để tránh tạo override riêng theo module.
+- Lớp thử nghiệm `Fluent Mica` dùng đúng phân vai vật liệu: Smoke cho backdrop, Acrylic có kiểm soát ở vỏ/header/footer, Mica gradient xanh ngọc–xanh lam có thể nhận biết cho canvas, dải accent 3px và Solid hoàn toàn cho input/select/textarea. Không dùng iridescence, chromatic aberration, morphing hoặc blur trên trường nhập.
+- Bản đầu `dpl_FRo4kzJ9GoGDR5UAXermk2SxGpAs` bị loại vì gradient trắng 94–96% bị card đặc che nên gần như không thể nhận biết trên thiết bị thật. Bản hiệu chỉnh `dpl_EXo4L7LSKHuN1vYkKDK3bhxKt5UD` phát sinh hồi quy do lớp trang trí đặt `position: relative` lên drawer Vận hành, khiến drawer nằm dưới viewport; selector đã được sửa để không can thiệp positioning contract.
+- Full gate PASS 516/516 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview hiện hành `dpl_Sx3Kf6jW9LsP8kMV83efkcZ19xoS` đã bỏ nhãn thừa `Ngày mới nhất` khỏi tiêu đề bảng chuyến nhưng vẫn giữ ngày dữ liệu; Apps Script giữ `@338`; Production giữ nguyên `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`.
+- Authenticated QA tại 390×844: Vận hành form ngắn tự co còn 553px, Danh mục tự co 621px, Thu/Chi tự co 602px; footer/body liền nhau, control 44px/16px, label 11.5px/600, không tràn ngang và không có console error. Không ghi dữ liệu nghiệp vụ.
+- Authenticated QA bổ sung trên Preview Fluent tại 390×844: form Thu/Chi vẫn cao 602px, không tràn ngang; select/text input 44px/16px, nền trường nhập trắng đặc và không nhận backdrop blur; shell dùng gradient nhẹ, footer/header dùng blur giới hạn. Không ghi dữ liệu nghiệp vụ.
+- Authenticated regression QA tại 390×844: drawer Vận hành là `position: fixed`, nằm trong viewport từ 156,625px đến 844px, z-index 1010, không tràn ngang; test mới cấm lớp Fluent ghi đè positioning contract.
+
+### Tổng hợp ngày D−1 lúc 12:00 với số liệu Vận tải và Quỹ — Production 2026-08-16
+
+- Daily summary nay tổng hợp đúng ngày hôm trước theo múi giờ Việt Nam, kể cả khi qua ranh giới tháng/năm. Vận tải đọc `XL_VanChuyen` để tính số chuyến, doanh thu ước tính, số xe, khối lượng và số dự án.
+- Phần Quỹ lấy đúng `fund_overview_bundles` của tháng chứa ngày D−1 rồi cộng các chi tiết đúng ngày; ngữ nghĩa Thu/Chi giữ cùng KPI Quỹ hiện hành, gồm cả nghiệp vụ vay/trả thay vì chỉ đọc `NHAP_THUCHI`. Khi bundle Quỹ chưa có, nội dung nói rõ chưa có dữ liệu thay vì hiển thị số 0 sai.
+- Dispatcher chỉ phát trong giờ 12:00 Việt Nam ở lượt trigger năm phút đầu tiên chạy được, thường trong vòng 0–5 phút sau 12:00. Delivery key gắn với ngày D−1 nên các tick còn lại không phát trùng.
+- Nội dung có dạng: `12,5 chuyến · doanh thu 32.000.000 đ · chi Quỹ 7.000.000 đ · thu Quỹ 5.000.000 đ · 4 xe · 300,25 m³ · 3 dự án.`; nếu không có summary ngày hôm trước thì báo rõ chưa có dữ liệu tổng hợp.
+- Cài đặt đổi nhãn thành `Tổng hợp ngày hôm trước`, mô tả rõ lịch 12:00 và các chỉ số. Authenticated Preview QA xác nhận nhãn/mô tả hiển thị đúng trong tab Thông báo.
+- Full gate PASS 510/510 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Preview/Production cùng dùng version bất biến `@338`; Vercel Preview giữ `dpl_5w73mAgUpdM9mQgWA1LKYyecmf76`.
+- Sau phê duyệt riêng ngày 2026-08-16, Apps Script Production canonical được cập nhật lên `@338`; Vercel Production artifact `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio` đóng gói đúng endpoint Production và alias `dongbac.vercel.app` đã cut-forward. Root, các route chính, manifest, service worker, session 401, direct/Vercel health và log 5xx đều PASS.
+- Authenticated Production smoke PASS tại Cài đặt: đúng tài khoản hiện hành, hiển thị `Tổng hợp ngày hôm trước` cùng mô tả lịch 12:00, không tràn ngang và không có console error. Không phát thông báo thử và không ghi dữ liệu nghiệp vụ. Rollback gần nhất là Vercel `dpl_85PsF73o52beq8SuKrK8915nzu4f` và Apps Script `@337`.
+
+### Chuyển tháng Báo cáo tức thời, cache/prefetch và chống stale UI — Preview 2026-08-15
+
+- Đã loại nguyên nhân trạng thái `nhãn 08 nhưng hàng vẫn là 07`: tháng đang chọn và tháng thật sự thuộc về bundle hiển thị được theo dõi riêng. Bundle chỉ render khi hai tháng khớp; đổi sang tháng chưa cache gỡ hàng cũ ngay trong cùng thao tác và thay bằng skeleton đúng khung, không thêm ghi chú kỹ thuật lên giao diện.
+- Bundle ban đầu được seed vào client cache; hai tháng lân cận được prefetch nền sau 250 ms. Khi cache đã sẵn sàng, chọn tháng đổi toàn bộ bảng tức thì, không có skeleton trung gian.
+- Hook dùng chung `useLatestAsyncRequest` hủy `AbortController` của request cũ và khóa chỉ request mới nhất được phép cập nhật UI. Chuyển nhanh `Tất cả → 08/2026` đã xác nhận kết quả cũ không ghi đè lựa chọn cuối.
+- Dữ liệu mới dùng hiệu ứng opacity/translate 180 ms `ease-out`; `prefers-reduced-motion` tắt animation. Skeleton giữ nguyên card theo tab đang xem và không tạo layout shift/horizontal overflow.
+- Full gate PASS 507/507 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Vercel Preview `dpl_DhqBGJ5x4hUeUR2vuS2W5iZEpPiC`; Apps Script Preview giữ `@337`; Production giữ nguyên `dpl_85PsF73o52beq8SuKrK8915nzu4f`.
+- Authenticated Preview QA PASS: tháng chưa cache hiện 4 skeleton với 0 report cũ; sau tải, cả bốn title và hàng dữ liệu cùng đúng tháng; tháng lân cận đổi không loading; rapid-switch giữ đúng lựa chọn cuối; mobile 390×844 không tràn ngang; console không có error.
+
+### Dashboard month range, unread badge và daily business digest — Production cut-forward 2026-08-15
+
+- App badge đã được sửa theo cùng ngữ nghĩa với badge chuông: client ghi số chưa đọc tuyệt đối; push mới chỉ cộng số item mới; daily digest không tăng badge vì không tạo item chưa đọc trong panel. Service worker chỉ lưu một `{count}` cục bộ, không cache request/dữ liệu ứng dụng.
+- `DailyBusinessSummaryService` chỉ đọc tối đa 20.000 dòng cuối của `XL_VanChuyen` bằng `SpreadsheetApp.openById`, lọc đúng ngày Việt Nam và tổng hợp số chuyến, số xe, khối lượng, doanh thu ước tính và số dự án vào `manage_data_bundles/daily-summary:latest`. Dispatcher 20:00 dùng các số nghiệp vụ này thay cho thống kê cảnh báo chung.
+- Tổng quan thay bộ lọc một tháng bằng icon thanh trượt 44px mở bottom drawer `Từ tháng`–`Đến tháng`; không có text `Tùy chỉnh`. Khoảng chọn cộng đúng các dòng tháng hiện có của `BC_TongQuan` cho toàn bộ KPI và hai biểu đồ tài chính, đồng thời so sánh với khoảng liền trước có cùng số tháng. `Tất cả kỳ` chọn toàn bộ dữ liệu; bảng chuyến được ghi rõ là ngày mới nhất và không giả vờ thuộc kỳ tài chính.
+- Drawer dùng portal, focus/Escape, vuốt xuống, exit animation, safe-area và reduced-motion; hai select giữ contract text trái/chevron phải và không tạo horizontal overflow theo source/CSS gate.
+- Full gate PASS 506/506 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Vercel Preview `dpl_63VnfiF19ySzhzcEMJiP9PADGXSe`; Apps Script Preview `@337`. Version `@336` bị loại vì `clasp push` đã skip trước khi tạo version; `@337` được force-push và clone ngược xác nhận đủ 52 files gồm service mới.
+- Public Preview smoke và health trực tiếp/qua Vercel PASS đúng app/Supabase/Vercel/Apps Script Preview fingerprint. Authenticated QA ngày 2026-08-15 PASS ở desktop 1440x900 và mobile 390x844: chọn `06/2026–08/2026` tổng hợp 3 tháng, biểu đồ hiện đủ 3 nhãn tháng, trigger 44x44, hai select cao 44px/căn trái/cùng hàng, drawer không tràn ngang và exit animation hoàn tất trước khi tháo DOM.
+- Authenticated notification smoke giữ nguyên 42 thông báo/41 chưa đọc sau khi mở rồi đóng panel; số trên chuông là 41. Không đánh dấu đã đọc, không phát daily push thủ công và không ghi dữ liệu nghiệp vụ trong lượt QA.
+- Sau phê duyệt riêng, Apps Script Production được cập nhật đúng deployment canonical lên `@337`; Vercel Production artifact mới `dpl_85PsF73o52beq8SuKrK8915nzu4f` đóng gói endpoint Apps Script Production và alias `dongbac.vercel.app` đã cut-forward. Root, các route Dashboard/Báo cáo/Vận hành/Danh mục/Quỹ/Cài đặt, manifest, service worker, session 401, direct/Vercel health và log 5xx đều PASS. Preview giữ nguyên `dpl_63VnfiF19ySzhzcEMJiP9PADGXSe`; rollback READY là Vercel `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2` và Apps Script `@335`.
+- Authenticated Production smoke ngày 2026-08-15 PASS cho auth hydration, Tổng quan `06/2026–08/2026` (390.631.126 đồng và đủ ba nhãn tháng), chuông 42 chưa đọc không đổi sau mở/đóng, responsive không tràn ngang, Quỹ/date control, bộ lọc Chức vụ và dòng `Dương Công Tiến Nội`. Đối chiếu lại bảng lương theo từng cell xác nhận tháng 08/2026 có đủ Ứng lương: La Văn Bằng 8.500.000, Vi Văn Độ 8.000.000, Lê Văn Lợi 10.000.000, Trần Thế Anh 3.000.000 và Dương Công Tiến Nội 2.000.000 đồng, khớp `BC_BangLuong` người dùng xác nhận. Kết luận thiếu dữ liệu trước đó bị hủy: QA đã đọc chuỗi text nối liền của cả row và đọc ngay khi nhãn tháng đổi trước khi bundle hàng hoàn tất chuyển từ 07 sang 08.
+
+### Bộ lọc Chức vụ và đồng bộ Thu Chi → bảng lương — Production hoàn thành 2026-08-14
+
+- Bảng `Tổng Hợp Lương` có thêm bộ lọc `Chức vụ`, dùng cùng compact/adaptive select contract với bộ lọc Công ty. Hàng `Tổng cộng` tại cột `Chức vụ` đếm số nhân sự thực tế đang hiển thị sau mọi bộ lọc.
+- Edit `NHAP_THUCHI` nay queue báo cáo Vận tải sau 30 giây thay vì 2 phút và mang `verificationPasses=1`. Worker chạy lượt đầu ở tick một phút kế tiếp rồi bắt buộc hậu kiểm cùng scope sau 2 phút, tránh Supabase giữ snapshot trước khi chuỗi `IMPORTRANGE`/công thức lương hoàn tất. Poll 5 phút vẫn là safety net; frontend tiếp tục tự đọc lại Supabase mỗi 60 giây và nút Làm mới không đọc trực tiếp Google Sheet.
+- Target SLA: lượt đầu thường xuất hiện trên webapp trong khoảng 1–3 phút tính cả frontend revalidation; lượt hậu kiểm khoảng 3–5 phút. Quota/contention hoặc Google Sheets tính chậm có thể kéo dài hơn nhưng không còn phụ thuộc một lần chụp duy nhất.
+- Full gate PASS 502/502 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Authenticated Preview QA xác nhận bộ lọc có đủ `Người tuyển`/`Quản lý`/`Tài xế`; chọn `Tài xế` tại 07/2026 còn 24 nhân sự và hàng tổng đổi đúng.
+- Hai khoản ứng lương từng được dùng làm canary hiện được xác nhận lại ở kỳ bảng lương `08/2026`: `La Văn Bằng` 8.500.000 đồng và `Vi Văn Độ` 8.000.000 đồng, khớp `BC_BangLuong`. Kết luận cũ rằng chúng thuộc 07/2026 là sai do QA chuyển tháng nhưng đọc hàng trước khi request bundle mới hoàn tất.
+- Apps Script Preview và Production cùng lên version `@335`. Vercel Preview `dpl_9vsYkHFk82PMJhs4PeUd4HqJJWdj`; Vercel Production `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`. Public Production smoke PASS root, các route chính, `manifest.json`, service worker, health đúng identity/Apps Script Production; session và push không cookie trả 401, không có request 5xx trong cửa sổ cut-forward. Authenticated Production chưa chạy vì cookie Preview không dùng chung domain.
+
+### Report formula eventual consistency và bảng lương — Preview hoàn thành 2026-08-14
+
+- Audit live tháng 08/2026 xác nhận Google Sheet và raw report bundle đều có đủ 28 nhân sự. Nguyên nhân riêng `Dương Công Tiến Nội` biến mất trên giao diện là `isTotalRow` từng dùng phép chứa chuỗi `công` để nhận diện dòng `Tổng cộng`, nên tên có chữ `Công` bị loại và tổng phía client thiếu đúng 13.000.000 đồng. Nhận diện dòng tổng nay chỉ khớp nhãn ở đầu ô/đúng nhãn và có regression test cho tên này.
+- Edit trực tiếp workbook Vận tải nay giữ một lượt hậu kiểm sau 2 phút. Poll 5 phút fingerprint trực tiếp `BC_TongQuan`, `BC_BangLuong` và `BC_TongHopXe` theo từng tháng, tự queue lại tháng thay đổi cùng `Tất cả` ngay cả khi formula spill không phát sinh edit event mới. Nút làm mới của webapp tiếp tục chỉ tải Supabase theo yêu cầu người dùng.
+- `ReportTableService` bỏ giới hạn cứng 200 dòng và đọc tới hàng có month key cuối cùng; regression test 240 dòng ngăn bảng lương cả năm bị cắt khi số nhân sự/tháng tăng.
+- Authenticated Preview sync đầu tiên cho thấy overview đã mới nhưng payroll vẫn cũ. Root cause bổ sung: `skipInvalidation` của batch vô tình biến `forceRefresh=true` thành cached read riêng cho report tables. `getReportBundle` nay luôn force-read `BC_BangLuong`/`BC_TongHopXe` khi caller yêu cầu force refresh; `skipInvalidation` chỉ còn đúng nghĩa tránh lặp global eviction.
+- Apps Script Preview đã lên `@334`; full report sync hoàn tất. Vercel Preview `dpl_5kVRQWgAJiC4dnzTdj2GW6iybKvC` đã QA authenticated: 29 dòng hiển thị gồm 28 nhân sự + tổng, có `Dương Công Tiến Nội` 13.000.000 đồng; tổng 511,0 chuyến và thực nhận 447.147.000 đồng, khớp workbook/raw API.
+- Full deploy gate PASS 501/501 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Production giữ nguyên Vercel `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q` và Apps Script `@328`; chỉ promote khi có phê duyệt riêng.
+
+### Adaptive filter density — Preview hoàn thành 2026-08-13
+
+- Tất cả bộ lọc nghiệp vụ mang contract `platform-content-select` tại Tổng quan, Báo cáo, Vận hành, Danh mục, Quỹ và các drawer nay tự đo nhãn đang chọn rồi co/giãn theo đúng nội dung; không còn lấy chiều rộng của lựa chọn dài nhất hoặc kế thừa chiều rộng toàn cột.
+- Contract chung khóa text căn trái, font-weight 500, padding trái 10px, vùng chevron phải 30px và chevron 15px. Bộ lọc trong header/subheader bảng dùng control 36px bên trong vùng chạm 44px; bộ lọc thời gian chính giữ baseline 38px để không phá toolbar ngày/tìm kiếm đã duyệt.
+- Observer bao phủ cả route content và body-level portal; lịch thay tab, đổi lựa chọn, thay options, resize và font-ready đều đo lại. Scheduler không hủy frame liên tục nên bộ lọc mới trong tab/drawer không bị chậm vì data render.
+- Authenticated Preview QA PASS ở 390x844 và 1440x900: `Tháng này` 122px; Quỹ/Khoản vay các nhãn `Tất cả` khoảng 101px thay vì 147px; Báo cáo `Tất cả công ty` 149px, `Tất cả xe` 110px; đổi `Tất cả` sang `Vay` thu từ 89px xuống 72px rồi đo lại khi đổi về. Text/padding/weight đồng nhất và trang không tràn ngang.
+- Full gate PASS 493/493 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_AJypYfEhs4fbnjrco5YaTGmpWXSP`; Production giữ nguyên `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q` và Apps Script `@328`.
+
+### Cashflow settings, Fund rule card và Safari copy fallback — Preview hoàn thành 2026-08-13
+
+- `Thiết lập đầu kỳ` của Quỹ dùng cùng custom date control `dd/mm/yyyy` với các form nghiệp vụ, nên không còn native Safari date text dài; bốn trường cùng chiều cao, label 12px/700, giá trị 16px/500 trên mobile và căn trái. Hai trường số tiếp tục dùng formatter Việt Nam với dấu chấm hàng nghìn.
+- `Quy tắc tự động` và phần `Mở rộng quy tắc cảnh báo` nằm trong một card. Pill switch nằm cùng hàng tiêu đề, bỏ hoàn toàn text trạng thái `Đang bật/Đang tắt`; ngưỡng số dư hiển thị `10.000.000` thay vì `10000000`, input/textarea dùng weight 500.
+- Backdrop chuông desktop được khóa nền tối trong suốt, không blur và không thể bị generic button hover/focus đổi thành trắng. Safari copy vẫn thử sao chép trực tiếp; nếu user agent chặn, webapp mở vùng fallback có nội dung đã chọn, nút sao chép trực tiếp và hướng dẫn dùng menu native thay vì hiển thị lỗi kỹ thuật tiếng Anh.
+- Authenticated Preview QA PASS tại 390x844 và 1440x900: rule không tràn ngang, title/switch cùng hàng, phần mở rộng cùng card, số ngưỡng có dấu chấm, trường đầu kỳ đồng nhất và date hiển thị `28/04/2026`; desktop notification backdrop là `rgba(15, 23, 42, 0.18)`, không filter/box-shadow, panel visible và không có console error.
+- Full deploy gate PASS 493/493 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview Vercel `dpl_8TE2uzpGe4FwpoYhK1e9jw5mjKJ3`; Production giữ nguyên Vercel `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q` và Apps Script `@328`.
 
 ### Notification mobile entry và Safari clipboard — Preview hoàn thành 2026-08-13
 
@@ -275,9 +365,11 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-1. **Duyệt Preview notification copy/sync**: kiểm tra nhấn giữ sao chép trên thiết bị thật và xác nhận danh sách không còn lỗi sync cũ tại `https://vantaidongbac-preview.vercel.app`; chỉ cut-forward Vercel/Apps Script Production khi có phê duyệt riêng.
-2. **Xác nhận authenticated Production**: khi người dùng đăng nhập Production, kiểm tra nhanh chuông, Cài đặt thông báo, Quỹ/date control và auth hydration; không ghi dữ liệu nghiệp vụ trong smoke test.
-3. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
+1. **Duyệt và cut-forward sync watchdog Production**: sau phê duyệt riêng, cập nhật Apps Script Production lên `@339`, deploy Vercel Production candidate, cấu hình cùng một secret tại Vercel/GitHub và push workflow 5 phút; kiểm tra lượt fresh-skip, rồi chạy một canary recovery có kiểm soát và xác nhận Production alias/rollback.
+2. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
+3. **Người dùng duyệt business form system trên Preview**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS thật, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng; chỉ đưa lên Production khi có phê duyệt riêng.
+4. **Duyệt notification copy trên thiết bị thật**: kiểm tra nhấn giữ sao chép trên Safari/iOS và xác nhận danh sách không còn lỗi sync cũ.
+5. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
 
 ## 7. Mục tiêu kiến trúc dài hạn
 
@@ -297,9 +389,9 @@ Definition of Done hiện giữ:
 ## 8. Rủi ro và gate bắt buộc
 
 1. `main` là nhánh canonical duy nhất; không khôi phục branch cũ từ archive tag nếu chưa xác định rõ commit cần lấy. Không reset/xóa thay đổi chưa rõ nguồn.
-2. Authenticated Preview đã PASS; Production mới đã public smoke nhưng chưa có authenticated smoke vì cookie Preview không dùng chung domain. Operator/shareholder vẫn chưa có representative production smoke đầy đủ.
+2. Authenticated Preview và tài khoản admin trên Production đã PASS các luồng chính gần nhất; operator/shareholder vẫn chưa có representative production smoke đầy đủ.
 3. Authenticated visual/device QA không thể được thay thế hoàn toàn bằng unit/HTTP/DOM test.
-4. Apps Script public deployment từng trả 403 dù UI permission đúng; health trực tiếp và identity fingerprint phải được kiểm tra sau deploy.
+4. Apps Script public deployment từng trả 403 dù UI permission đúng; external watchdog chỉ tự chữa được trigger khi OAuth còn hiệu lực. Health trực tiếp, heartbeat và identity fingerprint phải được kiểm tra sau deploy; lỗi quyền phải dẫn tới một cảnh báo cấp lại quyền.
 5. Identity Guard chỉ yêu cầu `.clasp.json` trong local workspace; Vercel build không có file Git-ignored này và phải dựa vào canonical manifest + runtime environment checks.
 6. Client từng cài service worker legacy cần theo dõi riêng; service worker hiện tại không cache app/data.
 7. iOS Web Push chỉ hoạt động với app Add to Home Screen và quyền được cấp từ thao tác người dùng.

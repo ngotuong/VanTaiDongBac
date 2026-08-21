@@ -68,19 +68,19 @@ Runtime chính:
 Production đã xác nhận gần nhất:
 
 - URL: `https://dongbac.vercel.app`.
-- Vercel deployment: `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, READY và cut-forward ngày 2026-08-16.
-- Apps Script production cùng deployment ID canonical: code version `@338`; rollback gần nhất `@337`.
-- Vercel rollback gần nhất: `dpl_85PsF73o52beq8SuKrK8915nzu4f`; rollback lịch sử tiếp theo là `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, rồi `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
+- Vercel deployment: `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, READY và cut-forward ngày 2026-08-21.
+- Apps Script production cùng deployment ID canonical: code version `@340`; rollback gần nhất `@338`, tiếp theo `@337`.
+- Vercel rollback gần nhất: `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`; rollback lịch sử tiếp theo là `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, rồi `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_gsozfZBzAKVyMZSQnv66yrKHDpHJ`, READY ngày 2026-08-20.
-- Apps Script Preview: `@339`, deployment ID riêng với Production.
+- Vercel deployment: `dpl_Hqp9579pEZqpPnkm8rwsgQ79qTvm`, READY ngày 2026-08-21.
+- Apps Script Preview: `@340`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate deploy PASS 522/522 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; health đúng Apps Script Preview và Production Vercel không đổi.
+- Gate deploy PASS 527/527 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; fresh-skip và forced-recovery canary đều PASS, health đúng Apps Script Preview và Production Vercel không đổi trong checkpoint Preview.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -135,16 +135,19 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
-### Khôi phục đồng bộ và watchdog ngoài Apps Script — Preview 2026-08-20
+### Khôi phục đồng bộ và watchdog ngoài Apps Script — Production 2026-08-21
 
 - Sự cố được xác định không phải bốn pipeline độc lập: toàn bộ trigger Apps Script ngừng chạy sau lượt `syncRealtimeCache` thành công lúc 15:43 ngày 19/08/2026, đồng thời hai web deployment Apps Script trả HTTP 403. Sau khi owner `ngotuong077@gmail.com` cấp lại quyền, trigger `syncRealtimeCache` và `processWriteJobs` tiếp tục chạy mỗi phút từ 10:53 ngày 20/08/2026; các lượt được quan sát liên tiếp đã hoàn thành, health Preview/Production trả HTTP 200.
 - Preview authenticated hiển thị `Cập nhật: 10:53 20/08/2026`, xác nhận Supabase đã nhận heartbeat mới. Dữ liệu chuyến hiện có tới ngày 19/08; không suy diễn thiếu ngày 20/08 khi source chưa có dòng mới.
 - Trung tâm thông báo gom `realtime_cache_worker` và ba pipeline phụ thuộc thành một cảnh báo nghiệp vụ. Nếu external watchdog xác định Apps Script bị Google chặn quyền, cảnh báo duy nhất là `Đồng bộ cần được cấp lại quyền` với hướng dẫn mở Apps Script và chạy một hàm; không hiển thị tên worker hoặc mã HTTP kỹ thuật.
-- Candidate thêm endpoint server-only `/api/sync-watchdog`: mỗi 5 phút đọc heartbeat Supabase; worker còn tươi thì chỉ xác nhận trạng thái, worker stale thì gọi action admin `recoverSyncInfrastructure` để cài lại trigger và chạy một lượt sync. Watchdog ghi trạng thái của chính nó vào `sync_status`, nên trường hợp tự phục hồi thất bại vẫn xuất hiện trong webapp.
+- Endpoint server-only `/api/sync-watchdog` mỗi 5 phút đọc heartbeat Supabase; worker còn tươi thì chỉ xác nhận trạng thái, worker stale thì gọi action admin `recoverSyncInfrastructure` để cài lại trigger và chạy một lượt sync. Watchdog ghi trạng thái của chính nó vào `sync_status`, nên trường hợp tự phục hồi thất bại vẫn xuất hiện trong webapp.
 - Giới hạn bắt buộc: watchdog tự chữa được trigger bị mất/dừng khi Apps Script vẫn còn quyền; không thể tự cấp lại OAuth nếu Google thu hồi quyền của owner. Trong trường hợp này hệ thống phải phát hiện trong tối đa khoảng 10–15 phút và hướng dẫn cấp lại quyền, thay vì im lặng dừng hơn 18 giờ.
-- Apps Script Preview đã cập nhật version bất biến `@339`; Apps Script Production giữ `@338`. Vercel Preview `dpl_gsozfZBzAKVyMZSQnv66yrKHDpHJ` READY; Production giữ `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`.
-- Full gate PASS 522/522 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Endpoint watchdog không có bearer đúng trả 401; root/title/health Preview PASS và fingerprint trỏ đúng Apps Script Preview.
-- External schedule GitHub Actions và secret dùng chung chưa kích hoạt trên Production; đây là phần của cut-forward Production cần phê duyệt riêng cùng Apps Script `@339`, Vercel candidate và secret configuration.
+- Recovery đã được harden fail-closed: top-level không thể báo thành công khi sync con lỗi; heartbeat vẫn được ghi khi queue liên tục có việc; lỗi OAuth dùng trạng thái `authorization_required`, còn lỗi hạ tầng tạm thời không bị gắn nhầm nhãn cấp lại quyền.
+- Watchdog dùng `SYNC_WATCHDOG_SECRET` riêng tại Vercel/GitHub, không coupling với `CRON_SECRET`/notification dispatch. Workflow `.github/workflows/sync-watchdog.yml` đã được GitHub xác nhận `state: active` với lịch 5 phút; manual workflow run `32491734847` trên commit `8574d9a` đã SUCCESS. Event `schedule` đầu tiên chưa xuất hiện trong cửa sổ quan sát 5 phút sau cut-forward, nên độ trễ thực tế của GitHub scheduler vẫn phải tiếp tục theo dõi.
+- Apps Script Preview và Production cùng version bất biến `@340`. Vercel Preview `dpl_Hqp9579pEZqpPnkm8rwsgQ79qTvm`; Vercel Production `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`.
+- Full gate PASS 527/527 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview forced-recovery canary PASS; Production fresh-skip qua GitHub Actions PASS; endpoint thiếu bearer trả 401.
+- Public Production smoke PASS cho root, route chính, `/manifest.json`, service worker, session 401, health/identity và watchdog 401. Authenticated admin QA PASS trên Dashboard/Observability: `external_sync_watchdog` và `realtime_cache_worker` đều OK, write queue không có pending/failed, không có console error. Vercel không có HTTP 500; chỉ còn warning `DEP0169` đã biết.
+- Rollback còn READY: Vercel `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`; Apps Script `@338` trên cùng deployment ID Production.
 
 ### Business form sheet system — Preview 2026-08-16
 
@@ -365,7 +368,7 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-1. **Duyệt và cut-forward sync watchdog Production**: sau phê duyệt riêng, cập nhật Apps Script Production lên `@339`, deploy Vercel Production candidate, cấu hình cùng một secret tại Vercel/GitHub và push workflow 5 phút; kiểm tra lượt fresh-skip, rồi chạy một canary recovery có kiểm soát và xác nhận Production alias/rollback.
+1. **Theo dõi lượt sync watchdog theo lịch đầu tiên**: xác nhận GitHub event `schedule` hoàn thành SUCCESS và `external_sync_watchdog` tiếp tục tươi; manual dispatch đã PASS nhưng không thay thế bằng chứng scheduler tự chạy.
 2. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
 3. **Người dùng duyệt business form system trên Preview**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS thật, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng; chỉ đưa lên Production khi có phê duyệt riêng.
 4. **Duyệt notification copy trên thiết bị thật**: kiểm tra nhấn giữ sao chép trên Safari/iOS và xác nhận danh sách không còn lỗi sync cũ.
@@ -391,7 +394,7 @@ Definition of Done hiện giữ:
 1. `main` là nhánh canonical duy nhất; không khôi phục branch cũ từ archive tag nếu chưa xác định rõ commit cần lấy. Không reset/xóa thay đổi chưa rõ nguồn.
 2. Authenticated Preview và tài khoản admin trên Production đã PASS các luồng chính gần nhất; operator/shareholder vẫn chưa có representative production smoke đầy đủ.
 3. Authenticated visual/device QA không thể được thay thế hoàn toàn bằng unit/HTTP/DOM test.
-4. Apps Script public deployment từng trả 403 dù UI permission đúng; external watchdog chỉ tự chữa được trigger khi OAuth còn hiệu lực. Health trực tiếp, heartbeat và identity fingerprint phải được kiểm tra sau deploy; lỗi quyền phải dẫn tới một cảnh báo cấp lại quyền.
+4. Apps Script public deployment từng trả 403 dù UI permission đúng; external watchdog đang hoạt động nhưng chỉ tự chữa được trigger khi OAuth còn hiệu lực. GitHub schedule là external best-effort và event đầu tiên còn chờ quan sát. Health trực tiếp, heartbeat, scheduled workflow run và identity fingerprint phải được kiểm tra sau deploy; lỗi quyền phải dẫn tới một cảnh báo cấp lại quyền.
 5. Identity Guard chỉ yêu cầu `.clasp.json` trong local workspace; Vercel build không có file Git-ignored này và phải dựa vào canonical manifest + runtime environment checks.
 6. Client từng cài service worker legacy cần theo dõi riêng; service worker hiện tại không cache app/data.
 7. iOS Web Push chỉ hoạt động với app Add to Home Screen và quyền được cấp từ thao tác người dùng.
@@ -401,7 +404,7 @@ Definition of Done hiện giữ:
 11. Manual edit workbook Thu chi hoặc thay đổi chỉ lan qua `IMPORTRANGE` không được bảo đảm cùng SLA freshness với workbook Vận tải.
 12. Rollback Apps Script dùng version còn lưu trên cùng production deployment ID; không dùng recovery deployment `@281` đã undeploy.
 13. Production warning `DEP0169 url.parse()` có thể xuất hiện trên request HTTP 200; chưa có call site trực tiếp trong source.
-14. Live parity đã PASS copy-canary, full gate, authenticated Preview và public Production smoke; authenticated Production confirmation còn chờ người dùng đăng nhập. Không dùng `INPHIEU` làm tiêu chí parity vì người dùng đã loại chức năng này.
+14. Live parity đã PASS copy-canary, full gate, authenticated Preview và authenticated admin Production. Operator/shareholder representative smoke vẫn còn thiếu; không dùng `INPHIEU` làm tiêu chí parity vì người dùng đã loại chức năng này.
 
 ## 9. Router tài liệu
 

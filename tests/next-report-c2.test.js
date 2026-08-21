@@ -54,10 +54,11 @@ test('Report calendar range and bundle aggregation preserve month order and deta
   assert.deepEqual(aggregate.vehicles.slice(1).map(row=>row[0]),['05/2026','06/2026']);
 });
 
-test('C3 Report keeps source totals and profit rows in the detail matrix only',async()=>{
+test('C3 Report keeps profit rows in overview/detail and removes source totals only from row-level reports',async()=>{
   const helpers=await import('../next-shell/lib/platform/report-c2.ts');
   const rows=[['Tổng khối lượng','1.000'],['Tổng doanh thu','2.000'],['Chi phí dầu','300'],['Lợi nhuận thực','1.700']];
   assert.deepEqual(helpers.reportSourceRows('details',rows),rows);
+  assert.deepEqual(helpers.reportSourceRows('finance',rows),rows);
   assert.deepEqual(helpers.reportSourceRows('vehicles',rows),[['Chi phí dầu','300']]);
 });
 

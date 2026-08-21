@@ -299,7 +299,7 @@ export function isTotalRow(row: ReportCell[]) {
 }
 
 export function reportSourceRows(type: ReportType, rows: ReportCell[][]) {
-  return type === 'details' ? rows : rows.filter((row) => !isTotalRow(row));
+  return type === 'details' || type === 'finance' ? rows : rows.filter((row) => !isTotalRow(row));
 }
 
 export function appendTotal(head: ReportCell[], rows: ReportCell[][]) {

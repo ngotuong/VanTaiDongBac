@@ -9,6 +9,7 @@ function runtimeConfig(env = process.env) {
     vapidPrivateKey: String(env.WEB_PUSH_VAPID_PRIVATE_KEY || ''),
     vapidSubject: String(env.WEB_PUSH_VAPID_SUBJECT || ''),
     cronSecret: String(env.CRON_SECRET || ''),
+    syncWatchdogSecret: String(env.SYNC_WATCHDOG_SECRET || ''),
     fundLowBalanceAlertEnabled: String(env.FUND_LOW_BALANCE_ALERT_ENABLED || '').toLowerCase() === 'true',
     defaultWorkbookYear: String(env.DEFAULT_WORKBOOK_YEAR || '2026')
   };

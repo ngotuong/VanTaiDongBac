@@ -40,7 +40,7 @@
 
 .fund-alert-form { gap: 12px; }
 .fund-alert-form > label, .fund-alert-form legend { font-size: 12.5px; }
-.fund-alert-form input[type="number"] { min-height: 40px; padding-block: 6px; }
+.fund-alert-form input[type="text"] { min-height: 40px; padding-block: 6px; }
 .fund-alert-form textarea { min-height: 72px; }
 .fund-alert-role { min-height: 36px; margin-right: 12px; gap: 7px; font-size: 13px; font-weight: 600; }
 #settingsView.settings-c2 .fund-alert-role input[type="checkbox"] {
@@ -64,7 +64,7 @@
   .settings-c2 .account-row-actions { display: flex; justify-content: flex-end; }
   .settings-c2 .account-row-actions::before { margin-right: auto; align-self: center; }
   #settingsView.settings-c2 .fund-alert-role input[type="checkbox"] { font-size: initial !important; }
-  #settingsView.settings-c2 .fund-alert-form input[type="number"],
+  #settingsView.settings-c2 .fund-alert-form input[type="text"],
   #settingsView.settings-c2 .fund-alert-form textarea { min-height: 44px !important; font-size: 16px !important; }
   html body main#platform-content section#settingsView.settings-c2 article.fund-alert-settings-card .fund-alert-actions button#saveFundAlertRule {
     width: 44px !important;

@@ -6,6 +6,7 @@ import { appendTotal, filterOptions, filterOverviewMatrix, formatReportDisplayVa
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { exportCardAsImage, exportTableAsCsv } from '../../lib/platform/export-card';
 import { showToast } from '../../lib/platform/toast';
+import { useLatestAsyncRequest } from '../platform/useLatestAsyncRequest';
 import { useVisibleRevalidation } from '../platform/useVisibleRevalidation';
 
 const TABS = [
@@ -25,22 +26,22 @@ const LABELS: Record<ReportType, string> = {
 const reportResponseCache = new Map<string, ReportDataResponse>();
 const reportInflight = new Map<string, Promise<ReportDataResponse>>();
 
-async function requestReport(month: string, forceRefresh: boolean, bypassClientCache = false) {
+async function requestReport(month: string, forceRefresh: boolean, bypassClientCache = false, signal?: AbortSignal) {
   const key = month;
   if (!forceRefresh && !bypassClientCache && reportResponseCache.has(key)) return reportResponseCache.get(key)!;
-  if (!forceRefresh && !bypassClientCache && reportInflight.has(key)) return reportInflight.get(key)!;
+  if (!signal && !forceRefresh && !bypassClientCache && reportInflight.has(key)) return reportInflight.get(key)!;
   const url = new URL('/report-data/', window.location.origin);
   url.searchParams.set('month', month);
   if (forceRefresh) url.searchParams.set('forceRefresh', 'true');
   const request = (async () => {
-    const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { 'X-VTDB-Client': 'next-report' } });
+    const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', signal, headers: { 'X-VTDB-Client': 'next-report' } });
     const payload = await response.json().catch(() => ({})) as ReportDataResponse & { error?: string };
     if (!response.ok) throw new Error(payload.error || `Không tải được báo cáo (${response.status}).`);
     reportResponseCache.set(key, payload);
     return payload;
   })();
-  if (!forceRefresh && !bypassClientCache) reportInflight.set(key, request);
-  try { return await request; } finally { reportInflight.delete(key); }
+  if (!signal && !forceRefresh && !bypassClientCache) reportInflight.set(key, request);
+  try { return await request; } finally { if (reportInflight.get(key) === request) reportInflight.delete(key); }
 }
 
 function sticky(type: ReportType, index: number): CSSProperties | undefined {
@@ -123,14 +124,17 @@ function ReportTable({ type, matrix, query, month }: { type: ReportType; matrix:
   const options = useMemo(() => filterOptions(type, prepared.head, prepared.body), [type, prepared]);
   const [company, setCompany] = useState('');
   const [plate, setPlate] = useState('');
+  const [job, setJob] = useState('');
   const effectiveCompany = company && options.companies.includes(company) ? company : '';
   const effectivePlate = plate && options.plates.includes(plate) ? plate : '';
+  const effectiveJob = job && options.jobs.includes(job) ? job : '';
   const dataRows = useMemo(() => reportSourceRows(type, prepared.body).filter((row) => {
     if (type !== 'payroll' && type !== 'vehicles') return true;
     if (!matchesReportRow(row, query)) return false;
     if (effectiveCompany && String(row[options.companyIdx] ?? '') !== effectiveCompany) return false;
+    if (type === 'payroll' && effectiveJob && String(row[options.jobIdx] ?? '') !== effectiveJob) return false;
     return !(type === 'vehicles' && effectivePlate && String(row[options.plateIdx] ?? '') !== effectivePlate);
-  }), [prepared.body, type, query, effectiveCompany, effectivePlate, options]);
+  }), [prepared.body, type, query, effectiveCompany, effectivePlate, effectiveJob, options]);
   const shouldTotal = type === 'finance' ? month === 'Tất cả' : type === 'payroll' || type === 'vehicles';
   const visibleRows = shouldTotal ? appendTotal(prepared.head, dataRows) : dataRows;
   const explanation = (cell: ReportCell) => { const value = String(cell ?? '').toLowerCase(); return value.includes('giải thích') || value.includes('nội dung'); };
@@ -150,6 +154,12 @@ function ReportTable({ type, matrix, query, month }: { type: ReportType; matrix:
           <select className="report-payroll-filter platform-content-select" aria-label="Lọc công ty bảng lương" value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}>
             <option value="">Tất cả công ty</option>
             {options.companies.map((value) => <option value={value} key={value}>{value}</option>)}
+          </select>
+        </label>
+        <label className="compact-filter">
+          <select className="report-payroll-filter platform-content-select" aria-label="Lọc chức vụ bảng lương" value={effectiveJob} onChange={(event) => setJob(event.target.value)}>
+            <option value="">Tất cả chức vụ</option>
+            {options.jobs.map((value) => <option value={value} key={value}>{value}</option>)}
           </select>
         </label>
       </div>
@@ -182,47 +192,86 @@ function ReportTable({ type, matrix, query, month }: { type: ReportType; matrix:
 
 export function ReportModule({ initialBundle, initialVehicleOwners = {}, initialError = '' }: { initialBundle: ReportBundle | null; initialVehicleOwners?: Record<string, string>; initialError?: string }) {
   const initialMonths = reportMonths(initialBundle?.overview?.months);
+  const initialMonth = normalizeMonth(initialMonths.at(-1) || 'Tất cả');
   const [bundle, setBundle] = useState(initialBundle);
   const [vehicleOwners, setVehicleOwners] = useState(initialVehicleOwners);
-  const [month, setMonth] = useState(normalizeMonth(initialMonths.at(-1) || 'Tất cả'));
+  const [month, setMonth] = useState(initialMonth);
+  const [renderedMonth, setRenderedMonth] = useState<string | null>(initialBundle ? initialMonth : null);
+  const [availableMonths, setAvailableMonths] = useState(initialMonths);
   const [tab, setTab] = useState<(typeof TABS)[number][0]>('all');
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(initialError);
   const [status, setStatus] = useState(initialBundle ? (initialBundle.apiCached ? 'Dữ liệu từ API cache.' : 'Dữ liệu từ API.') : '');
-  const loadSequence = useRef(0);
+  const latestRequest = useLatestAsyncRequest();
   const visibleMonthRef = useRef(month);
   useEffect(() => { visibleMonthRef.current = month; }, [month]);
-  const months = useMemo(() => reportMonths(bundle?.overview?.months), [bundle]);
   const finance = useMemo(() => filterOverviewMatrix(bundle?.overview?.months, month), [bundle, month]);
   const repairedCompanyReport = useMemo(() => repairCompanyReport(bundle?.overview?.details, bundle?.vehicles, vehicleOwners), [bundle, vehicleOwners]);
   const matrices: Record<ReportType, ReportMatrix | undefined> = { finance, details: repairedCompanyReport.details, payroll: bundle?.payroll, vehicles: repairedCompanyReport.vehicles };
   const visibleTypes: ReportType[] = tab === 'all' ? ['finance', 'details', 'payroll', 'vehicles'] : [tab];
+  const hasCurrentBundle = Boolean(bundle && renderedMonth === month);
+
+  useEffect(() => {
+    if (!initialBundle) return;
+    reportResponseCache.set(initialMonth, { bundle: initialBundle, vehicleOwners: initialVehicleOwners, requestedMonth: initialMonth });
+  }, [initialBundle, initialMonth, initialVehicleOwners]);
 
   useEffect(() => {
     publishDataSourceMeta(bundle);
   }, [bundle]);
 
   const load = async (target: string, forceRefresh = false, announce = false) => {
-    const sequence = ++loadSequence.current;
     const normalizedTarget = normalizeMonth(target);
     if (normalizedTarget !== 'latest') setMonth(normalizedTarget);
-    setLoading(true); setError(''); setStatus('Đang tải báo cáo…');
+    const requestState = latestRequest.begin();
+    const cached = !forceRefresh && !announce ? reportResponseCache.get(normalizedTarget) : undefined;
+    if (cached) {
+      setBundle(cached.bundle);
+      setVehicleOwners(cached.vehicleOwners || {});
+      setAvailableMonths(reportMonths(cached.bundle.overview?.months));
+      setRenderedMonth(normalizedTarget);
+      setError('');
+      setStatus(cached.bundle.apiCached ? 'Dữ liệu từ API cache.' : 'Dữ liệu từ API.');
+      setLoading(false);
+      return;
+    }
+    const changesVisibleMonth = normalizedTarget !== 'latest' && normalizedTarget !== renderedMonth;
+    if (changesVisibleMonth) {
+      setBundle(null);
+      setRenderedMonth(null);
+    }
+    setLoading(true); setError(''); setStatus('Đang tải báo cáo từ Supabase…');
     if (forceRefresh || announce) showToast(forceRefresh ? 'Đang đối soát Báo cáo từ Google Sheet…' : 'Đang tải Báo cáo từ Supabase…', 'loading');
     try {
-      const data = await requestReport(normalizedTarget, forceRefresh, announce);
-      if (sequence !== loadSequence.current) return;
+      const data = await requestReport(normalizedTarget, forceRefresh, announce, requestState.signal);
+      if (!requestState.isCurrent()) return;
       setBundle(data.bundle);
       setVehicleOwners(data.vehicleOwners || {});
       const loadedMonths = reportMonths(data.bundle.overview?.months);
-      setMonth(normalizedTarget === 'latest' ? normalizeMonth(loadedMonths.at(-1) || 'Tất cả') : normalizedTarget);
+      const resolvedMonth = normalizedTarget === 'latest' ? normalizeMonth(loadedMonths.at(-1) || 'Tất cả') : normalizedTarget;
+      setAvailableMonths(loadedMonths);
+      setMonth(resolvedMonth);
+      setRenderedMonth(resolvedMonth);
       setStatus(data.bundle.apiCached ? 'Dữ liệu từ API cache.' : 'Dữ liệu từ API.');
       if (forceRefresh || announce) showToast('Dữ liệu Báo cáo đã được cập nhật.', 'success');
     } catch (loadError) {
-      if (sequence !== loadSequence.current) return;
+      if (!requestState.isCurrent() || (loadError instanceof DOMException && loadError.name === 'AbortError')) return;
       const message = loadError instanceof Error ? loadError.message : String(loadError); setError(message); setStatus(''); showToast(message, 'error');
-    } finally { if (sequence === loadSequence.current) setLoading(false); }
+    } finally { if (requestState.isCurrent()) setLoading(false); }
   };
+
+  useEffect(() => {
+    if (!availableMonths.length || month === 'Tất cả') return;
+    const normalizedMonths = availableMonths.map(normalizeMonth).filter((value) => value !== 'Tất cả');
+    const index = normalizedMonths.indexOf(month);
+    if (index < 0) return;
+    const neighbors = [normalizedMonths[index - 1], normalizedMonths[index + 1]].filter((value): value is string => Boolean(value));
+    const timer = window.setTimeout(() => {
+      neighbors.forEach((targetMonth) => { void requestReport(targetMonth, false).catch(() => undefined); });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [availableMonths, month]);
 
   useVisibleRevalidation(async () => {
     if (loading) return;
@@ -231,6 +280,8 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
     if (visibleMonthRef.current !== targetMonth) return;
     setBundle(data.bundle);
     setVehicleOwners(data.vehicleOwners || {});
+    setAvailableMonths(reportMonths(data.bundle.overview?.months));
+    setRenderedMonth(targetMonth);
     setError('');
     setStatus(data.bundle.apiCached ? 'Dữ liệu từ API cache.' : 'Dữ liệu từ API.');
   }, !loading);
@@ -239,12 +290,12 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
     <button type="button" data-shell-refresh hidden onClick={() => load(month, false, true)} aria-hidden="true" tabIndex={-1}/>
     <div className="sub-tabs-bar app-sticky-tabs" id="reportTabsBar" role="tablist" aria-label="Loại báo cáo">{TABS.map(([type, label]) => <button type="button" role="tab" aria-selected={tab === type} className={`sub-tab${tab === type ? ' active' : ''}`} data-report-tab={type} onClick={() => setTab(type)} key={type}>{label}</button>)}</div>
     <section className="panel report-filter-panel app-sticky-toolbar sticky-after-tabs">
-      <div className="panel-head reports-filter-head"><div className="filter-row reports-filter-row"><input type="search" id="reportSearchInput" aria-label="Tìm trong báo cáo" placeholder="Tìm xe, tài xế..." value={query} onChange={(event) => setQuery(event.target.value)}/><select id="reportMonthFilter" className="cashflow-quick-period-select platform-content-select" aria-label="Chọn tháng báo cáo" aria-busy={loading || undefined} value={month} onChange={(event) => void load(event.target.value)}><option value="Tất cả">Tất cả tháng</option>{months.filter((value) => value !== 'Tất cả').map((value) => <option value={normalizeMonth(value)} key={value}>{normalizeMonth(value)}</option>)}</select></div></div>
+      <div className="panel-head reports-filter-head"><div className="filter-row reports-filter-row"><input type="search" id="reportSearchInput" aria-label="Tìm trong báo cáo" placeholder="Tìm xe, tài xế..." value={query} onChange={(event) => setQuery(event.target.value)}/><select id="reportMonthFilter" className="cashflow-quick-period-select platform-content-select" aria-label="Chọn tháng báo cáo" aria-busy={loading || undefined} value={month} onChange={(event) => void load(event.target.value)}><option value="Tất cả">Tất cả tháng</option>{availableMonths.filter((value) => value !== 'Tất cả').map((value) => <option value={normalizeMonth(value)} key={value}>{normalizeMonth(value)}</option>)}</select></div></div>
     </section>
     <div className="platform-visually-hidden" role="status" aria-live="polite">{error || status}</div>
-    {error && !bundle ? <section className="table-card report-c2-error" role="alert"><div className="panel-body"><div className="table-title">Không tải được báo cáo</div><p>{error}</p><button type="button" className="sub-tab" onClick={() => load('latest')} disabled={loading}>Thử lại</button></div></section> : null}
-    {loading && !bundle ? <div className="report-stack" aria-busy="true" aria-label="Đang tải báo cáo">{(['finance', 'details', 'payroll', 'vehicles'] as ReportType[]).map((type) => <section className="table-card" key={type}><div className="table-card-head"><div><div className="table-title">{LABELS[type]}</div><div className="panel-note report-month-note">Đang tải báo cáo từ Supabase.</div></div></div><div className="panel-body"><div className="shimmer shimmer-table"/></div></section>)}</div> : null}
-    {bundle ? <div className="report-stack" id="reports">{visibleTypes.map((type) => <ReportTable type={type} matrix={matrices[type]} query={query} month={month} key={`${type}-${month}`}/>)}</div> : null}
+    {error && !hasCurrentBundle ? <section className="table-card report-c2-error" role="alert"><div className="panel-body"><div className="table-title">Không tải được báo cáo</div><p>{error}</p><button type="button" className="sub-tab" onClick={() => load(month)} disabled={loading}>Thử lại</button></div></section> : null}
+    {loading && !hasCurrentBundle ? <div className="report-stack report-stack-loading" aria-busy="true" aria-label="Đang tải báo cáo">{visibleTypes.map((type) => <section className="table-card" key={type}><div className="table-card-head"><div><div className="table-title">{LABELS[type]}</div></div></div><div className="panel-body"><div className="shimmer shimmer-table"/></div></section>)}</div> : null}
+    {hasCurrentBundle ? <div className="report-stack report-stack-enter" id="reports" key={month} aria-busy={loading || undefined}>{visibleTypes.map((type) => <ReportTable type={type} matrix={matrices[type]} query={query} month={month} key={`${type}-${month}`}/>)}</div> : null}
   </section>;
 }
 

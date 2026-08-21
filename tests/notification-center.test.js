@@ -32,6 +32,27 @@ test('operations notifications trust only workbook helper columns and never writ
   assert.doesNotMatch(sync, /setValue|setValues|appendRow|deleteRow/);
 });
 
+test('daily digest summary uses previous-day transport and exact monthly Fund overview', () => {
+  const summary = read('DailyBusinessSummaryService.gs');
+  const facade = read('SupabaseService.gs');
+  const repository = read('server/repositories/notification-bundle-repository.js');
+  const dispatch = read('server/services/notification-dispatch-service.js');
+  assert.match(summary, /SpreadsheetApp\.openById\(APP_CONFIG\.spreadsheetId\)/);
+  assert.match(summary, /XL_VanChuyen/);
+  assert.match(summary, /daily-summary:latest/);
+  assert.match(summary, /row\[4\]/);
+  assert.match(summary, /row\[5\]/);
+  assert.match(summary, /row\[11\]/);
+  assert.doesNotMatch(summary, /setValue|setValues|appendRow|deleteRow/);
+  assert.match(facade, /syncDailyBusinessSummary\(\)/);
+  assert.match(repository, /findDailySummary/);
+  assert.match(repository, /findFundDailySummary/);
+  assert.match(repository, /fund_overview_bundles/);
+  assert.match(dispatch, /Tổng hợp ngày/);
+  assert.match(dispatch, /doanh thu/);
+  assert.match(dispatch, /chi Quỹ/);
+});
+
 test('notification delivery is opt-in, baselined and disabled in Apps Script until production rollout', () => {
   const dispatch = read('NotificationDispatchService.gs');
   const service = read('server/services/notification-dispatch-service.js');
@@ -41,9 +62,35 @@ test('notification delivery is opt-in, baselined and disabled in Apps Script unt
   assert.match(dispatch, /replace\(\/\\\/\+\$\/, ''\) \+ '\/'/);
   assert.match(dispatch, /method: 'post'/);
   assert.match(service, /notification-dispatch-baseline-v1/);
-  assert.match(service, /Daily digest is scheduled at 20:00/);
+  assert.match(service, /Daily digest is scheduled at 12:00/);
   assert.match(preferences, /notification-preference:/);
   assert.match(preferences, /notification_rule_states/);
+});
+
+test('notification center aggregates yesterday Fund income and expense by exact detail date', async () => {
+  let requestedDate = '';
+  const service = createNotificationCenterService({
+    repository: { find: async (_config, dateKey) => {
+      requestedDate = dateKey;
+      return {
+        trip: null, operations: null, fund: null, syncStatuses: [], writeJobs: [],
+        dailySummary: { payload: { date: '2026-08-12', displayDate: '12/08/2026', trips: 8, revenue: 12000000, vehicleCount: 3, volume: 90, projectCount: 2 }, synced_at: '2026-08-13T04:58:00.000Z' },
+        dailyFundSummary: { payload: {
+          incomeCategories: [{ details: [{ date: '2026-08-12', amount: 5000000 }, { date: '2026-08-11', amount: 1000000 }] }],
+          expenseCategories: [{ details: [{ date: '2026-08-12', amount: 3000000 }, { date: '2026-08-12', amount: 2000000 }] }]
+        }, synced_at: '2026-08-13T04:57:00.000Z' }
+      };
+    } },
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    send: () => {},
+    now: () => new Date('2026-08-13T05:00:00.000Z')
+  });
+  const result = await service.list({});
+  assert.equal(requestedDate, '2026-08-12');
+  assert.equal(result.dailySummary.fundAvailable, true);
+  assert.equal(result.dailySummary.fundIncome, 5000000);
+  assert.equal(result.dailySummary.fundExpense, 5000000);
+  assert.equal(result.dailySummary.fundNet, 0);
 });
 
 test('Apps Script dispatch normalizes the trailing slash and preserves POST', () => {
@@ -101,11 +148,80 @@ test('notification center expires old incidental sync failures but keeps critica
   assert.equal(critical.title, 'Dữ liệu chưa được đồng bộ mới');
 });
 
+test('notification center collapses stale realtime worker dependencies into one useful alert', async () => {
+  const service = createNotificationCenterService({
+    repository: { find: async () => ({
+      trip: null, operations: null, fund: null, writeJobs: [],
+      syncStatuses: [
+        { sync_key: 'realtime_cache_worker', status: 'ok', updated_at: '2026-08-19T08:43:00.000Z' },
+        { sync_key: 'trip_notifications', status: 'ok', updated_at: '2026-08-19T08:42:00.000Z' },
+        { sync_key: 'operational_notifications', status: 'ok', updated_at: '2026-08-19T08:42:00.000Z' },
+        { sync_key: 'notification_pipeline', status: 'ok', updated_at: '2026-08-19T08:43:00.000Z' }
+      ]
+    }) },
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    send: () => {},
+    now: () => new Date('2026-08-20T03:16:00.000Z')
+  });
+  const result = await service.list({});
+  const systemItems = result.items.filter((item) => item.notificationKey === 'system-health');
+  assert.equal(systemItems.length, 1);
+  assert.equal(systemItems[0].title, 'Đồng bộ tự động đã dừng');
+  assert.match(systemItems[0].message, /1113 phút/);
+  assert.doesNotMatch(systemItems[0].message, /realtime_cache_worker|trip_notifications|operational_notifications|notification_pipeline/);
+});
+
+test('notification center replaces stale worker noise with one authorization instruction from the external watchdog', async () => {
+  const service = createNotificationCenterService({
+    repository: { find: async () => ({
+      trip: null, operations: null, fund: null, writeJobs: [],
+      syncStatuses: [
+        { sync_key: 'realtime_cache_worker', status: 'ok', updated_at: '2026-08-19T08:43:00.000Z' },
+        { sync_key: 'trip_notifications', status: 'ok', updated_at: '2026-08-19T08:42:00.000Z' },
+        { sync_key: 'external_sync_watchdog', status: 'authorization_required', message: 'Apps Script trả status 403.', updated_at: '2026-08-20T03:10:00.000Z' }
+      ]
+    }) },
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    send: () => {},
+    now: () => new Date('2026-08-20T03:16:00.000Z')
+  });
+  const result = await service.list({});
+  const systemItems = result.items.filter((item) => item.notificationKey === 'system-health');
+  assert.equal(systemItems.length, 1);
+  assert.equal(systemItems[0].title, 'Đồng bộ cần được cấp lại quyền');
+  assert.match(systemItems[0].message, /mở Apps Script/);
+  assert.doesNotMatch(systemItems[0].message, /403|realtime_cache_worker|trip_notifications/);
+});
+
+test('notification center does not mislabel a transient watchdog failure as OAuth revocation', async () => {
+  const service = createNotificationCenterService({
+    repository: { find: async () => ({
+      trip: null, operations: null, fund: null, writeJobs: [],
+      syncStatuses: [
+        { sync_key: 'realtime_cache_worker', status: 'ok', updated_at: '2026-08-20T03:00:00.000Z' },
+        { sync_key: 'external_sync_watchdog', status: 'error', message: 'Upstream timeout.', updated_at: '2026-08-20T03:10:00.000Z' }
+      ]
+    }) },
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    send: () => {},
+    now: () => new Date('2026-08-20T03:16:00.000Z')
+  });
+  const result = await service.list({});
+  const item = result.items.find((entry) => entry.notificationKey === 'system-health');
+  assert.equal(item.title, 'Không thể tự khôi phục đồng bộ');
+  assert.doesNotMatch(item.message, /cấp lại quyền/);
+});
+
 test('header uses an accessible bell and filter controls reserve a chevron gutter', () => {
   const shell = read('next-shell/components/platform/AppShell.tsx');
+  const adaptive = read('next-shell/components/platform/AdaptiveFilterSizing.tsx');
   const center = read('next-shell/components/platform/NotificationCenter.tsx');
   const css = read('next-shell/app/platform.css');
   assert.match(shell, /<NotificationCenter userId=\{context\.user\.id\} \/>/);
+  assert.match(shell, /<AdaptiveFilterSizing \/>/);
+  assert.match(adaptive, /measureText\(selectedLabel\(select\)\)/);
+  assert.match(adaptive, /setProperty\('width', selectedWidth, 'important'\)/);
+  assert.match(adaptive, /FILTER_INLINE_PADDING/);
   assert.doesNotMatch(shell, /aria-label="Mở Google Sheet"/);
   assert.match(center, /aria-expanded=\{open\}/);
   assert.match(center, /role="dialog"/);
@@ -118,10 +234,16 @@ test('header uses an accessible bell and filter controls reserve a chevron gutte
   assert.doesNotMatch(center, />Làm mới</);
   assert.match(center, /localStorage\.setItem\(storageKey/);
   assert.match(center, /updateAppBadge\(unreadCount\)/);
+  assert.match(read('public/sw.js'), /BADGE_STATE_CACHE/);
+  assert.match(read('public/sw.js'), /unreadDelta/);
+  assert.match(read('public/sw.js'), /preserveBadge/);
   assert.match(center, /COPY_LONG_PRESS_MS = 550/);
   assert.match(center, /Nhấn giữ để sao chép nội dung/);
   assert.match(center, /navigator\.clipboard\.writeText/);
   assert.match(center, /legacyCopyText\(value\)/);
+  assert.match(center, /notification-copy-dialog/);
+  assert.match(center, /Safari đang chặn sao chép tự động/);
+  assert.match(center, /setCopyFallback\(item\)/);
   assert.match(center, /textarea\.setSelectionRange\(0, value\.length\)/);
   assert.match(center, /state\?\.triggered/);
   assert.match(center, /onPointerUp=\{\(\) => endLongPress\(item\)\}/);
@@ -131,12 +253,14 @@ test('header uses an accessible bell and filter controls reserve a chevron gutte
   assert.match(center, /event\.clipboardData\.setData\('text\/plain', notificationClipboardText\(item\)\)/);
   assert.match(center, /suppressClickRef\.current === key/);
   assert.doesNotMatch(center, /Nguồn: XL_DoiSoatChuyen/);
-  assert.match(css, /padding-inline: var\(--platform-control-padding-x, 12px\) 40px !important/);
+  assert.match(css, /padding-inline: 10px 30px !important/);
   assert.match(css, /catalog-sticky-toolbar[\s\S]*height: 44px !important/);
   assert.match(css, /\.notification-toolbar-actions \{[\s\S]*display: flex;/);
   assert.match(css, /\.notification-toolbar-icon \{[\s\S]*width: 44px;[\s\S]*height: 44px;/);
   assert.match(css, /\.notification-item-action \{[\s\S]*touch-action: pan-y;/);
   assert.match(css, /\.notification-item-action \{[\s\S]*-webkit-touch-callout: none;/);
+  assert.match(css, /\.notification-backdrop:hover,[\s\S]*background: rgba\(15, 23, 42, \.18\) !important;/);
+  assert.match(css, /\.notification-copy-dialog textarea \{[\s\S]*user-select: text;/);
   assert.match(css, /\.notification-item-action\.copy-pressing/);
 });
 

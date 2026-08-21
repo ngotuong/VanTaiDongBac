@@ -3794,8 +3794,19 @@ html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg 
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: rgba(15, 23, 42, .18);
-  backdrop-filter: blur(1px);
+  appearance: none;
+  background: rgba(15, 23, 42, .18) !important;
+  box-shadow: none !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.notification-backdrop:hover,
+.notification-backdrop:focus,
+.notification-backdrop:active {
+  border: 0 !important;
+  background: rgba(15, 23, 42, .18) !important;
+  box-shadow: none !important;
 }
 
 .notification-panel {
@@ -3824,6 +3835,62 @@ html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg 
   gap: 12px;
   padding: 14px 16px;
 }
+
+.notification-copy-layer {
+  position: fixed;
+  z-index: 1120;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, .34);
+}
+
+.notification-copy-dialog {
+  display: grid;
+  gap: 12px;
+  width: min(440px, 100%);
+  padding: 16px;
+  border: 1px solid rgba(13, 148, 136, .24);
+  border-radius: 16px;
+  color: var(--ink, #0f172a);
+  background: #fff;
+  box-shadow: 0 22px 60px rgba(15, 23, 42, .28);
+}
+
+.notification-copy-dialog header,
+.notification-copy-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notification-copy-dialog h3,
+.notification-copy-dialog p { margin: 0; }
+.notification-copy-dialog h3 { color: var(--deep, #063b36); font-size: 16px; }
+.notification-copy-dialog p { color: var(--muted, #64748b); font-size: 12.5px; line-height: 1.5; }
+.notification-copy-dialog header button { width: 44px; min-width: 44px; height: 44px; padding: 0; border: 0; background: transparent; font-size: 26px; }
+.notification-copy-dialog textarea {
+  width: 100%;
+  min-height: 132px;
+  padding: 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--line, #cbd5e1);
+  border-radius: 10px;
+  color: var(--ink, #0f172a);
+  background: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  resize: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.notification-copy-actions { justify-content: flex-end; }
+.notification-copy-actions button { min-height: 44px; padding: 0 16px; }
+.notification-copy-actions .primary { color: #fff; border-color: #0f766e; background: #0f766e; }
 
 .notification-panel-header {
   border-bottom: 1px solid var(--line, #dbe3ec);
@@ -4213,6 +4280,13 @@ html body #catalogView .catalog-sticky-toolbar .catalog-filter-actions .btn-svg 
   .notification-item-action {
     padding-left: 14px;
   }
+
+  .notification-copy-layer {
+    place-items: end center;
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .notification-copy-dialog { border-radius: 18px; }
 }
 
 @keyframes notification-sheet-in {
@@ -4260,6 +4334,311 @@ html body input[type="month"]::-webkit-datetime-edit {
   text-align: left !important;
 }
 
+/* Cashflow settings use the same control and label contract as transaction forms. */
+html body .cashflow-c2 .fund-settings-card .cashflow-section-head {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+html body .cashflow-c2 .fund-settings-card .table-title {
+  margin: 0 !important;
+  text-align: left !important;
+}
+
+html body .cashflow-c2 .fund-settings-grid {
+  align-items: stretch;
+}
+
+html body .cashflow-c2 .fund-settings-grid > label {
+  display: grid !important;
+  grid-template-rows: minmax(34px, auto) var(--platform-control-height);
+  align-content: end;
+  gap: 6px !important;
+}
+
+html body .cashflow-c2 .fund-settings-grid > label > span {
+  align-self: end;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  letter-spacing: .04em !important;
+}
+
+html body .cashflow-c2 .fund-settings-grid :is(input, .custom-date-box),
+html body .cashflow-c2 .fund-settings-grid .date-display-text {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 46px !important;
+  text-align: left !important;
+}
+
+/* Dashboard month-range contract: one icon trigger and one responsive bottom drawer. */
+body.dashboard-period-drawer-open {
+  overflow: hidden !important;
+}
+
+body .dashboard-module-kpis .dashboard-kpi-card .dashboard-period-control {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+body .dashboard-module-kpis .dashboard-kpi-card .dashboard-period-control::after {
+  content: none !important;
+}
+
+body .dashboard-module-kpis .dashboard-kpi-card .dashboard-period-control .dashboard-month-title {
+  min-width: 0 !important;
+  color: var(--dashboard-kpi-accent) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+}
+
+body .dashboard-module-kpis .dashboard-kpi-card .dashboard-period-trigger {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  border: 1px solid color-mix(in srgb, var(--dashboard-kpi-accent) 38%, transparent) !important;
+  border-radius: 11px !important;
+  color: var(--dashboard-kpi-accent) !important;
+  background: var(--dashboard-kpi-tint) !important;
+  cursor: pointer !important;
+  touch-action: manipulation !important;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease !important;
+}
+
+body .dashboard-module-kpis .dashboard-kpi-card .dashboard-period-trigger:hover {
+  border-color: var(--dashboard-kpi-accent) !important;
+  background: color-mix(in srgb, var(--dashboard-kpi-accent) 12%, white) !important;
+}
+
+body .dashboard-module-kpis .dashboard-kpi-card .dashboard-period-trigger:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--dashboard-kpi-accent) 24%, transparent) !important;
+  outline-offset: 2px !important;
+}
+
+body .dashboard-module-kpis .dashboard-kpi-card .dashboard-period-trigger .btn-svg {
+  width: 20px !important;
+  height: 20px !important;
+  fill: var(--dashboard-kpi-tint) !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+}
+
+body > .dashboard-period-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 100090 !important;
+  background: rgba(15, 23, 42, .28) !important;
+  animation: cashflowFadeIn 240ms ease-out both !important;
+}
+
+body > .dashboard-period-backdrop.closing {
+  animation: cashflowFadeOut 170ms ease-in both !important;
+}
+
+body > .dashboard-period-drawer {
+  --drawer-swipe-offset: 0px;
+  position: fixed !important;
+  inset: auto 0 0 !important;
+  z-index: 100091 !important;
+  width: min(560px, 100vw) !important;
+  max-width: 560px !important;
+  max-height: min(72dvh, 620px) !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  border: 1px solid var(--platform-border) !important;
+  border-bottom: 0 !important;
+  border-radius: 24px 24px 0 0 !important;
+  color: var(--platform-text) !important;
+  background: var(--platform-surface) !important;
+  box-shadow: 0 -16px 48px rgba(15, 23, 42, .24) !important;
+  transform: translate3d(0, var(--drawer-swipe-offset), 0) !important;
+  transition: transform 280ms cubic-bezier(.16, 1, .3, 1) !important;
+}
+
+body > .dashboard-period-drawer.closing {
+  transform: translate3d(0, 100%, 0) !important;
+  transition-duration: 190ms !important;
+  transition-timing-function: cubic-bezier(.4, 0, 1, 1) !important;
+}
+
+body > .dashboard-period-drawer.dragging {
+  transition: none !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-drawer-head {
+  position: relative !important;
+  min-height: 64px !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  padding: 22px 64px 12px !important;
+  border-bottom: 1px solid var(--platform-border) !important;
+  background: var(--platform-primary) !important;
+  color: #fff !important;
+  touch-action: none !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-drawer-handle {
+  position: absolute !important;
+  top: 8px !important;
+  left: 50% !important;
+  width: 42px !important;
+  height: 4px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, .62) !important;
+  transform: translateX(-50%) !important;
+}
+
+body > .dashboard-period-drawer h2 {
+  margin: 0 !important;
+  color: inherit !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  text-align: center !important;
+}
+
+body > .dashboard-period-drawer h2:focus {
+  outline: none !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-close {
+  position: absolute !important;
+  right: 12px !important;
+  bottom: 8px !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, .34) !important;
+  border-radius: 11px !important;
+  color: #fff !important;
+  background: rgba(255, 255, 255, .1) !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-close .btn-svg {
+  width: 22px !important;
+  height: 22px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-drawer-body {
+  padding: 20px 16px 16px !important;
+  overflow: auto !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-fields {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-fields label {
+  min-width: 0 !important;
+  display: grid !important;
+  align-content: start !important;
+  gap: 7px !important;
+  color: var(--platform-muted) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-fields select {
+  min-height: 44px !important;
+  max-width: 100% !important;
+  color: var(--platform-text) !important;
+  border: 1px solid var(--platform-border) !important;
+  border-radius: 11px !important;
+  background-color: var(--platform-surface) !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  text-align: left !important;
+  text-align-last: left !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-preview {
+  margin: 16px 0 0 !important;
+  padding: 12px !important;
+  border-radius: 10px !important;
+  color: var(--platform-muted) !important;
+  background: var(--platform-surface-soft) !important;
+  font-size: 14px !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-preview strong {
+  color: var(--platform-primary) !important;
+  font-weight: 700 !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-drawer-footer {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) !important;
+  gap: 12px !important;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom)) !important;
+  border-top: 1px solid var(--platform-border) !important;
+  background: var(--platform-surface) !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-drawer-footer button {
+  min-height: 44px !important;
+  padding: 0 16px !important;
+  border-radius: 11px !important;
+  font: inherit !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-all {
+  color: var(--platform-text) !important;
+  border: 1px solid var(--platform-border) !important;
+  background: var(--platform-surface) !important;
+}
+
+body > .dashboard-period-drawer .dashboard-period-apply {
+  color: #fff !important;
+  border: 1px solid var(--platform-primary) !important;
+  background: var(--platform-primary) !important;
+}
+
+body > .dashboard-period-drawer :is(button, select):focus-visible {
+  outline: 3px solid var(--platform-focus) !important;
+  outline-offset: 2px !important;
+}
+
+@starting-style {
+  body > .dashboard-period-drawer {
+    transform: translate3d(0, 100%, 0) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body > .dashboard-period-backdrop,
+  body > .dashboard-period-drawer {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}
+
 @media (max-width: 768px) {
   html body .cashflow-overview-filter-panel .cashflow-filter-stack {
     grid-template-columns: minmax(0, 1fr) 142px !important;
@@ -4280,5 +4659,600 @@ html body input[type="month"]::-webkit-datetime-edit {
     width: auto !important;
     padding-inline: 0 !important;
     font-size: 13px !important;
+  }
+}
+
+/* Adaptive filter density contract (2026-08-13).
+ * Native select width follows the selected label, not the longest option.
+ * Compact card filters keep a 44px label hit area around a 36px visual control. */
+html body select.platform-content-select[data-adaptive-filter="selected"],
+html body .app main.main#platform-content .view.active select.platform-content-select.platform-content-select[data-adaptive-filter="selected"],
+html body #fundCategoryDetailDrawer select.platform-content-select[data-adaptive-filter="selected"] {
+  width: min(var(--platform-filter-selected-width), 100%) !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: 0 30px 0 10px !important;
+  padding-inline: 10px 30px !important;
+  background-position: right 8px center !important;
+  background-size: 15px 15px !important;
+  justify-self: start;
+}
+
+html body :is(.compact-filter, .table-card-subhead .compact-filter) {
+  min-height: 44px;
+  align-items: center !important;
+}
+
+html body :is(.table-card-head, .table-card-subhead) .compact-filter select.platform-content-select[data-adaptive-filter="selected"],
+html body .app main.main#platform-content .view.active :is(.table-card-head, .table-card-subhead) .compact-filter select.platform-content-select.platform-content-select[data-adaptive-filter="selected"] {
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+}
+
+html body .cashflow-c2 .fund-loan-history-filters {
+  grid-template-columns: repeat(2, max-content) !important;
+}
+
+/* Shared async-filter transition: stale rows leave immediately; current rows enter without layout shift. */
+#reportsView .report-stack-enter {
+  animation: report-stack-enter 180ms ease-out both;
+}
+
+#reportsView .report-stack-loading .table-card {
+  content-visibility: auto;
+}
+
+@keyframes report-stack-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #reportsView .report-stack-enter { animation: none; }
+}
+
+@media (max-width: 768px) {
+  html body .cashflow-overview-filter-panel .cashflow-filter-stack {
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+  }
+
+  html body .cashflow-overview-filter-panel .cashflow-quick-period-select[data-adaptive-filter="selected"] {
+    width: min(var(--platform-filter-selected-width), 100%) !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Business form sheet system (2026-08-16).
+ * One mobile contract for Entry, Manage/Catalog edit and Cashflow write forms.
+ * Sheets size to their content, clamp only when content exceeds the viewport,
+ * and retain 44px touch targets with 16px editable text for iOS zoom safety. */
+@media (max-width: 768px) {
+  html body {
+    --business-sheet-max-height: 92dvh;
+    --business-sheet-gutter: 10px;
+    --business-sheet-field-gap-x: 8px;
+    --business-sheet-field-gap-y: 9px;
+    --business-sheet-control-height: 44px;
+    --business-sheet-radius: 20px;
+  }
+
+  body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet],
+  body > [data-business-form-sheet].fund-detail-drawer,
+  .manage-entry-embedded[data-business-form-sheet] {
+    --platform-control-height: var(--business-sheet-control-height);
+    --platform-control-font-size: 16px;
+    top: auto !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: auto !important;
+    max-height: var(--business-sheet-max-height) !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-top: 1px solid var(--platform-border, #cbd5e1) !important;
+    border-radius: var(--business-sheet-radius) var(--business-sheet-radius) 0 0 !important;
+    background: var(--platform-surface-soft, #f8fafc) !important;
+    box-shadow: 0 -12px 36px rgba(15, 23, 42, .2) !important;
+    transform: translate3d(0, var(--drawer-swipe-offset), 0) !important;
+  }
+
+  html body > :is(#fundTransactionAddDrawer, #fundLoanAddDrawer, #fundLoanPaymentDrawer).cashflow-c2.fund-detail-drawer.swipe-dismiss-surface[data-business-form-sheet] {
+    top: auto !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: fit-content !important;
+    min-height: 0 !important;
+    max-height: var(--business-sheet-max-height) !important;
+    border-radius: var(--business-sheet-radius) var(--business-sheet-radius) 0 0 !important;
+    transform: translate3d(0, var(--drawer-swipe-offset), 0) !important;
+  }
+
+  html body > .modal-overlay.side-drawer-overlay
+    > section.modal-container[data-business-form-sheet] {
+    height: fit-content !important;
+    min-height: 0 !important;
+    max-height: var(--business-sheet-max-height) !important;
+  }
+
+  body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet].closing,
+  body > [data-business-form-sheet].fund-detail-drawer.closing,
+  .manage-entry-embedded[data-business-form-sheet].closing {
+    transform: translate3d(0, 100dvh, 0) !important;
+  }
+
+  body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet] > .modal-header,
+  body > [data-business-form-sheet].fund-detail-drawer > .cashflow-fb-drawer-head {
+    min-height: 52px !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 20px 12px 8px !important;
+    background: var(--platform-surface, #fff) !important;
+  }
+
+  body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet] > .modal-header h3,
+  body > [data-business-form-sheet].fund-detail-drawer > .cashflow-fb-drawer-head > .table-title,
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .panel-title {
+    margin: 0 !important;
+    color: var(--platform-text, #0f172a) !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+    letter-spacing: normal !important;
+  }
+
+  body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet] > .modal-body,
+  body > [data-business-form-sheet].fund-detail-drawer > .cashflow-drawer-body {
+    flex: 0 1 auto !important;
+    min-height: 0 !important;
+    max-height: calc(var(--business-sheet-max-height) - 112px) !important;
+    padding: var(--business-sheet-gutter) !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain !important;
+    touch-action: pan-y !important;
+    background: var(--platform-surface-soft, #f8fafc) !important;
+  }
+
+  html body > :is(#fundTransactionAddDrawer, #fundLoanAddDrawer, #fundLoanPaymentDrawer)[data-business-form-sheet]
+    > .cashflow-drawer-body {
+    flex: 0 1 auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(var(--business-sheet-max-height) - 112px) !important;
+    padding: var(--business-sheet-gutter) !important;
+    overflow-y: auto !important;
+  }
+
+  body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet] .modal-grid,
+  body > [data-business-form-sheet].fund-detail-drawer .modal-grid,
+  body > [data-business-form-sheet].fund-detail-drawer .modal-grid.fields {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: var(--business-sheet-field-gap-y) var(--business-sheet-field-gap-x) !important;
+  }
+
+  body [data-business-form-sheet] :is(.modal-grid, .fields) > label {
+    min-width: 0 !important;
+    gap: 4px !important;
+    color: var(--platform-muted, #475569) !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+
+  html body .manage-entry-embedded[data-business-form-sheet] #entryShell .fields > label,
+  html body > :is(#fundTransactionAddDrawer, #fundLoanAddDrawer, #fundLoanPaymentDrawer)[data-business-form-sheet]
+    :is(.modal-grid, .fields) > label {
+    gap: 4px !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+
+  body [data-business-form-sheet] :is(.modal-grid, .fields) > label > span,
+  body [data-business-form-sheet] .cashflow-field-label {
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+
+  html body .manage-entry-embedded[data-business-form-sheet] #entryShell .fields > label > span,
+  html body > :is(#fundTransactionAddDrawer, #fundLoanAddDrawer, #fundLoanPaymentDrawer)[data-business-form-sheet]
+    :is(.modal-grid, .fields) > label > span {
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+
+  body [data-business-form-sheet] :is(.modal-grid, .fields)
+    :is(input:not(.native-date-input), select, .custom-date-box) {
+    height: var(--business-sheet-control-height) !important;
+    min-height: var(--business-sheet-control-height) !important;
+    max-height: var(--business-sheet-control-height) !important;
+    padding-inline: 11px !important;
+    border-radius: 9px !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+  }
+
+  html body .manage-entry-embedded[data-business-form-sheet] #entryShell .fields
+    :is(input:not(.native-date-input), select, .custom-date-box),
+  html body > :is(#fundTransactionAddDrawer, #fundLoanAddDrawer, #fundLoanPaymentDrawer)[data-business-form-sheet]
+    :is(.modal-grid, .fields) :is(input:not(.native-date-input), select, .custom-date-box) {
+    height: var(--business-sheet-control-height) !important;
+    min-height: var(--business-sheet-control-height) !important;
+    max-height: var(--business-sheet-control-height) !important;
+    padding-inline: 11px !important;
+    border-radius: 9px !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+  }
+
+  html body > .modal-overlay.side-drawer-overlay
+    > section.modal-container[data-business-form-sheet]
+    .modal-body .modal-grid :is(input:not(.native-date-input), select, .custom-date-box) {
+    height: var(--business-sheet-control-height) !important;
+    min-height: var(--business-sheet-control-height) !important;
+    max-height: var(--business-sheet-control-height) !important;
+    padding-inline: 11px !important;
+    border-radius: 9px !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+  }
+
+  /* The unused ID arm gives this shared rule the same specificity tier as the
+   * legacy :is(#entryShell, ...) control rule without adding module CSS. */
+  html body > .modal-overlay.side-drawer-overlay
+    > :is(#businessFormSpecificityAnchor, section.modal-container[data-business-form-sheet])
+    .modal-body .modal-grid :is(input:not(.native-date-input), select, .custom-date-box) {
+    height: var(--business-sheet-control-height) !important;
+    min-height: var(--business-sheet-control-height) !important;
+    max-height: var(--business-sheet-control-height) !important;
+    padding-inline: 11px !important;
+  }
+
+  body [data-business-form-sheet] :is(.modal-grid, .fields) textarea {
+    min-height: 64px !important;
+    max-height: 112px !important;
+    padding: 9px 11px !important;
+    border-radius: 9px !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+    resize: vertical !important;
+  }
+
+  html body .manage-entry-embedded[data-business-form-sheet] #entryShell .fields textarea,
+  html body > .modal-overlay.side-drawer-overlay
+    > :is(#businessFormSpecificityAnchor, section.modal-container[data-business-form-sheet])
+    .modal-body .modal-grid textarea,
+  html body > :is(#fundTransactionAddDrawer, #fundLoanAddDrawer, #fundLoanPaymentDrawer)[data-business-form-sheet]
+    :is(.modal-grid, .fields) textarea {
+    min-height: 64px !important;
+    max-height: 112px !important;
+    padding: 9px 11px !important;
+    border-radius: 9px !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+  }
+
+  body [data-business-form-sheet] .custom-date-box .date-display-text {
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    text-align: left !important;
+  }
+
+  body > [data-business-form-sheet].fund-detail-drawer .fund-transaction-row.table-card,
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .entry-row {
+    margin: 0 !important;
+    padding: 11px !important;
+    border: 1px solid var(--platform-border, #dbe3ee) !important;
+    border-radius: 12px !important;
+    background: var(--platform-surface, #fff) !important;
+    box-shadow: none !important;
+  }
+
+  body > [data-business-form-sheet].fund-detail-drawer .cashflow-transaction-row-head,
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .entry-row-head {
+    min-height: 32px !important;
+    margin-bottom: 8px !important;
+  }
+
+  body > [data-business-form-sheet].fund-detail-drawer .cashflow-transaction-row-head strong,
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .entry-row-title {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+  }
+
+  body [data-business-form-sheet] > :is(.modal-footer, .submit-bar),
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .submit-bar {
+    flex: 0 0 auto !important;
+    gap: 8px !important;
+    min-height: 60px !important;
+    margin: 0 !important;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    border-top: 1px solid var(--platform-border, #dbe3ee) !important;
+    background: var(--platform-surface, #fff) !important;
+    box-shadow: 0 -4px 14px rgba(15, 23, 42, .04) !important;
+  }
+
+  html body > :is(#fundTransactionAddDrawer, #fundLoanAddDrawer, #fundLoanPaymentDrawer)[data-business-form-sheet]
+    > :is(.modal-footer, .submit-bar) {
+    flex: 0 0 auto !important;
+    min-height: 60px !important;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  body [data-business-form-sheet] > :is(.modal-footer, .submit-bar) > button,
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .submit-bar > button {
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+  }
+
+  .manage-entry-embedded[data-business-form-sheet] {
+    overflow: hidden !important;
+  }
+
+  .manage-entry-embedded[data-business-form-sheet] > #entryShell {
+    position: static !important;
+    inset: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: var(--business-sheet-max-height) !important;
+    padding: 6px 10px 0 !important;
+    overflow: hidden !important;
+  }
+
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .form-list {
+    flex: 0 0 48px !important;
+    width: 100% !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    gap: 6px !important;
+    padding: 4px !important;
+    border-radius: 12px !important;
+  }
+
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .form-tab {
+    min-height: 40px !important;
+    height: 40px !important;
+    max-height: 40px !important;
+    padding: 0 12px !important;
+    border-radius: 9px !important;
+  }
+
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .form-tab-title {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+  }
+
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .entry-panel {
+    flex: 0 1 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: calc(var(--business-sheet-max-height) - 54px) !important;
+    border-radius: 16px 16px 0 0 !important;
+    overflow: hidden !important;
+  }
+
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .panel-head {
+    flex: 0 0 auto !important;
+    min-height: 50px !important;
+    padding: 20px 12px 7px !important;
+  }
+
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .entry-rows {
+    flex: 0 1 auto !important;
+    min-height: 0 !important;
+    max-height: calc(var(--business-sheet-max-height) - 172px) !important;
+    gap: 9px !important;
+    padding: 9px !important;
+    overflow-y: auto !important;
+    background: var(--platform-surface-soft, #f8fafc) !important;
+  }
+
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: var(--business-sheet-field-gap-y) var(--business-sheet-field-gap-x) !important;
+  }
+
+  body > [data-business-form-sheet].fund-detail-drawer .fund-transaction-rows,
+  body > [data-business-form-sheet].fund-detail-drawer .loan-entry-rows,
+  body > [data-business-form-sheet].fund-detail-drawer .loan-entry-form {
+    gap: 9px !important;
+  }
+
+  body > [data-business-form-sheet].fund-detail-drawer .loan-form-section {
+    padding: 10px !important;
+    border-radius: 11px !important;
+  }
+}
+
+@media (max-width: 359px) {
+  body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet] .modal-grid,
+  body > [data-business-form-sheet].fund-detail-drawer .modal-grid,
+  body > [data-business-form-sheet].fund-detail-drawer .modal-grid.fields,
+  .manage-entry-embedded[data-business-form-sheet] #entryShell .fields {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body [data-business-form-sheet] {
+    transition-duration: 1ms !important;
+  }
+}
+
+/* Fluent Mica business forms — Preview visual experiment (2026-08-16).
+ * Material hierarchy follows Fluent: Smoke backdrop, restrained Acrylic shell,
+ * soft Mica canvas and fully opaque Solid controls for dependable contrast. */
+html body {
+  --business-fluent-smoke: rgba(15, 23, 42, .34);
+  --business-fluent-shell: linear-gradient(145deg, #fbfdff 0%, #e7f8f4 50%, #e8f2ff 100%);
+  --business-fluent-acrylic: linear-gradient(100deg, rgba(255, 255, 255, .98) 0%, rgba(229, 248, 244, .95) 52%, rgba(232, 242, 255, .96) 100%);
+  --business-fluent-canvas: linear-gradient(155deg, #eefbf8 0%, #f8fafc 50%, #edf5ff 100%);
+  --business-fluent-solid: #ffffff;
+  --business-fluent-border: rgba(71, 85, 105, .22);
+  --business-fluent-accent: linear-gradient(90deg, #14b8a6 0%, #0d9488 48%, #3b82f6 100%);
+  --business-fluent-shadow: 0 22px 54px rgba(15, 23, 42, .2), 0 3px 14px rgba(13, 148, 136, .12);
+  --business-fluent-primary: linear-gradient(135deg, #0f766e 0%, #087f79 52%, #075985 100%);
+}
+
+:root[data-theme="dark"] body {
+  --business-fluent-smoke: rgba(2, 6, 23, .62);
+  --business-fluent-shell: linear-gradient(145deg, rgba(15, 23, 42, .96) 0%, rgba(6, 46, 43, .94) 52%, rgba(15, 36, 62, .95) 100%);
+  --business-fluent-acrylic: linear-gradient(100deg, rgba(15, 23, 42, .98) 0%, rgba(7, 52, 48, .96) 52%, rgba(16, 40, 68, .97) 100%);
+  --business-fluent-canvas: linear-gradient(155deg, #0f172a 0%, #082f2d 50%, #10243e 100%);
+  --business-fluent-solid: #111827;
+  --business-fluent-border: rgba(148, 163, 184, .28);
+  --business-fluent-accent: linear-gradient(90deg, #2dd4bf 0%, #14b8a6 48%, #60a5fa 100%);
+  --business-fluent-shadow: 0 24px 60px rgba(0, 0, 0, .42), 0 2px 10px rgba(45, 212, 191, .08);
+  --business-fluent-primary: linear-gradient(135deg, #0f766e 0%, #0d9488 54%, #0369a1 100%);
+}
+
+html body > .modal-overlay.side-drawer-overlay:has(> [data-business-form-sheet]),
+html body:has(> .manage-entry-embedded[data-business-form-sheet]) > .entry-sheet-backdrop,
+html body:has(> [data-business-form-sheet].fund-detail-drawer) > .cashflow-drawer-backdrop {
+  background: var(--business-fluent-smoke) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(112%) !important;
+  backdrop-filter: blur(6px) saturate(112%) !important;
+}
+
+html body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet],
+html body > [data-business-form-sheet].fund-detail-drawer,
+html body > .manage-entry-embedded[data-business-form-sheet] {
+  border-color: var(--business-fluent-border) !important;
+  background: var(--business-fluent-shell) !important;
+  box-shadow: var(--business-fluent-shadow) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(126%) !important;
+  backdrop-filter: blur(14px) saturate(126%) !important;
+}
+
+html body > :is(#fundTransactionAddDrawer, #fundLoanAddDrawer, #fundLoanPaymentDrawer).cashflow-c2.fund-detail-drawer[data-business-form-sheet] {
+  border-color: var(--business-fluent-border) !important;
+  background: var(--business-fluent-shell) !important;
+  box-shadow: var(--business-fluent-shadow) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(126%) !important;
+  backdrop-filter: blur(14px) saturate(126%) !important;
+}
+
+html body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet]::before,
+html body > [data-business-form-sheet].fund-detail-drawer::before,
+html body > .manage-entry-embedded[data-business-form-sheet]::before {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  right: 18px;
+  left: 18px;
+  height: 3px;
+  border-radius: 0 0 999px 999px;
+  background: var(--business-fluent-accent);
+  content: "";
+  pointer-events: none;
+}
+
+html body [data-business-form-sheet] :is(.modal-header, .cashflow-fb-drawer-head, .panel-head, .form-list),
+html body [data-business-form-sheet] :is(.modal-footer, .submit-bar) {
+  border-color: var(--business-fluent-border) !important;
+  background: var(--business-fluent-acrylic) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(120%) !important;
+  backdrop-filter: blur(12px) saturate(120%) !important;
+}
+
+html body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet] :is(.modal-header, .panel-head, .form-list),
+html body > [data-business-form-sheet].fund-detail-drawer > .cashflow-fb-drawer-head,
+html body > [data-business-form-sheet].fund-detail-drawer > :is(.modal-footer, .submit-bar),
+html body > .manage-entry-embedded[data-business-form-sheet] #entryShell :is(.panel-head, .form-list, .submit-bar) {
+  background-color: rgba(255, 255, 255, .92) !important;
+  background-image: var(--business-fluent-acrylic) !important;
+}
+
+html body [data-business-form-sheet] :is(.modal-body, .cashflow-drawer-body, .entry-rows) {
+  background: var(--business-fluent-canvas) !important;
+}
+
+html body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet] > .modal-body,
+html body > [data-business-form-sheet].fund-detail-drawer > .cashflow-drawer-body,
+html body > .manage-entry-embedded[data-business-form-sheet] #entryShell .entry-rows {
+  background-color: #eefbf8 !important;
+  background-image: var(--business-fluent-canvas) !important;
+}
+
+html body [data-business-form-sheet] :is(.entry-row, .fund-transaction-row.table-card, .loan-form-section) {
+  border-color: var(--business-fluent-border) !important;
+  background: var(--business-fluent-solid) !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .055) !important;
+}
+
+html body [data-business-form-sheet]
+  :is(input:not([type="checkbox"]):not([type="radio"]):not(.native-date-input), select, textarea, .custom-date-box, .entry-searchable-catalog, .ac-input) {
+  border-color: var(--business-fluent-border) !important;
+  background: var(--business-fluent-solid) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .035), inset 0 1px 0 rgba(255, 255, 255, .5) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html body [data-business-form-sheet]
+  :is(input:not([type="checkbox"]):not([type="radio"]):not(.native-date-input), select, textarea, .custom-date-box, .entry-searchable-catalog, .ac-input):focus-within,
+html body [data-business-form-sheet]
+  :is(input:not([type="checkbox"]):not([type="radio"]):not(.native-date-input), select, textarea):focus-visible {
+  border-color: var(--platform-focus, #0d9488) !important;
+  outline: 3px solid color-mix(in srgb, var(--platform-focus, #0d9488) 22%, transparent) !important;
+  outline-offset: 1px !important;
+}
+
+html body [data-business-form-sheet] :is(.modal-footer, .submit-bar) .primary {
+  border-color: transparent !important;
+  color: #ffffff !important;
+  background: var(--business-fluent-primary) !important;
+  box-shadow: 0 6px 16px rgba(8, 127, 121, .2) !important;
+}
+
+html body [data-business-form-sheet] :is(.modal-footer, .submit-bar) :is(.outline, .icon-button) {
+  border-color: var(--business-fluent-border) !important;
+  background: var(--business-fluent-solid) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .05) !important;
+}
+
+html body [data-business-form-sheet] :is(button, input, select, textarea, .custom-date-box) {
+  transition: border-color 180ms ease-out, box-shadow 180ms ease-out, background-color 180ms ease-out, transform 180ms ease-out !important;
+}
+
+html body [data-business-form-sheet] button:active:not(:disabled) {
+  transform: scale(.985);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body [data-business-form-sheet] :is(button, input, select, textarea, .custom-date-box) {
+    transition-duration: 1ms !important;
   }
 }

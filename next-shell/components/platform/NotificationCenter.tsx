@@ -134,10 +134,12 @@ export function NotificationCenter({ userId }: { userId: string }) {
   const [readKeys, setReadKeys] = useState<Set<string>>(() => new Set());
   const [readHydrated, setReadHydrated] = useState(false);
   const [pressingKey, setPressingKey] = useState('');
+  const [copyFallback, setCopyFallback] = useState<NotificationItem | null>(null);
   const [anchor, setAnchor] = useState({ top: 72, right: 16 });
   const buttonRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const pressTimerRef = useRef<number | null>(null);
+  const copyFallbackRef = useRef<HTMLTextAreaElement>(null);
   const pressStateRef = useRef<{ key: string; startX: number; startY: number; triggered: boolean } | null>(null);
   const suppressClickRef = useRef('');
   const storageKey = `vtdb:notification-read:${READ_STORAGE_VERSION}:${userId}`;
@@ -225,15 +227,30 @@ export function NotificationCenter({ userId }: { userId: string }) {
     pressStateRef.current = null;
     setPressingKey('');
   }, []);
-  const copyNotification = useCallback(async (item: NotificationItem) => {
+  const selectFallbackText = useCallback(() => {
+    const field = copyFallbackRef.current;
+    if (!field) return;
+    field.focus({ preventScroll: true });
+    field.select();
+    field.setSelectionRange(0, field.value.length);
+  }, []);
+  const copyNotification = useCallback(async (item: NotificationItem, offerFallback = true) => {
     try {
       await writeClipboardText(notificationClipboardText(item));
       showToast('Đã sao chép nội dung thông báo.', 'success');
+      setCopyFallback(null);
       window.navigator.vibrate?.(18);
-    } catch (copyError) {
-      showToast(copyError instanceof Error ? copyError.message : 'Không thể sao chép nội dung thông báo.', 'error');
+    } catch {
+      if (offerFallback) {
+        setCopyFallback(item);
+        window.setTimeout(selectFallbackText, 0);
+        showToast('Safari đang chặn sao chép tự động. Nội dung đã được chọn để bạn sao chép.', 'info');
+      } else {
+        selectFallbackText();
+        showToast('Nội dung đã được chọn. Chạm giữ vùng chữ rồi chọn Sao chép.', 'info');
+      }
     }
-  }, []);
+  }, [selectFallbackText]);
   const beginLongPress = (event: React.PointerEvent<HTMLButtonElement>, item: NotificationItem) => {
     if (event.button !== 0) return;
     clearLongPress();
@@ -358,6 +375,14 @@ export function NotificationCenter({ userId }: { userId: string }) {
         </div>
         <footer className="notification-panel-footer"><span>{items.length} thông báo đang hoạt động</span></footer>
       </section>
+      {copyFallback ? <div className="notification-copy-layer" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setCopyFallback(null); }}>
+        <section className="notification-copy-dialog" role="dialog" aria-modal="true" aria-labelledby="notification-copy-title">
+          <header><h3 id="notification-copy-title">Sao chép thông báo</h3><button type="button" aria-label="Đóng vùng sao chép" onClick={() => setCopyFallback(null)}>×</button></header>
+          <p>Safari đang chặn sao chép tự động. Nội dung bên dưới đã được chọn; nếu nút vẫn bị chặn, chạm giữ vùng chữ và chọn “Sao chép”.</p>
+          <textarea ref={copyFallbackRef} readOnly value={notificationClipboardText(copyFallback)} onFocus={(event) => event.currentTarget.select()} />
+          <div className="notification-copy-actions"><button type="button" className="primary" onClick={() => void copyNotification(copyFallback, false)}>Sao chép</button><button type="button" onClick={() => setCopyFallback(null)}>Đóng</button></div>
+        </section>
+      </div> : null}
     </BodyPortal> : null}
   </div>;
 }

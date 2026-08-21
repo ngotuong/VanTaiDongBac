@@ -236,7 +236,18 @@ NOTIFICATION_DISPATCH_URL=https://dongbac.vercel.app/api/notification-dispatch/
 NOTIFICATION_DISPATCH_SECRET=<cùng giá trị CRON_SECRET của Vercel>
 ```
 
-Lần chạy đầu chỉ tạo baseline cho cảnh báo đang active và không gửi. Các lần sau gom sự kiện mới theo nhóm; daily digest chỉ đánh giá lúc 20:00 Việt Nam. Rollback nhanh bằng `NOTIFICATION_DISPATCH_ENABLED=false`; không xóa subscription, preference hoặc rule state.
+Lần chạy đầu chỉ tạo baseline cho cảnh báo đang active và không gửi. Các lần sau gom sự kiện mới theo nhóm; daily digest chỉ đánh giá trong giờ 12:00 Việt Nam và dùng dữ liệu của ngày liền trước. Rollback nhanh bằng `NOTIFICATION_DISPATCH_ENABLED=false`; không xóa subscription, preference hoặc rule state.
+
+### 11.2. External sync watchdog
+
+Endpoint server-only `/api/sync-watchdog` dùng secret riêng, không dùng chung `CRON_SECRET` hoặc secret notification dispatch. Đặt cùng một giá trị ngẫu nhiên mạnh tại:
+
+```text
+Vercel Production: SYNC_WATCHDOG_SECRET
+GitHub Actions secret: SYNC_WATCHDOG_SECRET
+```
+
+Workflow `.github/workflows/sync-watchdog.yml` gọi Production mỗi 5 phút. Endpoint chỉ chấp nhận Bearer secret này, đọc heartbeat `realtime_cache_worker` và chỉ gọi Apps Script recovery khi worker stale. Canary cut-forward có thể dùng `POST` với body `{ "force": true }`; nhánh cưỡng bức vẫn bắt buộc cùng Bearer secret và không sửa giả heartbeat. Không đưa secret vào source, log hoặc tài liệu. Rollback scheduler bằng cách disable workflow; rollback endpoint bằng Vercel deployment bất biến.
 
 Nguồn tham khảo chính thức:
 

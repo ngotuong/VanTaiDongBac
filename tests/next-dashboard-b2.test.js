@@ -34,6 +34,16 @@ test('B2 dashboard UI owns filters KPIs chart and tables without report payload 
   assert.match(module, /new URL\('\/dashboard-data\/', window\.location\.origin\)/);
   assert.doesNotMatch(module, /\/next-accounts\//);
   assert.doesNotMatch(module, /appData\.reports|reports\s*=|window\.appData|google\.script/);
+  assert.match(module, /aria-label=\{`Chọn kỳ Tổng quan, hiện tại \$\{selectedPeriod\}`\}/);
+  assert.match(module, /<DashboardPeriodDrawer/);
+  assert.match(module, />Từ tháng</);
+  assert.match(module, />Đến tháng</);
+  assert.match(module, />Tất cả kỳ</);
+  assert.match(module, />Áp dụng</);
+  assert.match(module, /useSwipeDismiss/);
+  assert.doesNotMatch(module, />Tùy chỉnh</);
+  assert.doesNotMatch(module, /dashboard-latest-trip-scope/);
+  assert.doesNotMatch(module, /Dữ Liệu Chuyến Gần Đây\s*<span[^>]*>Ngày mới nhất/);
 });
 
 test('B2 dashboard styles contain responsive cards and scroll-contained tables', () => {
@@ -41,6 +51,10 @@ test('B2 dashboard styles contain responsive cards and scroll-contained tables',
   assert.match(css, /\.dashboard-module-kpis/);
   assert.match(css, /\.dashboard-module-table-wrap \{[^}]*overflow: auto/);
   assert.match(css, /@media \(max-width: 640px\)/);
+  assert.match(css, /Dashboard month-range contract/);
+  assert.match(css, /\.dashboard-period-trigger \{[\s\S]*width: 44px !important;[\s\S]*height: 44px !important;/);
+  assert.match(css, /body > \.dashboard-period-drawer \{[\s\S]*width: min\(560px, 100vw\) !important;/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*dashboard-period-drawer/);
   assert.doesNotMatch(css, /overflow-x:\s*hidden/);
 });
 

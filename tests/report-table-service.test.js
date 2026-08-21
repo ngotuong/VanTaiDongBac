@@ -11,6 +11,7 @@ const plain = (value) => JSON.parse(JSON.stringify(value));
 class FakeSheet {
   constructor(rows) { this.rows = rows; }
   getLastRow() { return this.rows.length; }
+  getLastColumn() { return Math.max(0, ...this.rows.map((row) => row.length)); }
   getRange(row, column, rowCount, columnCount) {
     const values = Array.from({ length: rowCount }, (_, r) =>
       Array.from({ length: columnCount }, (_, c) => this.rows[row - 1 + r]?.[column - 1 + c] ?? ''));
@@ -41,6 +42,23 @@ test('report table reader preserves exact dimensions, header, row order, and rem
   assert.equal(result.vehicles[0].length, 12);
 });
 
+test('report table reader does not truncate payroll after 200 rows', () => {
+  const payroll = [[], ['Tháng', 'Nhân sự']];
+  for (let index = 1; index <= 240; index++) payroll.push(['08/2026', `Nhân sự ${index}`]);
+  payroll.push(['', '']);
+  const { service, ss } = loadService({ BC_BangLuong: payroll, BC_TongHopXe: [[], ['Tháng', 'Xe']] });
+  const result = plain(service.readTables(ss));
+  assert.equal(result.payroll.length, 241);
+  assert.equal(result.payroll.at(-1)[1], 'Nhân sự 240');
+});
+
+test('report freshness reader includes the monthly overview matrix', () => {
+  const overview = [['', '', '', '', '', '', 'Tháng', 'Doanh thu'], ['', '', '', '', '', '', '08/2026', '100']];
+  const { service, ss } = loadService({ BC_TongQuan: overview, BC_BangLuong: [[], ['Tháng', 'Nhân sự']], BC_TongHopXe: [[], ['Tháng', 'Xe']] });
+  const result = plain(service.readFreshnessTables(ss));
+  assert.deepEqual(result.overview.slice(0, 2).map((row) => row.slice(0, 2)), [['Tháng', 'Doanh thu'], ['08/2026', '100']]);
+});
+
 test('report table month filter preserves header, source order, all behavior, and empty-key fallback', () => {
   const { service } = loadService({});
   const matrix = [['Tháng', 'Giá trị'], ['06/2026', 1], ['07/2026', 2], ['07/2026', 3]];
@@ -57,5 +75,7 @@ test('SheetService delegates report table read/filter but retains cache orchestr
   assert.match(source, /ReportTableService\.readTables\(ss\)/);
   assert.match(source, /ReportTableService\.filterByMonth/);
   assert.match(source, /putChunkedCache_\(cacheKey, tables, REPORT_TTL_SECONDS\)/);
+  assert.match(source, /var reportTables = readReportTables_\(ss, forceRefresh\)/);
+  assert.doesNotMatch(source, /readReportTables_\(ss, forceRefresh && !requestOptions\.skipInvalidation\)/);
   assert.doesNotMatch(source, /function readTable_/);
 });

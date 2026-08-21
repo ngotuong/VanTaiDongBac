@@ -1504,15 +1504,13 @@ function FundSettingsCard({ value, setValue, save, busy }: { value: FundSettings
   return (
     <section className="table-card fund-settings-card" aria-labelledby="fundSettingsTitle">
       <div className="table-card-head cashflow-section-head">
-        <div>
-          <div className="table-title" id="fundSettingsTitle">Thiết lập đầu kỳ</div>
-        </div>
+        <div className="table-title" id="fundSettingsTitle">Thiết lập đầu kỳ</div>
       </div>
-      <div className="panel-body modal-grid">
+      <div className="panel-body modal-grid fund-settings-grid">
         <label><span>Số dư tiền mặt đầu kỳ</span><input type="text" inputMode="numeric" value={formatVietnameseNumberInput(String(value.cashOpening || ''), false)} onChange={(event) => set('cashOpening', amount(event.target.value))} /></label>
         <label><span>Số dư tài khoản đầu kỳ</span><input type="text" inputMode="numeric" value={formatVietnameseNumberInput(String(value.bankOpening || ''), false)} onChange={(event) => set('bankOpening', amount(event.target.value))} /></label>
-        <label><span>Ngày bắt đầu nhập liệu</span><input type="date" value={value.dataStartDate || ''} onChange={(event) => set('dataStartDate', event.target.value)} /></label>
-        <label><span>Ngày bắt đầu tính khoản vay</span><input type="date" value={value.loanStartDate || ''} onChange={(event) => set('loanStartDate', event.target.value)} /></label>
+        <label><span>Ngày bắt đầu nhập liệu</span><div className="custom-date-box"><span className="date-display-text">{formatDisplayDate(value.dataStartDate)}</span><input type="date" className="native-date-input vi-date-input" value={value.dataStartDate || ''} onChange={(event) => set('dataStartDate', event.target.value)} /></div></label>
+        <label><span>Ngày bắt đầu tính khoản vay</span><div className="custom-date-box"><span className="date-display-text">{formatDisplayDate(value.loanStartDate)}</span><input type="date" className="native-date-input vi-date-input" value={value.loanStartDate || ''} onChange={(event) => set('loanStartDate', event.target.value)} /></div></label>
       </div>
       <div className="modal-footer"><button type="button" className="primary" onClick={save} disabled={busy}>{busy ? 'Đang lưu…' : 'Lưu thiết lập'}</button></div>
     </section>
@@ -1603,6 +1601,7 @@ function Catalog({ data, group, edit, setEdit, selectGroup, save, remove, busy, 
 
 function DrawerShell({ id, title, children, footer, close, closeRequest = 0, hideHeaderClose = false }: { id: string; title: string; children: React.ReactNode; footer?: React.ReactNode | ((requestClose: () => void) => React.ReactNode); close: () => void; closeRequest?: number; hideHeaderClose?: boolean }) {
   const swipe = useSwipeDismiss({ onDismiss: close });
+  const isBusinessForm = id === 'fundTransactionAddDrawer' || id === 'fundLoanAddDrawer' || id === 'fundLoanPaymentDrawer';
   const seenCloseRequest = useRef(closeRequest);
   const [entered, setEntered] = useState(false);
   useEffect(() => {
@@ -1627,6 +1626,7 @@ function DrawerShell({ id, title, children, footer, close, closeRequest = 0, hid
       <section
         id={id}
         className={`table-card fund-detail-drawer cashflow-c2 open swipe-dismiss-surface${swipe.closing ? ' closing' : ''}`}
+        data-business-form-sheet={isBusinessForm ? 'cashflow' : undefined}
         role="dialog"
         aria-modal="true"
         aria-labelledby={`${id}-title`}

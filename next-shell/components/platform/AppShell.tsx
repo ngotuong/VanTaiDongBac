@@ -9,6 +9,7 @@ import { ShellNavigation, type NavigationItem } from './ShellNavigation';
 import { SessionKeepAlive, SignOutButton } from './SessionControls';
 import { ToastViewport } from './ToastViewport';
 import { NotificationCenter } from './NotificationCenter';
+import { AdaptiveFilterSizing } from './AdaptiveFilterSizing';
 
 const ALL_ROLES = ['admin', 'operator', 'shareholder'] as const;
 const WRITE_ROLES = ['admin', 'operator'] as const;
@@ -72,6 +73,7 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
 
   return <div className="app">
     <SessionKeepAlive />
+    <AdaptiveFilterSizing />
     <a className="platform-skip-link" href="#platform-content">Bỏ qua điều hướng</a>
     <div className="drawer-backdrop shell-drawer-backdrop" aria-hidden={!drawerOpen} onClick={() => setDrawerOpen(false)}/>
     <aside className="sidebar" aria-label="Menu ứng dụng">

@@ -18,6 +18,24 @@ test('C3 Report keeps source totals and profit rows in the detail matrix only',a
   assert.deepEqual(helpers.reportSourceRows('vehicles',rows),[['Chi phí dầu','300']]);
 });
 
+test('Report total detection does not remove personnel whose name contains Công',async()=>{
+  const helpers=await import('../next-shell/lib/platform/report-c2.ts');
+  const rows=[['Dương Công Tiến Nội','Tài xế','13.000.000'],['Tổng cộng','','13.000.000']];
+  assert.equal(helpers.isTotalRow(rows[0]),false);
+  assert.equal(helpers.isTotalRow(rows[1]),true);
+  assert.deepEqual(helpers.reportSourceRows('payroll',rows),[rows[0]]);
+});
+
+test('Payroll filters expose job titles and total row counts visible personnel',async()=>{
+  const helpers=await import('../next-shell/lib/platform/report-c2.ts');
+  const head=['Nhân sự','Chức vụ','Công ty','Số chuyến'];
+  const body=[['An','Tài xế','Đông Bắc','10'],['Bình','Quản lý','Đông Bắc','2']];
+  const filters=helpers.filterOptions('payroll',head,body);
+  assert.equal(filters.jobIdx,1);
+  assert.deepEqual(filters.jobs,['Quản lý','Tài xế']);
+  assert.deepEqual(helpers.appendTotal(head,body).at(-1),['Tổng cộng','2 nhân sự','','12']);
+});
+
 test('C3 Report C2 search is accent-insensitive, multi-term and vehicle filters keep source columns',async()=>{
   const helpers=await import('../next-shell/lib/platform/report-c2.ts');
   const head=['Công ty','Biển số xe','Doanh thu'];

@@ -311,6 +311,16 @@ function installE16RTriggers() {
   return SupabaseService.installE16RTriggers();
 }
 
+function recoverSyncInfrastructure() {
+  var triggers = SupabaseService.installE16RTriggers();
+  var sync = SupabaseService.syncRealtimeCache();
+  return {
+    ok: Boolean(triggers && triggers.ok !== false && sync && sync.ok !== false),
+    triggers: triggers,
+    sync: sync
+  };
+}
+
 function handleTransportSheetEdit(e) {
   return SupabaseService.handleTransportSheetEdit(e);
 }
@@ -440,6 +450,7 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'updateFundSettings') return withFundSync_(safeBody.year, { fundCatalog: true }, function () { return FundService.updateFundSettings(safeBody.year, safeBody.settings || safeBody.payload || safeBody); });
     if (action === 'retryWriteJob') return SupabaseService.retryWriteJob(safeBody.jobId);
     if (action === 'processWriteJobs') return SupabaseService.processWriteJobs(safeBody.maxJobs || 3);
+    if (action === 'recoverSyncInfrastructure') return recoverSyncInfrastructure();
     throw new Error('Hành động POST không hợp lệ: ' + action);
   }
 

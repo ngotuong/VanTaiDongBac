@@ -124,6 +124,21 @@ Bundle hợp lệ khi:
 
 Nếu không hợp lệ, frontend fallback Apps Script thay vì render lỗi cache như dữ liệu.
 
+### 4.5. Daily business summary cho Web Push
+
+`manage_data_bundles` giữ một bundle nội bộ phục vụ bản tổng hợp 12:00 trưa ngày hôm sau:
+
+```text
+sheet_name = XL_VanChuyen
+filter_key = daily-summary:latest
+```
+
+Payload chỉ tổng hợp các dòng của ngày Việt Nam liền trước từ nguồn công thức `XL_VanChuyen`: `trips`, `volume`, `revenue`, `vehicleCount`, `projectCount`, `sourceRows`, `date` và `syncedAt`. Service chỉ đọc workbook qua `SpreadsheetApp.openById`; không ghi hoặc sửa công thức/sheet. Bundle này là dữ liệu nội bộ của dispatcher, không được trả qua API trung tâm thông báo cho browser.
+
+Khi dựng push, Vercel đọc thêm đúng `fund_overview_bundles(year, month_key)` chứa ngày liền trước và chỉ cộng các `details` có `date` trùng ngày đó. `fundIncome`/`fundExpense` vì vậy dùng cùng ngữ nghĩa KPI Quỹ, gồm cả khoản vay/trả nợ/trả lãi đã được `FundService.getFundOverview()` phân loại; không suy ra từ số dư và không dùng bundle tháng khác. Nếu bundle Quỹ chưa tồn tại, nội dung phải ghi rõ chưa có dữ liệu thay vì hiển thị 0 giả.
+
+App badge dùng cùng số chưa đọc cục bộ với chuông. Client gửi số tuyệt đối bằng message `SET_APP_BADGE`; service worker chỉ lưu `{count}` trong cache riêng `vtdb-badge-state-v1`. Push nghiệp vụ mới gửi `unreadDelta`; daily digest gửi `preserveBadge=true` vì không tạo một item chưa đọc trong trung tâm. Service worker không có fetch handler và không cache request hay payload nghiệp vụ.
+
 ## 5. `report_bundles`
 
 ### 5.1. Schema contract
@@ -192,9 +207,12 @@ Chỉnh sửa trực tiếp `NL_*` dùng Script Property `SUPABASE_PENDING_TRANS
 - `syncRealtimeCache()` atomically claim item đến hạn trước vòng tick thường và không tăng rotation index cho lượt ưu tiên;
 - edit mới trong khi item đang chạy tạo item kế tiếp, không bị claim cũ ghi đè;
 - lỗi requeue toàn scope sau 30 giây để đảm bảo eventual consistency.
+- edit trực tiếp Vận tải giữ một `verificationPasses=1`; sau lượt sync thành công đầu tiên, worker tự xếp thêm một lượt cùng scope sau 2 phút để bắt công thức tính muộn;
+- edit trực tiếp `NHAP_THUCHI` xếp refresh báo cáo Vận tải sau 30 giây với `verificationPasses=1`; worker chạy lượt đầu ở tick một phút kế tiếp và bắt buộc hậu kiểm cùng scope sau 2 phút để không chốt snapshot trước khi `IMPORTRANGE`/công thức lương hoàn tất;
+- poll 5 phút tính fingerprint theo từng tháng từ chính `BC_TongQuan`, `BC_BangLuong` và `BC_TongHopXe`; tháng có fingerprint đổi được queue lại cùng `Tất cả`, kể cả khi không có edit event mới;
 - report compute đăng ký token guard; `INSERT_GRID`/`REMOVE_GRID` do temp sheet nội bộ phải skip để queue không tự tạo vòng lặp, nhưng row-level structural changes vẫn phải queue.
 
-SLA mục tiêu cho edit thông thường là tối đa khoảng 2 phút từ lúc edit đến khi Supabase có bundle mới, gồm debounce, độ trễ trigger tick và thời gian compute. Đây không phải transaction guarantee khi Apps Script bị quota/contention hoặc công thức chưa tính xong. Full refresh do structural change có thể lâu hơn.
+SLA mục tiêu cho edit Vận tải thông thường là tối đa khoảng 2 phút. Với edit `NHAP_THUCHI`, lượt đầu thường tới Supabase trong khoảng 1–2 phút và lượt xác minh trong khoảng 3–4 phút; frontend tự revalidate Supabase mỗi 60 giây. Đây không phải transaction guarantee khi Apps Script bị quota/contention hoặc Google Sheets chưa hoàn tất chuỗi `IMPORTRANGE`/công thức. Poll source/report-output 5 phút vẫn là safety net độc lập; full refresh do structural change có thể lâu hơn.
 
 ### 5.5. Audit
 

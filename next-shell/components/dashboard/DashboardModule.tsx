@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { DashboardBundle, DashboardDataResponse, DashboardTrip } from '../../lib/platform/dashboard-types';
-import { buildKpiMap, countUniqueVehicles, formatCurrencyText, growth, metricValue, parseDashboardRows, type DashboardMetricKey, type DashboardMonthRow } from '../../lib/platform/dashboard-c2';
+import { aggregateDashboardPeriod, buildKpiMap, countUniqueVehicles, formatCurrencyText, growth, metricValue, parseDashboardRows, type DashboardMetricKey, type DashboardMonthRow } from '../../lib/platform/dashboard-c2';
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { exportCardAsImage } from '../../lib/platform/export-card';
 import { showToast } from '../../lib/platform/toast';
+import { useSwipeDismiss } from '../platform/useSwipeDismiss';
 import { useVisibleRevalidation } from '../platform/useVisibleRevalidation';
 
 type MetricSpec = { key: DashboardMetricKey; label: string; fullLabel: string; badge: 'blue' | 'red' | 'amber' | 'green'; invert?: boolean; icon: React.ReactNode };
@@ -43,7 +45,87 @@ async function requestDashboard(forceRefresh = false, bypassClientCache = false)
   try { return await request; } finally { dashboardInflight = null; }
 }
 
-function HeroMetricCard({ row, previous, kpiMap, effectiveMonth, months, onSelectMonth }: { row?: DashboardMonthRow; previous?: DashboardMonthRow; kpiMap: ReturnType<typeof buildKpiMap>; effectiveMonth: string; months: string[]; onSelectMonth: (month: string) => void }) {
+function BodyPortal({ children }: { children: React.ReactNode }) {
+  return typeof document === 'undefined' ? null : createPortal(children, document.body);
+}
+
+function periodLabel(start: string, end: string) {
+  if (!start || !end) return 'Chưa có kỳ';
+  return start === end ? start : `${start}–${end}`;
+}
+
+function DashboardPeriodDrawer({ months, start, end, onApply, onClose }: { months: string[]; start: string; end: string; onApply: (start: string, end: string) => void; onClose: () => void }) {
+  const [draftStart, setDraftStart] = useState(start);
+  const [draftEnd, setDraftEnd] = useState(end);
+  const [entered, setEntered] = useState(false);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const swipe = useSwipeDismiss({ onDismiss: onClose });
+  const closeRef = useRef(swipe.close);
+  useEffect(() => { closeRef.current = swipe.close; }, [swipe.close]);
+
+  useEffect(() => {
+    document.body.classList.add('dashboard-period-drawer-open');
+    let enterFrame = window.requestAnimationFrame(() => {
+      enterFrame = window.requestAnimationFrame(() => {
+        setEntered(true);
+        titleRef.current?.focus();
+      });
+    });
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeRef.current();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.classList.remove('dashboard-period-drawer-open');
+      window.cancelAnimationFrame(enterFrame);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
+
+  const startIndex = Math.max(0, months.indexOf(draftStart));
+  const endOptions = months.slice(startIndex);
+  const changeStart = (value: string) => {
+    setDraftStart(value);
+    if (months.indexOf(draftEnd) < months.indexOf(value)) setDraftEnd(value);
+  };
+  const apply = () => {
+    onApply(draftStart, draftEnd);
+    swipe.close();
+  };
+
+  return <BodyPortal>
+    <div className={`dashboard-period-backdrop${swipe.closing ? ' closing' : ''}`} aria-hidden="true" onClick={swipe.close}/>
+    <section
+      className={`dashboard-period-drawer swipe-dismiss-surface${swipe.closing ? ' closing' : ''}`}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dashboard-period-title"
+      style={{ '--drawer-swipe-offset': entered ? '0px' : '100dvh' } as React.CSSProperties}
+      {...swipe.gestureProps}
+    >
+      <header className="dashboard-period-drawer-head" data-swipe-dismiss-handle>
+        <span className="dashboard-period-drawer-handle" aria-hidden="true"/>
+        <h2 id="dashboard-period-title" ref={titleRef} tabIndex={-1}>Chọn kỳ Tổng quan</h2>
+        <button type="button" className="dashboard-period-close" aria-label="Đóng bộ lọc kỳ" onClick={swipe.close}>
+          <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </header>
+      <div className="dashboard-period-drawer-body">
+        <div className="dashboard-period-fields">
+          <label><span>Từ tháng</span><select className="platform-content-select" value={draftStart} onChange={(event) => changeStart(event.target.value)}>{months.map((month) => <option key={month} value={month}>{month}</option>)}</select></label>
+          <label><span>Đến tháng</span><select className="platform-content-select" value={draftEnd} onChange={(event) => setDraftEnd(event.target.value)}>{endOptions.map((month) => <option key={month} value={month}>{month}</option>)}</select></label>
+        </div>
+        <p className="dashboard-period-preview" aria-live="polite">Kỳ đang chọn: <strong>{periodLabel(draftStart, draftEnd)}</strong></p>
+      </div>
+      <footer className="dashboard-period-drawer-footer">
+        <button type="button" className="dashboard-period-all" onClick={() => { setDraftStart(months[0]); setDraftEnd(months[months.length - 1]); }}>Tất cả kỳ</button>
+        <button type="button" className="dashboard-period-apply" onClick={apply}>Áp dụng</button>
+      </footer>
+    </section>
+  </BodyPortal>;
+}
+
+function HeroMetricCard({ row, previous, kpiMap, selectedPeriod, onOpenPeriod }: { row?: DashboardMonthRow; previous?: DashboardMonthRow; kpiMap: ReturnType<typeof buildKpiMap>; selectedPeriod: string; onOpenPeriod: () => void }) {
   const value = row ? metricValue(row, HERO_SPEC.key, kpiMap) : 0;
   const previousValue = previous ? metricValue(previous, HERO_SPEC.key, kpiMap) : undefined;
   const comparison = growth(value, previousValue, false);
@@ -51,11 +133,11 @@ function HeroMetricCard({ row, previous, kpiMap, effectiveMonth, months, onSelec
   return <article className={`kpi-hero-card dashboard-kpi-card ${isNegative ? 'dashboard-tone-profit-negative' : 'dashboard-tone-profit-positive'}`}>
     <div className="kpi-hero-header">
       <div className="kpi-hero-label">{HERO_SPEC.label.toUpperCase()}</div>
-      <div className="dashboard-month-title platform-visually-hidden">{effectiveMonth}</div>
-      <div className="kpi-hero-select-wrap">
-        <select aria-label="Chọn tháng tổng quan" className="kpi-hero-select platform-content-select" value={effectiveMonth} onChange={(event) => onSelectMonth(event.target.value)}>
-          {months.map((m) => <option value={m} key={m}>{m === 'Tất cả' ? 'Tất cả tháng' : m}</option>)}
-        </select>
+      <div className="kpi-hero-select-wrap dashboard-period-control">
+        <span className="dashboard-month-title">{selectedPeriod}</span>
+        <button type="button" className="dashboard-period-trigger" aria-label={`Chọn kỳ Tổng quan, hiện tại ${selectedPeriod}`} aria-haspopup="dialog" onClick={onOpenPeriod}>
+          <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="15" cy="17" r="2"/></svg>
+        </button>
       </div>
     </div>
     <div className={`kpi-hero-value tabular-nums ${isNegative ? 'is-negative' : 'is-positive'}`}>{formatCurrencyText(value)}</div>
@@ -214,40 +296,27 @@ function ExportButton({ title }: { title: string }) {
 
 export function DashboardModule({ initialDashboard, initialError = '' }: { initialDashboard: DashboardBundle | null; initialError?: string }) {
   const [dashboard, setDashboard] = useState(initialDashboard);
-  const [selectedMonth, setSelectedMonth] = useState('');
+  const [periodRange, setPeriodRange] = useState({ start: '', end: '' });
+  const [periodDrawerOpen, setPeriodDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(initialError);
   const rows = useMemo(() => parseDashboardRows(dashboard?.overview?.months), [dashboard]);
   const kpiMap = useMemo(() => buildKpiMap(dashboard?.overview?.kpis), [dashboard]);
-  const monthList = useMemo(() => ['Tất cả', ...new Set(rows.map((r) => r.month))], [rows]);
-  const effectiveMonth = selectedMonth && monthList.includes(selectedMonth) ? selectedMonth : rows[rows.length - 1]?.month || 'Tất cả';
-
-  const aggregateRow = useMemo((): DashboardMonthRow | undefined => {
-    if (!rows.length) return undefined;
-    if (effectiveMonth !== 'Tất cả') return rows.find((r) => r.month === effectiveMonth);
-    return {
-      month: 'Tất cả',
-      volume: rows.reduce((sum, r) => sum + r.volume, 0),
-      revenue: rows.reduce((sum, r) => sum + r.revenue, 0),
-      operatingCost: rows.reduce((sum, r) => sum + r.operatingCost, 0),
-      gross: rows.reduce((sum, r) => sum + r.gross, 0),
-      cashCost: rows.reduce((sum, r) => sum + r.cashCost, 0),
-      final: rows.reduce((sum, r) => sum + r.final, 0),
-      taxTndn: rows.reduce((sum, r) => sum + (r.taxTndn || 0), 0),
-      taxVat: rows.reduce((sum, r) => sum + (r.taxVat || 0), 0),
-      fuelQm: rows.reduce((sum, r) => sum + (r.fuelQm || 0), 0),
-      fuelOut: rows.reduce((sum, r) => sum + (r.fuelOut || 0), 0),
-      roadFee: rows.reduce((sum, r) => sum + (r.roadFee || 0), 0),
-      wardFee: rows.reduce((sum, r) => sum + (r.wardFee || 0), 0),
-      payroll: rows.reduce((sum, r) => sum + (r.payroll || 0), 0),
-      fund: rows.reduce((sum, r) => sum + (r.fund || 0), 0),
-      raw: []
-    };
-  }, [rows, effectiveMonth]);
-
-  const selectedIndex = rows.findIndex((row) => row.month === effectiveMonth);
-  const selected = aggregateRow;
-  const previous = selectedIndex > 0 ? rows[selectedIndex - 1] : undefined;
+  const monthList = useMemo(() => [...new Set(rows.map((row) => row.month))], [rows]);
+  const latestMonth = monthList[monthList.length - 1] || '';
+  const effectiveStart = monthList.includes(periodRange.start) ? periodRange.start : latestMonth;
+  const effectiveEnd = monthList.includes(periodRange.end) && monthList.indexOf(periodRange.end) >= monthList.indexOf(effectiveStart) ? periodRange.end : effectiveStart;
+  const startIndex = Math.max(0, monthList.indexOf(effectiveStart));
+  const endIndex = Math.max(startIndex, monthList.indexOf(effectiveEnd));
+  const selectedRows = rows.slice(startIndex, endIndex + 1);
+  const selectedPeriod = periodLabel(effectiveStart, effectiveEnd);
+  const selected = useMemo(() => aggregateDashboardPeriod(selectedRows, kpiMap, selectedPeriod), [selectedRows, kpiMap, selectedPeriod]);
+  const previous = useMemo(() => {
+    const periodLength = selectedRows.length;
+    if (!periodLength || startIndex < periodLength) return undefined;
+    const previousRows = rows.slice(startIndex - periodLength, startIndex);
+    return aggregateDashboardPeriod(previousRows, kpiMap, periodLabel(previousRows[0]?.month || '', previousRows[previousRows.length - 1]?.month || ''));
+  }, [rows, selectedRows, startIndex, kpiMap]);
   const trips = dashboard?.latestTrips?.trips || [];
   const uniqueVehicleCount = countUniqueVehicles(trips);
 
@@ -274,31 +343,32 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
     <span className="platform-visually-hidden" role="status" aria-live="polite">{loading ? 'Đang cập nhật dữ liệu.' : error}</span>
     {error ? <div className="panel" role="alert" style={{ padding: 16, marginBottom: 20 }}>{error}{!dashboard ? <button type="button" onClick={refresh} disabled={loading}>Thử lại</button> : null}</div> : null}
     <div className="dashboard-module-kpis" style={{ marginBottom: 20 }}>
-      {selected ? <HeroMetricCard row={selected} previous={previous} kpiMap={kpiMap} effectiveMonth={effectiveMonth} months={monthList} onSelectMonth={setSelectedMonth}/> : <article className="kpi-hero-card" aria-busy="true"><div className="shimmer shimmer-text"/><div className="shimmer shimmer-value"/></article>}
+      {selected ? <HeroMetricCard row={selected} previous={previous} kpiMap={kpiMap} selectedPeriod={selectedPeriod} onOpenPeriod={() => setPeriodDrawerOpen(true)}/> : <article className="kpi-hero-card" aria-busy="true"><div className="shimmer shimmer-text"/><div className="shimmer shimmer-value"/></article>}
       <div className="kpi-sub-grid">
         {selected ? SUB_METRICS.map((spec) => <SubMetricCard key={spec.key} spec={spec} row={selected} previous={previous} kpiMap={kpiMap}/>) : SUB_METRICS.map((spec) => <article className="kpi-card" key={spec.key} aria-busy="true"><div className="shimmer shimmer-text"/><div className="shimmer shimmer-value"/></article>)}
       </div>
     </div>
     <section className="table-card high-density-table" style={{ marginBottom: 20 }}>
       <div className="table-card-head">
-        <div><div className="table-title">Biểu Đồ Lợi Nhuận Thực <span style={{ opacity: 0.85, fontWeight: 700, fontSize: '0.9em', marginLeft: 4 }}>({effectiveMonth === 'Tất cả' ? 'Tất cả tháng' : effectiveMonth})</span></div></div>
+        <div><div className="table-title">Biểu Đồ Lợi Nhuận Thực <span style={{ opacity: 0.85, fontWeight: 700, fontSize: '0.9em', marginLeft: 4 }}>({selectedPeriod})</span></div></div>
         <div className="dashboard-export-actions"><ExportButton title="Lợi nhuận thực"/></div>
       </div>
-      <div className="table-wrap" style={{ padding: '0 16px 16px' }}><ProfitChart rows={rows}/></div>
+      <div className="table-wrap" style={{ padding: '0 16px 16px' }}><ProfitChart rows={selectedRows}/></div>
     </section>
     <section className="table-card high-density-table" style={{ marginBottom: 20 }}>
       <div className="table-card-head">
-        <div className="table-title" aria-label="Biểu Đồ Cơ Cấu Chi Phí & Lợi Nhuận (Kết quả kinh doanh theo tháng)">Biểu Đồ Cơ Cấu Chi Phí & Lợi Nhuận <span style={{ opacity: 0.85, fontWeight: 700, fontSize: '0.9em', marginLeft: 4 }}>({effectiveMonth === 'Tất cả' ? 'Tất cả tháng' : effectiveMonth})</span></div>
+        <div className="table-title" aria-label="Biểu Đồ Cơ Cấu Chi Phí & Lợi Nhuận (Kết quả kinh doanh theo tháng)">Biểu Đồ Cơ Cấu Chi Phí & Lợi Nhuận <span style={{ opacity: 0.85, fontWeight: 700, fontSize: '0.9em', marginLeft: 4 }}>({selectedPeriod})</span></div>
         <div className="dashboard-export-actions"><ExportButton title="Cơ cấu chi phí & lợi nhuận"/></div>
       </div>
-      <div className="table-wrap" style={{ padding: '0 16px 16px' }}><FinancialDonutChart row={selected} kpi={selected ? kpiMap.get(selected.month) : undefined}/></div>
+      <div className="table-wrap" style={{ padding: '0 16px 16px' }}><FinancialDonutChart row={selected}/></div>
     </section>
     <section className="table-card high-density-table" style={{ marginBottom: 20 }}>
       <div className="table-card-head">
-        <div><div className="table-title" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>Dữ Liệu Chuyến Gần Đây {dashboard?.latestTrips?.date ? <span style={{ color: '#a7f3d0', fontWeight: 700, fontSize: 13 }}>({dashboard.latestTrips.date})</span> : null}</div></div>
+        <div><div className="table-title" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>Dữ Liệu Chuyến Gần Đây{dashboard?.latestTrips?.date ? <span style={{ color: '#a7f3d0', fontWeight: 700, fontSize: 13 }}>({dashboard.latestTrips.date})</span> : null}</div></div>
         <div className="dashboard-export-actions"><ExportButton title="Số chuyến xe"/></div>
       </div>
       <div className="table-wrap"><table><thead><tr><th style={{ width: '22%', textAlign: 'left' }}>Dự án</th><th style={{ width: '22%', textAlign: 'left' }}>Biển số xe</th><th style={{ width: '20%', textAlign: 'left' }}>Số chuyến</th><th style={{ width: '36%', textAlign: 'left' }}>Số phiếu</th></tr></thead><tbody>{trips.length ? <>{trips.map((trip: DashboardTrip, index) => <tr key={`${trip.project}-${trip.vehicle}-${index}`}><td style={{ fontWeight: 600, textAlign: 'left' }}>{trip.project || '-'}</td><td style={{ fontWeight: 700, color: 'var(--deep)', textAlign: 'left' }}>{trip.vehicle || ''}</td><td className="tabular-nums" style={{ fontWeight: 600, textAlign: 'left' }}>{Number(trip.count || 0).toLocaleString('vi-VN')}</td><td style={{ color: 'var(--muted)', textAlign: 'left' }}>{trip.ticket || '-'}</td></tr>)}<tr className="total-row" style={{ position: 'sticky', bottom: 0, fontWeight: 800 }}><td style={{ fontWeight: 800, color: 'var(--deep)', textAlign: 'left' }}>Tổng cộng</td><td style={{ fontWeight: 800, color: 'var(--teal)', textAlign: 'left' }}>{uniqueVehicleCount ? `${uniqueVehicleCount} xe` : '-'}</td><td className="tabular-nums" style={{ fontWeight: 800, color: 'var(--teal)', textAlign: 'left' }}>{trips.reduce((sum, trip) => sum + Number(trip.count || 0), 0).toLocaleString('vi-VN')}</td><td style={{ textAlign: 'left' }}/></tr></> : <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--muted)', padding: 24 }}>Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>}</tbody></table></div>
     </section>
+    {periodDrawerOpen && monthList.length ? <DashboardPeriodDrawer months={monthList} start={effectiveStart} end={effectiveEnd} onApply={(start, end) => setPeriodRange({ start, end })} onClose={() => setPeriodDrawerOpen(false)}/> : null}
   </section>;
 }

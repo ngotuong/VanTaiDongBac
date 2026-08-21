@@ -6,17 +6,21 @@ const test = require('node:test');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('Web Push service worker handles visible notifications without caching app data', () => {
+test('Web Push service worker persists only badge count and never caches app requests', () => {
   const worker = read('public/sw.js');
   assert.match(worker, /addEventListener\('push'/);
   assert.match(worker, /showNotification/);
   assert.match(worker, /self\.navigator\.setAppBadge/);
   assert.match(worker, /payload\.unreadCount/);
   assert.match(worker, /event\.data\?\.type !== 'SET_APP_BADGE'/);
+  assert.match(worker, /BADGE_STATE_CACHE = 'vtdb-badge-state-v1'/);
+  assert.match(worker, /JSON\.stringify\(\{ count \}\)/);
+  assert.match(worker, /payload\.unreadDelta/);
+  assert.match(worker, /payload\.preserveBadge/);
   assert.match(worker, /addEventListener\('notificationclick'/);
   assert.match(worker, /notificationTarget === '\/entry\/' \? '\/manage\/\?entry=vanChuyen'/);
   assert.doesNotMatch(worker, /addEventListener\(['"]fetch['"]/);
-  assert.doesNotMatch(worker, /caches\.|CacheStorage|indexedDB/);
+  assert.doesNotMatch(worker, /cache\.add|cache\.addAll|indexedDB/);
 });
 
 test('Web Push API requires current session and same-origin CSRF for writes', () => {

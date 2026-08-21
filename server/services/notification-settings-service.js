@@ -6,7 +6,7 @@ const NOTIFICATION_TYPES = Object.freeze([
   { key: FUND_NOTIFICATION_KEY, label: 'Cảnh báo số dư Quỹ', description: 'Số dư hiện tại xuống dưới ngưỡng đã đặt.', roles: ['admin', 'shareholder'] },
   { key: 'operations-integrity', label: 'Kiểm tra vận hành', description: 'Chấm công hoặc phân công lái được workbook báo bất thường.', roles: ['admin', 'operator'] },
   { key: 'system-health', label: 'Lỗi đồng bộ & hàng đợi', description: 'Cache cũ, đồng bộ lỗi hoặc thao tác ghi bị treo.', roles: ['admin'] },
-  { key: 'daily-digest', label: 'Tổng hợp cuối ngày', description: 'Một bản tổng hợp lúc 20:00 thay cho nhiều thông báo rời.', roles: ['admin', 'operator', 'shareholder'] }
+  { key: 'daily-digest', label: 'Tổng hợp ngày hôm trước', description: 'Gửi lúc 12:00 trưa với số chuyến, doanh thu và Thu/Chi Quỹ của ngày hôm trước.', roles: ['admin', 'operator', 'shareholder'] }
 ]);
 
 function createNotificationSettingsService({ preferenceRepository, ruleConfigRepository, httpError, now = () => new Date() }) {

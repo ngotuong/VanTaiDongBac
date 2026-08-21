@@ -33,9 +33,15 @@ test('Settings mobile grid and account cards cannot widen the viewport', () => {
 test('Dense Settings actions use progressive disclosure and only persistent states use switches', () => {
   const settings = read('next-shell/components/settings/SettingsModule.tsx');
   const fundAlert = read('next-shell/components/settings/FundAlertSettings.tsx');
+  const css = read('next-shell/app/c2-golden.css');
   assert.match(settings, /<details className="account-create-disclosure">/);
   assert.match(fundAlert, /<details className="fund-alert-disclosure">/);
   assert.match(fundAlert, /fund-alert-rule-toggle/);
+  assert.match(fundAlert, /fund-alert-rule-card/);
+  assert.match(fundAlert, /fund-alert-rule-title-row/);
+  assert.doesNotMatch(fundAlert, /Đang bật|Đang tắt/);
+  assert.match(fundAlert, /formatVietnameseNumberInput\(String\(rule\.thresholdValue/);
+  assert.match(css, /\.fund-alert-form input\[type="text"\],[\s\S]*font-weight: 500/);
   assert.match(fundAlert, /Mở rộng quy tắc cảnh báo/);
   assert.match(fundAlert, /Kiểm tra bản nháp — không gửi/);
   assert.match(fundAlert, /<PillSwitch checked=\{rule\.enabled\}/);

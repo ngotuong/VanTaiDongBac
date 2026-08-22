@@ -3,7 +3,7 @@ import { loadReportData } from '../../lib/report-server';
 export const metadata = { title: 'Báo cáo' };
 export default async function ReportsPage() {
   try {
-    const data = await loadReportData('Tất cả');
+    const data = await loadReportData('latest');
     return <ReportModule initialBundle={data.bundle} initialVehicleOwners={data.vehicleOwners} />;
   } catch (error) {
     return <ReportModule initialBundle={null} initialError={error?.message || 'Không tải được báo cáo.'} />;

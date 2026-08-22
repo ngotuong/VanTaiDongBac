@@ -41,17 +41,17 @@ test('Report overview derives missing gross and real profit rows with detail-rep
   assert.deepEqual(pivot.at(-1),['Lợi nhuận thực','470','470']);
 });
 
-test('Report calendar range and bundle aggregation preserve month order and detail semantics',async()=>{
+test('Report calendar range and bundle aggregation sum repeated payroll and vehicle identities',async()=>{
   const helpers=await import('../next-shell/lib/platform/report-c2.ts');
   assert.deepEqual(helpers.calendarMonthRange('05/2026','07/2026'),['05/2026','06/2026','07/2026']);
   assert.deepEqual(helpers.monthsWithinRange(['07/2026','05/2026','06/2026'],'05/2026','06/2026'),['05/2026','06/2026']);
   const months=[['Tháng','Doanh thu'],['05/2026','100'],['06/2026','200']];
-  const first={overview:{months,details:[['Danh mục','Tổng','A','B','Giải thích'],['Doanh thu','100','60','40','Nguồn']]},payroll:[['Tháng','Nhân sự','Tổng lương'],['05/2026','An','10']],vehicles:[['Tháng','Biển số','Doanh thu'],['05/2026','20A','100']]};
-  const second={overview:{months,details:[['Danh mục','Tổng','A','B','Giải thích'],['Doanh thu','200','120','80','Nguồn']]},payroll:[['Tháng','Nhân sự','Tổng lương'],['06/2026','Bình','20']],vehicles:[['Tháng','Biển số','Doanh thu'],['06/2026','20B','200']]};
+  const first={overview:{months,details:[['Danh mục','Tổng','A','B','Giải thích'],['Doanh thu','100','60','40','Nguồn']]},payroll:[['Tháng','Nhân sự','Chức vụ','Tổng lương','Công ty'],['05/2026','An','Tài xế','10','Đông Bắc']],vehicles:[['Tháng','Công ty','Biển số','Doanh thu'],['05/2026','Đông Bắc','20A','100']]};
+  const second={overview:{months,details:[['Danh mục','Tổng','A','B','Giải thích'],['Doanh thu','200','120','80','Nguồn']]},payroll:[['Tháng','Nhân sự','Chức vụ','Tổng lương','Công ty'],['06/2026','An','Tài xế','20','Đông Bắc']],vehicles:[['Tháng','Công ty','Biển số','Doanh thu'],['06/2026','Đông Bắc','20A','200']]};
   const aggregate=helpers.aggregateReportBundles([first,second],['05/2026','06/2026']);
   assert.deepEqual(aggregate.overview.details[1],['Doanh thu','300','180','120','Nguồn']);
-  assert.deepEqual(aggregate.payroll.slice(1).map(row=>row[0]),['05/2026','06/2026']);
-  assert.deepEqual(aggregate.vehicles.slice(1).map(row=>row[0]),['05/2026','06/2026']);
+  assert.deepEqual(aggregate.payroll,[['Tháng','Nhân sự','Chức vụ','Tổng lương','Công ty'],['05/2026–06/2026','An','Tài xế','30','Đông Bắc']]);
+  assert.deepEqual(aggregate.vehicles,[['Tháng','Công ty','Biển số','Doanh thu'],['05/2026–06/2026','Đông Bắc','20A','300']]);
 });
 
 test('C3 Report keeps profit rows in overview/detail and removes source totals only from row-level reports',async()=>{

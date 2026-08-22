@@ -77,7 +77,7 @@ Production đã xác nhận gần nhất:
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_AMh8SapMaTrb3wPwRr7QivApE6hs`, READY ngày 2026-08-21.
+- Vercel deployment: `dpl_4v2MQR5qZVqeBvLHfbVwKbBcVnQN`, READY ngày 2026-08-22.
 - Apps Script Preview: `@340`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
 - Gate deploy PASS 531/531 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; authenticated Report QA PASS, HTTP/title/console PASS và Production Vercel không đổi trong checkpoint Preview.
@@ -134,6 +134,15 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Báo cáo mặc định tháng hiện tại và tổng hợp Lương/Xe theo khoảng — Preview 2026-08-22
+
+- Báo cáo mở mặc định ở tháng dữ liệu hiện tại `08/2026`, quick filter hiển thị `Tháng này`; tiêu đề và ma trận chỉ hiện tháng 8 cùng cột Tổng.
+- Hai nhãn tháng dùng lớp hiển thị tuyệt đối cao 100% và flex căn giữa; authenticated mobile QA 390×844 xác nhận cả hai có `centerDelta=0`, font 14px/500 và trang không tràn ngang.
+- Khoảng nhiều tháng không còn nối lặp các dòng Lương/Xe. Lương gộp theo `Nhân sự + Chức vụ + Công ty`; Xe gộp theo `Công ty + Biển số`; mọi cột số được cộng, ghi chú khác nhau được hợp nhất.
+- Authenticated QA 07/2026–08/2026 có 31/31 khóa Lương duy nhất và 15/15 khóa Xe duy nhất. Đối chiếu thật: Huy `32.290.000 + 21.000.000 = 53.290.000`; xe `20H05664` `110.482.358 + 269.168.432 = 379.650.790`.
+- Preview Vercel `dpl_4v2MQR5qZVqeBvLHfbVwKbBcVnQN`; Production giữ nguyên `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`; Apps Script giữ nguyên `@340`, không thay đổi Google Sheet.
+- Gate PASS 531/531 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`; console Preview không có error/warning.
 
 ### Báo cáo tinh chỉnh typography và căn chỉnh ma trận — Preview 2026-08-21
 

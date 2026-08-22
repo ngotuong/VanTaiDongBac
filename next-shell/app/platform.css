@@ -3490,6 +3490,7 @@ html body .report-data-table-finance td:first-child {
   min-width: 176px !important;
   width: 176px !important;
   max-width: 176px !important;
+  color: var(--platform-text, #0f172a) !important;
   text-align: left !important;
 }
 

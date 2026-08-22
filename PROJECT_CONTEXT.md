@@ -68,16 +68,16 @@ Runtime chính:
 Production đã xác nhận gần nhất:
 
 - URL: `https://dongbac.vercel.app`.
-- Vercel deployment: `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, READY và cut-forward ngày 2026-08-21.
+- Vercel deployment: `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, READY và cut-forward ngày 2026-08-22.
 - Apps Script production cùng deployment ID canonical: code version `@340`; rollback gần nhất `@338`, tiếp theo `@337`.
-- Vercel rollback gần nhất: `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`; rollback lịch sử tiếp theo là `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, rồi `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
+- Vercel rollback gần nhất: `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`; rollback lịch sử tiếp theo là `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, rồi `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_4v2MQR5qZVqeBvLHfbVwKbBcVnQN`, READY ngày 2026-08-22.
+- Vercel deployment: `dpl_8X9oAe5ziTmDTP27j9uD4ZkkCuTE`, READY ngày 2026-08-22.
 - Apps Script Preview: `@340`, deployment ID riêng với Production.
 - Chỉ deploy bằng `npm run deploy:preview`.
 - Gate deploy PASS 531/531 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; authenticated Report QA PASS, HTTP/title/console PASS và Production Vercel không đổi trong checkpoint Preview.
@@ -134,6 +134,14 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Báo cáo Tổng Quan đồng nhất màu nhãn Danh mục — Production 2026-08-22
+
+- Toàn bộ text trong cột `Danh mục` của bảng Báo cáo Tổng Quan dùng màu chuẩn `#0f172a`, đồng nhất với các bảng dữ liệu khác; màu semantic của các ô số liệu vẫn được giữ nguyên.
+- Gate Preview PASS 531/531 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Authenticated Preview QA xác nhận cả 12 nhãn danh mục có computed color `rgb(15, 23, 42)` và không ảnh hưởng màu số liệu.
+- Preview Vercel `dpl_8X9oAe5ziTmDTP27j9uD4ZkkCuTE`; Production candidate đóng gói riêng với endpoint Apps Script Production là `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, sau đó alias `dongbac.vercel.app` được cut-forward theo phê duyệt.
+- Public Production smoke PASS: root và Dashboard/Báo cáo/Vận hành/Danh mục/Quỹ/Cài đặt đều HTTP 200, không chuyển Vercel Login; session không cookie trả 401; health trả 200 và xác nhận đúng app, Supabase, Vercel project, môi trường Production và Apps Script Production `@340`.
+- Rollback Vercel gần nhất `dpl_CogE124n97QyuRL8QSW4tCpcKYmv` vẫn READY. Không thay đổi Apps Script, Supabase schema hoặc Google Sheet.
 
 ### Báo cáo mặc định tháng hiện tại và tổng hợp Lương/Xe theo khoảng — Preview 2026-08-22
 

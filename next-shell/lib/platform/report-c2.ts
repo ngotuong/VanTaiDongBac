@@ -198,6 +198,61 @@ function mergeMonthlyMatrices(matrices: Array<ReportMatrix | undefined>): Report
   return [[...valid[0].head], ...valid.flatMap(({ body }) => body.map((row) => [...row]))];
 }
 
+export function aggregateMonthlyRowMatrices(
+  matrices: Array<ReportMatrix | undefined>,
+  type: 'payroll' | 'vehicles',
+  includedMonths: string[]
+): ReportMatrix {
+  const valid = matrices.map(matrixRows).filter(({ head }) => head.length);
+  if (!valid.length) return [];
+  const head = [...valid[0].head];
+  const normalized = head.map((cell) => removeAccents(String(cell ?? '').toLowerCase()));
+  const find = (labels: string[]) => normalized.findIndex((header) => labels.some((label) => header.includes(label)));
+  const monthIdx = find(['thang']);
+  const primaryIdx = type === 'payroll' ? find(['nhan su']) : find(['bien so', 'bien xe']);
+  const keyIndexes = type === 'payroll'
+    ? [primaryIdx, find(['chuc vu']), find(['cong ty', 'don vi', 'bo phan'])]
+    : [find(['cong ty', 'chu xe', 'nha xe', 'don vi']), primaryIdx];
+  const usableKeys = [...new Set(keyIndexes.filter((index) => index >= 0))];
+  if (primaryIdx < 0 || !usableKeys.length) return mergeMonthlyMatrices(matrices);
+
+  const allowedMonths = new Set(includedMonths.map(normalizeMonth));
+  const period = includedMonths.length === 1 ? includedMonths[0] : `${includedMonths[0]}–${includedMonths.at(-1)}`;
+  const rowsByKey = new Map<string, ReportCell[]>();
+  for (const { body } of valid) {
+    for (const sourceRow of body) {
+      const rowMonth = monthIdx >= 0 ? normalizeMonth(sourceRow[monthIdx]) : '';
+      if (allowedMonths.size && rowMonth && !allowedMonths.has(rowMonth)) continue;
+      const primary = String(sourceRow[primaryIdx] ?? '').trim();
+      if (!primary || isTotalRow([primary])) continue;
+      const key = usableKeys.map((index) => removeAccents(String(sourceRow[index] ?? '').trim().toLowerCase())).join('\u001f');
+      const existing = rowsByKey.get(key);
+      if (!existing) {
+        const first = [...sourceRow];
+        if (monthIdx >= 0) first[monthIdx] = period;
+        rowsByKey.set(key, first);
+        continue;
+      }
+      for (let index = 0; index < head.length; index += 1) {
+        if (index === monthIdx || usableKeys.includes(index)) continue;
+        const incoming = sourceRow[index];
+        const incomingNumber = parseCellValue(incoming);
+        if (incomingNumber !== null) {
+          const currentNumber = parseCellValue(existing[index]);
+          existing[index] = formatValueLike((currentNumber ?? 0) + incomingNumber, existing[index] || incoming);
+          continue;
+        }
+        const label = normalized[index];
+        const incomingText = String(incoming ?? '').trim();
+        if (!incomingText || !['ghi chu', 'noi dung', 'giai thich'].some((part) => label.includes(part))) continue;
+        const currentParts = String(existing[index] ?? '').split(' · ').map((part) => part.trim()).filter(Boolean);
+        if (!currentParts.includes(incomingText)) existing[index] = [...currentParts, incomingText].join(' · ');
+      }
+    }
+  }
+  return [head, ...rowsByKey.values()];
+}
+
 export function aggregateReportBundles(bundles: ReportBundle[], includedMonths: string[]): ReportBundle {
   if (!bundles.length) return {};
   const latest = bundles[bundles.length - 1];
@@ -209,8 +264,8 @@ export function aggregateReportBundles(bundles: ReportBundle[], includedMonths: 
       months: latest.overview?.months,
       details: aggregateDetailMatrices(bundles.map((bundle) => bundle.overview?.details))
     },
-    payroll: mergeMonthlyMatrices(bundles.map((bundle) => bundle.payroll)),
-    vehicles: mergeMonthlyMatrices(bundles.map((bundle) => bundle.vehicles))
+    payroll: aggregateMonthlyRowMatrices(bundles.map((bundle) => bundle.payroll), 'payroll', includedMonths),
+    vehicles: aggregateMonthlyRowMatrices(bundles.map((bundle) => bundle.vehicles), 'vehicles', includedMonths)
   };
 }
 

@@ -3426,8 +3426,13 @@ html body #reportsView .report-month-input {
 }
 
 html body #reportsView .report-month-input .date-display-text {
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
   width: 100% !important;
-  padding: 0 !important;
+  height: 100% !important;
+  padding: 0 12px !important;
   color: var(--platform-text, #0f172a) !important;
   font-size: 14px !important;
   font-weight: 600 !important;
@@ -3527,7 +3532,7 @@ html body .catalog-c2 #catalogVehicleOwnerFilterWrap {
   }
 
   html body #reportsView .report-month-input .date-display-text {
-    font-size: 13px !important;
+    padding-inline: 7px !important;
   }
 
   html body .cashflow-overview-filter-panel {

@@ -26,7 +26,7 @@ const LABELS: Record<ReportType, string> = {
 const reportResponseCache = new Map<string, ReportDataResponse>();
 const reportInflight = new Map<string, Promise<ReportDataResponse>>();
 type ReportPeriodMode = 'year' | 'range';
-type ReportQuickPeriod = 'year' | 'q1' | 'q2' | 'q3' | 'q4' | 'custom';
+type ReportQuickPeriod = 'current' | 'year' | 'q1' | 'q2' | 'q3' | 'q4' | 'custom';
 
 function formatMonthControlLabel(month: string) {
   const normalized = normalizeMonth(month);
@@ -45,6 +45,8 @@ async function requestReport(mode: ReportPeriodMode, fromMonth: string, toMonth:
   const url = new URL('/report-data/', window.location.origin);
   if (mode === 'year') {
     url.searchParams.set('month', 'Tất cả');
+  } else if (forceRefresh && fromMonth === toMonth) {
+    url.searchParams.set('month', fromMonth);
   } else {
     url.searchParams.set('fromMonth', fromMonth);
     url.searchParams.set('toMonth', toMonth);
@@ -209,15 +211,14 @@ function ReportTable({ type, matrix, query, periodLabel }: { type: ReportType; m
 
 export function ReportModule({ initialBundle, initialVehicleOwners = {}, initialError = '' }: { initialBundle: ReportBundle | null; initialVehicleOwners?: Record<string, string>; initialError?: string }) {
   const initialMonths = reportDataMonths(initialBundle?.overview?.months);
-  const initialFromMonth = normalizeMonth(initialMonths[0] || '');
-  const initialToMonth = normalizeMonth(initialMonths.at(-1) || '');
+  const initialCurrentMonth = normalizeMonth(initialMonths.at(-1) || '');
   const [bundle, setBundle] = useState(initialBundle);
   const [vehicleOwners, setVehicleOwners] = useState(initialVehicleOwners);
-  const [periodMode, setPeriodMode] = useState<ReportPeriodMode>('year');
-  const [quickPeriod, setQuickPeriod] = useState<ReportQuickPeriod>('year');
-  const [fromMonth, setFromMonth] = useState(initialFromMonth);
-  const [toMonth, setToMonth] = useState(initialToMonth);
-  const [renderedPeriod, setRenderedPeriod] = useState<string | null>(initialBundle ? 'year' : null);
+  const [periodMode, setPeriodMode] = useState<ReportPeriodMode>('range');
+  const [quickPeriod, setQuickPeriod] = useState<ReportQuickPeriod>('current');
+  const [fromMonth, setFromMonth] = useState(initialCurrentMonth);
+  const [toMonth, setToMonth] = useState(initialCurrentMonth);
+  const [renderedPeriod, setRenderedPeriod] = useState<string | null>(initialBundle ? reportPeriodKey('range', initialCurrentMonth, initialCurrentMonth) : null);
   const [availableMonths, setAvailableMonths] = useState(initialMonths);
   const [tab, setTab] = useState<(typeof TABS)[number][0]>('all');
   const [query, setQuery] = useState('');
@@ -239,8 +240,8 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
 
   useEffect(() => {
     if (!initialBundle) return;
-    reportResponseCache.set('year', { bundle: initialBundle, vehicleOwners: initialVehicleOwners, requestedMonth: 'Tất cả' });
-  }, [initialBundle, initialVehicleOwners]);
+    reportResponseCache.set(reportPeriodKey('range', initialCurrentMonth, initialCurrentMonth), { bundle: initialBundle, vehicleOwners: initialVehicleOwners, requestedMonth: initialCurrentMonth });
+  }, [initialBundle, initialVehicleOwners, initialCurrentMonth]);
 
   useEffect(() => {
     publishDataSourceMeta(bundle);
@@ -322,6 +323,11 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   const selectQuickPeriod = (value: ReportQuickPeriod) => {
     setQuickPeriod(value);
     if (value === 'custom') return;
+    if (value === 'current') {
+      const currentMonth = normalizeMonth(availableMonths.at(-1) || '');
+      if (currentMonth) void loadPeriod('range', currentMonth, currentMonth);
+      return;
+    }
     if (value === 'year') {
       void loadPeriod('year');
       return;
@@ -349,6 +355,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
             </label>
           </div>
           <select id="reportQuickPeriodFilter" aria-label="Bộ lọc nhanh thời gian Báo cáo" className="report-quick-period-select cashflow-quick-period-select platform-content-select" value={quickPeriod} onChange={(event) => selectQuickPeriod(event.target.value as ReportQuickPeriod)}>
+            <option value="current">Tháng này</option>
             <option value="year">Năm nay</option>
             {[1, 2, 3, 4].map((quarter) => <option value={`q${quarter}`} disabled={!reportQuarterMonths(availableMonths, quarter).length} key={quarter}>Quý {quarter}</option>)}
             <option value="custom">Tùy chọn</option>

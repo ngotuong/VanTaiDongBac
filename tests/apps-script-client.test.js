@@ -34,7 +34,15 @@ test('AppsScriptClient preserves payload limit without making an upstream reques
 
 test('AppsScriptClient preserves upstream non-2xx and invalid JSON error mapping', async () => {
   const non2xx = createAppsScriptClient({ fetchImpl: async () => ({ ok: false, status: 503, text: async () => 'down' }) });
-  assert.deepEqual(await non2xx.forward(request), { status: 502, body: { ok: false, error: 'Apps Script trả status 503.' } });
+  assert.deepEqual(await non2xx.forward(request), {
+    status: 502,
+    body: { ok: false, error: 'Apps Script trả status 503.', code: 'APPS_SCRIPT_UPSTREAM_ERROR', upstreamStatus: 503 }
+  });
+  const denied = createAppsScriptClient({ fetchImpl: async () => ({ ok: false, status: 403, text: async () => '<html>access denied</html>' }) });
+  assert.deepEqual(await denied.forward(request), {
+    status: 502,
+    body: { ok: false, error: 'Không thể truy cập Apps Script deployment.', code: 'APPS_SCRIPT_ACCESS_DENIED', upstreamStatus: 403 }
+  });
   const invalid = createAppsScriptClient({ fetchImpl: async () => ({ ok: true, status: 200, text: async () => '<html>' }) });
   assert.deepEqual(await invalid.forward(request), { status: 502, body: { ok: false, error: 'Apps Script trả dữ liệu không hợp lệ.' } });
 });

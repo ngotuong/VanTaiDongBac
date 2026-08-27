@@ -78,17 +78,22 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
     const workerStale = Boolean(worker) && workerAgeMinutes > CRITICAL_SYNC_KEYS.get('realtime_cache_worker');
     const watchdogFailure = syncStatuses.find((row) => row.sync_key === 'external_sync_watchdog' && String(row.status || '').toLowerCase() !== 'ok');
     const watchdogAuthorizationRequired = String(watchdogFailure?.status || '').toLowerCase() === 'authorization_required';
+    const watchdogDeploymentAccessDenied = String(watchdogFailure?.status || '').toLowerCase() === 'deployment_access_denied';
 
     if (workerStale) {
       result.push({
         id: id('sync-health', 'realtime-cache-worker', worker.updated_at || worker.synced_at, 'stale'),
         type: 'sync-stale', notificationKey: 'system-health', severity: 'error',
-        title: watchdogAuthorizationRequired ? 'Đồng bộ cần được cấp lại quyền' : (watchdogFailure ? 'Không thể tự khôi phục đồng bộ' : 'Đồng bộ tự động đã dừng'),
+        title: watchdogAuthorizationRequired
+          ? 'Đồng bộ cần được cấp lại quyền'
+          : (watchdogDeploymentAccessDenied ? 'Kết nối Apps Script bị chặn' : (watchdogFailure ? 'Không thể tự khôi phục đồng bộ' : 'Đồng bộ tự động đã dừng')),
         message: watchdogAuthorizationRequired
-          ? 'Google đang chặn tiến trình đồng bộ. Hãy mở Apps Script và chạy một hàm bất kỳ để cấp lại quyền.'
-          : (watchdogFailure
+          ? 'Apps Script xác nhận thiếu quyền OAuth. Hãy mở đúng tài khoản chủ dự án và chạy recoverSyncInfrastructure().'
+          : (watchdogDeploymentAccessDenied
+            ? 'Webapp không truy cập được Apps Script deployment. Hãy kiểm tra đúng tài khoản triển khai và quyền truy cập deployment.'
+            : (watchdogFailure
             ? 'Watchdog đã phát hiện gián đoạn nhưng lượt tự khôi phục chưa thành công. Hãy kiểm tra Trạng thái hệ thống.'
-            : `Dữ liệu chưa cập nhật trong ${Math.floor(workerAgeMinutes)} phút. Các tác vụ dữ liệu và thông báo đang tạm dừng.`),
+            : `Dữ liệu chưa cập nhật trong ${Math.floor(workerAgeMinutes)} phút. Các tác vụ dữ liệu và thông báo đang tạm dừng.`)),
         date: isoDate(worker.updated_at || worker.synced_at, currentTime), url: '/observability/'
       });
     }
@@ -107,15 +112,20 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
       const stale = status === 'ok' || expiredFailure;
       const externalWatchdogFailure = row.sync_key === 'external_sync_watchdog' && status !== 'ok';
       const externalWatchdogAuthorizationRequired = externalWatchdogFailure && status === 'authorization_required';
+      const externalWatchdogDeploymentAccessDenied = externalWatchdogFailure && status === 'deployment_access_denied';
       result.push({
         id: id('sync-health', row.sync_key, row.status, row.updated_at, stale ? 'stale' : row.message),
         type: stale ? 'sync-stale' : 'sync-failure', notificationKey: 'system-health', severity: 'error',
-        title: externalWatchdogAuthorizationRequired ? 'Đồng bộ cần được cấp lại quyền' : (externalWatchdogFailure ? 'Không thể tự khôi phục đồng bộ' : (stale ? 'Dữ liệu chưa được đồng bộ mới' : 'Đồng bộ dữ liệu gặp lỗi')),
+        title: externalWatchdogAuthorizationRequired
+          ? 'Đồng bộ cần được cấp lại quyền'
+          : (externalWatchdogDeploymentAccessDenied ? 'Kết nối Apps Script bị chặn' : (externalWatchdogFailure ? 'Không thể tự khôi phục đồng bộ' : (stale ? 'Dữ liệu chưa được đồng bộ mới' : 'Đồng bộ dữ liệu gặp lỗi'))),
         message: externalWatchdogAuthorizationRequired
-          ? 'Google đang chặn tiến trình đồng bộ. Hãy mở Apps Script và chạy một hàm bất kỳ để cấp lại quyền.'
-          : (externalWatchdogFailure
+          ? 'Apps Script xác nhận thiếu quyền OAuth. Hãy mở đúng tài khoản chủ dự án và chạy recoverSyncInfrastructure().'
+          : (externalWatchdogDeploymentAccessDenied
+            ? 'Webapp không truy cập được Apps Script deployment. Hãy kiểm tra đúng tài khoản triển khai và quyền truy cập deployment.'
+            : (externalWatchdogFailure
             ? 'Watchdog đã phát hiện gián đoạn nhưng lượt tự khôi phục chưa thành công. Hãy kiểm tra Trạng thái hệ thống.'
-            : (stale ? `${row.sync_key} chưa cập nhật trong ${Math.floor(ageMinutes)} phút.` : `${row.sync_key}: ${String(row.message || row.status).slice(0, 160)}.`)),
+            : (stale ? `${row.sync_key} chưa cập nhật trong ${Math.floor(ageMinutes)} phút.` : `${row.sync_key}: ${String(row.message || row.status).slice(0, 160)}.`))),
         date: isoDate(row.updated_at || row.synced_at, currentTime), url: '/observability/'
       });
     }

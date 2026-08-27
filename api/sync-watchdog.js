@@ -55,7 +55,19 @@ function workerAgeMs(worker, currentTime) {
 }
 
 function isAuthorizationFailure(message) {
-  return /(?:status\s*403|permission|oauth|authori[sz]|quyền)/i.test(String(message || ''));
+  return /(?:authorization\s+(?:is\s+)?required|oauth[^.]{0,80}(?:expired|revoked|required)|re-?authori[sz]|cấp\s+lại\s+quyền|chưa\s+được\s+cấp\s+quyền)/i.test(String(message || ''));
+}
+
+function isDeploymentAccessFailure(recovery) {
+  const code = String(recovery?.body?.code || '');
+  const upstreamStatus = Number(recovery?.body?.upstreamStatus) || 0;
+  return code === 'APPS_SCRIPT_ACCESS_DENIED' || upstreamStatus === 401 || upstreamStatus === 403;
+}
+
+function recoveryStatus(recovery, failure) {
+  if (isDeploymentAccessFailure(recovery)) return 'deployment_access_denied';
+  if (isAuthorizationFailure(failure)) return 'authorization_required';
+  return 'error';
 }
 
 function recoveryFailure(recovery) {
@@ -99,7 +111,7 @@ function createSyncWatchdog({ fetchImpl = fetch, now = () => new Date() } = {}) 
       });
       const failure = recoveryFailure(recovery);
       if (failure) {
-        const status = isAuthorizationFailure(failure) ? 'authorization_required' : 'error';
+        const status = recoveryStatus(recovery, failure);
         await writeWatchdogStatus(config, fetchImpl, status, failure, currentTime);
         return send(res, 502, { ok: false, error: failure, ageMinutes: Math.floor(ageMs / 60000) });
       }
@@ -123,4 +135,6 @@ module.exports = createSyncWatchdog();
 module.exports.createSyncWatchdog = createSyncWatchdog;
 module.exports.MAX_WORKER_AGE_MS = MAX_WORKER_AGE_MS;
 module.exports.isAuthorizationFailure = isAuthorizationFailure;
+module.exports.isDeploymentAccessFailure = isDeploymentAccessFailure;
+module.exports.recoveryStatus = recoveryStatus;
 module.exports.recoveryFailure = recoveryFailure;

@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { createSyncWatchdog, isAuthorizationFailure, recoveryFailure } = require('../api/sync-watchdog');
+const { createSyncWatchdog, isAuthorizationFailure, recoveryStatus, recoveryFailure } = require('../api/sync-watchdog');
 
 function responseRecorder() {
   return {
@@ -110,7 +110,7 @@ test('sync watchdog rejects unauthenticated callers before reading data', async 
   assert.equal(called, false);
 }));
 
-test('sync watchdog records authorization_required only for an Apps Script authorization failure', async () => withEnvironment(environment, async () => {
+test('sync watchdog records deployment access denial without guessing OAuth revocation', async () => withEnvironment(environment, async () => {
   const statusWrites = [];
   const handler = createSyncWatchdog({
     now: () => new Date('2026-08-20T04:00:00.000Z'),
@@ -128,13 +128,26 @@ test('sync watchdog records authorization_required only for an Apps Script autho
   const res = responseRecorder();
   await handler({ method: 'GET', headers: { authorization: 'Bearer watchdog-secret' } }, res);
   assert.equal(res.statusCode, 502);
-  assert.equal(statusWrites[0].status, 'authorization_required');
+  assert.equal(statusWrites[0].status, 'deployment_access_denied');
 }));
 
 test('sync watchdog keeps non-authorization recovery failures distinct', () => {
-  assert.equal(isAuthorizationFailure('Apps Script trả status 403.'), true);
+  assert.equal(isAuthorizationFailure('Apps Script trả status 403.'), false);
+  assert.equal(isAuthorizationFailure('Authorization is required to perform that action.'), true);
   assert.equal(isAuthorizationFailure('Realtime sync failed.'), false);
+  assert.equal(recoveryStatus({ body: { code: 'APPS_SCRIPT_ACCESS_DENIED', upstreamStatus: 403 } }, 'Không thể truy cập Apps Script deployment.'), 'deployment_access_denied');
+  assert.equal(recoveryStatus({ body: { error: 'Authorization is required to perform that action.' } }, 'Authorization is required to perform that action.'), 'authorization_required');
   assert.match(recoveryFailure({ status: 400, body: { ok: false, sync: { errors: [{ error: 'Realtime sync failed.' }] } } }), /Realtime sync failed/);
+});
+
+test('Apps Script exposes a read-only authorization diagnostic outside the public action registry', () => {
+  const fs = require('node:fs');
+  const publicApi = fs.readFileSync('PublicApi.gs', 'utf8');
+  const registry = fs.readFileSync('ApiActionRegistry.gs', 'utf8');
+  assert.match(publicApi, /function diagnoseSyncAuthorization\(\)/);
+  assert.match(publicApi, /ScriptApp\.getAuthorizationInfo\(ScriptApp\.AuthMode\.FULL\)/);
+  assert.match(publicApi, /ScriptApp\.getProjectTriggers\(\)/);
+  assert.doesNotMatch(registry, /diagnoseSyncAuthorization/);
 });
 
 test('Apps Script recovery and worker heartbeat fail closed', () => {

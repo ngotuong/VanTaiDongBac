@@ -26,6 +26,7 @@ var SupabaseService = (function () {
   var REALTIME_SWEEP_NEXT_AT_PROP = 'SUPABASE_REALTIME_SWEEP_NEXT_AT';
   var REALTIME_HEARTBEAT_NEXT_AT_PROP = 'SUPABASE_REALTIME_HEARTBEAT_NEXT_AT';
   var SOURCE_POLL_NEXT_AT_PROP = 'SUPABASE_SOURCE_POLL_NEXT_AT';
+  var REALTIME_QUEUE_PREFERENCE_PROP = 'SUPABASE_REALTIME_QUEUE_PREFERENCE';
   var SOURCE_FINGERPRINT_PREFIX = 'SUPABASE_SOURCE_FINGERPRINT_';
   var REPORT_OUTPUT_FINGERPRINT_PROP = 'SUPABASE_SOURCE_FINGERPRINT_REPORT_OUTPUTS';
   var REALTIME_TICK_RUNNING_CACHE_KEY = 'SUPABASE_REALTIME_TICK_RUNNING';
@@ -185,14 +186,21 @@ var SupabaseService = (function () {
       var nowMillis = new Date().getTime();
       syncTripNotificationsIfDue_(props, nowMillis);
       enqueueDetectedSourceChangesIfDue_(props, nowMillis);
-      var pendingClaim = ManualReportRefreshQueueService.claimDue(manualReportRefreshQueueContext_());
-      var pendingFundClaim = ManualReportRefreshQueueService.claimDue(fundRefreshQueueContext_());
-      writeRealtimeHeartbeatIfDue_(props, nowMillis, pendingClaim, pendingFundClaim);
-      if (pendingClaim.due) {
-        return runPendingTransportReportSync_(pendingClaim.item);
+      var pendingWork = ManualReportRefreshQueueService.claimNextDue([
+        { key: 'transport', context: manualReportRefreshQueueContext_() },
+        { key: 'fund', context: fundRefreshQueueContext_() }
+      ], props.getProperty(REALTIME_QUEUE_PREFERENCE_PROP) || 'transport');
+      if (pendingWork.due) {
+        props.setProperty(REALTIME_QUEUE_PREFERENCE_PROP, pendingWork.nextPreferredKey);
       }
-      if (pendingFundClaim.due) {
-        return runPendingFundSync_(pendingFundClaim.item);
+      var pendingClaim = pendingWork.claims.transport || { due: false, pending: false };
+      var pendingFundClaim = pendingWork.claims.fund || { due: false, pending: false };
+      writeRealtimeHeartbeatIfDue_(props, nowMillis, pendingClaim, pendingFundClaim);
+      if (pendingWork.key === 'transport') {
+        return runPendingTransportReportSync_(pendingWork.item);
+      }
+      if (pendingWork.key === 'fund') {
+        return runPendingFundSync_(pendingWork.item);
       }
 
       if (!claimRealtimeSweep_(props, nowMillis)) {

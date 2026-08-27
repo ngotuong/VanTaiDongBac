@@ -100,9 +100,34 @@ test('E1.6R queue supports an isolated property key for Fund refresh work', () =
   assert.equal(queue.values.SUPABASE_PENDING_FUND_SYNC, undefined);
 });
 
-test('E1.6 Supabase facade prioritizes due manual reports and refreshes Tất cả', () => {
+test('E1.6R queue coordinator claims only one due queue and preserves the other', () => {
+  const queue = loadQueue();
+  const fundContext = { ...queue.context, propertyKey: 'SUPABASE_PENDING_FUND_SYNC' };
+  queue.service.enqueue({ months: ['2026-08'], source: 'transport-sheet' }, queue.context);
+  queue.service.enqueue({ months: ['2026-08'], source: 'fund-sheet' }, fundContext);
+  queue.advance(15000);
+
+  const transportFirst = queue.service.claimNextDue([
+    { key: 'transport', context: queue.context },
+    { key: 'fund', context: fundContext }
+  ], 'transport');
+  assert.equal(transportFirst.key, 'transport');
+  assert.equal(transportFirst.nextPreferredKey, 'fund');
+  assert.equal(queue.service.getPending(queue.context), null);
+  assert.ok(queue.service.getPending(fundContext));
+
+  const fundNext = queue.service.claimNextDue([
+    { key: 'transport', context: queue.context },
+    { key: 'fund', context: fundContext }
+  ], transportFirst.nextPreferredKey);
+  assert.equal(fundNext.key, 'fund');
+  assert.equal(fundNext.nextPreferredKey, 'transport');
+  assert.equal(queue.service.getPending(fundContext), null);
+});
+
+test('E1.6 Supabase facade processes queued reports before the safety sweep and refreshes Tất cả', () => {
   const source = read('SupabaseService.gs');
-  const claimOffset = source.indexOf('ManualReportRefreshQueueService.claimDue');
+  const claimOffset = source.indexOf('ManualReportRefreshQueueService.claimNextDue');
   const rotationOffset = source.indexOf('var steps = buildRealtimeTickSteps_()', claimOffset);
   assert.ok(claimOffset > -1 && rotationOffset > claimOffset);
   assert.match(source, /step: 'transportReportsPending'/);
@@ -123,10 +148,11 @@ test('E1.6R idles between queued work and limits the heavy safety sweep to hourl
   const source = read('SupabaseService.gs');
   assert.match(source, /REALTIME_SWEEP_INTERVAL_MS = 60 \* 60 \* 1000/);
   assert.match(source, /if \(!claimRealtimeSweep_\(props, nowMillis\)\)[\s\S]*No due refresh work; hourly safety sweep is not due/);
-  const transportClaim = source.indexOf('ManualReportRefreshQueueService.claimDue(manualReportRefreshQueueContext_())');
-  const fundClaim = source.indexOf('ManualReportRefreshQueueService.claimDue(fundRefreshQueueContext_())', transportClaim);
-  const sweepClaim = source.indexOf('claimRealtimeSweep_(props, nowMillis)', fundClaim);
-  assert.ok(transportClaim > -1 && fundClaim > transportClaim && sweepClaim > fundClaim);
+  const queueClaim = source.indexOf('ManualReportRefreshQueueService.claimNextDue([');
+  const sweepClaim = source.indexOf('claimRealtimeSweep_(props, nowMillis)', queueClaim);
+  assert.ok(queueClaim > -1 && sweepClaim > queueClaim);
+  assert.match(source, /REALTIME_QUEUE_PREFERENCE_PROP/);
+  assert.match(source, /pendingWork\.key === 'transport'[\s\S]*pendingWork\.key === 'fund'/);
 });
 
 test('E1.6R adds direct Fund Sheet triggers and delayed transport downstream refresh', () => {

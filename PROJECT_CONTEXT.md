@@ -69,7 +69,7 @@ Production đã xác nhận gần nhất:
 
 - URL: `https://dongbac.vercel.app`.
 - Vercel deployment: `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, READY và cut-forward ngày 2026-08-22.
-- Apps Script production cùng deployment ID canonical: code version `@340`; rollback gần nhất `@338`, tiếp theo `@337`.
+- Apps Script production cùng deployment ID canonical: code version `@343`; rollback gần nhất `@340`, tiếp theo `@338`, `@337`.
 - Vercel rollback gần nhất: `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`; rollback lịch sử tiếp theo là `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, rồi `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
@@ -77,10 +77,10 @@ Production đã xác nhận gần nhất:
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_2bK8KUfYA9Nx6QPneN1muWp3cWNM`, READY ngày 2026-08-27; health HTTP 200 sau khi đúng owner cấp lại quyền.
-- Apps Script Preview: `@341`, deployment ID riêng với Production; version thêm chẩn đoán read-only và không thay đổi nghiệp vụ.
+- Vercel deployment: `dpl_EDcwpzoXhB188K7u8V3AzcTY67FQ`, READY ngày 2026-08-27; root/title/health và authenticated Quỹ PASS.
+- Apps Script Preview: `@343`, deployment ID riêng với Production; cùng candidate đã kiểm chứng trước cut-forward.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate PASS 533/533 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; root/title/health Preview PASS sau khi quyền được khôi phục. Production Vercel và Apps Script giữ nguyên.
+- Gate PASS 534/534 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; Production Vercel giữ nguyên.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,16 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Khắc phục mất hàng đợi Thu Chi — Production 2026-08-27
+
+- Live audit sau khi trigger được cấp lại quyền cho thấy cache Vận tải đã mới nhưng các bundle Quỹ `fund_overview`, `fund_transactions` và `fund_loans` tháng 07–08 vẫn cũ khoảng 13 giờ, trong khi heartbeat báo `fund pending=false`.
+- Nguyên nhân gốc nằm trong `syncRealtimeCache()`: một tick gọi `claimDue()` cho cả queue Vận tải và Thu Chi trước khi chọn việc. Khi cả hai cùng đến hạn, cả hai property đều bị xóa nhưng hàm trả về ngay sau khi chạy Vận tải; item Thu Chi vì thế bị mất mà không sync hoặc requeue.
+- `ManualReportRefreshQueueService.claimNextDue()` nay chỉ claim đúng một queue mỗi tick, giữ nguyên queue chưa chạy và luân phiên ưu tiên `transport`/`fund` bằng Script Property. Cơ chế không còn làm mất việc và cũng tránh Thu Chi bị Vận tải chiếm ưu tiên liên tục.
+- Bổ sung regression test mô phỏng hai queue cùng đến hạn: tick đầu chỉ lấy Vận tải, Thu Chi vẫn tồn tại; tick sau ưu tiên và lấy Thu Chi. Full gate PASS 534/534 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`.
+- Backfill read-only từ workbook Thu Chi bằng `syncAllFundBundlesToSupabase()` hoàn tất lúc 23:41; Observability xác nhận `latest`, `recent_500` và toàn bộ bundle tháng 05–08/2026 đều OK với timestamp mới. Authenticated Preview và Production Quỹ cùng hiển thị dữ liệu 08/2026 cập nhật lúc 23:38 từ Supabase.
+- Apps Script Preview và Production cùng deployment version bất biến `@343`; rollback Production là `@340`. Vercel Preview là `dpl_EDcwpzoXhB188K7u8V3AzcTY67FQ`; Vercel Production giữ nguyên `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR` READY vì frontend/API proxy không đổi.
+- Public Production smoke PASS cho root, `/manifest.json`, service worker, session 401, direct Apps Script health và Vercel health; đúng app/Supabase/Vercel/Apps Script identity, không Vercel Login. Không đổi cấu trúc, tên cột, công thức hoặc dữ liệu nghiệp vụ Google Sheet; không có migration Supabase.
 
 ### Phân loại chính xác và khôi phục lỗi quyền đồng bộ — Preview 2026-08-27
 
@@ -425,7 +435,7 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-1. **Duyệt Production cho phân loại lỗi quyền mới**: Preview đã PASS và runtime đã phục hồi; chỉ cập nhật Apps Script Production lên `@341` và cut-forward Vercel Production sau phê duyệt riêng, kèm direct/Vercel health, heartbeat, queue và authenticated notification smoke.
+1. **Theo dõi trigger Thu Chi thực tế**: ở lần người dùng sửa trực tiếp `NHAP_THUCHI`/`NHAP_VAY` tiếp theo, xác nhận `fund_manual_sheet` và bundle tháng liên quan có timestamp mới; không tạo giao dịch giả chỉ để test Production.
 2. **Thay GitHub schedule khỏi SLA 5 phút**: 99/99 khoảng chạy đã quan sát trễ hơn 10 phút, 12 khoảng hơn một giờ và cực đại 588 phút. Chọn scheduler có delivery/retry phù hợp trong checkpoint hạ tầng riêng; GitHub Actions chỉ là best-effort, không được mô tả là watchdog 5 phút bảo đảm.
 3. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
 4. **Người dùng duyệt business form system trên Preview**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS thật, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng; chỉ đưa lên Production khi có phê duyệt riêng.
@@ -459,7 +469,7 @@ Definition of Done hiện giữ:
 8. Mọi thay đổi Google Sheet/Supabase schema phải có migration riêng; migration `001–013` đã chạy là bất biến, correction tiếp theo dùng `014+`.
 9. Không đổi tên sheet, thứ tự cột, công thức hoặc helper range. Xóa Vận hành là clear-only.
 10. Report parity phải dùng exact `source_data_version`, loại field volatile khỏi hash và kiểm tra đủ các tháng hiện hành cùng `Tất cả`.
-11. Manual edit workbook Thu chi hoặc thay đổi chỉ lan qua `IMPORTRANGE` không được bảo đảm cùng SLA freshness với workbook Vận tải.
+11. Manual edit workbook Thu chi đã có direct edit/change trigger và bounded polling fallback, nhưng vẫn là eventual consistency và phụ thuộc trigger owner/quota. Queue coordinator bắt buộc chỉ claim một scope mỗi tick; regression hai queue cùng đến hạn đã được khóa. Phần lan truyền qua `IMPORTRANGE` sang báo cáo Vận tải vẫn có độ trễ công thức riêng.
 12. Rollback Apps Script dùng version còn lưu trên cùng production deployment ID; không dùng recovery deployment `@281` đã undeploy.
 13. Production warning `DEP0169 url.parse()` có thể xuất hiện trên request HTTP 200; chưa có call site trực tiếp trong source.
 14. Live parity đã PASS copy-canary, full gate, authenticated Preview và authenticated admin Production. Operator/shareholder representative smoke vẫn còn thiếu; không dùng `INPHIEU` làm tiêu chí parity vì người dùng đã loại chức năng này.

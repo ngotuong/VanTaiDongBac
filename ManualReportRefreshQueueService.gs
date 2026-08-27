@@ -44,6 +44,53 @@ var ManualReportRefreshQueueService = (function () {
     });
   }
 
+  function claimNextDue(candidates, preferredKey) {
+    var queues = (Array.isArray(candidates) ? candidates : []).filter(function (candidate) {
+      return candidate && candidate.key && candidate.context;
+    });
+    if (!queues.length) {
+      return { due: false, claims: {}, nextPreferredKey: '' };
+    }
+
+    var preferredIndex = queues.map(function (candidate) {
+      return String(candidate.key);
+    }).indexOf(String(preferredKey || ''));
+    if (preferredIndex < 0) preferredIndex = 0;
+    var ordered = queues.slice(preferredIndex).concat(queues.slice(0, preferredIndex));
+    var claims = {};
+
+    for (var index = 0; index < ordered.length; index++) {
+      var candidate = ordered[index];
+      var key = String(candidate.key);
+      var claimed = claimDue(candidate.context);
+      claims[key] = claimed;
+      if (!claimed.due) continue;
+
+      ordered.forEach(function (remaining) {
+        var remainingKey = String(remaining.key);
+        if (claims[remainingKey]) return;
+        claims[remainingKey] = {
+          due: false,
+          pending: getPending(remaining.context) !== null
+        };
+      });
+      var baseIndex = queues.indexOf(candidate);
+      return {
+        due: true,
+        key: key,
+        item: claimed.item,
+        claims: claims,
+        nextPreferredKey: String(queues[(baseIndex + 1) % queues.length].key)
+      };
+    }
+
+    return {
+      due: false,
+      claims: claims,
+      nextPreferredKey: String(queues[preferredIndex].key)
+    };
+  }
+
   function requeue(item, context) {
     var pending = item || {};
     return enqueue({
@@ -121,6 +168,7 @@ var ManualReportRefreshQueueService = (function () {
   return {
     enqueue: enqueue,
     claimDue: claimDue,
+    claimNextDue: claimNextDue,
     requeue: requeue,
     getPending: getPending
   };

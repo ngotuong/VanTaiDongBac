@@ -178,7 +178,7 @@ test('notification center replaces stale worker noise with one authorization ins
       syncStatuses: [
         { sync_key: 'realtime_cache_worker', status: 'ok', updated_at: '2026-08-19T08:43:00.000Z' },
         { sync_key: 'trip_notifications', status: 'ok', updated_at: '2026-08-19T08:42:00.000Z' },
-        { sync_key: 'external_sync_watchdog', status: 'authorization_required', message: 'Apps Script trả status 403.', updated_at: '2026-08-20T03:10:00.000Z' }
+        { sync_key: 'external_sync_watchdog', status: 'authorization_required', message: 'Authorization is required to perform that action.', updated_at: '2026-08-20T03:10:00.000Z' }
       ]
     }) },
     httpError: (status, message) => Object.assign(new Error(message), { status }),
@@ -189,8 +189,29 @@ test('notification center replaces stale worker noise with one authorization ins
   const systemItems = result.items.filter((item) => item.notificationKey === 'system-health');
   assert.equal(systemItems.length, 1);
   assert.equal(systemItems[0].title, 'Đồng bộ cần được cấp lại quyền');
-  assert.match(systemItems[0].message, /mở Apps Script/);
+  assert.match(systemItems[0].message, /recoverSyncInfrastructure/);
   assert.doesNotMatch(systemItems[0].message, /403|realtime_cache_worker|trip_notifications/);
+});
+
+test('notification center identifies deployment access denial without claiming OAuth revocation', async () => {
+  const service = createNotificationCenterService({
+    repository: { find: async () => ({
+      trip: null, operations: null, fund: null, writeJobs: [],
+      syncStatuses: [
+        { sync_key: 'realtime_cache_worker', status: 'ok', updated_at: '2026-08-19T08:43:00.000Z' },
+        { sync_key: 'external_sync_watchdog', status: 'deployment_access_denied', message: 'Không thể truy cập Apps Script deployment.', updated_at: '2026-08-20T03:10:00.000Z' }
+      ]
+    }) },
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    send: () => {},
+    now: () => new Date('2026-08-20T03:16:00.000Z')
+  });
+  const result = await service.list({});
+  const systemItems = result.items.filter((item) => item.notificationKey === 'system-health');
+  assert.equal(systemItems.length, 1);
+  assert.equal(systemItems[0].title, 'Kết nối Apps Script bị chặn');
+  assert.match(systemItems[0].message, /quyền truy cập deployment/);
+  assert.doesNotMatch(systemItems[0].message, /OAuth|cấp lại quyền|403/);
 });
 
 test('notification center does not mislabel a transient watchdog failure as OAuth revocation', async () => {

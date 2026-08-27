@@ -321,6 +321,32 @@ function recoverSyncInfrastructure() {
   };
 }
 
+/**
+ * Read-only editor diagnostic. Run this exact function from the Apps Script
+ * editor to distinguish missing OAuth from trigger/deployment access issues.
+ * It is intentionally not registered as a public API action.
+ */
+function diagnoseSyncAuthorization() {
+  var authorization = ScriptApp.getAuthorizationInfo(ScriptApp.AuthMode.FULL);
+  var authorizationStatus = authorization.getAuthorizationStatus();
+  var triggers = ScriptApp.getProjectTriggers().map(function (trigger) {
+    return {
+      handler: trigger.getHandlerFunction ? trigger.getHandlerFunction() : '',
+      eventType: trigger.getEventType ? String(trigger.getEventType()) : '',
+      source: trigger.getTriggerSource ? String(trigger.getTriggerSource()) : ''
+    };
+  });
+  return {
+    ok: true,
+    authorizationStatus: String(authorizationStatus),
+    authorizationRequired: authorizationStatus === ScriptApp.AuthorizationStatus.REQUIRED,
+    authorizedScopes: authorization.getAuthorizedScopes ? authorization.getAuthorizedScopes() : [],
+    triggerCount: triggers.length,
+    triggers: triggers,
+    checkedAt: new Date().toISOString()
+  };
+}
+
 function handleTransportSheetEdit(e) {
   return SupabaseService.handleTransportSheetEdit(e);
 }

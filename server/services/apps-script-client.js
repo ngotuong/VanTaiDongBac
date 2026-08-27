@@ -13,7 +13,19 @@ function createAppsScriptClient({ fetchImpl = fetch, maxBodyBytes = DEFAULT_MAX_
       body: payload
     });
     const text = await upstream.text();
-    if (!upstream.ok) return { status: 502, body: { ok: false, error: `Apps Script trả status ${upstream.status}.` } };
+    if (!upstream.ok) {
+      const upstreamStatus = Number(upstream.status) || 0;
+      const accessDenied = upstreamStatus === 401 || upstreamStatus === 403;
+      return {
+        status: 502,
+        body: {
+          ok: false,
+          error: accessDenied ? 'Không thể truy cập Apps Script deployment.' : `Apps Script trả status ${upstreamStatus}.`,
+          code: accessDenied ? 'APPS_SCRIPT_ACCESS_DENIED' : 'APPS_SCRIPT_UPSTREAM_ERROR',
+          upstreamStatus
+        }
+      };
+    }
     let data;
     try { data = JSON.parse(text); } catch (error) {
       return { status: 502, body: { ok: false, error: 'Apps Script trả dữ liệu không hợp lệ.' } };

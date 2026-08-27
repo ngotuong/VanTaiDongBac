@@ -41,7 +41,7 @@ Không sửa alias Preview để chữa Production và không promote deployment
 4. Kiểm tra health qua Vercel và fingerprint đúng deployment production.
 5. Không dùng `@HEAD` hoặc tạo deployment ID mới nếu chưa được phê duyệt.
 
-HTTP 403 từng xuất hiện dù UI permission đúng. Nếu gặp lại, dừng và xác minh owner authorization/execute-as/access; không chữa bằng cách đổi production alias hoặc dùng Preview endpoint.
+HTTP 403 có thể là `deployment_access_denied`, không mặc định là OAuth. Nếu gặp lại, chạy `diagnoseSyncAuthorization()` bằng đúng owner/deployer rồi xác minh authorization status, live execute-as/access và Executions; không chữa bằng cách đổi production alias hoặc dùng Preview endpoint.
 
 ## 5. `SYS_ReportCache` retirement
 

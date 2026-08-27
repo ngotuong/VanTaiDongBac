@@ -249,6 +249,21 @@ GitHub Actions secret: SYNC_WATCHDOG_SECRET
 
 Workflow `.github/workflows/sync-watchdog.yml` gọi Production mỗi 5 phút. Endpoint chỉ chấp nhận Bearer secret này, đọc heartbeat `realtime_cache_worker` và chỉ gọi Apps Script recovery khi worker stale. Canary cut-forward có thể dùng `POST` với body `{ "force": true }`; nhánh cưỡng bức vẫn bắt buộc cùng Bearer secret và không sửa giả heartbeat. Không đưa secret vào source, log hoặc tài liệu. Rollback scheduler bằng cách disable workflow; rollback endpoint bằng Vercel deployment bất biến.
 
+Không suy diễn mọi HTTP 403 là OAuth bị thu hồi. Runtime phân loại:
+
+- `deployment_access_denied`: Google chặn đường vào web deployment hoặc sai access/execute-as/account; kiểm tra `Manage deployments` và đúng tài khoản deploy trước.
+- `authorization_required`: chỉ dùng khi Apps Script trả thông điệp OAuth rõ ràng.
+- `error`: timeout/lỗi hạ tầng hoặc lỗi sync khác.
+
+Quy trình chẩn đoán read-only trong Apps Script editor:
+
+1. chạy `diagnoseSyncAuthorization()`;
+2. nếu `authorizationRequired=true`, chạy `recoverSyncInfrastructure()` và chấp nhận đầy đủ scope;
+3. nếu `authorizationRequired=false`, kiểm tra deployment chạy bằng đúng deployer và cho phép `Anyone`, sau đó redeploy cùng deployment ID;
+4. xác nhận direct health và health qua Vercel đều HTTP 200, `realtime_cache_worker` tươi và queue không pending/failed.
+
+GitHub `schedule` là best-effort và có thể trễ/bỏ lượt; cron `*/5` không phải cam kết SLA 5 phút. Không mô tả cơ chế này là phát hiện bảo đảm trong 5–15 phút nếu chưa có scheduler production khác được phê duyệt và kiểm chứng.
+
 Nguồn tham khảo chính thức:
 
 - [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys)

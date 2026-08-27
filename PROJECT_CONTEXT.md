@@ -77,10 +77,10 @@ Production đã xác nhận gần nhất:
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_2bK8KUfYA9Nx6QPneN1muWp3cWNM`, READY ngày 2026-08-27 nhưng health bị gate chặn vì Apps Script Preview trả HTTP 403.
+- Vercel deployment: `dpl_2bK8KUfYA9Nx6QPneN1muWp3cWNM`, READY ngày 2026-08-27; health HTTP 200 sau khi đúng owner cấp lại quyền.
 - Apps Script Preview: `@341`, deployment ID riêng với Production; version thêm chẩn đoán read-only và không thay đổi nghiệp vụ.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate build PASS 533/533 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; deploy smoke dừng ở health HTTP 502 `APPS_SCRIPT_ACCESS_DENIED`, không được duyệt promote. Production Vercel và Apps Script giữ nguyên.
+- Gate PASS 533/533 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; root/title/health Preview PASS sau khi quyền được khôi phục. Production Vercel và Apps Script giữ nguyên.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -135,14 +135,16 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
-### Phân loại chính xác lỗi quyền đồng bộ — Preview bị chặn 2026-08-27
+### Phân loại chính xác và khôi phục lỗi quyền đồng bộ — Preview 2026-08-27
 
 - Live audit xác nhận cả Apps Script Production `@340` và Preview cũ trả HTTP 403 với trang Google `Bạn cần có quyền truy cập`; heartbeat `realtime_cache_worker` dừng khoảng 10:49 ngày 27/08. Vercel health Production trả 502 và GitHub watchdog run `33063750856` thất bại ba lần với cùng 403.
 - Không có code/deployment mới giữa lượt watchdog thành công ngày 26/08 và sự cố ngày 27/08. Manifest vẫn khai báo `ANYONE_ANONYMOUS`/`USER_DEPLOYING`; redeploy Preview thành `@341` không thay đổi 403. Tài khoản clasp hiện hành `vipmoschino@gmail.com` thấy project/deployment nhưng `clasp run health --nondev` bị từ chối quyền thực thi. Kết luận hiện tại là project/deployment access hoặc tài khoản triển khai bị chặn; chưa có bằng chứng đủ để kết luận OAuth bị thu hồi.
 - Apps Script client nay giữ mã lỗi an toàn `APPS_SCRIPT_ACCESS_DENIED` cùng upstream status mà không lộ HTML/secret. Watchdog dùng trạng thái riêng `deployment_access_denied`; chỉ dùng `authorization_required` khi Apps Script trả thông điệp OAuth rõ ràng. Notification phân biệt `Kết nối Apps Script bị chặn` với `Đồng bộ cần được cấp lại quyền` và hướng dẫn đúng hàm `recoverSyncInfrastructure()`.
 - Thêm `diagnoseSyncAuthorization()` read-only, chỉ chạy trong Apps Script editor/Execution API và không đăng ký public action. Hàm trả authorization status, authorized scopes và danh sách trigger để phân biệt OAuth với trigger/deployment access.
-- Full gate PASS 533/533 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Preview `@341`; Vercel Preview `dpl_2bK8KUfYA9Nx6QPneN1muWp3cWNM` build READY nhưng smoke health fail-closed HTTP 502 vì upstream 403. Production giữ nguyên Vercel `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR` và Apps Script `@340`; không thay đổi Google Sheet/Supabase/data.
-- Blocker: cần đúng tài khoản chủ/đã deploy mở Apps Script, kiểm tra Executions và chạy `diagnoseSyncAuthorization()`. Nếu OAuth `REQUIRED`, chạy `recoverSyncInfrastructure()` và chấp nhận scope; nếu OAuth không required, sửa access/execute-as của deployment rồi redeploy cùng ID. Sau đó bắt buộc health Preview/Production 200 và heartbeat tươi trước khi duyệt Production code.
+- Đúng owner/deployer `ngotuong077@gmail.com` đã cấp lại quyền và chạy `diagnoseSyncAuthorization()` thành công lúc 23:11. Apps Script Executions xác nhận `syncRealtimeCache` và `processWriteJobs` tự chạy lại theo phút; các lượt 23:11–23:14 hoàn thành liên tiếp. Direct health và health qua Vercel của cả Preview/Production đều trở lại HTTP 200 đúng identity.
+- Manual watchdog run `33092204376` SUCCESS và chuyển `external_sync_watchdog` về OK với thông điệp `Worker đồng bộ đang hoạt động.` Observability Production lúc 23:15 xác nhận cache mới, `realtime_cache_worker` OK, notification/transport/fund sync tiếp tục và không có write job pending/failed; cảnh báo chưa đọc giảm 57→56 sau khi lỗi hệ thống cũ được loại.
+- Full gate PASS 533/533 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Preview `@341`; Vercel Preview `dpl_2bK8KUfYA9Nx6QPneN1muWp3cWNM` root/title/health PASS. Production giữ nguyên Vercel `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR` và Apps Script web deployment `@340`; không thay đổi Google Sheet/Supabase schema/data.
+- Còn gate Production riêng: code phân loại `deployment_access_denied` và notification mới chỉ nằm trên Vercel Preview; chỉ cut-forward Production sau phê duyệt riêng. Trigger Apps Script chạy source hiện hành `@341`, còn web deployment Production vẫn bất biến `@340`.
 
 ### Báo cáo Tổng Quan đồng nhất màu nhãn Danh mục — Production 2026-08-22
 
@@ -423,7 +425,7 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-1. **Khôi phục quyền Apps Script bằng đúng owner/deployer**: chạy `diagnoseSyncAuthorization()` trong editor, đối chiếu Executions/deployment access và chỉ chạy `recoverSyncInfrastructure()` khi OAuth thực sự required; xác nhận direct/Vercel health 200, heartbeat tươi và queue sạch.
+1. **Duyệt Production cho phân loại lỗi quyền mới**: Preview đã PASS và runtime đã phục hồi; chỉ cập nhật Apps Script Production lên `@341` và cut-forward Vercel Production sau phê duyệt riêng, kèm direct/Vercel health, heartbeat, queue và authenticated notification smoke.
 2. **Thay GitHub schedule khỏi SLA 5 phút**: 99/99 khoảng chạy đã quan sát trễ hơn 10 phút, 12 khoảng hơn một giờ và cực đại 588 phút. Chọn scheduler có delivery/retry phù hợp trong checkpoint hạ tầng riêng; GitHub Actions chỉ là best-effort, không được mô tả là watchdog 5 phút bảo đảm.
 3. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
 4. **Người dùng duyệt business form system trên Preview**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS thật, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng; chỉ đưa lên Production khi có phê duyệt riêng.
@@ -450,7 +452,7 @@ Definition of Done hiện giữ:
 1. `main` là nhánh canonical duy nhất; không khôi phục branch cũ từ archive tag nếu chưa xác định rõ commit cần lấy. Không reset/xóa thay đổi chưa rõ nguồn.
 2. Authenticated Preview và tài khoản admin trên Production đã PASS các luồng chính gần nhất; operator/shareholder vẫn chưa có representative production smoke đầy đủ.
 3. Authenticated visual/device QA không thể được thay thế hoàn toàn bằng unit/HTTP/DOM test.
-4. Apps Script public deployment đang trả 403 trên cả Preview và Production dù manifest khai báo anonymous; chưa xác minh được live UI deployment/owner. Watchdog phải phân biệt `deployment_access_denied` với OAuth thật và không thể tự chữa khi public deployment bị Google chặn. GitHub schedule đã chứng minh không đạt SLA 5 phút. Health trực tiếp, heartbeat, scheduler run và identity fingerprint phải được kiểm tra sau deploy.
+4. Apps Script public deployment đã trở lại HTTP 200 sau khi đúng owner `ngotuong077@gmail.com` cấp lại quyền; tài khoản clasp `vipmoschino@gmail.com` vẫn không có Execution API permission và không được dùng để suy luận runtime owner. Watchdog phải phân biệt `deployment_access_denied` với OAuth thật và không thể tự chữa khi Google chặn trước khi code chạy. GitHub schedule đã chứng minh không đạt SLA 5 phút. Health trực tiếp, heartbeat, scheduler run và identity fingerprint phải được kiểm tra sau deploy.
 5. Identity Guard chỉ yêu cầu `.clasp.json` trong local workspace; Vercel build không có file Git-ignored này và phải dựa vào canonical manifest + runtime environment checks.
 6. Client từng cài service worker legacy cần theo dõi riêng; service worker hiện tại không cache app/data.
 7. iOS Web Push chỉ hoạt động với app Add to Home Screen và quyền được cấp từ thao tác người dùng.

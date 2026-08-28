@@ -77,10 +77,10 @@ Production đã xác nhận gần nhất:
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_EDcwpzoXhB188K7u8V3AzcTY67FQ`, READY ngày 2026-08-27; root/title/health và authenticated Quỹ PASS.
-- Apps Script Preview: `@343`, deployment ID riêng với Production; cùng candidate đã kiểm chứng trước cut-forward.
+- Vercel deployment: `dpl_7FNBS2av7nEaPSwdbd1jbLDtG1Fr`, READY ngày 2026-08-28; root/title/health, session guard và authenticated Báo cáo PASS.
+- Apps Script Preview: `@344`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`, tách biệt Production `@343`.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate PASS 534/534 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; Production Vercel giữ nguyên.
+- Gate PASS 537/537 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; Production Vercel giữ nguyên.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,19 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Đồng bộ schema Báo cáo và chuẩn hóa tìm kiếm — Preview 2026-08-28
+
+- Live audit bằng Google Sheets metadata/header/formula xác nhận workbook Vận tải có 42 sheet. Hai nguồn mới ngày 28/08 là `SYS_AggLuongThangXe` (`A:J`, helper phân bổ lương tài xế theo xe) và `BC_TongHopDuAn`, trong đó `A:G` là tổng hợp nhóm, `I:O` là chi tiết dự án. `BC_TongHopXe` hiện có 14 cột `A:N` với `Chi phí lương lái`/`Lãi sau lương`; `BC_BangLuong` có đủ 16 cột `A:P` gồm `BHXH`, `Công ty`, `Ghi chú`.
+- Apps Script report bundle nay đọc đủ 14 cột xe, tách độc lập hai bảng dự án, thêm cả hai vào Supabase payload/source metadata và freshness fingerprint. Khoảng nhiều tháng gộp nhóm theo `Công ty + Nhóm báo cáo`, dự án theo `Công ty + Nhóm báo cáo + Dự án`; tỷ trọng doanh thu được tính lại từ doanh thu đã gộp.
+- Next Báo cáo thêm tab `Dự Án` gồm hai card `Tổng Hợp Theo Nhóm` và `Chi Tiết Theo Dự Án`, có lọc công ty, tìm kiếm, tổng dòng và export như các báo cáo row-level khác. Hai cột mới của Tổng hợp xe không còn bị backend cắt mất.
+- Tìm kiếm được chuẩn hóa cho Báo cáo, Vận hành, Danh mục và giao dịch Thu Chi: nhiều từ khóa ngăn cách bằng dấu phẩy/chấm phẩy/dấu `|`/xuống dòng dùng logic OR; không phân biệt dấu tiếng Việt và bỏ qua dấu chấm/gạch/khoảng trắng của biển số. Báo cáo áp dụng tìm kiếm cho mọi card thay vì chỉ Lương/Xe.
+- Workbook Thu Chi live có thêm `PHANBO_VAY`, nhưng đây là bảng công thức lập phương án, không phải nguồn giao dịch. Checkpoint này chỉ ghi nhận contract và không cho web app ghi vào sheet đó; nếu cần UX phân bổ trả nhiều khoản thì phải duyệt một business-flow riêng.
+- Full gate PASS 537/537 tests, ESLint không warning, typecheck, Next production build, Environment Identity Guard và `git diff --check`. Không sửa tên/thứ tự cột/công thức hoặc dữ liệu Google Sheet; không migration Supabase.
+- Apps Script Preview đã lên version bất biến `@344`; Vercel Preview `dpl_7FNBS2av7nEaPSwdbd1jbLDtG1Fr` được triển khai chỉ bằng `npm run deploy:preview`. Public smoke PASS: HTTP 200, title `Vận tải Đông Bắc`, health đúng environment identity, không Vercel Login và session không cookie trả 401.
+- Worker freshness tự nhận schema output mới, backfill lại bundle 05–08/2026 và `Tất cả` vào Supabase. Authenticated Preview QA xác nhận 05/2026 và 06/2026 đã có đủ schema xe 14 cột; 08/2026 có hai bảng Dự Án; khoảng 07–08 gộp duy nhất theo khóa. Đối chiếu mẫu: Quang Quân / Dự án nhỏ = `141.999.580`, Quang Quân / VC Việt Bắc = `50.239.200`.
+- Tìm `20H-05664, 20H.05602` tại Tổng Hợp Xe khoảng 07–08 trả đúng hai xe bất kể dấu phân cách biển số và dòng tổng được cộng lại đúng. Bảng lương hiển thị cột `BHXH`; bảng xe hiển thị `Chi phí lương lái`/`Lãi sau lương`; console không có error/warning.
+- Production chưa deploy: Vercel vẫn là `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, Apps Script web deployment vẫn `@343`. Bước cut-forward cần phê duyệt Production riêng.
 
 ### Khắc phục mất hàng đợi Thu Chi — Production 2026-08-27
 
@@ -434,6 +447,8 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 - Không khôi phục tab trừ khi cần điều tra và có phê duyệt restore riêng.
 
 ## 6. Checkpoint tiếp theo đề xuất
+
+**Ưu tiên hiện tại:** checkpoint schema Báo cáo/tìm kiếm đã PASS trên Preview. Chờ người dùng phê duyệt Production riêng; khi được duyệt mới cập nhật Apps Script Production từ `@343` lên candidate `@344`, đóng gói Vercel candidate trỏ đúng endpoint Production, cut-forward alias `dongbac.vercel.app` và chạy public/authenticated Production smoke. Không promote từ Preview thủ công.
 
 1. **Theo dõi trigger Thu Chi thực tế**: ở lần người dùng sửa trực tiếp `NHAP_THUCHI`/`NHAP_VAY` tiếp theo, xác nhận `fund_manual_sheet` và bundle tháng liên quan có timestamp mới; không tạo giao dịch giả chỉ để test Production.
 2. **Thay GitHub schedule khỏi SLA 5 phút**: 99/99 khoảng chạy đã quan sát trễ hơn 10 phút, 12 khoảng hơn một giờ và cực đại 588 phút. Chọn scheduler có delivery/retry phù hợp trong checkpoint hạ tầng riêng; GitHub Actions chỉ là best-effort, không được mô tả là watchdog 5 phút bảo đảm.

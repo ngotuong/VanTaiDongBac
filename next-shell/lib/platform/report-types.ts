@@ -14,6 +14,8 @@ export type ReportBundle = {
   };
   payroll?: ReportMatrix;
   vehicles?: ReportMatrix;
+  projectGroups?: ReportMatrix;
+  projects?: ReportMatrix;
 };
 
 export type ReportDataResponse = {

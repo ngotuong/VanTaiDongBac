@@ -1,7 +1,7 @@
 /** Supabase persistence adapter for monthly report detail cache cutover. */
 var SupabaseReportCacheRepository = (function () {
   var TABLE_NAME = 'report_bundles';
-  var SOURCE_SHEET_NAMES = ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe'];
+  var SOURCE_SHEET_NAMES = ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe', 'BC_TongHopDuAn'];
 
   function readDetailsMap(options) {
     var rows = SupabaseBundleRepository.readRows(TABLE_NAME, {

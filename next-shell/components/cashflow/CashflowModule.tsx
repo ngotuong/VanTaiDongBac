@@ -6,6 +6,7 @@ import { createClientApiClient } from '../../lib/platform/client-api-client';
 import { exportCardAsImage } from '../../lib/platform/export-card';
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { formatVietnameseNumberInput } from '../../lib/platform/numeric-input';
+import { matchesSearchQuery } from '../../lib/platform/search';
 import { showToast } from '../../lib/platform/toast';
 import type { CashflowInitialData, CashflowTab, FundCatalog, FundCatalogRow, FundLoan, FundLoans, FundOptions, FundOverview, FundSettings, FundTransaction, FundTransactions, FundWriteJob } from '../../lib/platform/cashflow-types';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
@@ -35,12 +36,6 @@ const amount = (value: unknown) => Number(String(value || '').replace(/[^\d-]/g,
 const localDateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 const today = () => localDateKey(new Date());
 const requestId = () => `next-${Date.now()}-${crypto.randomUUID()}`;
-const normalize = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .toLocaleLowerCase('vi-VN');
 const dateKey = (row: FundTransaction) => {
   const raw = String(row.date || row.dateText || '');
   const match = raw.match(/^(\d{2})\/(\d{2})\/(20\d{2})$/);
@@ -535,7 +530,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
         const date = dateKey(item);
         if (startDate && date < startDate) return false;
         if (endDate && date > endDate) return false;
-        return !query.trim() || normalize([item.voucher, item.dateText || item.date, item.type, item.category, item.actor, item.partner, item.content].join(' ')).includes(normalize(query.trim()));
+        return matchesSearchQuery([item.voucher, item.dateText || item.date, item.type, item.category, item.actor, item.partner, item.content], query);
       }),
     [queued, transactions, query, startDate, endDate],
   );

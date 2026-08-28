@@ -4,6 +4,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
+import { matchesSearchQuery } from '../../lib/platform/search';
 import type { CatalogBundle, CatalogDataResponse, CatalogRow, CatalogSheetName } from '../../lib/platform/catalog-types';
 import type { EntryCatalogs } from '../../lib/platform/entry-types';
 import { showToast } from '../../lib/platform/toast';
@@ -48,7 +49,7 @@ export function CatalogModule({initialData,initialError=''}:{initialData:Catalog
   const ownerMap=useMemo(()=>Object.fromEntries((catalogs.vehicles||[]).map(vehicle=>[normalize(vehicle.plate),vehicle.owner||''])),[catalogs]);
   const preparedRows=useMemo(()=>(data?.rows||[]).map(row=>({...row,owner:showOwner?(String(row.values[ownerIndex]??'').trim()||ownerMap[normalize(row.values[vehicleIndex])]||''):''})),[data,showOwner,ownerIndex,ownerMap,vehicleIndex]);
   const owners=useMemo(()=>Array.from(new Set(preparedRows.map(row=>row.owner).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'vi')),[preparedRows]);
-  const rows=useMemo(()=>preparedRows.filter(row=>{if(sheet==='DM_NhanSu'&&statusIndex>=0&&personnel!=='all'){const status=normalize(row.values[statusIndex]);const inactive=status.includes('nghi')||status.includes('khong lam');if(personnel==='active'&&inactive)return false;if(personnel==='inactive'&&!inactive)return false;}if(sheet==='DM_Xe'&&owner&&row.owner!==owner)return false;return!query||normalize([...row.values,row.owner].join(' ')).includes(normalize(query));}),[preparedRows,query,sheet,statusIndex,personnel,owner]);
+  const rows=useMemo(()=>preparedRows.filter(row=>{if(sheet==='DM_NhanSu'&&statusIndex>=0&&personnel!=='all'){const status=normalize(row.values[statusIndex]);const inactive=status.includes('nghi')||status.includes('khong lam');if(personnel==='active'&&inactive)return false;if(personnel==='inactive'&&!inactive)return false;}if(sheet==='DM_Xe'&&owner&&row.owner!==owner)return false;return matchesSearchQuery([...row.values,row.owner],query);}),[preparedRows,query,sheet,statusIndex,personnel,owner]);
   const pages=Math.max(1,Math.ceil(rows.length/PAGE_SIZE));const current=Math.min(page,pages);const visible=rows.slice((current-1)*PAGE_SIZE,current*PAGE_SIZE);
   const formSwipe=useSwipeDismiss({active:editing!==undefined,disabled:saving,onDismiss:()=>setEditing(undefined)});
   useEffect(()=>{if(initialData)catalogResponseCache.set(catalogCacheKey(initialData.sheetName),initialData);},[initialData]);

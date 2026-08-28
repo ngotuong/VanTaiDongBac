@@ -1,6 +1,6 @@
 import type { ReportBundle, ReportCell, ReportMatrix } from './report-types';
 
-export type ReportType = 'finance' | 'details' | 'payroll' | 'vehicles';
+export type ReportType = 'finance' | 'details' | 'payroll' | 'vehicles' | 'projectGroups' | 'projects';
 
 export function removeAccents(value: string) {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
@@ -200,7 +200,7 @@ function mergeMonthlyMatrices(matrices: Array<ReportMatrix | undefined>): Report
 
 export function aggregateMonthlyRowMatrices(
   matrices: Array<ReportMatrix | undefined>,
-  type: 'payroll' | 'vehicles',
+  type: 'payroll' | 'vehicles' | 'projectGroups' | 'projects',
   includedMonths: string[]
 ): ReportMatrix {
   const valid = matrices.map(matrixRows).filter(({ head }) => head.length);
@@ -209,10 +209,20 @@ export function aggregateMonthlyRowMatrices(
   const normalized = head.map((cell) => removeAccents(String(cell ?? '').toLowerCase()));
   const find = (labels: string[]) => normalized.findIndex((header) => labels.some((label) => header.includes(label)));
   const monthIdx = find(['thang']);
-  const primaryIdx = type === 'payroll' ? find(['nhan su']) : find(['bien so', 'bien xe']);
+  const primaryIdx = type === 'payroll'
+    ? find(['nhan su'])
+    : type === 'vehicles'
+      ? find(['bien so', 'bien xe'])
+      : type === 'projectGroups'
+        ? find(['nhom bao cao', 'nhom van hanh'])
+        : find(['du an']);
+  const companyIdx = find(['cong ty', 'chu xe', 'nha xe', 'don vi']);
+  const groupIdx = find(['nhom bao cao', 'nhom van hanh']);
   const keyIndexes = type === 'payroll'
-    ? [primaryIdx, find(['chuc vu']), find(['cong ty', 'don vi', 'bo phan'])]
-    : [find(['cong ty', 'chu xe', 'nha xe', 'don vi']), primaryIdx];
+    ? [primaryIdx, find(['chuc vu']), companyIdx]
+    : type === 'projects'
+      ? [companyIdx, groupIdx, primaryIdx]
+      : [companyIdx, primaryIdx];
   const usableKeys = [...new Set(keyIndexes.filter((index) => index >= 0))];
   if (primaryIdx < 0 || !usableKeys.length) return mergeMonthlyMatrices(matrices);
 
@@ -253,6 +263,30 @@ export function aggregateMonthlyRowMatrices(
   return [head, ...rowsByKey.values()];
 }
 
+function aggregateProjectGroupMatrices(matrices: Array<ReportMatrix | undefined>, includedMonths: string[]) {
+  const matrix = aggregateMonthlyRowMatrices(matrices, 'projectGroups', includedMonths);
+  const { head, body } = matrixRows(matrix);
+  if (!head.length) return matrix;
+  const normalized = head.map((cell) => removeAccents(String(cell ?? '').toLowerCase()));
+  const companyIdx = normalized.findIndex((header) => header.includes('cong ty'));
+  const revenueIdx = normalized.findIndex((header) => header.includes('doanh thu'));
+  const shareIdx = normalized.findIndex((header) => header.includes('ty trong'));
+  if (companyIdx < 0 || revenueIdx < 0 || shareIdx < 0) return matrix;
+  const totals = new Map<string, number>();
+  body.forEach((row) => {
+    const company = removeAccents(String(row[companyIdx] ?? '').trim().toLowerCase());
+    totals.set(company, (totals.get(company) || 0) + (parseCellValue(row[revenueIdx]) || 0));
+  });
+  return [head, ...body.map((row) => {
+    const next = [...row];
+    const company = removeAccents(String(row[companyIdx] ?? '').trim().toLowerCase());
+    const total = totals.get(company) || 0;
+    const share = total ? (parseCellValue(row[revenueIdx]) || 0) / total : 0;
+    next[shareIdx] = `${(share * 100).toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+    return next;
+  })];
+}
+
 export function aggregateReportBundles(bundles: ReportBundle[], includedMonths: string[]): ReportBundle {
   if (!bundles.length) return {};
   const latest = bundles[bundles.length - 1];
@@ -265,7 +299,9 @@ export function aggregateReportBundles(bundles: ReportBundle[], includedMonths: 
       details: aggregateDetailMatrices(bundles.map((bundle) => bundle.overview?.details))
     },
     payroll: aggregateMonthlyRowMatrices(bundles.map((bundle) => bundle.payroll), 'payroll', includedMonths),
-    vehicles: aggregateMonthlyRowMatrices(bundles.map((bundle) => bundle.vehicles), 'vehicles', includedMonths)
+    vehicles: aggregateMonthlyRowMatrices(bundles.map((bundle) => bundle.vehicles), 'vehicles', includedMonths),
+    projectGroups: aggregateProjectGroupMatrices(bundles.map((bundle) => bundle.projectGroups), includedMonths),
+    projects: aggregateMonthlyRowMatrices(bundles.map((bundle) => bundle.projects), 'projects', includedMonths)
   };
 }
 
@@ -328,7 +364,7 @@ export function formatReportDisplayValue(type: ReportType, header: ReportCell, r
       isMoney = isMoney || [
         'luong chuyen', 'luong cung', 'tong luong', 'ung luong', 'thuc nhan', 'thuong', 'phat'
       ].some((part) => headerLabel.includes(part));
-    } else if (type === 'vehicles') {
+    } else if (type === 'vehicles' || type === 'projectGroups' || type === 'projects') {
       isMoney = isMoney || [
         'doanh thu', 'tien dau', 'chi phi', 'lai gop', 'loi nhuan', 'don gia'
       ].some((part) => headerLabel.includes(part));
@@ -394,10 +430,14 @@ export function filterOptions(type: ReportType, head: ReportCell[], body: Report
 }
 
 export function matchesReportRow(row: ReportCell[], query: string) {
-  const parts = query.toLowerCase().split(/[,;|]+/).map((part) => removeAccents(part.trim())).filter(Boolean);
+  const parts = query.split(/[,;|\n]+/).map((part) => removeAccents(part.toLowerCase().trim())).filter(Boolean);
   if (!parts.length) return true;
   const text = removeAccents(row.join(' ').toLowerCase());
-  return parts.some((part) => text.includes(part));
+  const compactText = text.replace(/[^a-z0-9]/g, '');
+  return parts.some((part) => {
+    const compactPart = part.replace(/[^a-z0-9]/g, '');
+    return text.includes(part) || Boolean(compactPart && compactText.includes(compactPart));
+  });
 }
 
 function normalizedHeader(value: unknown) {

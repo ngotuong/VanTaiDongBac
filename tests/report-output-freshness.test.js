@@ -17,17 +17,20 @@ const buildContext = {
   hash(value) { return `hash:${value}`; }
 };
 
-test('report output fingerprint groups payroll and vehicle rows by month', () => {
+test('report output fingerprint groups all report rows by month', () => {
   const state = plain(service.buildState({
     overview: [['Tháng', 'Doanh thu'], ['08/2026', '100']],
     payroll: [['Tháng', 'Nhân sự'], ['07/2026', 'An'], ['08/2026', 'Nội']],
-    vehicles: [['Tháng', 'Xe'], ['08/2026', '20H-01']]
+    vehicles: [['Tháng', 'Xe'], ['08/2026', '20H-01']],
+    projectGroups: [['Tháng', 'Nhóm'], ['08/2026', 'Tràng Duệ']],
+    projects: [['Tháng', 'Dự án'], ['08/2026', 'Tràng Duệ 42']]
   }, buildContext));
-  assert.equal(state.rows, 4);
+  assert.equal(state.rows, 6);
   assert.deepEqual(Object.keys(state.fingerprints), ['2026-07', '2026-08']);
   assert.match(state.fingerprints['2026-08'], /Nội/);
   assert.match(state.fingerprints['2026-08'], /20H-01/);
   assert.match(state.fingerprints['2026-08'], /Doanh thu/);
+  assert.match(state.fingerprints['2026-08'], /Tràng Duệ 42/);
 });
 
 test('report output fingerprint detects additions, edits, and removed months', () => {

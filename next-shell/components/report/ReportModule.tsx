@@ -14,14 +14,17 @@ const TABS = [
   ['finance', 'Tổng Quan'],
   ['details', 'Chi Tiết'],
   ['payroll', 'Bảng Lương'],
-  ['vehicles', 'Tổng Hợp Xe']
+  ['vehicles', 'Tổng Hợp Xe'],
+  ['projects', 'Dự Án']
 ] as const;
 
 const LABELS: Record<ReportType, string> = {
   finance: 'Báo Cáo Tổng Quan',
   details: 'Báo Cáo Chi Tiết',
   payroll: 'Tổng Hợp Lương',
-  vehicles: 'Tổng Hợp Xe'
+  vehicles: 'Tổng Hợp Xe',
+  projectGroups: 'Tổng Hợp Theo Nhóm',
+  projects: 'Chi Tiết Theo Dự Án'
 };
 const reportResponseCache = new Map<string, ReportDataResponse>();
 const reportInflight = new Map<string, Promise<ReportDataResponse>>();
@@ -64,7 +67,7 @@ async function requestReport(mode: ReportPeriodMode, fromMonth: string, toMonth:
 }
 
 function sticky(type: ReportType, index: number): CSSProperties | undefined {
-  if (index === 0 && ['finance', 'details', 'payroll', 'vehicles'].includes(type)) return { left: 0 };
+  if (index === 0 && ['finance', 'details', 'payroll', 'vehicles', 'projectGroups', 'projects'].includes(type)) return { left: 0 };
   if (type === 'vehicles' && index === 1) return { left: 120 };
   return undefined;
 }
@@ -115,7 +118,7 @@ function cellStyle(type: ReportType, header: ReportCell, row: ReportCell[], inde
     } else {
       Object.assign(style, { color: 'var(--ink, #0f172a)', fontWeight: 600 });
     }
-  } else if (type === 'vehicles') {
+  } else if (type === 'vehicles' || type === 'projectGroups' || type === 'projects') {
     if (index === 0) {
       Object.assign(style, { fontWeight: 700, color: 'var(--deep)', minWidth: 120, width: 120, maxWidth: 120 });
     } else if (index === 1) {
@@ -148,13 +151,12 @@ function ReportTable({ type, matrix, query, periodLabel }: { type: ReportType; m
   const effectivePlate = plate && options.plates.includes(plate) ? plate : '';
   const effectiveJob = job && options.jobs.includes(job) ? job : '';
   const dataRows = useMemo(() => reportSourceRows(type, prepared.body).filter((row) => {
-    if (type !== 'payroll' && type !== 'vehicles') return true;
     if (!matchesReportRow(row, query)) return false;
     if (effectiveCompany && String(row[options.companyIdx] ?? '') !== effectiveCompany) return false;
     if (type === 'payroll' && effectiveJob && String(row[options.jobIdx] ?? '') !== effectiveJob) return false;
     return !(type === 'vehicles' && effectivePlate && String(row[options.plateIdx] ?? '') !== effectivePlate);
   }), [prepared.body, type, query, effectiveCompany, effectivePlate, effectiveJob, options]);
-  const shouldTotal = type === 'payroll' || type === 'vehicles';
+  const shouldTotal = type === 'payroll' || type === 'vehicles' || type === 'projectGroups' || type === 'projects';
   const visibleRows = shouldTotal ? appendTotal(prepared.head, dataRows) : dataRows;
   const explanation = (cell: ReportCell) => { const value = String(cell ?? '').toLowerCase(); return value.includes('giải thích') || value.includes('nội dung'); };
   const companyDetail = (cell: ReportCell) => type === 'details' && ['quang quan', 'minh vuong'].some((name) => removeAccents(String(cell ?? '').toLowerCase()).includes(name));
@@ -199,6 +201,16 @@ function ReportTable({ type, matrix, query, periodLabel }: { type: ReportType; m
         </label>
       </div>
     ) : null}
+    {(type === 'projectGroups' || type === 'projects') && options.companyIdx >= 0 ? (
+      <div className="table-card-subhead">
+        <label className="compact-filter">
+          <select className="report-project-filter platform-content-select" aria-label={`Lọc công ty ${LABELS[type].toLocaleLowerCase('vi-VN')}`} value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}>
+            <option value="">Tất cả công ty</option>
+            {options.companies.map((value) => <option value={value} key={value}>{value}</option>)}
+          </select>
+        </label>
+      </div>
+    ) : null}
     <div className="table-wrap" tabIndex={0} aria-label={`${LABELS[type]} — cuộn ngang để xem đủ cột`}>
       <table className={`report-data-table report-data-table-${type}`}>
         {type === 'details' ? <colgroup>{prepared.head.map((cell, index) => <col key={index} style={index === 0 ? { width: 190, minWidth: 190 } : explanation(cell) ? { width: 300, minWidth: 300 } : { width: 142, minWidth: 142 }}/>)}</colgroup> : null}
@@ -232,8 +244,12 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   const financeMonths = useMemo(() => periodMode === 'year' ? availableMonths : monthsWithinRange(availableMonths, fromMonth, toMonth), [periodMode, availableMonths, fromMonth, toMonth]);
   const finance = useMemo(() => transposeOverviewMatrix(bundle?.overview?.months, financeMonths, 'Tổng'), [bundle, financeMonths]);
   const repairedCompanyReport = useMemo(() => repairCompanyReport(bundle?.overview?.details, bundle?.vehicles, vehicleOwners), [bundle, vehicleOwners]);
-  const matrices: Record<ReportType, ReportMatrix | undefined> = { finance, details: repairedCompanyReport.details, payroll: bundle?.payroll, vehicles: repairedCompanyReport.vehicles };
-  const visibleTypes: ReportType[] = tab === 'all' ? ['finance', 'details', 'payroll', 'vehicles'] : [tab];
+  const matrices: Record<ReportType, ReportMatrix | undefined> = { finance, details: repairedCompanyReport.details, payroll: bundle?.payroll, vehicles: repairedCompanyReport.vehicles, projectGroups: bundle?.projectGroups, projects: bundle?.projects };
+  const visibleTypes: ReportType[] = tab === 'all'
+    ? ['finance', 'details', 'payroll', 'vehicles', 'projectGroups', 'projects']
+    : tab === 'projects'
+      ? ['projectGroups', 'projects']
+      : [tab];
   const reportYear = financeMonths.at(-1)?.slice(-4) || toMonth.slice(-4);
   const periodLabel = periodMode === 'year' ? `Năm ${reportYear}` : fromMonth === toMonth ? fromMonth : `${fromMonth} – ${toMonth}`;
   const hasCurrentBundle = Boolean(bundle && renderedPeriod === periodKey);
@@ -362,7 +378,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
           </select>
         </div>
         <div className="report-filter-row-search">
-          <input type="search" id="reportSearchInput" aria-label="Tìm trong báo cáo" placeholder="Tìm xe, tài xế..." value={query} onChange={(event) => setQuery(event.target.value)}/>
+          <input type="search" id="reportSearchInput" aria-label="Tìm trong báo cáo" placeholder="Tìm nhiều giá trị, ngăn cách bằng dấu phẩy..." value={query} onChange={(event) => setQuery(event.target.value)}/>
         </div>
       </div>
     </section>

@@ -2,7 +2,9 @@ var ReportTableService = (function () {
   function readTables(ss) {
     return {
       payroll: readTable_(ss, 'BC_BangLuong', 2, 1, 0, 16),
-      vehicles: readTable_(ss, 'BC_TongHopXe', 2, 1, 0, 12)
+      vehicles: readTable_(ss, 'BC_TongHopXe', 2, 1, 0, 14),
+      projectGroups: readTable_(ss, 'BC_TongHopDuAn', 2, 1, 0, 7),
+      projects: readTable_(ss, 'BC_TongHopDuAn', 2, 9, 0, 7)
     };
   }
 
@@ -15,7 +17,13 @@ var ReportTableService = (function () {
       var lastColumn = Math.max(overviewSheet.getLastColumn(), 7);
       overview = overviewSheet.getRange(1, 7, rowCount, Math.max(11, lastColumn - 7 + 1)).getDisplayValues();
     }
-    return { overview: overview, payroll: tables.payroll, vehicles: tables.vehicles };
+    return {
+      overview: overview,
+      payroll: tables.payroll,
+      vehicles: tables.vehicles,
+      projectGroups: tables.projectGroups,
+      projects: tables.projects
+    };
   }
 
   function filterByMonth(matrix, month, normalizeMonth) {

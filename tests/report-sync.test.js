@@ -80,7 +80,7 @@ test('report bundle and dashboard sync preserve rows, conflict key, status, and 
       operation: 'reportBundle',
       options: {
         spreadsheetId: 'synthetic-transport-sheet', reportMonth: '07/2026',
-        sourceSheetNames: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe'],
+        sourceSheetNames: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe', 'BC_TongHopDuAn'],
         bundle: { overview: { months: [['Tháng'], ['05/2026'], ['06/2026'], ['07/2026']] }, selected: 'latest' },
         cacheVersion: 'v13', dataVersion, syncedAt: syncTime
       }

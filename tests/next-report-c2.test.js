@@ -85,11 +85,22 @@ test('C3 Report C2 search is accent-insensitive, multi-term and vehicle filters 
   const head=['Công ty','Biển số xe','Doanh thu'];
   const body=[['Đông Bắc','20H-12345','100'],['Quang Minh','20H-67890','200']];
   assert.equal(helpers.matchesReportRow(body[0],'dong bac; 67890'),true);
+  assert.equal(helpers.matchesReportRow(body[0],'20H99999, 20H12345'),true);
   const filters=helpers.filterOptions('vehicles',head,body);
   assert.deepEqual({companyIdx:filters.companyIdx,plateIdx:filters.plateIdx},{companyIdx:0,plateIdx:1});
   assert.deepEqual(filters.companies,['Đông Bắc','Quang Minh']);
   const totalRow=helpers.appendTotal(head,[['Đông Bắc','20H-12345','100.000'],['Đông Bắc','20H-67890','200.000'],['Đông Bắc','20H-12345','150.000']]).at(-1);
   assert.deepEqual(totalRow,['Tổng cộng','2 xe','450.000']);
+});
+
+test('Report range aggregation merges the new project group and project rows by business key',async()=>{
+  const helpers=await import('../next-shell/lib/platform/report-c2.ts');
+  const months=[['Tháng','Doanh thu'],['07/2026','100'],['08/2026','300']];
+  const first={overview:{months},projectGroups:[['Tháng','Công ty','Nhóm báo cáo','Số chuyến','Tổng khối lượng','Doanh thu','Tỷ trọng doanh thu'],['07/2026','Quang Quân','Tràng Duệ','10','100','100','100,0%']],projects:[['Tháng','Công ty','Nhóm báo cáo','Dự án','Số chuyến','Tổng khối lượng','Doanh thu'],['07/2026','Quang Quân','Tràng Duệ','Tràng Duệ 42','10','100','100']]};
+  const second={overview:{months},projectGroups:[['Tháng','Công ty','Nhóm báo cáo','Số chuyến','Tổng khối lượng','Doanh thu','Tỷ trọng doanh thu'],['08/2026','Quang Quân','Tràng Duệ','20','200','300','100,0%']],projects:[['Tháng','Công ty','Nhóm báo cáo','Dự án','Số chuyến','Tổng khối lượng','Doanh thu'],['08/2026','Quang Quân','Tràng Duệ','Tràng Duệ 42','20','200','300']]};
+  const aggregate=helpers.aggregateReportBundles([first,second],['07/2026','08/2026']);
+  assert.deepEqual(aggregate.projectGroups[1],['07/2026–08/2026','Quang Quân','Tràng Duệ','30','300','400','100,0%']);
+  assert.deepEqual(aggregate.projects[1],['07/2026–08/2026','Quang Quân','Tràng Duệ','Tràng Duệ 42','30','300','400']);
 });
 
 test('Report totals never coerce identifiers or notes that merely start with digits',async()=>{

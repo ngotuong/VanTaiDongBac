@@ -1,13 +1,17 @@
 var ReportOutputFreshnessService = (function () {
   function buildState(tables, context) {
     var grouped = {};
-    ['overview', 'payroll', 'vehicles'].forEach(function (tableName) {
+    var tableNames = ['overview', 'payroll', 'vehicles', 'projectGroups', 'projects'];
+    tableNames.forEach(function (tableName) {
       var matrix = tables[tableName] || [];
       var header = matrix.length ? matrix[0] : [];
       matrix.slice(1).forEach(function (row) {
         var monthKey = context.resolveMonthKey(row && row[0]);
         if (!monthKey) return;
-        if (!grouped[monthKey]) grouped[monthKey] = { overview: [], payroll: [], vehicles: [] };
+        if (!grouped[monthKey]) {
+          grouped[monthKey] = {};
+          tableNames.forEach(function (name) { grouped[monthKey][name] = []; });
+        }
         grouped[monthKey][tableName].push(row);
         grouped[monthKey][tableName + 'Header'] = header;
       });
@@ -19,7 +23,9 @@ var ReportOutputFreshnessService = (function () {
     return {
       fingerprints: fingerprints,
       rows: Object.keys(grouped).reduce(function (total, monthKey) {
-        return total + grouped[monthKey].overview.length + grouped[monthKey].payroll.length + grouped[monthKey].vehicles.length;
+        return total + tableNames.reduce(function (subtotal, tableName) {
+          return subtotal + grouped[monthKey][tableName].length;
+        }, 0);
       }, 0)
     };
   }

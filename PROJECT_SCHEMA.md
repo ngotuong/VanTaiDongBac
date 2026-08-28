@@ -91,7 +91,7 @@ Không dùng `SpreadsheetApp.getActiveSpreadsheet()` làm nguồn dữ liệu ch
 
 Số cột row builder không bằng tổng số cột vật lý trong mọi sheet. Các cột vật lý phía sau có thể là formula/helper; không được mở rộng write range chỉ dựa vào `getLastColumn()`.
 
-Live audit ngày 2026-08-10 xác nhận:
+Live audit ngày 2026-08-10 và đối chiếu bổ sung ngày 2026-08-28 xác nhận:
 
 - `NL_VanChuyen` có thêm cột H `Khối lượng thực tế (m³)`; cột này là input tùy chọn.
 - `NL_TaiXe` dùng cột D `Nhóm vận hành`, tự xác định theo `DM_PhanCongXe` và ngày hiệu lực; web app không cho ghi một dự án chi tiết vào cột này.
@@ -112,6 +112,15 @@ Snapshot hiện có:
 - `BC_TongQuan`;
 - `BC_BangLuong`;
 - `BC_TongHopXe`.
+
+Live workbook ngày 2026-08-28 bổ sung:
+
+- `SYS_AggLuongThangXe`: helper phân bổ tổng lương tài xế theo `Tháng + Tài xế + Biển số`, không phải vùng nhập liệu;
+- `BC_TongHopDuAn`: gồm hai bảng đọc độc lập, `A:G` tổng hợp theo nhóm và `I:O` chi tiết theo dự án;
+- `BC_TongHopXe` mở rộng thành 14 cột, thêm `Chi phí lương lái` và `Lãi sau lương` trước `Ghi chú`;
+- `BC_BangLuong` dùng đủ 16 cột, gồm `BHXH`, `Công ty` và `Ghi chú` theo header live.
+
+Webapp đọc các bảng báo cáo này theo đúng vùng cố định, không ghi vào `BC_*`/`SYS_*`. Bundle Supabase và fingerprint freshness phải chứa cả hai bảng của `BC_TongHopDuAn`.
 
 `BC_TongQuan!B1` là controller tháng. Web app không được đổi controller trên sheet gốc để đọc kỳ khác; implementation dùng sheet tạm, ưu tiên cache Supabase và tính trực tiếp khi cache miss. `SYS_ReportCache` không còn tham gia runtime.
 
@@ -155,6 +164,7 @@ Cột C `Ghi chú` của `DM_GiaDau` là cột công thức chênh lệch giá t
 | `BOT_USERS` | User model bot legacy |
 | `BOT_MEDIA` | Media metadata bot legacy |
 | `BOT_LOG` | Log bot legacy |
+| `PHANBO_VAY` | Bảng công thức lập phương án phân bổ trả nợ nhiều khoản; không phải nguồn giao dịch và web app không ghi vào sheet này |
 
 ### 5.2. `NHAP_THUCHI`
 

@@ -96,6 +96,8 @@ var SheetService = (function () {
       overview: readOverviewReport_(ss),
       payroll: reportTables.payroll,
       vehicles: reportTables.vehicles,
+      projectGroups: reportTables.projectGroups,
+      projects: reportTables.projects,
       inputs: readInputStats_(ss),
       latestTrips: readLatestTrips_(ss),
       links: reportLinks_(ss),
@@ -139,6 +141,14 @@ var SheetService = (function () {
         data: filterDisplayTableByMonth_(vehicleTables.vehicles, month),
         links: reportLinks_(ss)
       };
+    } else if (reportType === 'projectGroups' || reportType === 'projects') {
+      var projectTables = readReportTables_(ss, forceRefresh);
+      report = {
+        type: reportType,
+        updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
+        data: filterDisplayTableByMonth_(projectTables[reportType], month),
+        links: reportLinks_(ss)
+      };
     } else {
       throw new Error('Loai bao cao khong hop le: ' + reportType);
     }
@@ -165,6 +175,8 @@ var SheetService = (function () {
       overview: readOverviewReport_(ss, month, dataVersion),
       payroll: filterDisplayTableByMonth_(reportTables.payroll, month),
       vehicles: filterDisplayTableByMonth_(reportTables.vehicles, month),
+      projectGroups: filterDisplayTableByMonth_(reportTables.projectGroups, month),
+      projects: filterDisplayTableByMonth_(reportTables.projects, month),
       links: reportLinks_(ss)
     };
     putChunkedCache_(cacheKey, bundle, REPORT_TTL_SECONDS);
@@ -178,6 +190,8 @@ var SheetService = (function () {
       overview: { months: [], details: [] },
       payroll: [],
       vehicles: [],
+      projectGroups: [],
+      projects: [],
       inputs: [],
       latestTrips: { date: '', trips: [] },
       links: reportLinks_(),
@@ -192,7 +206,8 @@ var SheetService = (function () {
       spreadsheet: base,
       overview: sheetLink_(base, ss, 'BC_TongQuan'),
       payroll: sheetLink_(base, ss, 'BC_BangLuong'),
-      vehicles: sheetLink_(base, ss, 'BC_TongHopXe')
+      vehicles: sheetLink_(base, ss, 'BC_TongHopXe'),
+      projects: sheetLink_(base, ss, 'BC_TongHopDuAn')
     };
   }
 

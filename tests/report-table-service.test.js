@@ -39,7 +39,20 @@ test('report table reader preserves exact dimensions, header, row order, and rem
     ['Tháng', 'Xe'], ['07/2026', '30A']
   ]);
   assert.equal(result.payroll[0].length, 16);
-  assert.equal(result.vehicles[0].length, 12);
+  assert.equal(result.vehicles[0].length, 14);
+});
+
+test('report table reader exposes both sections of BC_TongHopDuAn independently', () => {
+  const projectReport = [
+    [],
+    ['Tháng', 'Công ty', 'Nhóm báo cáo', 'Số chuyến', 'Tổng khối lượng', 'Doanh thu', 'Tỷ trọng doanh thu', '', 'Tháng', 'Công ty', 'Nhóm báo cáo', 'Dự án', 'Số chuyến', 'Tổng khối lượng', 'Doanh thu'],
+    ['08/2026', 'Quang Quân', 'Tràng Duệ', '10', '100', '200', '100%', '', '08/2026', 'Quang Quân', 'Tràng Duệ', 'Tràng Duệ 42', '10', '100', '200']
+  ];
+  const { service, ss } = loadService({ BC_TongHopDuAn: projectReport });
+  const result = plain(service.readTables(ss));
+  assert.deepEqual(result.projectGroups[0], projectReport[1].slice(0, 7));
+  assert.deepEqual(result.projects[0], projectReport[1].slice(8, 15));
+  assert.deepEqual(result.projects[1], projectReport[2].slice(8, 15));
 });
 
 test('report table reader does not truncate payroll after 200 rows', () => {

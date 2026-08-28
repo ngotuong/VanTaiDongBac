@@ -61,7 +61,7 @@ test('Supabase report cache upserts one complete bundle with lowercase SHA-256 m
   const expectedHash = crypto.createHash('sha256').update(JSON.stringify(details), 'utf8').digest('hex');
   assert.deepEqual(plain(row), {
     spreadsheet_id: 'sheet-1', report_month: '07/2026',
-    source_sheet_names: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe'],
+    source_sheet_names: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe', 'BC_TongHopDuAn'],
     payload: bundle, cache_version: 'v13', source_data_version: 'version-1',
     details_hash: expectedHash, synced_at: '2026-07-19T00:00:00.000Z'
   });

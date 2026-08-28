@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { formatVietnameseNumberInput } from '../../lib/platform/numeric-input';
+import { matchesSearchQuery } from '../../lib/platform/search';
 import { showToast } from '../../lib/platform/toast';
 import type { EntryCatalogs, EntryFormType } from '../../lib/platform/entry-types';
 import type { ManageBundle, ManageDataResponse, ManageRow, ManageSheetName } from '../../lib/platform/manage-types';
@@ -99,7 +100,7 @@ export function ManageReadOnlyModule({initialData,initialCatalogs={},initialErro
   const headers=data?.headers||[];const columns=visibleColumns(headers,sheet);const fuelIndex=column(headers,['nguon','nguon cung cap','nguon dau']);const paymentIndex=column(headers,['nguon chi']);const noteIndex=column(headers,['ghi chu','ghi chu them']);const literIndex=column(headers,['so lit','lit','so lit dau']);const amountIndex=column(headers,['thanh tien','tong tien','tien']);const tripsIndex=headers.findIndex(header=>normalize(header).includes('so chuyen'));const vehicleIndex=column(headers,['bien so xe','xe','ben so']);const canCreate=canWrite&&sheet!=='NL_PhanCongLai';
   const ownerMap=useMemo(()=>Object.fromEntries((catalogs.vehicles||[]).map(vehicle=>[normalize(vehicle.plate),vehicle.owner||''])),[catalogs]);
   const showOwner=vehicleIndex>=0&&!['NL_TaiXe','NL_NghiVanHanh','NL_Dau'].includes(sheet);
-  const rows=useMemo(()=>(data?.rows||[]).map(row=>({...row,owner:showOwner?ownerMap[normalize(row.values[vehicleIndex])]||'':''})).filter(row=>{if(query&&!normalize([...row.values,row.owner].join(' ')).includes(normalize(query)))return false;if(sheet==='NL_Dau'&&fuelSource!=='all'&&fuelIndex>=0&&normalize(row.values[fuelIndex])!==normalize(fuelSource))return false;if(sheet==='NL_Dau'&&paymentSource!=='all'){const key=normalize(paymentSource);if(!normalize([row.values[paymentIndex],row.values[noteIndex],row.owner].join(' ')).includes(key))return false;}return true;}),[data,query,sheet,fuelSource,paymentSource,fuelIndex,paymentIndex,noteIndex,ownerMap,showOwner,vehicleIndex]);
+  const rows=useMemo(()=>(data?.rows||[]).map(row=>({...row,owner:showOwner?ownerMap[normalize(row.values[vehicleIndex])]||'':''})).filter(row=>{if(!matchesSearchQuery([...row.values,row.owner],query))return false;if(sheet==='NL_Dau'&&fuelSource!=='all'&&fuelIndex>=0&&normalize(row.values[fuelIndex])!==normalize(fuelSource))return false;if(sheet==='NL_Dau'&&paymentSource!=='all'){const key=normalize(paymentSource);if(!normalize([row.values[paymentIndex],row.values[noteIndex],row.owner].join(' ')).includes(key))return false;}return true;}),[data,query,sheet,fuelSource,paymentSource,fuelIndex,paymentIndex,noteIndex,ownerMap,showOwner,vehicleIndex]);
 
   const totalPages=Math.max(1,Math.ceil(rows.length/PAGE_SIZE));const currentPage=Math.min(page,totalPages);const pageRows=rows.slice((currentPage-1)*PAGE_SIZE,currentPage*PAGE_SIZE);
   const uniqueVehiclesCount=useMemo(()=>{if(vehicleIndex<0)return 0;const set=new Set<string>();for(const r of rows){const v=String(r.values[vehicleIndex]??'').trim().toUpperCase();if(v)set.add(v);}return set.size;},[rows,vehicleIndex]);
@@ -149,7 +150,7 @@ export function ManageReadOnlyModule({initialData,initialCatalogs={},initialErro
           </select>
         </div>
         <div className="cashflow-filter-row-search">
-          <input type="search" className="manage-card-search-input" value={query} placeholder="Tìm theo biển số, tài xế..." aria-label="Tìm kiếm theo biển số, tài xế" onChange={event=>{ setQuery(event.target.value); setPage(1); }}/>
+          <input type="search" className="manage-card-search-input" value={query} placeholder="Tìm nhiều giá trị, ngăn cách bằng dấu phẩy..." aria-label="Tìm kiếm theo biển số, tài xế" onChange={event=>{ setQuery(event.target.value); setPage(1); }}/>
           {canCreate?<button type="button" className="primary touch-action-btn manage-add-top-btn" onClick={openEntry}>＋ Nhập mới</button>:null}
         </div>
       </div>

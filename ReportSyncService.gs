@@ -58,7 +58,7 @@ var ReportSyncService = (function () {
     context.upsertReportBundle({
       spreadsheetId: context.spreadsheetId,
       reportMonth: resolvedMonth,
-      sourceSheetNames: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe'],
+      sourceSheetNames: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe', 'BC_TongHopDuAn'],
       bundle: bundle,
       cacheVersion: context.getReportCacheVersion(),
       dataVersion: dataVersion,

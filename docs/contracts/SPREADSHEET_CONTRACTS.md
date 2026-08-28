@@ -567,7 +567,8 @@ Contract:
 - formula-driven;
 - frozen rows 2/frozen columns 2 trong snapshot;
 - giữ subtotal/header/formula;
-- web app chỉ đọc/export.
+- web app chỉ đọc/export;
+- live 2026-08-28 có 16 cột `A:P`; backend phải giữ đủ `BHXH`, `Thực nhận`, `Công ty` và `Ghi chú`.
 
 ### 10.3. `BC_TongHopXe`
 
@@ -577,15 +578,39 @@ Dependency:
 
 - `XL_VanChuyen`;
 - `NL_Dau`;
-- `IMP_ThuChi`.
+- `IMP_ThuChi`;
+- `SYS_AggLuongThangXe` cho phần lương lái phân bổ theo xe.
 
 Contract:
 
 - formula-driven;
 - giữ subtotal/header/formula;
-- web app chỉ đọc/export.
+- web app chỉ đọc/export;
+- live 2026-08-28 có 14 cột `A:N`; `Chi phí lương lái` và `Lãi sau lương` không được cắt khỏi bundle/cache/export.
 
-### 10.4. `SYS_ReportCache` — retired
+### 10.4. `BC_TongHopDuAn`
+
+Vai trò: tổng hợp doanh thu theo nhóm báo cáo và chi tiết từng dự án.
+
+Vùng bảng:
+
+- `A:G`: `Tháng, Công ty, Nhóm báo cáo, Số chuyến, Tổng khối lượng, Doanh thu, Tỷ trọng doanh thu`;
+- `H`: cột phân cách trống;
+- `I:O`: `Tháng, Công ty, Nhóm báo cáo, Dự án, Số chuyến, Tổng khối lượng, Doanh thu`.
+
+Contract:
+
+- formula-driven, web app chỉ đọc/export;
+- backend phải đọc hai bảng độc lập vì số hàng của phần chi tiết có thể lớn hơn phần tổng hợp;
+- khoảng nhiều tháng gộp bảng nhóm theo `Công ty + Nhóm báo cáo`, bảng chi tiết theo `Công ty + Nhóm báo cáo + Dự án`;
+- `Tỷ trọng doanh thu` phải tính lại từ doanh thu đã gộp, không cộng tỷ lệ các tháng;
+- source metadata/freshness fingerprint phải chứa sheet này.
+
+### 10.5. `SYS_AggLuongThangXe`
+
+Helper live 2026-08-28 gồm 10 cột `A:J`, phân bổ lương theo `Tháng + Tài xế + Biển số`. Sheet này là nguồn công thức downstream của `BC_TongHopXe`, không phải nguồn nhập liệu và web app không được ghi trực tiếp.
+
+### 10.6. `SYS_ReportCache` — retired
 
 Vai trò lịch sử: cache chi tiết báo cáo theo tháng trong file Vận tải. Runtime hiện hành không còn đọc, ghi hoặc tự tạo sheet này.
 

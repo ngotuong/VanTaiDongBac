@@ -77,10 +77,10 @@ Production đã xác nhận gần nhất:
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_9PefEkcvQm865tWW7JCFUMRwUrVC`, READY ngày 2026-08-29; root/title/health, session guard và authenticated Quỹ mobile QA PASS.
+- Vercel deployment: `dpl_4yJ5ye9QKSmh4Kcx9xwX6gMsMuHf`, READY ngày 2026-08-29; root/title, session guard và authenticated Quỹ mobile QA PASS.
 - Apps Script Preview: `@349`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`; Apps Script Production web deployment vẫn khóa tại `@348`.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate PASS 543/543 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`.
+- Gate PASS 544/544 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,14 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Mật độ bảng và bố cục khoản vay — Preview 2026-08-29
+
+- Bảng `Các khoản vay` đổi thứ tự thành `Ngày vay · Nơi vay · Số tiền · Nội dung · Trạng thái`; nhãn `Dư nợ hiện tại` được rút gọn thành `Số tiền`. Không thay đổi nguồn hoặc phép tính số dư khoản vay.
+- `Nơi vay` được in đậm trong cả bảng khoản vay và lịch sử vay/trả. Các bảng danh sách của module Thu Chi dùng chung header 48px, dòng dữ liệu 52px và nền trắng/xám xen kẽ; bảng tổng quan/export dạng gọn không bị ép theo nhịp này, hàng pending và màu tiền thu/chi vẫn giữ semantic riêng.
+- Header `Lịch sử vay / trả` dùng hai cột cân đối trên mobile: tiêu đề bên trái, hai bộ lọc 44px bên phải trên cùng một hàng từ 360px; màn hình hẹp hơn 360px tự xuống hàng để không tràn.
+- Authenticated Preview QA tại 390×844 xác nhận hai bảng đều có dòng 52px, nền xen kẽ `rgb(255,255,255)`/`rgb(248,250,252)`, `Nơi vay` font-weight 800, tiêu đề và bộ lọc cùng hàng, trang không tràn ngang; tiền vay vẫn xanh và trả nợ vẫn đỏ. QA chỉ đọc, không submit hoặc ghi dữ liệu nghiệp vụ.
+- Full gate PASS 544/544 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Vercel Preview `dpl_4yJ5ye9QKSmh4Kcx9xwX6gMsMuHf` được triển khai bằng `npm run deploy:preview`; Apps Script Preview giữ `@349`. Production giữ nguyên Vercel `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU` và Apps Script `@348`; checkpoint chờ người dùng duyệt trước yêu cầu Production riêng.
 
 ### Thu Chi Cấn trừ, retire Hình thức, khoản vay và footer mobile — Preview 2026-08-29
 

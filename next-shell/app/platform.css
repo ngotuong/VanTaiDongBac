@@ -5428,6 +5428,70 @@ html body [data-business-form-sheet] button:active:not(:disabled) {
   white-space: nowrap;
 }
 
+/* Cashflow table rhythm: one readable row height and subtle zebra scanning across list tables. */
+html body #cashflowView :is(.report-table, .fund-catalog-table) thead th {
+  height: 48px !important;
+  padding: 8px 12px !important;
+  box-sizing: border-box;
+  line-height: 1.25 !important;
+  vertical-align: middle !important;
+}
+
+html body #cashflowView :is(.report-table, .fund-catalog-table) tbody td:not(.cashflow-empty) {
+  height: 52px !important;
+  padding: 4px 12px !important;
+  box-sizing: border-box;
+  line-height: 1.35 !important;
+  vertical-align: middle !important;
+}
+
+.cashflow-c2 :is(.report-table, .fund-catalog-table) tbody tr:not(.cashflow-pending-row):nth-child(odd) > td {
+  background-color: #ffffff !important;
+}
+
+.cashflow-c2 :is(.report-table, .fund-catalog-table) tbody tr:not(.cashflow-pending-row):nth-child(even) > td {
+  background-color: #f8fafc !important;
+}
+
+.cashflow-c2 :is(.report-table, .fund-catalog-table) tbody tr:not(.cashflow-pending-row):hover > td {
+  background-color: #f1f5f9 !important;
+}
+
+.cashflow-c2 .report-table tbody tr.cashflow-pending-row > td {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+}
+
+.cashflow-c2 .fund-loan-partner-cell {
+  color: var(--ink, #0f172a) !important;
+  font-weight: 800 !important;
+}
+
+@media (max-width: 640px) {
+  html body .cashflow-c2 .fund-loan-history-head {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+  }
+
+  html body .cashflow-c2 .fund-loan-history-head > .fund-loan-history-filters {
+    grid-template-columns: repeat(2, max-content) !important;
+    width: auto !important;
+    justify-content: end !important;
+    gap: 6px !important;
+  }
+}
+
+@media (max-width: 359px) {
+  html body .cashflow-c2 .fund-loan-history-head {
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: stretch !important;
+  }
+
+  html body .cashflow-c2 .fund-loan-history-head > .fund-loan-history-filters {
+    width: 100% !important;
+    justify-content: start !important;
+  }
+}
+
 @media (max-width: 768px) {
   html body [data-business-form-sheet] > :is(.modal-footer, .submit-bar),
   html body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet] > :is(.modal-footer, .submit-bar),

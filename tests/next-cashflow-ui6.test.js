@@ -364,8 +364,18 @@ test('Cashflow supports offset expenses and renders deterministic loan summary c
   assert.match(module, /row\.type === 'Chi'/);
   assert.match(module, /const compareLoans/);
   assert.match(module, /\.sort\(compareLoans\)/);
-  assert.match(flat(module), /<th className="sticky-col">Ngày vay<\/th> <th>Nơi vay<\/th> <th>Nội dung<\/th> <th>Dư nợ hiện tại<\/th> <th>Trạng thái<\/th>/);
+  assert.match(flat(module), /<th className="sticky-col">Ngày vay<\/th> <th>Nơi vay<\/th> <th>Số tiền<\/th> <th>Nội dung<\/th> <th>Trạng thái<\/th>/);
+  assert.match(module, /className="fund-loan-partner-cell">\{item\.partner\}/);
   assert.match(css, /\.fund-loan-status-cell/);
+});
+
+test('Cashflow list tables share history density, zebra rows, and a balanced mobile loan-history header', () => {
+  const css = read('next-shell/app/platform.css');
+
+  assert.match(css, /#cashflowView :is\(\.report-table, \.fund-catalog-table\) tbody td:not\(\.cashflow-empty\) \{[\s\S]*height: 52px !important;[\s\S]*padding: 4px 12px !important;/);
+  assert.match(css, /tbody tr:not\(\.cashflow-pending-row\):nth-child\(even\) > td \{[\s\S]*background-color: #f8fafc !important;/);
+  assert.match(css, /\.fund-loan-partner-cell \{[\s\S]*font-weight: 800 !important;/);
+  assert.match(css, /@media \(max-width: 640px\)[\s\S]*\.fund-loan-history-head \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) auto !important;/);
 });
 
 test('Fund opening settings share the standard date and numeric input contracts', () => {

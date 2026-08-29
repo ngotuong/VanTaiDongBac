@@ -12,10 +12,10 @@
 
 Production đã xác nhận trong `PROJECT_CONTEXT.md`:
 
-- Vercel hiện tại: `dpl_4H1DouQ7TDgj86fUBvDbP3axgvqH`.
-- Vercel rollback gần nhất: `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU`; rollback lịch sử tiếp theo là `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`, `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, rồi `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
+- Vercel hiện tại: `dpl_3Fe4NCtEtZAzEe4547JpM9z5UPG7`.
+- Vercel rollback gần nhất: `dpl_4H1DouQ7TDgj86fUBvDbP3axgvqH`; rollback lịch sử tiếp theo là `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU`, `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`, `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, rồi `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
 - Rollback lịch sử tiếp theo: D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`, C3 `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` nếu vẫn READY.
-- Apps Script production: code version `@348`; rollback gần nhất cùng deployment ID là `@344`, tiếp theo là `@343`, `@340`, `@338`, `@337`, `@335`, `@328`, `@325`, rồi `@322`.
+- Apps Script production: code version `@349`; rollback gần nhất cùng deployment ID là `@348`, tiếp theo là `@344`, `@343`, `@340`, `@338`, `@337`, `@335`, `@328`, `@325`, rồi `@322`.
 - Kênh notification dispatch có thể được cô lập ngay bằng Script Property `NOTIFICATION_DISPATCH_ENABLED=false` mà không rollback toàn bộ webapp.
 - Recovery deployment `@281` đã undeploy, không dùng.
 

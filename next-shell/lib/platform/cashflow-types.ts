@@ -1,7 +1,7 @@
 export type CashflowTab='overview'|'transactions'|'debts'|'loans'|'catalog';
 export type FundMonth={key:string;label:string};
 export type FundMetric={key:string;label:string;value:number};
-export type FundTransaction={rowIndex?:number;voucher?:string;date:string;dateText?:string;month?:string;type:'Thu'|'Chi';category:string;method?:string;amount:number|string;amountText?:string;actor:string;partner?:string;content?:string;debt?:string|boolean;remainingDebt?:number;pending?:boolean;jobId?:string};
+export type FundTransaction={rowIndex?:number;voucher?:string;date:string;dateText?:string;month?:string;type:'Thu'|'Chi';category:string;method?:string;amount:number|string;amountText?:string;actor:string;partner?:string;content?:string;debt?:string|boolean;offset?:boolean;remainingDebt?:number;pending?:boolean;jobId?:string};
 export type FundOverview={ok?:boolean;months?:FundMonth[];selectedMonth?:string;metrics?:FundMetric[];incomeCategories?:Array<{category:string;amount:number;count?:number;details?:FundTransaction[]}>;expenseCategories?:Array<{category:string;amount:number;count?:number;details?:FundTransaction[]}>;supabaseCached?:boolean;supabaseSyncedAt?:string};
 export type FundTransactions={ok?:boolean;year?:string;months?:FundMonth[];transactions?:FundTransaction[];totalRows?:number;limited?:boolean;supabaseCached?:boolean;supabaseSyncedAt?:string};
 export type FundLoan={code?:string;loanDate?:string;loanDateText?:string;partner:string;borrowed?:number;principalPaid?:number;interestPaid?:number;outstanding:number;currentOutstanding?:number;isCurrentlySettled?:boolean;currentSettlementDate?:string;currentSettlementDateText?:string;content?:string};

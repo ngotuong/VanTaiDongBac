@@ -45,6 +45,14 @@ const fundOverviewMetricTone = (key: string, value: number) => (key === 'periodI
 const fundLoanMetricTone = (key: string) => (key === 'principalPaid' ? 'fund-tone-principal-paid' : key === 'interestPaid' ? 'fund-tone-interest-paid' : key === 'outstanding' ? 'fund-tone-negative' : 'fund-tone-borrowed');
 const fundLoanHistoryTone = (type: string) => (type === 'Vay' ? 'emerald' : 'rose');
 const fundLoanAmountTone = (type: string) => (type === 'Vay' ? 'cash-in' : 'cash-out');
+const compareLoans = (left: FundLoan, right: FundLoan) => {
+  if (Boolean(left.isCurrentlySettled) !== Boolean(right.isCurrentlySettled)) return left.isCurrentlySettled ? 1 : -1;
+  const dateOrder = String(right.loanDate || '').localeCompare(String(left.loanDate || ''));
+  if (dateOrder) return dateOrder;
+  const partnerOrder = String(left.partner || '').localeCompare(String(right.partner || ''), 'vi');
+  if (partnerOrder) return partnerOrder;
+  return String(left.code || '').localeCompare(String(right.code || ''));
+};
 const normalizeJob = (value: unknown): FundWriteJob => {
   const raw = value as FundWriteJob & { job?: FundWriteJob };
   return raw.job || raw;
@@ -53,17 +61,16 @@ const blankTransaction = (): FundTransaction => ({
   date: today(),
   type: 'Chi',
   category: '',
-  method: '',
   amount: '',
   actor: '',
   partner: '',
   content: '',
   debt: false,
+  offset: false,
 });
 type LoanForm = {
   date: string;
   partner: string;
-  method: string;
   amount: string;
   termMonths: string;
   annualRate: string;
@@ -74,7 +81,6 @@ type LoanForm = {
 const blankLoan = (): LoanForm => ({
   date: today(),
   partner: '',
-  method: '',
   amount: '',
   termMonths: '',
   annualRate: '',
@@ -87,7 +93,6 @@ type PaymentForm = {
   code: string;
   type: string;
   partner: string;
-  method: string;
   amount: string;
   content: string;
 };
@@ -304,7 +309,6 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     code: '',
     type: 'Trả nợ',
     partner: '',
-    method: '',
     amount: '',
     content: '',
   });
@@ -538,7 +542,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   const shownDebts = shownTransactions.filter((item) => item.debt === true || item.debt === 'Có');
   const debtRows = shownDebts.slice((txPage - 1) * PAGE_SIZE, txPage * PAGE_SIZE);
   const loanPartners = useMemo(() => Array.from(new Set((loans.loans || []).map((item) => item.partner).filter(Boolean))).sort(), [loans]);
-  const filteredLoans = useMemo(() => (loans.loans || []).filter((item) => !loanPartner || item.partner === loanPartner), [loans, loanPartner]);
+  const filteredLoans = useMemo(() => (loans.loans || []).filter((item) => !loanPartner || item.partner === loanPartner).sort(compareLoans), [loans, loanPartner]);
   const filteredLoanMetrics = useMemo(() => {
     if (!loanPartner) return loans.metrics || [];
     const partnerRows = (loans.recentRows || []).filter((item) => item.partner === loanPartner);
@@ -561,8 +565,8 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     setDrawer('transactions');
   };
   const submitTransactions = async () => {
-    const invalid = transactionRows.some((row) => !row.date || !row.category || !row.method || !row.actor || amount(row.amount) <= 0);
-    if (invalid) return report('Vui lòng điền ngày, mục thu/chi, hình thức, số tiền và người Thu/Chi cho mọi dòng.', true);
+    const invalid = transactionRows.some((row) => !row.date || !row.category || !row.actor || amount(row.amount) <= 0 || (row.offset && row.type !== 'Chi'));
+    if (invalid) return report('Vui lòng điền ngày, mục thu/chi, số tiền và người Thu/Chi; Cấn trừ chỉ áp dụng cho giao dịch Chi.', true);
     setBusy(true);
     showToast('Đang lưu giao dịch…', 'loading');
     try {
@@ -649,7 +653,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     setDrawer('loan');
   };
   const submitLoan = async () => {
-    if (loanRows.some((loan) => !loan.date || !loan.partner || !loan.method || amount(loan.amount) <= 0)) return report('Vui lòng nhập ngày vay, nơi vay, hình thức và số tiền hợp lệ cho mọi khoản vay.', true);
+    if (loanRows.some((loan) => !loan.date || !loan.partner || amount(loan.amount) <= 0)) return report('Vui lòng nhập ngày vay, nơi vay và số tiền hợp lệ cho mọi khoản vay.', true);
     setBusy(true);
     showToast(loanRows.length > 1 ? `Đang lưu ${loanRows.length} khoản vay…` : 'Đang lưu khoản vay…', 'loading');
     let nextLoans = loans;
@@ -690,14 +694,13 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
       code: item.code || '',
       type: 'Trả nợ',
       partner: item.partner,
-      method: '',
       amount: '',
       content: `Trả một phần khoản vay [${item.partner}] mã vay [${item.code || ''}]`,
     });
     setDrawer('payment');
   };
   const submitPayment = async () => {
-    if (!payment.date || !payment.code || !payment.partner || !payment.method || amount(payment.amount) <= 0) return report('Vui lòng nhập đủ thông tin thanh toán khoản vay.', true);
+    if (!payment.date || !payment.code || !payment.partner || amount(payment.amount) <= 0) return report('Vui lòng nhập đủ thông tin thanh toán khoản vay.', true);
     setBusy(true);
     try {
       await api.post('addFundLoanPayment', {
@@ -880,7 +883,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
       {tab === 'catalog' && canWrite ? <><FundSettingsCard value={settingsEdit} setValue={setSettingsEdit} save={() => void saveFundSettings()} busy={busy} /><Catalog data={catalog} group={group} edit={catalogEdit} setEdit={setCatalogEdit} selectGroup={selectGroup} save={() => void saveCatalog()} remove={deleteCatalog} busy={busy} page={catalogPage} setPage={setCatalogPage} /></> : null}
       {drawer === 'transactions' ? <TransactionDrawer rows={transactionRows} setRows={setTransactionRows} options={options} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitTransactions()} /> : null}
       {drawer === 'loan' ? <LoanDrawer rows={loanRows} setRows={setLoanRows} options={options} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitLoan()} /> : null}
-      {drawer === 'payment' ? <PaymentDrawer value={payment} setValue={setPayment} options={options} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitPayment()} /> : null}
+      {drawer === 'payment' ? <PaymentDrawer value={payment} setValue={setPayment} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitPayment()} /> : null}
       {drawer === 'category' && category ? <CategoryDrawer title={category.title} rows={categoryRows} allRows={category.rows} partner={categoryPartner} setPartner={setCategoryPartner} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} /> : null}
       {deletingTransaction ? (
         <BodyPortal>
@@ -1256,7 +1259,7 @@ function CategoryDrawer({ title, rows, allRows, partner, setPartner, closeReques
 }
 
 function Transactions(props: { rows: FundTransaction[]; total: number; page: number; setPage: (value: number) => void; canWrite: boolean; edit: (row: FundTransaction) => void; remove: (row: FundTransaction) => void; retry: (jobId: string) => void; debtMode?: boolean }) {
-  const pageTotalNet = props.rows.reduce((sum, r) => sum + (r.type === 'Thu' ? amount(r.amount) : -amount(r.amount)), 0);
+  const pageTotalNet = props.rows.reduce((sum, r) => sum + (r.offset ? 0 : r.type === 'Thu' ? amount(r.amount) : -amount(r.amount)), 0);
   const pageRemainingDebt = props.rows.reduce((sum, row) => sum + Number(row.remainingDebt || 0), 0);
   return (
     <section className="table-card">
@@ -1285,6 +1288,7 @@ function Transactions(props: { rows: FundTransaction[]; total: number; page: num
                   <td className="sticky-col">{row.dateText || row.date}</td>
                   <td>
                     <span className={`badge ${row.type === 'Thu' ? 'emerald' : 'rose'}`}>{row.type}</span>
+                    {row.offset ? <small> · Cấn trừ</small> : null}
                     {row.pending ? <small> · {row.jobId ? 'Chờ đồng bộ' : 'Đang xử lý'}</small> : null}
                   </td>
                   <td>{row.category}</td>
@@ -1387,8 +1391,9 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
               <tr>
                 <th className="sticky-col">Ngày vay</th>
                 <th>Nơi vay</th>
+                <th>Nội dung</th>
                 <th>Dư nợ hiện tại</th>
-                <th>Trạng thái / Thanh toán</th>
+                <th>Trạng thái</th>
               </tr>
             </thead>
             <tbody>
@@ -1397,27 +1402,31 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
                   <tr key={item.code || index}>
                     <td className="sticky-col">{item.loanDateText || item.loanDate || '—'}</td>
                     <td>{item.partner}</td>
+                    <td>{item.content || '—'}</td>
                     <td className="tabular-nums fund-expense">{money(item.currentOutstanding ?? item.outstanding)}</td>
-                    <td>
+                    <td className="fund-loan-status-cell">
                       {item.isCurrentlySettled ? (
-                        `Đã trả gốc${item.currentSettlementDateText ? ` · ${item.currentSettlementDateText}` : ''}`
-                      ) : props.canWrite ? (
-                        <button type="button" className="btn-table-action touch-action-btn fund-loan-payment-icon" aria-label={`Thanh toán khoản vay ${item.partner}`} title="Thanh toán" onClick={() => props.pay(item)}>
-                          <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
-                            <rect x="3" y="5" width="18" height="14" rx="2" />
-                            <path d="M3 9h18M8 15h3M16 13v4M14 15h4" />
-                          </svg>
-                          <span className="desktop-action-label">Thanh toán</span>
-                        </button>
+                        <span>Đã trả gốc{item.currentSettlementDateText ? ` · ${item.currentSettlementDateText}` : ''}</span>
                       ) : (
-                        'Đang nợ'
+                        <>
+                          <span>Đang nợ</span>
+                          {props.canWrite ? (
+                            <button type="button" className="btn-table-action touch-action-btn fund-loan-payment-icon" aria-label={`Thanh toán khoản vay ${item.partner}`} title="Thanh toán" onClick={() => props.pay(item)}>
+                              <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
+                                <rect x="3" y="5" width="18" height="14" rx="2" />
+                                <path d="M3 9h18M8 15h3M16 13v4M14 15h4" />
+                              </svg>
+                              <span className="desktop-action-label">Thanh toán</span>
+                            </button>
+                          ) : null}
+                        </>
                       )}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="cashflow-empty">
+                  <td colSpan={5} className="cashflow-empty">
                     Không có khoản vay.
                   </td>
                 </tr>
@@ -1683,6 +1692,7 @@ function TransactionFields({ row, setRow, options }: { row: FundTransaction; set
               ...row,
               type: event.target.value as 'Thu' | 'Chi',
               category: '',
+              offset: event.target.value === 'Chi' ? row.offset : false,
             })
           }
         >
@@ -1702,13 +1712,6 @@ function TransactionFields({ row, setRow, options }: { row: FundTransaction; set
       <label>
         <span>Số tiền *</span>
         <input inputMode="numeric" value={String(row.amount)} onChange={(event) => set('amount', formatVietnameseNumberInput(event.target.value, false))} />
-      </label>
-      <label>
-        <span>Hình thức *</span>
-        <select value={row.method || ''} onChange={(event) => set('method', event.target.value)}>
-          <option value="">Chọn hình thức</option>
-          {(options.methods || []).map((value) => <option key={value}>{value}</option>)}
-        </select>
       </label>
       <label>
         <span>Người Thu/Chi *</span>
@@ -1787,6 +1790,12 @@ function TransactionDrawer({ rows, setRows, options, busy, closeRequest, close, 
                   <input type="checkbox" checked={row.debt === true || row.debt === 'Có'} onChange={(event) => setRows(rows.map((item, rowIndex) => (rowIndex === index ? { ...item, debt: event.target.checked } : item)))} />
                   <span>Công nợ</span>
                 </label>
+                {row.type === 'Chi' ? (
+                  <label className="fund-debt-toggle fund-offset-toggle" title="Không làm thay đổi số dư Quỹ nhưng vẫn giữ chi phí cho báo cáo Vận tải">
+                    <input type="checkbox" checked={Boolean(row.offset)} onChange={(event) => setRows(rows.map((item, rowIndex) => (rowIndex === index ? { ...item, offset: event.target.checked } : item)))} />
+                    <span>Cấn trừ</span>
+                  </label>
+                ) : null}
                 {rows.length > 1 ? (
                   <button type="button" className="danger btn-table-action touch-action-btn" aria-label="Xóa dòng" title="Xóa dòng" onClick={() => setRows(rows.filter((_, rowIndex) => rowIndex !== index))}>
                     <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
@@ -1845,13 +1854,6 @@ function LoanFields({ value, setValue, options }: { value: LoanForm; setValue: (
               {(options.loanPartners || []).map((item) => (
                 <option key={item}>{item}</option>
               ))}
-            </select>
-          </label>
-          <label>
-            <LoanFieldLabel icon="money">Hình thức *</LoanFieldLabel>
-            <select value={value.method} onChange={(event) => set('method', event.target.value)}>
-              <option value="">Chọn hình thức</option>
-              {(options.methods || []).map((item) => <option key={item}>{item}</option>)}
             </select>
           </label>
           <label className="full-width">
@@ -1950,7 +1952,7 @@ function LoanDrawer({ rows, setRows, options, busy, closeRequest, close, submit 
   );
 }
 
-function PaymentDrawer({ value, setValue, options, busy, closeRequest, close, submit }: { value: PaymentForm; setValue: (value: PaymentForm) => void; options: FundOptions; busy: boolean; closeRequest: number; close: () => void; submit: () => void }) {
+function PaymentDrawer({ value, setValue, busy, closeRequest, close, submit }: { value: PaymentForm; setValue: (value: PaymentForm) => void; busy: boolean; closeRequest: number; close: () => void; submit: () => void }) {
   const set = (key: string, next: string) => setValue({ ...value, [key]: next });
   return (
     <DrawerShell
@@ -2001,13 +2003,6 @@ function PaymentDrawer({ value, setValue, options, busy, closeRequest, close, su
         <label>
           <span>Số tiền *</span>
           <input inputMode="numeric" value={value.amount} onChange={(event) => set('amount', formatVietnameseNumberInput(event.target.value, false))} />
-        </label>
-        <label>
-          <span>Hình thức *</span>
-          <select value={value.method} onChange={(event) => set('method', event.target.value)}>
-            <option value="">Chọn hình thức</option>
-            {(options.methods || []).map((item) => <option key={item}>{item}</option>)}
-          </select>
         </label>
         <label className="full-width">
           <span>Nội dung</span>

@@ -5416,6 +5416,33 @@ html body [data-business-form-sheet] button:active:not(:disabled) {
   transform: scale(.985);
 }
 
+.cashflow-c2 .fund-loan-status-cell {
+  display: flex;
+  min-width: 150px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cashflow-c2 .fund-loan-status-cell > span {
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  html body [data-business-form-sheet] > :is(.modal-footer, .submit-bar),
+  html body > .modal-overlay.side-drawer-overlay > [data-business-form-sheet] > :is(.modal-footer, .submit-bar),
+  html body > :is(#fundTransactionAddDrawer, #fundLoanAddDrawer, #fundLoanPaymentDrawer)[data-business-form-sheet] > :is(.modal-footer, .submit-bar),
+  html body .manage-entry-embedded[data-business-form-sheet] #entryShell .submit-bar {
+    min-height: 74px !important;
+    padding-bottom: max(22px, calc(8px + env(safe-area-inset-bottom, 0px))) !important;
+  }
+
+  .cashflow-c2 .cashflow-transaction-row-actions {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html body [data-business-form-sheet] :is(button, input, select, textarea, .custom-date-box) {
     transition-duration: 1ms !important;

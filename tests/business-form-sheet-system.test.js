@@ -34,6 +34,7 @@ test('mobile business forms size to content and share one density scale', () => 
   assert.match(css, /font-size: 16px !important;[\s\S]*?font-weight: 500 !important/);
   assert.match(css, /textarea \{[\s\S]*?min-height: 64px !important;[\s\S]*?max-height: 112px !important;/);
   assert.match(css, /\.submit-bar[\s\S]*?min-height: 60px !important;[\s\S]*?env\(safe-area-inset-bottom/);
+  assert.match(css, /min-height: 74px !important;[\s\S]*?padding-bottom: max\(22px, calc\(8px \+ env\(safe-area-inset-bottom, 0px\)\)\) !important/);
   assert.match(css, /@media \(max-width: 359px\)[\s\S]*?grid-template-columns: 1fr !important/);
 });
 

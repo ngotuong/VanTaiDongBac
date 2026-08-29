@@ -17,7 +17,7 @@ Các hộp xác nhận, bộ lọc và drawer chỉ đọc không thuộc contra
 - Component gốc phải có thuộc tính `data-business-form-sheet`.
 - Drawer neo đáy, rộng bằng viewport và cao theo nội dung; chỉ cuộn khi nội dung vượt quá `92dvh`.
 - Header, vùng nội dung và hàng hành động nằm liên tiếp trong luồng layout. Không dùng `flex-grow` để tạo khoảng trống giả giữa form và footer.
-- Footer theo ngay sau nội dung, có safe-area cho iOS và nút thao tác cao tối thiểu 44px.
+- Footer theo ngay sau nội dung, có safe-area cho iOS và nút thao tác cao tối thiểu 44px. Trên mobile, khoảng đệm đáy footer tối thiểu là `22px` hoặc `8px + safe-area-inset-bottom` (lấy giá trị lớn hơn) để vùng thao tác không sát mép màn hình.
 - Từ 360px trở lên, các trường ngắn dùng lưới hai cột; dưới 360px chuyển một cột.
 
 ## 3. Typography và mật độ

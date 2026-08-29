@@ -77,10 +77,10 @@ Production đã xác nhận gần nhất:
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_Gku5DmR93T9xRZUoRn1A9UsKuQv5`, READY ngày 2026-08-29; root/title/health, session guard, authenticated Báo cáo và Observability PASS.
-- Apps Script Preview: `@348`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`, tách biệt cùng version với Production nhưng dùng deployment ID riêng.
+- Vercel deployment: `dpl_9PefEkcvQm865tWW7JCFUMRwUrVC`, READY ngày 2026-08-29; root/title/health, session guard và authenticated Quỹ mobile QA PASS.
+- Apps Script Preview: `@349`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`; Apps Script Production web deployment vẫn khóa tại `@348`.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate PASS 541/541 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`.
+- Gate PASS 543/543 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,16 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Thu Chi Cấn trừ, retire Hình thức, khoản vay và footer mobile — Preview 2026-08-29
+
+- Live audit workbook `ThuChiDongBac_2026` xác nhận `NHAP_THUCHI!L` là checkbox `Cấn trừ`; note/formula nghiệp vụ quy định dòng này vẫn vào chi phí và báo cáo Vận tải nhưng không làm thay đổi Quỹ. `BC_THUCHI` đang loại `L=TRUE` khỏi tính số dư. Không đổi tên sheet, thứ tự cột, validation hoặc công thức.
+- Form giao dịch, khoản vay và thanh toán khoản vay đã bỏ `Hình thức`. Cột vật lý legacy `NHAP_THUCHI!E`/`NHAP_VAY!D` vẫn được bảo toàn để tương thích: dòng mới ghi rỗng; update giao dịch giữ giá trị E lịch sử.
+- Form Thu Chi thêm checkbox `Cấn trừ` chỉ khi loại là `Chi`; backend reject nếu gắn vào `Thu`, ghi flag vào cột L, đọc/tìm kiếm lại flag và loại dòng này khỏi tổng/số dư Quỹ. Writer mở rộng có kiểm soát từ A:J thành A:L, vẫn chỉ quản lý công thức M:N theo contract cũ.
+- Bảng `Các khoản vay` có thứ tự ổn định: đang nợ trước, rồi ngày vay mới nhất, nơi vay và mã; thêm cột `Nội dung`; cột cuối đổi thành `Trạng thái`. Form khoản vay/thanh toán không còn field/validation `Hình thức`.
+- Shared business-form footer mobile có chiều cao tối thiểu 74px và đệm đáy `max(22px, 8px + safe-area-inset-bottom)`. Authenticated QA tại 390×844 đo form Thu Chi, vay và thanh toán đều `padding-bottom: 22px`, `min-height: 74px`, không tràn ngang; không có `Hình thức`, có `Cấn trừ`/`Nội dung` đúng nơi. Bảng live có header `Ngày vay · Nơi vay · Nội dung · Dư nợ hiện tại · Trạng thái`, active loan mới nhất đứng trước; console không warning/error.
+- Full gate PASS 543/543 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Preview `@349`; Vercel Preview `dpl_9PefEkcvQm865tWW7JCFUMRwUrVC` được triển khai bằng `npm run deploy:preview`; Production giữ nguyên Vercel `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU` và Apps Script web deployment `@348`.
+- QA chỉ đọc/mở form, không submit và không tạo dữ liệu nghiệp vụ. Checkpoint chờ người dùng duyệt trên thiết bị thật trước khi có yêu cầu Production riêng.
 
 ### Tương thích header, màu Lãi sau lương và hủy write job an toàn — Production 2026-08-29
 
@@ -463,14 +473,15 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-**Ưu tiên hiện tại:** checkpoint tương thích header, màu `Lãi sau lương` và hủy write job có lưu vết đã PASS trên Production. Theo dõi một lượt nhập Vận chuyển mới thực tế để xác nhận queue → Sheet → cache hoạt động với header `Biển số`; không tạo dữ liệu giả chỉ để test.
+**Ưu tiên hiện tại:** checkpoint Thu Chi mới đã TECH_PASS trên Preview. Người dùng cần kiểm tra trên mobile thật và phê duyệt riêng trước khi cập nhật Apps Script/Vercel Production.
 
-1. **Theo dõi trigger Thu Chi thực tế**: ở lần người dùng sửa trực tiếp `NHAP_THUCHI`/`NHAP_VAY` tiếp theo, xác nhận `fund_manual_sheet` và bundle tháng liên quan có timestamp mới; không tạo giao dịch giả chỉ để test Production.
-2. **Thay GitHub schedule khỏi SLA 5 phút**: 99/99 khoảng chạy đã quan sát trễ hơn 10 phút, 12 khoảng hơn một giờ và cực đại 588 phút. Chọn scheduler có delivery/retry phù hợp trong checkpoint hạ tầng riêng; GitHub Actions chỉ là best-effort, không được mô tả là watchdog 5 phút bảo đảm.
-3. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
-4. **Người dùng duyệt business form system trên Preview**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS thật, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng; chỉ đưa lên Production khi có phê duyệt riêng.
-5. **Duyệt notification copy trên thiết bị thật**: kiểm tra nhấn giữ sao chép trên Safari/iOS và xác nhận danh sách không còn lỗi sync cũ.
-6. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
+1. **Duyệt Thu Chi trên Preview**: kiểm tra khoảng cách nút đáy ở các form, form không còn `Hình thức`, thao tác `Cấn trừ` cho dòng Chi và bảng khoản vay có Nội dung/Trạng thái đúng thứ tự. Không submit giao dịch thử vào workbook thật nếu không có nhu cầu nghiệp vụ.
+2. **Theo dõi trigger Thu Chi thực tế**: ở lần người dùng sửa trực tiếp `NHAP_THUCHI`/`NHAP_VAY` tiếp theo, xác nhận `fund_manual_sheet` và bundle tháng liên quan có timestamp mới; không tạo giao dịch giả chỉ để test Production.
+3. **Thay GitHub schedule khỏi SLA 5 phút**: 99/99 khoảng chạy đã quan sát trễ hơn 10 phút, 12 khoảng hơn một giờ và cực đại 588 phút. Chọn scheduler có delivery/retry phù hợp trong checkpoint hạ tầng riêng; GitHub Actions chỉ là best-effort, không được mô tả là watchdog 5 phút bảo đảm.
+4. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
+5. **Người dùng duyệt business form system trên Preview**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS thật, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng; chỉ đưa lên Production khi có phê duyệt riêng.
+6. **Duyệt notification copy trên thiết bị thật**: kiểm tra nhấn giữ sao chép trên Safari/iOS và xác nhận danh sách không còn lỗi sync cũ.
+7. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
 
 ## 7. Mục tiêu kiến trúc dài hạn
 

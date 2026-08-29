@@ -67,7 +67,7 @@ var FundService = (function () {
 
     transactions.forEach(function (item) {
       var date = item.dateObj;
-      if (!date || item.debt === 'Có') return;
+      if (!date || item.debt === 'Có' || item.offset === true) return;
       var isIncome = item.type === 'Thu' && item.category !== settings.withdrawName;
       var isExpense = item.type === 'Chi' && item.category !== settings.depositName;
       if (!isIncome && !isExpense) return;
@@ -396,7 +396,7 @@ var FundService = (function () {
 
   function fundTransactionWriteContext_() {
     return { repository: FundTransactionRepository, sheetName: TRANSACTION_SHEET_NAME, clean: clean_, parseDate: parseDate_,
-      parseNumber: parseNumber_, buildVoucherSeed: buildVoucherSeed_, buildVoucher: buildVoucher_, headers: TRANSACTION_HEADERS };
+      parseNumber: parseNumber_, normalizeHeader: normalizeHeader_, buildVoucherSeed: buildVoucherSeed_, buildVoucher: buildVoucher_, headers: TRANSACTION_HEADERS };
   }
 
   function updateFundTransaction(year, rowIndex, payload) {
@@ -475,7 +475,8 @@ var FundService = (function () {
         actor: clean_(row[columns.actor]),
         partner: clean_(row[columns.partner]),
         content: clean_(row[columns.content]),
-        debt: clean_(row[columns.debt])
+        debt: clean_(row[columns.debt]),
+        offset: columns.offset >= 0 && normalizeHeader_(row[columns.offset]) === 'true'
       });
     });
     return rows;
@@ -494,7 +495,8 @@ var FundService = (function () {
       actor: requiredHeaderIndex_(headers, ['nguoi thu chi', 'người thu chi', 'nguoi thu/chi', 'người thu/chi'], 6 + offset),
       partner: requiredHeaderIndex_(headers, ['doi tac', 'đối tác'], 7 + offset),
       content: requiredHeaderIndex_(headers, ['noi dung', 'nội dung'], 8 + offset),
-      debt: requiredHeaderIndex_(headers, ['cong no', 'công nợ'], 9 + offset)
+      debt: requiredHeaderIndex_(headers, ['cong no', 'công nợ'], 9 + offset),
+      offset: findHeaderIndex_(headers, ['can tru', 'cấn trừ'])
     };
   }
 

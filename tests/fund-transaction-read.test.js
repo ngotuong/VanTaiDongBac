@@ -33,7 +33,7 @@ function format(value, pattern) {
 }
 
 function sheet(displayRows, rawDates, headers) {
-  const allHeaders = headers || ['Số phiếu', 'Ngày', 'MỤC THU', 'MỤC CHI', 'Hình thức', 'Số tiền', 'Người Thu/Chi', 'Đối tác', 'Nội dung', 'Công nợ'];
+  const allHeaders = headers || ['Số phiếu', 'Ngày', 'MỤC THU', 'MỤC CHI', 'Hình thức', 'Số tiền', 'Người Thu/Chi', 'Đối tác', 'Nội dung', 'Công nợ', '2', 'Cấn trừ', 'Công nợ còn lại', 'Lọc'];
   return {
     getLastRow: () => displayRows.length + 1,
     getLastColumn: () => allHeaders.length,
@@ -58,15 +58,15 @@ function context(repository, targetSheet) {
 test('repository resolves accented headers and preserves the legacy no-voucher fallback', () => {
   const { FundTransactionRepository: repository } = load();
   const columns = repository.getColumns(['Ngày', 'Mục thu', 'Mục chi', 'Hình thức', 'Số tiền', 'Người Thu/Chi', 'Đối tác', 'Nội dung', 'Công nợ'], normalize);
-  assert.deepEqual(JSON.parse(JSON.stringify(columns)), { voucher: -1, date: 0, income: 1, expense: 2, method: 3, amount: 4, actor: 5, partner: 6, content: 7, debt: 8, remainingDebt: -1 });
+  assert.deepEqual(JSON.parse(JSON.stringify(columns)), { voucher: -1, date: 0, income: 1, expense: 2, method: 3, amount: 4, actor: 5, partner: 6, content: 7, debt: 8, offset: -1, remainingDebt: -1 });
 });
 
 test('read service preserves mapping, month list, filtering, sorting, and limit contract', () => {
   const { FundTransactionRepository: repository, FundTransactionService: service } = load();
   const rows = [
-    ['PT1', '10/06/2026', 'Cước', '', 'TM', '1.200.000', 'An', 'A', 'Thu cước', ''],
-    ['PC2', '11/07/2026', '', 'Nhiên liệu', 'CK', '500.000', 'Bình', 'B', 'Đổ dầu', 'Có'],
-    ['PT3', '11/07/2026', 'Khác', '', 'TM', '300.000', 'Chi', 'C', 'Thu khác', '']
+    ['PT1', '10/06/2026', 'Cước', '', 'TM', '1.200.000', 'An', 'A', 'Thu cước', '', '', 'FALSE', '0', ''],
+    ['PC2', '11/07/2026', '', 'Nhiên liệu', 'CK', '500.000', 'Bình', 'B', 'Đổ dầu', 'Có', '', 'TRUE', '500.000', ''],
+    ['PT3', '11/07/2026', 'Khác', '', 'TM', '300.000', 'Chi', 'C', 'Thu khác', '', '', 'FALSE', '0', '']
   ];
   const result = service.getTransactions('2026', { month: '2026-07', search: 'thu', limit: 1 }, context(repository, sheet(rows, [new Date(2026, 5, 10), new Date(2026, 6, 11), new Date(2026, 6, 11)])));
   assert.deepEqual(JSON.parse(JSON.stringify(result.months)), [{ key: '2026-07', label: '07/2026' }, { key: '2026-06', label: '06/2026' }]);
@@ -75,7 +75,7 @@ test('read service preserves mapping, month list, filtering, sorting, and limit 
   assert.deepEqual(JSON.parse(JSON.stringify(result.transactions[0])), {
     rowIndex: 4, voucher: 'PT3', date: '2026-07-11', dateText: '11/07/2026', month: '2026-07', monthLabel: '07/2026',
     type: 'Thu', category: 'Khác', incomeCategory: 'Khác', expenseCategory: '', method: 'TM', amount: 300000,
-    amountText: '300.000', actor: 'Chi', partner: 'C', content: 'Thu khác', debt: '', remainingDebt: 0
+    amountText: '300.000', actor: 'Chi', partner: 'C', content: 'Thu khác', debt: '', offset: false, remainingDebt: 0
   });
 });
 
@@ -97,7 +97,7 @@ test('FundService keeps cache orchestration and delegates read ownership', () =>
 
 function writeContext(serviceOverrides = {}) {
   return {
-    clean: (value) => String(value == null ? '' : value).trim(), parseDate: date,
+    clean: (value) => String(value == null ? '' : value).trim(), normalizeHeader: normalize, parseDate: date,
     parseNumber: (value) => Number(String(value || '').replace(/\./g, '')) || 0,
     buildVoucherSeed: () => '260711220000123',
     buildVoucher: (seed, index) => `${seed}-${String(index + 1).padStart(2, '0')}`,
@@ -110,13 +110,14 @@ test('write service preserves validation messages, row mapping, and stable batch
   const { FundTransactionService: service } = load();
   const context = writeContext();
   assert.deepEqual(JSON.parse(JSON.stringify(service.validate([
-    { date: '11/07/2026', type: 'Thu', category: 'Cước', method: 'Tiền mặt', amount: '1.200.000', actor: 'An' }
+    { date: '11/07/2026', type: 'Thu', category: 'Cước', amount: '1.200.000', actor: 'An' }
   ], context))), { ok: true, count: 1 });
-  const row = service.buildRow({ date: '11/07/2026', type: 'Chi', category: 'Dầu', method: 'Tài khoản', amount: '500.000', actor: 'Bình', debt: true, partner: 'Xe 1' }, 'seed', 1, context);
+  const row = service.buildRow({ date: '11/07/2026', type: 'Chi', category: 'Dầu', amount: '500.000', actor: 'Bình', debt: true, offset: true, partner: 'Xe 1' }, 'seed', 1, context);
   assert.equal(row[0], 'seed-02');
-  assert.deepEqual(JSON.parse(JSON.stringify(row.slice(2))), ['', 'Dầu', 'Tài khoản', 500000, 'Bình', 'Xe 1', '', 'Có']);
+  assert.deepEqual(JSON.parse(JSON.stringify(row.slice(2))), ['', 'Dầu', '', 500000, 'Bình', 'Xe 1', '', 'Có', '', true]);
   assert.throws(() => service.validate([{ type: 'Thu' }], context), /Dòng 1: Vui lòng nhập ngày hợp lệ/);
-  assert.throws(() => service.buildRow({ date: '11/07/2026', type: 'Thu', category: 'Cước', method: 'Tiền mặt', amount: 1, actor: 'An', debt: true }, '', 0, context), /Khoản công nợ cần có Đối tác/);
+  assert.throws(() => service.buildRow({ date: '11/07/2026', type: 'Thu', category: 'Cước', amount: 1, actor: 'An', debt: true }, '', 0, context), /Khoản công nợ cần có Đối tác/);
+  assert.throws(() => service.buildRow({ date: '11/07/2026', type: 'Thu', category: 'Cước', amount: 1, actor: 'An', offset: true }, '', 0, context), /Cấn trừ chỉ áp dụng cho giao dịch Chi/);
 });
 
 test('write service preserves append result, full replay, and partial-voucher conflict', () => {
@@ -167,35 +168,36 @@ test('repository append preserves formats, helper formulas, growth, flush, and r
   };
   const options = { getAppendRow: () => 10, buildDebtFormula: (row) => `DEBT-${row}`, buildFilterFormula: (row) => `FILTER-${row}`,
     flush: () => calls.push(['flush']), warn: (...args) => calls.push(['warn', ...args]) };
-  const result = repository.appendRows(targetSheet, [['V1', new Date(), '', 'Chi', '', 100, 'An', '', '', 'Có'], ['V2', new Date(), 'Thu', '', '', 200, 'Bình', '', '', '']], options);
+  const result = repository.appendRows(targetSheet, [['V1', new Date(), '', 'Chi', '', 100, 'An', '', '', 'Có', '', true], ['V2', new Date(), 'Thu', '', '', 200, 'Bình', '', '', '', '', '']], options);
   assert.deepEqual(JSON.parse(JSON.stringify(result)), { firstRow: 10, lastRow: 11 });
   assert.deepEqual(calls.filter((call) => call[0] === 'grow'), [['grow', 10, 1]]);
   assert.deepEqual(calls.filter((call) => call[0] === 'formula').map((call) => call[2]), ['DEBT-10', 'FILTER-10', 'FILTER-11']);
   assert.equal(calls.at(-1)[0], 'flush');
-  ranges['10:1:1:10'] = { setValues() { throw new Error('synthetic write failure'); } };
-  assert.throws(() => repository.appendRows(targetSheet, [['V3', new Date(), 'Thu', '', '', 1, 'An', '', '', '']], options), /synthetic write failure/);
+  ranges['10:1:1:12'] = { setValues() { throw new Error('synthetic write failure'); } };
+  assert.throws(() => repository.appendRows(targetSheet, [['V3', new Date(), 'Thu', '', '', 1, 'An', '', '', '', '', '']], options), /synthetic write failure/);
   assert.equal(calls.some((call) => call[0] === 'clear' && call[1] === '10:1:1:14'), true);
 });
 
-test('update and delete preserve existing voucher/method, helper formulas, result shape, and row validation', () => {
+test('update and delete preserve existing voucher, legacy method and offset, plus result shape and row validation', () => {
   const { FundTransactionService: service } = load();
   const calls = [];
   const repository = {
-    readRow: () => ['OLD-VOUCHER', '', '', '', 'Chuyển khoản'],
+    readRow: () => ['OLD-VOUCHER', '', '', '', 'Chuyển khoản', '', '', '', '', '', '', true],
     updateRow(sheetValue, rowNumber, row, options) { calls.push(['update', rowNumber, row, options]); },
     deleteRow(sheetValue, rowNumber) { calls.push(['delete', rowNumber]); }
   };
-  const context = writeContext({ repository, headers: Array(10).fill(''), writeOptions: { marker: true } });
-  const updated = service.updateTransaction('12', { date: '11/07/2026', type: 'Chi', category: 'Dầu', method: 'Chuyển khoản', amount: 500, actor: 'An' }, context);
+  const context = writeContext({ repository, headers: Array(14).fill(''), writeOptions: { marker: true } });
+  const updated = service.updateTransaction('12', { date: '11/07/2026', type: 'Chi', category: 'Dầu', amount: 500, actor: 'An' }, context);
   assert.deepEqual(JSON.parse(JSON.stringify(updated)), { ok: true, rowIndex: 12, voucher: 'OLD-VOUCHER', sheetName: 'NHAP_THUCHI' });
   assert.equal(calls[0][2][4], 'Chuyển khoản');
+  assert.equal(calls[0][2][11], true);
   assert.deepEqual(JSON.parse(JSON.stringify(service.deleteTransaction(12, context))), { ok: true, rowIndex: 12, sheetName: 'NHAP_THUCHI' });
   assert.deepEqual(calls[1], ['delete', 12]);
   assert.throws(() => service.updateTransaction(1, {}, context), /Số dòng thu chi không hợp lệ/);
   assert.throws(() => service.deleteTransaction('x', context), /Số dòng thu chi không hợp lệ/);
 });
 
-test('repository update/delete write only A:J plus formats and M:N helper cells', () => {
+test('repository update/delete write A:L plus formats and M:N helper cells', () => {
   const { FundTransactionRepository: repository } = load();
   const calls = [];
   const range = (key) => ({
@@ -205,10 +207,10 @@ test('repository update/delete write only A:J plus formats and M:N helper cells'
   const targetSheet = { getRange: (row, column, height, width) => range([row, column, height || 1, width || 1].join(':')),
     deleteRow: (row) => calls.push(['delete', row]) };
   const options = { buildDebtFormula: (row) => `DEBT-${row}`, buildFilterFormula: (row) => `FILTER-${row}`, flush: () => calls.push(['flush']) };
-  repository.updateRow(targetSheet, 8, ['V', new Date(), 'Thu', '', '', 100, 'An', '', '', 'Có'], options);
-  assert.equal(calls.find((call) => call[0] === 'values')[1], '8:1:1:10');
+  repository.updateRow(targetSheet, 8, ['V', new Date(), 'Thu', '', '', 100, 'An', '', '', 'Có', '', true], options);
+  assert.equal(calls.find((call) => call[0] === 'values')[1], '8:1:1:12');
   assert.deepEqual(calls.filter((call) => call[0] === 'formula').map((call) => [call[1], call[2]]), [['8:13:1:1', 'DEBT-8'], ['8:14:1:1', 'FILTER-8']]);
-  repository.updateRow(targetSheet, 9, ['V', new Date(), 'Thu', '', '', 100, 'An', '', '', ''], options);
+  repository.updateRow(targetSheet, 9, ['V', new Date(), 'Thu', '', '', 100, 'An', '', '', '', '', ''], options);
   assert.equal(calls.some((call) => call[0] === 'clear' && call[1] === '9:13:1:1'), true);
   repository.deleteRow(targetSheet, 9, options);
   assert.equal(calls.some((call) => call[0] === 'delete' && call[1] === 9), true);
@@ -224,4 +226,5 @@ test('FundService delegates transaction validation and append ownership while re
   assert.doesNotMatch(facade, /function findFundVoucherRows_/);
   assert.match(facade, /FundTransactionService\.updateTransaction\(rowIndex, payload, context\)/);
   assert.match(facade, /FundTransactionService\.deleteTransaction\(rowIndex, context\)/);
+  assert.match(facade, /item\.debt === 'Có' \|\| item\.offset === true/);
 });

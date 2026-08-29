@@ -79,6 +79,7 @@
       "addFundLoanPayment",
       "addFundTransaction",
       "addFundTransactions",
+      "cancelWriteJob",
       "checkTripReconciliation",
       "deleteFundCatalogItem",
       "deleteFundTransaction",

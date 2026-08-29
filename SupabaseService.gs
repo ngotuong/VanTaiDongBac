@@ -52,6 +52,7 @@ var SupabaseService = (function () {
   var FUND_TO_TRANSPORT_DELAY_MS = 30 * 1000;
   var DEFAULT_FUND_SPREADSHEET_ID = '1PWwGC6HCdskiV2fEZjDFiAt6kA_nsx64twrVTgrRerw';
   var INTERNAL_REPORT_REFRESH_GUARD_TTL_MS = 600000;
+  var CANCELED_WRITE_JOB_PREFIX = 'CANCELED_BY_OPERATOR:';
 
   function syncReportBundle(month) {
     return withInternalReportRefreshGuard_(function () {
@@ -1063,8 +1064,45 @@ var SupabaseService = (function () {
   function retryWriteJob(jobId) {
     var safeJobId = clean_(jobId);
     if (!safeJobId) throw new Error('Thiếu mã job cần retry.');
+    var currentJob = WriteJobRepository.get(safeJobId);
+    if (!currentJob) throw new Error('Không tìm thấy job: ' + safeJobId);
+    if (isCanceledWriteJob_(currentJob)) throw new Error('Job đã bị hủy và không thể đưa lại vào hàng chờ.');
+    if (clean_(currentJob.status).toLowerCase() !== 'failed') {
+      throw new Error('Chỉ có thể retry job đang ở trạng thái failed.');
+    }
     WriteJobRepository.retry(safeJobId, new Date().toISOString());
     return getWriteJobStatus(safeJobId);
+  }
+
+  function cancelWriteJob(jobId) {
+    var safeJobId = clean_(jobId);
+    if (!safeJobId) throw new Error('Thiếu mã job cần hủy.');
+    var currentJob = WriteJobRepository.get(safeJobId);
+    if (!currentJob) throw new Error('Không tìm thấy job: ' + safeJobId);
+    if (isCanceledWriteJob_(currentJob)) {
+      currentJob.canceled = true;
+      return currentJob;
+    }
+    var currentStatus = clean_(currentJob.status).toLowerCase();
+    if (currentStatus === 'processing') {
+      throw new Error('Job đang được worker xử lý; không thể hủy an toàn. Hãy đối soát Google Sheet trước.');
+    }
+    if (currentStatus === 'synced') {
+      throw new Error('Job đã ghi xong; không thể hủy. Hãy đối soát dòng dữ liệu trên Google Sheet.');
+    }
+    if (currentStatus !== 'pending') throw new Error('Chỉ có thể hủy job đang ở trạng thái pending.');
+    var canceledAt = new Date().toISOString();
+    var reason = CANCELED_WRITE_JOB_PREFIX + ' Đã hủy theo yêu cầu người dùng để tránh ghi trùng dữ liệu đã nhập trực tiếp.';
+    var canceledJob = WriteJobRepository.cancel(safeJobId, reason, canceledAt);
+    if (!isCanceledWriteJob_(canceledJob)) {
+      throw new Error('Không thể hủy job vì trạng thái đã thay đổi. Hãy tải lại và đối soát Google Sheet.');
+    }
+    canceledJob.canceled = true;
+    return canceledJob;
+  }
+
+  function isCanceledWriteJob_(job) {
+    return Boolean(job && clean_(job.lastError).indexOf(CANCELED_WRITE_JOB_PREFIX) === 0);
   }
 
   function processWriteJobs(maxJobs) {
@@ -1760,6 +1798,7 @@ var SupabaseService = (function () {
     installWriteJobTrigger: installWriteJobTrigger,
     processWriteJobs: processWriteJobs,
     retryWriteJob: retryWriteJob,
+    cancelWriteJob: cancelWriteJob,
     syncRecentManageDataCache: syncRecentManageDataCache,
     testReportSync: testReportSync
   };

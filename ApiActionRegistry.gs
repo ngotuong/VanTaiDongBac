@@ -37,6 +37,7 @@ var ApiActionRegistry = (function () {
     saveFundCatalogItem: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     deleteFundCatalogItem: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     updateFundSettings: { method: 'POST', kind: 'command', permission: 'adminOperator' },
+    cancelWriteJob: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     retryWriteJob: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     processWriteJobs: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     recoverSyncInfrastructure: { method: 'POST', kind: 'command', permission: 'adminOperator' },

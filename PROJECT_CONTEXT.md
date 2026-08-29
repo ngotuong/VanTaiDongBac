@@ -68,19 +68,19 @@ Runtime chính:
 Production đã xác nhận gần nhất:
 
 - URL: `https://dongbac.vercel.app`.
-- Vercel deployment: `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`, READY và cut-forward ngày 2026-08-28.
-- Apps Script production cùng deployment ID canonical: code version `@344`; rollback gần nhất `@343`, tiếp theo `@340`, `@338`, `@337`.
-- Vercel rollback gần nhất: `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`; rollback lịch sử tiếp theo là `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, rồi `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
+- Vercel deployment: `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU`, READY và cut-forward ngày 2026-08-29.
+- Apps Script production cùng deployment ID canonical: code version `@348`; rollback gần nhất `@344`, tiếp theo `@343`, `@340`, `@338`.
+- Vercel rollback gần nhất: `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`; rollback lịch sử tiếp theo là `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, rồi `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`.
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_8e5usZZVSi2x14Vv1URzuiVUpHR7`, READY ngày 2026-08-29; root/title/health, session guard, authenticated Báo cáo và Observability PASS.
-- Apps Script Preview: `@345`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`, tách biệt Production `@344`.
+- Vercel deployment: `dpl_Gku5DmR93T9xRZUoRn1A9UsKuQv5`, READY ngày 2026-08-29; root/title/health, session guard, authenticated Báo cáo và Observability PASS.
+- Apps Script Preview: `@348`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`, tách biệt cùng version với Production nhưng dùng deployment ID riêng.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate PASS 539/539 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; Production Vercel giữ nguyên.
+- Gate PASS 541/541 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -135,14 +135,17 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
-### Tương thích header nhập Vận chuyển và màu Lãi sau lương — Preview 2026-08-29
+### Tương thích header, màu Lãi sau lương và hủy write job an toàn — Production 2026-08-29
 
 - Người dùng đổi `NL_VanChuyen!C2` từ `Biển số xe` thành `Biển số`. Root cause job nhập liệu bị `pending` là `AppConfig`/`EntryService` còn validate exact tên cũ; queue đã nhận write intent nhưng worker từ chối khi đối chiếu schema live.
 - Contract canonical nay dùng `Biển số`. `EntryService` chấp nhận alias legacy `Biển số xe` chỉ tại đúng cột C của `NL_VanChuyen`; mọi cột khác vẫn fail-closed, không chấp nhận tên tùy ý hoặc đổi thứ tự. Cách này xử lý được Sheet hiện tại, retry job cũ và rollback workbook mà không sửa tên/cột/công thức trong Google Sheet.
 - `Lãi sau lương` trong `Tổng Hợp Xe` đi chung semantic với các cột lợi nhuận: số dương xanh dương `#0284c7`, số âm đỏ `#dc2626`. Authenticated Preview QA xác nhận các giá trị dương có computed color `rgb(2, 132, 199)`.
-- Job `5e8aa374-c8c4-4026-ad3a-d3537b16c877` từng báo mismatch cột C đã được worker HEAD xử lý lại sau deploy; Observability không còn job Vận hành `pending/failed`, `NL_VanChuyen` month `2026-08` và `recent_500` đều sync OK. Không tạo thêm canary write hoặc dữ liệu giả.
-- Full gate PASS 539/539 tests, ESLint, typecheck, Next production build, Environment Identity Guard và `git diff --check`. Apps Script Preview khóa tại `@345`; Vercel Preview `dpl_8e5usZZVSi2x14Vv1URzuiVUpHR7` được triển khai bằng `npm run deploy:preview`, public smoke PASS và Production alias được guard giữ nguyên.
-- Production chưa cut-forward: Vercel vẫn `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`, Apps Script web deployment vẫn `@344`. Trigger Apps Script chạy source HEAD mới nên job cũ đã hồi phục; web/API Production chỉ cập nhật candidate bất biến sau phê duyệt riêng.
+- Job `5e8aa374-c8c4-4026-ad3a-d3537b16c877` thực tế vẫn `pending`; người dùng đã nhập dữ liệu tương ứng trực tiếp vào Google Sheet nên retry có nguy cơ ghi trùng. Job đã được hủy có lưu vết lúc 12:50 ngày 29/08, giữ row/log audit với marker `CANCELED_BY_OPERATOR`, UI hiển thị `ĐÃ HỦY`, không còn nút retry và notification center không coi đây là lỗi hệ thống.
+- API `cancelWriteJob` chỉ cho admin/operator, chỉ update khi exact `id` vẫn `status=pending`, xóa claim/lock/worker và từ chối race nếu job đã `processing`/`synced`. Xác nhận hủy dùng hai bước inline `Hủy` → `Xác nhận hủy/Bỏ qua`, không dùng dialog hệ thống có thể treo trong trình duyệt nhúng.
+- Đối soát trực tiếp `NL_VanChuyen!A550:H590` sau hủy xác nhận các dòng 28/08 không có bản ghi trùng hoàn toàn; hai dòng cùng xe `20H07327` thuộc hai dự án khác nhau. Không xóa/sửa dòng, tên sheet, thứ tự cột hoặc công thức Google Sheet.
+- Full gate PASS 541/541 tests, ESLint, typecheck, Next production build, Environment Identity Guard và `git diff --check`. Apps Script Preview/Production khóa tại `@348`; Vercel Preview `dpl_Gku5DmR93T9xRZUoRn1A9UsKuQv5` được triển khai bằng `npm run deploy:preview`.
+- Vercel Production candidate `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU` được build riêng bằng Production environment và endpoint Apps Script Production, sau đó alias `dongbac.vercel.app` cut-forward theo phê duyệt. Root, các route chính, manifest, `/sw.js`, health và session 401 PASS; không Vercel Login và không có HTTP 5xx (chỉ warning `DEP0169` trên request 200 đã biết).
+- Authenticated Production QA xác nhận Observability hiển thị đúng job `ĐÃ HỦY`; Báo cáo có Tổng Hợp Xe, không còn lỗi header và các ô số liệu `Lãi sau lương` dương có computed color `rgb(2, 132, 199)`. Rollback READY: Vercel `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`, Apps Script `@344`.
 
 ### Đồng bộ schema Báo cáo và chuẩn hóa tìm kiếm — Production 2026-08-28
 
@@ -460,7 +463,7 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-**Ưu tiên hiện tại:** checkpoint tương thích header `NL_VanChuyen` và màu `Lãi sau lương` đã PASS trên Preview. Chờ người dùng phê duyệt riêng trước khi cut-forward Apps Script/Vercel Production.
+**Ưu tiên hiện tại:** checkpoint tương thích header, màu `Lãi sau lương` và hủy write job có lưu vết đã PASS trên Production. Theo dõi một lượt nhập Vận chuyển mới thực tế để xác nhận queue → Sheet → cache hoạt động với header `Biển số`; không tạo dữ liệu giả chỉ để test.
 
 1. **Theo dõi trigger Thu Chi thực tế**: ở lần người dùng sửa trực tiếp `NHAP_THUCHI`/`NHAP_VAY` tiếp theo, xác nhận `fund_manual_sheet` và bundle tháng liên quan có timestamp mới; không tạo giao dịch giả chỉ để test Production.
 2. **Thay GitHub schedule khỏi SLA 5 phút**: 99/99 khoảng chạy đã quan sát trễ hơn 10 phút, 12 khoảng hơn một giờ và cực đại 588 phút. Chọn scheduler có delivery/retry phù hợp trong checkpoint hạ tầng riêng; GitHub Actions chỉ là best-effort, không được mô tả là watchdog 5 phút bảo đảm.

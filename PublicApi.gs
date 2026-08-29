@@ -387,6 +387,10 @@ function retryWriteJob(jobId) {
   return SupabaseService.retryWriteJob(jobId);
 }
 
+function cancelWriteJob(jobId) {
+  return SupabaseService.cancelWriteJob(jobId);
+}
+
 function invokeApi(method, action, params, bodyData) {
   var normalizedMethod = String(method || '').toUpperCase();
   var safeParams = params || {};
@@ -474,6 +478,7 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'saveFundCatalogItem') return withFundSync_(safeBody.year, { fundCatalog: true }, function () { return FundService.saveFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody); });
     if (action === 'deleteFundCatalogItem') return withFundSync_(safeBody.year, { fundCatalog: true }, function () { return FundService.deleteFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody); });
     if (action === 'updateFundSettings') return withFundSync_(safeBody.year, { fundCatalog: true }, function () { return FundService.updateFundSettings(safeBody.year, safeBody.settings || safeBody.payload || safeBody); });
+    if (action === 'cancelWriteJob') return SupabaseService.cancelWriteJob(safeBody.jobId);
     if (action === 'retryWriteJob') return SupabaseService.retryWriteJob(safeBody.jobId);
     if (action === 'processWriteJobs') return SupabaseService.processWriteJobs(safeBody.maxJobs || 3);
     if (action === 'recoverSyncInfrastructure') return recoverSyncInfrastructure();

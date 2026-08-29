@@ -130,6 +130,7 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
       });
     }
     for (const job of snapshot.writeJobs || []) {
+      if (String(job.last_error || '').startsWith('CANCELED_BY_OPERATOR:')) continue;
       const updated = new Date(job.updated_at || job.created_at || 0);
       const ageMinutes = Number.isNaN(updated.getTime()) ? Infinity : (currentTime.getTime() - updated.getTime()) / 60000;
       const stuck = job.status === 'processing' ? ageMinutes > 10 : job.status === 'pending' ? ageMinutes > 15 : true;

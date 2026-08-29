@@ -48,7 +48,7 @@ test('B7 observability default load is light and never invokes an audit or worke
   assert.doesNotMatch(loadBlock, /getManageCacheAudit|getReportCacheAudit|processWriteJobs/);
 });
 
-test('B7 observability preserves quick deep all report and explicit retry contracts', () => {
+test('B7 observability preserves quick deep all report and explicit cancel/retry contracts', () => {
   const source = read('next-shell/components/observability/ObservabilityModule.tsx');
   assert.match(source, /mode === 'quick' \? 50 : 500/);
   assert.match(source, /DEFAULT_MANAGE_SHEET = 'NL_VanChuyen'/);
@@ -56,8 +56,14 @@ test('B7 observability preserves quick deep all report and explicit retry contra
   assert.match(source, /05\/2026,06\/2026,07\/2026,Tất cả/);
   assert.match(source, /'getManageCacheAudit'/);
   assert.match(source, /'getReportCacheAudit'/);
-  assert.match(source, /window\.confirm/);
+  assert.doesNotMatch(source.slice(source.indexOf('const cancel'), source.indexOf('if (user.role', source.indexOf('const cancel'))), /window\.confirm/);
   assert.match(source, /'retryWriteJob'/);
+  assert.match(source, /'cancelWriteJob'/);
+  assert.match(source, /ĐÃ HỦY/);
+  assert.match(source, /Xác nhận hủy/);
+  assert.match(source, /Bỏ qua/);
+  assert.match(source, /status === 'pending'.+onCancel/s);
+  assert.match(source, /status === 'failed' && !canceled/);
   assert.doesNotMatch(source, /'processWriteJobs'/);
 });
 
@@ -65,7 +71,7 @@ test('B7 operational and account role enforcement remains server-side', () => {
   const policy = read('server/services/authorization-policy.js');
   const accounts = read('server/services/account-service.js');
   assert.match(policy, /shareholder.+!SHAREHOLDER_ACTIONS\.has\(action\)/);
-  assert.doesNotMatch(policy, /getSupabaseSyncStatus|getRecentWriteJobs|getManageCacheAudit|getReportCacheAudit|retryWriteJob/);
+  assert.doesNotMatch(policy, /getSupabaseSyncStatus|getRecentWriteJobs|getManageCacheAudit|getReportCacheAudit|retryWriteJob|cancelWriteJob/);
   const ownPassword = accounts.indexOf("action === 'changeOwnPassword'");
   const adminGuard = accounts.indexOf('assertAdmin(user);', ownPassword);
   assert.ok(ownPassword >= 0 && adminGuard > ownPassword);
@@ -91,7 +97,7 @@ test('C3.6 Settings and Observability reuse the exact C2 golden structure withou
   for (const id of ['syncStatusCheckedAt', 'syncStatusRefreshBtn', 'manageAuditBtn', 'manageDeepAuditBtn', 'manageAllAuditBtn', 'reportAuditBtn', 'syncStatusBody']) {
     assert.match(observability, new RegExp(`id="${id}"`));
   }
-  for (const className of ['sync-status-card', 'settings-card-header', 'sync-status-actions', 'sync-status-section', 'sync-status-row', 'sync-status-main', 'sync-status-key', 'sync-status-note', 'sync-status-pill', 'sync-status-time', 'sync-status-empty', 'sync-status-retry']) {
+  for (const className of ['sync-status-card', 'settings-card-header', 'sync-status-actions', 'sync-status-section', 'sync-status-row', 'sync-status-main', 'sync-status-key', 'sync-status-note', 'sync-status-pill', 'sync-status-time', 'sync-status-empty', 'sync-status-retry', 'sync-status-cancel', 'sync-status-confirm-actions']) {
     assert.match(observability, new RegExp(className));
   }
   assert.match(observability, /M21\.5 2v6h-6M21\.34 15\.57/);

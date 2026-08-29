@@ -1391,8 +1391,8 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
               <tr>
                 <th className="sticky-col">Ngày vay</th>
                 <th>Nơi vay</th>
+                <th>Số tiền</th>
                 <th>Nội dung</th>
-                <th>Dư nợ hiện tại</th>
                 <th>Trạng thái</th>
               </tr>
             </thead>
@@ -1401,9 +1401,9 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
                 props.rows.map((item, index) => (
                   <tr key={item.code || index}>
                     <td className="sticky-col">{item.loanDateText || item.loanDate || '—'}</td>
-                    <td>{item.partner}</td>
-                    <td>{item.content || '—'}</td>
+                    <td className="fund-loan-partner-cell">{item.partner}</td>
                     <td className="tabular-nums fund-expense">{money(item.currentOutstanding ?? item.outstanding)}</td>
+                    <td>{item.content || '—'}</td>
                     <td className="fund-loan-status-cell">
                       {item.isCurrentlySettled ? (
                         <span>Đã trả gốc{item.currentSettlementDateText ? ` · ${item.currentSettlementDateText}` : ''}</span>
@@ -1480,7 +1480,7 @@ function Loans(props: { metrics: FundLoans['metrics']; rows: FundLoan[]; rowsTot
                       <span className={`badge ${fundLoanHistoryTone(item.type)}`}>{item.type}</span>
                       {item.reconciledFromCode ? ' · Đã đối soát' : ''}
                     </td>
-                    <td>{item.partner}</td>
+                    <td className="fund-loan-partner-cell">{item.partner}</td>
                     <td className={`tabular-nums fund-loan-history-amount ${fundLoanAmountTone(item.type)}`}>
                       <strong>{money(item.amount)}</strong>
                     </td>

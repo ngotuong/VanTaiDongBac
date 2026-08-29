@@ -94,6 +94,7 @@ Số cột row builder không bằng tổng số cột vật lý trong mọi she
 Live audit ngày 2026-08-10 và đối chiếu bổ sung ngày 2026-08-28 xác nhận:
 
 - `NL_VanChuyen` có thêm cột H `Khối lượng thực tế (m³)`; cột này là input tùy chọn.
+- Từ ngày 2026-08-29, header cột C của `NL_VanChuyen` là `Biển số`; backend chấp nhận thêm alias legacy `Biển số xe` tại đúng vị trí để retry job cũ an toàn.
 - `NL_TaiXe` dùng cột D `Nhóm vận hành`, tự xác định theo `DM_PhanCongXe` và ngày hiệu lực; web app không cho ghi một dự án chi tiết vào cột này.
 - `NL_Dau` có 10 cột; `Thành tiền` và `Công ty sở hữu` là cột công thức, `Ghi Chú` ở cột J là input.
 - `NL_NghiVanHanh` có 10 cột và dùng Nhóm vận hành/`TẤT CẢ XE`; các cột KPI/kiểm tra do Sheet tính.

@@ -7,14 +7,14 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-function loadEntry(buildResult, reservedRange = null) {
+function loadEntry(buildResult, reservedRange = null, options = {}) {
   const events = [];
   const properties = new Map();
   if (reservedRange) {
     properties.set('WRITE_JOB_RESERVATION_job-123', JSON.stringify({ sheetName: 'NL_VanChuyen', startRow: reservedRange.getRow() }));
   }
   const liveHeaders = {
-    NL_VanChuyen: ['Ngày', 'Tháng', 'Biển số xe', 'Dự án', 'Số chuyến', 'Số phiếu', 'Ghi chú', 'Khối lượng thực tế (m³)'],
+    NL_VanChuyen: options.liveVanChuyenHeaders || ['Ngày', 'Tháng', 'Biển số', 'Dự án', 'Số chuyến', 'Số phiếu', 'Ghi chú', 'Khối lượng thực tế (m³)'],
     NL_Dau: ['Ngày', 'Tháng', 'Biển số', 'Nguồn dầu', 'Số lít', 'Giá dầu', 'Thành tiền', 'Nguồn chi', 'Công ty sở hữu', 'Ghi Chú']
   };
   function makeSheet(sheetName) { return {
@@ -54,7 +54,8 @@ function loadEntry(buildResult, reservedRange = null) {
     writeRows: (targetSheet, startRow, values, skipped) => events.push({ type: 'write', targetSheet, startRow, values, skipped }),
     clearAfterSubmitCache: () => events.push({ type: 'clearCache' })
   };
-  submitContext.sheets.vanChuyen.headers = liveHeaders.NL_VanChuyen;
+  submitContext.sheets.vanChuyen.headers = ['Ngày', 'Tháng', 'Biển số', 'Dự án', 'Số chuyến', 'Số phiếu', 'Ghi chú', 'Khối lượng thực tế (m³)'];
+  submitContext.sheets.vanChuyen.headerAliases = { 'Biển số': ['Biển số xe'] };
   submitContext.sheets.vanChuyen.computedHeaders = ['Tháng'];
   submitContext.sheets.dau.headers = liveHeaders.NL_Dau;
   submitContext.sheets.dau.computedHeaders = ['Tháng', 'Thành tiền', 'Công ty sở hữu'];
@@ -107,6 +108,23 @@ test('fuel submit preserves formula/helper skip columns and queued validation er
   assert.equal(response.inserted, 0);
   assert.equal(invalid.events.some((event) => event.type === 'write'), false);
   assert.equal(invalid.events.at(-1).type, 'unlock');
+});
+
+test('transport submit accepts the renamed NL_VanChuyen plate header and its controlled legacy alias only', () => {
+  const result = { values: [[1]], errors: [], warnings: [] };
+  const renamed = loadEntry(result);
+  assert.equal(renamed.service.submitRowsWithContext('vanChuyen', [{}], null, renamed.submitContext).ok, true);
+
+  const legacyHeaders = ['Ngày', 'Tháng', 'Biển số xe', 'Dự án', 'Số chuyến', 'Số phiếu', 'Ghi chú', 'Khối lượng thực tế (m³)'];
+  const legacy = loadEntry(result, null, { liveVanChuyenHeaders: legacyHeaders });
+  assert.equal(legacy.service.submitRowsWithContext('vanChuyen', [{}], null, legacy.submitContext).ok, true);
+
+  const invalidHeaders = ['Ngày', 'Tháng', 'Xe', 'Dự án', 'Số chuyến', 'Số phiếu', 'Ghi chú', 'Khối lượng thực tế (m³)'];
+  const invalid = loadEntry(result, null, { liveVanChuyenHeaders: invalidHeaders });
+  assert.throws(
+    () => invalid.service.submitRowsWithContext('vanChuyen', [{}], null, invalid.submitContext),
+    /chap nhan "Biển số" hoac "Biển số xe", dang la "Xe"/
+  );
 });
 
 test('EntryService owns submit orchestration while SheetService retains only the compatibility adapter', () => {

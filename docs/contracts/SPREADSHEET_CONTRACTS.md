@@ -177,7 +177,7 @@ Cột nghiệp vụ logic:
 
 1. Ngày;
 2. Tháng;
-3. Biển số xe;
+3. Biển số;
 4. Dự án;
 5. Số chuyến;
 6. Số phiếu;
@@ -187,6 +187,7 @@ Cột nghiệp vụ logic:
 Quy tắc:
 
 - cột Tháng được suy ra từ Ngày bằng công thức/hệ thống Sheet;
+- header live cột C là `Biển số`; write path vẫn chấp nhận alias legacy `Biển số xe` đúng tại cột C để các job đang chờ và rollback workbook không bị kẹt, nhưng không chấp nhận tên tùy ý hoặc đổi vị trí cột;
 - giữ subtotal/công thức ở vùng đầu sheet;
 - app không ghi đè công thức tháng;
 - append phải copy format/công thức dòng trước;

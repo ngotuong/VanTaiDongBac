@@ -77,10 +77,10 @@ Production đã xác nhận gần nhất:
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_7FNBS2av7nEaPSwdbd1jbLDtG1Fr`, READY ngày 2026-08-28; root/title/health, session guard và authenticated Báo cáo PASS.
-- Apps Script Preview: `@344`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`, tách biệt Production `@343`.
+- Vercel deployment: `dpl_8e5usZZVSi2x14Vv1URzuiVUpHR7`, READY ngày 2026-08-29; root/title/health, session guard, authenticated Báo cáo và Observability PASS.
+- Apps Script Preview: `@345`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`, tách biệt Production `@344`.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate PASS 537/537 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; Production Vercel giữ nguyên.
+- Gate PASS 539/539 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`; Production Vercel giữ nguyên.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,15 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Tương thích header nhập Vận chuyển và màu Lãi sau lương — Preview 2026-08-29
+
+- Người dùng đổi `NL_VanChuyen!C2` từ `Biển số xe` thành `Biển số`. Root cause job nhập liệu bị `pending` là `AppConfig`/`EntryService` còn validate exact tên cũ; queue đã nhận write intent nhưng worker từ chối khi đối chiếu schema live.
+- Contract canonical nay dùng `Biển số`. `EntryService` chấp nhận alias legacy `Biển số xe` chỉ tại đúng cột C của `NL_VanChuyen`; mọi cột khác vẫn fail-closed, không chấp nhận tên tùy ý hoặc đổi thứ tự. Cách này xử lý được Sheet hiện tại, retry job cũ và rollback workbook mà không sửa tên/cột/công thức trong Google Sheet.
+- `Lãi sau lương` trong `Tổng Hợp Xe` đi chung semantic với các cột lợi nhuận: số dương xanh dương `#0284c7`, số âm đỏ `#dc2626`. Authenticated Preview QA xác nhận các giá trị dương có computed color `rgb(2, 132, 199)`.
+- Job `5e8aa374-c8c4-4026-ad3a-d3537b16c877` từng báo mismatch cột C đã được worker HEAD xử lý lại sau deploy; Observability không còn job Vận hành `pending/failed`, `NL_VanChuyen` month `2026-08` và `recent_500` đều sync OK. Không tạo thêm canary write hoặc dữ liệu giả.
+- Full gate PASS 539/539 tests, ESLint, typecheck, Next production build, Environment Identity Guard và `git diff --check`. Apps Script Preview khóa tại `@345`; Vercel Preview `dpl_8e5usZZVSi2x14Vv1URzuiVUpHR7` được triển khai bằng `npm run deploy:preview`, public smoke PASS và Production alias được guard giữ nguyên.
+- Production chưa cut-forward: Vercel vẫn `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`, Apps Script web deployment vẫn `@344`. Trigger Apps Script chạy source HEAD mới nên job cũ đã hồi phục; web/API Production chỉ cập nhật candidate bất biến sau phê duyệt riêng.
 
 ### Đồng bộ schema Báo cáo và chuẩn hóa tìm kiếm — Production 2026-08-28
 
@@ -451,7 +460,7 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-**Ưu tiên hiện tại:** checkpoint schema Báo cáo/tìm kiếm đã hoàn thành trên Production. Không có cut-forward đang chờ; tiếp tục theo dõi các trigger đồng bộ thật và chỉ mở checkpoint mới khi người dùng yêu cầu.
+**Ưu tiên hiện tại:** checkpoint tương thích header `NL_VanChuyen` và màu `Lãi sau lương` đã PASS trên Preview. Chờ người dùng phê duyệt riêng trước khi cut-forward Apps Script/Vercel Production.
 
 1. **Theo dõi trigger Thu Chi thực tế**: ở lần người dùng sửa trực tiếp `NHAP_THUCHI`/`NHAP_VAY` tiếp theo, xác nhận `fund_manual_sheet` và bundle tháng liên quan có timestamp mới; không tạo giao dịch giả chỉ để test Production.
 2. **Thay GitHub schedule khỏi SLA 5 phút**: 99/99 khoảng chạy đã quan sát trễ hơn 10 phút, 12 khoảng hơn một giờ và cực đại 588 phút. Chọn scheduler có delivery/retry phù hợp trong checkpoint hạ tầng riêng; GitHub Actions chỉ là best-effort, không được mô tả là watchdog 5 phút bảo đảm.

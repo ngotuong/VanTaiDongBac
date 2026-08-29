@@ -354,6 +354,20 @@ test('Cashflow forms retire Hình thức and keep canonical loan payment types',
   assert.match(module, /<option>Trả nợ<\/option>[\s\S]*<option>Trả lãi<\/option>/);
 });
 
+test('Cashflow write errors stay visible inside the active business form', () => {
+  const module = read('next-shell/components/cashflow/CashflowModule.tsx');
+  const css = read('next-shell/app/platform.css');
+
+  assert.match(module, /const \[formError, setFormError\] = useState\(''\)/);
+  assert.match(module, /className="business-form-error" role="alert" aria-live="assertive"/);
+  assert.match(module, /<LoanDrawer[\s\S]*error=\{formError\}/);
+  assert.match(module, /<TransactionDrawer[\s\S]*error=\{formError\}/);
+  assert.match(module, /<PaymentDrawer[\s\S]*error=\{formError\}/);
+  assert.match(module, /reportFormError\(savedCount > 0/);
+  assert.match(flat(module), /const openLoan = \(\) => \{ setFormError\(''\); setMessage\(''\); setError\(false\);/);
+  assert.match(css, /> \.business-form-error \{[\s\S]*background: #fef2f2 !important;/);
+});
+
 test('Cashflow supports offset expenses and renders deterministic loan summary columns', () => {
   const module = read('next-shell/components/cashflow/CashflowModule.tsx');
   const types = read('next-shell/lib/platform/cashflow-types.ts');

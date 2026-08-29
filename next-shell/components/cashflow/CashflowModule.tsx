@@ -288,6 +288,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(initialError || initialData.warnings[0] || '');
   const [error, setError] = useState(Boolean(initialError));
+  const [formError, setFormError] = useState('');
   const [jobs, setJobs] = useState<FundWriteJob[]>([]);
   const [period, setPeriod] = useState<Period>(initialPeriod);
   const [startDate, setStartDate] = useState(initialRange.start);
@@ -330,6 +331,14 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     setMessage(text);
     setError(isError);
     showToast(text, isError ? 'error' : 'success');
+  };
+  const reportFormError = (text: string) => {
+    setFormError(text);
+    showToast(text, 'error');
+  };
+  const closeBusinessDrawer = () => {
+    setFormError('');
+    setDrawer(null);
   };
 
   useEffect(() => {
@@ -561,12 +570,16 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   const categoryRows = useMemo(() => (category?.rows || []).filter((row) => !categoryPartner || row.partner === categoryPartner), [category, categoryPartner]);
 
   const openTransactions = (row?: FundTransaction) => {
+    setFormError('');
+    setMessage('');
+    setError(false);
     setTransactionRows([row ? { ...row, amount: formatVietnameseNumberInput(String(row.amount), false) } : blankTransaction()]);
     setDrawer('transactions');
   };
   const submitTransactions = async () => {
     const invalid = transactionRows.some((row) => !row.date || !row.category || !row.actor || amount(row.amount) <= 0 || (row.offset && row.type !== 'Chi'));
-    if (invalid) return report('Vui lòng điền ngày, mục thu/chi, số tiền và người Thu/Chi; Cấn trừ chỉ áp dụng cho giao dịch Chi.', true);
+    if (invalid) return reportFormError('Vui lòng điền ngày, mục thu/chi, số tiền và người Thu/Chi; Cấn trừ chỉ áp dụng cho giao dịch Chi.');
+    setFormError('');
     setBusy(true);
     showToast('Đang lưu giao dịch…', 'loading');
     try {
@@ -611,7 +624,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
       setDrawerCloseRequest((value) => value + 1);
       report(prepared[0].rowIndex ? 'Đã cập nhật giao dịch.' : 'Đã nhận giao dịch và đưa vào hàng chờ đồng bộ.');
     } catch (writeError) {
-      report(writeError instanceof Error ? writeError.message : String(writeError), true);
+      reportFormError(writeError instanceof Error ? writeError.message : String(writeError));
     } finally {
       setBusy(false);
     }
@@ -649,11 +662,15 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   };
 
   const openLoan = () => {
+    setFormError('');
+    setMessage('');
+    setError(false);
     setLoanRows([blankLoan()]);
     setDrawer('loan');
   };
   const submitLoan = async () => {
-    if (loanRows.some((loan) => !loan.date || !loan.partner || amount(loan.amount) <= 0)) return report('Vui lòng nhập ngày vay, nơi vay và số tiền hợp lệ cho mọi khoản vay.', true);
+    if (loanRows.some((loan) => !loan.date || !loan.partner || amount(loan.amount) <= 0)) return reportFormError('Vui lòng nhập ngày vay, nơi vay và số tiền hợp lệ cho mọi khoản vay.');
+    setFormError('');
     setBusy(true);
     showToast(loanRows.length > 1 ? `Đang lưu ${loanRows.length} khoản vay…` : 'Đang lưu khoản vay…', 'loading');
     let nextLoans = loans;
@@ -683,12 +700,15 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
         if (tab === 'loans') setPageMetaPayload(nextLoans);
       }
       const detail = e instanceof Error ? e.message : String(e);
-      report(savedCount > 0 ? `Đã lưu ${savedCount}/${loanRows.length} khoản vay. Các dòng chưa lưu vẫn còn trong biểu mẫu. ${detail}` : detail, true);
+      reportFormError(savedCount > 0 ? `Đã lưu ${savedCount}/${loanRows.length} khoản vay. Các dòng chưa lưu vẫn còn trong biểu mẫu. ${detail}` : detail);
     } finally {
       setBusy(false);
     }
   };
   const openPayment = (item: FundLoan) => {
+    setFormError('');
+    setMessage('');
+    setError(false);
     setPayment({
       date: today(),
       code: item.code || '',
@@ -700,7 +720,8 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     setDrawer('payment');
   };
   const submitPayment = async () => {
-    if (!payment.date || !payment.code || !payment.partner || amount(payment.amount) <= 0) return report('Vui lòng nhập đủ thông tin thanh toán khoản vay.', true);
+    if (!payment.date || !payment.code || !payment.partner || amount(payment.amount) <= 0) return reportFormError('Vui lòng nhập đủ thông tin thanh toán khoản vay.');
+    setFormError('');
     setBusy(true);
     try {
       await api.post('addFundLoanPayment', {
@@ -714,7 +735,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
       await refresh('loans', true);
       void refresh('overview', true);
     } catch (e) {
-      report(e instanceof Error ? e.message : String(e), true);
+      reportFormError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -881,9 +902,9 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
         />
       ) : null}
       {tab === 'catalog' && canWrite ? <><FundSettingsCard value={settingsEdit} setValue={setSettingsEdit} save={() => void saveFundSettings()} busy={busy} /><Catalog data={catalog} group={group} edit={catalogEdit} setEdit={setCatalogEdit} selectGroup={selectGroup} save={() => void saveCatalog()} remove={deleteCatalog} busy={busy} page={catalogPage} setPage={setCatalogPage} /></> : null}
-      {drawer === 'transactions' ? <TransactionDrawer rows={transactionRows} setRows={setTransactionRows} options={options} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitTransactions()} /> : null}
-      {drawer === 'loan' ? <LoanDrawer rows={loanRows} setRows={setLoanRows} options={options} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitLoan()} /> : null}
-      {drawer === 'payment' ? <PaymentDrawer value={payment} setValue={setPayment} busy={busy} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} submit={() => void submitPayment()} /> : null}
+      {drawer === 'transactions' ? <TransactionDrawer rows={transactionRows} setRows={setTransactionRows} options={options} busy={busy} error={formError} closeRequest={drawerCloseRequest} close={closeBusinessDrawer} submit={() => void submitTransactions()} /> : null}
+      {drawer === 'loan' ? <LoanDrawer rows={loanRows} setRows={setLoanRows} options={options} busy={busy} error={formError} closeRequest={drawerCloseRequest} close={closeBusinessDrawer} submit={() => void submitLoan()} /> : null}
+      {drawer === 'payment' ? <PaymentDrawer value={payment} setValue={setPayment} busy={busy} error={formError} closeRequest={drawerCloseRequest} close={closeBusinessDrawer} submit={() => void submitPayment()} /> : null}
       {drawer === 'category' && category ? <CategoryDrawer title={category.title} rows={categoryRows} allRows={category.rows} partner={categoryPartner} setPartner={setCategoryPartner} closeRequest={drawerCloseRequest} close={() => setDrawer(null)} /> : null}
       {deletingTransaction ? (
         <BodyPortal>
@@ -1603,7 +1624,7 @@ function Catalog({ data, group, edit, setEdit, selectGroup, save, remove, busy, 
   );
 }
 
-function DrawerShell({ id, title, children, footer, close, closeRequest = 0, hideHeaderClose = false }: { id: string; title: string; children: React.ReactNode; footer?: React.ReactNode | ((requestClose: () => void) => React.ReactNode); close: () => void; closeRequest?: number; hideHeaderClose?: boolean }) {
+function DrawerShell({ id, title, children, footer, close, closeRequest = 0, hideHeaderClose = false, error = '' }: { id: string; title: string; children: React.ReactNode; footer?: React.ReactNode | ((requestClose: () => void) => React.ReactNode); close: () => void; closeRequest?: number; hideHeaderClose?: boolean; error?: string }) {
   const swipe = useSwipeDismiss({ onDismiss: close });
   const isBusinessForm = id === 'fundTransactionAddDrawer' || id === 'fundLoanAddDrawer' || id === 'fundLoanPaymentDrawer';
   const seenCloseRequest = useRef(closeRequest);
@@ -1653,6 +1674,11 @@ function DrawerShell({ id, title, children, footer, close, closeRequest = 0, hid
             {title}
           </div>
         </header>
+        {error ? (
+          <div className="business-form-error" role="alert" aria-live="assertive">
+            {error}
+          </div>
+        ) : null}
         <div className="cashflow-drawer-body" data-overlay-scroll="cashflow">
           {children}
         </div>
@@ -1739,12 +1765,13 @@ function TransactionFields({ row, setRow, options }: { row: FundTransaction; set
   );
 }
 
-function TransactionDrawer({ rows, setRows, options, busy, closeRequest, close, submit }: { rows: FundTransaction[]; setRows: (rows: FundTransaction[]) => void; options: FundOptions; busy: boolean; closeRequest: number; close: () => void; submit: () => void }) {
+function TransactionDrawer({ rows, setRows, options, busy, error, closeRequest, close, submit }: { rows: FundTransaction[]; setRows: (rows: FundTransaction[]) => void; options: FundOptions; busy: boolean; error: string; closeRequest: number; close: () => void; submit: () => void }) {
   const editing = Boolean(rows[0]?.rowIndex);
   return (
     <DrawerShell
       id="fundTransactionAddDrawer"
       title={editing ? 'Sửa giao dịch' : 'Thêm giao dịch thu chi'}
+      error={error}
       close={close}
       closeRequest={closeRequest}
       footer={(requestClose) => (
@@ -1894,11 +1921,12 @@ function LoanFields({ value, setValue, options }: { value: LoanForm; setValue: (
   );
 }
 
-function LoanDrawer({ rows, setRows, options, busy, closeRequest, close, submit }: { rows: LoanForm[]; setRows: (rows: LoanForm[]) => void; options: FundOptions; busy: boolean; closeRequest: number; close: () => void; submit: () => void }) {
+function LoanDrawer({ rows, setRows, options, busy, error, closeRequest, close, submit }: { rows: LoanForm[]; setRows: (rows: LoanForm[]) => void; options: FundOptions; busy: boolean; error: string; closeRequest: number; close: () => void; submit: () => void }) {
   return (
     <DrawerShell
       id="fundLoanAddDrawer"
       title="Thêm khoản vay"
+      error={error}
       close={close}
       closeRequest={closeRequest}
       footer={(requestClose) => (
@@ -1952,12 +1980,13 @@ function LoanDrawer({ rows, setRows, options, busy, closeRequest, close, submit 
   );
 }
 
-function PaymentDrawer({ value, setValue, busy, closeRequest, close, submit }: { value: PaymentForm; setValue: (value: PaymentForm) => void; busy: boolean; closeRequest: number; close: () => void; submit: () => void }) {
+function PaymentDrawer({ value, setValue, busy, error, closeRequest, close, submit }: { value: PaymentForm; setValue: (value: PaymentForm) => void; busy: boolean; error: string; closeRequest: number; close: () => void; submit: () => void }) {
   const set = (key: string, next: string) => setValue({ ...value, [key]: next });
   return (
     <DrawerShell
       id="fundLoanPaymentDrawer"
       title="Thanh toán khoản vay"
+      error={error}
       close={close}
       closeRequest={closeRequest}
       footer={(requestClose) => (

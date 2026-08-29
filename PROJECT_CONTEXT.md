@@ -77,10 +77,10 @@ Production đã xác nhận gần nhất:
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_4yJ5ye9QKSmh4Kcx9xwX6gMsMuHf`, READY ngày 2026-08-29; root/title, session guard và authenticated Quỹ mobile QA PASS.
+- Vercel deployment: `dpl_Ed5E8oW2RAQfBortismrsEgBFXso`, READY ngày 2026-08-30; root/title, session guard và authenticated Quỹ form-error QA PASS.
 - Apps Script Preview: `@349`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`; Apps Script Production web deployment vẫn khóa tại `@348`.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate PASS 544/544 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`.
+- Gate PASS 545/545 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,14 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Đồng bộ retire Hình thức và lỗi nằm trong form — Preview 2026-08-30
+
+- Root cause lỗi `Vui lòng chọn hình thức cho khoản vay.` trên Production là version skew: frontend Production đã bỏ trường `Hình thức`, nhưng Apps Script Production vẫn khóa ở `@348`, nơi `FundLoanService.buildLoanRow()` còn validation bắt buộc. Apps Script Preview `@349` đã bỏ validation này và ghi rỗng cột vật lý legacy `NHAP_VAY!D` đúng contract.
+- Ba form ghi Thu Chi (giao dịch, khoản vay, thanh toán vay) tách lỗi submit khỏi banner trang nền. Validation/API error nay hiển thị trong vùng solid `role=alert` ngay dưới header của form đang mở; form và dữ liệu nhập vẫn được giữ để sửa/gửi lại. Khi mở form mới, lỗi trang cũ được dọn để không còn cảnh báo bị che phía sau backdrop.
+- Thiết kế tuân theo business-form contract và quy tắc accessibility: lỗi nằm gần ngữ cảnh thao tác, có `aria-live=assertive`, màu danger có text rõ và không phụ thuộc riêng vào màu. Không thêm lại `Hình thức` vào UI hoặc payload bắt buộc.
+- Preview QA authenticated xác nhận form `Thêm khoản vay` không có text `Hình thức`; bấm lưu khi thiếu dữ liệu không gọi write API, form vẫn mở, cảnh báo `Vui lòng nhập ngày vay, nơi vay và số tiền hợp lệ cho mọi khoản vay.` xuất hiện trong drawer và banner trang nền rỗng; trang không tràn ngang. Không ghi dữ liệu nghiệp vụ.
+- Full gate PASS 545/545 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Vercel Preview `dpl_Ed5E8oW2RAQfBortismrsEgBFXso` dùng Apps Script Preview `@349`; Production giữ nguyên Vercel `dpl_4H1DouQ7TDgj86fUBvDbP3axgvqH` và Apps Script `@348`.
 
 ### Mật độ bảng và bố cục khoản vay — Production 2026-08-29
 
@@ -482,9 +490,9 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-**Ưu tiên hiện tại:** checkpoint Thu Chi mới đã TECH_PASS trên Preview. Người dùng cần kiểm tra trên mobile thật và phê duyệt riêng trước khi cập nhật Apps Script/Vercel Production.
+**Ưu tiên hiện tại:** checkpoint sửa version skew `Hình thức` và vị trí lỗi form đã TECH_PASS trên Preview. Cần phê duyệt Production riêng để cập nhật Apps Script canonical từ `@348` lên source đã duyệt `@349` và đóng gói lại Vercel với endpoint Production; không promote trực tiếp artifact Preview vì artifact đó trỏ Apps Script Preview.
 
-1. **Duyệt Thu Chi trên Preview**: kiểm tra khoảng cách nút đáy ở các form, form không còn `Hình thức`, thao tác `Cấn trừ` cho dòng Chi và bảng khoản vay có Nội dung/Trạng thái đúng thứ tự. Không submit giao dịch thử vào workbook thật nếu không có nhu cầu nghiệp vụ.
+1. **Duyệt lỗi form Thu Chi trên Preview**: xác nhận form khoản vay không còn đòi `Hình thức` và mọi lỗi lưu nhìn thấy ngay trong form. Không submit giao dịch thử vào workbook thật nếu không có nhu cầu nghiệp vụ.
 2. **Theo dõi trigger Thu Chi thực tế**: ở lần người dùng sửa trực tiếp `NHAP_THUCHI`/`NHAP_VAY` tiếp theo, xác nhận `fund_manual_sheet` và bundle tháng liên quan có timestamp mới; không tạo giao dịch giả chỉ để test Production.
 3. **Thay GitHub schedule khỏi SLA 5 phút**: 99/99 khoảng chạy đã quan sát trễ hơn 10 phút, 12 khoảng hơn một giờ và cực đại 588 phút. Chọn scheduler có delivery/retry phù hợp trong checkpoint hạ tầng riêng; GitHub Actions chỉ là best-effort, không được mô tả là watchdog 5 phút bảo đảm.
 4. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.

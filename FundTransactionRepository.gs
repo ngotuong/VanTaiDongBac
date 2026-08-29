@@ -27,6 +27,7 @@ var FundTransactionRepository = (function () {
       partner: requiredHeaderIndex(headers, ['doi tac', 'đối tác'], 7 + offset, normalizeHeader),
       content: requiredHeaderIndex(headers, ['noi dung', 'nội dung'], 8 + offset, normalizeHeader),
       debt: requiredHeaderIndex(headers, ['cong no', 'công nợ'], 9 + offset, normalizeHeader),
+      offset: findHeaderIndex(headers, ['can tru', 'cấn trừ'], normalizeHeader),
       remainingDebt: findHeaderIndex(headers, ['cong no con lai', 'công nợ còn lại'], normalizeHeader)
     };
   }

@@ -848,14 +848,14 @@ Header row: 1.
 | B | `Ngày` | Ngày giao dịch |
 | C | `MỤC THU` | Danh mục thu |
 | D | `MỤC CHI` | Danh mục chi |
-| E | `Hình thức` | Tiền mặt/tài khoản/... |
+| E | `Hình thức` | Cột vật lý legacy đã ẩn/ngừng dùng; writer ghi rỗng cho giao dịch mới và bảo toàn dữ liệu lịch sử khi update |
 | F | `Số tiền` | Giá trị giao dịch |
 | G | `Người Thu/ Chi` | Người thực hiện |
 | H | `Đối tác` | Đối tác/nhà cung cấp |
 | I | `Nội dung` | Diễn giải |
 | J | `Công nợ` | Flag/trạng thái công nợ |
 | K | `2` | Helper legacy, ý nghĩa phải kiểm tra live |
-| L | rỗng | Helper/formula reserved |
+| L | `Cấn trừ` | Checkbox cho giao dịch `Chi`: vẫn vào chi phí/báo cáo Vận tải nhưng không làm thay đổi số dư Quỹ |
 | M | `Công nợ còn lại` | Giá trị công nợ tính toán |
 | N | `Lọc` | Helper filter |
 
@@ -867,7 +867,8 @@ Snapshot có max 15 cột nhưng lastColumn 14. Không ghi vào cột O hoặc m
 - `Số phiếu` phải duy nhất và ổn định khi retry queue.
 - `Ngày` phải là date hợp lệ.
 - `Số tiền` phải là số dương theo validation nghiệp vụ hiện tại.
-- Các cột helper/formula J–N phải được giữ theo template/công thức.
+- Cột J là flag công nợ; cột L là flag `Cấn trừ`; các cột helper/công thức K, M, N phải được giữ theo template/công thức.
+- `Cấn trừ` chỉ hợp lệ với giao dịch `Chi`; tổng Quỹ và số dư kỳ loại trừ các dòng này.
 - Batch append phải rollback vùng vừa ghi nếu lỗi giữa chừng.
 - Nếu voucher đã tồn tại đủ số dòng, queued retry trả idempotent replay thay vì ghi lại.
 - Không xóa công thức lọc/công nợ ở cột helper.
@@ -880,15 +881,16 @@ Transaction object chứa các field logic như:
 - date;
 - type (`Thu`/`Chi`);
 - category;
-- method;
+- method (legacy, không còn hiển thị trên form; giao dịch mới ghi rỗng vào cột E);
 - amount;
 - actor/person;
 - partner;
 - content/note;
-- debt flag.
+- debt flag;
+- offset flag (`Cấn trừ`, đọc/ghi tại cột L).
 - remaining debt đọc từ cột M `Công nợ còn lại` cho màn hình Công nợ; writer không ghi trực tiếp field này.
 
-Mapping chính xác do `FundTransactionService.buildRow()` sở hữu; `FundService.buildTransactionRow_()` chỉ là compatibility wrapper nội bộ. Append/update A:J, format B/F, helper formulas M:N, physical delete và batch rollback A:N do `FundTransactionRepository` thực hiện. Không duplicate mapping theo index ở frontend.
+Mapping chính xác do `FundTransactionService.buildRow()` sở hữu; `FundService.buildTransactionRow_()` chỉ là compatibility wrapper nội bộ. Append/update A:L, format B/F, helper formulas M:N, physical delete và batch rollback A:N do `FundTransactionRepository` thực hiện. Không duplicate mapping theo index ở frontend.
 
 ## 15. `NHAP_VAY` contract
 
@@ -901,7 +903,7 @@ Header row: 1.
 | A | `Mã` | Mã khoản vay/thanh toán |
 | B | `Ngày` | Ngày phát sinh |
 | C | `Loại` | Vay/Trả nợ/Trả lãi |
-| D | `Hình thức` | Phương thức |
+| D | `Hình thức` | Cột vật lý legacy đã ẩn/ngừng dùng; writer ghi rỗng cho dòng mới |
 | E | `Đối tác` | Bên cho vay |
 | F | `Số tiền` | Số tiền vay/trả |
 | G | `Kỳ hạn vay (Tháng)` | Điều khoản khoản vay |

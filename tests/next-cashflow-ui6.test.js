@@ -346,13 +346,26 @@ test('Cashflow prefetches the first Fund catalog group from Supabase', () => {
   assert.match(module, /catalogPrefetchStarted\.current = true/);
 });
 
-test('Cashflow forms use live Sheet methods and the canonical loan payment types', () => {
+test('Cashflow forms retire Hình thức and keep canonical loan payment types', () => {
   const module = read('next-shell/components/cashflow/CashflowModule.tsx');
-  const types = read('next-shell/lib/platform/cashflow-types.ts');
-  assert.match(types, /methods\?:string\[\]/);
-  assert.match(module, /\(options\.methods \|\| \[\]\)\.map/);
+  assert.doesNotMatch(module, /Hình thức/);
+  assert.doesNotMatch(module, /options\.methods/);
   assert.doesNotMatch(module, /<option>Trả gốc<\/option>/);
   assert.match(module, /<option>Trả nợ<\/option>[\s\S]*<option>Trả lãi<\/option>/);
+});
+
+test('Cashflow supports offset expenses and renders deterministic loan summary columns', () => {
+  const module = read('next-shell/components/cashflow/CashflowModule.tsx');
+  const types = read('next-shell/lib/platform/cashflow-types.ts');
+  const css = read('next-shell/app/platform.css');
+
+  assert.match(types, /offset\?:\s*boolean/);
+  assert.match(module, /<span>Cấn trừ<\/span>/);
+  assert.match(module, /row\.type === 'Chi'/);
+  assert.match(module, /const compareLoans/);
+  assert.match(module, /\.sort\(compareLoans\)/);
+  assert.match(flat(module), /<th className="sticky-col">Ngày vay<\/th> <th>Nơi vay<\/th> <th>Nội dung<\/th> <th>Dư nợ hiện tại<\/th> <th>Trạng thái<\/th>/);
+  assert.match(css, /\.fund-loan-status-cell/);
 });
 
 test('Fund opening settings share the standard date and numeric input contracts', () => {

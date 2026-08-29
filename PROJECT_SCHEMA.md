@@ -175,12 +175,16 @@ Header row 1. Các cột chính:
 - B `Ngày`;
 - C `MỤC THU`;
 - D `MỤC CHI`;
-- E `Hình thức`;
+- E `Hình thức`: cột vật lý legacy đã ẩn/ngừng dùng; web app ghi rỗng cho giao dịch mới và bảo toàn giá trị lịch sử khi sửa;
 - F `Số tiền`;
 - G `Người Thu/ Chi`;
 - H `Đối tác`;
 - I `Nội dung`;
-- J–N là vùng công nợ/helper/filter phải bảo toàn.
+- J `Công nợ`;
+- K là helper legacy phải bảo toàn;
+- L `Cấn trừ`: checkbox chỉ áp dụng cho giao dịch `Chi`; vẫn tính vào chi phí/báo cáo Vận tải nhưng không làm thay đổi số dư Quỹ;
+- M `Công nợ còn lại` là cột công thức chỉ đọc;
+- N `Lọc` là helper/filter phải bảo toàn.
 
 Web app đọc cột M `Công nợ còn lại` cho màn hình Công nợ nhưng không ghi trực tiếp vào cột công thức này.
 
@@ -193,7 +197,7 @@ Header row 1. Các cột chính:
 - A `Mã`;
 - B `Ngày`;
 - C `Loại`;
-- D `Hình thức`;
+- D `Hình thức`: cột vật lý legacy đã ẩn/ngừng dùng; web app ghi rỗng cho dòng mới và không còn hiển thị trường này trên form;
 - E `Đối tác`;
 - F `Số tiền`;
 - G–J điều khoản vay;

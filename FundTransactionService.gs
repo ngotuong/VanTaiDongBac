@@ -5,21 +5,21 @@ var FundTransactionService = (function () {
     var type = context.clean(item.type);
     var date = context.parseDate(item.date, item.date);
     var category = context.clean(item.category);
-    var method = context.clean(item.method);
     var amount = context.parseNumber(item.amount);
     var actor = context.clean(item.actor);
     var partner = context.clean(item.partner);
     var content = context.clean(item.content);
     var debt = item.debt === true || context.clean(item.debt) === 'Có' ? 'Có' : '';
+    var offset = item.offset === true || context.normalizeHeader(item.offset) === 'true' || context.normalizeHeader(item.offset) === 'co';
     if (!date) throw new Error('Vui lòng nhập ngày hợp lệ.');
     if (type !== 'Thu' && type !== 'Chi') throw new Error('Vui lòng chọn loại Thu hoặc Chi.');
     if (!category) throw new Error('Vui lòng nhập mục thu/chi.');
-    if (!method) throw new Error('Vui lòng chọn hình thức.');
     if (!(amount > 0)) throw new Error('Số tiền phải lớn hơn 0.');
     if (!actor) throw new Error('Vui lòng nhập Người Thu/Chi.');
     if (debt && !partner) throw new Error('Khoản công nợ cần có Đối tác.');
+    if (offset && type !== 'Chi') throw new Error('Cấn trừ chỉ áp dụng cho giao dịch Chi.');
     return [context.clean(item.voucher) || context.buildVoucher(voucherSeed, voucherIndex), date,
-      type === 'Thu' ? category : '', type === 'Chi' ? category : '', method, amount, actor, partner, content, debt];
+      type === 'Thu' ? category : '', type === 'Chi' ? category : '', '', amount, actor, partner, content, debt, '', offset ? true : ''];
   }
 
   function validate(payloads, context) {
@@ -63,7 +63,8 @@ var FundTransactionService = (function () {
     var existing = context.repository.readRow(context.sheet, rowNumber, context.headers.length);
     var row = buildRow(item, undefined, undefined, context);
     row[0] = context.clean(item.voucher) || context.clean(existing[0]) || row[0];
-    row[4] = context.clean(item.method) || context.clean(existing[4]) || row[4];
+    row[4] = context.clean(existing[4]);
+    if (item.offset === undefined || item.offset === null) row[11] = existing[11] === true || context.normalizeHeader(existing[11]) === 'true' ? true : '';
     context.repository.updateRow(context.sheet, rowNumber, row, context.writeOptions);
     return { ok: true, rowIndex: rowNumber, voucher: row[0], sheetName: context.sheetName };
   }
@@ -114,10 +115,11 @@ var FundTransactionService = (function () {
         incomeCategory: incomeCategory, expenseCategory: expenseCategory,
         method: context.clean(row[columns.method]), amount: context.parseNumber(row[columns.amount]), amountText: context.clean(row[columns.amount]),
         actor: context.clean(row[columns.actor]), partner: context.clean(row[columns.partner]), content: context.clean(row[columns.content]), debt: context.clean(row[columns.debt]),
+        offset: columns.offset >= 0 && context.normalizeHeader(row[columns.offset]) === 'true',
         remainingDebt: columns.remainingDebt >= 0 ? context.parseNumber(row[columns.remainingDebt]) : 0
       };
       if (searchFilter) {
-        var searchable = context.normalizeHeader([transaction.voucher, transaction.dateText, transaction.type, transaction.category, transaction.amountText, transaction.actor, transaction.partner, transaction.content, transaction.debt].join(' '));
+        var searchable = context.normalizeHeader([transaction.voucher, transaction.dateText, transaction.type, transaction.category, transaction.amountText, transaction.actor, transaction.partner, transaction.content, transaction.debt, transaction.offset ? 'Cấn trừ' : ''].join(' '));
         if (searchable.indexOf(searchFilter) < 0) return;
       }
       transactions.push(transaction);

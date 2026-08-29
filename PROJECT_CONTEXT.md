@@ -68,9 +68,9 @@ Runtime chính:
 Production đã xác nhận gần nhất:
 
 - URL: `https://dongbac.vercel.app`.
-- Vercel deployment: `dpl_4H1DouQ7TDgj86fUBvDbP3axgvqH`, READY và cut-forward ngày 2026-08-29.
-- Apps Script production cùng deployment ID canonical: code version `@348`; rollback gần nhất `@344`, tiếp theo `@343`, `@340`, `@338`.
-- Vercel rollback gần nhất: `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU`; rollback lịch sử tiếp theo là `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`, `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, rồi `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`.
+- Vercel deployment: `dpl_3Fe4NCtEtZAzEe4547JpM9z5UPG7`, READY và cut-forward ngày 2026-08-30.
+- Apps Script production cùng deployment ID canonical: code version `@349`; rollback gần nhất `@348`, tiếp theo `@344`, `@343`, `@340`.
+- Vercel rollback gần nhất: `dpl_4H1DouQ7TDgj86fUBvDbP3axgvqH`; rollback lịch sử tiếp theo là `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU`, `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`, `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, rồi `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`.
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
@@ -78,7 +78,7 @@ Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
 - Vercel deployment: `dpl_Ed5E8oW2RAQfBortismrsEgBFXso`, READY ngày 2026-08-30; root/title, session guard và authenticated Quỹ form-error QA PASS.
-- Apps Script Preview: `@349`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`; Apps Script Production web deployment vẫn khóa tại `@348`.
+- Apps Script Preview: `@349`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`; Apps Script Production cùng source đã duyệt tại `@349`.
 - Chỉ deploy bằng `npm run deploy:preview`.
 - Gate PASS 545/545 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
@@ -135,13 +135,13 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
-### Đồng bộ retire Hình thức và lỗi nằm trong form — Preview 2026-08-30
+### Đồng bộ retire Hình thức và lỗi nằm trong form — Production 2026-08-30
 
-- Root cause lỗi `Vui lòng chọn hình thức cho khoản vay.` trên Production là version skew: frontend Production đã bỏ trường `Hình thức`, nhưng Apps Script Production vẫn khóa ở `@348`, nơi `FundLoanService.buildLoanRow()` còn validation bắt buộc. Apps Script Preview `@349` đã bỏ validation này và ghi rỗng cột vật lý legacy `NHAP_VAY!D` đúng contract.
+- Root cause lỗi `Vui lòng chọn hình thức cho khoản vay.` trên Production là version skew: frontend Production đã bỏ trường `Hình thức`, nhưng Apps Script Production vẫn khóa ở `@348`, nơi `FundLoanService.buildLoanRow()` còn validation bắt buộc. Apps Script `@349` đã bỏ validation này và ghi rỗng cột vật lý legacy `NHAP_VAY!D` đúng contract.
 - Ba form ghi Thu Chi (giao dịch, khoản vay, thanh toán vay) tách lỗi submit khỏi banner trang nền. Validation/API error nay hiển thị trong vùng solid `role=alert` ngay dưới header của form đang mở; form và dữ liệu nhập vẫn được giữ để sửa/gửi lại. Khi mở form mới, lỗi trang cũ được dọn để không còn cảnh báo bị che phía sau backdrop.
 - Thiết kế tuân theo business-form contract và quy tắc accessibility: lỗi nằm gần ngữ cảnh thao tác, có `aria-live=assertive`, màu danger có text rõ và không phụ thuộc riêng vào màu. Không thêm lại `Hình thức` vào UI hoặc payload bắt buộc.
-- Preview QA authenticated xác nhận form `Thêm khoản vay` không có text `Hình thức`; bấm lưu khi thiếu dữ liệu không gọi write API, form vẫn mở, cảnh báo `Vui lòng nhập ngày vay, nơi vay và số tiền hợp lệ cho mọi khoản vay.` xuất hiện trong drawer và banner trang nền rỗng; trang không tràn ngang. Không ghi dữ liệu nghiệp vụ.
-- Full gate PASS 545/545 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Vercel Preview `dpl_Ed5E8oW2RAQfBortismrsEgBFXso` dùng Apps Script Preview `@349`; Production giữ nguyên Vercel `dpl_4H1DouQ7TDgj86fUBvDbP3axgvqH` và Apps Script `@348`.
+- Preview và Production QA authenticated xác nhận form `Thêm khoản vay` không có text `Hình thức`; bấm lưu khi thiếu dữ liệu không gọi write API, form vẫn mở, cảnh báo `Vui lòng nhập ngày vay, nơi vay và số tiền hợp lệ cho mọi khoản vay.` xuất hiện trong drawer với `role=alert`/`aria-live=assertive`, còn banner trang nền rỗng. Không ghi dữ liệu nghiệp vụ.
+- Full gate PASS 545/545 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Production canonical đã cập nhật từ `@348` lên `@349`; Vercel Production `dpl_3Fe4NCtEtZAzEe4547JpM9z5UPG7` được build riêng với endpoint Production rồi cut-forward. Public smoke PASS toàn bộ route chính, manifest, service worker, session guard 401, health đúng environment identity và không có HTTP 5xx. Rollback READY: Vercel `dpl_4H1DouQ7TDgj86fUBvDbP3axgvqH`, Apps Script `@348`.
 
 ### Mật độ bảng và bố cục khoản vay — Production 2026-08-29
 
@@ -490,13 +490,13 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-**Ưu tiên hiện tại:** checkpoint sửa version skew `Hình thức` và vị trí lỗi form đã TECH_PASS trên Preview. Cần phê duyệt Production riêng để cập nhật Apps Script canonical từ `@348` lên source đã duyệt `@349` và đóng gói lại Vercel với endpoint Production; không promote trực tiếp artifact Preview vì artifact đó trỏ Apps Script Preview.
+**Ưu tiên hiện tại:** checkpoint sửa version skew `Hình thức` và vị trí lỗi form đã hoàn tất Production. Tiếp tục theo dõi lần ghi khoản vay nghiệp vụ tự nhiên tiếp theo và trigger Thu Chi; không tạo giao dịch giả chỉ để kiểm thử.
 
-1. **Duyệt lỗi form Thu Chi trên Preview**: xác nhận form khoản vay không còn đòi `Hình thức` và mọi lỗi lưu nhìn thấy ngay trong form. Không submit giao dịch thử vào workbook thật nếu không có nhu cầu nghiệp vụ.
+1. **Theo dõi lần ghi khoản vay tự nhiên tiếp theo**: xác nhận khoản vay mới không còn lỗi `Hình thức`, không tạo bản ghi thử hoặc bản ghi trùng chỉ để test Production.
 2. **Theo dõi trigger Thu Chi thực tế**: ở lần người dùng sửa trực tiếp `NHAP_THUCHI`/`NHAP_VAY` tiếp theo, xác nhận `fund_manual_sheet` và bundle tháng liên quan có timestamp mới; không tạo giao dịch giả chỉ để test Production.
 3. **Thay GitHub schedule khỏi SLA 5 phút**: 99/99 khoảng chạy đã quan sát trễ hơn 10 phút, 12 khoảng hơn một giờ và cực đại 588 phút. Chọn scheduler có delivery/retry phù hợp trong checkpoint hạ tầng riêng; GitHub Actions chỉ là best-effort, không được mô tả là watchdog 5 phút bảo đảm.
 4. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
-5. **Người dùng duyệt business form system trên Preview**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS thật, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng; chỉ đưa lên Production khi có phê duyệt riêng.
+5. **Người dùng duyệt business form system trên thiết bị thật**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng.
 6. **Duyệt notification copy trên thiết bị thật**: kiểm tra nhấn giữ sao chép trên Safari/iOS và xác nhận danh sách không còn lỗi sync cũ.
 7. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
 

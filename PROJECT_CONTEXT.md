@@ -68,9 +68,9 @@ Runtime chính:
 Production đã xác nhận gần nhất:
 
 - URL: `https://dongbac.vercel.app`.
-- Vercel deployment: `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU`, READY và cut-forward ngày 2026-08-29.
+- Vercel deployment: `dpl_4H1DouQ7TDgj86fUBvDbP3axgvqH`, READY và cut-forward ngày 2026-08-29.
 - Apps Script production cùng deployment ID canonical: code version `@348`; rollback gần nhất `@344`, tiếp theo `@343`, `@340`, `@338`.
-- Vercel rollback gần nhất: `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`; rollback lịch sử tiếp theo là `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, rồi `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`.
+- Vercel rollback gần nhất: `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU`; rollback lịch sử tiếp theo là `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`, `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, rồi `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`.
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
@@ -135,13 +135,14 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
-### Mật độ bảng và bố cục khoản vay — Preview 2026-08-29
+### Mật độ bảng và bố cục khoản vay — Production 2026-08-29
 
 - Bảng `Các khoản vay` đổi thứ tự thành `Ngày vay · Nơi vay · Số tiền · Nội dung · Trạng thái`; nhãn `Dư nợ hiện tại` được rút gọn thành `Số tiền`. Không thay đổi nguồn hoặc phép tính số dư khoản vay.
 - `Nơi vay` được in đậm trong cả bảng khoản vay và lịch sử vay/trả. Các bảng danh sách của module Thu Chi dùng chung header 48px, dòng dữ liệu 52px và nền trắng/xám xen kẽ; bảng tổng quan/export dạng gọn không bị ép theo nhịp này, hàng pending và màu tiền thu/chi vẫn giữ semantic riêng.
 - Header `Lịch sử vay / trả` dùng hai cột cân đối trên mobile: tiêu đề bên trái, hai bộ lọc 44px bên phải trên cùng một hàng từ 360px; màn hình hẹp hơn 360px tự xuống hàng để không tràn.
 - Authenticated Preview QA tại 390×844 xác nhận hai bảng đều có dòng 52px, nền xen kẽ `rgb(255,255,255)`/`rgb(248,250,252)`, `Nơi vay` font-weight 800, tiêu đề và bộ lọc cùng hàng, trang không tràn ngang; tiền vay vẫn xanh và trả nợ vẫn đỏ. QA chỉ đọc, không submit hoặc ghi dữ liệu nghiệp vụ.
-- Full gate PASS 544/544 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Vercel Preview `dpl_4yJ5ye9QKSmh4Kcx9xwX6gMsMuHf` được triển khai bằng `npm run deploy:preview`; Apps Script Preview giữ `@349`. Production giữ nguyên Vercel `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU` và Apps Script `@348`; checkpoint chờ người dùng duyệt trước yêu cầu Production riêng.
+- Full gate PASS 544/544 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview đã duyệt giữ `dpl_4yJ5ye9QKSmh4Kcx9xwX6gMsMuHf`/Apps Script `@349`. Production candidate `dpl_4H1DouQ7TDgj86fUBvDbP3axgvqH` được build riêng bằng Production environment và Apps Script Production rồi alias `dongbac.vercel.app` được cut-forward theo phê duyệt; Apps Script Production giữ `@348`.
+- Public Production smoke PASS cho root, Dashboard, Báo cáo, Vận hành, Danh mục, Quỹ, Cài đặt, Observability, manifest và service worker; session không cookie trả 401; health đúng app/Supabase/Vercel/Apps Script Production và không có HTTP 5xx. Authenticated Production QA tại 390×844 xác nhận header đúng, hai bảng có dòng 52px/zebra, `Nơi vay` font-weight 800, hai bộ lọc cùng hàng, không tràn ngang và màu tiền vay/trả đúng semantic. Rollback READY: `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU`; không ghi dữ liệu nghiệp vụ.
 
 ### Thu Chi Cấn trừ, retire Hình thức, khoản vay và footer mobile — Preview 2026-08-29
 

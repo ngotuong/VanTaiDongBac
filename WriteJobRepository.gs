@@ -74,6 +74,23 @@ var WriteJobRepository = (function () {
     appendLog({ job_id: jobId, status: 'pending', message: 'Write job manually retried.' });
   }
 
+  function cancel(jobId, reason, canceledAt) {
+    SupabaseHttpClient.updateRows(TABLE_WRITE_JOBS, {
+      status: 'failed', last_error: reason, next_run_at: canceledAt,
+      locked_at: null, claimed_at: null, worker_id: null, updated_at: canceledAt
+    }, { id: 'eq.' + jobId, status: 'eq.pending' });
+    var job = get(jobId);
+    if (job && job.status === 'failed' && job.lastError === reason) {
+      appendLog({
+        job_id: jobId,
+        status: 'failed',
+        message: 'Write job canceled by operator.',
+        details: { canceled: true, canceledAt: canceledAt }
+      });
+    }
+    return job;
+  }
+
   function markProcessing(jobId, details) {
     appendLog({ job_id: jobId, status: 'processing', message: 'Write job processing started.', details: details });
   }
@@ -100,6 +117,7 @@ var WriteJobRepository = (function () {
     get: get,
     listRecent: listRecent,
     retry: retry,
+    cancel: cancel,
     markProcessing: markProcessing,
     markSynced: markSynced,
     markFailure: markFailure

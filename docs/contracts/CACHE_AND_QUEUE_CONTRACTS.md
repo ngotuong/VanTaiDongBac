@@ -874,6 +874,17 @@ Khi lỗi xảy ra sau Sheet write nhưng trước job update, operator phải k
 
 Không tạo lại giao dịch bằng UI nếu job cũ chưa được đối soát.
 
+### 19.4. Hủy job pending có lưu vết
+
+`cancelWriteJob(jobId)` chỉ dành cho admin/operator và chỉ được phép khi job vẫn còn `pending`.
+
+- update phải kèm điều kiện `id` và `status = pending` để tránh race với worker;
+- không xóa row `write_jobs` hoặc log; trạng thái terminal dùng `failed` theo constraint hiện tại và `last_error` bắt đầu bằng `CANCELED_BY_OPERATOR:`;
+- phải xóa lock/claim/worker, ghi thời điểm hủy và thêm `write_job_logs` với `details.canceled = true`;
+- nếu job đã `processing` hoặc `synced`, từ chối hủy và yêu cầu đối soát Google Sheet;
+- job đã hủy không được manual retry, không được hiển thị như lỗi hệ thống và không tạo notification lỗi;
+- frontend hiển thị nhãn `ĐÃ HỦY`, giữ nội dung lý do nhưng không lộ marker kỹ thuật.
+
 ## 20. Pending state contract phía frontend
 
 ### 20.1. Transport jobs

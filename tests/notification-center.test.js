@@ -93,6 +93,24 @@ test('notification center aggregates yesterday Fund income and expense by exact 
   assert.equal(result.dailySummary.fundNet, 0);
 });
 
+test('notification center keeps canceled write jobs out of system error alerts', async () => {
+  const service = createNotificationCenterService({
+    repository: { find: async () => ({
+      trip: null, operations: null, fund: null, syncStatuses: [],
+      writeJobs: [{
+        id: 'job-canceled', module: 'transport', action: 'submitRows', status: 'failed', attempts: 3,
+        last_error: 'CANCELED_BY_OPERATOR: Đã hủy để tránh ghi trùng.', updated_at: '2026-08-13T04:00:00.000Z'
+      }]
+    }) },
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    send: () => {},
+    now: () => new Date('2026-08-13T05:00:00.000Z')
+  });
+  const result = await service.list({});
+  assert.equal(result.items.some((item) => item.id.includes('job-canceled')), false);
+  assert.equal(result.items.some((item) => item.type === 'write-failure'), false);
+});
+
 test('Apps Script dispatch normalizes the trailing slash and preserves POST', () => {
   const request = {};
   const sandbox = {

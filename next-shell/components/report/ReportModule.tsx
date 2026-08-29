@@ -123,7 +123,7 @@ function cellStyle(type: ReportType, header: ReportCell, row: ReportCell[], inde
       Object.assign(style, { fontWeight: 700, color: 'var(--deep)', minWidth: 120, width: 120, maxWidth: 120 });
     } else if (index === 1) {
       Object.assign(style, { fontWeight: 700, color: 'var(--deep)', minWidth: 105, width: 105, maxWidth: 105 });
-    } else if (label.includes('doanh thu') || label.includes('lợi nhuận') || label.includes('lãi gộp')) {
+    } else if (label.includes('doanh thu') || label.includes('lợi nhuận') || label.includes('lãi gộp') || label.includes('lãi sau lương')) {
       Object.assign(style, { color: value < 0 ? '#dc2626' : '#0284c7', fontWeight: 700 });
     } else if (label.includes('chi phí') || label.includes('dầu') || label.includes('sửa chữa') || label.includes('phí')) {
       Object.assign(style, { color: '#dc2626', fontWeight: 600 });

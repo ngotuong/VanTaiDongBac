@@ -155,3 +155,9 @@ test('Report detail gives Quang Quân and Minh Vương the same numeric typograp
   assert.match(source,/fontSize: '12\.5px', lineHeight: 1\.3, fontWeight: 600/);
   assert.match(css,/body #reportsView table\.report-data-table-details td\.report-detail-company-cell[\s\S]*font-size: var\(--platform-table-body-font-size\) !important;[\s\S]*font-weight: 600 !important/);
 });
+
+test('Vehicle report uses the profit semantic color for Lãi sau lương',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const source=fs.readFileSync(path.resolve(__dirname,'../next-shell/components/report/ReportModule.tsx'),'utf8');
+  assert.match(source,/label\.includes\('lãi sau lương'\)[\s\S]*color: value < 0 \? '#dc2626' : '#0284c7'/);
+});

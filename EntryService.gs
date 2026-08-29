@@ -59,13 +59,18 @@ var EntryService = (function () {
 
   function assertLiveHeaders_(sheet, cfg) {
     var expected = cfg.headers || [];
+    var aliases = cfg.headerAliases || {};
     if (!expected.length) throw new Error('Chua khai bao schema ghi cho ' + cfg.name + '.');
     var actual = sheet.getRange(cfg.headerRow, 1, 1, expected.length).getDisplayValues()[0].map(function (header) {
       return String(header || '').trim();
     });
     for (var index = 0; index < expected.length; index++) {
-      if (actual[index] !== String(expected[index]).trim()) {
-        throw new Error('Schema ' + cfg.name + ' khong khop tai cot ' + (index + 1) + ': can "' + expected[index] + '", dang la "' + actual[index] + '".');
+      var canonical = String(expected[index]).trim();
+      var accepted = [canonical].concat(aliases[canonical] || []).map(function (header) {
+        return String(header || '').trim();
+      });
+      if (accepted.indexOf(actual[index]) === -1) {
+        throw new Error('Schema ' + cfg.name + ' khong khop tai cot ' + (index + 1) + ': chap nhan "' + accepted.join('" hoac "') + '", dang la "' + actual[index] + '".');
       }
     }
     return actual;

@@ -34,11 +34,10 @@ Tài liệu dự án:
 - Khi bắt đầu cuộc trò chuyện mới hoặc sau khi mất ngữ cảnh, chỉ có hai file bắt buộc: `AGENTS.md` và toàn bộ `PROJECT_CONTEXT.md`.
 - `PROJECT_CONTEXT.md` là current-state handoff duy nhất: dự án/module, kiến trúc hiện tại, checkpoint gần nhất, checkpoint tiếp theo, kiến trúc đích và rủi ro/gate.
 - `docs/ai/AI_START_HERE.md` là router tài liệu theo loại tác vụ; không phải nguồn trạng thái. Không cần đọc toàn bộ thư mục `docs/` trong mọi cuộc trò chuyện.
-- `NEXTJS_MIGRATION_PLAN.md` là roadmap hữu hạn cho foundation, module migration, cutover và legacy removal; chỉ đọc khi tác vụ liên quan Next.js/roadmap.
 - `TARGET_ARCHITECTURE.md` là kiến trúc đích dài hạn và cổng phê duyệt. Agent không được tự bắt đầu step kế tiếp nếu người dùng mới chỉ yêu cầu đọc hoặc báo trạng thái.
 - `PROJECT_SCHEMA.md` là schema index ngắn, dẫn tới schema snapshot và contract chi tiết.
 - `SUPABASE_SCHEMA.md`, `SUPABASE_SETUP.md`, `WORKFLOW.md`, `ROLLBACK.md` là tài liệu schema/vận hành Supabase, deploy và rollback; chỉ đọc khi tác vụ liên quan.
-- `REFACTOR_PLAN.md` và `AUDIT_REPORT.md` là tài liệu lịch sử. Không dùng chúng để suy ra checkpoint hiện tại hoặc bước tiếp theo.
+- Roadmap/checkpoint đã hoàn tất không được giữ trong working tree như nguồn hướng dẫn sống; khi cần điều tra lịch sử, dùng `PROJECT_CONTEXT.md` và Git history.
 - Khi có quyết định kiến trúc hoặc trạng thái lộ trình mới, cập nhật `PROJECT_CONTEXT.md`.
 
 Quy trình khởi động:

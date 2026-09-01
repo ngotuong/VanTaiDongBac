@@ -185,9 +185,9 @@ Nếu một thay đổi không phục vụ trực tiếp kiến trúc mục tiê
 
 ## 10. Trạng thái chuyển đổi hiện tại
 
-Kiến trúc hiện tại chưa phải kiến trúc đích. Tóm tắt current state, checkpoint gần nhất và checkpoint tiếp theo chỉ thuộc `PROJECT_CONTEXT.md`.
+Migration Next.js A1–D1 và chương trình refactor Step 1–36 đã hoàn thành. Next.js hiện là presentation production; Apps Script là API/integration backend; Google Sheets vẫn là source of truth và Supabase là Auth/read model/cache/queue.
 
-Roadmap migration Next.js hữu hạn thuộc `NEXTJS_MIGRATION_PLAN.md`. Chương trình Step 1–36 trong `REFACTOR_PLAN.md` đã hoàn thành và chỉ còn là tài liệu lịch sử.
+Tóm tắt current state, deployment, checkpoint gần nhất và checkpoint tiếp theo chỉ thuộc `PROJECT_CONTEXT.md`. Chi tiết các giai đoạn đã hoàn tất được tra cứu qua Git history, không dùng plan/spec lịch sử làm backlog sống.
 
 ## 11. Cổng phê duyệt dành cho Coding Agent
 
@@ -220,8 +220,8 @@ Chỉ báo cáo trạng thái và dừng chờ phê duyệt.
 
 - Kiến trúc đích: `TARGET_ARCHITECTURE.md`.
 - Trạng thái/checkpoint sống: `PROJECT_CONTEXT.md`.
-- Roadmap Next.js hữu hạn: `NEXTJS_MIGRATION_PLAN.md`.
-- Lịch sử refactor Step 1–36: `REFACTOR_PLAN.md`.
+- Roadmap/checkpoint đang hoạt động: `PROJECT_CONTEXT.md` và plan đã được người dùng phê duyệt trong task hiện tại.
+- Lịch sử migration/refactor đã hoàn tất: Git history và timeline rút gọn trong `PROJECT_CONTEXT.md`.
 - Kiến trúc hiện tại: `docs/architecture/SYSTEM_ARCHITECTURE.md`.
 - Module ownership: `docs/architecture/MODULE_MAP.md`.
 - Contract: `docs/contracts/`.

@@ -4,41 +4,44 @@
  * SupabaseService; this client only builds and executes HTTP requests.
  */
 var SupabaseHttpClient = (function () {
+  var SAFE_RETRY_ATTEMPTS = 3;
+  var SAFE_RETRY_DELAYS_MS = [250, 750];
+
   function upsertRows(tableName, rows, onConflict) {
     if (!rows || !rows.length) return;
     var config = getConfig_();
     var endpoint = restTableEndpoint_(config.url, tableName) + '?on_conflict=' + encodeURIComponent(onConflict);
-    var response = UrlFetchApp.fetch(endpoint, {
+    var response = fetchWithRetry_(endpoint, {
       method: 'post',
       muteHttpExceptions: true,
       contentType: 'application/json',
       headers: serviceHeaders_(config.serviceRoleKey, 'resolution=merge-duplicates,return=representation'),
       payload: JSON.stringify(rows)
-    });
+    }, true);
     assertSuccess_(response, 'Supabase upsert thất bại');
   }
 
   function insertRows(tableName, rows) {
     if (!rows || !rows.length) return;
     var config = getConfig_();
-    var response = UrlFetchApp.fetch(restTableEndpoint_(config.url, tableName), {
+    var response = fetchWithRetry_(restTableEndpoint_(config.url, tableName), {
       method: 'post',
       muteHttpExceptions: true,
       contentType: 'application/json',
       headers: serviceHeaders_(config.serviceRoleKey, 'return=minimal'),
       payload: JSON.stringify(rows)
-    });
+    }, false);
     assertSuccess_(response, 'Supabase insert thất bại');
   }
 
   function readRows(tableName, query) {
     var config = getConfig_();
     var endpoint = appendQuery_(restTableEndpoint_(config.url, tableName), query);
-    var response = UrlFetchApp.fetch(endpoint, {
+    var response = fetchWithRetry_(endpoint, {
       method: 'get',
       muteHttpExceptions: true,
       headers: serviceHeaders_(config.serviceRoleKey)
-    });
+    }, true);
     assertSuccess_(response, 'Supabase select thất bại');
     return JSON.parse(response.getContentText() || '[]');
   }
@@ -46,26 +49,26 @@ var SupabaseHttpClient = (function () {
   function updateRows(tableName, patch, filters) {
     var config = getConfig_();
     var endpoint = appendQuery_(restTableEndpoint_(config.url, tableName), filters);
-    var response = UrlFetchApp.fetch(endpoint, {
+    var response = fetchWithRetry_(endpoint, {
       method: 'patch',
       muteHttpExceptions: true,
       contentType: 'application/json',
       headers: serviceHeaders_(config.serviceRoleKey, 'return=minimal'),
       payload: JSON.stringify(patch || {})
-    });
+    }, true);
     assertSuccess_(response, 'Supabase update thất bại');
   }
 
   function callRpc(functionName, payload) {
     var config = getConfig_();
     var endpoint = config.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + encodeURIComponent(functionName);
-    var response = UrlFetchApp.fetch(endpoint, {
+    var response = fetchWithRetry_(endpoint, {
       method: 'post',
       muteHttpExceptions: true,
       contentType: 'application/json',
       headers: serviceHeaders_(config.serviceRoleKey),
       payload: JSON.stringify(payload || {})
-    });
+    }, false);
     assertSuccess_(response, 'Supabase RPC ' + functionName + ' thất bại');
     return JSON.parse(response.getContentText() || '[]');
   }
@@ -102,6 +105,28 @@ var SupabaseHttpClient = (function () {
     };
     if (prefer) headers.Prefer = prefer;
     return headers;
+  }
+
+  function fetchWithRetry_(endpoint, options, retrySafe) {
+    var attempts = retrySafe ? SAFE_RETRY_ATTEMPTS : 1;
+    var lastError = null;
+    for (var attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        var response = UrlFetchApp.fetch(endpoint, options);
+        if (!retrySafe || !isTransientStatus_(response.getResponseCode()) || attempt === attempts - 1) {
+          return response;
+        }
+      } catch (err) {
+        lastError = err;
+        if (!retrySafe || attempt === attempts - 1) throw err;
+      }
+      Utilities.sleep(SAFE_RETRY_DELAYS_MS[attempt]);
+    }
+    throw lastError || new Error('Supabase request thất bại sau nhiều lần thử.');
+  }
+
+  function isTransientStatus_(code) {
+    return code === 408 || code === 429 || code === 500 || code === 502 || code === 503 || code === 504;
   }
 
   function assertSuccess_(response, errorPrefix) {

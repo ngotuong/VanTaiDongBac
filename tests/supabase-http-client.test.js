@@ -9,6 +9,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 function loadClient(options = {}) {
   const requests = [];
+  const sleeps = [];
   const properties = {
     SUPABASE_URL: options.url === undefined ? ' https://project.test/ ' : options.url,
     SUPABASE_SERVICE_ROLE_KEY: options.key === undefined ? ' test-service-key ' : options.key
@@ -23,16 +24,18 @@ function loadClient(options = {}) {
       fetch(url, requestOptions) {
         requests.push({ url, options: JSON.parse(JSON.stringify(requestOptions)) });
         const response = responses.shift() || { code: 200, body: '[]' };
+        if (response.error) throw new Error(response.error);
         return {
           getResponseCode: () => response.code,
           getContentText: () => response.body
         };
       }
-    }
+    },
+    Utilities: { sleep: (delay) => sleeps.push(delay) }
   });
   new vm.Script(read('NormalizationUtils.gs'), { filename: 'NormalizationUtils.gs#http-client-test' }).runInContext(context);
   new vm.Script(read('SupabaseHttpClient.gs'), { filename: 'SupabaseHttpClient.gs#test' }).runInContext(context);
-  return { client: context.SupabaseHttpClient, requests };
+  return { client: context.SupabaseHttpClient, requests, sleeps };
 }
 
 test('read request snapshot preserves URL encoding, omitted empty filters, and auth headers', () => {
@@ -121,9 +124,38 @@ test('non-2xx errors retain exact operation, status, and response text', () => {
     { response: { code: 500, body: 'rpc error' }, run: (client) => client.callRpc('fn', {}), message: 'Supabase RPC fn thất bại (500): rpc error' }
   ];
   operations.forEach((operation) => {
-    const { client } = loadClient({ responses: [operation.response] });
+    const retryable = /upsert|select|update/.test(operation.message);
+    const { client } = loadClient({ responses: retryable ? [operation.response, operation.response, operation.response] : [operation.response] });
     assert.throws(() => operation.run(client), { message: operation.message });
   });
+});
+
+test('retry-safe requests recover from transient transport and HTTP failures with bounded backoff', () => {
+  const transport = loadClient({ responses: [{ error: 'Address unavailable' }, { code: 200, body: '[{"id":1}]' }] });
+  assert.deepEqual(JSON.parse(JSON.stringify(transport.client.readRows('t', {}))), [{ id: 1 }]);
+  assert.equal(transport.requests.length, 2);
+  assert.deepEqual(transport.sleeps, [250]);
+
+  const unavailable = loadClient({ responses: [
+    { code: 503, body: 'busy' },
+    { code: 429, body: 'rate limited' },
+    { code: 200, body: '[]' }
+  ] });
+  unavailable.client.upsertRows('t', [{ id: 1 }], 'id');
+  assert.equal(unavailable.requests.length, 3);
+  assert.deepEqual(unavailable.sleeps, [250, 750]);
+});
+
+test('non-idempotent insert and RPC requests are never retried automatically', () => {
+  const insert = loadClient({ responses: [{ error: 'Address unavailable' }] });
+  assert.throws(() => insert.client.insertRows('t', [{ id: 1 }]), /Address unavailable/);
+  assert.equal(insert.requests.length, 1);
+  assert.deepEqual(insert.sleeps, []);
+
+  const rpc = loadClient({ responses: [{ code: 503, body: 'busy' }] });
+  assert.throws(() => rpc.client.callRpc('claim', {}), /503/);
+  assert.equal(rpc.requests.length, 1);
+  assert.deepEqual(rpc.sleeps, []);
 });
 
 test('invalid JSON and empty successful bodies preserve legacy parsing behavior', () => {

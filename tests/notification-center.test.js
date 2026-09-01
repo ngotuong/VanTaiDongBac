@@ -160,10 +160,32 @@ test('notification center expires old incidental sync failures but keeps critica
   });
   const result = await service.list({});
   assert.equal(result.items.some((item) => item.message.includes('old lock')), false);
-  assert.equal(result.items.some((item) => item.message.includes('recent error')), true);
-  const critical = result.items.find((item) => item.message.includes('notification_pipeline'));
+  const recent = result.items.find((item) => item.type === 'sync-failure');
+  assert.equal(recent.message, 'Một tác vụ đồng bộ đang gặp lỗi. Hãy mở Trạng thái đồng bộ để kiểm tra.');
+  const critical = result.items.find((item) => item.type === 'sync-stale');
   assert.equal(critical.type, 'sync-stale');
   assert.equal(critical.title, 'Dữ liệu chưa được đồng bộ mới');
+  assert.doesNotMatch(critical.message, /notification_pipeline|old pipeline error/);
+});
+
+test('notification center never exposes technical pipeline payloads or URLs to push content', async () => {
+  const service = createNotificationCenterService({
+    repository: { find: async () => ({
+      trip: null, operations: null, fund: null, writeJobs: [],
+      syncStatuses: [{
+        sync_key: 'notification_pipeline', status: 'error',
+        message: '[{"error":"Address unavailable: https://secret.supabase.co/rest/v1/manage_data_bundles"}]',
+        updated_at: '2026-09-01T10:00:00.000Z'
+      }]
+    }) },
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    send: () => {},
+    now: () => new Date('2026-09-01T10:01:00.000Z')
+  });
+  const result = await service.list({});
+  const item = result.items.find((entry) => entry.notificationKey === 'system-health');
+  assert.equal(item.message, 'Pipeline thông báo gặp lỗi lặp lại. Hãy mở Trạng thái đồng bộ để kiểm tra.');
+  assert.doesNotMatch(item.message, /https:|supabase|Address unavailable|\[|\{/i);
 });
 
 test('notification center collapses stale realtime worker dependencies into one useful alert', async () => {

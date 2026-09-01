@@ -39,7 +39,9 @@ var SupabaseService = (function () {
   var SOURCE_POLL_INTERVAL_MS = 5 * 60 * 1000;
   var SOURCE_POLL_RETRY_MS = 60 * 1000;
   var TRIP_NOTIFICATION_NEXT_AT_PROP = 'SUPABASE_TRIP_NOTIFICATION_NEXT_AT';
+  var NOTIFICATION_PIPELINE_FAILURE_COUNT_PROP = 'SUPABASE_NOTIFICATION_PIPELINE_FAILURE_COUNT';
   var TRIP_NOTIFICATION_INTERVAL_MS = 5 * 60 * 1000;
+  var NOTIFICATION_PIPELINE_FAILURE_THRESHOLD = 3;
   var REFRESH_QUEUE_LOCK_WAIT_MS = 30 * 1000;
   var REALTIME_TICK_RUNNING_TTL_SECONDS = 300;
   var TRANSPORT_SHEET_SYNC_RUNNING_TTL_SECONDS = 120;
@@ -263,23 +265,25 @@ var SupabaseService = (function () {
   }
 
   function syncTripNotificationsIfDue_(props, nowMillis) {
-    var nextAt = Number(props.getProperty(TRIP_NOTIFICATION_NEXT_AT_PROP) || 0);
-    if (nextAt > nowMillis) return { checked: false };
-    props.setProperty(TRIP_NOTIFICATION_NEXT_AT_PROP, String(nowMillis + TRIP_NOTIFICATION_INTERVAL_MS));
-    var results = [];
-    var errors = [];
-    runSyncStep_(results, errors, 'tripNotifications', function () { return syncTripNotifications(); });
-    runSyncStep_(results, errors, 'operationalNotifications', function () { return syncOperationalNotifications(); });
-    runSyncStep_(results, errors, 'dailyBusinessSummary', function () { return syncDailyBusinessSummary(); });
-    runSyncStep_(results, errors, 'notificationDispatch', function () { return dispatchNotifications(); });
-    if (errors.length) {
-      props.setProperty(TRIP_NOTIFICATION_NEXT_AT_PROP, String(nowMillis + SOURCE_POLL_RETRY_MS));
-      writeSyncStatus_('notification_pipeline', 'system', 'error', JSON.stringify(errors), new Date(nowMillis).toISOString());
-      console.log('notification_pipeline_failed: ' + JSON.stringify(errors));
-      return { checked: true, ok: false, results: results, errors: errors };
-    }
-    writeSyncStatus_('notification_pipeline', 'system', 'ok', 'Notification bundles synced and delivery evaluated.', new Date(nowMillis).toISOString());
-    return { checked: true, ok: true, results: results };
+    return NotificationPipelineService.run({
+      nowMillis: nowMillis,
+      nowISOString: new Date(nowMillis).toISOString(),
+      nextAtKey: TRIP_NOTIFICATION_NEXT_AT_PROP,
+      failureCountKey: NOTIFICATION_PIPELINE_FAILURE_COUNT_PROP,
+      intervalMs: TRIP_NOTIFICATION_INTERVAL_MS,
+      retryMs: SOURCE_POLL_RETRY_MS,
+      failureThreshold: NOTIFICATION_PIPELINE_FAILURE_THRESHOLD,
+      getProperty: function (key) { return props.getProperty(key); },
+      setProperty: function (key, value) { props.setProperty(key, value); },
+      deleteProperty: function (key) { props.deleteProperty(key); },
+      runStep: runSyncStep_,
+      syncTripNotifications: function () { return syncTripNotifications(); },
+      syncOperationalNotifications: function () { return syncOperationalNotifications(); },
+      syncDailyBusinessSummary: function () { return syncDailyBusinessSummary(); },
+      dispatchNotifications: function () { return dispatchNotifications(); },
+      writeStatus: writeSyncStatus_,
+      log: function (message) { console.log(message); }
+    });
   }
 
   function enqueueDetectedSourceChangesIfDue_(props, nowMillis) {

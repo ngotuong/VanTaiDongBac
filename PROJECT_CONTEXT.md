@@ -77,10 +77,10 @@ Production đã xác nhận gần nhất:
 Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
-- Vercel deployment: `dpl_Ed5E8oW2RAQfBortismrsEgBFXso`, READY ngày 2026-08-30; root/title, session guard và authenticated Quỹ form-error QA PASS.
-- Apps Script Preview: `@349`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`; Apps Script Production cùng source đã duyệt tại `@349`.
+- Vercel deployment: `dpl_FZmt6FLbDPACwG4FAmFNc3N4Taxx`, READY ngày 2026-09-01; root/title, session guard, health và authenticated Observability QA PASS.
+- Apps Script Preview: `@350`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`; Apps Script Production web deployment vẫn khóa tại `@349`.
 - Chỉ deploy bằng `npm run deploy:preview`.
-- Gate PASS 545/545 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`.
+- Gate PASS 552/552 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
 
 ## 4. Quá trình dự án đã hoàn thành
@@ -134,6 +134,14 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Retry và chống cảnh báo giả cho pipeline thông báo — Preview 2026-09-01
+
+- Incident lúc khoảng 17:44 là lỗi kết nối tạm thời `Address unavailable` từ Apps Script `UrlFetchApp` tới Supabase khi `dailyBusinessSummary` upsert `manage_data_bundles`; Google Sheet, schema và credential không hỏng. Pipeline tự hồi phục ở lượt kế tiếp; authenticated Production Observability xác nhận `daily_business_summary`, `trip_notifications`, `operational_notifications`, `notification_pipeline` và worker đều OK, không có queue pending.
+- `SupabaseHttpClient` nay retry tối đa 3 lần với backoff 250/750 ms cho read, upsert và update idempotent khi gặp transport exception hoặc HTTP 408/429/500/502/503/504. `insertRows` và RPC không tự retry để tránh insert/claim trùng khi không chắc request trước đã được server nhận hay chưa.
+- `NotificationPipelineService` tách state machine khỏi facade: lỗi đơn lẻ chỉ ghi log tên bước và retry sau một phút; chỉ sau 3 tick thất bại liên tiếp mới ghi status lỗi và dispatch cảnh báo. Khi hồi phục, status được chuyển OK trước khi dispatch để không gửi cảnh báo đã stale. Bộ đếm được xóa khi toàn bộ pipeline thành công.
+- Notification Center/Push không còn đưa raw JSON, endpoint Supabase hoặc thông báo `Address unavailable` ra người dùng; lỗi thật dùng nội dung ngắn và dẫn về `Trạng thái đồng bộ`. Execution result vẫn giữ tên bước thất bại để quản trị viên khoanh vùng mà không phát tán URL kỹ thuật.
+- Targeted regression PASS 30/30; full gate PASS 552/552 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Preview `@350`; Vercel Preview `dpl_FZmt6FLbDPACwG4FAmFNc3N4Taxx`. Direct/Vercel health, root/title, Observability, session 401 và log 5xx PASS; authenticated Preview xác nhận pipeline hiện OK. Production giữ nguyên Vercel `dpl_3Fe4NCtEtZAzEe4547JpM9z5UPG7` và Apps Script web deployment `@349`; không ghi dữ liệu nghiệp vụ hoặc tạo cảnh báo thử.
 
 ### Đồng bộ retire Hình thức và lỗi nằm trong form — Production 2026-08-30
 
@@ -490,13 +498,13 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-**Ưu tiên hiện tại:** checkpoint sửa version skew `Hình thức` và vị trí lỗi form đã hoàn tất Production. Tiếp tục theo dõi lần ghi khoản vay nghiệp vụ tự nhiên tiếp theo và trigger Thu Chi; không tạo giao dịch giả chỉ để kiểm thử.
+**Ưu tiên hiện tại:** checkpoint retry/chống cảnh báo giả đã TECH_PASS trên Preview. Chờ người dùng duyệt Preview; chỉ cập nhật Apps Script Production canonical `@349` → `@350` và đóng gói Vercel Production khi có phê duyệt Production riêng.
 
-1. **Theo dõi lần ghi khoản vay tự nhiên tiếp theo**: xác nhận khoản vay mới không còn lỗi `Hình thức`, không tạo bản ghi thử hoặc bản ghi trùng chỉ để test Production.
-2. **Theo dõi trigger Thu Chi thực tế**: ở lần người dùng sửa trực tiếp `NHAP_THUCHI`/`NHAP_VAY` tiếp theo, xác nhận `fund_manual_sheet` và bundle tháng liên quan có timestamp mới; không tạo giao dịch giả chỉ để test Production.
-3. **Thay GitHub schedule khỏi SLA 5 phút**: 99/99 khoảng chạy đã quan sát trễ hơn 10 phút, 12 khoảng hơn một giờ và cực đại 588 phút. Chọn scheduler có delivery/retry phù hợp trong checkpoint hạ tầng riêng; GitHub Actions chỉ là best-effort, không được mô tả là watchdog 5 phút bảo đảm.
-4. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
-5. **Người dùng duyệt business form system trên thiết bị thật**: kiểm tra form Vận hành, Danh mục và Quỹ trên Safari/iOS, đặc biệt chiều cao tự co, footer liền nội dung và vuốt vùng trống để đóng.
+1. **Duyệt độ bền pipeline trên Preview**: xác nhận nội dung cảnh báo mới đủ dễ hiểu; không cố tình làm Supabase lỗi hoặc phát push thử trên Production.
+2. **Theo dõi lần ghi khoản vay tự nhiên tiếp theo**: xác nhận khoản vay mới không còn lỗi `Hình thức`, không tạo bản ghi thử hoặc bản ghi trùng chỉ để test Production.
+3. **Theo dõi trigger Thu Chi thực tế**: ở lần người dùng sửa trực tiếp `NHAP_THUCHI`/`NHAP_VAY` tiếp theo, xác nhận `fund_manual_sheet` và bundle tháng liên quan có timestamp mới; không tạo giao dịch giả chỉ để test Production.
+4. **Thay GitHub schedule khỏi SLA 5 phút**: 99/99 khoảng chạy đã quan sát trễ hơn 10 phút, 12 khoảng hơn một giờ và cực đại 588 phút. Chọn scheduler có delivery/retry phù hợp trong checkpoint hạ tầng riêng; GitHub Actions chỉ là best-effort, không được mô tả là watchdog 5 phút bảo đảm.
+5. **Theo dõi lượt tổng hợp Production đầu tiên**: xác nhận notification đầu tiên sau 12:00 dùng đúng số liệu D−1; không phát thử thủ công để tránh tạo notification ngoài lịch.
 6. **Duyệt notification copy trên thiết bị thật**: kiểm tra nhấn giữ sao chép trên Safari/iOS và xác nhận danh sách không còn lỗi sync cũ.
 7. **Unread đa thiết bị**: read-state hiện vẫn theo tài khoản trên từng thiết bị. Chỉ tạo migration riêng nếu cần đồng bộ đã đọc giữa nhiều thiết bị.
 

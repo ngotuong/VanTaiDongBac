@@ -79,6 +79,11 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
     const watchdogFailure = syncStatuses.find((row) => row.sync_key === 'external_sync_watchdog' && String(row.status || '').toLowerCase() !== 'ok');
     const watchdogAuthorizationRequired = String(watchdogFailure?.status || '').toLowerCase() === 'authorization_required';
     const watchdogDeploymentAccessDenied = String(watchdogFailure?.status || '').toLowerCase() === 'deployment_access_denied';
+    const safeSyncFailureMessage = (row, stale, ageMinutes) => {
+      if (stale) return `Dữ liệu chưa cập nhật trong ${Math.floor(ageMinutes)} phút. Hãy mở Trạng thái đồng bộ để kiểm tra.`;
+      if (row.sync_key === 'notification_pipeline') return 'Pipeline thông báo gặp lỗi lặp lại. Hãy mở Trạng thái đồng bộ để kiểm tra.';
+      return 'Một tác vụ đồng bộ đang gặp lỗi. Hãy mở Trạng thái đồng bộ để kiểm tra.';
+    };
 
     if (workerStale) {
       result.push({
@@ -125,7 +130,7 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
             ? 'Webapp không truy cập được Apps Script deployment. Hãy kiểm tra đúng tài khoản triển khai và quyền truy cập deployment.'
             : (externalWatchdogFailure
             ? 'Watchdog đã phát hiện gián đoạn nhưng lượt tự khôi phục chưa thành công. Hãy kiểm tra Trạng thái hệ thống.'
-            : (stale ? `${row.sync_key} chưa cập nhật trong ${Math.floor(ageMinutes)} phút.` : `${row.sync_key}: ${String(row.message || row.status).slice(0, 160)}.`))),
+            : safeSyncFailureMessage(row, stale, ageMinutes))),
         date: isoDate(row.updated_at || row.synced_at, currentTime), url: '/observability/'
       });
     }

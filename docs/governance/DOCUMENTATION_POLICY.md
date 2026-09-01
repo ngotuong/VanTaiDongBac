@@ -53,11 +53,7 @@ File:
 
 Living context không phải nơi định nghĩa chi tiết API/schema/module. Nó link đến tài liệu chuẩn tương ứng.
 
-Roadmap migration hữu hạn hiện tại:
-
-- `NEXTJS_MIGRATION_PLAN.md` — toàn bộ checkpoint Next.js, dependency và Definition of Done.
-
-`PROJECT_CONTEXT.md` không sao chép toàn bộ roadmap; chỉ ghi checkpoint gần nhất và checkpoint tiếp theo.
+Roadmap/checkpoint chỉ tồn tại khi còn công việc chưa hoàn thành. Khi roadmap kết thúc, tóm tắt kết quả vào `PROJECT_CONTEXT.md`, xóa plan/spec stage-specific khỏi working tree và dùng Git history để tra cứu chi tiết.
 
 ### 3.3. Architecture
 
@@ -132,13 +128,7 @@ Files dự kiến:
 - `docs/decisions/ADR-*.md`;
 - `docs/CHANGELOG_ARCHITECTURE.md`.
 
-Historical files hiện có:
-
-- `AUDIT_REPORT.md` — baseline Technical Audit Phase 2;
-- `REFACTOR_PLAN.md` — chương trình Step 1–36 đã hoàn thành;
-- `CHANGELOG.md` — thay đổi đáng chú ý.
-
-ADR/history không thay thế current architecture contract.
+Lịch sử triển khai đã hoàn tất được giữ trong Git history và timeline rút gọn của `PROJECT_CONTEXT.md`, không giữ các plan/spec stage-specific ở working tree. ADR còn hiệu lực có thể được giữ khi giải thích một quyết định kiến trúc lâu dài; ADR/history không thay thế current architecture contract.
 
 ## 4. Ma trận nguồn có thẩm quyền
 
@@ -147,7 +137,7 @@ ADR/history không thay thế current architecture contract.
 | Quy tắc làm việc bắt buộc | `AGENTS.md` | `AI_START_HERE.md` |
 | Thứ tự đọc cho Agent | `docs/ai/AI_START_HERE.md` | `AGENTS.md` |
 | Trạng thái/checkpoint hiện tại | `PROJECT_CONTEXT.md` | deployment tools/logs/source |
-| Roadmap Next.js hữu hạn | `NEXTJS_MIGRATION_PLAN.md` | `TARGET_ARCHITECTURE.md`, source/tests |
+| Roadmap/checkpoint đang hoạt động | `PROJECT_CONTEXT.md` | plan được phê duyệt trong task hiện tại, source/tests |
 | Kiến trúc hệ thống | `SYSTEM_ARCHITECTURE.md` | source code |
 | Ownership/module | `MODULE_MAP.md` | source/call sites |
 | Luồng dữ liệu | `DATA_FLOWS.md` | source/service/frontend |
@@ -161,7 +151,7 @@ ADR/history không thay thế current architecture contract.
 | Supabase DB schema thực thi | migrations đã apply | `SUPABASE_SCHEMA.md` |
 | Deploy/rollback | `WORKFLOW.md`, `ROLLBACK.md` | `PROJECT_CONTEXT.md` |
 | Lý do quyết định kiến trúc | ADR tương ứng | changelog/context |
-| Lịch sử refactor Step 1–36 | `REFACTOR_PLAN.md`, Git | `AUDIT_REPORT.md`, `CHANGELOG.md` |
+| Lịch sử refactor/checkpoint đã hoàn tất | Git history | timeline rút gọn trong `PROJECT_CONTEXT.md` |
 
 “Nguồn chuẩn” không có nghĩa được tin mù quáng khi stale. Khi source/live state mâu thuẫn, phải ghi nhận discrepancy và xác minh.
 

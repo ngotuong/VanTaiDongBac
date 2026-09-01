@@ -85,13 +85,13 @@ Preview hiện hành:
 
 ## 4. Quá trình dự án đã hoàn thành
 
-Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâu được giữ trong Git, `CHANGELOG.md`, `REFACTOR_PLAN.md`, `AUDIT_REPORT.md` và contract liên quan.
+Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâu được giữ trong Git history và contract hiện hành; plan/spec đã hoàn tất không còn nằm trong working tree để tránh bị hiểu nhầm là yêu cầu sống.
 
 ### 4.1. Audit và refactor nền tảng — 2026-07-11 đến 2026-07-12
 
 - Hoàn thành technical audit và chương trình refactor Step 1–36.
 - Tách service/repository/domain boundary, tăng characterization tests và giữ nguyên nghiệp vụ.
-- `AUDIT_REPORT.md` và `REFACTOR_PLAN.md` hiện là tài liệu lịch sử.
+- Báo cáo audit và plan Step 1–36 đã được loại khỏi working tree; khi cần điều tra dùng Git history.
 
 ### 4.2. Next.js migration A1–D1 — 2026-07-12 đến 2026-07-19
 
@@ -100,7 +100,7 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Golden-master parity C3 được người dùng duyệt theo từng surface; các regression Report/nav/mobile drawer được sửa và retest.
 - D1 loại bỏ presentation legacy khỏi source; rollback presentation được giữ bằng deployment Vercel bất biến.
 - Auth session continuity đã promote production và authenticated smoke PASS.
-- `NEXTJS_MIGRATION_PLAN.md` là roadmap lịch sử đã hoàn thành, không còn là backlog sống.
+- Roadmap/spec A1–D1 và C3 đã được loại khỏi working tree sau khi hoàn thành; khi cần điều tra dùng Git history.
 
 ### 4.3. Report cache E1.1–E1.6 — 2026-07-18 đến 2026-07-19
 
@@ -134,6 +134,13 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 - Tài khoản `test` chưa bị xóa; đây là thao tác quản trị riêng.
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
+
+### Documentation hygiene và loại bỏ yêu cầu lịch sử — 2026-09-01
+
+- Worktree trước checkpoint sạch. Đã phân loại tài liệu theo ownership và tham chiếu thực tế; giữ toàn bộ contract, schema, runbook, architecture hiện hành và `TARGET_ARCHITECTURE.md`.
+- Loại khỏi working tree các audit/plan/spec đã hoàn tất hoặc incomplete: Technical Audit Phase 2, refactor Step 1–36, roadmap Next.js A1–D1, spec A1/A2/B1, C3 golden/parity và changelog cũ. Nội dung vẫn được bảo toàn trong Git history.
+- `AGENTS.md`, AI router và documentation policy nay chỉ dẫn điều tra lịch sử qua timeline rút gọn, source/tests và Git; không còn route Agent tới plan/spec checkpoint đã lỗi thời.
+- Không thay đổi runtime, API, schema, Google Sheet, Supabase hoặc deployment.
 
 ### Retry và chống cảnh báo giả cho pipeline thông báo — Production 2026-09-01
 
@@ -553,7 +560,7 @@ Definition of Done hiện giữ:
 | Test/risk | `docs/quality/TEST_STRATEGY.md`, `docs/quality/KNOWN_RISKS.md` |
 | Deploy/rollback | `WORKFLOW.md`, `ROLLBACK.md`, `SUPABASE_SETUP.md` |
 | Kiến trúc đích | `TARGET_ARCHITECTURE.md` |
-| Lịch sử | `CHANGELOG.md`, `NEXTJS_MIGRATION_PLAN.md`, `REFACTOR_PLAN.md`, `AUDIT_REPORT.md`, Git history |
+| Lịch sử | Timeline rút gọn trong `PROJECT_CONTEXT.md` và Git history |
 
 ## 10. Trạng thái tài liệu
 

@@ -335,7 +335,7 @@ Schema JSON là bằng chứng tại thời điểm export. Khi thay đổi cấ
 | Auth/role | `RBAC_MATRIX.md` |
 | Thu chi bound behavior | `THU_CHI_BOUND_SCRIPT.md`, source snapshot |
 | Kiểm thử | `TEST_STRATEGY.md` |
-| Rủi ro/refactor | `KNOWN_RISKS.md`, `AUDIT_REPORT.md` |
+| Rủi ro/refactor | `KNOWN_RISKS.md`, source/tests và Git history |
 | Deploy/rollback | `WORKFLOW.md`, `ROLLBACK.md` |
 
 Agent không cần đọc tất cả tài liệu trong mọi tác vụ. Thứ tự chọn tài liệu nằm trong `docs/ai/AI_START_HERE.md`.

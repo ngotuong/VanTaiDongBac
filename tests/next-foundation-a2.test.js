@@ -76,17 +76,25 @@ test('A2 adds real lint and independent TypeScript quality gates', () => {
   assert.equal(fs.existsSync(path.join(root, 'tsconfig.platform.json')), true);
 });
 
-test('finite Next migration roadmap records the completed C3 and D1 gates', () => {
-  const roadmap = read('NEXTJS_MIGRATION_PLAN.md');
-  assert.match(roadmap, /\| B1 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| B2 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| B3 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| B4 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| B5 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| B6 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| B7 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| C1 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| C2 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| C3 \|[^\n]+\| DONE \|/);
-  assert.match(roadmap, /\| D1 \|[^\n]+\| DONE \|/);
+test('completed migration plans and stage specs stay out of the living documentation tree', () => {
+  const retiredDocs = [
+    'AUDIT_REPORT.md',
+    'CHANGELOG.md',
+    'NEXTJS_MIGRATION_PLAN.md',
+    'REFACTOR_PLAN.md',
+    'docs/architecture/NEXT_FOUNDATION_A1.md',
+    'docs/architecture/NEXT_FOUNDATION_A2.md',
+    'docs/architecture/NEXT_REPORT_B1.md',
+    'docs/quality/C3_GOLDEN_MASTER.md',
+    'docs/quality/C3_PARITY_MATRIX.md'
+  ];
+  for (const file of retiredDocs) {
+    assert.equal(fs.existsSync(path.join(root, file)), false, `${file} must stay in Git history only`);
+  }
+
+  const context = read('PROJECT_CONTEXT.md');
+  const router = read('docs/ai/AI_START_HERE.md');
+  assert.match(context, /plan\/spec đã hoàn tất không còn nằm trong working tree/);
+  assert.match(router, /Git history/);
+  assert.doesNotMatch(router, /đọc:\s*[\s\S]*NEXTJS_MIGRATION_PLAN\.md/);
 });

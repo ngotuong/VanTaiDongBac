@@ -32,7 +32,7 @@ Yêu cầu đọc/báo trạng thái không tự động cho phép sửa file, m
 
 ## 3. Router theo loại tác vụ
 
-### Kiến trúc đích hoặc điều tra migration Next.js lịch sử
+### Kiến trúc đích hoặc điều tra migration Next.js
 
 Đọc thêm:
 
@@ -40,7 +40,7 @@ Yêu cầu đọc/báo trạng thái không tự động cho phép sửa file, m
 - `docs/architecture/SYSTEM_ARCHITECTURE.md`;
 - source frontend/Next trực tiếp liên quan.
 
-Chỉ đọc `NEXTJS_MIGRATION_PLAN.md` khi cần điều tra roadmap A1–D1 đã hoàn thành hoặc regression lịch sử.
+Roadmap A1–D1 đã hoàn thành và không còn nằm trong working tree. Khi cần điều tra regression lịch sử, dùng timeline trong `PROJECT_CONTEXT.md`, source/tests hiện hành và Git history theo commit/phạm vi liên quan.
 
 ### API, Auth hoặc RBAC
 
@@ -109,16 +109,9 @@ Bound script và Apps Script backend standalone là hai execution context khác 
 
 Form ghi dữ liệu mobile phải dùng contract chung; không thêm chiều cao cố định, typography hoặc footer riêng theo module.
 
-### Lịch sử refactor
+### Lịch sử refactor hoặc checkpoint đã hoàn tất
 
-Chỉ khi cần rationale hoặc điều tra regression, đọc:
-
-- `AUDIT_REPORT.md`;
-- `REFACTOR_PLAN.md`;
-- `CHANGELOG.md`;
-- Git history.
-
-Hai file audit/plan cũ không được dùng để quyết định checkpoint tiếp theo.
+Chỉ khi cần rationale hoặc điều tra regression, dùng timeline rút gọn trong `PROJECT_CONTEXT.md`, contract/source hiện hành và Git history. Không khôi phục plan/spec lịch sử vào working tree chỉ để làm nguồn hướng dẫn; nếu cần xem nội dung cũ, đọc trực tiếp từ commit tương ứng.
 
 ## 4. Thứ tự ưu tiên khi mâu thuẫn
 

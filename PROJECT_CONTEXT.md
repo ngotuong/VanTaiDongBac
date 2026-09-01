@@ -68,9 +68,9 @@ Runtime chính:
 Production đã xác nhận gần nhất:
 
 - URL: `https://dongbac.vercel.app`.
-- Vercel deployment: `dpl_3Fe4NCtEtZAzEe4547JpM9z5UPG7`, READY và cut-forward ngày 2026-08-30.
-- Apps Script production cùng deployment ID canonical: code version `@349`; rollback gần nhất `@348`, tiếp theo `@344`, `@343`, `@340`.
-- Vercel rollback gần nhất: `dpl_4H1DouQ7TDgj86fUBvDbP3axgvqH`; rollback lịch sử tiếp theo là `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU`, `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`, `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, rồi `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`.
+- Vercel deployment: `dpl_EWqPcWWjNpk2eJdMYi7tYqRWjohv`, READY và cut-forward ngày 2026-09-01.
+- Apps Script production cùng deployment ID canonical: code version `@350`; rollback gần nhất `@349`, tiếp theo `@348`, `@344`, `@343`, `@340`.
+- Vercel rollback gần nhất: `dpl_3Fe4NCtEtZAzEe4547JpM9z5UPG7`; rollback lịch sử tiếp theo là `dpl_4H1DouQ7TDgj86fUBvDbP3axgvqH`, `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU`, `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`, `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, rồi `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`.
 - Supabase project canonical: `lyquwesyjbpalnwfxzwl`.
 - Vercel project canonical: `prj_ksh9aZZowziqFw2G2tWJzbnwtSOG`.
 
@@ -78,7 +78,7 @@ Preview hiện hành:
 
 - URL duy nhất: `https://vantaidongbac-preview.vercel.app`.
 - Vercel deployment: `dpl_FZmt6FLbDPACwG4FAmFNc3N4Taxx`, READY ngày 2026-09-01; root/title, session guard, health và authenticated Observability QA PASS.
-- Apps Script Preview: `@350`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`; Apps Script Production web deployment vẫn khóa tại `@349`.
+- Apps Script Preview: `@350`, deployment ID `AKfycbxZ79e_10-DTkPZI8dMz69v5J6iMccR52S8bqWpl7EYCUru-5T_URD4fn7NrkexOY85`; Apps Script Production web deployment cũng đã lên `@350` trên deployment ID canonical riêng.
 - Chỉ deploy bằng `npm run deploy:preview`.
 - Gate PASS 552/552 tests, lint, typecheck, Next build, Identity Guard và `git diff --check`.
 - Vercel Git Integration đã disconnect khỏi GitHub ngày 2026-08-10; push/merge không tự tạo Preview hoặc Production deployment. Mọi Preview chỉ đi qua script chuẩn.
@@ -135,13 +135,13 @@ Timeline này thay cho nhật ký checkpoint dài trước đây. Chi tiết sâ
 
 ## 5. Checkpoint gần nhất và trạng thái hiện tại
 
-### Retry và chống cảnh báo giả cho pipeline thông báo — Preview 2026-09-01
+### Retry và chống cảnh báo giả cho pipeline thông báo — Production 2026-09-01
 
 - Incident lúc khoảng 17:44 là lỗi kết nối tạm thời `Address unavailable` từ Apps Script `UrlFetchApp` tới Supabase khi `dailyBusinessSummary` upsert `manage_data_bundles`; Google Sheet, schema và credential không hỏng. Pipeline tự hồi phục ở lượt kế tiếp; authenticated Production Observability xác nhận `daily_business_summary`, `trip_notifications`, `operational_notifications`, `notification_pipeline` và worker đều OK, không có queue pending.
 - `SupabaseHttpClient` nay retry tối đa 3 lần với backoff 250/750 ms cho read, upsert và update idempotent khi gặp transport exception hoặc HTTP 408/429/500/502/503/504. `insertRows` và RPC không tự retry để tránh insert/claim trùng khi không chắc request trước đã được server nhận hay chưa.
 - `NotificationPipelineService` tách state machine khỏi facade: lỗi đơn lẻ chỉ ghi log tên bước và retry sau một phút; chỉ sau 3 tick thất bại liên tiếp mới ghi status lỗi và dispatch cảnh báo. Khi hồi phục, status được chuyển OK trước khi dispatch để không gửi cảnh báo đã stale. Bộ đếm được xóa khi toàn bộ pipeline thành công.
 - Notification Center/Push không còn đưa raw JSON, endpoint Supabase hoặc thông báo `Address unavailable` ra người dùng; lỗi thật dùng nội dung ngắn và dẫn về `Trạng thái đồng bộ`. Execution result vẫn giữ tên bước thất bại để quản trị viên khoanh vùng mà không phát tán URL kỹ thuật.
-- Targeted regression PASS 30/30; full gate PASS 552/552 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Apps Script Preview `@350`; Vercel Preview `dpl_FZmt6FLbDPACwG4FAmFNc3N4Taxx`. Direct/Vercel health, root/title, Observability, session 401 và log 5xx PASS; authenticated Preview xác nhận pipeline hiện OK. Production giữ nguyên Vercel `dpl_3Fe4NCtEtZAzEe4547JpM9z5UPG7` và Apps Script web deployment `@349`; không ghi dữ liệu nghiệp vụ hoặc tạo cảnh báo thử.
+- Targeted regression PASS 30/30; full gate PASS 552/552 tests, ESLint, typecheck, Next build, Environment Identity Guard và `git diff --check`. Preview giữ Apps Script `@350`/Vercel `dpl_FZmt6FLbDPACwG4FAmFNc3N4Taxx`. Sau phê duyệt riêng, Apps Script Production canonical được cập nhật `@349` → `@350`; direct health PASS 3 lần. Vercel Production candidate `dpl_EWqPcWWjNpk2eJdMYi7tYqRWjohv` được build bằng endpoint Production, smoke trước alias rồi cut-forward `dongbac.vercel.app`. Public routes, manifest/service worker, session guard 401, health identity và log 5xx đều PASS. Authenticated Production Observability xác nhận worker cùng `daily_business_summary`, `trip_notifications`, `operational_notifications`, `notification_pipeline` đều OK; Notification Center không có lỗi đồng bộ kỹ thuật đang hoạt động. Không ghi dữ liệu nghiệp vụ, không cưỡng bức lỗi và không tạo cảnh báo/push thử. Rollback READY: Vercel `dpl_3Fe4NCtEtZAzEe4547JpM9z5UPG7`, Apps Script `@349`.
 
 ### Đồng bộ retire Hình thức và lỗi nằm trong form — Production 2026-08-30
 
@@ -498,9 +498,9 @@ Trạng thái: **RETIRED trên workbook; Preview và Production runtime PASS**.
 
 ## 6. Checkpoint tiếp theo đề xuất
 
-**Ưu tiên hiện tại:** checkpoint retry/chống cảnh báo giả đã TECH_PASS trên Preview. Chờ người dùng duyệt Preview; chỉ cập nhật Apps Script Production canonical `@349` → `@350` và đóng gói Vercel Production khi có phê duyệt Production riêng.
+**Ưu tiên hiện tại:** checkpoint retry/chống cảnh báo giả đã hoàn thành trên Production. Theo dõi các lượt chạy tự nhiên để xác nhận hành vi retry/hysteresis trong điều kiện thực tế; không chủ động gây lỗi Supabase hoặc phát push thử trên Production.
 
-1. **Duyệt độ bền pipeline trên Preview**: xác nhận nội dung cảnh báo mới đủ dễ hiểu; không cố tình làm Supabase lỗi hoặc phát push thử trên Production.
+1. **Theo dõi độ bền pipeline Production**: ở lần lỗi mạng tự nhiên tiếp theo, xác nhận lỗi đơn lẻ tự retry và chỉ cảnh báo sau 3 tick thất bại liên tiếp; khi hồi phục không còn cảnh báo stale/raw kỹ thuật.
 2. **Theo dõi lần ghi khoản vay tự nhiên tiếp theo**: xác nhận khoản vay mới không còn lỗi `Hình thức`, không tạo bản ghi thử hoặc bản ghi trùng chỉ để test Production.
 3. **Theo dõi trigger Thu Chi thực tế**: ở lần người dùng sửa trực tiếp `NHAP_THUCHI`/`NHAP_VAY` tiếp theo, xác nhận `fund_manual_sheet` và bundle tháng liên quan có timestamp mới; không tạo giao dịch giả chỉ để test Production.
 4. **Thay GitHub schedule khỏi SLA 5 phút**: 99/99 khoảng chạy đã quan sát trễ hơn 10 phút, 12 khoảng hơn một giờ và cực đại 588 phút. Chọn scheduler có delivery/retry phù hợp trong checkpoint hạ tầng riêng; GitHub Actions chỉ là best-effort, không được mô tả là watchdog 5 phút bảo đảm.

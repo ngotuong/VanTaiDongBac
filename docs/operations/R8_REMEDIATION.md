@@ -1,6 +1,6 @@
 # R8 — remediation và nghiệm thu
 
-Runbook cho checkpoint đang mở. Phê duyệt, deployment/version và gate hiện tại chỉ thuộc [PROJECT_CONTEXT](../../PROJECT_CONTEXT.md). Thao tác deploy theo [WORKFLOW](../../WORKFLOW.md), phục hồi theo [ROLLBACK](../../ROLLBACK.md). Không mở checkpoint mới, commit/push, migration hoặc tạo giao dịch giả.
+Runbook cho checkpoint đang mở. Phê duyệt, deployment/version và gate hiện tại chỉ thuộc [PROJECT_CONTEXT](../../PROJECT_CONTEXT.md). Thao tác deploy theo [WORKFLOW](../../WORKFLOW.md), phục hồi theo [ROLLBACK](../../ROLLBACK.md). Không mở checkpoint mới, merge/mainpush, migration hoặc tạo giao dịch giả; commit/push branch riêng chỉ trong phạm vi phê duyệt ghi ở context.
 
 ## Phạm vi và acceptance
 
@@ -46,4 +46,4 @@ Trạng thái/phê duyệt và baseline rollback do context sở hữu. Prefligh
 
 ## Còn mở
 
-Độ trễ natural human-edit và subcall nguồn chậm chưa nghiệm thu theo context. Thiết bị thật iPhone/Safari/iOS push/Home Screen/reduced-motion; Git commit/push/CI remote chưa duyệt/thực hiện. Payroll nguồn tháng5–8 và lịch sử volume giữ trạng thái/giới hạn trong context. Không yêu cầu bịa giao dịch để nghiệm thu. Runbook chưa đạt đủ acceptance phải giữ trạng thái chưa hoàn tất.
+Độ trễ natural human-edit và subcall nguồn chậm chưa nghiệm thu theo context. Thiết bị thật iPhone/Safari/iOS push/Home Screen/reduced-motion còn mở. Git branch/draftPR và CI remote đã PASS đúng source được duyệt; không tự merge/mainpush. Payroll nguồn tháng5–8 và lịch sử volume giữ trạng thái/giới hạn trong context. Không yêu cầu bịa giao dịch để nghiệm thu. Runbook chưa đạt đủ acceptance phải giữ trạng thái chưa hoàn tất.

@@ -101,8 +101,8 @@ test('Supabase in-filter encoding retains quotes and backslash escaping', () => 
 
 test('SupabaseService retains live reads and delegates pure audit work only', () => {
   const source = read('SupabaseService.gs');
-  assert.match(source, /ReportService\.getReportBundle\(month, true\)/);
-  assert.match(source, /ManageService\.readManageData\(sheetName, '', '', auditLimit\)/);
+  assert.match(source, /ReportService\.getReportBundle\(month, true, \{[\s\S]*suppressSupabaseWrite: true/);
+  assert.match(source, /ManageService\.readManageData\(sheetName, '', '', auditLimit, \{ forceRefresh: true \}\)/);
   assert.match(source, /CacheAuditService\.buildReportResult/);
   assert.match(source, /CacheAuditService\.buildManageResult/);
   assert.doesNotMatch(source, /function stableStringify_/);

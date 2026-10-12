@@ -25,11 +25,11 @@ var SheetService = (function () {
     };
   }
 
-  function getStartupData(formType) {
+  function getStartupData(formType, forceRefresh) {
     var data = getBootstrap();
     var selectedFormType = formType || data.formTypes[0] || '';
     var ss = getSpreadsheet_();
-    data.catalogs = getCatalogs(selectedFormType);
+    data.catalogs = getCatalogs(selectedFormType, forceRefresh);
     data.catalogFormType = selectedFormType;
     data.dashboard = getStartupDashboard_(ss);
     data.reports = Object.assign({}, data.reports, data.dashboard, { loading: false });
@@ -53,9 +53,9 @@ var SheetService = (function () {
     return data;
   }
 
-  function getCatalogs(formType) {
+  function getCatalogs(formType, forceRefresh) {
     var key = cacheKey_('catalogs', formType || 'all');
-    var cached = getChunkedCache_(key);
+    var cached = forceRefresh === true ? null : getChunkedCache_(key);
     if (cached) return cached;
     var catalogs = CatalogService.readCatalogs(getSpreadsheet_(), formType);
     putChunkedCache_(key, catalogs, CATALOG_TTL_SECONDS);
@@ -368,7 +368,7 @@ var SheetService = (function () {
   }
 
   function readCurrentOverviewDetails_(sheet) {
-    var rowCount = Math.min(Math.max(sheet.getLastRow() - 3, 1), 14);
+    var rowCount = Math.max(sheet.getLastRow() - 3, 1);
     return sheet.getRange(4, 1, rowCount, 5).getDisplayValues()
       .filter(function (row) {
         return row.some(function (cell) { return clean_(cell); });
@@ -451,9 +451,17 @@ var SheetService = (function () {
   function writeReportBundleToSupabase_(month, bundle, dataVersion) {
     try {
       var resolvedMonth = resolveReportMonth_(bundle && bundle.overview && bundle.overview.months, month);
+      var reportMonth = month === 'Tất cả' ? 'Tất cả' : (resolvedMonth || clean_(month) || 'latest');
+      if (/^(0[1-9]|1[0-2])\/20\d{2}$/.test(reportMonth)) {
+        var explanationResult = SupabaseService.syncPayrollExplanationMonth(reportMonth, dataVersion);
+        if (!explanationResult || explanationResult.ok === false) {
+          throw new Error('Không đồng bộ được giải trình lương ' + reportMonth + ': ' +
+            ((explanationResult && explanationResult.error) || 'Không có kết quả đồng bộ.'));
+        }
+      }
       SupabaseReportCacheRepository.upsertBundle({
         spreadsheetId: APP_CONFIG.spreadsheetId,
-        reportMonth: month === 'Tất cả' ? 'Tất cả' : (resolvedMonth || clean_(month) || 'latest'),
+        reportMonth: reportMonth,
         bundle: bundle,
         cacheVersion: CACHE_VERSION,
         dataVersion: dataVersion,
@@ -768,8 +776,9 @@ var SheetService = (function () {
     return { months: months };
   }
 
-  function readSheetData(sheetName, startDateStr, endDateStr, limit) {
+  function readSheetData(sheetName, startDateStr, endDateStr, limit, options) {
     return SheetReadService.readSheetDataFromSpreadsheet(getSpreadsheet_(), sheetName, startDateStr, endDateStr, limit, {
+      forceRefresh: Boolean(options && options.forceRefresh === true),
       sheets: APP_CONFIG.sheets,
       timezone: APP_CONFIG.timezone,
       buildCacheKey: cacheKey_,
@@ -781,6 +790,7 @@ var SheetService = (function () {
   }
 
   function saveSheetRow(sheetName, rowIndex, rowData, expectedRowData) {
+    ValidationService.validateManageRow(sheetName, rowData);
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
@@ -840,8 +850,12 @@ var SheetService = (function () {
         if (editableColumnMap && !editableColumnMap[colIdx]) {
           valuesToSet.push(existingValues ? existingValues[colIdx] : '');
           skippedColumns.push(colIdx);
+        } else if (headerLower.indexOf('_sys_') === 0) {
+          valuesToSet.push(existingValues ? existingValues[colIdx] : '');
+          skippedColumns.push(colIdx);
         } else if (existingFormulas && existingFormulas[colIdx]) {
-          valuesToSet.push(existingFormulas[colIdx]);
+          valuesToSet.push(existingValues ? existingValues[colIdx] : '');
+          skippedColumns.push(colIdx);
         } else if (header === 'Tháng' && sheetName.indexOf('NL_') === 0) {
           valuesToSet.push('');
           skippedColumns.push(colIdx);
@@ -856,6 +870,9 @@ var SheetService = (function () {
           skippedColumns.push(colIdx);
         } else if (sheetName === 'NL_NghiVanHanh' && (headerLower.indexOf('tính kpi') !== -1 || headerLower.indexOf('giảm kpi') !== -1)) {
           valuesToSet.push('');
+          skippedColumns.push(colIdx);
+        } else if (sheetName === 'NL_SoDuLuong' && ['số dư đầu kỳ', 'còn sau kỳ', 'trạng thái', 'ghi chú hiển thị'].indexOf(headerLower) !== -1) {
+          valuesToSet.push(existingValues ? existingValues[colIdx] : '');
           skippedColumns.push(colIdx);
         } else if (val === undefined && existingValues) {
           valuesToSet.push(existingValues[colIdx]);
@@ -917,7 +934,8 @@ var SheetService = (function () {
       DM_Xe: ['Biển số xe', 'Biển số rơ mooc', 'Khối lượng', 'Loại xe', 'Trạng thái', 'Ghi chú', 'Công ty sở hữu'],
       DM_NhanSu: ['Nhân sự', 'Chức vụ', 'Người tuyển', 'Tính thưởng', 'Dừng thưởng', 'Ngày vào', 'Ngày nghỉ', 'Lương cứng', 'Nghỉ chuẩn', 'Công ty'],
       DM_CheDoLuong: ['Nhân sự', 'Chế độ lương', 'Mức khoán', 'Hiệu lực từ', 'Hiệu lực đến', 'Dự án', 'Ghi chú'],
-      DM_PhanCongXe: ['Biển số xe', 'Nhóm vận hành', 'Hiệu lực từ', 'Hiệu lực đến', 'Ghi chú'],
+      DM_PhanCongXe: ['Biển số xe', 'Nhóm vận hành', 'Từ ngày', 'Đến ngày', 'Ghi chú'],
+      DM_BaoHiem: ['Nhân sự', 'Mức khấu trừ/tháng', 'Hiệu lực từ', 'Hiệu lực đến', 'Ghi chú'],
       DM_GiaDau: ['Ngày áp dụng', 'Giá dầu áp dụng', 'Ghi chú'],
       DM_UuDaiNoiBo: ['Dự án', 'Ưu đãi nội bộ', 'Hiệu lực từ', 'Hiệu lực đến', 'Ghi chú']
     };

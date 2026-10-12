@@ -25,7 +25,8 @@ function loadHtml2Canvas() {
 }
 
 export async function exportCardAsImage(button: HTMLButtonElement, title: string) {
-  const card = button.closest<HTMLElement>('.table-card');
+  const explicitTarget = button.dataset.exportTarget;
+  const card = explicitTarget ? button.closest<HTMLElement>(explicitTarget) : button.closest<HTMLElement>('.table-card');
   if (!card) return showToast('Không tìm thấy nội dung để xuất ảnh.', 'error');
   button.disabled = true;
   let exportStage: HTMLElement | null = null;
@@ -33,13 +34,13 @@ export async function exportCardAsImage(button: HTMLButtonElement, title: string
   showToast('Đang tạo ảnh…', 'loading');
   try {
     const html2canvas = await loadHtml2Canvas();
-    const table = card.querySelector<HTMLElement>('table');
-    const tableWidth = table ? table.scrollWidth : card.scrollWidth;
-    const contentWidth = Math.max(720, tableWidth);
+    const contentWidth = measureExportContentWidth(card);
     const staged = createExportStage(card, contentWidth);
     exportStage = staged.stage;
     const exportCard = staged.card;
 
+    await waitForExportLayout();
+    freezeExportSelectControls(exportCard);
     await waitForExportLayout();
     stripExportCurrencyUnits(exportCard);
 
@@ -100,6 +101,7 @@ function createExportStage(sourceCard: HTMLElement, width: number) {
   });
 
   const clonedCard = sourceCard.cloneNode(true) as HTMLElement;
+  copyLiveControlState(sourceCard, clonedCard);
   clonedCard.classList.add('is-exporting');
   clonedCard.dataset.exportCaptureRoot = 'true';
   clonedCard.style.setProperty('width', `${width}px`, 'important');
@@ -109,12 +111,52 @@ function createExportStage(sourceCard: HTMLElement, width: number) {
   return { stage, card: clonedCard };
 }
 
+function copyLiveControlState(sourceCard: HTMLElement, clonedCard: HTMLElement) {
+  const sourceControls = Array.from(sourceCard.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea'));
+  const clonedControls = Array.from(clonedCard.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea'));
+
+  sourceControls.forEach((source, index) => {
+    const clone = clonedControls[index];
+    if (!clone || clone.tagName !== source.tagName) return;
+
+    if (source instanceof HTMLSelectElement && clone instanceof HTMLSelectElement) {
+      clone.value = source.value;
+      Array.from(clone.options).forEach((option, optionIndex) => {
+        const selected = Boolean(source.options[optionIndex]?.selected);
+        option.selected = selected;
+        option.toggleAttribute('selected', selected);
+      });
+      clone.dataset.exportDisplayValue = source.selectedOptions[0]?.textContent?.trim() || source.value;
+      return;
+    }
+
+    if (source instanceof HTMLInputElement && clone instanceof HTMLInputElement) {
+      clone.value = source.value;
+      clone.setAttribute('value', source.value);
+      clone.checked = source.checked;
+      clone.toggleAttribute('checked', source.checked);
+      return;
+    }
+
+    if (source instanceof HTMLTextAreaElement && clone instanceof HTMLTextAreaElement) {
+      clone.value = source.value;
+      clone.textContent = source.value;
+    }
+  });
+}
+
 function normalizeExportLayout(card: HTMLElement) {
+  card.querySelectorAll<HTMLElement>('[data-export-hidden]').forEach((element) => element.remove());
+  if (!card.classList.contains('payroll-explanation-modal')) {
+    card.querySelectorAll<HTMLDetailsElement>('details').forEach((details) => { details.open = true; });
+  }
   card.style.setProperty('max-height', 'none', 'important');
   card.style.setProperty('overflow', 'visible', 'important');
   card.style.setProperty('box-sizing', 'border-box', 'important');
 
-  card.querySelectorAll<HTMLElement>('.table-wrap, .report-module-table-wrap').forEach((wrap) => {
+  normalizeReportExportControls(card);
+
+  card.querySelectorAll<HTMLElement>('.table-wrap, .report-module-table-wrap, .payroll-explanation-scroll, .payroll-explanation-table-wrap').forEach((wrap) => {
     wrap.scrollLeft = 0;
     wrap.scrollTop = 0;
     wrap.style.setProperty('max-height', 'none', 'important');
@@ -135,6 +177,76 @@ function normalizeExportLayout(card: HTMLElement) {
     elem.style.setProperty('transform', 'none', 'important');
     elem.style.setProperty('filter', 'none', 'important');
     elem.style.setProperty('box-shadow', 'none', 'important');
+  });
+}
+
+export function measureExportContentWidth(card: HTMLElement) {
+  const cardRect = card.getBoundingClientRect();
+  const tableWidths = Array.from(card.querySelectorAll<HTMLElement>('table')).map((table) => {
+    const tableRect = table.getBoundingClientRect();
+    const leftInset = Math.max(0, tableRect.left - cardRect.left);
+    return Math.ceil(Math.max(table.scrollWidth, tableRect.width) + leftInset * 2);
+  });
+  return Math.max(720, card.scrollWidth, ...tableWidths);
+}
+
+function normalizeReportExportControls(card: HTMLElement) {
+  card.querySelectorAll<HTMLElement>('.report-card-filters-mobile').forEach((filters) => filters.remove());
+  card.querySelectorAll<HTMLElement>('.report-card-actions').forEach((actions) => actions.remove());
+
+  card.querySelectorAll<HTMLElement>('.report-card-filters-desktop').forEach((filters) => {
+    filters.style.setProperty('display', 'flex', 'important');
+    filters.style.setProperty('align-items', 'center', 'important');
+    filters.style.setProperty('justify-content', 'flex-end', 'important');
+    filters.style.setProperty('gap', '8px', 'important');
+    filters.style.setProperty('margin-left', 'auto', 'important');
+
+    filters.querySelectorAll<HTMLElement>('.compact-filter').forEach((label) => {
+      label.style.setProperty('display', 'flex', 'important');
+      label.style.setProperty('align-items', 'center', 'important');
+      label.style.setProperty('margin', '0', 'important');
+    });
+  });
+}
+
+function freezeExportSelectControls(card: HTMLElement) {
+  card.querySelectorAll<HTMLSelectElement>('select').forEach((select) => {
+    const rect = select.getBoundingClientRect();
+    const computed = window.getComputedStyle(select);
+    const replacement = document.createElement('div');
+    replacement.className = 'export-static-select';
+    replacement.textContent = select.dataset.exportDisplayValue || select.selectedOptions[0]?.textContent?.trim() || select.value;
+    replacement.setAttribute('aria-hidden', 'true');
+    Object.assign(replacement.style, {
+      boxSizing: 'border-box',
+      width: 'max-content',
+      minWidth: `${Math.ceil(rect.width)}px`,
+      maxWidth: 'none',
+      height: `${Math.ceil(rect.height)}px`,
+      minHeight: `${Math.ceil(rect.height)}px`,
+      display: 'flex',
+      flex: '0 0 auto',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '0 12px',
+      border: computed.border,
+      borderRadius: computed.borderRadius,
+      color: computed.color,
+      backgroundColor: computed.backgroundColor,
+      backgroundImage: 'none',
+      fontFamily: computed.fontFamily,
+      fontSize: computed.fontSize,
+      fontWeight: computed.fontWeight,
+      lineHeight: 'normal',
+      letterSpacing: computed.letterSpacing,
+      whiteSpace: 'nowrap',
+      overflow: 'visible',
+      textOverflow: 'clip'
+    });
+    replacement.style.setProperty('color', computed.color || '#0f172a', 'important');
+    replacement.style.setProperty('font-weight', computed.fontWeight || '700', 'important');
+    replacement.style.setProperty('line-height', 'normal', 'important');
+    select.replaceWith(replacement);
   });
 }
 
@@ -161,7 +273,7 @@ export function exportTableAsCsv(button: HTMLButtonElement, fallbackTitle: strin
   if (!table) return showToast('Không tìm thấy bảng để xuất.', 'error');
   const rows = Array.from(table.querySelectorAll('tr'))
     .filter((row) => !(row as HTMLElement).hidden)
-    .map((row) => Array.from(row.children).map((cell) => {
+    .map((row) => Array.from(row.children).filter((cell) => !(cell as HTMLElement).matches('[data-export-hidden]')).map((cell) => {
       const value = String(cell.textContent || '').replace(/\s+/g, ' ').trim();
       return `"${value.replaceAll('"', '""')}"`;
     }).join(','))

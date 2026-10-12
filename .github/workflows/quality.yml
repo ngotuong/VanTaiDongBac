@@ -1,0 +1,32 @@
+name: Quality gates
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Link public identity for isolated build
+        run: node -e "const fs=require('fs');const identity=require('./config/environment-identity.json');fs.writeFileSync('.clasp.json',JSON.stringify({scriptId:identity.appsScript.scriptId}));"
+      - run: npm test
+      - run: npm run test:sql
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=moderate
+      - run: git diff --check
+      - run: npm run release:manifest

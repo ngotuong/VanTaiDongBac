@@ -19,23 +19,30 @@ function loadNumericInput() {
 }
 
 test('Vietnamese numeric input groups thousands while preserving comma decimals and negatives', () => {
-  const { formatVietnameseNumberInput } = loadNumericInput();
+  const { formatVietnameseNumberInput, normalizeVietnameseNumberInput } = loadNumericInput();
   assert.equal(formatVietnameseNumberInput('1234'), '1.234');
   assert.equal(formatVietnameseNumberInput('1234567,5'), '1.234.567,5');
   assert.equal(formatVietnameseNumberInput('-1234567,50'), '-1.234.567,50');
   assert.equal(formatVietnameseNumberInput('1.234.567,5'), '1.234.567,5');
   assert.equal(formatVietnameseNumberInput('1234567', false), '1.234.567');
   assert.equal(formatVietnameseNumberInput('-'), '-');
+  assert.equal(normalizeVietnameseNumberInput('10.000.000'), '10000000');
+  assert.equal(normalizeVietnameseNumberInput('1.234,5'), '1234.5');
+  assert.equal(normalizeVietnameseNumberInput('-1.234.567'), '-1234567');
 });
 
-test('Entry, Cashflow and Manage apply grouping only to business numeric values', () => {
+test('Entry, Cashflow, Manage and Catalog apply grouping only to business numeric values', () => {
   const entry = read('next-shell/components/entry/EntryModule.tsx');
   const cashflow = read('next-shell/components/cashflow/CashflowModule.tsx');
   const manage = read('next-shell/components/manage/ManageReadOnlyModule.tsx');
-  assert.match(entry, /kind === 'number' \? 'decimal' : key === 'tickets' \? 'text'/);
-  assert.match(entry, /kind === 'number' \? formatVietnameseNumberInput\(e\.target\.value\)/);
-  assert.match(cashflow, /formatVietnameseNumberInput\(event\.target\.value, false\)/);
-  assert.match(manage, /numeric\?formatVietnameseNumberInput\(event\.target\.value\)/);
+  const catalog = read('next-shell/components/catalog/CatalogModule.tsx');
+  assert.match(entry, /kind==='number'\?formatVietnameseNumberInput\(value\)/);
+  assert.match(cashflow, /formatVietnameseNumberInput\(next,false\)/);
+  assert.match(manage, /numericInputHeader\(header\)\?formatVietnameseNumberInput\(value\)/);
+  assert.match(manage, /numericInputHeader\(header\)\?normalizeVietnameseNumberInput\(value\):value/);
+  assert.match(catalog, /businessHeaderIsNumber\(header,sheet\)\?formatVietnameseNumberInput\(value\)/);
+  assert.match(catalog, /businessHeaderIsNumber\(header,sheet\)\?normalizeVietnameseNumberInput\(value\):value/);
+
 });
 
 test('Controls keep the 38px baseline while mobile form text prevents iOS focus zoom', () => {
@@ -50,6 +57,22 @@ test('Controls keep the 38px baseline while mobile form text prevents iOS focus 
   );
   assert.match(css, /Mobile input zoom guard[\s\S]*font-size: 16px !important/);
   assert.doesNotMatch(layout, /maximumScale|userScalable/);
+});
+
+test('Every module search input has a final 16px mobile Safari zoom lock', () => {
+  const css = read('next-shell/app/platform.css');
+  const components = [
+    read('next-shell/components/report/ReportModule.tsx'),
+    read('next-shell/components/manage/ManageReadOnlyModule.tsx'),
+    read('next-shell/components/catalog/CatalogModule.tsx'),
+    read('next-shell/components/cashflow/CashflowModule.tsx'),
+  ];
+  for (const source of components) assert.match(source, /type="search"/);
+  assert.match(
+    css,
+    /Final mobile search zoom lock[\s\S]*@media \(max-width: 768px\)[\s\S]*html body input\[type='search'\][\s\S]*#platform-content[\s\S]*#reportsView[\s\S]*#manageView[\s\S]*#catalogView[\s\S]*#cashflowView[\s\S]*font-size: 16px !important/,
+  );
+  assert.ok(css.lastIndexOf('Final mobile search zoom lock') > css.lastIndexOf('#reportSearchInput'));
 });
 
 test('Every application table keeps Report detail row density with the larger readable fonts', () => {

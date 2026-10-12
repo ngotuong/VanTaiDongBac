@@ -10,22 +10,24 @@ var SupabaseService = (function () {
     'NL_ChamCong',
     'NL_Phat',
     'NL_NghiVanHanh',
-    'NL_PhanCongLai'
+    'NL_PhanCongLai',
+    'NL_SoDuLuong'
   ];
   var TRANSPORT_CATALOG_SHEET_NAMES = [
     'DM_NhanSu', 'DM_Xe', 'DM_DuAn', 'DM_CheDoLuong', 'DM_LuongChuyen',
     'DM_ThamSo', 'DM_GiaDau', 'DM_DonGiaVanChuyen', 'DM_ThuongQuanLy',
-    'DM_PhatNoiBo', 'DM_PhanCongXe', 'DM_UuDaiNoiBo'
+    'DM_PhatNoiBo', 'DM_PhanCongXe', 'DM_BaoHiem', 'DM_UuDaiNoiBo'
   ];
   var DEFAULT_MANAGE_FILTER_KEY = 'recent_500';
   var ASYNC_WRITE_ENABLED = false;
   var ASYNC_TRANSPORT_WRITE_ENABLED = true;
-  var ASYNC_FUND_TRANSACTION_ADD_ENABLED = readBooleanProperty_('ASYNC_FUND_TRANSACTION_ADD_ENABLED', false);
-  var REPORT_AUDIT_MONTHS = ['05/2026', '06/2026', '07/2026', 'Tất cả'];
+  function asyncFundTransactionAddEnabled_() { return readBooleanProperty_('ASYNC_FUND_TRANSACTION_ADD_ENABLED', false); }
   var REALTIME_TICK_INDEX_KEY = 'SUPABASE_REALTIME_TICK_INDEX';
   var REALTIME_SWEEP_NEXT_AT_PROP = 'SUPABASE_REALTIME_SWEEP_NEXT_AT';
   var REALTIME_HEARTBEAT_NEXT_AT_PROP = 'SUPABASE_REALTIME_HEARTBEAT_NEXT_AT';
   var SOURCE_POLL_NEXT_AT_PROP = 'SUPABASE_SOURCE_POLL_NEXT_AT';
+  var SOURCE_POLL_CURSOR_PROP = 'SUPABASE_SOURCE_POLL_CURSOR_V1';
+  var REPORT_OUTPUT_POLL_NEXT_AT_PROP = 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT';
   var REALTIME_QUEUE_PREFERENCE_PROP = 'SUPABASE_REALTIME_QUEUE_PREFERENCE';
   var SOURCE_FINGERPRINT_PREFIX = 'SUPABASE_SOURCE_FINGERPRINT_';
   var REPORT_OUTPUT_FINGERPRINT_PROP = 'SUPABASE_SOURCE_FINGERPRINT_REPORT_OUTPUTS';
@@ -37,13 +39,15 @@ var SupabaseService = (function () {
   var REALTIME_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
   var REALTIME_HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
   var SOURCE_POLL_INTERVAL_MS = 5 * 60 * 1000;
+  var REPORT_OUTPUT_POLL_INTERVAL_MS = 60 * 1000;
   var SOURCE_POLL_RETRY_MS = 60 * 1000;
   var TRIP_NOTIFICATION_NEXT_AT_PROP = 'SUPABASE_TRIP_NOTIFICATION_NEXT_AT';
   var NOTIFICATION_PIPELINE_FAILURE_COUNT_PROP = 'SUPABASE_NOTIFICATION_PIPELINE_FAILURE_COUNT';
   var TRIP_NOTIFICATION_INTERVAL_MS = 5 * 60 * 1000;
   var NOTIFICATION_PIPELINE_FAILURE_THRESHOLD = 3;
-  var REFRESH_QUEUE_LOCK_WAIT_MS = 30 * 1000;
-  var REALTIME_TICK_RUNNING_TTL_SECONDS = 300;
+  var REALTIME_TICK_RUNNING_TTL_SECONDS = 420;
+  var REALTIME_HOUSEKEEPING_INDEX_PROP = 'SUPABASE_REALTIME_HOUSEKEEPING_INDEX';
+  var REALTIME_FAIRNESS_PROP = 'SUPABASE_REALTIME_FAIRNESS';
   var TRANSPORT_SHEET_SYNC_RUNNING_TTL_SECONDS = 120;
   var TRANSPORT_REPORT_DEBOUNCE_MS = 15000;
   var TRANSPORT_REPORT_VERIFICATION_DELAY_MS = 120000;
@@ -74,6 +78,19 @@ var SupabaseService = (function () {
     return withInternalReportRefreshGuard_(function () {
       return ReportSyncService.syncAllReportBundles(reportSyncContext_());
     });
+  }
+
+  function syncPayrollExplanationMonth(month, sourceDataVersion) {
+    try {
+      return PayrollExplanationSyncService.syncMonth(month, payrollExplanationSyncContext_(), {
+        sourceDataVersion: sourceDataVersion || ''
+      });
+    } catch (err) {
+      var normalizedMonth = PayrollExplanationService.normalizeMonth(month) || clean_(month) || 'unknown';
+      var message = err && err.message ? err.message : String(err);
+      writeSyncStatus_('payroll_explanations:' + normalizedMonth, 'transport', 'error', message, new Date().toISOString());
+      return { ok: false, reportMonth: normalizedMonth, error: message };
+    }
   }
 
   function syncFundOverview(year, month) {
@@ -128,6 +145,34 @@ var SupabaseService = (function () {
     return StartupCatalogSyncService.syncCatalogAfterWrite(displaySheetName, startupCatalogSyncContext_());
   }
 
+  function syncCatalogWriteThrough(displaySheetName) {
+    var safeDisplaySheetName = clean_(displaySheetName);
+    var results = [];
+    var errors = [];
+    if (safeDisplaySheetName) {
+      runSyncStep_(results, errors, 'catalogData:' + safeDisplaySheetName, function () {
+        return syncCatalogDataBundle(safeDisplaySheetName);
+      });
+    }
+    var props = PropertiesService.getScriptProperties();
+    props.setProperty(REALTIME_SWEEP_NEXT_AT_PROP, '0');
+    props.setProperty(REALTIME_TICK_INDEX_KEY, '5');
+    var reportRefresh = enqueueManualReportRefresh_({
+      months: [],
+      full: true,
+      verificationPasses: 1,
+      source: 'catalog-web:' + safeDisplaySheetName
+    });
+    return {
+      ok: errors.length === 0 && !(reportRefresh && reportRefresh.deferred),
+      deferred: true,
+      handler: 'syncRealtimeCache',
+      synced: results.length,
+      errors: errors,
+      reportRefresh: reportRefresh
+    };
+  }
+
   function syncManageDataBundle(sheetName) {
     return ManageSyncService.syncManageDataBundle(sheetName, manageSyncContext_());
   }
@@ -162,33 +207,90 @@ var SupabaseService = (function () {
   }
 
   function syncRealtimeCache() {
-    var runtimeCache = CacheService.getScriptCache();
-    var props = PropertiesService.getScriptProperties();
-    var startLock = LockService.getScriptLock();
-    if (!startLock.tryLock(1000)) {
-      return { ok: true, mode: 'tick', skipped: true, reason: 'Realtime start guard is busy.' };
-    }
+    var tickStartedAt = new Date().getTime();
     try {
-      if (props.getProperty(REPORT_CACHE_E1_PARITY_RUNNING_PROP) === 'true') {
-        return { ok: true, mode: 'tick', skipped: true, reason: 'E1 report cache parity window is active.' };
+      if (typeof SupabaseHttpClient !== 'undefined' && SupabaseHttpClient.getCooldown) {
+        var cooldown = SupabaseHttpClient.getCooldown();
+        if (cooldown.active) return { ok: false, deferred: true, skipped: true, mode: 'tick', reason: 'Supabase transport cooldown.', retryAtMillis: cooldown.retryAtMillis };
       }
-      if (runtimeCache.get(REALTIME_TICK_RUNNING_CACHE_KEY)) {
-        return {
-          ok: true,
-          mode: 'tick',
-          skipped: true,
-          reason: 'Previous syncRealtimeCache tick is still running.'
-        };
+      var props = PropertiesService.getScriptProperties();
+      var leaseToken;
+      var fairness;
+      var startLock = LockService.getScriptLock();
+      if (!startLock.tryLock(1000)) {
+        return { ok: true, mode: 'tick', skipped: true, reason: 'Realtime start guard is busy.' };
       }
-      runtimeCache.put(REALTIME_TICK_RUNNING_CACHE_KEY, new Date().toISOString(), REALTIME_TICK_RUNNING_TTL_SECONDS);
-    } finally {
-      startLock.releaseLock();
+      try {
+        if (props.getProperty(REPORT_CACHE_E1_PARITY_RUNNING_PROP) === 'true') {
+          return { ok: true, mode: 'tick', skipped: true, reason: 'E1 report cache parity window is active.' };
+        }
+        var running = {};
+        var runningRaw = props.getProperty(REALTIME_TICK_RUNNING_CACHE_KEY);
+        try { running = JSON.parse(runningRaw || '{}'); } catch (ignore) {}
+        if (Number(running.expiresAt || 0) > new Date().getTime()) {
+          return {
+            ok: true,
+            mode: 'tick',
+            skipped: true,
+            reason: 'Previous syncRealtimeCache tick is still running.'
+          };
+        }
+        leaseToken = Utilities.getUuid();
+        props.setProperty(REALTIME_TICK_RUNNING_CACHE_KEY, JSON.stringify({ token: leaseToken, expiresAt: new Date().getTime() + REALTIME_TICK_RUNNING_TTL_SECONDS * 1000 }));
+        fairness = Number(props.getProperty(REALTIME_FAIRNESS_PROP) || 0) + 1;
+        props.setProperty(REALTIME_FAIRNESS_PROP, String(fairness % 4));
+      } finally {
+        startLock.releaseLock();
+      }
+
+    } catch (startError) {
+      if (!isTransientGoogleError_(startError) && !startError.transportDeferred && !startError.refreshDeferred) throw startError;
+      console.log('realtime_start_deferred:ownership_retained');
+      return { ok: false, deferred: true, skipped: true, mode: 'tick', reason: 'Realtime admission deferred; ownership retained.' };
     }
 
+    var tickResult;
     try {
+      tickResult = SupabaseSyncStatusRepository.withBatch
+        ? SupabaseSyncStatusRepository.withBatch(function () { return runRealtimeTick_(props, fairness, tickStartedAt); })
+        : runRealtimeTick_(props, fairness, tickStartedAt);
+      return tickResult;
+    } catch (error) {
+      if (!error || !(error.refreshDeferred || error.transportDeferred || isTransientGoogleError_(error))) throw error;
+      tickResult = { ok: false, deferred: true, mode: 'tick', error: 'Realtime deferred; durable scope/ownership retained.', retryAtMillis: error.retryAtMillis || 0 };
+      console.log('realtime_tick_deferred');
+      return tickResult;
+    } finally {
+      try {
+        var releaseLock = LockService.getScriptLock();
+        if (releaseLock.tryLock(1000)) {
+          try {
+            var currentLease = JSON.parse(props.getProperty(REALTIME_TICK_RUNNING_CACHE_KEY) || '{}');
+            if (currentLease.token === leaseToken) props.deleteProperty(REALTIME_TICK_RUNNING_CACHE_KEY);
+          } finally { releaseLock.releaseLock(); }
+        }
+      } catch (error) {
+        if (!isTransientGoogleError_(error)) throw error;
+        if (tickResult) { tickResult.ok = false; tickResult.releaseDeferred = true; }
+        console.log('realtime_release_deferred:ownership_retained');
+      }
+    }
+  }
+
+  function runRealtimeTick_(props, fairness, tickStartedAt) {
       var nowMillis = new Date().getTime();
-      syncTripNotificationsIfDue_(props, nowMillis);
-      enqueueDetectedSourceChangesIfDue_(props, nowMillis);
+      drainSheetChangeSignals_(props);
+      enqueueSafetySweepIfDue_(props, nowMillis);
+      if (Number(props.getProperty(REALTIME_HEARTBEAT_NEXT_AT_PROP) || 0) <= nowMillis) {
+        writeRealtimeHeartbeatIfDue_(props, nowMillis,
+          { pending: !!ManualReportRefreshQueueService.getPending(manualReportRefreshQueueContext_()) },
+          { pending: !!ManualReportRefreshQueueService.getPending(fundRefreshQueueContext_()) });
+      }
+      // Even a sustained edit burst must leave turns for polling/notifications.
+      if (fairness % 4 === 0 || props.getProperty('SUPABASE_NOTIFICATION_PIPELINE_CURSOR_V1') || props.getProperty(SOURCE_POLL_CURSOR_PROP)) {
+        var background = runRealtimeHousekeeping_(props, nowMillis, tickStartedAt + 60000);
+        if (background.checked && new Date().getTime() - tickStartedAt >= 60000) return background;
+      }
       var pendingWork = ManualReportRefreshQueueService.claimNextDue([
         { key: 'transport', context: manualReportRefreshQueueContext_() },
         { key: 'fund', context: fundRefreshQueueContext_() }
@@ -199,53 +301,76 @@ var SupabaseService = (function () {
       var pendingClaim = pendingWork.claims.transport || { due: false, pending: false };
       var pendingFundClaim = pendingWork.claims.fund || { due: false, pending: false };
       writeRealtimeHeartbeatIfDue_(props, nowMillis, pendingClaim, pendingFundClaim);
+      var primaryBudget = Math.min(45000, 60000 - (new Date().getTime() - tickStartedAt));
+      if (primaryBudget <= 0 && pendingWork.due) {
+        // The coordinator already claimed the item: yield without executing it.
+        ManualReportRefreshQueueService.saveProgress(pendingWork.item,
+          pendingWork.key === 'fund' ? fundRefreshQueueContext_() : manualReportRefreshQueueContext_(), 0);
+        return { ok: true, mode: 'tick', skipped: true, reason: 'Tick budget consumed before refresh stage.' };
+      }
       if (pendingWork.key === 'transport') {
-        return runPendingTransportReportSync_(pendingWork.item);
+        var transportResult = runPendingTransportReportSync_(pendingWork.item, primaryBudget, tickStartedAt + 60000);
+        return finishRealtimeRefresh_(runCompanionRefresh_(transportResult, 'fund', tickStartedAt), background);
       }
       if (pendingWork.key === 'fund') {
-        return runPendingFundSync_(pendingWork.item);
+        var fundResult = runPendingFundSync_(pendingWork.item, primaryBudget, tickStartedAt + 60000);
+        return finishRealtimeRefresh_(runCompanionRefresh_(fundResult, 'transport', tickStartedAt), background);
       }
 
-      if (!claimRealtimeSweep_(props, nowMillis)) {
-        return {
-          ok: true,
-          mode: 'tick',
-          skipped: true,
-          reason: 'No due refresh work; hourly safety sweep is not due.',
-          pendingTransport: pendingClaim.pending === true,
-          pendingFund: pendingFundClaim.pending === true
-        };
-      }
-      var steps = buildRealtimeTickSteps_();
-      var rawIndex = Number(props.getProperty(REALTIME_TICK_INDEX_KEY) || 0);
-      var index = isNaN(rawIndex) || rawIndex < 0 ? 0 : rawIndex;
-      var step = steps[index % steps.length];
-      props.setProperty(REALTIME_TICK_INDEX_KEY, String((index + 1) % steps.length));
+      if (background && background.checked) return background;
+      var housekeeping = runRealtimeHousekeeping_(props, nowMillis, tickStartedAt + 60000);
+      if (housekeeping.checked) return housekeeping;
 
-      var results = [];
-      var errors = [];
-      runRealtimeTickStep_(step, results, errors);
-      var syncedAt = new Date().toISOString();
-      writeSyncStatus_(
-        'realtime_cache_tick',
-        'system',
-        errors.length ? 'error' : 'ok',
-        errors.length ? JSON.stringify(errors) : 'Realtime cache tick synced: ' + step.name,
-        syncedAt
-      );
       return {
-        ok: errors.length === 0,
-        mode: 'tick',
-        step: step.name,
-        nextStep: steps[(index + 1) % steps.length].name,
-        synced: results.length,
-        failed: errors.length,
-        results: results,
-        errors: errors
+        ok: true, mode: 'tick', skipped: true,
+        reason: 'No due refresh work; safety scopes are processed by durable stages.',
+        pendingTransport: pendingClaim.pending === true,
+        pendingFund: pendingFundClaim.pending === true
       };
-    } finally {
-      runtimeCache.remove(REALTIME_TICK_RUNNING_CACHE_KEY);
+  }
+
+  function finishRealtimeRefresh_(result, background) {
+    if (background && background.checked) {
+      result.housekeeping = background;
+      result.ok = result.ok && background.ok !== false;
     }
+    return result;
+  }
+
+  // Give both modules progress in a minute when RPCs are short. The whole tick
+  // shares a 60s between-stage budget; never start a companion after it expires.
+  function runCompanionRefresh_(result, module, startedAt) {
+    var remaining = 60000 - (new Date().getTime() - startedAt);
+    if (!result.ok || remaining <= 0) return result;
+    var context = module === 'fund' ? fundRefreshQueueContext_() : manualReportRefreshQueueContext_();
+    var next = ManualReportRefreshQueueService.claimDue(context);
+    if (!next.due) return result;
+    var companion = module === 'fund' ? runPendingFundSync_(next.item, remaining, startedAt + 60000)
+      : runPendingTransportReportSync_(next.item, remaining, startedAt + 60000);
+    result.companion = companion;
+    result.ok = result.ok && companion.ok;
+    return result;
+  }
+
+  function runRealtimeHousekeeping_(props, nowMillis, deadlineMillis) {
+    var index = Number(props.getProperty(REALTIME_HOUSEKEEPING_INDEX_PROP) || 0) % 3;
+    // Notifications get the first due housekeeping turn, including under a
+    // sustained queue. Failed pipeline retries still leave three worker turns.
+    var notifications = syncTripNotificationsIfDue_(props, nowMillis, deadlineMillis);
+    if (notifications && notifications.checked) {
+      return { ok: notifications.ok !== false, mode: 'tick', checked: true, step: 'housekeeping:notifications', result: notifications };
+    }
+    var steps = [enqueueDetectedReportOutputChangesIfDue_, enqueueDetectedSourceChangesIfDue_];
+    index = index % steps.length;
+    for (var offset = 0; offset < steps.length; offset++) {
+      var selected = (index + offset) % steps.length;
+      var result = steps[selected](props, nowMillis, deadlineMillis);
+      if (result && result.checked) {
+        props.setProperty(REALTIME_HOUSEKEEPING_INDEX_PROP, String((selected + 1) % steps.length));
+        return { ok: result.ok !== false, mode: 'tick', checked: true, step: 'housekeeping:' + selected, result: result };
+      }
+    }
+    return { checked: false };
   }
 
   function syncTripNotifications() {
@@ -264,11 +389,14 @@ var SupabaseService = (function () {
     return NotificationDispatchService.dispatch(tripNotificationSyncContext_());
   }
 
-  function syncTripNotificationsIfDue_(props, nowMillis) {
+  function syncTripNotificationsIfDue_(props, nowMillis, deadlineMillis) {
     return NotificationPipelineService.run({
       nowMillis: nowMillis,
       nowISOString: new Date(nowMillis).toISOString(),
       nextAtKey: TRIP_NOTIFICATION_NEXT_AT_PROP,
+      cursorKey: 'SUPABASE_NOTIFICATION_PIPELINE_CURSOR_V1',
+      now: function () { return new Date().getTime(); },
+      deadlineMillis: Math.min(deadlineMillis || Infinity, new Date().getTime() + 45000),
       failureCountKey: NOTIFICATION_PIPELINE_FAILURE_COUNT_PROP,
       intervalMs: TRIP_NOTIFICATION_INTERVAL_MS,
       retryMs: SOURCE_POLL_RETRY_MS,
@@ -286,58 +414,79 @@ var SupabaseService = (function () {
     });
   }
 
-  function enqueueDetectedSourceChangesIfDue_(props, nowMillis) {
+  function enqueueDetectedSourceChangesIfDue_(props, nowMillis, deadlineMillis) {
     var nextAt = Number(props.getProperty(SOURCE_POLL_NEXT_AT_PROP) || 0);
     if (nextAt > nowMillis) return { checked: false };
-    props.setProperty(SOURCE_POLL_NEXT_AT_PROP, String(nowMillis + SOURCE_POLL_INTERVAL_MS));
+    var deadline = Math.min(deadlineMillis || Infinity, new Date().getTime() + 45000);
     var sources = [
       { key: 'transport', spreadsheetId: APP_CONFIG.spreadsheetId, sheetName: 'NL_VanChuyen', width: 8, kind: 'transport' },
-      { key: 'fund_transactions', spreadsheetId: DEFAULT_FUND_SPREADSHEET_ID, sheetName: 'NHAP_THUCHI', width: 14, kind: 'fund' },
-      { key: 'fund_loans', spreadsheetId: DEFAULT_FUND_SPREADSHEET_ID, sheetName: 'NHAP_VAY', width: 14, kind: 'fund' }
+      { key: 'fuel', spreadsheetId: APP_CONFIG.spreadsheetId, sheetName: 'NL_Dau', kind: 'transport' },
+      { key: 'payroll_history', spreadsheetId: APP_CONFIG.spreadsheetId, sheetName: 'DM_LichSuNhanSu', width: 12, kind: 'transport' },
+      { key: 'payroll_recruitment_totals', spreadsheetId: APP_CONFIG.spreadsheetId, sheetName: 'SYS_AggThuongTuyen', width: 4, kind: 'transport' },
+      { key: 'fund_transactions', spreadsheetId: DEFAULT_FUND_SPREADSHEET_ID, sheetName: 'NHAP_THUCHI', width: 14, kind: 'fund', transformVersion: 'non-fund-v1' },
+      { key: 'fund_loans', spreadsheetId: DEFAULT_FUND_SPREADSHEET_ID, sheetName: 'NHAP_VAY', width: 14, kind: 'fund', transformVersion: 'non-fund-v1' }
     ];
     var changed = [];
-    sources.forEach(function (source) {
+    var cursor = Number(props.getProperty(SOURCE_POLL_CURSOR_PROP) || 0);
+    if (!(cursor >= 0 && cursor < sources.length && Math.floor(cursor) === cursor)) cursor = 0;
+    for (; cursor < sources.length; cursor++) {
+      if (new Date().getTime() >= deadline) return { checked: true, ok: true, continuing: true, changed: changed };
+      var source = sources[cursor];
       try {
-        var state = readSourceTailState_(source);
+        var state = readSourceFingerprintState_(source);
         var propertyKey = SOURCE_FINGERPRINT_PREFIX + source.key.toUpperCase();
-        var previous = props.getProperty(propertyKey) || '';
-        if (previous === state.fingerprint) return;
-        changed.push({ key: source.key, months: state.months, lastRow: state.lastRow });
-        var queued = null;
-        if (source.kind === 'transport') {
-          queued = enqueueManualReportRefresh_({ months: state.months, full: !state.months.length, source: 'poll:transport' });
-        } else {
-          queued = enqueueRefreshWithFallback_({
-            months: state.months,
-            full: !state.months.length,
-            source: 'poll:' + source.key
-          }, fundRefreshQueueContext_(), 'fund:' + source.key);
-          if (source.key === 'fund_transactions') {
-            var downstream = enqueueManualReportRefresh_({
-              months: state.months,
-              full: !state.months.length,
-              delayMs: FUND_TO_TRANSPORT_DELAY_MS,
-              verificationPasses: 1,
-              source: 'poll:fund-downstream'
-            });
-            if (downstream && downstream.deferred) queued = downstream;
+        var previous = SourceFingerprintService.parse(props.getProperty(propertyKey));
+        var changeSet = SourceFingerprintService.diff(previous, state);
+        if (changeSet.changed) {
+          changed.push({ key: source.key, months: changeSet.months, lastRow: state.lastRow, full: changeSet.full });
+          var queued = null;
+          if (source.kind === 'transport') {
+            queued = enqueueManualReportRefresh_({ months: changeSet.months, full: changeSet.full || !changeSet.months.length, sheets: isManageSheetName_(source.sheetName) ? [source.sheetName] : [], source: 'poll:' + source.key });
+          } else {
+            queued = enqueueRefreshWithFallback_({
+              months: changeSet.months,
+              full: changeSet.full || !changeSet.months.length,
+              source: 'poll:' + source.key
+            }, fundRefreshQueueContext_(), 'fund:' + source.key);
+            if (source.key === 'fund_transactions') {
+              var downstream = enqueueManualReportRefresh_({
+                months: changeSet.months,
+                full: changeSet.full || !changeSet.months.length,
+                delayMs: FUND_TO_TRANSPORT_DELAY_MS,
+                verificationPasses: 1,
+                source: 'poll:fund-downstream'
+              });
+              if (downstream && downstream.deferred) queued = downstream;
+            }
           }
+          if (queued && queued.deferred) throw new Error(queued.error || 'Refresh queue was deferred.');
+          props.setProperty(propertyKey, SourceFingerprintService.serialize(state));
         }
-        if (queued && queued.deferred) throw new Error(queued.error || 'Refresh queue was deferred.');
-        props.setProperty(propertyKey, state.fingerprint);
+        props.setProperty(SOURCE_POLL_CURSOR_PROP, String(cursor + 1));
       } catch (err) {
         props.setProperty(SOURCE_POLL_NEXT_AT_PROP, String(nowMillis + SOURCE_POLL_RETRY_MS));
-        console.log('source_poll_failed:' + source.key + ': ' + (err && err.message ? err.message : err));
+        console.log('source_poll_failed:' + source.key);
+        return { checked: true, ok: false, continuing: true, changed: changed, source: source.key };
       }
-    });
-    try {
-      var reportOutputChanges = enqueueDetectedReportOutputChanges_(props);
-      if (reportOutputChanges.changed) changed.push(reportOutputChanges);
-    } catch (err) {
-      props.setProperty(SOURCE_POLL_NEXT_AT_PROP, String(nowMillis + SOURCE_POLL_RETRY_MS));
-      console.log('source_poll_failed:report_outputs: ' + (err && err.message ? err.message : err));
     }
+    props.deleteProperty(SOURCE_POLL_CURSOR_PROP);
+    props.setProperty(SOURCE_POLL_NEXT_AT_PROP, String(new Date().getTime() + SOURCE_POLL_INTERVAL_MS));
     return { checked: true, changed: changed };
+  }
+
+  function enqueueDetectedReportOutputChangesIfDue_(props, nowMillis) {
+    var nextAt = Number(props.getProperty(REPORT_OUTPUT_POLL_NEXT_AT_PROP) || 0);
+    if (nextAt > nowMillis) return { checked: false };
+    props.setProperty(REPORT_OUTPUT_POLL_NEXT_AT_PROP, String(nowMillis + REPORT_OUTPUT_POLL_INTERVAL_MS));
+    try {
+      var result = enqueueDetectedReportOutputChanges_(props);
+      result.checked = true;
+      return result;
+    } catch (err) {
+      props.setProperty(REPORT_OUTPUT_POLL_NEXT_AT_PROP, String(nowMillis + SOURCE_POLL_RETRY_MS));
+      console.log('source_poll_failed:report_outputs: ' + (err && err.message ? err.message : err));
+      return { checked: true, changed: false, error: err && err.message ? err.message : String(err) };
+    }
   }
 
   function enqueueDetectedReportOutputChanges_(props) {
@@ -357,15 +506,19 @@ var SupabaseService = (function () {
   }
 
   function readReportOutputState_() {
+    var started = new Date().getTime();
+    console.log('report_output_read_start');
     var ss = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
     var tables = ReportTableService.readFreshnessTables(ss);
-    return ReportOutputFreshnessService.buildState(tables, {
+    var state = ReportOutputFreshnessService.buildState(tables, {
       resolveMonthKey: function (value) {
         var date = parseDateValue_(value);
         return date ? Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM') : normalizeYearMonthKey_(value);
       },
       hash: sha256Hex_
     });
+    console.log('report_output_read_done:' + (new Date().getTime() - started) + 'ms');
+    return state;
   }
 
   function sha256Hex_(value) {
@@ -375,34 +528,74 @@ var SupabaseService = (function () {
     }).join('');
   }
 
-  function readSourceTailState_(source) {
+  function readSourceFingerprintState_(source) {
+    var started = new Date().getTime();
+    console.log('source_fingerprint_start:' + source.key);
     var sheet = SpreadsheetApp.openById(source.spreadsheetId).getSheetByName(source.sheetName);
     if (!sheet) throw new Error('Không tìm thấy sheet ' + source.sheetName + '.');
     var lastRow = Math.max(1, Number(sheet.getLastRow() || 1));
-    var startRow = Math.max(2, lastRow - 24);
-    var numRows = lastRow >= 2 ? lastRow - startRow + 1 : 0;
-    var values = numRows ? sheet.getRange(startRow, 1, numRows, source.width).getValues() : [];
-    var months = {};
-    values.forEach(function (row) {
-      var date = parseDateValue_(row && row[1]);
-      if (date) months[Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM')] = true;
+    var numRows = Math.max(0, lastRow - 1);
+    var values = numRows ? sheet.getRange(2, 1, numRows, source.width || sheet.getLastColumn()).getValues() : [];
+    var state = SourceFingerprintService.build(values, {
+      resolveMonthKey: function (value) {
+        var date = parseDateValue_(value);
+        return date ? Utilities.formatDate(date, APP_CONFIG.timezone, 'yyyy-MM') : '';
+      },
+      hash: sha256Hex_,
+      versionTag: source.transformVersion || ''
     });
-    var digest = Utilities.computeDigest(
-      Utilities.DigestAlgorithm.SHA_256,
-      JSON.stringify({ lastRow: lastRow, values: values })
-    );
-    var fingerprint = digest.map(function (value) {
-      var byte = value < 0 ? value + 256 : value;
-      return ('0' + byte.toString(16)).slice(-2);
-    }).join('');
-    return { fingerprint: fingerprint, lastRow: lastRow, months: Object.keys(months).sort().reverse() };
+    state.lastRow = lastRow;
+    console.log('source_fingerprint_done:' + source.key + ':' + (new Date().getTime() - started) + 'ms:rows=' + numRows);
+    return state;
   }
 
-  function claimRealtimeSweep_(props, nowMillis) {
+  function enqueueSafetySweepIfDue_(props, nowMillis) {
     var nextAt = Number(props.getProperty(REALTIME_SWEEP_NEXT_AT_PROP) || 0);
-    if (nextAt > nowMillis) return false;
+    if (nextAt > nowMillis) return { queued: false };
+    var transport = enqueueManualReportRefresh_({ full: true, sheets: MANAGE_SHEET_NAMES,
+      catalogs: TRANSPORT_CATALOG_SHEET_NAMES.map(function (sheet) { return sheet === 'DM_ThamSo' ? 'DM_ThamSo_TS' : sheet; }),
+      verificationPasses: 1, source: 'safety:transport' });
+    if (transport.deferred) throw new Error(transport.error || 'Safety transport enqueue failed.');
+    var fund = enqueueRefreshWithFallback_({ full: true, source: 'safety:fund' }, fundRefreshQueueContext_(), 'fund');
+    if (fund.deferred) throw new Error(fund.error || 'Safety fund enqueue failed.');
+    // A completed enqueue covers every scope; there is no 14-hour index cycle.
     props.setProperty(REALTIME_SWEEP_NEXT_AT_PROP, String(nowMillis + REALTIME_SWEEP_INTERVAL_MS));
-    return true;
+    return { queued: true };
+  }
+
+  function sheetSignalContext_(props) {
+    return { getProperty: function (key) { return props.getProperty(key); },
+      setProperty: function (key, value) { props.setProperty(key, value); },
+      nowMillis: function () { return new Date().getTime(); }, createUuid: function () { return Utilities.getUuid(); } };
+  }
+
+  function drainSheetChangeSignals_(props) {
+    ['transport', 'fund'].forEach(function (module) {
+      if (!props.getProperty('SUPABASE_SHEET_SIGNAL_' + module.toUpperCase())) return;
+      var context = sheetSignalContext_(props);
+      context.enqueue = function (signal) {
+        if (module === 'transport') return enqueueManualReportRefresh_({ full: true, sheets: MANAGE_SHEET_NAMES,
+          catalogs: TRANSPORT_CATALOG_SHEET_NAMES.map(function (sheet) { return sheet === 'DM_ThamSo' ? 'DM_ThamSo_TS' : sheet; }),
+          verificationPasses: 1, source: 'signal:transport:' + signal.eventType });
+        var fund = enqueueRefreshWithFallback_({ full: true, source: 'signal:fund:' + signal.eventType }, fundRefreshQueueContext_(), 'fund');
+        if (fund.deferred) return fund;
+        var downstream = enqueueManualReportRefresh_({ full: true, delayMs: FUND_TO_TRANSPORT_DELAY_MS,
+          verificationPasses: 1, source: 'signal:fund-downstream' });
+        return downstream.deferred ? downstream : fund;
+      };
+      SheetChangeSignalService.drain(module, context);
+    });
+  }
+
+  function registerSheetTriggerBindings() {
+    var context = sheetSignalContext_(PropertiesService.getScriptProperties());
+    context.handlers = {
+      handleTransportSheetEdit: { spreadsheetId: APP_CONFIG.spreadsheetId, eventType: 'ON_EDIT' },
+      handleTransportSheetChange: { spreadsheetId: APP_CONFIG.spreadsheetId, eventType: 'ON_CHANGE' },
+      handleFundSheetEdit: { spreadsheetId: DEFAULT_FUND_SPREADSHEET_ID, eventType: 'ON_EDIT' },
+      handleFundSheetChange: { spreadsheetId: DEFAULT_FUND_SPREADSHEET_ID, eventType: 'ON_CHANGE' }
+    };
+    return SheetChangeSignalService.register(ScriptApp.getProjectTriggers(), context);
   }
 
   function writeRealtimeHeartbeatIfDue_(props, nowMillis, pendingTransport, pendingFund) {
@@ -422,9 +615,35 @@ var SupabaseService = (function () {
     return enqueueRefreshWithFallback_(options || {}, manualReportRefreshQueueContext_(), 'transport');
   }
 
+  function requestPayrollExplanationRefresh(month) {
+    var normalizedMonth = PayrollExplanationService.normalizeMonth(month);
+    if (!normalizedMonth) throw new Error('Tháng giải trình phải có dạng MM/YYYY.');
+    var parts = normalizedMonth.split('/');
+    var monthKey = parts[1] + '-' + parts[0];
+    var queued = enqueueManualReportRefresh_({
+      months: [monthKey],
+      full: false,
+      includeAll: false,
+      verificationPasses: 0,
+      source: 'payroll-explanation-stale'
+    });
+    if (!queued || queued.deferred || queued.queued === false) {
+      throw new Error((queued && queued.error) || 'Không thể đưa giải trình lương vào hàng đợi đồng bộ.');
+    }
+    return { ok: true, queued: true, reportMonth: normalizedMonth };
+  }
+
   function enqueueRefreshWithFallback_(options, context, queueName) {
     try {
-      return ManualReportRefreshQueueService.enqueue(options || {}, context);
+      var queued = ManualReportRefreshQueueService.enqueue(options || {}, context);
+      writeSyncStatus_(
+        'refresh_queue_deferred:' + clean_(queueName),
+        'system',
+        'ok',
+        'Refresh request queued successfully.',
+        new Date().toISOString()
+      );
+      return queued;
     } catch (err) {
       var message = err && err.message ? err.message : String(err);
       PropertiesService.getScriptProperties().setProperty(SOURCE_POLL_NEXT_AT_PROP, '0');
@@ -466,134 +685,198 @@ var SupabaseService = (function () {
     return result;
   }
 
-  function runPendingTransportReportSync_(pending) {
+  function runPendingTransportReportSync_(pending, budgetMs, deadlineMillis) {
     return withInternalReportRefreshGuard_(function () {
-      return runPendingTransportReportSyncUnguarded_(pending);
+      return runPendingTransportReportSyncUnguarded_(pending, budgetMs, deadlineMillis);
     });
   }
 
-  function runPendingTransportReportSyncUnguarded_(pending) {
-    var results = [];
-    var errors = [];
+  function runPendingTransportReportSyncUnguarded_(pending, budgetMs, deadlineMillis) {
     var context = manualReportRefreshQueueContext_();
-    runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
     var polledTransport = (pending.sources || []).some(function (source) { return source === 'poll:transport'; });
-    if (polledTransport) {
-      runSyncStep_(results, errors, 'manageData:NL_VanChuyen', function () {
-        return syncManageDataBundle('NL_VanChuyen');
-      });
-      (pending.months || []).forEach(function (monthKey) {
-        runSyncStep_(results, errors, 'manageData:NL_VanChuyen:' + monthKey, function () {
-          return syncManageMonthBundle('NL_VanChuyen', monthKey);
-        });
-      });
+    if (polledTransport && !Array.isArray(pending.tasks)) {
+      pending.sheets = (pending.sheets || []).concat(['NL_VanChuyen']);
     }
-    if (pending.full === true) {
-      try {
-        var fullResult = syncAllReportBundles();
-        results.push({ name: 'reports:full', result: fullResult });
-        if (!fullResult || fullResult.ok === false) {
-          errors.push({ name: 'reports:full', error: JSON.stringify((fullResult && fullResult.errors) || ['Full report sync failed.']) });
-        }
-      } catch (err) {
-        errors.push({ name: 'reports:full', error: err && err.message ? err.message : String(err) });
-      }
-    } else {
-      (pending.months || []).forEach(function (monthKey) {
-        runSyncStep_(results, errors, 'report:' + monthKey, function () {
-          return syncReportBundle(formatMonthKeyForReport_(monthKey));
+    var workerContext = {
+      nowMillis: context.nowMillis,
+      planVersion: 3,
+      currentMonth: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'yyyy-MM'),
+      maxStages: 30,
+      turnBudgetMs: budgetMs || 45000,
+      deadlineMillis: deadlineMillis,
+      claimNext: function () { return ManualReportRefreshQueueService.claimDue(context); },
+      saveProgress: function (item, delay) { return ManualReportRefreshQueueService.saveProgress(item, context, delay); },
+      acknowledge: function (item) { return ManualReportRefreshQueueService.acknowledge(item, context); },
+      requeue: function (item) { return ManualReportRefreshQueueService.requeue(item, context); },
+      enqueueVerification: function (item) {
+        var queued = enqueueManualReportRefresh_({
+          full: item.full === true, includeAll: item.includeAll !== false,
+          months: item.months || [], delayMs: TRANSPORT_REPORT_VERIFICATION_DELAY_MS,
+          verificationPasses: Number(item.verificationPasses || 0) - 1,
+          source: 'verification:report-formulas'
         });
-      });
-      if (pending.includeAll !== false) {
-        runSyncStep_(results, errors, 'report:Tất cả', function () {
-          return syncReportBundle('Tất cả');
-        });
-      }
-    }
-
-    var syncedAt = new Date().toISOString();
-    var retry = null;
-    if (errors.length) {
-      retry = ManualReportRefreshQueueService.requeue(pending, context);
-    } else if (Number(pending.verificationPasses || 0) > 0) {
-      retry = enqueueManualReportRefresh_({
-        full: pending.full === true,
-        includeAll: pending.includeAll !== false,
-        months: pending.months || [],
-        delayMs: TRANSPORT_REPORT_VERIFICATION_DELAY_MS,
-        verificationPasses: Number(pending.verificationPasses || 0) - 1,
-        source: 'verification:report-formulas'
-      });
-    }
-    writeSyncStatus_(
-      'transport_reports_manual_sheet',
-      'transport',
-      errors.length ? 'error' : 'ok',
-      errors.length ? JSON.stringify(errors) : 'Manual Sheet report cache synced.',
-      syncedAt
-    );
-    return {
-      ok: errors.length === 0,
-      mode: 'tick',
-      step: 'transportReportsPending',
-      full: pending.full === true,
-      months: (pending.months || []).slice(),
-      synced: results.length,
-      failed: errors.length,
-      results: results,
-      errors: errors,
-      retry: retry
+        if (queued.deferred) throw new Error(queued.error || 'Verification refresh was deferred.');
+      },
+      manageMonths: function (sheet) { return ManageSyncService.getManageRefreshMonthKeys(sheet, manageSyncContext_()); },
+      reportMonths: function () { return getReportMonths_().map(normalizeYearMonthKey_).filter(Boolean); },
+      syncManage: syncManageDataBundle,
+      syncManageMonth: syncManageMonthBundle,
+      catalogForms: (pending.catalogs || []).length ? StartupCatalogSyncService.getCatalogFormTypes() : [],
+      syncCatalog: syncCatalogDataBundle,
+      syncCatalogOptions: syncCatalogsBundle,
+      syncStartup: function () { return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE); },
+      syncDashboard: syncDashboard,
+      syncReport: function (month) { return syncReportBundle(month === 'Tất cả' ? 'Tất cả' : formatMonthKeyForReport_(month)); },
+      writeStatus: function (status, message) { writeSyncStatus_('transport_reports_manual_sheet', 'transport', status, message, new Date().toISOString()); },
+      log: function (message) { console.log(message); }
     };
+    if (TransportSourceProbeService.eligible(pending) || pending.inputHashes) {
+      var probeReader = TransportSourceProbeService.createReader({
+        openSpreadsheet: function () { return SpreadsheetApp.openById(APP_CONFIG.spreadsheetId); },
+        nowMillis: context.nowMillis,
+        log: workerContext.log,
+        hash: sha256Hex_,
+        monthKeys: function (sheet, values, display) {
+          return MANAGE_SHEET_NAMES.indexOf(sheet) >= 0
+            ? ManageSyncService.getManageMonthKeysFromSnapshot(sheet, values, display, manageSyncContext_()) : [];
+        }
+      });
+      workerContext.buildTasks = function (item) {
+        var sources = MANAGE_SHEET_NAMES.map(function (sheet) { return { sheet: sheet, kind: 'manage' }; })
+          .concat(TRANSPORT_CATALOG_SHEET_NAMES.map(function (sheet) {
+            return { sheet: sheet, kind: 'catalog', display: sheet === 'DM_ThamSo' ? 'DM_ThamSo_TS' : sheet };
+          }))
+          .concat([{ sheet: 'DM_LichSuNhanSu', kind: 'report' }, { sheet: 'SYS_AggThuongTuyen', kind: 'report' }]);
+        return TransportSourceProbeService.tasks(item, sources);
+      };
+      workerContext.runTask = function (task, item) {
+        return TransportSourceProbeService.run(task, item, {
+          getProperty: context.getProperty, setProperty: context.setProperty,
+          measure: probeReader.measure,
+          currentMonth: workerContext.currentMonth,
+          commit: function (fn) { return ManualReportRefreshQueueService.withOwnedLease(item, context, fn); },
+          cachePresent: function (task) {
+            if (task[2] === 'catalog') {
+              return SupabaseBundleRepository.readRows('catalog_bundles', {
+                select: 'catalog_key', catalog_key: 'eq.catalog_data:' + task[3], limit: 1
+              }).length === 1;
+            }
+            if (task[2] !== 'manage') return true;
+            var expected = ['recent_500'].concat(probeReader.monthKeys(task[1]).map(function (month) { return 'month:' + month; }));
+            var found = []; var rows; var offset = 0;
+            do {
+              rows = SupabaseBundleRepository.readRows('manage_data_bundles', {
+                select: 'filter_key', sheet_name: 'eq.' + task[1], order: 'filter_key.asc', limit: 100, offset: offset
+              });
+              if (!Array.isArray(rows)) throw new Error('Invalid manage cache index.');
+              found = found.concat(rows.map(function (row) { return row.filter_key; }));
+              offset += rows.length;
+            } while (rows.length === 100);
+            return expected.every(function (key) { return found.indexOf(key) >= 0; });
+          },
+          safetyCatalogTasks: function () { return workerContext.catalogForms.map(function (form) { return ['catalogOptions', form]; }).concat([['startup']]); },
+          readHash: probeReader.readHash,
+          buildCacheTasks: function (scope) { return TransportRefreshWorker.buildCacheTasks(scope, workerContext); }
+        });
+      };
+    }
+    return TransportRefreshWorker.run(pending, workerContext);
   }
 
-  function runPendingFundSync_(pending) {
-    var results = [];
-    var errors = [];
+  function runPendingFundSync_(pending, budgetMs, deadlineMillis) {
     var context = fundRefreshQueueContext_();
-    if (pending.full === true) {
-      try {
-        var fullResult = syncAllFundBundles(DEFAULT_FUND_YEAR);
-        results.push({ name: 'fund:full', result: fullResult });
-        if (!fullResult || fullResult.ok === false) {
-          errors.push({ name: 'fund:full', error: JSON.stringify((fullResult && fullResult.errors) || ['Full fund sync failed.']) });
-        }
-      } catch (err) {
-        errors.push({ name: 'fund:full', error: err && err.message ? err.message : String(err) });
-      }
-    } else {
-      try {
-        var result = syncFundAfterWrite(DEFAULT_FUND_YEAR, { months: pending.months || [] });
-        results.push({ name: 'fund:months', result: result });
-        if (!result || result.ok === false) {
-          errors.push({ name: 'fund:months', error: JSON.stringify((result && result.errors) || ['Fund month sync failed.']) });
-        }
-      } catch (err) {
-        errors.push({ name: 'fund:months', error: err && err.message ? err.message : String(err) });
-      }
-    }
-
-    var syncedAt = new Date().toISOString();
-    var retry = null;
-    if (errors.length) retry = ManualReportRefreshQueueService.requeue(pending, context);
-    writeSyncStatus_(
-      'fund_manual_sheet',
-      'fund',
-      errors.length ? 'error' : 'ok',
-      errors.length ? JSON.stringify(errors) : 'Manual Fund Sheet cache synced.',
-      syncedAt
-    );
-    return {
-      ok: errors.length === 0,
-      mode: 'tick',
-      step: 'fundPending',
-      full: pending.full === true,
-      months: (pending.months || []).slice(),
-      synced: results.length,
-      failed: errors.length,
-      results: results,
-      errors: errors,
-      retry: retry
+    var year = DEFAULT_FUND_YEAR;
+    var props = PropertiesService.getScriptProperties();
+    var captureContext = {
+      uuid: function () { return Utilities.getUuid(); }, hash: sha256Hex_, cache: CacheService.getScriptCache(),
+      stamp: function () { return (props.getProperty('SUPABASE_SHEET_SIGNAL_FUND') || '') + '|' + (props.getProperty('FUND_DATA_VERSION_V1') || ''); },
+      read: function (part, startRow, limit) { return FundService.readOverviewSourcePage(year, part, startRow, limit); }
     };
+    var transactionCaptureContext = {
+      uuid: captureContext.uuid, hash: sha256Hex_, cache: captureContext.cache, stamp: captureContext.stamp,
+      readPage: function (row) { return FundService.readTransactionSourcePage(year, row); },
+      begin: function (month) { return FundService.beginTransactionCapture(year, { month: month, limit: month ? 1000 : 500 }); },
+      append: function (state, page, month) { return FundService.appendTransactionCapture(state, page, { month: month }); },
+      finish: function (state) { return FundTransactionService.finishCapture(state); },
+      publish: function (month, payload) { return FundSyncService.syncFundTransactions(year, { month: month, limit: month ? 1000 : 500 }, fundSyncContext_(null, payload)); },
+      log: function (message) { console.log(message); }
+    };
+    function monthTasks(months) {
+      var tasks = [];
+      months.forEach(function (month) {
+        tasks.push(['fundOverview', month], ['fundTransactions', month], ['fundLoans', month]);
+      });
+      return tasks;
+    }
+    return TransportRefreshWorker.run(pending, {
+      step: 'fundPending', planVersion: 3, nowMillis: context.nowMillis, maxStages: 30, turnBudgetMs: budgetMs || 45000, deadlineMillis: deadlineMillis,
+      claimNext: function () { return ManualReportRefreshQueueService.claimDue(context); },
+      saveProgress: function (item, delay) { return ManualReportRefreshQueueService.saveProgress(item, context, delay); },
+      acknowledge: function (item) { return ManualReportRefreshQueueService.acknowledge(item, context); },
+      requeue: function (item) { return ManualReportRefreshQueueService.requeue(item, context); },
+      buildTasks: function (item) {
+        var priorityMonths = (item.priorityMonths || item.months || []).map(normalizeYearMonthKey_).filter(Boolean);
+        var currentMonth = Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'yyyy-MM');
+        if (priorityMonths.indexOf(currentMonth) < 0) priorityMonths.push(currentMonth);
+        item.priorityMonths = priorityMonths.sort().reverse();
+        // Publish the lists the browser reads before paged overview capture.
+        var tasks = [['fundTransactions', ''], ['fundLoans', '']];
+        priorityMonths.forEach(function (month) { tasks.push(['fundTransactions', month], ['fundLoans', month]); });
+        tasks.push(FundOverviewSnapshotService.start(item, captureContext), ['fundOverview', '']);
+        priorityMonths.forEach(function (month) { tasks.push(['fundOverview', month]); });
+        tasks.push(['background']);
+        if (item.full === true) {
+          tasks.push(['fundDiscover']);
+          tasks.push(['fundOptions']);
+          ['incomeCategories', 'expenseCategories', 'actors', 'partners', 'loanPartners'].forEach(function (group) {
+            tasks.push(['fundCatalog', group]);
+          });
+        } else {
+          var months = (item.months || []).map(normalizeYearMonthKey_).filter(Boolean);
+          if (!months.length) throw new Error('Fund refresh has no valid month scope.');
+          tasks = tasks.concat(monthTasks(months.filter(function (month) { return priorityMonths.indexOf(month) < 0; })));
+        }
+        return tasks;
+      },
+      runTask: function (task, item) {
+        var result;
+        var added = [];
+        if (task[0] === 'background') { item.background = true; return { result: { ok: true } }; }
+        if (task[0] === 'fundCapture') return FundOverviewSnapshotService.run(task, item, captureContext);
+        if (/^fundTransactions(?:Scan|Publish)?$/.test(task[0])) return FundTransactionSnapshotService.run(task, item, transactionCaptureContext);
+        var snapshot;
+        if (task[0] === 'fundOverview' || task[0] === 'fundDiscover') {
+          snapshot = FundOverviewSnapshotService.load(item, captureContext);
+          if (!snapshot) return { result: { ok: true }, added: [FundOverviewSnapshotService.start(item, captureContext), task] };
+        }
+        if (task[0] === 'fundOverview') result = FundSyncService.syncFundOverview(year, task[1], fundSyncContext_(snapshot));
+        else if (task[0] === 'fundLoans') result = syncFundLoanOverview(year, task[1]);
+        else if (task[0] === 'fundOptions') result = syncFundFormOptionsBundle(year);
+        else if (task[0] === 'fundCatalog') result = syncFundCatalogBundle(year, task[1]);
+        else if (task[0] === 'fundDiscover') {
+          // Read the source directly: the legacy month helper swallows read errors.
+          var overview = FundService.getFundOverviewFromSnapshot({ month: '' }, snapshot);
+          if (!overview || overview.ok === false || !Array.isArray(overview.months)) throw new Error('Fund month discovery failed.');
+          var seen = {};
+          overview.months.forEach(function (month) {
+            var key = normalizeYearMonthKey_(month && month.key);
+            if (key) seen[key] = true;
+          });
+          item.months = Object.keys(seen).concat(item.months || []).filter(function (month, index, all) { return all.indexOf(month) === index; }).sort().reverse();
+          if (!item.months.length) throw new Error('Fund month discovery returned no months.');
+          added = monthTasks(item.months.filter(function (month) { return (item.priorityMonths || []).indexOf(month) < 0; }));
+          result = { ok: true };
+        } else throw new Error('Unknown Fund refresh stage: ' + task[0]);
+        return { result: result, added: added };
+      },
+      enqueueVerification: function (item) {
+        ManualReportRefreshQueueService.enqueue({ full: item.full === true, months: item.months || [],
+          delayMs: TRANSPORT_REPORT_VERIFICATION_DELAY_MS, verificationPasses: Number(item.verificationPasses || 0) - 1,
+          source: 'verification:fund-cache' }, context);
+      },
+      writeStatus: function (status, message) { writeSyncStatus_('fund_manual_sheet', 'fund', status, message, new Date().toISOString()); },
+      log: function (message) { console.log(message); }
+    });
   }
 
   function syncTransportAfterWrite(sheetName, rows, options) {
@@ -641,43 +924,32 @@ var SupabaseService = (function () {
 
   function syncTransportSheetChange(eventType, sheetName, editedRange) {
     var safeSheetName = clean_(sheetName);
-    var result = ManageSyncService.syncTransportSheetChange(eventType, sheetName, editedRange, manageSyncContext_());
-    if (TRANSPORT_CATALOG_SHEET_NAMES.indexOf(safeSheetName) !== -1) {
-      var displaySheetName = safeSheetName === 'DM_ThamSo' ? 'DM_ThamSo_TS' : safeSheetName;
-      result.catalogSync = syncCatalogAfterWrite(displaySheetName);
-      result.reportRefresh = enqueueManualReportRefresh_({
-        months: [],
-        full: true,
-        verificationPasses: 1,
-        source: 'catalog-sheet:' + safeSheetName + ':' + (clean_(eventType) || 'UNKNOWN')
-      });
-    } else if (!result.skipped) {
-      result.reportRefresh = enqueueManualReportRefresh_({
-        months: result.months || [],
-        full: isStructuralSheetChange_(eventType),
-        verificationPasses: 1,
-        source: 'sheet:' + clean_(sheetName) + ':' + (clean_(eventType) || 'UNKNOWN')
-      });
-    }
-    return result;
+    var catalog = TRANSPORT_CATALOG_SHEET_NAMES.indexOf(safeSheetName) !== -1;
+    var manage = isManageSheetName_(safeSheetName);
+    if (!catalog && !manage) return { ok: true, skipped: true, reason: 'Sheet is not a transport input sheet.' };
+    // No Sheet reads, cache rebuilds or network calls on the edit trigger.
+    var queued = ManualReportRefreshQueueService.enqueue({
+      sheets: manage ? [safeSheetName] : [],
+      catalogs: catalog ? [safeSheetName === 'DM_ThamSo' ? 'DM_ThamSo_TS' : safeSheetName] : [],
+      full: true,
+      includeAll: true, verificationPasses: 1,
+      source: 'sheet:' + safeSheetName + ':' + (clean_(eventType) || 'UNKNOWN')
+    }, manualReportRefreshQueueContext_());
+    return { ok: true, queued: true, sheetName: safeSheetName, reportRefresh: queued };
   }
 
   function handleTransportSheetEdit(e) {
-    activateFromSpreadsheetEvent_(e);
-    var range = e && e.range;
-    var sheet = range && range.getSheet ? range.getSheet() : null;
-    var sheetName = sheet && sheet.getName ? sheet.getName() : '';
-    return syncTransportSheetChange('EDIT', sheetName, range || null);
+    return SheetChangeSignalService.record(e, 'transport', 'handleTransportSheetEdit', APP_CONFIG.spreadsheetId,
+      sheetSignalContext_(PropertiesService.getScriptProperties()));
   }
 
   function handleTransportSheetChange(e) {
-    activateFromSpreadsheetEvent_(e);
-    var sheet = getEventActiveSheet_(e);
-    var sheetName = sheet && sheet.getName ? sheet.getName() : '';
-    if (!sheetName) {
-      return syncUnknownTransportSheetChange_((e && e.changeType) || 'CHANGE');
+    var eventType = (e && e.changeType) || 'CHANGE';
+    if (isInternalReportSheetChangeEvent_(eventType) && isInternalReportRefreshRunning_()) {
+      return { ok: true, skipped: true, reason: 'Ignored internal report refresh sheet change.' };
     }
-    return syncTransportSheetChange((e && e.changeType) || 'CHANGE', sheetName, null);
+    return SheetChangeSignalService.record(e, 'transport', 'handleTransportSheetChange', APP_CONFIG.spreadsheetId,
+      sheetSignalContext_(PropertiesService.getScriptProperties()));
   }
 
   function syncFundSheetChange(eventType, sheetName, editedRange) {
@@ -713,16 +985,13 @@ var SupabaseService = (function () {
   }
 
   function handleFundSheetEdit(e) {
-    var range = e && e.range;
-    var sheet = range && range.getSheet ? range.getSheet() : null;
-    var sheetName = sheet && sheet.getName ? sheet.getName() : '';
-    return syncFundSheetChange('EDIT', sheetName, range || null);
+    return SheetChangeSignalService.record(e, 'fund', 'handleFundSheetEdit', DEFAULT_FUND_SPREADSHEET_ID,
+      sheetSignalContext_(PropertiesService.getScriptProperties()));
   }
 
   function handleFundSheetChange(e) {
-    var sheet = getEventActiveSheet_(e);
-    var sheetName = sheet && sheet.getName ? sheet.getName() : '';
-    return syncFundSheetChange((e && e.changeType) || 'CHANGE', sheetName, null);
+    return SheetChangeSignalService.record(e, 'fund', 'handleFundSheetChange', DEFAULT_FUND_SPREADSHEET_ID,
+      sheetSignalContext_(PropertiesService.getScriptProperties()));
   }
 
   function getFundEditedMonthKeys_(range) {
@@ -752,14 +1021,12 @@ var SupabaseService = (function () {
         reason: 'Ignored internal report refresh sheet change.'
       };
     }
-    var result = ManageSyncService.syncUnknownTransportSheetChange(eventType, manageSyncContext_());
-    if (!result.skipped) {
-      result.reportRefresh = enqueueManualReportRefresh_({
-        full: true,
-        source: 'sheet:unknown:' + (clean_(eventType) || 'CHANGE')
-      });
-    }
-    return result;
+    var queued = ManualReportRefreshQueueService.enqueue({
+      full: true, sheets: MANAGE_SHEET_NAMES, catalogs: TRANSPORT_CATALOG_SHEET_NAMES.map(function (sheet) { return sheet === 'DM_ThamSo' ? 'DM_ThamSo_TS' : sheet; }),
+      includeAll: true, verificationPasses: 1,
+      source: 'sheet:unknown:' + (clean_(eventType) || 'CHANGE')
+    }, manualReportRefreshQueueContext_());
+    return { ok: true, queued: true, reportRefresh: queued };
   }
 
   function isStructuralSheetChange_(eventType) {
@@ -830,15 +1097,35 @@ var SupabaseService = (function () {
   }
 
   function syncFundAfterWrite(year, options) {
-    return FundSyncService.syncFundAfterWrite(year, options, fundSyncContext_());
+    var input = options || {};
+    var result = FundSyncService.syncFundAfterWrite(year, input, fundSyncContext_());
+    if (input.transportDownstream === true) {
+      result.reportRefresh = enqueueTransportReportsAfterFundWrite_(year, input);
+    }
+    return result;
   }
 
   function syncFundTransactionsAfterWrite(year, transactions) {
-    return FundSyncService.syncFundTransactionsAfterWrite(year, transactions, fundSyncContext_());
+    var input = { transactions: transactions || [] };
+    var result = FundSyncService.syncFundTransactionsAfterWrite(year, transactions, fundSyncContext_());
+    result.reportRefresh = enqueueTransportReportsAfterFundWrite_(year, input);
+    return result;
+  }
+
+  function enqueueTransportReportsAfterFundWrite_(year, options) {
+    var monthKeys = FundSyncService.getFundWriteMonthKeys(year, options || {}, fundSyncContext_());
+    return enqueueManualReportRefresh_({
+      months: monthKeys,
+      full: !monthKeys.length,
+      delayMs: FUND_TO_TRANSPORT_DELAY_MS,
+      verificationPasses: 1,
+      source: 'fund-web-write:NHAP_THUCHI'
+    });
   }
 
   function isWriteJobEnabled_() {
-    return ASYNC_WRITE_ENABLED || ASYNC_TRANSPORT_WRITE_ENABLED || ASYNC_FUND_TRANSACTION_ADD_ENABLED;
+    if (readBooleanProperty_('WRITE_QUEUE_PAUSED', false)) return false;
+    return ASYNC_WRITE_ENABLED || ASYNC_TRANSPORT_WRITE_ENABLED || asyncFundTransactionAddEnabled_();
   }
 
   function isWriteJobAllowed_(moduleName, actionName) {
@@ -848,11 +1135,11 @@ var SupabaseService = (function () {
     if (ASYNC_TRANSPORT_WRITE_ENABLED && safeModule === 'transport') {
       return safeAction === 'submitRows' || safeAction === 'saveSheetRow' || safeAction === 'deleteSheetRow';
     }
-    return ASYNC_FUND_TRANSACTION_ADD_ENABLED && safeModule === 'fund' && safeAction === 'addFundTransactions';
+    return asyncFundTransactionAddEnabled_() && safeModule === 'fund' && safeAction === 'addFundTransactions';
   }
 
   function shouldQueueFundTransactions() {
-    return ASYNC_WRITE_ENABLED || ASYNC_FUND_TRANSACTION_ADD_ENABLED;
+    return ASYNC_WRITE_ENABLED || asyncFundTransactionAddEnabled_();
   }
 
   function enqueueWriteJob(moduleName, actionName, payload, idempotencyKey) {
@@ -1006,7 +1293,8 @@ var SupabaseService = (function () {
   }
 
   function getReportCacheAudit(months) {
-    var requestedMonths = CacheAuditService.normalizeReportMonths(months, REPORT_AUDIT_MONTHS);
+    var recentMonths = ReportSyncService.getRecentReportMonths(3, reportSyncContext_());
+    var requestedMonths = CacheAuditService.normalizeReportMonths(months, recentMonths.concat(['Tất cả']));
     var rows = SupabaseBundleRepository.readRows(TABLE_REPORT_BUNDLES, {
       spreadsheet_id: 'eq.' + APP_CONFIG.spreadsheetId,
       report_month: 'in.(' + requestedMonths.map(CacheAuditService.encodeSupabaseInValue).join(',') + ')',
@@ -1021,7 +1309,10 @@ var SupabaseService = (function () {
     var checkedAt = new Date().toISOString();
     var results = requestedMonths.map(function (month) {
       var cached = cachedByMonth[month];
-      var liveBundle = cached && cached.payload ? ReportService.getReportBundle(month, true) : null;
+      var liveBundle = cached && cached.payload ? ReportService.getReportBundle(month, true, {
+        skipInvalidation: true,
+        suppressSupabaseWrite: true
+      }) : null;
       return CacheAuditService.buildReportResult(month, cached, liveBundle);
     });
 
@@ -1051,7 +1342,7 @@ var SupabaseService = (function () {
     var checkedAt = new Date().toISOString();
     var results = requestedSheets.map(function (sheetName) {
       var cached = cachedBySheet[sheetName];
-      var livePayload = cached && cached.payload ? ManageService.readManageData(sheetName, '', '', auditLimit) : null;
+      var livePayload = cached && cached.payload ? ManageService.readManageData(sheetName, '', '', auditLimit, { forceRefresh: true }) : null;
       return CacheAuditService.buildManageResult(sheetName, auditLimit, cached, livePayload);
     });
 
@@ -1071,6 +1362,9 @@ var SupabaseService = (function () {
     var currentJob = WriteJobRepository.get(safeJobId);
     if (!currentJob) throw new Error('Không tìm thấy job: ' + safeJobId);
     if (isCanceledWriteJob_(currentJob)) throw new Error('Job đã bị hủy và không thể đưa lại vào hàng chờ.');
+    if (/^REQUIRES_RECONCILIATION:/.test(clean_(currentJob.lastError))) {
+      throw new Error('Lệnh có thể đã ghi Google Sheet; cần đối soát đúng mã lệnh trước khi mở lại retry.');
+    }
     if (clean_(currentJob.status).toLowerCase() !== 'failed') {
       throw new Error('Chỉ có thể retry job đang ở trạng thái failed.');
     }
@@ -1110,7 +1404,13 @@ var SupabaseService = (function () {
   }
 
   function processWriteJobs(maxJobs) {
-    return WriteJobWorker.process(maxJobs, writeJobWorkerContext_());
+    try { return WriteJobWorker.process(maxJobs, writeJobWorkerContext_()); }
+    catch (error) {
+      if (!isTransientGoogleError_(error)) throw error;
+      console.log('write_worker_admission_deferred:google_platform');
+      return { ok: false, deferred: true, processed: 0, phase: 'admission', category: 'google_platform',
+        error: 'Writer admission unavailable; no pause guard fallback.' };
+    }
   }
 
   function installWriteJobTrigger() {
@@ -1189,6 +1489,7 @@ var SupabaseService = (function () {
     });
     ScriptApp.newTrigger('handleTransportSheetEdit').forSpreadsheet(targetSpreadsheetId).onEdit().create();
     ScriptApp.newTrigger('handleTransportSheetChange').forSpreadsheet(targetSpreadsheetId).onChange().create();
+    registerSheetTriggerBindingsIfComplete_();
     return {
       ok: true,
       spreadsheetId: targetSpreadsheetId,
@@ -1216,6 +1517,7 @@ var SupabaseService = (function () {
     });
     ScriptApp.newTrigger('handleFundSheetEdit').forSpreadsheet(targetSpreadsheetId).onEdit().create();
     ScriptApp.newTrigger('handleFundSheetChange').forSpreadsheet(targetSpreadsheetId).onChange().create();
+    registerSheetTriggerBindingsIfComplete_();
     return {
       ok: true,
       spreadsheetId: targetSpreadsheetId,
@@ -1223,6 +1525,14 @@ var SupabaseService = (function () {
       removed: removed,
       handlers: Object.keys(handlers)
     };
+  }
+
+  function registerSheetTriggerBindingsIfComplete_() {
+    var names = ScriptApp.getProjectTriggers().map(function (trigger) { return trigger.getHandlerFunction(); });
+    if (['handleTransportSheetEdit', 'handleTransportSheetChange', 'handleFundSheetEdit', 'handleFundSheetChange'].every(function (handler) { return names.indexOf(handler) >= 0; })) {
+      return registerSheetTriggerBindings();
+    }
+    return { ok: true, incomplete: true };
   }
 
   function installE16RTriggers() {
@@ -1237,87 +1547,16 @@ var SupabaseService = (function () {
 
   function executeWriteJob_(job) {
     var actionName = clean_(job.action);
+    var payload = job.payload || {};
     if (TransportJobHandler.canHandle(actionName)) {
+      if (!payload.spreadsheetId) throw new Error('Job Vận tải thiếu workbook đã khóa khi enqueue.');
+      AppConfig.activate({ spreadsheetId: payload.spreadsheetId, year: payload.year });
       return TransportJobHandler.execute(job, transportJobHandlerContext_());
     }
     if (FundJobHandler.canHandle(job, clean_)) {
       return FundJobHandler.execute(job, fundJobHandlerContext_());
     }
     throw new Error('Write job action chưa được hỗ trợ: ' + actionName);
-  }
-
-  function buildRealtimeTickSteps_() {
-    var steps = [
-      { name: 'dashboard' },
-      { name: 'reportsRecent' },
-      { name: 'reportsAll' },
-      { name: 'fundRecent' },
-      { name: 'fundCatalogs' },
-      { name: 'startupCatalogs' }
-    ];
-    MANAGE_SHEET_NAMES.forEach(function (sheetName) {
-      steps.push({ name: 'manageRecent:' + sheetName, sheetName: sheetName });
-    });
-    return steps;
-  }
-
-  function runRealtimeTickStep_(step, results, errors) {
-    if (!step || !step.name) return;
-    if (step.name === 'dashboard') {
-      runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
-      return;
-    }
-    if (step.name === 'reportsRecent') {
-      getRecentReportMonths_(2).forEach(function (month) {
-        runSyncStep_(results, errors, 'report:' + month, function () {
-          return syncReportBundle(month);
-        });
-      });
-      return;
-    }
-    if (step.name === 'reportsAll') {
-      runSyncStep_(results, errors, 'report:Tất cả', function () {
-        return syncReportBundle('Tất cả');
-      });
-      return;
-    }
-    if (step.name === 'fundRecent') {
-      runSyncStep_(results, errors, 'fundOverviewLatest', function () { return syncFundOverview(DEFAULT_FUND_YEAR, ''); });
-      runSyncStep_(results, errors, 'fundTransactionsRecent', function () { return syncFundTransactions(DEFAULT_FUND_YEAR, { limit: 500 }); });
-      runSyncStep_(results, errors, 'fundLoansLatest', function () { return syncFundLoanOverview(DEFAULT_FUND_YEAR, ''); });
-      getRecentFundMonthKeys_(DEFAULT_FUND_YEAR, 2).forEach(function (monthKey) {
-        runSyncStep_(results, errors, 'fundOverview:' + monthKey, function () {
-          return syncFundOverview(DEFAULT_FUND_YEAR, monthKey);
-        });
-        runSyncStep_(results, errors, 'fundTransactions:' + monthKey, function () {
-          return syncFundTransactionMonth(DEFAULT_FUND_YEAR, monthKey);
-        });
-        runSyncStep_(results, errors, 'fundLoans:' + monthKey, function () {
-          return syncFundLoanOverview(DEFAULT_FUND_YEAR, monthKey);
-        });
-      });
-      return;
-    }
-    if (step.name === 'fundCatalogs') {
-      runSyncStep_(results, errors, 'fundCatalogs', function () {
-        return syncAllFundCatalogBundles(DEFAULT_FUND_YEAR);
-      });
-      return;
-    }
-    if (step.name === 'startupCatalogs') {
-      runSyncStep_(results, errors, 'startupCatalogs', function () { return syncAllStartupAndCatalogs(); });
-      return;
-    }
-    if (step.sheetName) {
-      runSyncStep_(results, errors, 'manageData:' + step.sheetName, function () {
-        return syncManageDataBundle(step.sheetName);
-      });
-      getRecentManageMonthKeys_(step.sheetName, 2).forEach(function (monthKey) {
-        runSyncStep_(results, errors, 'manageData:' + step.sheetName + ':' + monthKey, function () {
-          return syncManageMonthBundle(step.sheetName, monthKey);
-        });
-      });
-    }
   }
 
   function getRecentReportMonths_(maxCount) {
@@ -1370,9 +1609,9 @@ var SupabaseService = (function () {
     return {
       clean: clean_,
       nowISOString: function () { return new Date().toISOString(); },
-      getStartupData: function (formType) { return SheetService.getStartupData(formType); },
-      getCatalogs: function (formType) { return CatalogService.getCatalogs(formType); },
-      readCatalogData: function (displaySheetName) { return CatalogService.readCatalogData(displaySheetName); },
+      getStartupData: function (formType) { return SheetService.getStartupData(formType, true); },
+      getCatalogs: function (formType) { return CatalogService.getCatalogs(formType, true); },
+      readCatalogData: function (displaySheetName) { return CatalogService.readCatalogData(displaySheetName, true); },
       upsertRows: function (tableName, rows, onConflict) {
         return SupabaseBundleRepository.upsertRows(tableName, rows, onConflict);
       },
@@ -1393,6 +1632,7 @@ var SupabaseService = (function () {
       getReportDataVersion: function () { return ReportService.getReportDataVersion(); },
       getReportCacheVersion: function () { return ReportService.getReportCacheVersion(); },
       upsertReportBundle: function (options) { return SupabaseReportCacheRepository.upsertBundle(options); },
+      syncPayrollExplanations: syncPayrollExplanationMonth,
       getDashboard: function (month, forceRefresh) {
         return ReportService.getDashboard(month, forceRefresh);
       },
@@ -1411,6 +1651,24 @@ var SupabaseService = (function () {
     };
   }
 
+  function payrollExplanationSyncContext_() {
+    return {
+      spreadsheetId: APP_CONFIG.spreadsheetId,
+      nowISOString: function () { return new Date().toISOString(); },
+      getReportDataVersion: function () { return ReportService.getReportDataVersion(); },
+      getSpreadsheet: function () { return SpreadsheetApp.openById(APP_CONFIG.spreadsheetId); },
+      hashPayload: function (payload) { return SupabaseReportCacheRepository.hashDetails(payload); },
+      replaceMonth: function (spreadsheetId, reportMonth, rows) {
+        return callRpc_('replace_payroll_explanation_month_v6', {
+          p_spreadsheet_id: spreadsheetId,
+          p_report_month: reportMonth,
+          p_rows: rows || []
+        });
+      },
+      writeSyncStatus: writeSyncStatus_
+    };
+  }
+
   function manualReportRefreshQueueContext_() {
     var props = PropertiesService.getScriptProperties();
     return {
@@ -1422,16 +1680,27 @@ var SupabaseService = (function () {
       getProperty: function (key) { return props.getProperty(key); },
       setProperty: function (key, value) { props.setProperty(key, value); },
       deleteProperty: function (key) { props.deleteProperty(key); },
-      withLock: function (fn) {
-        var lock = LockService.getScriptLock();
-        lock.waitLock(REFRESH_QUEUE_LOCK_WAIT_MS);
-        try {
-          return fn();
-        } finally {
-          lock.releaseLock();
-        }
-      }
+      withLock: withRefreshQueueLock_
     };
+  }
+
+  function isTransientGoogleError_(error) {
+    return /server error occurred|error code INTERNAL|DEADLINE_EXCEEDED|reading from storage/i.test(String(error && error.message || error));
+  }
+
+  function withRefreshQueueLock_(fn) {
+    var lock = LockService.getScriptLock();
+    try {
+      if (!lock.tryLock(1000)) {
+        var busy = new Error('REFRESH_LOCK_DEFERRED: queue lock busy.');
+        busy.refreshDeferred = true;
+        throw busy;
+      }
+      try { return fn(); } finally { lock.releaseLock(); }
+    } catch (error) {
+      if (isTransientGoogleError_(error)) error.refreshDeferred = true;
+      throw error;
+    }
   }
 
   function fundRefreshQueueContext_() {
@@ -1456,7 +1725,10 @@ var SupabaseService = (function () {
         return ss.getSheetByName(sheetName);
       },
       readManageData: function (sheetName, startDate, endDate, limit) {
-        return ManageService.readManageData(sheetName, startDate, endDate, limit);
+        return ManageService.readManageData(sheetName, startDate, endDate, limit, { forceRefresh: true });
+      },
+      readCacheRows: function (tableName, query) {
+        return SupabaseBundleRepository.readRows(tableName, query);
       },
       upsertRows: function (tableName, rows, onConflict) {
         return SupabaseBundleRepository.upsertRows(tableName, rows, onConflict);
@@ -1470,14 +1742,17 @@ var SupabaseService = (function () {
     };
   }
 
-  function fundSyncContext_() {
+  function fundSyncContext_(snapshot, transactionPayload) {
     return {
       clean: clean_,
       nowISOString: function () { return new Date().toISOString(); },
       encodeSearch: function (value) { return Utilities.base64EncodeWebSafe(value).replace(/=+$/, ''); },
-      getFundOverview: function (year, filter) { return FundService.getFundOverview(year, filter); },
-      getFundTransactions: function (year, filter) { return FundService.getFundTransactions(year, filter); },
-      getFundLoanOverview: function (year, filter) { return FundService.getFundLoanOverview(year, filter); },
+      getFundOverview: function (year, filter) {
+        if (snapshot) return FundService.getFundOverviewFromSnapshot(filter, snapshot);
+        filter.forceRefresh = true; return FundService.getFundOverview(year, filter);
+      },
+      getFundTransactions: function (year, filter) { if (transactionPayload) return transactionPayload; filter.forceRefresh = true; return FundService.getFundTransactions(year, filter); },
+      getFundLoanOverview: function (year, filter) { filter.forceRefresh = true; return FundService.getFundLoanOverview(year, filter); },
       getFundFormOptions: function (year, forceRefresh) { return FundService.getFundFormOptions(year, forceRefresh); },
       getFundCatalog: function (year, group, forceRefresh) { return FundService.getFundCatalog(year, group, forceRefresh); },
       parseDateValue: parseDateValue_,
@@ -1495,6 +1770,9 @@ var SupabaseService = (function () {
       nowDate: function () { return new Date(); },
       nowISOString: function () { return new Date().toISOString(); },
       formatDate: function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); },
+      readRows: function (tableName, query) {
+        return SupabaseBundleRepository.readRows(tableName, query);
+      },
       upsertRows: function (tableName, rows, onConflict) {
         return SupabaseBundleRepository.upsertRows(tableName, rows, onConflict);
       },
@@ -1507,6 +1785,12 @@ var SupabaseService = (function () {
       isEnabled: isWriteJobEnabled_,
       createUuid: function () { return Utilities.getUuid(); },
       claimJobs: function (payload) { return callRpc_('claim_write_jobs', payload); },
+      deferredError: function (error) {
+        var deferred = SupabaseHttpClient.deferredResult(error);
+        if (deferred) return deferred;
+        return isTransientGoogleError_(error) ? { ok: false, deferred: true, category: 'google_platform',
+          error: 'Claim unavailable; preserve ownership and do not replay an unknown result.' } : null;
+      },
       executeJob: executeWriteJob_,
       repository: WriteJobRepository,
       releaseReservation: EntryService.releaseWriteJobReservation,
@@ -1538,10 +1822,25 @@ var SupabaseService = (function () {
 
   function fundJobHandlerContext_() {
     return {
+      assertWorkbook: function (year, expectedSpreadsheetId) {
+        var actualSpreadsheetId = FundService.resolveFundSpreadsheetId(year);
+        if (!expectedSpreadsheetId || clean_(expectedSpreadsheetId) !== clean_(actualSpreadsheetId)) {
+          throw new Error('Workbook Thu chi của job không còn khớp cấu hình đã khóa khi enqueue.');
+        }
+      },
       addFundTransactions: function (year, transactions, options) {
         return FundService.addFundTransactions(year, transactions, options);
       },
-      syncFundTransactionsAfterWrite: syncFundTransactionsAfterWrite
+      updateFundTransaction: FundService.updateFundTransaction,
+      deleteFundTransaction: FundService.deleteFundTransaction,
+      addFundDebtPayment: FundService.addFundDebtPayment,
+      addFundLoan: FundService.addFundLoan,
+      addFundLoanPayment: FundService.addFundLoanPayment,
+      saveFundCatalogItem: FundService.saveFundCatalogItem,
+      deleteFundCatalogItem: FundService.deleteFundCatalogItem,
+      updateFundSettings: FundService.updateFundSettings,
+      syncFundTransactionsAfterWrite: syncFundTransactionsAfterWrite,
+      syncFundAfterWrite: syncFundAfterWrite
     };
   }
 
@@ -1735,16 +2034,14 @@ var SupabaseService = (function () {
   }
 
   function readBooleanProperty_(propertyName, fallbackValue) {
-    try {
-      var value = PropertiesService.getScriptProperties().getProperty(propertyName);
-      if (value === null || value === undefined || value === '') return Boolean(fallbackValue);
-      return ['1', 'true', 'yes', 'on'].indexOf(String(value).trim().toLowerCase()) !== -1;
-    } catch (err) {
-      return Boolean(fallbackValue);
-    }
+    // Absence uses the configured default; a failed read must fail closed.
+    var value = PropertiesService.getScriptProperties().getProperty(propertyName);
+    if (value === null || value === undefined || value === '') return Boolean(fallbackValue);
+    return ['1', 'true', 'yes', 'on'].indexOf(String(value).trim().toLowerCase()) !== -1;
   }
 
   return {
+    registerSheetTriggerBindings: registerSheetTriggerBindings,
     installSupabaseSyncTriggers: installSupabaseSyncTriggers,
     syncDashboard: syncDashboard,
     syncFundAfterWrite: syncFundAfterWrite,
@@ -1762,6 +2059,7 @@ var SupabaseService = (function () {
     syncCatalogDataBundle: syncCatalogDataBundle,
     syncAllStartupAndCatalogs: syncAllStartupAndCatalogs,
     syncCatalogAfterWrite: syncCatalogAfterWrite,
+    syncCatalogWriteThrough: syncCatalogWriteThrough,
     syncManageDataBundle: syncManageDataBundle,
     syncManageMonthBundle: syncManageMonthBundle,
     syncAllManageDataBundles: syncAllManageDataBundles,
@@ -1769,6 +2067,7 @@ var SupabaseService = (function () {
     syncRealtimeCache: syncRealtimeCache,
     syncTripNotifications: syncTripNotifications,
     syncOperationalNotifications: syncOperationalNotifications,
+    syncDailyBusinessSummary: syncDailyBusinessSummary,
     dispatchNotifications: dispatchNotifications,
     getPendingTransportReportRefresh: getPendingTransportReportRefresh,
     getPendingFundRefresh: getPendingFundRefresh,
@@ -1778,6 +2077,8 @@ var SupabaseService = (function () {
     getManageCacheAudit: getManageCacheAudit,
     syncReportBundle: syncReportBundle,
     syncAllReportBundles: syncAllReportBundles,
+    syncPayrollExplanationMonth: syncPayrollExplanationMonth,
+    requestPayrollExplanationRefresh: requestPayrollExplanationRefresh,
     syncTransportAfterWrite: syncTransportAfterWrite,
     syncTransportReportsAfterWrite: syncTransportReportsAfterWrite,
     enqueueWriteJob: enqueueWriteJob,

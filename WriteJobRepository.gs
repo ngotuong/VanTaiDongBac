@@ -95,17 +95,23 @@ var WriteJobRepository = (function () {
     appendLog({ job_id: jobId, status: 'processing', message: 'Write job processing started.', details: details });
   }
 
-  function markSynced(jobId, result, syncedAt) {
+  function ownedProcessingFilter_(jobId, workerId) {
+    var filters = { id: 'eq.' + jobId, status: 'eq.processing' };
+    if (workerId) filters.worker_id = 'eq.' + workerId;
+    return filters;
+  }
+
+  function markSynced(jobId, result, syncedAt, workerId) {
     SupabaseHttpClient.updateRows(TABLE_WRITE_JOBS, {
       status: 'synced', result: result, synced_at: syncedAt, locked_at: null, last_error: ''
-    }, { id: 'eq.' + jobId });
+    }, ownedProcessingFilter_(jobId, workerId));
     appendLog({ job_id: jobId, status: 'synced', message: 'Write job synced to Google Sheet.', details: result });
   }
 
-  function markFailure(jobId, status, errorMessage, nextRunAt, details) {
+  function markFailure(jobId, status, errorMessage, nextRunAt, details, workerId) {
     SupabaseHttpClient.updateRows(TABLE_WRITE_JOBS, {
       status: status, last_error: errorMessage, locked_at: null, next_run_at: nextRunAt
-    }, { id: 'eq.' + jobId });
+    }, ownedProcessingFilter_(jobId, workerId));
     appendLog({ job_id: jobId, status: status, message: errorMessage, details: details });
   }
 

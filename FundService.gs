@@ -1,5 +1,5 @@
 var FundService = (function () {
-  var FUND_CACHE_VERSION = 'fund_v8';
+  var FUND_CACHE_VERSION = 'fund_v10';
   var FUND_TTL_SECONDS = 300;
   var FUND_CATALOG_TTL_SECONDS = 21600;
   var FUND_DATA_VERSION_PROP = 'FUND_DATA_VERSION_V1';
@@ -40,12 +40,25 @@ var FundService = (function () {
       ? formatDateKey_(explicitStart) + '_' + formatDateKey_(explicitEnd)
       : normalizeMonthKey_(safeFilter.month) || 'all';
     var overviewCacheKey = fundCacheKey_(year, 'overview', rangeKey);
-    var overviewCached = getFundCache_(overviewCacheKey);
+    var overviewCached = safeFilter.forceRefresh ? null : getFundCache_(overviewCacheKey);
     if (overviewCached) return overviewCached;
     var ss = getFundSpreadsheet_(year);
     var transactions = readFundTransactions_(ss);
     var loans = readLoanRows_(ss);
     var settings = readFundSettings_(ss);
+    var result = getFundOverviewFromSnapshot(safeFilter, { transactions: transactions, loans: loans, settings: settings });
+    putFundCache_(overviewCacheKey, result, FUND_TTL_SECONDS);
+    return result;
+  }
+
+  function getFundOverviewFromSnapshot(filter, snapshot) {
+    var safeFilter = filter || {};
+    var explicitStart = parseDate_(safeFilter.startDate, safeFilter.startDate);
+    var explicitEnd = parseDate_(safeFilter.endDate, safeFilter.endDate);
+    if (explicitEnd) explicitEnd.setHours(23, 59, 59, 999);
+    var transactions = snapshot.transactions;
+    var loans = snapshot.loans;
+    var settings = snapshot.settings;
     var months = buildMonths_(transactions.concat(loans));
     var monthKey = normalizeMonthKey_(safeFilter.month) || (!explicitStart && !explicitEnd && (months[0] && months[0].key)) || '';
     var period = explicitStart && explicitEnd ? { start: explicitStart, end: explicitEnd } : (monthKey ? monthPeriod_(monthKey) : null);
@@ -94,6 +107,7 @@ var FundService = (function () {
     loans.forEach(function (item) {
       if (!item.dateObj) return;
       if (settings.loanStartDate && item.dateObj < settings.loanStartDate) return;
+      if (item.nonFund === true) return;
       var isLoanIn = item.type === 'Vay';
       var isLoanOut = item.type === 'Trả nợ' || item.type === 'Trả lãi';
       if (period && item.dateObj < period.start) {
@@ -136,7 +150,6 @@ var FundService = (function () {
       incomeCategories: mapToRows_(incomeMap),
       expenseCategories: mapToRows_(expenseMap)
     };
-    putFundCache_(overviewCacheKey, result, FUND_TTL_SECONDS);
     return result;
   }
 
@@ -146,7 +159,7 @@ var FundService = (function () {
       ? clean_(safeFilter.startDate) + '_' + clean_(safeFilter.endDate)
       : normalizeMonthKey_(safeFilter.month) || 'all';
     var loanCacheKey = fundCacheKey_(year, 'loan_overview', rangeKey);
-    var loanCached = getFundCache_(loanCacheKey);
+    var loanCached = safeFilter.forceRefresh ? null : getFundCache_(loanCacheKey);
     if (loanCached) return loanCached;
     var result = FundLoanService.getOverview(filter || {}, fundLoanReadContext_(getFundSpreadsheet_(year)));
     putFundCache_(loanCacheKey, result, FUND_TTL_SECONDS);
@@ -159,7 +172,7 @@ var FundService = (function () {
       formatDate: function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); } };
   }
 
-  function addFundLoan(year, payload) {
+  function addFundLoan(year, payload, writeContext) {
     var ss = getFundSpreadsheet_(year);
     var sheet = ss.getSheetByName(LOAN_SHEET_NAME);
     if (!sheet) throw new Error('Không tìm thấy sheet khoản vay: ' + LOAN_SHEET_NAME);
@@ -167,6 +180,8 @@ var FundService = (function () {
     lock.waitLock(30000);
     try {
       var context = fundLoanWriteContext_(ss, sheet);
+      context.writeContext = writeContext || {};
+      context.writeIntent = payload || {};
       var result = FundLoanService.addLoan(payload, context);
       bumpFundDataVersion_();
       return result;
@@ -175,7 +190,7 @@ var FundService = (function () {
     }
   }
 
-  function addFundLoanPayment(year, payload) {
+  function addFundLoanPayment(year, payload, writeContext) {
     var ss = getFundSpreadsheet_(year);
     var sheet = ss.getSheetByName(LOAN_SHEET_NAME);
     if (!sheet) throw new Error('Không tìm thấy sheet khoản vay: ' + LOAN_SHEET_NAME);
@@ -183,7 +198,20 @@ var FundService = (function () {
     lock.waitLock(30000);
     try {
       var context = fundLoanWriteContext_(ss, sheet);
-      var result = FundLoanService.addPayment(payload, context);
+      context.writeContext = writeContext || {};
+      context.writeIntent = payload || {};
+      var replay = FundLoanService.findReplay(context);
+      if (replay) { bumpFundDataVersion_(); return replay; }
+      FundLoanService.buildPaymentRow(payload, context);
+      var snapshot = FundLoanService.readRows({ repository: FundLoanRepository, spreadsheet: ss, sheetName: LOAN_SHEET_NAME,
+        clean: clean_, parseDate: parseDate_, parseNumber: parseNumber_, normalizeHeader: normalizeHeader_,
+        formatDate: function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); } });
+      var verified = FundLoanService.assertPaymentAllowed(payload, snapshot, context);
+      var safePayload = {};
+      Object.keys(payload || {}).forEach(function (key) { safePayload[key] = payload[key]; });
+      safePayload.partner = verified.partner;
+      safePayload.nonFund = verified.nonFund;
+      var result = FundLoanService.addPayment(safePayload, context);
       bumpFundDataVersion_();
       return result;
     } finally {
@@ -192,7 +220,7 @@ var FundService = (function () {
   }
 
   function fundLoanWriteContext_(ss, sheet) {
-    return { repository: FundLoanRepository, sheet: sheet, sheetName: LOAN_SHEET_NAME, clean: clean_, parseDate: parseDate_, parseNumber: parseNumber_,
+    return { repository: FundLoanRepository, sheet: sheet, sheetName: LOAN_SHEET_NAME, clean: clean_, normalizeHeader: normalizeHeader_, parseDate: parseDate_, parseNumber: parseNumber_,
       buildVoucher: function (date) { return nextLoanVoucher_(ss, sheet, date); },
       appendOptions: { getAppendRow: getAppendRow_ } };
   }
@@ -201,16 +229,16 @@ var FundService = (function () {
     var optionsCacheKey = fundCacheKey_(year, 'form_options');
     var optionsCached = forceRefresh ? null : getFundCache_(optionsCacheKey);
     if (optionsCached) return optionsCached;
-    var ss = getFundSpreadsheet_(year);
-    var settings = readFundSettings_(ss);
-    var context = fundCatalogReadContext_(ss, ensureFundCatalogSheet_(ss));
-    context.fallbackIncome = function () { return getFallbackFundIncomeCategories_(ss, settings); };
-    context.fallbackExpense = function () { return getFallbackFundExpenseCategories_(ss); };
-    context.fallbackActors = function () { return getFallbackFundActors_(ss); };
-    context.fallbackPartners = function () { return getFallbackFundPartners_(ss); };
-    context.fallbackLoanPartners = function () { return getFallbackFundLoanPartners_(ss); };
-    var result = FundCatalogService.getFormOptions(context);
-    result.methods = readNamedRangeValues_(ss, 'HINHTHUC');
+    var ss = measureSourceRead_('formOptions', 'openWorkbook', function () { return getFundSpreadsheet_(year); });
+    var settings = measureSourceRead_('formOptions', 'settings', function () { return readFundSettings_(ss); });
+    var context = fundCatalogReadContext_(ss, measureSourceRead_('formOptions', 'catalogSheet', function () { return ensureFundCatalogSheet_(ss); }));
+    context.fallbackIncome = function () { return measureSourceRead_('formOptions', 'fallbackIncome', function () { return getFallbackFundIncomeCategories_(ss, settings); }); };
+    context.fallbackExpense = function () { return measureSourceRead_('formOptions', 'fallbackExpense', function () { return getFallbackFundExpenseCategories_(ss); }); };
+    context.fallbackActors = function () { return measureSourceRead_('formOptions', 'fallbackActors', function () { return getFallbackFundActors_(ss); }); };
+    context.fallbackPartners = function () { return measureSourceRead_('formOptions', 'fallbackPartners', function () { return getFallbackFundPartners_(ss); }); };
+    context.fallbackLoanPartners = function () { return measureSourceRead_('formOptions', 'fallbackLoanPartners', function () { return getFallbackFundLoanPartners_(ss); }); };
+    var result = measureSourceRead_('formOptions', 'catalogOptions', function () { return FundCatalogService.getFormOptions(context); });
+    result.methods = measureSourceRead_('formOptions', 'methods', function () { return readNamedRangeValues_(ss, 'HINHTHUC'); });
     result.settings = publicFundSettings_(settings);
     putFundCache_(optionsCacheKey, result, FUND_CATALOG_TTL_SECONDS);
     return result;
@@ -329,16 +357,38 @@ var FundService = (function () {
     var endFilter = parseDate_(options.endDate, options.endDate);
     var searchFilter = normalizeHeader_(options.search || options.query || '');
     var transactionsCacheKey = fundCacheKey_(year, 'transactions', selectedMonth || 'all', formatDateKey_(startFilter) || 'all', formatDateKey_(endFilter) || 'all', searchFilter || 'all', String(options.limit || ''));
-    var transactionsCached = getFundCache_(transactionsCacheKey);
+    var transactionsCached = options.forceRefresh ? null : getFundCache_(transactionsCacheKey);
     if (transactionsCached) return transactionsCached;
-    var result = FundTransactionService.getTransactions(year, options, {
-      repository: FundTransactionRepository, spreadsheet: getFundSpreadsheet_(year), sheetName: TRANSACTION_SHEET_NAME,
+    var context = transactionReadContext_();
+    context.spreadsheet = getFundSpreadsheet_(year);
+    var result = FundTransactionService.getTransactions(year, options, context);
+    putFundCache_(transactionsCacheKey, result, FUND_TTL_SECONDS);
+    return result;
+  }
+
+  function transactionReadContext_() {
+    return {
+      repository: FundTransactionRepository, sheetName: TRANSACTION_SHEET_NAME,
       headers: TRANSACTION_HEADERS, clean: clean_, normalizeMonth: normalizeMonthKey_, normalizeHeader: normalizeHeader_,
       parseDate: parseDate_, parseNumber: parseNumber_,
       formatDate: function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); }
+    };
+  }
+
+  function readTransactionSourcePage(year, startRow) {
+    var ss = measureSourceRead_('transactionPage', 'openWorkbook', function () { return getFundSpreadsheet_(year); });
+    return FundTransactionRepository.readSnapshot(ss, {
+      sheetName: TRANSACTION_SHEET_NAME, headers: TRANSACTION_HEADERS, normalizeHeader: normalizeHeader_, startRow: startRow, pageSize: 200,
+      measure: function (phase, work) { return measureSourceRead_('transactionPage', phase, work); }
     });
-    putFundCache_(transactionsCacheKey, result, FUND_TTL_SECONDS);
-    return result;
+  }
+
+  function beginTransactionCapture(year, filter) {
+    return FundTransactionService.beginCapture(year, filter, transactionReadContext_());
+  }
+
+  function appendTransactionCapture(state, page, filter) {
+    return FundTransactionService.appendCapture(state, page, filter, transactionReadContext_());
   }
 
   function addFundTransaction(year, payload) {
@@ -364,6 +414,35 @@ var FundService = (function () {
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
     try {
+      if (writeContext && writeContext.jobId) {
+        var intent = { transactions: safePayloads };
+        var journal = FundWriteIntentRepository.find(sheet, writeContext.jobId, intent);
+        if (journal && journal.state === 'complete') {
+          FundWriteIntentRepository.verifyRows(sheet, journal);
+          var replay = journal.result;
+          replay.idempotentReplay = true;
+          bumpFundDataVersion_();
+          return replay;
+        }
+        var durableContext = fundTransactionWriteContext_();
+        if (!journal) {
+          var vouchers = assignTransactionVouchers_(ss, sheet, safePayloads);
+          var durableRows = vouchers.map(function (item, index) { return FundTransactionService.buildRow(item, '', index, durableContext); });
+          journal = FundWriteIntentRepository.prepare(sheet, writeContext.jobId, intent, durableRows, { transaction: true }, getAppendRow_);
+        }
+        FundWriteIntentRepository.verifyRows(sheet, journal);
+        var range = FundTransactionRepository.appendRows(sheet, FundWriteIntentRepository.rows(journal), {
+          getAppendRow: getAppendRow_, reservedRow: journal.firstRow,
+          buildDebtFormula: buildDebtFormula_, buildFilterFormula: buildFilterFormula_,
+          flush: function () { SpreadsheetApp.flush(); }, warn: function (message, error) { console.warn(message, error); }
+        });
+        var durableResult = { ok: true, inserted: journal.rows.length, firstRow: range.firstRow, lastRow: range.lastRow,
+          spreadsheetId: ss.getId(), spreadsheetName: ss.getName(), sheetName: TRANSACTION_SHEET_NAME,
+          rows: journal.rows.map(function (row, index) { return { ok: true, rowIndex: journal.firstRow + index, voucher: row[0] }; }) };
+        FundWriteIntentRepository.complete(sheet, journal, durableResult);
+        bumpFundDataVersion_();
+        return durableResult;
+      }
       var preparedPayloads = assignTransactionVouchers_(ss, sheet, safePayloads);
       var context = fundTransactionWriteContext_();
       context.spreadsheet = ss;
@@ -394,6 +473,73 @@ var FundService = (function () {
     }
   }
 
+  function addFundDebtPayment(year, rowIndex, payload, clientRequestId) {
+    var rowNumber = parseInt(rowIndex, 10);
+    if (!(rowNumber > 1)) throw new Error('Số dòng công nợ không hợp lệ: ' + rowIndex);
+    var requestId = clean_(clientRequestId);
+    if (!requestId || requestId.length > 200 || !/^[A-Za-z0-9._:-]+$/.test(requestId)) {
+      throw new Error('clientRequestId thanh toán công nợ không hợp lệ.');
+    }
+    var ss = getFundSpreadsheet_(year);
+    var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
+    if (!sheet) throw new Error('Không tìm thấy sheet Thu chi: ' + TRANSACTION_SHEET_NAME);
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      var intent = { rowIndex: rowNumber, payment: payload || {} };
+      var journal = FundWriteIntentRepository.find(sheet, requestId, intent);
+      if (journal && journal.state === 'complete') {
+        FundWriteIntentRepository.verifyRows(sheet, journal);
+        var replay = journal.result;
+        replay.idempotentReplay = true;
+        bumpFundDataVersion_();
+        return replay;
+      }
+      var legacyMarker = PropertiesService.getScriptProperties().getProperty(debtPaymentRequestPropertyKey_(ss.getId(), requestId));
+      if (!journal && legacyMarker) throw new Error('REQUIRES_RECONCILIATION: Intent thanh toán cũ đã có marker; xác minh giao dịch đã ghi trước khi retry.');
+      if (rowNumber > sheet.getLastRow()) throw new Error('Không tìm thấy dòng công nợ: ' + rowNumber);
+      var lastColumn = Math.max(sheet.getLastColumn(), TRANSACTION_HEADERS.length);
+      var headers = sheet.getRange(1, 1, 1, lastColumn).getDisplayValues()[0];
+      var context = fundTransactionWriteContext_();
+      context.headers = headers;
+      context.sheet = sheet;
+      context.formatDate = function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); };
+      var sourceRow = FundTransactionRepository.readRow(sheet, rowNumber, lastColumn);
+      FundTransactionService.assertIdentity(sourceRow, (payload || {}).expectedTransaction, context);
+      if (!journal) {
+        var prepared = FundTransactionService.buildDebtPayment(sourceRow, payload || {}, context);
+        journal = FundWriteIntentRepository.prepare(sheet, requestId, intent, [prepared.row], {
+          transaction: true, sourceRowIndex: rowNumber, voucher: prepared.voucher,
+          paymentAmount: prepared.paymentAmount, expectedRemainingDebt: prepared.expectedRemainingDebt
+        }, getAppendRow_);
+      }
+      context.appendOptions = { getAppendRow: getAppendRow_, reservedRow: journal.firstRow,
+        buildDebtFormula: buildDebtFormula_, buildFilterFormula: buildFilterFormula_,
+        flush: function () { SpreadsheetApp.flush(); }, warn: function (message, error) { console.warn(message, error); } };
+      if (!FundWriteIntentRepository.verifyRows(sheet, journal)) {
+        FundTransactionRepository.appendRows(sheet, FundWriteIntentRepository.rows(journal), context.appendOptions);
+      }
+      SpreadsheetApp.flush();
+      var columns = FundTransactionRepository.getColumns(headers, normalizeHeader_);
+      var remainingValue = columns.remainingDebt >= 0 ? sheet.getRange(rowNumber, columns.remainingDebt + 1).getValue() : null;
+      var remainingAfter = typeof remainingValue === 'number' ? remainingValue : NaN;
+      if (!isFinite(remainingAfter) || Math.abs(remainingAfter - journal.meta.expectedRemainingDebt) > 0.5) {
+        throw new Error('REQUIRES_RECONCILIATION: Công nợ sau ghi không khớp; giữ marker/vùng ghi để đối soát, không append lại.');
+      }
+      var result = {
+        ok: true, rowIndex: journal.firstRow, sourceRowIndex: rowNumber,
+        voucher: journal.meta.voucher, paymentAmount: journal.meta.paymentAmount,
+        remainingDebt: remainingAfter, spreadsheetId: ss.getId(),
+        spreadsheetName: ss.getName(), sheetName: TRANSACTION_SHEET_NAME
+      };
+      FundWriteIntentRepository.complete(sheet, journal, result);
+      bumpFundDataVersion_();
+      return result;
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
   function fundTransactionWriteContext_() {
     return { repository: FundTransactionRepository, sheetName: TRANSACTION_SHEET_NAME, clean: clean_, parseDate: parseDate_,
       parseNumber: parseNumber_, normalizeHeader: normalizeHeader_, buildVoucherSeed: buildVoucherSeed_, buildVoucher: buildVoucher_, headers: TRANSACTION_HEADERS };
@@ -412,6 +558,7 @@ var FundService = (function () {
       var context = fundTransactionWriteContext_();
       context.sheet = sheet;
       context.writeOptions = { buildDebtFormula: buildDebtFormula_, buildFilterFormula: buildFilterFormula_, flush: function () { SpreadsheetApp.flush(); } };
+      context.formatDate = function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); };
       var result = FundTransactionService.updateTransaction(rowIndex, payload, context);
       bumpFundDataVersion_();
       return result;
@@ -420,7 +567,7 @@ var FundService = (function () {
     }
   }
 
-  function deleteFundTransaction(year, rowIndex) {
+  function deleteFundTransaction(year, rowIndex, expectedTransaction) {
     var ss = getFundSpreadsheet_(year);
     var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
     if (!sheet) {
@@ -432,8 +579,9 @@ var FundService = (function () {
     try {
       var context = fundTransactionWriteContext_();
       context.sheet = sheet;
+      context.formatDate = function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); };
       context.writeOptions = { flush: function () { SpreadsheetApp.flush(); } };
-      var result = FundTransactionService.deleteTransaction(rowIndex, context);
+      var result = FundTransactionService.deleteTransaction(rowIndex, expectedTransaction, context);
       bumpFundDataVersion_();
       return result;
     } finally {
@@ -441,16 +589,21 @@ var FundService = (function () {
     }
   }
 
-  function readFundTransactions_(ss) {
-    var sheet = ss.getSheetByName(TRANSACTION_SHEET_NAME);
+  function readFundTransactions_(ss, page) {
+    function measure(phase, work) { return page ? measureSourceRead_('overviewTransactions', phase, work) : work(); }
+    var sheet = measure('getSheet', function () { return ss.getSheetByName(TRANSACTION_SHEET_NAME); });
     if (!sheet) return [];
-    var lastRow = sheet.getLastRow();
-    var lastCol = Math.max(sheet.getLastColumn(), TRANSACTION_HEADERS.length);
+    var lastRow = measure('lastRow', function () { return sheet.getLastRow(); });
+    var lastCol = measure('lastColumn', function () { return Math.max(sheet.getLastColumn(), TRANSACTION_HEADERS.length); });
     if (lastRow < 2) return [];
-    var headerValues = sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    var headerValues = measure('headers', function () { return sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0]; });
     var columns = getTransactionColumns_(headerValues);
-    var displayValues = sheet.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
-    var rawDateValues = sheet.getRange(2, columns.date + 1, lastRow - 1, 1).getValues();
+    var startRow = page ? page.startRow : 2;
+    var rowCount = page ? Math.min(page.limit, Math.max(0, lastRow - startRow + 1)) : lastRow - 1;
+    if (page) page.nextRow = startRow + rowCount <= lastRow ? startRow + rowCount : 0;
+    if (!rowCount) return [];
+    var displayValues = measure('display', function () { return sheet.getRange(startRow, 1, rowCount, lastCol).getDisplayValues(); });
+    var rawDateValues = measure('dates', function () { return sheet.getRange(startRow, columns.date + 1, rowCount, 1).getValues(); });
     var rows = [];
     displayValues.forEach(function (row, index) {
       if (!row.slice(0, TRANSACTION_HEADERS.length).some(function (cell) { return clean_(cell); })) return;
@@ -458,7 +611,7 @@ var FundService = (function () {
       var incomeCategory = clean_(row[columns.income]);
       var expenseCategory = clean_(row[columns.expense]);
       rows.push({
-        rowIndex: index + 2,
+        rowIndex: index + startRow,
         voucher: columns.voucher >= 0 ? clean_(row[columns.voucher]) : '',
         dateObj: dateObj,
         date: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'yyyy-MM-dd') : clean_(row[columns.date]),
@@ -496,7 +649,7 @@ var FundService = (function () {
       partner: requiredHeaderIndex_(headers, ['doi tac', 'đối tác'], 7 + offset),
       content: requiredHeaderIndex_(headers, ['noi dung', 'nội dung'], 8 + offset),
       debt: requiredHeaderIndex_(headers, ['cong no', 'công nợ'], 9 + offset),
-      offset: findHeaderIndex_(headers, ['can tru', 'cấn trừ'])
+      offset: findHeaderIndex_(headers, ['khong qua quy', 'không qua quỹ', 'can tru', 'cấn trừ'])
     };
   }
 
@@ -539,18 +692,24 @@ var FundService = (function () {
     return text;
   }
 
-  function readLoanRows_(ss) {
-    var sheet = ss.getSheetByName(LOAN_SHEET_NAME);
-    if (!sheet || sheet.getLastRow() < 2) return [];
-    var lastRow = sheet.getLastRow();
-    var values = sheet.getRange(2, 1, lastRow - 1, Math.max(sheet.getLastColumn(), 14)).getDisplayValues();
-    var rawDates = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
+  function readLoanRows_(ss, page) {
+    function measure(phase, work) { return page ? measureSourceRead_('overviewLoans', phase, work) : work(); }
+    var sheet = measure('getSheet', function () { return ss.getSheetByName(LOAN_SHEET_NAME); });
+    if (!sheet || measure('emptyCheck', function () { return sheet.getLastRow(); }) < 2) return [];
+    var lastRow = measure('lastRow', function () { return sheet.getLastRow(); });
+    var startRow = page ? page.startRow : 2;
+    var rowCount = page ? Math.min(page.limit, Math.max(0, lastRow - startRow + 1)) : lastRow - 1;
+    if (page) page.nextRow = startRow + rowCount <= lastRow ? startRow + rowCount : 0;
+    if (!rowCount) return [];
+    var lastCol = measure('lastColumn', function () { return Math.max(sheet.getLastColumn(), 14); });
+    var values = measure('display', function () { return sheet.getRange(startRow, 1, rowCount, lastCol).getDisplayValues(); });
+    var rawDates = measure('dates', function () { return sheet.getRange(startRow, 2, rowCount, 1).getValues(); });
     var rows = [];
     values.forEach(function (row, index) {
       if (!row.slice(0, 11).some(function (cell) { return clean_(cell); })) return;
       var dateObj = parseDate_(rawDates[index][0], row[1]);
       rows.push({
-        rowIndex: index + 2,
+        rowIndex: index + startRow,
         code: clean_(row[0]),
         dateObj: dateObj,
         date: dateObj ? Utilities.formatDate(dateObj, APP_CONFIG.timezone, 'yyyy-MM-dd') : clean_(row[1]),
@@ -567,7 +726,8 @@ var FundService = (function () {
         annualRate: parseNumber_(row[7]),
         interestPeriodMonths: parseNumber_(row[8]),
         firstInterestDate: clean_(row[9]),
-        content: clean_(row[10])
+        content: clean_(row[10]),
+        nonFund: normalizeHeader_(row[11]) === 'true'
       });
     });
     return rows;
@@ -681,6 +841,7 @@ var FundService = (function () {
       interestPeriodMonths: row.interestPeriodMonths,
       firstInterestDate: row.firstInterestDate,
       content: row.content,
+      nonFund: row.nonFund === true,
       isSettled: Boolean(overallLoan && overallLoan.isSettled),
       statusLabel: overallLoan && overallLoan.isSettled ? 'Đã trả gốc' : ''
     };
@@ -696,6 +857,25 @@ var FundService = (function () {
       withdrawName: readNamedRangeDisplay_(ss, 'RUTTIEN') || 'Rút tiền',
       loanIncomeName: readNamedRangeDisplay_(ss, 'KHOANVAY') || 'Khoản vay'
     };
+  }
+
+  function readOverviewSourcePage(year, part, startRow, limit) {
+    var scope = part === 'transactions' ? 'overviewTransactions' : part === 'loans' ? 'overviewLoans' : 'overviewSettings';
+    var ss = measureSourceRead_(scope, 'openWorkbook', function () { return getFundSpreadsheet_(year); });
+    if (part === 'settings') return { rows: measureSourceRead_(scope, 'settings', function () { return readFundSettings_(ss); }), nextRow: 0 };
+    if (!measureSourceRead_(scope, 'sourceCheck', function () { return ss.getSheetByName(part === 'transactions' ? TRANSACTION_SHEET_NAME : LOAN_SHEET_NAME); })) {
+      throw new Error('Fund overview source sheet missing: ' + part);
+    }
+    var page = { startRow: Math.max(2, startRow), limit: Math.max(1, Math.min(200, limit)), nextRow: 0 };
+    var rows;
+    if (part === 'transactions') rows = readFundTransactions_(ss, page);
+    else if (part === 'loans') rows = readLoanRows_(ss, page);
+    else throw new Error('Unknown Fund overview source: ' + part);
+    return { rows: rows, nextRow: page.nextRow };
+  }
+
+  function measureSourceRead_(scope, phase, work) {
+    return typeof FundSourceProbeService === 'undefined' ? work() : FundSourceProbeService.measure(scope, phase, work);
   }
 
   function ensureFundCatalogSheet_(ss) {
@@ -927,6 +1107,11 @@ var FundService = (function () {
     return 'FUND_TRANSACTION_VOUCHER_SEQ_' + spreadsheetId + '_' + prefix;
   }
 
+  function debtPaymentRequestPropertyKey_(spreadsheetId, requestId) {
+    var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, spreadsheetId + ':' + requestId, Utilities.Charset.UTF_8);
+    return 'FUND_DEBT_PAYMENT_' + Utilities.base64EncodeWebSafe(digest).replace(/=+$/, '').substring(0, 43);
+  }
+
   function nextLoanVoucher_(ss, sheet, date) {
     var prefix = Utilities.formatDate(date, APP_CONFIG.timezone, 'yyMMdd');
     var maxSequence = 0;
@@ -1041,6 +1226,14 @@ var FundService = (function () {
     return clean_(props.getProperty(FUND_SPREADSHEET_ID_PROP)) || DEFAULT_FUND_SPREADSHEET_ID;
   }
 
+  function resolveFundSpreadsheetId(year) {
+    var normalizedYear = clean_(year);
+    if (!/^20\d{2}$/.test(normalizedYear)) throw new Error('Năm Thu chi không hợp lệ: ' + normalizedYear);
+    var spreadsheetId = resolveFundSpreadsheetId_(normalizedYear);
+    if (!spreadsheetId) throw new Error('Chưa cấu hình workbook Thu chi cho năm ' + normalizedYear + '.');
+    return spreadsheetId;
+  }
+
   function fundCacheKey_(year) {
     var parts = [FUND_CACHE_VERSION, getFundDataVersion_(), clean_(year) || 'default'];
     for (var i = 1; i < arguments.length; i++) {
@@ -1084,11 +1277,16 @@ var FundService = (function () {
   function putFundCache_(key, value, ttlSeconds) {
     var cache = CacheService.getScriptCache();
     var text = JSON.stringify(value);
-    var chunkSize = 90000;
+    // Cache limits bytes, not JS characters. Leave room for UTF-8 Vietnamese.
+    var chunkSize = 16000;
     var chunks = {};
-    var count = Math.ceil(text.length / chunkSize);
-    for (var i = 0; i < count; i++) {
-      chunks[key + ':' + i] = text.substring(i * chunkSize, (i + 1) * chunkSize);
+    var count = 0;
+    for (var offset = 0; offset < text.length;) {
+      var end = Math.min(text.length, offset + chunkSize);
+      var last = text.charCodeAt(end - 1);
+      if (end < text.length && last >= 0xD800 && last <= 0xDBFF) end--;
+      chunks[key + ':' + count++] = text.substring(offset, end);
+      offset = end;
     }
     cache.putAll(chunks, ttlSeconds);
     cache.put(key + ':count', String(count), ttlSeconds);
@@ -1144,6 +1342,7 @@ var FundService = (function () {
   return {
     addFundTransaction: addFundTransaction,
     addFundTransactions: addFundTransactions,
+    addFundDebtPayment: addFundDebtPayment,
     addFundLoan: addFundLoan,
     addFundLoanPayment: addFundLoanPayment,
     updateFundTransaction: updateFundTransaction,
@@ -1152,12 +1351,18 @@ var FundService = (function () {
     getFundFormOptions: getFundFormOptions,
     getFundCatalog: getFundCatalog,
     getFundLoanOverview: getFundLoanOverview,
+    getFundOverviewFromSnapshot: getFundOverviewFromSnapshot,
+    readOverviewSourcePage: readOverviewSourcePage,
     getFundOverview: getFundOverview,
     getFundTransactions: getFundTransactions,
+    readTransactionSourcePage: readTransactionSourcePage,
+    beginTransactionCapture: beginTransactionCapture,
+    appendTransactionCapture: appendTransactionCapture,
     saveFundCatalogItem: saveFundCatalogItem,
     updateFundSettings: updateFundSettings,
     validateFundTransactions: validateFundTransactions,
     prepareFundTransactionVouchers: prepareFundTransactionVouchers,
+    resolveFundSpreadsheetId: resolveFundSpreadsheetId,
     getFundSpreadsheet_: getFundSpreadsheet_
   };
 })();
@@ -1178,12 +1383,16 @@ function addFundTransactions(year, payloads) {
   return FundService.addFundTransactions(year, payloads);
 }
 
+function addFundDebtPayment(year, rowIndex, payload, clientRequestId) {
+  return FundService.addFundDebtPayment(year, rowIndex, payload, clientRequestId);
+}
+
 function updateFundTransaction(year, rowIndex, payload) {
   return FundService.updateFundTransaction(year, rowIndex, payload);
 }
 
-function deleteFundTransaction(year, rowIndex) {
-  return FundService.deleteFundTransaction(year, rowIndex);
+function deleteFundTransaction(year, rowIndex, expectedTransaction) {
+  return FundService.deleteFundTransaction(year, rowIndex, expectedTransaction);
 }
 
 function getFundOverview(year, filter) {

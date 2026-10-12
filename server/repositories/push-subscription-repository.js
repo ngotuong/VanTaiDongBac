@@ -1,3 +1,4 @@
+const { withDeadline } = require('../services/request-deadline');
 const crypto = require('crypto');
 
 function hashEndpoint(endpoint) {
@@ -5,6 +6,7 @@ function hashEndpoint(endpoint) {
 }
 
 function createPushSubscriptionRepository({ fetchImpl = fetch, httpError }) {
+  fetchImpl = withDeadline(fetchImpl);
   function headers(config, extra = {}) {
     return {
       apikey: config.serviceRoleKey,

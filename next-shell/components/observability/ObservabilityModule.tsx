@@ -9,7 +9,6 @@ import type { ManageAuditRow, ReportAuditRow, SyncStatusRow, WriteJob } from '..
 import { showToast } from '../../lib/platform/toast';
 
 const DEFAULT_MANAGE_SHEET = 'NL_VanChuyen';
-const REPORT_MONTHS = '05/2026,06/2026,07/2026,Tất cả';
 const CANCELED_JOB_PREFIX = 'CANCELED_BY_OPERATOR:';
 
 function isCanceledJob(job: WriteJob) {
@@ -98,7 +97,7 @@ export function ObservabilityModule() {
     setBusy('reports');
     report('Đang kiểm tra cache Báo cáo...', false, false); showToast('Đang kiểm tra cache Báo cáo…', 'loading');
     try {
-      const result = await api.get<{ ok?: boolean; results?: ReportAuditRow[] }>('getReportCacheAudit', { params: { months: REPORT_MONTHS, forceRefresh: true } });
+      const result = await api.get<{ ok?: boolean; results?: ReportAuditRow[] }>('getReportCacheAudit', { params: { forceRefresh: true } });
       setReportAudit(result.results || []);
       report(result.ok === false ? 'Audit Báo cáo phát hiện cache lệch.' : 'Audit Báo cáo OK.', result.ok === false);
     } catch (auditError) { report(auditError instanceof Error ? auditError.message : String(auditError), true); }

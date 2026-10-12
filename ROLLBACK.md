@@ -10,16 +10,7 @@
 
 ## 2. Baseline rollback hiện hành
 
-Production đã xác nhận trong `PROJECT_CONTEXT.md`:
-
-- Vercel hiện tại: `dpl_EWqPcWWjNpk2eJdMYi7tYqRWjohv`.
-- Vercel rollback gần nhất: `dpl_3Fe4NCtEtZAzEe4547JpM9z5UPG7`; rollback lịch sử tiếp theo là `dpl_4H1DouQ7TDgj86fUBvDbP3axgvqH`, `dpl_7rphNyrL2aUVGU5FKFZbVARDS2GU`, `dpl_By46eeK9wbaq4YCMqdEZZLPbXxM1`, `dpl_KKHYYKKT8g5M6L5T44i9vN3CywoR`, `dpl_CogE124n97QyuRL8QSW4tCpcKYmv`, `dpl_C7ovMrnmLjveFr6soZQijTtLcmba`, `dpl_9TNAVm9ifWXWxKx5Knzw57j8Vkio`, `dpl_85PsF73o52beq8SuKrK8915nzu4f`, `dpl_4LQnv87HMgV96P5rVvc2m83WDhK2`, `dpl_8WEdJbFi6H1FVhTW7pVCZ2AXob2q`, rồi `dpl_A4CfP4ThTzsvwHTQ5wVm3whwDUCG`.
-- Rollback lịch sử tiếp theo: D1 `dpl_AnCbeEiqX6fqHPXGj3DLce8sT7Zx`, C3 `dpl_FnaSmXyssVG8xE6yhuzBG63vTdBF`, C2 `dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg` nếu vẫn READY.
-- Apps Script production: code version `@350`; rollback gần nhất cùng deployment ID là `@349`, tiếp theo là `@348`, `@344`, `@343`, `@340`, `@338`, `@337`, `@335`, `@328`, `@325`, rồi `@322`.
-- Kênh notification dispatch có thể được cô lập ngay bằng Script Property `NOTIFICATION_DISPATCH_ENABLED=false` mà không rollback toàn bộ webapp.
-- Recovery deployment `@281` đã undeploy, không dùng.
-
-Luôn xác minh live deployment ID trước thao tác; không giả định các ID trên còn READY nếu thời gian đã trôi qua.
+ID/version/baseline hiện hành do [PROJECT_CONTEXT](PROJECT_CONTEXT.md) sở hữu; xác minh lại READY/live trước thao tác. R8 rollback ghép cặp, journal và migration theo [runbook](docs/operations/R8_REMEDIATION.md).
 
 ## 3. Vercel rollback
 
@@ -43,6 +34,16 @@ Không sửa alias Preview để chữa Production và không promote deployment
 
 HTTP 403 có thể là `deployment_access_denied`, không mặc định là OAuth. Nếu gặp lại, chạy `diagnoseSyncAuthorization()` bằng đúng owner/deployer rồi xác minh authorization status, live execute-as/access và Executions; không chữa bằng cách đổi production alias hoặc dùng Preview endpoint.
 
+## 4.1. Firebase Hosting rollback
+
+Firebase site `vantaidongbac-apps-script-api` chỉ chứa các trang OAuth/pháp lý trong `public/oauth`; không chứa webapp hoặc API.
+
+1. Mở Hosting release history của đúng Firebase project và xác minh version trước đó.
+2. Roll back release Hosting trong Firebase Console, hoặc deploy lại một Git revision đã xác minh bằng `firebase deploy --only hosting --project vantaidongbac-apps-script-api`.
+3. Kiểm tra HTTP 200 cho `/`, `/privacy`, `/terms` và thẻ `google-site-verification` vẫn tồn tại.
+4. Không xóa site/domain hoặc thẻ xác minh khi OAuth Branding còn dùng các URL này; việc mất xác minh có thể làm cấu hình OAuth không còn hợp lệ.
+5. Firebase rollback không được đổi alias/deployment của Vercel hoặc Apps Script.
+
 ## 5. `SYS_ReportCache` retirement
 
 Tab đã retired bằng migration có guard. Không tạo lại thủ công.
@@ -60,11 +61,12 @@ Không restore toàn workbook vì có thể ghi đè dữ liệu nghiệp vụ p
 
 ## 6. Supabase/cache/queue
 
-- Không xóa migration `001–013` hoặc sửa migration đã apply.
+- Không xóa hoặc sửa migration đã apply; lịch sử live tại [context](PROJECT_CONTEXT.md). Thay đổi ngược schema/quyền phải dùng migration forward với phiên bản tiếp theo.
 - Nếu read cache lỗi, ưu tiên rollback runtime/candidate; Google Sheets vẫn là nguồn đối soát.
 - Không retry hàng loạt write jobs khi chưa biết job nào đã ghi Sheet; dùng exact job ID/idempotency marker.
 - Queue cleanup phải scope đúng project canonical và lưu bằng chứng trước/sau.
 - Cron cảnh báo Quỹ cũ rollback bằng tắt `FUND_LOW_BALANCE_ALERT_ENABLED`. Pipeline đa nguồn rollback tức thời bằng Script Property `NOTIFICATION_DISPATCH_ENABLED=false`; không xóa subscription, preference, baseline hoặc rule state.
+- Giải trình lương rollback runtime bằng Apps Script/Vercel deployment trước Step A; bảng `payroll_explanation_bundles` server-only có thể giữ nguyên vì browser không có quyền trực tiếp. Sau khi `015` đã apply, nếu cần khôi phục quyền/schema phải dùng migration forward `016+`; không sửa hoặc chạy ngược `014`/`015`.
 
 ## 7. Data rollback
 

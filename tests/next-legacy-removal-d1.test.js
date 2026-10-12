@@ -36,5 +36,6 @@ test('D1 keeps Apps Script API entry points but removes HtmlService rendering', 
   assert.match(router, /function doPost\(e\)/);
   assert.match(router, /Apps Script chỉ phục vụ API/);
   assert.doesNotMatch(router, /HtmlService|renderIndex_|function include\(/);
-  assert.match(read('ROLLBACK.md'), /dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg/);
+  assert.match(read('ROLLBACK.md'), /PROJECT_CONTEXT/);
+  assert.match(read('PROJECT_CONTEXT.md'), /dpl_[A-Za-z0-9]+/);
 });

@@ -1,4 +1,6 @@
+const { withDeadline } = require('../services/request-deadline');
 function createManageBundleRepository({ fetchImpl = fetch, httpError }) {
+  fetchImpl = withDeadline(fetchImpl);
   async function find(config, sheetName, filterKey) {
     const query = new URLSearchParams({
       select: 'sheet_name,filter_key,payload,synced_at',

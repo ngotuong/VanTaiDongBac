@@ -37,6 +37,7 @@ test('registry classifies read-only POST and operational GET without weakening p
   assert.deepEqual(JSON.parse(JSON.stringify(registry.get('checkTripReconciliation'))), { method: 'POST', kind: 'query', permission: 'shareholder' });
   assert.deepEqual(JSON.parse(JSON.stringify(registry.get('invalidateCaches'))), { method: 'GET', kind: 'command', permission: 'adminOperator' });
   assert.equal(registry.get('addFundTransactions').kind, 'command');
+  assert.deepEqual(JSON.parse(JSON.stringify(registry.get('addFundDebtPayment'))), { method: 'POST', kind: 'command', permission: 'adminOperator' });
   assert.equal(registry.get('getFundCatalog').permission, 'adminOperator');
   assert.equal(registry.get('updateFundSettings').permission, 'adminOperator');
 });
@@ -59,6 +60,7 @@ test('dispatchers consume registry guards while retaining compatibility handlers
   assert.match(publicApi, /ApiActionRegistry\.assertPublicAction\(normalizedMethod, action\)/);
   assert.match(publicApi, /if \(action === 'getDashboard'\)/);
   assert.match(publicApi, /if \(action === 'addFundTransactions'\)/);
+  assert.match(publicApi, /if \(action === 'addFundDebtPayment'\)/);
   assert.match(router, /SecurityService\.assertProxyRequest[\s\S]*ApiActionRegistry\.assertRouterGetAction\(action\)/);
   assert.match(proxy, /assertAuthorized\(user, action\);/);
   assert.match(policy, /SHAREHOLDER_ACTIONS\.has\(action\)/);

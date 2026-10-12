@@ -1,0 +1,526 @@
+{
+  "migration": "FundTransactionFilterMigration",
+  "executedAt": "2026-09-10",
+  "spreadsheetId": "1PWwGC6HCdskiV2fEZjDFiAt6kA_nsx64twrVTgrRerw",
+  "sheetId": 2018768776,
+  "targetRange": "NHAP_THUCHI!N3:N717",
+  "rootCell": "NHAP_THUCHI!N2",
+  "fingerprint": "e717124d",
+  "collisionCount": 127,
+  "rootFormula": "=ARRAYFORMULA(IF(A2:A4075=\"\";\"\";IF(IF(BC_THUCHI!$J$15=\"\";TRUE;REGEXMATCH(G2:G4075;\"^(\"&SUBSTITUTE(SUBSTITUTE(BC_THUCHI!$J$15;\", \";\"|\");\" | \";\"|\")&\")$\"));IF(IF(BC_THUCHI!$K$15=\"\";TRUE;REGEXMATCH(H2:H4075;\"^(\"&SUBSTITUTE(SUBSTITUTE(BC_THUCHI!$K$15;\", \";\"|\");\" | \";\"|\")&\")$\"));BC_THUCHI!$A$1;\"#\");\"#\")))",
+  "clearedCells": [
+    {
+      "row": 356,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A356)&IF(BC_THUCHI!$J$15=\"\";\"\";G356)&IF(BC_THUCHI!$K$15=\"\";\"\";H356)"
+    },
+    {
+      "row": 357,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A357)&IF(BC_THUCHI!$J$15=\"\";\"\";G357)&IF(BC_THUCHI!$K$15=\"\";\"\";H357)"
+    },
+    {
+      "row": 358,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A358)&IF(BC_THUCHI!$J$15=\"\";\"\";G358)&IF(BC_THUCHI!$K$15=\"\";\"\";H358)"
+    },
+    {
+      "row": 367,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A367)&IF(BC_THUCHI!$J$15=\"\";\"\";G367)&IF(BC_THUCHI!$K$15=\"\";\"\";H367)"
+    },
+    {
+      "row": 368,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A368)&IF(BC_THUCHI!$J$15=\"\";\"\";G368)&IF(BC_THUCHI!$K$15=\"\";\"\";H368)"
+    },
+    {
+      "row": 376,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A376)&IF(BC_THUCHI!$J$15=\"\";\"\";G376)&IF(BC_THUCHI!$K$15=\"\";\"\";H376)"
+    },
+    {
+      "row": 377,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A377)&IF(BC_THUCHI!$J$15=\"\";\"\";G377)&IF(BC_THUCHI!$K$15=\"\";\"\";H377)"
+    },
+    {
+      "row": 378,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A378)&IF(BC_THUCHI!$J$15=\"\";\"\";G378)&IF(BC_THUCHI!$K$15=\"\";\"\";H378)"
+    },
+    {
+      "row": 380,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A380)&IF(BC_THUCHI!$J$15=\"\";\"\";G380)&IF(BC_THUCHI!$K$15=\"\";\"\";H380)"
+    },
+    {
+      "row": 381,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A381)&IF(BC_THUCHI!$J$15=\"\";\"\";G381)&IF(BC_THUCHI!$K$15=\"\";\"\";H381)"
+    },
+    {
+      "row": 382,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A382)&IF(BC_THUCHI!$J$15=\"\";\"\";G382)&IF(BC_THUCHI!$K$15=\"\";\"\";H382)"
+    },
+    {
+      "row": 383,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A383)&IF(BC_THUCHI!$J$15=\"\";\"\";G383)&IF(BC_THUCHI!$K$15=\"\";\"\";H383)"
+    },
+    {
+      "row": 387,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A387)&IF(BC_THUCHI!$J$15=\"\";\"\";G387)&IF(BC_THUCHI!$K$15=\"\";\"\";H387)"
+    },
+    {
+      "row": 388,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A388)&IF(BC_THUCHI!$J$15=\"\";\"\";G388)&IF(BC_THUCHI!$K$15=\"\";\"\";H388)"
+    },
+    {
+      "row": 389,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A389)&IF(BC_THUCHI!$J$15=\"\";\"\";G389)&IF(BC_THUCHI!$K$15=\"\";\"\";H389)"
+    },
+    {
+      "row": 390,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A390)&IF(BC_THUCHI!$J$15=\"\";\"\";G390)&IF(BC_THUCHI!$K$15=\"\";\"\";H390)"
+    },
+    {
+      "row": 394,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A394)&IF(BC_THUCHI!$J$15=\"\";\"\";G394)&IF(BC_THUCHI!$K$15=\"\";\"\";H394)"
+    },
+    {
+      "row": 395,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A395)&IF(BC_THUCHI!$J$15=\"\";\"\";G395)&IF(BC_THUCHI!$K$15=\"\";\"\";H395)"
+    },
+    {
+      "row": 396,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A396)&IF(BC_THUCHI!$J$15=\"\";\"\";G396)&IF(BC_THUCHI!$K$15=\"\";\"\";H396)"
+    },
+    {
+      "row": 397,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A397)&IF(BC_THUCHI!$J$15=\"\";\"\";G397)&IF(BC_THUCHI!$K$15=\"\";\"\";H397)"
+    },
+    {
+      "row": 398,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A398)&IF(BC_THUCHI!$J$15=\"\";\"\";G398)&IF(BC_THUCHI!$K$15=\"\";\"\";H398)"
+    },
+    {
+      "row": 400,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A400)&IF(BC_THUCHI!$J$15=\"\";\"\";G400)&IF(BC_THUCHI!$K$15=\"\";\"\";H400)"
+    },
+    {
+      "row": 433,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A433)&IF(BC_THUCHI!$J$15=\"\";\"\";G433)&IF(BC_THUCHI!$K$15=\"\";\"\";H433)"
+    },
+    {
+      "row": 434,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A434)&IF(BC_THUCHI!$J$15=\"\";\"\";G434)&IF(BC_THUCHI!$K$15=\"\";\"\";H434)"
+    },
+    {
+      "row": 457,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A457)&IF(BC_THUCHI!$J$15=\"\";\"\";G457)&IF(BC_THUCHI!$K$15=\"\";\"\";H457)"
+    },
+    {
+      "row": 458,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A458)&IF(BC_THUCHI!$J$15=\"\";\"\";G458)&IF(BC_THUCHI!$K$15=\"\";\"\";H458)"
+    },
+    {
+      "row": 484,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A484)&IF(BC_THUCHI!$J$15=\"\";\"\";G484)&IF(BC_THUCHI!$K$15=\"\";\"\";H484)"
+    },
+    {
+      "row": 498,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A498)&IF(BC_THUCHI!$J$15=\"\";\"\";G498)&IF(BC_THUCHI!$K$15=\"\";\"\";H498)"
+    },
+    {
+      "row": 510,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A510)&IF(BC_THUCHI!$J$15=\"\";\"\";G510)&IF(BC_THUCHI!$K$15=\"\";\"\";H510)"
+    },
+    {
+      "row": 526,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A526)&IF(BC_THUCHI!$J$15=\"\";\"\";G526)&IF(BC_THUCHI!$K$15=\"\";\"\";H526)"
+    },
+    {
+      "row": 541,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A541)&IF(BC_THUCHI!$J$15=\"\";\"\";G541)&IF(BC_THUCHI!$K$15=\"\";\"\";H541)"
+    },
+    {
+      "row": 542,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A542)&IF(BC_THUCHI!$J$15=\"\";\"\";G542)&IF(BC_THUCHI!$K$15=\"\";\"\";H542)"
+    },
+    {
+      "row": 573,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A573)&IF(BC_THUCHI!$J$15=\"\";\"\";G573)&IF(BC_THUCHI!$K$15=\"\";\"\";H573)"
+    },
+    {
+      "row": 599,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A599)&IF(BC_THUCHI!$J$15=\"\";\"\";G599)&IF(BC_THUCHI!$K$15=\"\";\"\";H599)"
+    },
+    {
+      "row": 600,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A600)&IF(BC_THUCHI!$J$15=\"\";\"\";G600)&IF(BC_THUCHI!$K$15=\"\";\"\";H600)"
+    },
+    {
+      "row": 609,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A609)&IF(BC_THUCHI!$J$15=\"\";\"\";G609)&IF(BC_THUCHI!$K$15=\"\";\"\";H609)"
+    },
+    {
+      "row": 626,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A626)&IF(BC_THUCHI!$J$15=\"\";\"\";G626)&IF(BC_THUCHI!$K$15=\"\";\"\";H626)"
+    },
+    {
+      "row": 628,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A628)&IF(BC_THUCHI!$J$15=\"\";\"\";G628)&IF(BC_THUCHI!$K$15=\"\";\"\";H628)"
+    },
+    {
+      "row": 629,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A629)&IF(BC_THUCHI!$J$15=\"\";\"\";G629)&IF(BC_THUCHI!$K$15=\"\";\"\";H629)"
+    },
+    {
+      "row": 630,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A630)&IF(BC_THUCHI!$J$15=\"\";\"\";G630)&IF(BC_THUCHI!$K$15=\"\";\"\";H630)"
+    },
+    {
+      "row": 631,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A631)&IF(BC_THUCHI!$J$15=\"\";\"\";G631)&IF(BC_THUCHI!$K$15=\"\";\"\";H631)"
+    },
+    {
+      "row": 632,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A632)&IF(BC_THUCHI!$J$15=\"\";\"\";G632)&IF(BC_THUCHI!$K$15=\"\";\"\";H632)"
+    },
+    {
+      "row": 633,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A633)&IF(BC_THUCHI!$J$15=\"\";\"\";G633)&IF(BC_THUCHI!$K$15=\"\";\"\";H633)"
+    },
+    {
+      "row": 634,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A634)&IF(BC_THUCHI!$J$15=\"\";\"\";G634)&IF(BC_THUCHI!$K$15=\"\";\"\";H634)"
+    },
+    {
+      "row": 635,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A635)&IF(BC_THUCHI!$J$15=\"\";\"\";G635)&IF(BC_THUCHI!$K$15=\"\";\"\";H635)"
+    },
+    {
+      "row": 636,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A636)&IF(BC_THUCHI!$J$15=\"\";\"\";G636)&IF(BC_THUCHI!$K$15=\"\";\"\";H636)"
+    },
+    {
+      "row": 637,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A637)&IF(BC_THUCHI!$J$15=\"\";\"\";G637)&IF(BC_THUCHI!$K$15=\"\";\"\";H637)"
+    },
+    {
+      "row": 638,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A638)&IF(BC_THUCHI!$J$15=\"\";\"\";G638)&IF(BC_THUCHI!$K$15=\"\";\"\";H638)"
+    },
+    {
+      "row": 639,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A639)&IF(BC_THUCHI!$J$15=\"\";\"\";G639)&IF(BC_THUCHI!$K$15=\"\";\"\";H639)"
+    },
+    {
+      "row": 640,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A640)&IF(BC_THUCHI!$J$15=\"\";\"\";G640)&IF(BC_THUCHI!$K$15=\"\";\"\";H640)"
+    },
+    {
+      "row": 641,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A641)&IF(BC_THUCHI!$J$15=\"\";\"\";G641)&IF(BC_THUCHI!$K$15=\"\";\"\";H641)"
+    },
+    {
+      "row": 642,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A642)&IF(BC_THUCHI!$J$15=\"\";\"\";G642)&IF(BC_THUCHI!$K$15=\"\";\"\";H642)"
+    },
+    {
+      "row": 643,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A643)&IF(BC_THUCHI!$J$15=\"\";\"\";G643)&IF(BC_THUCHI!$K$15=\"\";\"\";H643)"
+    },
+    {
+      "row": 644,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A644)&IF(BC_THUCHI!$J$15=\"\";\"\";G644)&IF(BC_THUCHI!$K$15=\"\";\"\";H644)"
+    },
+    {
+      "row": 645,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A645)&IF(BC_THUCHI!$J$15=\"\";\"\";G645)&IF(BC_THUCHI!$K$15=\"\";\"\";H645)"
+    },
+    {
+      "row": 646,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A646)&IF(BC_THUCHI!$J$15=\"\";\"\";G646)&IF(BC_THUCHI!$K$15=\"\";\"\";H646)"
+    },
+    {
+      "row": 647,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A647)&IF(BC_THUCHI!$J$15=\"\";\"\";G647)&IF(BC_THUCHI!$K$15=\"\";\"\";H647)"
+    },
+    {
+      "row": 648,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A648)&IF(BC_THUCHI!$J$15=\"\";\"\";G648)&IF(BC_THUCHI!$K$15=\"\";\"\";H648)"
+    },
+    {
+      "row": 649,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A649)&IF(BC_THUCHI!$J$15=\"\";\"\";G649)&IF(BC_THUCHI!$K$15=\"\";\"\";H649)"
+    },
+    {
+      "row": 650,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A650)&IF(BC_THUCHI!$J$15=\"\";\"\";G650)&IF(BC_THUCHI!$K$15=\"\";\"\";H650)"
+    },
+    {
+      "row": 651,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A651)&IF(BC_THUCHI!$J$15=\"\";\"\";G651)&IF(BC_THUCHI!$K$15=\"\";\"\";H651)"
+    },
+    {
+      "row": 652,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A652)&IF(BC_THUCHI!$J$15=\"\";\"\";G652)&IF(BC_THUCHI!$K$15=\"\";\"\";H652)"
+    },
+    {
+      "row": 653,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A653)&IF(BC_THUCHI!$J$15=\"\";\"\";G653)&IF(BC_THUCHI!$K$15=\"\";\"\";H653)"
+    },
+    {
+      "row": 654,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A654)&IF(BC_THUCHI!$J$15=\"\";\"\";G654)&IF(BC_THUCHI!$K$15=\"\";\"\";H654)"
+    },
+    {
+      "row": 655,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A655)&IF(BC_THUCHI!$J$15=\"\";\"\";G655)&IF(BC_THUCHI!$K$15=\"\";\"\";H655)"
+    },
+    {
+      "row": 656,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A656)&IF(BC_THUCHI!$J$15=\"\";\"\";G656)&IF(BC_THUCHI!$K$15=\"\";\"\";H656)"
+    },
+    {
+      "row": 657,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A657)&IF(BC_THUCHI!$J$15=\"\";\"\";G657)&IF(BC_THUCHI!$K$15=\"\";\"\";H657)"
+    },
+    {
+      "row": 658,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A658)&IF(BC_THUCHI!$J$15=\"\";\"\";G658)&IF(BC_THUCHI!$K$15=\"\";\"\";H658)"
+    },
+    {
+      "row": 659,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A659)&IF(BC_THUCHI!$J$15=\"\";\"\";G659)&IF(BC_THUCHI!$K$15=\"\";\"\";H659)"
+    },
+    {
+      "row": 660,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A660)&IF(BC_THUCHI!$J$15=\"\";\"\";G660)&IF(BC_THUCHI!$K$15=\"\";\"\";H660)"
+    },
+    {
+      "row": 661,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A661)&IF(BC_THUCHI!$J$15=\"\";\"\";G661)&IF(BC_THUCHI!$K$15=\"\";\"\";H661)"
+    },
+    {
+      "row": 662,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A662)&IF(BC_THUCHI!$J$15=\"\";\"\";G662)&IF(BC_THUCHI!$K$15=\"\";\"\";H662)"
+    },
+    {
+      "row": 663,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A663)&IF(BC_THUCHI!$J$15=\"\";\"\";G663)&IF(BC_THUCHI!$K$15=\"\";\"\";H663)"
+    },
+    {
+      "row": 664,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A664)&IF(BC_THUCHI!$J$15=\"\";\"\";G664)&IF(BC_THUCHI!$K$15=\"\";\"\";H664)"
+    },
+    {
+      "row": 665,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A665)&IF(BC_THUCHI!$J$15=\"\";\"\";G665)&IF(BC_THUCHI!$K$15=\"\";\"\";H665)"
+    },
+    {
+      "row": 666,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A666)&IF(BC_THUCHI!$J$15=\"\";\"\";G666)&IF(BC_THUCHI!$K$15=\"\";\"\";H666)"
+    },
+    {
+      "row": 667,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A667)&IF(BC_THUCHI!$J$15=\"\";\"\";G667)&IF(BC_THUCHI!$K$15=\"\";\"\";H667)"
+    },
+    {
+      "row": 668,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A668)&IF(BC_THUCHI!$J$15=\"\";\"\";G668)&IF(BC_THUCHI!$K$15=\"\";\"\";H668)"
+    },
+    {
+      "row": 669,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A669)&IF(BC_THUCHI!$J$15=\"\";\"\";G669)&IF(BC_THUCHI!$K$15=\"\";\"\";H669)"
+    },
+    {
+      "row": 670,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A670)&IF(BC_THUCHI!$J$15=\"\";\"\";G670)&IF(BC_THUCHI!$K$15=\"\";\"\";H670)"
+    },
+    {
+      "row": 671,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A671)&IF(BC_THUCHI!$J$15=\"\";\"\";G671)&IF(BC_THUCHI!$K$15=\"\";\"\";H671)"
+    },
+    {
+      "row": 672,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A672)&IF(BC_THUCHI!$J$15=\"\";\"\";G672)&IF(BC_THUCHI!$K$15=\"\";\"\";H672)"
+    },
+    {
+      "row": 673,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A673)&IF(BC_THUCHI!$J$15=\"\";\"\";G673)&IF(BC_THUCHI!$K$15=\"\";\"\";H673)"
+    },
+    {
+      "row": 674,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A674)&IF(BC_THUCHI!$J$15=\"\";\"\";G674)&IF(BC_THUCHI!$K$15=\"\";\"\";H674)"
+    },
+    {
+      "row": 675,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A675)&IF(BC_THUCHI!$J$15=\"\";\"\";G675)&IF(BC_THUCHI!$K$15=\"\";\"\";H675)"
+    },
+    {
+      "row": 676,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A676)&IF(BC_THUCHI!$J$15=\"\";\"\";G676)&IF(BC_THUCHI!$K$15=\"\";\"\";H676)"
+    },
+    {
+      "row": 677,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A677)&IF(BC_THUCHI!$J$15=\"\";\"\";G677)&IF(BC_THUCHI!$K$15=\"\";\"\";H677)"
+    },
+    {
+      "row": 678,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A678)&IF(BC_THUCHI!$J$15=\"\";\"\";G678)&IF(BC_THUCHI!$K$15=\"\";\"\";H678)"
+    },
+    {
+      "row": 679,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A679)&IF(BC_THUCHI!$J$15=\"\";\"\";G679)&IF(BC_THUCHI!$K$15=\"\";\"\";H679)"
+    },
+    {
+      "row": 680,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A680)&IF(BC_THUCHI!$J$15=\"\";\"\";G680)&IF(BC_THUCHI!$K$15=\"\";\"\";H680)"
+    },
+    {
+      "row": 681,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A681)&IF(BC_THUCHI!$J$15=\"\";\"\";G681)&IF(BC_THUCHI!$K$15=\"\";\"\";H681)"
+    },
+    {
+      "row": 682,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A682)&IF(BC_THUCHI!$J$15=\"\";\"\";G682)&IF(BC_THUCHI!$K$15=\"\";\"\";H682)"
+    },
+    {
+      "row": 683,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A683)&IF(BC_THUCHI!$J$15=\"\";\"\";G683)&IF(BC_THUCHI!$K$15=\"\";\"\";H683)"
+    },
+    {
+      "row": 684,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A684)&IF(BC_THUCHI!$J$15=\"\";\"\";G684)&IF(BC_THUCHI!$K$15=\"\";\"\";H684)"
+    },
+    {
+      "row": 685,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A685)&IF(BC_THUCHI!$J$15=\"\";\"\";G685)&IF(BC_THUCHI!$K$15=\"\";\"\";H685)"
+    },
+    {
+      "row": 686,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A686)&IF(BC_THUCHI!$J$15=\"\";\"\";G686)&IF(BC_THUCHI!$K$15=\"\";\"\";H686)"
+    },
+    {
+      "row": 687,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A687)&IF(BC_THUCHI!$J$15=\"\";\"\";G687)&IF(BC_THUCHI!$K$15=\"\";\"\";H687)"
+    },
+    {
+      "row": 688,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A688)&IF(BC_THUCHI!$J$15=\"\";\"\";G688)&IF(BC_THUCHI!$K$15=\"\";\"\";H688)"
+    },
+    {
+      "row": 689,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A689)&IF(BC_THUCHI!$J$15=\"\";\"\";G689)&IF(BC_THUCHI!$K$15=\"\";\"\";H689)"
+    },
+    {
+      "row": 690,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A690)&IF(BC_THUCHI!$J$15=\"\";\"\";G690)&IF(BC_THUCHI!$K$15=\"\";\"\";H690)"
+    },
+    {
+      "row": 691,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A691)&IF(BC_THUCHI!$J$15=\"\";\"\";G691)&IF(BC_THUCHI!$K$15=\"\";\"\";H691)"
+    },
+    {
+      "row": 692,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A692)&IF(BC_THUCHI!$J$15=\"\";\"\";G692)&IF(BC_THUCHI!$K$15=\"\";\"\";H692)"
+    },
+    {
+      "row": 693,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A693)&IF(BC_THUCHI!$J$15=\"\";\"\";G693)&IF(BC_THUCHI!$K$15=\"\";\"\";H693)"
+    },
+    {
+      "row": 694,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A694)&IF(BC_THUCHI!$J$15=\"\";\"\";G694)&IF(BC_THUCHI!$K$15=\"\";\"\";H694)"
+    },
+    {
+      "row": 695,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A695)&IF(BC_THUCHI!$J$15=\"\";\"\";G695)&IF(BC_THUCHI!$K$15=\"\";\"\";H695)"
+    },
+    {
+      "row": 696,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A696)&IF(BC_THUCHI!$J$15=\"\";\"\";G696)&IF(BC_THUCHI!$K$15=\"\";\"\";H696)"
+    },
+    {
+      "row": 697,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A697)&IF(BC_THUCHI!$J$15=\"\";\"\";G697)&IF(BC_THUCHI!$K$15=\"\";\"\";H697)"
+    },
+    {
+      "row": 698,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A698)&IF(BC_THUCHI!$J$15=\"\";\"\";G698)&IF(BC_THUCHI!$K$15=\"\";\"\";H698)"
+    },
+    {
+      "row": 699,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A699)&IF(BC_THUCHI!$J$15=\"\";\"\";G699)&IF(BC_THUCHI!$K$15=\"\";\"\";H699)"
+    },
+    {
+      "row": 700,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A700)&IF(BC_THUCHI!$J$15=\"\";\"\";G700)&IF(BC_THUCHI!$K$15=\"\";\"\";H700)"
+    },
+    {
+      "row": 701,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A701)&IF(BC_THUCHI!$J$15=\"\";\"\";G701)&IF(BC_THUCHI!$K$15=\"\";\"\";H701)"
+    },
+    {
+      "row": 702,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A702)&IF(BC_THUCHI!$J$15=\"\";\"\";G702)&IF(BC_THUCHI!$K$15=\"\";\"\";H702)"
+    },
+    {
+      "row": 703,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A703)&IF(BC_THUCHI!$J$15=\"\";\"\";G703)&IF(BC_THUCHI!$K$15=\"\";\"\";H703)"
+    },
+    {
+      "row": 704,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A704)&IF(BC_THUCHI!$J$15=\"\";\"\";G704)&IF(BC_THUCHI!$K$15=\"\";\"\";H704)"
+    },
+    {
+      "row": 705,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A705)&IF(BC_THUCHI!$J$15=\"\";\"\";G705)&IF(BC_THUCHI!$K$15=\"\";\"\";H705)"
+    },
+    {
+      "row": 706,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A706)&IF(BC_THUCHI!$J$15=\"\";\"\";G706)&IF(BC_THUCHI!$K$15=\"\";\"\";H706)"
+    },
+    {
+      "row": 707,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A707)&IF(BC_THUCHI!$J$15=\"\";\"\";G707)&IF(BC_THUCHI!$K$15=\"\";\"\";H707)"
+    },
+    {
+      "row": 708,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A708)&IF(BC_THUCHI!$J$15=\"\";\"\";G708)&IF(BC_THUCHI!$K$15=\"\";\"\";H708)"
+    },
+    {
+      "row": 709,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A709)&IF(BC_THUCHI!$J$15=\"\";\"\";G709)&IF(BC_THUCHI!$K$15=\"\";\"\";H709)"
+    },
+    {
+      "row": 710,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A710)&IF(BC_THUCHI!$J$15=\"\";\"\";G710)&IF(BC_THUCHI!$K$15=\"\";\"\";H710)"
+    },
+    {
+      "row": 711,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A711)&IF(BC_THUCHI!$J$15=\"\";\"\";G711)&IF(BC_THUCHI!$K$15=\"\";\"\";H711)"
+    },
+    {
+      "row": 712,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A712)&IF(BC_THUCHI!$J$15=\"\";\"\";G712)&IF(BC_THUCHI!$K$15=\"\";\"\";H712)"
+    },
+    {
+      "row": 713,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A713)&IF(BC_THUCHI!$J$15=\"\";\"\";G713)&IF(BC_THUCHI!$K$15=\"\";\"\";H713)"
+    },
+    {
+      "row": 714,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A714)&IF(BC_THUCHI!$J$15=\"\";\"\";G714)&IF(BC_THUCHI!$K$15=\"\";\"\";H714)"
+    },
+    {
+      "row": 715,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A715)&IF(BC_THUCHI!$J$15=\"\";\"\";G715)&IF(BC_THUCHI!$K$15=\"\";\"\";H715)"
+    },
+    {
+      "row": 716,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A716)&IF(BC_THUCHI!$J$15=\"\";\"\";G716)&IF(BC_THUCHI!$K$15=\"\";\"\";H716)"
+    },
+    {
+      "row": 717,
+      "formula": "=IF(BC_THUCHI!$C$15=\"\";\"\";A717)&IF(BC_THUCHI!$J$15=\"\";\"\";G717)&IF(BC_THUCHI!$K$15=\"\";\"\";H717)"
+    }
+  ],
+  "postCheck": {
+    "rootFormulaPreserved": true,
+    "collisionsBelowN2": 0,
+    "refError": false
+  }
+}

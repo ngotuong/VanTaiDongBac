@@ -1,0 +1,40 @@
+{
+  "auditedAt": "2026-09-10",
+  "mode": "read-only",
+  "transport": {
+    "spreadsheetId": "1VSNLzSNKJFXaY_dcyM7WkPz9Braia0AjPM7jHHXXyeA",
+    "title": "VanTaiDongBac_2026",
+    "sheetCount": 44,
+    "criticalSheets": {
+      "NL_VanChuyen": ["Ngày", "Tháng", "Biển số", "Dự án", "Số chuyến", "Số phiếu", "Khối lượng ", "Ghi chú", "_SYS_CHECK"],
+      "NL_ChamCong": ["Từ ngày", "Đến ngày", "Tháng", "Nhân sự", "Hình thức", "Số ngày", "Tính lương cứng", "Nhóm xử lý", "Loại ngày công hợp lệ", "Lưu ý", "Ghi chú"],
+      "NL_PhanCongLai": ["Tháng", "Tài xế", "Công ty", "Kiểm tra", "Ghi chú"],
+      "NL_SoDuLuong": ["Mã khoản", "Kỳ phát sinh", "Nhân sự", "Loại", "Số dư gốc", "Tháng xử lý", "Xử lý kỳ này", "Số dư đầu kỳ", "Còn sau kỳ", "Trạng thái", "Nội dung / lý do", "Ghi chú hiển thị", "_SYS_PAYROLL_ADJ", "_SYS_KEY", "_SYS_SUMMARY_KEY", "_SYS_SUMMARY_NOTE", "_SYS_CHECK"],
+      "DM_BaoHiem": ["Nhân sự", "Mức khấu trừ/tháng", "Hiệu lực từ", "Hiệu lực đến", "Trạng thái", "Ghi chú"]
+    },
+    "qa": {
+      "sheet": "SYS_QA",
+      "status": "OK",
+      "failedChecks": 0,
+      "totalChecks": 18
+    }
+  },
+  "fund": {
+    "spreadsheetId": "1PWwGC6HCdskiV2fEZjDFiAt6kA_nsx64twrVTgrRerw",
+    "title": "ThuChiDongBac_2026",
+    "criticalSheets": {
+      "NHAP_THUCHI": ["Số phiếu", "Ngày", "MỤC THU", "MỤC CHI", "Hình thức", "Số tiền", "Người Thu/ Chi", "Đối tác", "Nội dung", "Công nợ", "2", "Không qua Quỹ", "Công nợ còn lại", "Lọc"],
+      "PHANBO_VAY": "formula workflow source; not a transaction write target",
+      "BC_THUCHI": "partner debt filter at K15; D12/D13 calculate receivable/payable with that optional filter"
+    },
+    "resolvedIssue": {
+      "cell": "NHAP_THUCHI!N2",
+      "error": "Array result was not expanded because it would overwrite data in N356.",
+      "collisionCountBeforeMigration": 127,
+      "collisionCountAfterMigration": 0,
+      "resolvedAt": "2026-09-10",
+      "migrationRecord": "docs/schema/fund_filter_migration_20260910.json",
+      "contract": "N2 owns the ARRAYFORMULA; N3:N must not receive row formulas"
+    }
+  }
+}

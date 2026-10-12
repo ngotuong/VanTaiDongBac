@@ -63,8 +63,8 @@ test('retry and worker lifecycle preserve patches, filters, logs, and retry stat
   const { repository, calls } = loadRepository();
   repository.retry('job-1', 'retry-at');
   repository.markProcessing('job-1', { attempt: 1, workerId: 'worker-1', claimedAt: 'claimed', idempotencyKey: 'request-1' });
-  repository.markSynced('job-1', { inserted: 1 }, 'synced-at');
-  repository.markFailure('job-1', 'pending', 'synthetic failure', 'next-run', { attempt: 1, retryable: true });
+  repository.markSynced('job-1', { inserted: 1 }, 'synced-at', 'worker-1');
+  repository.markFailure('job-1', 'pending', 'synthetic failure', 'next-run', { attempt: 1, retryable: true }, 'worker-1');
   const updates = calls.filter((call) => call.operation === 'update');
   assert.deepEqual(JSON.parse(JSON.stringify(updates)), [
     {
@@ -75,12 +75,12 @@ test('retry and worker lifecycle preserve patches, filters, logs, and retry stat
     {
       operation: 'update', tableName: 'write_jobs',
       patch: { status: 'synced', result: { inserted: 1 }, synced_at: 'synced-at', locked_at: null, last_error: '' },
-      filters: { id: 'eq.job-1' }
+      filters: { id: 'eq.job-1', status: 'eq.processing', worker_id: 'eq.worker-1' }
     },
     {
       operation: 'update', tableName: 'write_jobs',
       patch: { status: 'pending', last_error: 'synthetic failure', locked_at: null, next_run_at: 'next-run' },
-      filters: { id: 'eq.job-1' }
+      filters: { id: 'eq.job-1', status: 'eq.processing', worker_id: 'eq.worker-1' }
     }
   ]);
   assert.deepEqual(calls.filter((call) => call.operation === 'insert').map((call) => call.rows[0].status), [

@@ -7,7 +7,6 @@ import { aggregateDashboardPeriod, buildKpiMap, countUniqueVehicles, formatCurre
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { exportCardAsImage } from '../../lib/platform/export-card';
 import { showToast } from '../../lib/platform/toast';
-import { useSwipeDismiss } from '../platform/useSwipeDismiss';
 import { useVisibleRevalidation } from '../platform/useVisibleRevalidation';
 
 type MetricSpec = { key: DashboardMetricKey; label: string; fullLabel: string; badge: 'blue' | 'red' | 'amber' | 'green'; invert?: boolean; icon: React.ReactNode };
@@ -57,20 +56,13 @@ function periodLabel(start: string, end: string) {
 function DashboardPeriodDrawer({ months, start, end, onApply, onClose }: { months: string[]; start: string; end: string; onApply: (start: string, end: string) => void; onClose: () => void }) {
   const [draftStart, setDraftStart] = useState(start);
   const [draftEnd, setDraftEnd] = useState(end);
-  const [entered, setEntered] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const swipe = useSwipeDismiss({ onDismiss: onClose });
-  const closeRef = useRef(swipe.close);
-  useEffect(() => { closeRef.current = swipe.close; }, [swipe.close]);
+  const closeRef = useRef(onClose);
+  useEffect(() => { closeRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
     document.body.classList.add('dashboard-period-drawer-open');
-    let enterFrame = window.requestAnimationFrame(() => {
-      enterFrame = window.requestAnimationFrame(() => {
-        setEntered(true);
-        titleRef.current?.focus();
-      });
-    });
+    const enterFrame = window.requestAnimationFrame(() => titleRef.current?.focus());
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') closeRef.current();
     };
@@ -90,27 +82,48 @@ function DashboardPeriodDrawer({ months, start, end, onApply, onClose }: { month
   };
   const apply = () => {
     onApply(draftStart, draftEnd);
-    swipe.close();
+    onClose();
   };
+  const latestMonth = months.at(-1) || '';
+  const now = new Date();
+  const calendarMonth = `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+  const currentMonth = months.includes(calendarMonth) ? calendarMonth : latestMonth;
+  const currentIndex = Math.max(0, months.indexOf(currentMonth));
+  const previousMonth = months[Math.max(0, currentIndex - 1)] || currentMonth;
+  const recentStart = months[Math.max(0, currentIndex - 2)] || currentMonth;
+  const currentYear = currentMonth.split('/')[1] || '';
+  const yearStart = months.find((month) => month.endsWith(`/${currentYear}`)) || months[0] || currentMonth;
+  const presets = [
+    { label: 'Tháng này', start: currentMonth, end: currentMonth },
+    { label: 'Tháng trước', start: previousMonth, end: previousMonth },
+    { label: '3 tháng gần nhất', start: recentStart, end: currentMonth },
+    { label: 'Năm nay', start: yearStart, end: currentMonth }
+  ];
 
   return <BodyPortal>
-    <div className={`dashboard-period-backdrop${swipe.closing ? ' closing' : ''}`} aria-hidden="true" onClick={swipe.close}/>
+    <div className="dashboard-period-backdrop" aria-hidden="true" onClick={onClose}/>
     <section
-      className={`dashboard-period-drawer swipe-dismiss-surface${swipe.closing ? ' closing' : ''}`}
+      className="dashboard-period-drawer"
       role="dialog"
       aria-modal="true"
       aria-labelledby="dashboard-period-title"
-      style={{ '--drawer-swipe-offset': entered ? '0px' : '100dvh' } as React.CSSProperties}
-      {...swipe.gestureProps}
     >
-      <header className="dashboard-period-drawer-head" data-swipe-dismiss-handle>
-        <span className="dashboard-period-drawer-handle" aria-hidden="true"/>
+      <header className="dashboard-period-drawer-head">
         <h2 id="dashboard-period-title" ref={titleRef} tabIndex={-1}>Chọn kỳ Tổng quan</h2>
-        <button type="button" className="dashboard-period-close" aria-label="Đóng bộ lọc kỳ" onClick={swipe.close}>
-          <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        <button type="button" className="dashboard-period-close" aria-label="Đóng bộ lọc kỳ" onClick={onClose}>
+          <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
         </button>
       </header>
       <div className="dashboard-period-drawer-body">
+        <div className="dashboard-period-presets" aria-label="Chọn kỳ nhanh">
+          {presets.map((preset) => <button
+            type="button"
+            key={preset.label}
+            className={draftStart === preset.start && draftEnd === preset.end ? 'active' : ''}
+            aria-pressed={draftStart === preset.start && draftEnd === preset.end}
+            onClick={() => { setDraftStart(preset.start); setDraftEnd(preset.end); }}
+          >{preset.label}</button>)}
+        </div>
         <div className="dashboard-period-fields">
           <label><span>Từ tháng</span><select className="platform-content-select" value={draftStart} onChange={(event) => changeStart(event.target.value)}>{months.map((month) => <option key={month} value={month}>{month}</option>)}</select></label>
           <label><span>Đến tháng</span><select className="platform-content-select" value={draftEnd} onChange={(event) => setDraftEnd(event.target.value)}>{endOptions.map((month) => <option key={month} value={month}>{month}</option>)}</select></label>
@@ -164,11 +177,13 @@ function SubMetricCard({ spec, row, previous, kpiMap }: { spec: MetricSpec; row:
   </article>;
 }
 
-function ProfitChart({ rows }: { rows: DashboardMonthRow[] }) {
-  const data = rows.filter((row) => row.month).slice(-12);
+type ProfitChartMonth = { month: string; row: DashboardMonthRow | null };
+
+function ProfitChart({ months }: { months: ProfitChartMonth[] }) {
+  const data = months.filter((item) => item.row);
   if (!data.length) return <div className="panel-note">Chưa có dữ liệu báo cáo lợi nhuận.</div>;
   const step = 500_000_000;
-  const maxValue = Math.max(...data.map((row) => Math.abs(row.final)), 1);
+  const maxValue = Math.max(...data.map((item) => Math.abs(item.row?.final || 0)), 1);
   const max = Math.max(step, Math.ceil(maxValue / step) * step);
   const ticks: number[] = [];
   for (let value = max; value >= 0; value -= step) ticks.push(value);
@@ -178,11 +193,14 @@ function ProfitChart({ rows }: { rows: DashboardMonthRow[] }) {
     <div className="chart-area" style={{ flex: 1, position: 'relative', overflowX: 'auto' }}>
       <div className="chart-grid-lines" style={{ position: 'absolute', left: 0, right: 0, height: 130, bottom: 23, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none', zIndex: 1 }}>{ticks.map((value) => <div key={value} style={{ borderBottom: value === 0 ? '2px solid var(--muted)' : '1px dashed var(--line)', width: '100%' }}/>)}</div>
       <div className="chart-v" style={{ position: 'relative', zIndex: 2, background: 'transparent', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: 190, width: '100%', gap: 8 }}>
-        {data.map((row) => { const percent = Math.max(2, Math.round(Math.abs(row.final) / max * 100)); return <div className="chart-col" key={row.month}>
-          <div className="bar-value tabular-nums">{row.final < 0 ? '-' : ''}{formatCurrencyText(Math.abs(row.final))}</div>
-          <div className="bar-track-v"><div className="bar-fill-v" style={{ height: `${percent}%`, borderRadius: '6px 6px 0 0', background: row.final < 0 ? 'linear-gradient(180deg, #f87171, var(--red))' : 'linear-gradient(180deg, var(--teal), var(--deep-2))', width: '100%' }}/></div>
-          <div className="bar-label">{row.month}</div>
-        </div>; })}
+        {months.map(({ month, row }) => {
+          const percent = row ? Math.max(2, Math.round(Math.abs(row.final) / max * 100)) : 0;
+          return <div className={`chart-col${row ? '' : ' is-empty'}`} key={month}>
+            <div className="bar-value tabular-nums">{row ? `${row.final < 0 ? '-' : ''}${formatCurrencyText(Math.abs(row.final))}` : '—'}</div>
+            <div className="bar-track-v">{row ? <div className="bar-fill-v" style={{ height: `${percent}%`, borderRadius: '6px 6px 0 0', background: row.final < 0 ? 'linear-gradient(180deg, #f87171, var(--red))' : 'linear-gradient(180deg, var(--teal), var(--deep-2))', width: '100%' }}/> : null}</div>
+            <div className="bar-label">{month}</div>
+          </div>;
+        })}
       </div>
     </div>
   </div>;
@@ -310,6 +328,14 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
   const endIndex = Math.max(startIndex, monthList.indexOf(effectiveEnd));
   const selectedRows = rows.slice(startIndex, endIndex + 1);
   const selectedPeriod = periodLabel(effectiveStart, effectiveEnd);
+  const chartYear = effectiveEnd.split('/')[1] || latestMonth.split('/')[1] || String(new Date().getFullYear());
+  const profitChartMonths = useMemo<ProfitChartMonth[]>(() => {
+    const byMonth = new Map(rows.map((row) => [row.month, row]));
+    return Array.from({ length: 12 }, (_, index) => {
+      const month = `${String(index + 1).padStart(2, '0')}/${chartYear}`;
+      return { month, row: byMonth.get(month) || null };
+    });
+  }, [rows, chartYear]);
   const selected = useMemo(() => aggregateDashboardPeriod(selectedRows, kpiMap, selectedPeriod), [selectedRows, kpiMap, selectedPeriod]);
   const previous = useMemo(() => {
     const periodLength = selectedRows.length;
@@ -350,10 +376,10 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
     </div>
     <section className="table-card high-density-table" style={{ marginBottom: 20 }}>
       <div className="table-card-head">
-        <div><div className="table-title">Biểu Đồ Lợi Nhuận Thực <span style={{ opacity: 0.85, fontWeight: 700, fontSize: '0.9em', marginLeft: 4 }}>({selectedPeriod})</span></div></div>
+        <div><div className="table-title">Biểu Đồ Lợi Nhuận Thực <span style={{ opacity: 0.85, fontWeight: 700, fontSize: '0.9em', marginLeft: 4 }}>({chartYear})</span></div></div>
         <div className="dashboard-export-actions"><ExportButton title="Lợi nhuận thực"/></div>
       </div>
-      <div className="table-wrap" style={{ padding: '0 16px 16px' }}><ProfitChart rows={selectedRows}/></div>
+      <div className="table-wrap" style={{ padding: '0 16px 16px' }}><ProfitChart months={profitChartMonths}/></div>
     </section>
     <section className="table-card high-density-table" style={{ marginBottom: 20 }}>
       <div className="table-card-head">
@@ -367,7 +393,7 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
         <div><div className="table-title" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>Dữ Liệu Chuyến Gần Đây{dashboard?.latestTrips?.date ? <span style={{ color: '#a7f3d0', fontWeight: 700, fontSize: 13 }}>({dashboard.latestTrips.date})</span> : null}</div></div>
         <div className="dashboard-export-actions"><ExportButton title="Số chuyến xe"/></div>
       </div>
-      <div className="table-wrap"><table><thead><tr><th style={{ width: '22%', textAlign: 'left' }}>Dự án</th><th style={{ width: '22%', textAlign: 'left' }}>Biển số xe</th><th style={{ width: '20%', textAlign: 'left' }}>Số chuyến</th><th style={{ width: '36%', textAlign: 'left' }}>Số phiếu</th></tr></thead><tbody>{trips.length ? <>{trips.map((trip: DashboardTrip, index) => <tr key={`${trip.project}-${trip.vehicle}-${index}`}><td style={{ fontWeight: 600, textAlign: 'left' }}>{trip.project || '-'}</td><td style={{ fontWeight: 700, color: 'var(--deep)', textAlign: 'left' }}>{trip.vehicle || ''}</td><td className="tabular-nums" style={{ fontWeight: 600, textAlign: 'left' }}>{Number(trip.count || 0).toLocaleString('vi-VN')}</td><td style={{ color: 'var(--muted)', textAlign: 'left' }}>{trip.ticket || '-'}</td></tr>)}<tr className="total-row" style={{ position: 'sticky', bottom: 0, fontWeight: 800 }}><td style={{ fontWeight: 800, color: 'var(--deep)', textAlign: 'left' }}>Tổng cộng</td><td style={{ fontWeight: 800, color: 'var(--teal)', textAlign: 'left' }}>{uniqueVehicleCount ? `${uniqueVehicleCount} xe` : '-'}</td><td className="tabular-nums" style={{ fontWeight: 800, color: 'var(--teal)', textAlign: 'left' }}>{trips.reduce((sum, trip) => sum + Number(trip.count || 0), 0).toLocaleString('vi-VN')}</td><td style={{ textAlign: 'left' }}/></tr></> : <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--muted)', padding: 24 }}>Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>}</tbody></table></div>
+      <div className="table-wrap"><table className="dashboard-latest-trips-table"><thead><tr><th style={{ width: '22%', textAlign: 'left' }}>Dự án</th><th style={{ width: '22%', textAlign: 'left' }}>Biển số xe</th><th style={{ width: '20%', textAlign: 'left' }}>Số chuyến</th><th style={{ width: '36%', textAlign: 'left' }}>Số phiếu</th></tr></thead><tbody>{trips.length ? <>{trips.map((trip: DashboardTrip, index) => <tr key={`${trip.project}-${trip.vehicle}-${index}`}><td style={{ fontWeight: 600, textAlign: 'left' }}>{trip.project || '-'}</td><td className="dashboard-trip-vehicle" style={{ fontWeight: 700, textAlign: 'left' }}>{trip.vehicle || ''}</td><td className="tabular-nums" style={{ fontWeight: 600, textAlign: 'left' }}>{Number(trip.count || 0).toLocaleString('vi-VN')}</td><td className="dashboard-trip-ticket" style={{ textAlign: 'left' }}>{trip.ticket || '-'}</td></tr>)}<tr className="total-row" style={{ position: 'sticky', bottom: 0, fontWeight: 800 }}><td style={{ fontWeight: 800, textAlign: 'left' }}>Tổng cộng</td><td className="dashboard-trip-total" style={{ fontWeight: 800, textAlign: 'left' }}>{uniqueVehicleCount ? `${uniqueVehicleCount} xe` : '-'}</td><td className="dashboard-trip-total tabular-nums" style={{ fontWeight: 800, textAlign: 'left' }}>{trips.reduce((sum, trip) => sum + Number(trip.count || 0), 0).toLocaleString('vi-VN')}</td><td style={{ textAlign: 'left' }}/></tr></> : <tr><td colSpan={4} className="dashboard-trip-ticket" style={{ textAlign: 'center', padding: 24 }}>Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>}</tbody></table></div>
     </section>
     {periodDrawerOpen && monthList.length ? <DashboardPeriodDrawer months={monthList} start={effectiveStart} end={effectiveEnd} onApply={(start, end) => setPeriodRange({ start, end })} onClose={() => setPeriodDrawerOpen(false)}/> : null}
   </section>;

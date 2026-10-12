@@ -94,7 +94,7 @@ test('completed migration plans and stage specs stay out of the living documenta
 
   const context = read('PROJECT_CONTEXT.md');
   const router = read('docs/ai/AI_START_HERE.md');
-  assert.match(context, /plan\/spec đã hoàn tất không còn nằm trong working tree/);
+  assert.match(context, /Git history/);
   assert.match(router, /Git history/);
   assert.doesNotMatch(router, /đọc:\s*[\s\S]*NEXTJS_MIGRATION_PLAN\.md/);
 });

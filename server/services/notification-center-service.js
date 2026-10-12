@@ -13,6 +13,66 @@ const REALTIME_WORKER_DEPENDENCIES = new Set([
   'notification_pipeline'
 ]);
 const SYSTEM_FAILURE_LOOKBACK_MINUTES = 24 * 60;
+const DAILY_ACTUAL_CASH_EXCLUDED_CATEGORIES = new Set([
+  'gop quy',
+  'xang dau', 'dau', 'chi phi dau', 'dau nhien lieu', 'nhien lieu',
+  'thue doanh nghiep', 'thue tndn', 'tndn', 'thue vat', 'vat', 'thue gtgt',
+  'phi di duong', 'phi duong bo', 'phi duong',
+  'tra luong', 'ung luong',
+  'tra no', 'tra lai'
+]);
+const DAILY_FUEL_CATEGORIES = new Set(['xang dau', 'dau', 'chi phi dau', 'dau nhien lieu', 'nhien lieu']);
+function syncSourceLabel(syncKey) {
+  const key = String(syncKey || '');
+  if (key === 'realtime_cache_worker') return 'Worker đồng bộ nền';
+  if (key === 'realtime_cache' || key === 'realtime_cache_tick') return 'Đồng bộ nền định kỳ';
+  if (key === 'notification_pipeline') return 'Pipeline thông báo';
+  if (key === 'trip_notifications') return 'Đối soát số chuyến';
+  if (key === 'operational_notifications') return 'Thông báo vận hành';
+  if (key === 'daily_business_summary') return 'Thông báo tổng hợp ngày';
+  if (key === 'external_sync_watchdog') return 'Watchdog giám sát đồng bộ';
+  if (key === 'refresh_queue_deferred:transport') return 'Hàng đợi Báo cáo vận tải';
+  if (key.startsWith('refresh_queue_deferred:fund')) return 'Hàng đợi Quỹ Thu Chi';
+  if (key === 'transport_reports_manual_sheet') return 'Báo cáo vận tải';
+  if (key.startsWith('payroll_explanations:')) return 'Giải trình bảng lương';
+  if (key === 'fund_manual_sheet') return 'Quỹ Thu Chi';
+  if (key === 'dashboard') return 'Tổng quan';
+  if (key.startsWith('transport_sheet_change:')) return 'Dữ liệu Vận tải';
+  if (key.startsWith('manage_data:')) return 'Dữ liệu Vận hành';
+  if (key.startsWith('fund_')) return 'Dữ liệu Quỹ Thu Chi';
+  if (key.startsWith('startup:') || key.startsWith('catalog')) return 'Danh mục và biểu mẫu';
+  return 'Tác vụ đồng bộ hệ thống';
+}
+
+function statusUpdatedAt(row) {
+  const value = new Date(row?.updated_at || row?.synced_at || 0);
+  return Number.isNaN(value.getTime()) ? null : value;
+}
+
+function hasNewerRecoveryEvidence(row, syncStatuses) {
+  const syncKey = String(row?.sync_key || '');
+  if (syncKey.startsWith('payroll_explanations:')) {
+    const failedAt = statusUpdatedAt(row);
+    if (!failedAt) return false;
+    return syncStatuses.some((candidate) => {
+      if (!String(candidate?.sync_key || '').startsWith('payroll_explanations:')) return false;
+      if (String(candidate?.status || '').toLowerCase() !== 'ok') return false;
+      const recoveredAt = statusUpdatedAt(candidate);
+      return recoveredAt && recoveredAt.getTime() > failedAt.getTime();
+    });
+  }
+  const recoveryKey = syncKey === 'refresh_queue_deferred:transport'
+    ? 'transport_reports_manual_sheet'
+    : (syncKey.startsWith('refresh_queue_deferred:fund') ? 'fund_manual_sheet' : '');
+  if (!recoveryKey) return false;
+  const failedAt = statusUpdatedAt(row);
+  if (!failedAt) return false;
+  return syncStatuses.some((candidate) => {
+    if (candidate?.sync_key !== recoveryKey || String(candidate?.status || '').toLowerCase() !== 'ok') return false;
+    const recoveredAt = statusUpdatedAt(candidate);
+    return recoveredAt && recoveredAt.getTime() > failedAt.getTime();
+  });
+}
 
 function createNotificationCenterService({ repository, httpError, send, now = () => new Date() }) {
   function handles(action) { return action === 'getNotifications'; }
@@ -42,29 +102,51 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
   }
   function dailyFundTotals(row, targetDateKey) {
     const payload = row?.payload;
-    if (!payload || typeof payload !== 'object') return { fundAvailable: false, fundIncome: null, fundExpense: null, fundNet: null };
-    const totalFor = (groups) => (Array.isArray(groups) ? groups : [])
-      .flatMap((group) => Array.isArray(group?.details) ? group.details : [])
-      .filter((item) => String(item?.date || '').slice(0, 10) === targetDateKey)
-      .reduce((sum, item) => sum + (Number.isFinite(Number(item?.amount)) ? Number(item.amount) : 0), 0);
-    const fundIncome = totalFor(payload.incomeCategories);
-    const fundExpense = totalFor(payload.expenseCategories);
-    return { fundAvailable: true, fundIncome, fundExpense, fundNet: fundIncome - fundExpense };
+    if (!payload || typeof payload !== 'object') return { fundAvailable: false, fundIncome: null, fundExpense: null, fundFuelExpense: null, fundGrossExpense: null, fundNet: null };
+    const normalizeCategory = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const detailsFor = (groups) => (Array.isArray(groups) ? groups : []).flatMap((group) =>
+      (Array.isArray(group?.details) ? group.details : []).map((item) => ({ ...item, category: item?.category || group?.category || '' }))
+    ).filter((item) => String(item?.date || '').slice(0, 10) === targetDateKey);
+    const total = (items) => items.reduce((sum, item) => sum + (Number.isFinite(Number(item?.amount)) ? Number(item.amount) : 0), 0);
+    const incomeDetails = detailsFor(payload.incomeCategories);
+    const expenseDetails = detailsFor(payload.expenseCategories);
+    const fuelDetails = expenseDetails.filter((item) => DAILY_FUEL_CATEGORIES.has(normalizeCategory(item.category)));
+    const actualCashDetails = expenseDetails.filter((item) => !DAILY_ACTUAL_CASH_EXCLUDED_CATEGORIES.has(normalizeCategory(item.category)));
+    const excludedDetails = expenseDetails.filter((item) => DAILY_ACTUAL_CASH_EXCLUDED_CATEGORIES.has(normalizeCategory(item.category)));
+    const fundIncome = total(incomeDetails);
+    const fundExpense = total(actualCashDetails);
+    const fundFuelExpense = total(fuelDetails);
+    const fundExcludedExpense = total(excludedDetails);
+    const fundGrossExpense = total(expenseDetails);
+    return { fundAvailable: true, fundIncome, fundExpense, fundFuelExpense, fundExcludedExpense, fundGrossExpense, fundNet: fundIncome - fundGrossExpense };
   }
   function dailySummary(row, fundRow, currentTime, targetDateKey) {
     const payload = row?.payload;
     if (!payload || typeof payload !== 'object') return null;
-    return {
+    const transport = {
       date: isoDate(payload.date || row.synced_at, currentTime),
       displayDate: String(payload.displayDate || ''),
       trips: Number(payload.trips) || 0,
       volume: Number(payload.volume) || 0,
       revenue: Number(payload.revenue) || 0,
+      fuelExpense: Number(payload.fuelExpense) || 0,
+      fuelAvailable: payload.fuelAvailable === true,
+      salaryExpense: Number(payload.salaryExpense) || 0,
+      salaryAvailable: payload.salaryAvailable === true,
       vehicleCount: Number(payload.vehicleCount) || 0,
       projectCount: Number(payload.projectCount) || 0,
       syncedAt: payload.syncedAt || row.synced_at || null,
-      fundSyncedAt: fundRow?.synced_at || null,
-      ...dailyFundTotals(fundRow, targetDateKey)
+      fundSyncedAt: fundRow?.synced_at || null
+    };
+    const fund = dailyFundTotals(fundRow, targetDateKey);
+    const grossProfitAvailable = transport.fuelAvailable && transport.salaryAvailable && fund.fundAvailable;
+    return {
+      ...transport,
+      ...fund,
+      grossProfitAvailable,
+      grossProfit: grossProfitAvailable
+        ? transport.revenue - transport.fuelExpense - transport.salaryExpense - fund.fundExpense
+        : null
     };
   }
   function systemItems(snapshot, currentTime) {
@@ -80,9 +162,9 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
     const watchdogAuthorizationRequired = String(watchdogFailure?.status || '').toLowerCase() === 'authorization_required';
     const watchdogDeploymentAccessDenied = String(watchdogFailure?.status || '').toLowerCase() === 'deployment_access_denied';
     const safeSyncFailureMessage = (row, stale, ageMinutes) => {
-      if (stale) return `Dữ liệu chưa cập nhật trong ${Math.floor(ageMinutes)} phút. Hãy mở Trạng thái đồng bộ để kiểm tra.`;
-      if (row.sync_key === 'notification_pipeline') return 'Pipeline thông báo gặp lỗi lặp lại. Hãy mở Trạng thái đồng bộ để kiểm tra.';
-      return 'Một tác vụ đồng bộ đang gặp lỗi. Hãy mở Trạng thái đồng bộ để kiểm tra.';
+      const source = syncSourceLabel(row.sync_key);
+      if (stale) return `${source} chưa cập nhật trong ${Math.floor(ageMinutes)} phút. Trạng thái: gián đoạn.`;
+      return `${source} · Trạng thái: vẫn đang lỗi (${Math.max(0, Math.floor(ageMinutes))} phút trước). Thông báo sẽ tự mất khi lượt đồng bộ kế tiếp thành công.`;
     };
 
     if (workerStale) {
@@ -112,6 +194,7 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
       if (workerStale && row.sync_key === 'external_sync_watchdog') continue;
       if (status === 'ok' && (!maxAge || ageMinutes <= maxAge)) continue;
       if (status === 'ok' && maxAge && ageMinutes <= maxAge) continue;
+      if (status !== 'ok' && hasNewerRecoveryEvidence(row, syncStatuses)) continue;
       const expiredFailure = status !== 'ok' && ageMinutes > SYSTEM_FAILURE_LOOKBACK_MINUTES;
       if (expiredFailure && !maxAge) continue;
       const stale = status === 'ok' || expiredFailure;
@@ -123,7 +206,7 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
         type: stale ? 'sync-stale' : 'sync-failure', notificationKey: 'system-health', severity: 'error',
         title: externalWatchdogAuthorizationRequired
           ? 'Đồng bộ cần được cấp lại quyền'
-          : (externalWatchdogDeploymentAccessDenied ? 'Kết nối Apps Script bị chặn' : (externalWatchdogFailure ? 'Không thể tự khôi phục đồng bộ' : (stale ? 'Dữ liệu chưa được đồng bộ mới' : 'Đồng bộ dữ liệu gặp lỗi'))),
+          : (externalWatchdogDeploymentAccessDenied ? 'Kết nối Apps Script bị chặn' : (externalWatchdogFailure ? 'Không thể tự khôi phục đồng bộ' : (stale ? `${syncSourceLabel(row.sync_key)} đã gián đoạn` : `${syncSourceLabel(row.sync_key)} gặp lỗi`))),
         message: externalWatchdogAuthorizationRequired
           ? 'Apps Script xác nhận thiếu quyền OAuth. Hãy mở đúng tài khoản chủ dự án và chạy recoverSyncInfrastructure().'
           : (externalWatchdogDeploymentAccessDenied
@@ -185,4 +268,4 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
   return { handles, handle, list };
 }
 
-module.exports = { createNotificationCenterService, CRITICAL_SYNC_KEYS, SYSTEM_FAILURE_LOOKBACK_MINUTES };
+module.exports = { createNotificationCenterService, CRITICAL_SYNC_KEYS, SYSTEM_FAILURE_LOOKBACK_MINUTES, DAILY_ACTUAL_CASH_EXCLUDED_CATEGORIES, syncSourceLabel, hasNewerRecoveryEvidence };

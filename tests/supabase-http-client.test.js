@@ -86,7 +86,7 @@ test('insert, update, and upsert request snapshots preserve methods, payloads, a
         method: 'post', muteHttpExceptions: true, contentType: 'application/json',
         headers: {
           apikey: 'test-service-key', Authorization: 'Bearer test-service-key',
-          Prefer: 'resolution=merge-duplicates,return=representation'
+          Prefer: 'resolution=merge-duplicates,return=minimal'
         },
         payload: '[{"sync_key":"dashboard"}]'
       }

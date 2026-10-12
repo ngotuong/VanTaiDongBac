@@ -21,6 +21,8 @@ export const metadata = {
 };
 export const viewport = { width: 'device-width', initialScale: 1, themeColor: '#062e2b' };
 
+const THEME_BOOTSTRAP_SCRIPT = `(function(){try{var k='vtdb-theme-preference';var p=localStorage.getItem(k);if(p!=='light'&&p!=='dark'&&p!=='system')p='system';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var t=d?'dark':'light';var r=document.documentElement;r.dataset.theme=t;r.dataset.themePreference=p;r.style.colorScheme=t;var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=d?'#07111f':'#f8fafc';}catch(e){}})();`;
+
 const STARTUP_LOADING_CRITICAL_CSS = `
   .startup-loading-screen{position:fixed;inset:0;z-index:3000;min-height:100dvh;display:grid;place-items:center;padding:24px 20px;box-sizing:border-box;overflow:hidden;background:linear-gradient(145deg,#f8fafc 0%,#f0fdfa 52%,#f8fafc 100%);font-family:"Be Vietnam Pro",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;opacity:1}
   .startup-loading-card{width:min(100%,420px);display:grid;justify-items:center;padding:36px;box-sizing:border-box;border:1px solid rgba(13,148,136,.17);border-radius:26px;background:rgba(255,255,255,.94);box-shadow:0 28px 70px -30px rgba(6,46,43,.32);text-align:center}
@@ -37,14 +39,21 @@ const STARTUP_LOADING_CRITICAL_CSS = `
   .startup-loading-copy{display:grid;gap:6px}.startup-loading-copy strong{color:#0f172a;font-size:16px;line-height:1.35}.startup-loading-copy span{color:#64748b;font-size:13px;line-height:1.5}
   .startup-loading-source{min-height:28px;display:inline-flex;align-items:center;gap:8px;margin-top:22px;padding:5px 10px;box-sizing:border-box;border:1px solid rgba(13,148,136,.14);border-radius:999px;color:#475569;background:#f0fdfa;font-size:11px;font-weight:650}
   .startup-loading-source-dot{width:7px;height:7px;border-radius:50%;background:#10b981}
+  :root[data-theme="dark"] .startup-loading-screen{background:radial-gradient(circle at 15% 10%,rgba(20,184,166,.16),transparent 34%),radial-gradient(circle at 88% 88%,rgba(56,189,248,.09),transparent 38%),#07111f}
+  :root[data-theme="dark"] .startup-loading-card{border-color:rgba(94,234,212,.2);background:rgba(17,24,39,.94);box-shadow:0 28px 70px -30px rgba(0,0,0,.8)}
+  :root[data-theme="dark"] .startup-loading-logo-wrap{border-color:rgba(94,234,212,.24);background:#111827}
+  :root[data-theme="dark"] .startup-loading-card h1,:root[data-theme="dark"] .startup-loading-copy strong{color:#e5f3f1}
+  :root[data-theme="dark"] .startup-loading-copy span{color:#a7b6c2}
+  :root[data-theme="dark"] .startup-loading-source{border-color:rgba(94,234,212,.18);color:#a7b6c2;background:rgba(20,35,31,.9)}
   @keyframes startup-loading-travel{0%{opacity:.45;transform:translate3d(0,0,0) scale(.86)}18%,82%{opacity:1}100%{opacity:.45;transform:translate3d(202px,0,0) scale(.86)}}
   @media(max-width:640px){.startup-loading-screen{padding:18px 14px}.startup-loading-card{width:min(100%,360px);padding:28px 22px;border-radius:22px}}
   @media(prefers-reduced-motion:reduce){.startup-loading-marker{animation-duration:.01ms!important;opacity:1;transform:translate3d(101px,0,0)}}
 `;
 
 function C2Document({ children }) {
-  return <html lang="vi">
+  return <html lang="vi" suppressHydrationWarning>
     <head>
+      <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />

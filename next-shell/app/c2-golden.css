@@ -169,9 +169,9 @@
       border-color: var(--line);
     }
 
-    :root[data-theme="dark"] input,
-    :root[data-theme="dark"] select,
-    :root[data-theme="dark"] textarea,
+    :root[data-theme="dark"] input:not([data-business-control]),
+    :root[data-theme="dark"] select:not([data-business-control]),
+    :root[data-theme="dark"] textarea:not([data-business-control]),
     :root[data-theme="dark"] .ac-input {
       background: #0b1220 !important;
       border-color: var(--line) !important;
@@ -197,13 +197,13 @@
       border-color: rgba(148, 163, 184, 0.16) !important;
     }
 
-    :root[data-theme="dark"] button:not(.primary):not(.sub-tab.active):not(.nav-btn.active) {
+    :root[data-theme="dark"] button:not([data-business-control]):not(.primary):not(.sub-tab.active):not(.nav-btn.active) {
       background: rgba(15, 23, 42, 0.82);
       border-color: var(--line);
       color: var(--ink);
     }
 
-    :root[data-theme="dark"] button:not(.primary):not(.sub-tab.active):not(.nav-btn.active):hover {
+    :root[data-theme="dark"] button:not([data-business-control]):not(.primary):not(.sub-tab.active):not(.nav-btn.active):hover {
       background: var(--mint-soft);
       color: var(--teal);
     }
@@ -2711,13 +2711,17 @@
       color: var(--muted);
       cursor: pointer;
       line-height: 1;
-      padding: 4px;
-      border-radius: 50%;
+      padding: 0;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
+      box-sizing: border-box;
+      flex: 0 0 44px;
+      width: 44px;
+      min-width: 44px;
+      height: 44px;
+      min-height: 44px;
       transition: background 0.15s;
     }
     .modal-close-btn:hover {
@@ -5027,7 +5031,7 @@ body > .modal-overlay .modal-body { flex: 1 1 auto; min-height: 0; overflow-x: h
 .manage-entry-embedded > #entryShell { pointer-events: auto; }
 @media (min-width: 901px) {
   .manage-entry-embedded { inset: 16px; width: min(1180px,calc(100vw - 32px)); height: calc(100dvh - 32px); margin: auto; border: 1px solid var(--line); border-radius: 20px; background: var(--canvas); box-shadow: var(--shadow-xl),0 24px 70px rgba(15,23,42,.24); }
-  .manage-entry-embedded > #entryShell { display: grid !important; width: 100%; height: 100%; min-height: 0; box-sizing: border-box; padding: 16px; overflow: hidden; }
+  .manage-entry-embedded > #entryShell { display: grid !important; width: 100%; height: 100%; min-height: 0; box-sizing: border-box; padding: 16px 16px 0; overflow: hidden; }
   .manage-entry-embedded .entry-panel { display: flex; flex-direction: column; min-height: 0; }
   .manage-entry-embedded .entry-rows { flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; overscroll-behavior: contain; }
   .manage-entry-embedded .submit-bar { flex: 0 0 auto; }
@@ -6531,10 +6535,10 @@ body > .cashflow-c2.fund-detail-drawer.open {
 .modal-grid input[type="date"],
 .modal-grid input[type="number"],
 .modal-grid select,
-.cashflow-c2 input[type="text"],
-.cashflow-c2 input[type="date"],
-.cashflow-c2 input[type="number"],
-.cashflow-c2 select,
+.cashflow-c2 input[type="text"]:not([data-business-control]),
+.cashflow-c2 input[type="date"]:not([data-business-control]),
+.cashflow-c2 input[type="number"]:not([data-business-control]),
+.cashflow-c2 select:not([data-business-control]),
 .cashflow-c2 .custom-date-box {
   height: 48px !important;
   min-height: 48px !important;
@@ -6555,7 +6559,7 @@ body > .cashflow-c2.fund-detail-drawer.open {
 }
 
 .modal-grid textarea,
-.cashflow-c2 textarea {
+.cashflow-c2 textarea:not([data-business-control]) {
   min-height: 80px !important;
   font-size: 15px !important;
   font-weight: 500 !important;

@@ -203,13 +203,15 @@ Không được giả định một bundle tháng tự chứa dữ liệu ngoài
 
 ### 6.4. Luồng notification, daily digest và app badge
 
-Mỗi tick notification chạy theo thứ tự: đồng bộ đối soát chuyến, đồng bộ cảnh báo vận hành, tổng hợp ngày Việt Nam liền trước từ `XL_VanChuyen`, rồi dispatch. Lúc 12:00 trưa ngày hôm sau, Vercel ghép bundle Vận tải này với đúng bundle Tổng quan Quỹ của tháng chứa ngày liền trước và lọc `details` theo exact date. Push gồm số chuyến, doanh thu, Chi/Thu Quỹ, số xe, tổng khối lượng và số dự án; khoản Quỹ giữ cùng quy tắc KPI nên bao gồm cả trả nợ/trả lãi. Khi thiếu một nguồn, thông báo phải nêu rõ nguồn chưa có dữ liệu, không thay bằng 0 hoặc số lượng cảnh báo chung.
+Mỗi tick notification chạy theo thứ tự: đồng bộ đối soát chuyến, đồng bộ cảnh báo vận hành, tổng hợp ngày Việt Nam liền trước từ `XL_VanChuyen`, rồi dispatch. Đối soát so bundle trước với trạng thái hiện tại để phát một sự kiện thành công khi dòng từng lệch vừa chuyển sang `Khớp`; dòng vốn đã khớp không sinh thông báo và kết quả thành công chỉ được giữ 48 giờ. ID của nhóm “Tất cả số chuyến đã khớp” được tạo từ tập sự kiện đã hồi phục và thời điểm hồi phục, không phụ thuộc ngày worker chạy lại, nên trạng thái đã đọc giữ nguyên qua nửa đêm. Lúc 12:00 trưa ngày hôm sau, push chỉ gồm số chuyến, số xe, doanh thu, chi phí dầu, lương chuyến và lợi nhuận gộp trên các dòng riêng. Lợi nhuận gộp lấy doanh thu trừ dầu và lương chuyến đúng ngày; thuế, phí đi đường, BHXH, lương cứng, thưởng tháng và Chi Quỹ thuộc báo cáo tháng nên không tham gia. Doanh thu được resolve bằng exact header trong `XL_VanChuyen`, không dùng index cột cố định. Khi thiếu dầu, lương hoặc header bắt buộc, pipeline phải nêu rõ chưa có dữ liệu, không thay bằng 0 hoặc tổng một phần.
 
 Chuông và icon PWA dùng một nghĩa duy nhất: số thông báo chưa đọc trên thiết bị. Khi app mở, client gửi số tuyệt đối cho service worker. Khi app đóng và có sự kiện nghiệp vụ mới, push chỉ cộng `unreadDelta`; daily digest giữ nguyên badge. Badge state là một con số cục bộ, tách khỏi cache nghiệp vụ và được sửa lại theo trạng thái chuông ở lần app hoạt động tiếp theo.
 
 ### 6.5. Bộ lọc kỳ Tổng quan
 
-Dashboard không suy diễn số liệu tài chính theo ngày. Browser lấy các dòng báo cáo tháng đã có trong `BC_TongQuan` qua dashboard bundle, chọn inclusive từ tháng đầu đến tháng cuối rồi cộng toàn bộ trường doanh thu, chi phí, thuế, nhiên liệu, phí, lương, quỹ và lợi nhuận. KPI override đã hydrate tiếp tục được ưu tiên cho từng tháng trước khi cộng. So sánh tăng/giảm dùng khoảng liền trước có cùng số tháng nếu đủ dữ liệu; biểu đồ lợi nhuận chỉ render các tháng trong khoảng. Bảng chuyến gần đây vẫn là snapshot ngày mới nhất độc lập.
+Dashboard không suy diễn số liệu tài chính theo ngày. Browser lấy các dòng báo cáo tháng đã có trong `BC_TongQuan` qua dashboard bundle, chọn inclusive từ tháng đầu đến tháng cuối rồi cộng toàn bộ trường doanh thu, chi phí, thuế, nhiên liệu, phí, lương, quỹ và lợi nhuận. KPI override đã hydrate tiếp tục được ưu tiên cho từng tháng trước khi cộng. So sánh tăng/giảm dùng khoảng liền trước có cùng số tháng nếu đủ dữ liệu; biểu đồ lợi nhuận chỉ render các tháng trong khoảng. Bộ chọn kỳ là modal giữa viewport, mặc định tháng hiện tại nếu có dữ liệu và fallback tháng mới nhất; preset gồm Tháng này, Tháng trước, 3 tháng gần nhất và Năm nay, đồng thời vẫn cho chọn `Từ tháng`–`Đến tháng` hoặc Tất cả kỳ. Bảng chuyến gần đây vẫn là snapshot ngày mới nhất độc lập.
+
+Trên thiết bị cảm ứng nhỏ, shell cho phép kéo xuống từ vùng không tương tác của header khi trang đang ở đầu để gọi đúng refresh handler của module hiện hành. Gesture có ngưỡng, phản hồi theo ngón tay, bỏ qua kéo ngang và bị khóa khi dialog/drawer đang mở. Nút header vẫn tồn tại trên desktop; mobile có nút dự phòng trong menu để không biến refresh thành gesture-only.
 
 ## 7. Cache phía Browser
 
@@ -613,7 +615,7 @@ Khi không biết sheet, Manage/dashboard fallback hiện tập trung hẹp vào
 - cache vẫn có thể tạm thời cũ;
 - mục tiêu edit thông thường là cache mới trong khoảng tối đa 2 phút; full structural refresh có thể lâu hơn;
 - trigger trực tiếp được cài trên cả workbook Vận tải và Thu chi; edit `NHAP_THUCHI` queue báo cáo Vận tải sau 30 giây, worker chạy ở tick một phút và hậu kiểm lại sau 2 phút;
-- edit Vận tải tạo thêm một lượt hậu kiểm báo cáo sau 2 phút; poll 5 phút fingerprint trực tiếp `BC_TongQuan`, `BC_BangLuong` và `BC_TongHopXe` theo từng tháng để bắt các thay đổi công thức xuất hiện sau snapshot đầu tiên;
+- edit Vận tải tạo thêm một lượt hậu kiểm báo cáo sau 2 phút; poll output gọn 1 phút fingerprint trực tiếp `BC_TongQuan`, `BC_BangLuong` và `BC_TongHopXe` theo từng tháng để bắt các thay đổi công thức xuất hiện sau snapshot đầu tiên; poll nguồn toàn vùng vẫn giữ 5 phút;
 - `sync_status` và audit dùng để quan sát, không phải transaction guarantee.
 
 ## 16. Luồng liên kết Thu chi → Vận tải

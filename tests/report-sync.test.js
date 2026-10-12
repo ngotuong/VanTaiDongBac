@@ -10,7 +10,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 function loadService(overrides = {}) {
   const vmContext = vm.createContext({});
   new vm.Script(read('ReportSyncService.gs'), { filename: 'ReportSyncService.gs#test' }).runInContext(vmContext);
-  const calls = { bundles: [], dashboards: [], upserts: [], statuses: [], batchStarts: 0 };
+  const calls = { bundles: [], dashboards: [], payrollExplanations: [], upserts: [], statuses: [], batchStarts: 0 };
   const syncTime = '2026-07-11T15:00:00.000Z';
   const dataVersion = 'data-version-1';
   const reportMonths = ['05/2026', '06/2026', '07/2026'];
@@ -28,6 +28,7 @@ function loadService(overrides = {}) {
     getReportDataVersion() { return dataVersion; },
     getReportCacheVersion() { return 'v13'; },
     upsertReportBundle(options) { calls.upserts.push({ operation: 'reportBundle', options }); },
+    syncPayrollExplanations(month, version) { calls.payrollExplanations.push({ month, version }); return { ok: true }; },
     getDashboard(month, forceRefresh) {
       calls.dashboards.push({ month, forceRefresh });
       return { latestTrips: { date: '04/07/2026', trips: [] } };
@@ -72,6 +73,7 @@ test('report bundle and dashboard sync preserve rows, conflict key, status, and 
     ok: true, table: 'report_bundles', spreadsheetId: 'synthetic-transport-sheet',
     reportMonth: '07/2026', dataVersion, syncedAt: syncTime
   });
+  assert.deepEqual(calls.payrollExplanations, [{ month: '07/2026', version: dataVersion }]);
   assert.deepEqual(JSON.parse(JSON.stringify(dashboard)), {
     ok: true, table: 'report_bundles', reportMonth: '__dashboard_latest__', syncedAt: syncTime
   });
@@ -81,7 +83,7 @@ test('report bundle and dashboard sync preserve rows, conflict key, status, and 
       options: {
         spreadsheetId: 'synthetic-transport-sheet', reportMonth: '07/2026',
         sourceSheetNames: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe', 'BC_TongHopDuAn'],
-        bundle: { overview: { months: [['Tháng'], ['05/2026'], ['06/2026'], ['07/2026']] }, selected: 'latest' },
+        bundle: { overview: { months: [['Tháng'], ['05/2026'], ['06/2026'], ['07/2026']] }, selected: '07/2026' },
         cacheVersion: 'v13', dataVersion, syncedAt: syncTime
       }
     },
@@ -98,6 +100,7 @@ test('report bundle and dashboard sync preserve rows, conflict key, status, and 
   assert.deepEqual(JSON.parse(JSON.stringify(calls.statuses)), [
     ['dashboard', 'transport', 'ok', 'Dashboard cache synced.', syncTime]
   ]);
+  assert.equal(calls.bundles[0].month, '07/2026');
 });
 
 test('full report sync preserves Sheet month order, all target, and isolated errors', () => {
@@ -108,6 +111,11 @@ test('full report sync preserves Sheet month order, all target, and isolated err
   assert.equal(result.failed, 0);
   assert.equal(result.dataVersion, original.dataVersion);
   assert.equal(original.calls.batchStarts, 1);
+  assert.deepEqual(original.calls.payrollExplanations, [
+    { month: '05/2026', version: original.dataVersion },
+    { month: '06/2026', version: original.dataVersion },
+    { month: '07/2026', version: original.dataVersion }
+  ]);
   assert.deepEqual(original.calls.bundles.map((call) => call.month), ['Tất cả', '05/2026', '06/2026', '07/2026']);
   assert.equal(new Set(original.calls.bundles.map((call) => call.options.dataVersion)).size, 1);
   assert.equal(original.calls.bundles.every((call) => call.options.skipInvalidation === true), true);
@@ -156,4 +164,12 @@ test('SupabaseService retains report facades while ReportSyncService owns report
   assert.match(facade, /ReportSyncService\.syncTransportReportsAfterWrite\(sheetName, rows, options, reportSyncContext_\(\)\)/);
   assert.doesNotMatch(facade, /source_sheet_names: \['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe'\]/);
   assert.match(implementation, /var DASHBOARD_REPORT_MONTH = '__dashboard_latest__'/);
+});
+
+test('report bundle fails closed and is not published when payroll explanations fail', () => {
+  const failed = loadService({
+    syncPayrollExplanations() { return { ok: false, error: 'synthetic payroll failure' }; }
+  });
+  assert.throws(() => failed.service.syncReportBundle('07/2026', failed.context), /synthetic payroll failure/);
+  assert.equal(failed.calls.upserts.length, 0);
 });

@@ -59,7 +59,8 @@ var OperationalNotificationSyncService = (function () {
       var attendanceType = clean_(row[4]);
       var sourceRow = index + 2;
       items.push({
-        id: eventId_('attendance', dateKey, employee, helper, sourceRow),
+        id: eventId_('attendance', dateKey, employee, attendanceType, helper),
+        legacyIds: [legacyEventId_('attendance', dateKey, employee, helper, sourceRow)],
         type: 'attendance',
         notificationKey: 'operations-integrity',
         severity: 'warning',
@@ -87,7 +88,8 @@ var OperationalNotificationSyncService = (function () {
       var company = clean_(row[2]);
       var sourceRow = index + 2;
       items.push({
-        id: eventId_('driver-assignment', dateKey, driver, helper, sourceRow),
+        id: eventId_('driver-assignment', dateKey, driver, company, helper),
+        legacyIds: [legacyEventId_('driver-assignment', dateKey, driver, helper, sourceRow)],
         type: 'driver-assignment',
         notificationKey: 'operations-integrity',
         severity: 'warning',
@@ -105,7 +107,19 @@ var OperationalNotificationSyncService = (function () {
     return Boolean(normalized) && ['ok', 'hợp lệ', 'hop le', 'khớp', 'khop', 'đúng', 'dung', '-'].indexOf(normalized) === -1;
   }
 
-  function eventId_(type, date, subject, helper, sourceRow) {
+  function eventId_(type, date, subject, discriminator, helper) {
+    var digest = Utilities.computeDigest(
+      Utilities.DigestAlgorithm.SHA_256,
+      [type, date, subject, discriminator, helper].join('|'),
+      Utilities.Charset.UTF_8
+    );
+    return digest.map(function (value) {
+      var byte = value < 0 ? value + 256 : value;
+      return ('0' + byte.toString(16)).slice(-2);
+    }).join('').substring(0, 32);
+  }
+
+  function legacyEventId_(type, date, subject, helper, sourceRow) {
     var digest = Utilities.computeDigest(
       Utilities.DigestAlgorithm.SHA_256,
       [type, date, subject, helper, sourceRow].join('|'),

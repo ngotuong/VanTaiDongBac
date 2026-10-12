@@ -1,56 +1,23 @@
 # Vận Tải Đông Bắc Web App
 
-Ứng dụng điều hành nội bộ dùng Next.js trên Vercel, kết nối Apps Script backend độc lập và các Google Sheet theo năm.
+Ứng dụng điều hành nội bộ: Next.js/Vercel → Apps Script standalone → Google Sheets theo module/năm. Supabase phục vụ Auth/read model/cache/queue; Sheets vẫn là source of truth. Vận tải và Thu chi là hai module riêng.
 
-## Cấu trúc chính
+## Tiếp tục công việc
 
-- `AppConfig.gs`: cấu hình runtime, spreadsheet ID active, sheet schema.
-- `Router.gs`: HTTP `doGet`/`doPost` và JSON API; không render giao diện.
-- `PublicApi.gs`: wrapper functions để gọi thủ công trong Apps Script editor.
-- `SheetService.gs`: nghiệp vụ đọc/ghi Google Sheet, báo cáo, cache.
-- `ValidationService.gs`: validate và chuẩn hóa dữ liệu nhập liệu.
-- `next-shell/`: App Router, module UI và API client/server boundary của frontend Next.js.
-- `app/`: Vercel App Router entrypoint mỏng trỏ tới source trong `next-shell/`.
-- `public/`: manifest và static assets của PWA Next.js.
-- `PROJECT_CONTEXT.md`: handoff/lộ trình sống để tiếp tục dự án giữa các cuộc trò chuyện.
-- `PROJECT_SCHEMA.md`: bản đồ schema và kiến trúc chi tiết.
-- `WORKFLOW.md`: quy trình sửa code, deploy, sync và rollback hằng ngày.
+Đọc toàn bộ [AGENTS.md](AGENTS.md), [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) và kiểm tra `git status --short`. Quy tắc, trạng thái/checkpoint và đường đọc tài liệu lần lượt do hai file này và [router](docs/ai/AI_START_HERE.md) sở hữu. Chỉ đọc owner cần thiết cho tác vụ; không đọc toàn bộ docs/artifacts.
 
-## Cấu hình file Google Sheet theo năm
+Plans/specs của checkpoint hoàn tất được tra cứu qua Git history. Snapshot/bằng chứng local trong `artifacts/` không phải backlog sống hoặc phê duyệt cho thao tác mới. R8 còn mở theo context và [runbook](docs/operations/R8_REMEDIATION.md).
 
-Script Properties hỗ trợ:
+## Source và contract
 
-- `ACTIVE_SPREADSHEET_ID`
-- `DEFAULT_SPREADSHEET_ID`
-- `SPREADSHEET_ID_2026`, `SPREADSHEET_ID_2027`, ...
+- `next-shell/`, `app/`, `public/`: presentation và PWA; frontend legacy không còn build từ source hiện hành.
+- `api/`, `server/`: API/Auth/RBAC và server boundary.
+- Root `*.gs`: Apps Script API/integration, cấu hình và nghiệp vụ Sheets; module ownership tại [MODULE_MAP](docs/architecture/MODULE_MAP.md).
+- [PROJECT_SCHEMA](PROJECT_SCHEMA.md): schema index; cấu hình workbook/API tại [SPREADSHEET_CONTRACTS](docs/contracts/SPREADSHEET_CONTRACTS.md) và [API_CONTRACTS](docs/contracts/API_CONTRACTS.md).
+- [TARGET_ARCHITECTURE](TARGET_ARCHITECTURE.md): kiến trúc đích, không phải quyền tự bắt đầu step kế tiếp.
 
-API cũng có thể nhận `year`, `spreadsheetId`, hoặc `ssId` để override file đang active.
+## Deploy và phục hồi
 
-## Deploy
+Preview frontend chỉ qua `npm run deploy:preview`, alias ổn định `vantaidongbac-preview.vercel.app`. Production/backend chỉ trong phạm vi được phê duyệt riêng; không tự chạy sync/deploy từ tài liệu lịch sử.
 
-Preview frontend (lối duy nhất được phép):
-
-```bash
-npm run deploy:preview
-```
-
-Script này tự chạy test, lint, typecheck, build, identity/diff gate, deploy candidate và chỉ gán alias `vantaidongbac-preview.vercel.app`. Không chạy trực tiếp `vercel deploy`, `vercel alias set` hoặc `vercel promote`.
-
-Production và Apps Script chỉ deploy khi có checkpoint/phê duyệt riêng. Quy trình chi tiết nằm trong `WORKFLOW.md`; rollback nằm trong `ROLLBACK.md`.
-
-Apps Script source sync/deploy thủ công không phải thao tác khởi động mặc định:
-
-```bash
-clasp push
-clasp version "<description>"
-```
-
-Sau đó phải update đúng deployment ID Preview hoặc Production đã được phê duyệt; không tạo deployment tùy ý.
-
-Frontend legacy/HtmlService đã được xóa ở D1. Rollback presentation dùng deployment Vercel C2 đã lưu, không build lại `index.html` trong source hiện tại.
-
-## Tiếp tục dự án với Codex
-
-Khi mở cuộc trò chuyện mới, yêu cầu Codex đọc `AGENTS.md` và `PROJECT_CONTEXT.md` trước. Hai file này chứa quy tắc làm việc, trạng thái hiện tại và lộ trình tiếp theo.
-
-`PROJECT_CONTEXT.md` cũng chứa timeline rút gọn toàn chương trình. Tài liệu audit/refactor/migration cũ chỉ dùng khi cần điều tra lịch sử.
+Thao tác và gate tại [WORKFLOW](WORKFLOW.md); phục hồi tại [ROLLBACK](ROLLBACK.md). ID/version/baseline hiện hành chỉ thuộc context; xác minh live trước thao tác.

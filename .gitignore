@@ -12,6 +12,7 @@
 
 # Supabase CLI local metadata
 supabase/.temp/
+.firebase/
 .vercel
 .env*
 !.env.example

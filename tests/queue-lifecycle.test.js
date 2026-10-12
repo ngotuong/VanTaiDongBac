@@ -162,6 +162,7 @@ test('runtime and migration retain atomic claim, stale reclaim, max-attempt and 
   assert.match(migration, /status = 'processing'[\s\S]*?p_stale_seconds/i);
   assert.match(migration, /create unique index[\s\S]*?on public\.write_jobs \(module, idempotency_key\)/i);
   assert.match(worker, /p_stale_seconds: STALE_SECONDS/);
-  assert.match(worker, /STALE_SECONDS = 300/);
+  assert.match(worker, /STALE_SECONDS = 900/);
+  assert.match(worker, /markSynced\(jobId, result, context\.nowISOString\(\), workerId\)/);
   assert.match(worker, /failedPermanently = attempts >= Number\(job\.max_attempts \|\| 3\)/);
 });

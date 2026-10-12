@@ -1,6 +1,8 @@
+const { withDeadline } = require('./request-deadline');
 const { accessTokenFromRequest } = require('./session-cookie-service');
 
 function createAuthService({ fetchImpl = fetch, appUserRepository, httpError }) {
+  fetchImpl = withDeadline(fetchImpl);
   function bearerToken(req) {
     const value = String(req.headers?.authorization || '');
     return value.startsWith('Bearer ') ? value.slice(7).trim() : accessTokenFromRequest(req);

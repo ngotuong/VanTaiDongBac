@@ -1,9 +1,10 @@
+const { assertPushEndpoint } = require('./push-endpoint-policy');
 const RULE_KEY = 'fund-current-balance-below-10m';
 const PREFERENCE_KEY = 'fund-low-balance';
 const THRESHOLD = 10_000_000;
 const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const ELIGIBLE_ROLES = new Set(['admin', 'shareholder']);
-const NOTIFICATION = Object.freeze({ title: 'Vận tải Đông Bắc', body: 'Số dư quỹ đã xuống dưới ngưỡng 10 triệu', tag: RULE_KEY, url: '/cashflow/' });
+const NOTIFICATION = Object.freeze({ title: 'Vận tải Đông Bắc', body: 'Số dư quỹ đã xuống dưới ngưỡng 10 triệu', tag: RULE_KEY, url: '/?notifications=open' });
 
 function vietnamDateParts(date) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
@@ -59,7 +60,7 @@ function createFundLowBalanceAlertService({ balanceRepository, ruleRepository, r
     webPush.setVapidDetails(config.vapidSubject, config.vapidPublicKey, config.vapidPrivateKey);
     let sent = 0; let failed = 0;
     for (const row of inspection.subscriptions) {
-      try { await webPush.sendNotification({ endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth_secret } }, JSON.stringify(notification), { TTL: 3600, urgency: 'normal' }); sent += 1; }
+      try { assertPushEndpoint(row.endpoint); await webPush.sendNotification({ endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth_secret } }, JSON.stringify(notification), { TTL: 3600, urgency: 'normal', timeout: 10000 }); sent += 1; }
       catch (error) { failed += 1; if (error?.statusCode === 404 || error?.statusCode === 410) await subscriptionRepository.removeById(config, row.id); }
     }
     await saveState(config, inspection, { lastResult: sent ? `sent:${sent};failed:${failed}` : `failed:${failed}`, lastSentAt: sent ? inspection.evaluatedAt : null });

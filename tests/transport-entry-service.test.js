@@ -55,7 +55,10 @@ function loadEntry(buildResult, reservedRange = null, options = {}) {
     clearAfterSubmitCache: () => events.push({ type: 'clearCache' })
   };
   submitContext.sheets.vanChuyen.headers = ['Ngày', 'Tháng', 'Biển số', 'Dự án', 'Số chuyến', 'Số phiếu', 'Ghi chú', 'Khối lượng thực tế (m³)'];
-  submitContext.sheets.vanChuyen.headerAliases = { 'Biển số': ['Biển số xe'] };
+  submitContext.sheets.vanChuyen.headerAliases = {
+    'Biển số': ['Biển số xe'],
+    'Khối lượng thực tế (m³)': ['Khối lượng', 'Khối lượng thực tế', 'Khối lượng (m³)']
+  };
   submitContext.sheets.vanChuyen.computedHeaders = ['Tháng'];
   submitContext.sheets.dau.headers = liveHeaders.NL_Dau;
   submitContext.sheets.dau.computedHeaders = ['Tháng', 'Thành tiền', 'Công ty sở hữu'];
@@ -125,6 +128,17 @@ test('transport submit accepts the renamed NL_VanChuyen plate header and its con
     () => invalid.service.submitRowsWithContext('vanChuyen', [{}], null, invalid.submitContext),
     /chap nhan "Biển số" hoac "Biển số xe", dang la "Xe"/
   );
+});
+
+test('transport submit maps moved live columns by header and leaves helper columns untouched', () => {
+  const logical = ['10/09/2026', '', '15C12345', 'Dự án A', 2, 'P1', 'ghi chú', 12.5];
+  const liveHeaders = ['Ngày', 'Tháng', 'Biển số', 'Dự án', 'Số chuyến', 'Số phiếu', 'Khối lượng ', 'Ghi chú', '_SYS_CHECK'];
+  const current = loadEntry({ values: [logical], errors: [], warnings: [] }, null, { liveVanChuyenHeaders: liveHeaders });
+  const response = current.service.submitRowsWithContext('vanChuyen', [{}], null, current.submitContext);
+  const write = current.events.find((event) => event.type === 'write');
+  assert.equal(response.ok, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(write.values[0])), ['10/09/2026', '', '15C12345', 'Dự án A', 2, 'P1', 12.5, 'ghi chú', '']);
+  assert.deepEqual(JSON.parse(JSON.stringify(write.skipped)), [1, 8]);
 });
 
 test('EntryService owns submit orchestration while SheetService retains only the compatibility adapter', () => {

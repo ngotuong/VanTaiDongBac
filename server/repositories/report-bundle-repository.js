@@ -1,4 +1,6 @@
+const { withDeadline } = require('../services/request-deadline');
 function createReportBundleRepository({ fetchImpl = fetch, httpError }) {
+  fetchImpl = withDeadline(fetchImpl);
   async function findLatest(config, month, spreadsheetId) {
     const normalizedMonth = String(month || '').trim() || 'latest';
     const query = new URLSearchParams({

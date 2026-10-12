@@ -23,15 +23,17 @@ test('B5 Catalog is a standalone Next route without a legacy bridge',()=>{
   for(const action of ['saveSheetRow','deleteSheetRow']) assert.match(module,new RegExp(`'${action}'`));
 });
 
-test('B5 exposes the twelve live display catalogs and only the current virtual DM_ThamSo mapping',()=>{
+test('B5 exposes the live display catalogs including insurance and only the current virtual DM_ThamSo mapping',()=>{
   const server=read('next-shell/lib/catalog-server.ts');
   const module=read('next-shell/components/catalog/CatalogModule.tsx');
-  const names=['DM_NhanSu','DM_Xe','DM_DuAn','DM_CheDoLuong','DM_LuongChuyen','DM_ThamSo_TS','DM_GiaDau','DM_DonGiaVanChuyen','DM_ThuongQuanLy','DM_PhatNoiBo','DM_PhanCongXe','DM_UuDaiNoiBo'];
+  const names=['DM_NhanSu','DM_Xe','DM_DuAn','DM_CheDoLuong','DM_LuongChuyen','DM_ThamSo_TS','DM_GiaDau','DM_DonGiaVanChuyen','DM_ThuongQuanLy','DM_PhatNoiBo','DM_PhanCongXe','DM_UuDaiNoiBo','DM_BaoHiem'];
   for(const name of names){ assert.match(server,new RegExp(name)); assert.match(module,new RegExp(name)); }
   assert.match(module,/sheet==='DM_ThamSo_TS'\?'DM_ThamSo':sheet/);
   assert.doesNotMatch(module,/DM_ThamSo_GD/);
   assert.doesNotMatch(server,/DM_ThamSo_GD/);
-  for(const label of ['Mã tham số','Tên tham số','Giá trị','Ngày áp dụng tham số','Lịch sử giá dầu','Chế độ lương','Phân công xe','Ưu đãi nội bộ']) assert.match(module,new RegExp(label));
+  for(const label of ['Mã tham số','Tên tham số','Giá trị','Ngày áp dụng tham số','Lịch sử giá dầu','Chế độ lương','Phân công xe','Ưu đãi nội bộ','Bảo hiểm']) assert.match(module,new RegExp(label));
+  assert.match(module,/\['DM_DuAn','Dự án'\]/);
+  assert.doesNotMatch(module,/Dự án & Cự ly/);
 });
 
 test('C3 Catalog restores the C2 golden-master surface instead of redesigning it',()=>{
@@ -39,7 +41,7 @@ test('C3 Catalog restores the C2 golden-master surface instead of redesigning it
   const css=read('next-shell/app/c2-golden.css');
   assert.match(module,/id="catalogView" className="view active catalog-c2"/);
   for(const id of ['catalogTabsBar','catalogSheetSelect','catalogSearchInput','catalogPersonnelStatusFilter','catalogVehicleOwnerFilter','catalogTable','catalogTableHeader','catalogTableBody','catalogTableEmpty','catalogPaginationBar','catalogPaginationInfo','catalogPrevPageBtn','catalogNextPageBtn']) assert.match(module,new RegExp(`id="${id}"`));
-  for(const className of ['sub-tabs-bar app-sticky-tabs','filter-bar catalog-sticky-toolbar app-sticky-toolbar sticky-after-tabs','table-card','report-table mobile-record-table','modal-overlay active','modal-container','modal-grid','modal-footer']) assert.match(module,new RegExp(className));
+  for(const className of ['sub-tabs-bar app-sticky-tabs','filter-bar catalog-sticky-toolbar app-sticky-toolbar sticky-after-tabs','table-card','report-table mobile-record-table','modal-overlay active','modal-container','BusinessGrid','modal-footer']) assert.match(module,new RegExp(className));
   assert.match(module,/Công ty\/Chủ xe/);
   assert.match(module,/previousRowData/);
   assert.match(css,/C3 Catalog bindings: exact C2 structure/);
@@ -56,6 +58,14 @@ test('B5 reads cache server-first and keeps Apps Script as authoritative fallbac
   assert.doesNotMatch(server,/getActiveSpreadsheet|NEXT_PUBLIC_.*SERVICE|spreadsheetId\?:unknown/);
   assert.match(server,/primaryTable/);
   assert.match(server,/findIndex\(\(header\)=>String\(header\|\|''\)\.trim\(\)===''\)/);
+});
+
+test('Catalog repairs a stale project input contract from the authoritative Sheet read',()=>{
+  const server=read('next-shell/lib/catalog-server.ts');
+  for(const header of ['Dự Án','Số km','Từ ngày','Đến ngày','Nhóm vận hành','Lương chuyến?','Thưởng QL?','Ghi chú'])assert.match(server,new RegExp(header.replace(/[?]/g,'\\?')));
+  assert.match(server,/satisfiesEditableContract\(bundle,sheetName\)/);
+  assert.match(server,/repairSchemaDrift=Boolean\(bundle\)/);
+  assert.match(server,/input\.forceRefresh\|\|repairSchemaDrift\?'true':''/);
 });
 
 test('B5 shares the Manage read boundary to remain within the Vercel Hobby function limit',()=>{
@@ -85,4 +95,22 @@ test('catalog cache repository uses an exact catalog key and service-side creden
   assert.equal(url.pathname,'/rest/v1/catalog_bundles');
   assert.equal(url.searchParams.get('catalog_key'),'eq.catalog_data:DM_Xe');
   assert.equal(request.options.headers.Authorization,'Bearer secret');
+});
+
+test('Catalog writes update the edited table optimistically and defer authoritative refresh work',()=>{
+  const module=read('next-shell/components/catalog/CatalogModule.tsx');
+  const api=read('PublicApi.gs');
+  const supabase=read('SupabaseService.gs');
+  const writeWrapper=api.match(/function withSheetRowSync_\([\s\S]*?\n}\n\nfunction isTransportManageSheet_/)?.[0]||'';
+  assert.match(module,/clientRequestId:`catalog-save-/);
+  assert.match(module,/const nextData=\{\.\.\.data,rows:nextRows\};setData\(nextData\)/);
+  assert.match(module,/catalogResponseCache\.set\(catalogCacheKey\(sheet\)/);
+  assert.match(module,/void api\.post\('processWriteJobs'/);
+  assert.doesNotMatch(module,/void requestCatalog\(sheet,false,true\)/);
+  assert.match(api,/result\.supabaseSync = SupabaseService\.syncCatalogWriteThrough/);
+  assert.doesNotMatch(writeWrapper,/SupabaseService\.syncAllReportBundles\(\);/);
+  assert.match(supabase,/function syncCatalogWriteThrough\(displaySheetName\)/);
+  assert.match(supabase,/syncCatalogDataBundle\(safeDisplaySheetName\)/);
+  assert.match(supabase,/source: 'catalog-web:' \+ safeDisplaySheetName/);
+  assert.match(supabase,/props\.setProperty\(REALTIME_TICK_INDEX_KEY, '5'\)/);
 });

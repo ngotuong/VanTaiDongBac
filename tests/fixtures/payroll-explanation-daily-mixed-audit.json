@@ -1,0 +1,73 @@
+{
+  "auditDate": "2026-09-23",
+  "spreadsheetTitle": "VanTaiDongBac_2026",
+  "month": "09/2026",
+  "dailyClassificationEffectiveFrom": "01/08/2026",
+  "sourceRanges": [
+    "NL_TaiXe!A780:F1200",
+    "SYS_AggTaiXeNgay!A500:G800",
+    "DM_LuongChuyen!A1:H20",
+    "XL_LuongTheoXe!A90:O125"
+  ],
+  "rateBands": [
+    { "type": "1_LAI", "group": "Tràng Duệ", "from": 0, "to": 104, "rate": 250000, "effectiveFrom": "01/05/2026", "effectiveTo": null },
+    { "type": "1_LAI", "group": "Tràng Duệ", "from": 105, "to": 139, "rate": 300000, "effectiveFrom": "01/09/2026", "effectiveTo": null },
+    { "type": "1_LAI", "group": "Tràng Duệ", "from": 140, "to": 999, "rate": 320000, "effectiveFrom": "01/05/2026", "effectiveTo": null },
+    { "type": "NHIEU_LAI", "group": "Tràng Duệ", "from": 0, "to": 139, "rate": 270000, "effectiveFrom": "01/05/2026", "effectiveTo": null },
+    { "type": "NHIEU_LAI", "group": "Tràng Duệ", "from": 140, "to": 167, "rate": 300000, "effectiveFrom": "01/05/2026", "effectiveTo": null },
+    { "type": "NHIEU_LAI", "group": "Tràng Duệ", "from": 168, "to": 999, "rate": 350000, "effectiveFrom": "01/05/2026", "effectiveTo": null }
+  ],
+  "sample": {
+    "employee": "Chu Đức Mười",
+    "vehicle": "20H06278",
+    "group": "Tràng Duệ",
+    "vehicleTrips": 80,
+    "operationsKpiAdjustment": 21,
+    "rateThreshold": 101,
+    "dailyRows": [
+      { "date": "03/09/2026", "trips": 2, "driverCount": 1 },
+      { "date": "04/09/2026", "trips": 3, "driverCount": 1 },
+      { "date": "05/09/2026", "trips": 3, "driverCount": 1 },
+      { "date": "06/09/2026", "trips": 5, "driverCount": 1 },
+      { "date": "07/09/2026", "trips": 3, "driverCount": 1 },
+      { "date": "08/09/2026", "trips": 5, "driverCount": 1 },
+      { "date": "09/09/2026", "trips": 3, "driverCount": 1 },
+      { "date": "10/09/2026", "trips": 3, "driverCount": 1 },
+      { "date": "11/09/2026", "trips": 6, "driverCount": 1 },
+      { "date": "12/09/2026", "trips": 4, "driverCount": 1 },
+      { "date": "13/09/2026", "trips": 4, "driverCount": 1 },
+      { "date": "14/09/2026", "trips": 5, "driverCount": 1 },
+      { "date": "15/09/2026", "trips": 3, "driverCount": 1 },
+      { "date": "16/09/2026", "trips": 3, "driverCount": 1 },
+      { "date": "20/09/2026", "trips": 2, "driverCount": 2 },
+      { "date": "21/09/2026", "trips": 2.5, "driverCount": 2 },
+      { "date": "22/09/2026", "trips": 6, "driverCount": 1 }
+    ],
+    "expected": {
+      "oneDriverDays": 15,
+      "oneDriverTrips": 58,
+      "oneDriverRate": 250000,
+      "oneDriverSalary": 14500000,
+      "multiDriverDays": 2,
+      "multiDriverTrips": 4.5,
+      "multiDriverRate": 270000,
+      "multiDriverSalary": 1215000,
+      "totalTrips": 62.5,
+      "totalSalary": 15715000,
+      "authoritativeSalary": 15715000,
+      "difference": 0
+    }
+  },
+  "septemberCohort": {
+    "mixedLineCount": 12,
+    "unknownDriverCountTripTotal": 0,
+    "matchedLineCount": 12,
+    "mismatchedLineCount": 0
+  },
+  "augustCohort": {
+    "mixedLineCount": 7,
+    "unknownDriverCountTripTotal": 0,
+    "matchedLineCount": 7,
+    "mismatchedLineCount": 0
+  }
+}

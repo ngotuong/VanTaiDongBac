@@ -12,8 +12,13 @@ var SupabaseBundleRepository = (function () {
     return SupabaseHttpClient.readRows(tableName, query);
   }
 
+  function updateRows(tableName, patch, filters) {
+    return SupabaseHttpClient.updateRows(tableName, patch, filters);
+  }
+
   return {
     upsertRows: upsertRows,
-    readRows: readRows
+    readRows: readRows,
+    updateRows: updateRows
   };
 })();

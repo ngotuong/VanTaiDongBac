@@ -197,7 +197,7 @@ function runReportCacheGuardedBatch_(callback) {
   }
 
   try {
-    while (runtimeCache.get(realtimeRunningKey)) {
+    while (runtimeCache.get(realtimeRunningKey) || reportRealtimeLeaseActive_(properties.getProperty(realtimeRunningKey))) {
       if (new Date().getTime() - waitStartedAt >= 120000) {
         throw new Error('Timed out waiting for syncRealtimeCache before E1 parity batch.');
       }
@@ -213,6 +213,12 @@ function runReportCacheGuardedBatch_(callback) {
       guardLock.releaseLock();
     }
   }
+}
+
+function reportRealtimeLeaseActive_(raw) {
+  if (!raw) return false;
+  try { return Number(JSON.parse(raw).expiresAt || 0) > new Date().getTime(); }
+  catch (err) { throw new Error('Invalid durable realtime lease; refusing concurrent report parity batch.'); }
 }
 
 /** Reads only parity metadata for the last controlled batch; never logs payloads or credentials. */

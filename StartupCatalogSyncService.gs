@@ -16,6 +16,7 @@ var StartupCatalogSyncService = (function () {
     'DM_ThuongQuanLy',
     'DM_PhatNoiBo',
     'DM_PhanCongXe',
+    'DM_BaoHiem',
     'DM_UuDaiNoiBo'
   ];
 
@@ -30,6 +31,7 @@ var StartupCatalogSyncService = (function () {
   function syncStartupBundle(formType, context) {
     var safeFormType = context.clean(formType) || DEFAULT_STARTUP_FORM_TYPE;
     var payload = context.getStartupData(safeFormType);
+    if (!payload || payload.ok === false) throw new Error('Invalid startup source payload.');
     var syncedAt = context.nowISOString();
     context.upsertRows(TABLE_STARTUP_BUNDLES, [{
       form_type: safeFormType,
@@ -44,6 +46,7 @@ var StartupCatalogSyncService = (function () {
     var safeFormType = context.clean(formType);
     var catalogKey = buildCatalogsKey(safeFormType, context.clean);
     var payload = context.getCatalogs(safeFormType);
+    if (!payload || payload.ok === false) throw new Error('Invalid catalog options source payload.');
     var syncedAt = context.nowISOString();
     context.upsertRows(TABLE_CATALOG_BUNDLES, [{
       catalog_key: catalogKey,
@@ -59,6 +62,7 @@ var StartupCatalogSyncService = (function () {
     if (!safeDisplaySheetName) throw new Error('Thiếu tên danh mục cần sync.');
     var catalogKey = buildCatalogDataKey(safeDisplaySheetName, context.clean);
     var payload = context.readCatalogData(safeDisplaySheetName);
+    if (!payload || payload.ok === false) throw new Error('Invalid catalog table source payload.');
     var syncedAt = context.nowISOString();
     context.upsertRows(TABLE_CATALOG_BUNDLES, [{
       catalog_key: catalogKey,
@@ -115,6 +119,7 @@ var StartupCatalogSyncService = (function () {
   }
 
   return {
+    getCatalogFormTypes: function () { return CATALOG_FORM_TYPES.slice(); },
     syncStartupBundle: syncStartupBundle,
     syncCatalogsBundle: syncCatalogsBundle,
     syncCatalogDataBundle: syncCatalogDataBundle,

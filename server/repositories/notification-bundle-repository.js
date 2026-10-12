@@ -1,4 +1,6 @@
+const { withDeadline } = require('../services/request-deadline');
 function createNotificationBundleRepository({ fetchImpl = fetch, httpError }) {
+  fetchImpl = withDeadline(fetchImpl);
   function headers(config) {
     return { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, Accept: 'application/json' };
   }

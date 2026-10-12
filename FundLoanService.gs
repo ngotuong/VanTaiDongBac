@@ -15,9 +15,9 @@ var FundLoanService = (function () {
     var firstInterestDate = context.parseDate(item.firstInterestDate, item.firstInterestDate);
     if (!date) throw new Error('Vui lòng nhập ngày vay hợp lệ.');
     if (!partner) throw new Error('Vui lòng nhập đối tác cho khoản vay.');
-    if (!(amount > 0)) throw new Error('Số tiền vay phải lớn hơn 0.');
+    if (!(amount > 0) || !isFinite(amount) || amount > 9007199254740991) throw new Error('Số tiền vay phải lớn hơn 0.');
     return [context.buildVoucher(date), date, 'Vay', '', partner, amount, context.parseNumber(item.termMonths) || '',
-      context.parseNumber(item.annualRate) || '', context.parseNumber(item.interestPeriodMonths) || '', firstInterestDate || '', context.clean(item.content)];
+      context.parseNumber(item.annualRate) || '', context.parseNumber(item.interestPeriodMonths) || '', firstInterestDate || '', context.clean(item.content), item.nonFund === true];
   }
 
   function buildPaymentRow(payload, context) {
@@ -27,8 +27,8 @@ var FundLoanService = (function () {
     if (!code) throw new Error('Thiếu mã khoản vay cần thanh toán.');
     if (type !== 'Trả nợ' && type !== 'Trả lãi') throw new Error('Vui lòng chọn Trả nợ hoặc Trả lãi.');
     if (!partner) throw new Error('Vui lòng nhập đối tác cho khoản vay.');
-    if (!(amount > 0)) throw new Error('Số tiền thanh toán phải lớn hơn 0.');
-    return [code, date, type, '', partner, amount, '', '', '', '', context.clean(item.content)];
+    if (!(amount > 0) || !isFinite(amount) || amount > 9007199254740991) throw new Error('Số tiền thanh toán phải lớn hơn 0.');
+    return [code, date, type, '', partner, amount, '', '', '', '', context.clean(item.content), item.nonFund === true];
   }
 
   function buildFilterFormula(rowNumber) {
@@ -36,15 +36,76 @@ var FundLoanService = (function () {
   }
 
   function addLoan(payload, context) {
+    var replay = findReplay(context);
+    if (replay) return replay;
     var row = buildLoanRow(payload, context);
+    if (context.writeContext && context.writeContext.jobId) return persistIntent_(row, context);
+    context.appendOptions.jobId = context.writeContext && context.writeContext.jobId;
     var rowNumber = context.repository.appendRow(context.sheet, row, context.appendOptions);
     return { ok: true, rowIndex: rowNumber, code: row[0], sheetName: context.sheetName };
   }
 
   function addPayment(payload, context) {
+    var replay = findReplay(context);
+    if (replay) return replay;
     var row = buildPaymentRow(payload, context);
+    if (context.writeContext && context.writeContext.jobId) return persistIntent_(row, context);
+    context.appendOptions.jobId = context.writeContext && context.writeContext.jobId;
     var rowNumber = context.repository.appendRow(context.sheet, row, context.appendOptions);
     return { ok: true, rowIndex: rowNumber, code: row[0], sheetName: context.sheetName };
+  }
+
+  function findReplay(context) {
+    var jobId = context.writeContext && context.writeContext.jobId;
+    if (!jobId) return null;
+    var journal = FundWriteIntentRepository.find(context.sheet, jobId, context.writeIntent || {});
+    if (journal) {
+      FundWriteIntentRepository.verifyRows(context.sheet, journal);
+      if (journal.state !== 'complete') return persistIntent_(null, context, journal);
+      return { ok: true, rowIndex: journal.firstRow, code: journal.rows[0][0], sheetName: context.sheetName, idempotentReplay: true };
+    }
+    var found = context.repository.findJobRow(context.sheet, jobId);
+    if (found) throw new Error('REQUIRES_RECONCILIATION: Marker vay legacy chưa có hash intent; đối soát trước khi retry.');
+    return null;
+  }
+
+  function persistIntent_(row, context, journal) {
+    var id = context.writeContext.jobId;
+    journal = journal || FundWriteIntentRepository.prepare(context.sheet, id, context.writeIntent || {}, [row], {}, context.appendOptions.getAppendRow);
+    context.appendOptions.reservedRow = journal.firstRow;
+    context.repository.appendRow(context.sheet, FundWriteIntentRepository.rows(journal)[0], context.appendOptions);
+    SpreadsheetApp.flush();
+    FundWriteIntentRepository.verifyRows(context.sheet, journal);
+    var result = { ok: true, rowIndex: journal.firstRow, code: journal.rows[0][0], sheetName: context.sheetName };
+    FundWriteIntentRepository.complete(context.sheet, journal, result);
+    return result;
+  }
+
+  function assertPaymentAllowed(payload, rows, context) {
+    var item = payload || {};
+    var code = context.clean(item.code);
+    var partnerKey = context.normalizeHeader(item.partner);
+    var type = context.clean(item.type);
+    var paymentAmount = context.parseNumber(item.amount);
+    var matching = reconcile(rows || [], context).filter(function (row) { return row.loanKey === code; });
+    var loans = matching.filter(function (row) { return row.type === 'Vay'; });
+    if (!loans.length) throw new Error('Không tìm thấy khoản vay có mã ' + code + '.');
+    var loanPartnerKey = context.normalizeHeader(loans[0].partner);
+    var nonFund = loans[0].nonFund === true;
+    var ambiguous = loans.some(function (row) {
+      return context.normalizeHeader(row.partner) !== loanPartnerKey || (row.nonFund === true) !== nonFund;
+    });
+    if (ambiguous) throw new Error('Mã khoản vay có nhiều thông tin gốc không nhất quán; cần đối chiếu trước khi thanh toán.');
+    if (!partnerKey || partnerKey !== loanPartnerKey) throw new Error('Đối tác thanh toán không khớp khoản vay.');
+    var borrowed = loans.reduce(function (sum, row) { return sum + context.parseNumber(row.amount); }, 0);
+    var principalPaid = matching.filter(function (row) { return row.type === 'Trả nợ'; })
+      .reduce(function (sum, row) { return sum + context.parseNumber(row.amount); }, 0);
+    var outstanding = borrowed - principalPaid;
+    if (!(outstanding > 0.5)) throw new Error('Khoản vay này đã trả hết nợ gốc.');
+    if (type === 'Trả nợ' && paymentAmount - outstanding > 0.5) {
+      throw new Error('Số tiền trả nợ không được vượt quá dư nợ còn lại.');
+    }
+    return { partner: loans[0].partner, nonFund: nonFund, outstanding: outstanding };
   }
 
   function readRows(context) {
@@ -58,7 +119,8 @@ var FundLoanService = (function () {
         month: dateObj ? context.formatDate(dateObj, 'yyyy-MM') : '', monthLabel: dateObj ? context.formatDate(dateObj, 'MM/yyyy') : '',
         type: normalizeType(row[2], context), rawType: context.clean(row[2]), method: context.clean(row[3]), partner: context.clean(row[4]),
         amount: context.parseNumber(row[5]), amountText: context.clean(row[5]), termMonths: context.parseNumber(row[6]),
-        annualRate: context.parseNumber(row[7]), interestPeriodMonths: context.parseNumber(row[8]), firstInterestDate: context.clean(row[9]), content: context.clean(row[10]) });
+        annualRate: context.parseNumber(row[7]), interestPeriodMonths: context.parseNumber(row[8]), firstInterestDate: context.clean(row[9]), content: context.clean(row[10]),
+        nonFund: context.normalizeHeader(row[11]) === 'true' });
     });
     return rows;
   }
@@ -103,7 +165,7 @@ var FundLoanService = (function () {
     return { rowIndex: row.rowIndex, code: row.code, loanKey: row.loanKey || row.code, reconciledFromCode: row.reconciledFromCode || '',
       dateObj: row.dateObj, date: row.date, dateText: row.dateText, month: row.month, monthLabel: row.monthLabel, type: row.type,
       method: row.method, partner: row.partner, amount: row.amount, amountText: row.amountText, termMonths: row.termMonths,
-      annualRate: row.annualRate, interestPeriodMonths: row.interestPeriodMonths, firstInterestDate: row.firstInterestDate, content: row.content,
+      annualRate: row.annualRate, interestPeriodMonths: row.interestPeriodMonths, firstInterestDate: row.firstInterestDate, content: row.content, nonFund: row.nonFund === true,
       isSettled: Boolean(overallLoan && overallLoan.isSettled), statusLabel: overallLoan && overallLoan.isSettled ? 'Đã trả gốc' : '' };
   }
 
@@ -153,5 +215,6 @@ var FundLoanService = (function () {
   }
 
   return { normalizeType: normalizeType, buildLoanRow: buildLoanRow, buildPaymentRow: buildPaymentRow, buildFilterFormula: buildFilterFormula,
-    addLoan: addLoan, addPayment: addPayment, readRows: readRows, reconcile: reconcile, buildSummaryMap: buildSummaryMap, historyRow: historyRow, getOverview: getOverview };
+    addLoan: addLoan, addPayment: addPayment, findReplay: findReplay, assertPaymentAllowed: assertPaymentAllowed,
+    readRows: readRows, reconcile: reconcile, buildSummaryMap: buildSummaryMap, historyRow: historyRow, getOverview: getOverview };
 })();

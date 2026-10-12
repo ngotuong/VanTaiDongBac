@@ -1,6 +1,6 @@
 var ManageService = (function () {
-  function readManageData(sheetName, startDateStr, endDateStr, limit) {
-    return SheetReadService.readSheetData(sheetName, startDateStr, endDateStr, limit);
+  function readManageData(sheetName, startDateStr, endDateStr, limit, options) {
+    return SheetReadService.readSheetData(sheetName, startDateStr, endDateStr, limit, options);
   }
 
   return {

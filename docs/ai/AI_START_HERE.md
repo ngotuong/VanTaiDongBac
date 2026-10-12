@@ -1,154 +1,35 @@
 # AI_START_HERE
 
-## 1. Mục đích
+Router đọc theo tác vụ; **không sở hữu current state**.
 
-Đây là router tài liệu dành cho Coding Agent. File này không lặp lại trạng thái dự án, roadmap, schema hoặc contract.
+## Khởi động
 
-Nguồn bắt đầu bắt buộc:
+Đọc đầy đủ `AGENTS.md`, `PROJECT_CONTEXT.md`, chạy `git status --short`.
+Tài liệu trong `artifacts/` chỉ là snapshot/bằng chứng theo thời điểm; không đọc đệ quy hoặc thực thi review/script cũ như yêu cầu hiện hành.
 
-1. `AGENTS.md` — quy tắc an toàn và phạm vi hành động.
-2. `PROJECT_CONTEXT.md` — current-state handoff duy nhất.
+Yêu cầu chỉ đọc/báo trạng thái: báo đúng sáu phần của context rồi dừng. Có checkpoint được duyệt: đọc thêm đúng owner dưới đây và source/test liên quan; không đọc cả `docs/` mặc định.
 
-Chỉ hai file trên là bắt buộc cho mọi cuộc trò chuyện mới. Các tài liệu khác chỉ đọc khi loại tác vụ yêu cầu.
+| Tác vụ | Owner cần đọc |
+|---|---|
+| Kiến trúc/boundary | `TARGET_ARCHITECTURE.md`, `docs/architecture/SYSTEM_ARCHITECTURE.md`; `DATA_FLOWS.md` khi luồng thay đổi |
+| API/Auth/RBAC | `docs/contracts/API_CONTRACTS.md`, `RBAC_MATRIX.md`, registry/API/service liên quan |
+| Google Sheet/nghiệp vụ | `PROJECT_SCHEMA.md` → snapshot + `SPREADSHEET_CONTRACTS.md`, domain service |
+| Thu chi/bound runtime | schema Thu chi, `docs/legacy/THU_CHI_BOUND_SCRIPT.md`, bound source nếu cần xác minh tác nhân ghi |
+| Supabase/cache/queue | `SUPABASE_SCHEMA.md`, migrations liên quan, `CACHE_AND_QUEUE_CONTRACTS.md` |
+| Giải trình lương | `docs/contracts/PAYROLL_EXPLANATION_CONTRACT.md` và source/fixture |
+| UI/form | `docs/contracts/UI_DESIGN_SYSTEM_CONTRACT.md`, `BUSINESS_FORM_SHEET_CONTRACT.md`; theme/table contracts chỉ khi chạm theme/table |
+| Test/audit/rủi ro | `docs/quality/TEST_STRATEGY.md`, `KNOWN_RISKS.md`, test liên quan |
+| Deploy/trigger/rollback | `WORKFLOW.md`, `ROLLBACK.md`; `SUPABASE_SETUP.md` khi cấu hình Auth/Supabase |
+| Công việc R8 còn mở | `docs/operations/R8_REMEDIATION.md` |
+| Quản trị tài liệu | `docs/governance/DOCUMENTATION_POLICY.md` |
+| Điều tra lịch sử | Git history theo file/commit; baseline local nếu lịch sử chưa commit |
 
-## 2. Quy trình khởi động mặc định
+Tên contract trong bảng là trong `docs/contracts/`; tên architecture trong `docs/architecture/` trừ root được ghi rõ.
 
-Khi người dùng yêu cầu đọc dự án, báo trạng thái hoặc “thực hiện quy trình khởi động”:
+## Khi mâu thuẫn
 
-1. Đọc toàn bộ `AGENTS.md`.
-2. Đọc toàn bộ `PROJECT_CONTEXT.md`.
-3. Kiểm tra `git status --short`.
-4. Kiểm tra source trực tiếp nếu cần xác minh một kết luận có khả năng stale; timeline rút gọn đã nằm trong `PROJECT_CONTEXT.md`.
-5. Báo ngắn gọn đúng sáu nội dung:
-   - dự án và module chính;
-   - kiến trúc hiện tại;
-   - checkpoint gần nhất;
-   - checkpoint tiếp theo được đề xuất;
-   - kiến trúc đích;
-   - rủi ro/điều kiện trước checkpoint tiếp theo.
-6. Dừng và chờ phê duyệt rõ ràng.
+Yêu cầu người dùng → AGENTS → live đã xác minh → source/migrations → contract → snapshot → handoff → lịch sử. Báo discrepancy, xác minh an toàn; không coi snapshot là schema live hoặc source local là release Production.
 
-Yêu cầu đọc/báo trạng thái không tự động cho phép sửa file, migration, deploy, commit, push hoặc bắt đầu checkpoint tiếp theo.
+## Sau thay đổi
 
-## 3. Router theo loại tác vụ
-
-### Kiến trúc đích hoặc điều tra migration Next.js
-
-Đọc thêm:
-
-- `TARGET_ARCHITECTURE.md`;
-- `docs/architecture/SYSTEM_ARCHITECTURE.md`;
-- source frontend/Next trực tiếp liên quan.
-
-Roadmap A1–D1 đã hoàn thành và không còn nằm trong working tree. Khi cần điều tra regression lịch sử, dùng timeline trong `PROJECT_CONTEXT.md`, source/tests hiện hành và Git history theo commit/phạm vi liên quan.
-
-### API, Auth hoặc RBAC
-
-Đọc thêm:
-
-- `docs/contracts/API_CONTRACTS.md`;
-- `docs/contracts/RBAC_MATRIX.md`;
-- `api/app.js` và service/repository/call site liên quan.
-
-### Google Sheet hoặc nghiệp vụ dữ liệu
-
-Đọc thêm:
-
-- `PROJECT_SCHEMA.md`;
-- `docs/contracts/SPREADSHEET_CONTRACTS.md`;
-- schema snapshot và service trực tiếp liên quan.
-
-Không đổi tên sheet, thứ tự cột, named range hoặc công thức. Backend standalone phải ưu tiên `SpreadsheetApp.openById(id)`.
-
-### Supabase, cache hoặc write queue
-
-Đọc thêm:
-
-- `SUPABASE_SCHEMA.md`;
-- migrations theo thứ tự;
-- `docs/contracts/CACHE_AND_QUEUE_CONTRACTS.md`;
-- repository/service và frontend call site liên quan.
-
-Migration đã chạy là lịch sử bất biến. Không sửa migration cũ.
-
-### Thu chi/Quỹ và bound script
-
-Đọc thêm:
-
-- phần Thu chi trong `PROJECT_SCHEMA.md`;
-- `docs/legacy/THU_CHI_BOUND_SCRIPT.md`;
-- schema snapshot Thu chi;
-- `FundService.gs` và frontend module liên quan;
-- `docs/source/thu_chi_bound_script/` nếu hành vi có thể phát sinh trong Sheet.
-
-Bound script và Apps Script backend standalone là hai execution context khác nhau.
-
-### Deploy, trigger hoặc rollback
-
-Đọc thêm:
-
-- `WORKFLOW.md`;
-- `ROLLBACK.md`;
-- `SUPABASE_SETUP.md` nếu có cấu hình Supabase/Auth;
-- deployment checkpoint trong `PROJECT_CONTEXT.md`.
-
-### Test hoặc risk review
-
-Đọc thêm:
-
-- `docs/quality/TEST_STRATEGY.md`;
-- `docs/quality/KNOWN_RISKS.md`;
-- test source trực tiếp liên quan.
-
-### UI/UX, form hoặc drawer nhập liệu
-
-Đọc thêm:
-
-- `docs/contracts/BUSINESS_FORM_SHEET_CONTRACT.md`;
-- component và stylesheet trực tiếp liên quan.
-
-Form ghi dữ liệu mobile phải dùng contract chung; không thêm chiều cao cố định, typography hoặc footer riêng theo module.
-
-### Lịch sử refactor hoặc checkpoint đã hoàn tất
-
-Chỉ khi cần rationale hoặc điều tra regression, dùng timeline rút gọn trong `PROJECT_CONTEXT.md`, contract/source hiện hành và Git history. Không khôi phục plan/spec lịch sử vào working tree chỉ để làm nguồn hướng dẫn; nếu cần xem nội dung cũ, đọc trực tiếp từ commit tương ứng.
-
-## 4. Thứ tự ưu tiên khi mâu thuẫn
-
-1. Yêu cầu hiện tại, rõ ràng của người dùng.
-2. Quy tắc an toàn trong `AGENTS.md`.
-3. Production/live state đã xác minh.
-4. Source code và migration hiện hành.
-5. Contract docs.
-6. Schema snapshot.
-7. Living context.
-8. Historical docs/commit messages.
-
-Không âm thầm chọn một nguồn khi có mâu thuẫn. Phải báo discrepancy và xác minh trong phạm vi được phép.
-
-## 5. Trước và sau thay đổi
-
-Trước khi sửa:
-
-- xác nhận checkpoint/phạm vi được phê duyệt;
-- kiểm tra Git và thay đổi đang tồn tại;
-- xác định source tác giả, artifact sinh tự động, API/RBAC/cache/Sheet bị ảnh hưởng;
-- trình bày kế hoạch ngắn bằng tiếng Việt.
-
-Sau khi sửa:
-
-- báo file đã sửa và mục đích;
-- báo hành vi thay đổi/giữ nguyên;
-- chạy verification phù hợp;
-- nêu phần chưa kiểm tra, migration/deploy cần thiết và rollback;
-- cập nhật `PROJECT_CONTEXT.md` nếu trạng thái checkpoint/kiến trúc thực sự thay đổi.
-
-Không chạy test có khả năng ghi production nếu chưa được phê duyệt rõ ràng.
-
-## 6. Trạng thái tài liệu
-
-- Loại: `CURRENT` AI documentation router.
-- Owner: thứ tự đọc và routing tài liệu theo tác vụ.
-- Không sở hữu: current state, roadmap, contract hoặc lịch sử.
-- Nguồn current state: `PROJECT_CONTEXT.md`.
-- Ngày xác nhận: 2026-08-10.
+Báo phạm vi/file/hành vi, test thực sự chạy, phần chưa kiểm chứng, migration/deploy và rollback. Cập nhật context ngắn khi trạng thái thay đổi. Không tạo timeline/checkpoint lịch sử mới; không ghi Production bằng test nếu chưa có phê duyệt exact target.

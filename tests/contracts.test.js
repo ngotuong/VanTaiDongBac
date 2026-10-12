@@ -34,7 +34,7 @@ test('fund queue has stable vouchers and remains disabled by default', () => {
   const service = read('SupabaseService.gs');
   const fund = read('FundService.gs');
   const fundTransactions = read('FundTransactionService.gs');
-  assert.match(service, /ASYNC_FUND_TRANSACTION_ADD_ENABLED = readBooleanProperty_\('ASYNC_FUND_TRANSACTION_ADD_ENABLED', false\)/);
+  assert.match(service, /return readBooleanProperty_\('ASYNC_FUND_TRANSACTION_ADD_ENABLED', false\)/);
   assert.match(service, /clientRequestId/);
   assert.match(fundTransactions, /idempotentReplay: true/);
   assert.match(fundTransactions, /context\.clean\(item\.voucher\) \|\| context\.buildVoucher/);

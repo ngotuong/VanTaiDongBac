@@ -325,6 +325,7 @@ export function parseCellValue(input: unknown): number | null {
     const dots = (clean.match(/\./g) || []).length;
     if (dots > 1 || (dots === 1 && clean.split('.')[1]?.length === 3)) clean = clean.replace(/\./g, '');
   }
+  clean = clean.replace(/[.,]$/, '');
   if (!/^-?\d+(?:\.\d+)?$/.test(clean)) return null;
   const value = Number.parseFloat(clean);
   return Number.isNaN(value) ? null : value;
@@ -375,6 +376,7 @@ export function formatReportDisplayValue(type: ReportType, header: ReportCell, r
     const value = parseCellValue(text);
     if (value !== null) return Math.round(value).toLocaleString('vi-VN');
   }
+  if (/^[+-]?0[.,]?$/.test(text) && parseCellValue(text) === 0) return '0';
   return text.replace(/\s*(?:₫|đ)\s*$/i, '');
 }
 
@@ -424,9 +426,10 @@ export function filterOptions(type: ReportType, head: ReportCell[], body: Report
   const companyIdx = type === 'vehicles' ? find(['cong ty', 'chu xe', 'nha xe', 'don vi'], 0) : find(['cong ty', 'don vi', 'bo phan', 'to doi', 'nhom', 'tuyen dung']);
   const plateIdx = type === 'vehicles' ? find(['bien so', 'bien xe', 'xe'], 1) : -1;
   const jobIdx = type === 'payroll' ? find(['chuc vu']) : -1;
+  const groupIdx = type === 'projectGroups' || type === 'projects' ? find(['nhom bao cao', 'nhom van hanh']) : -1;
   const data = body.filter((row) => !isTotalRow(row));
   const unique = (index: number) => index < 0 ? [] : [...new Set(data.map((row) => String(row[index] ?? '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi'));
-  return { companyIdx, plateIdx, jobIdx, companies: unique(companyIdx), plates: unique(plateIdx), jobs: unique(jobIdx) };
+  return { companyIdx, plateIdx, jobIdx, groupIdx, companies: unique(companyIdx), plates: unique(plateIdx), jobs: unique(jobIdx), groups: unique(groupIdx) };
 }
 
 export function matchesReportRow(row: ReportCell[], query: string) {
@@ -453,14 +456,40 @@ function closeEnough(actual: number, expected: number) {
   return Math.abs(actual - expected) <= tolerance;
 }
 
+export function ensureDetailNetProfitRow(details: ReportMatrix | undefined): ReportMatrix | undefined {
+  const parsed = matrixRows(details);
+  if (!parsed.head.length) return details;
+  const headers = parsed.head.map(normalizedHeader);
+  const categories = parsed.body.map((row) => normalizedHeader(row[0]));
+  if (categories.some((label) => label === 'loi nhuan thuc' || label === 'loi nhuan thuc te')) return details;
+
+  const grossRowIdx = categories.indexOf('loi nhuan gop');
+  const totalIdx = headers.findIndex((header) => header === 'tong');
+  if (grossRowIdx < 0 || totalIdx < 0) return details;
+
+  const deductionRows = parsed.body.slice(grossRowIdx + 1);
+  const gross = parseCellValue(parsed.body[grossRowIdx][totalIdx]) || 0;
+  const deductions = deductionRows.reduce((sum, row) => sum + (parseCellValue(row[totalIdx]) || 0), 0);
+  const netRow: ReportCell[] = new Array(parsed.head.length).fill('');
+  const sample = parsed.body[grossRowIdx][totalIdx];
+  const formatted = formatValueLike(gross - deductions, sample);
+  netRow[0] = 'Lợi nhuận thực';
+  netRow[totalIdx] = /[đ₫]/.test(String(sample)) && !/[đ₫]/.test(formatted) ? `${formatted} ₫` : formatted;
+
+  const explanationIdx = headers.findIndex((header) => header.includes('giai thich') || header.includes('noi dung'));
+  if (explanationIdx >= 0) netRow[explanationIdx] = 'Lợi nhuận gộp - chi dầu ngoài - chi phí lương - BHXH - chi quỹ';
+  return [parsed.head, ...parsed.body, netRow] as ReportMatrix;
+}
+
 export function repairCompanyReport(
   details: ReportMatrix | undefined,
   vehicles: ReportMatrix | undefined,
   vehicleOwners: Record<string, string> | undefined
 ) {
+  const completeDetails = ensureDetailNetProfitRow(details);
   const ownerEntries = Object.entries(vehicleOwners || {}).map(([plate, owner]) => [normalizedPlate(plate), String(owner || '').trim()] as const);
   const ownerMap = new Map(ownerEntries.filter(([plate, owner]) => plate && owner));
-  if (!ownerMap.size) return { details, vehicles };
+  if (!ownerMap.size) return { details: completeDetails, vehicles };
 
   const vehicleParsed = matrixRows(vehicles);
   const vehicleHeaders = vehicleParsed.head.map(normalizedHeader);
@@ -468,7 +497,7 @@ export function repairCompanyReport(
   const plateIdx = vehicleHeaders.findIndex((header) => header.includes('bien so') || header === 'xe');
   const volumeIdx = vehicleHeaders.findIndex((header) => header.includes('tong khoi') || header.includes('khoi luong'));
   const revenueIdx = vehicleHeaders.findIndex((header) => header.includes('doanh thu'));
-  if (companyIdx < 0 || plateIdx < 0 || volumeIdx < 0 || revenueIdx < 0) return { details, vehicles };
+  if (companyIdx < 0 || plateIdx < 0 || volumeIdx < 0 || revenueIdx < 0) return { details: completeDetails, vehicles };
 
   const repairedVehicleBody = vehicleParsed.body.map((row) => {
     const copy = [...row];
@@ -489,17 +518,17 @@ export function repairCompanyReport(
     companyTotals.set(company, totals);
   }
 
-  const detailParsed = matrixRows(details);
+  const detailParsed = matrixRows(completeDetails);
   const detailHeaders = detailParsed.head.map(normalizedHeader);
   const totalIdx = detailHeaders.findIndex((header) => header === 'tong');
   const quangQuanIdx = detailHeaders.findIndex((header) => header.includes('quang quan'));
   const minhVuongIdx = detailHeaders.findIndex((header) => header.includes('minh vuong'));
-  if (totalIdx < 0 || quangQuanIdx < 0 || minhVuongIdx < 0) return { details, vehicles: repairedVehicles };
+  if (totalIdx < 0 || quangQuanIdx < 0 || minhVuongIdx < 0) return { details: completeDetails, vehicles: repairedVehicles };
 
   const categoryIndex = new Map(detailParsed.body.map((row, index) => [normalizedHeader(row[0]), index]));
   const volumeRowIdx = categoryIndex.get('tong khoi luong');
   const revenueRowIdx = categoryIndex.get('tong doanh thu');
-  if (volumeRowIdx === undefined || revenueRowIdx === undefined) return { details, vehicles: repairedVehicles };
+  if (volumeRowIdx === undefined || revenueRowIdx === undefined) return { details: completeDetails, vehicles: repairedVehicles };
 
   const totalVolume = parseCellValue(detailParsed.body[volumeRowIdx][totalIdx]) || 0;
   const totalRevenue = parseCellValue(detailParsed.body[revenueRowIdx][totalIdx]) || 0;
@@ -508,7 +537,7 @@ export function repairCompanyReport(
   const currentSplit = (parseCellValue(detailParsed.body[volumeRowIdx][quangQuanIdx]) || 0)
     + (parseCellValue(detailParsed.body[volumeRowIdx][minhVuongIdx]) || 0);
   if (currentSplit > 0 || totalVolume <= 0 || totalRevenue <= 0 || !closeEnough(splitVolume, totalVolume) || !closeEnough(splitRevenue, totalRevenue)) {
-    return { details, vehicles: repairedVehicles };
+    return { details: completeDetails, vehicles: repairedVehicles };
   }
 
   const repairedDetailBody = detailParsed.body.map((row) => [...row]);
@@ -541,49 +570,6 @@ export function repairCompanyReport(
       .filter(({ row }) => normalizedHeader(row[0]) === 'chi phi dau');
     const fuel = fuelRows.length ? parseCellValue(fuelRows[0].row[company.index]) || 0 : 0;
     setValue(grossRowIdx, company.index, totals.revenue - taxTndn - taxVat - fuel);
-  }
-
-  // Đảm bảo Báo Cáo Chi Tiết luôn có dòng "Lợi nhuận thực" ở cuối bảng
-  const updatedCategoryIndex = new Map(repairedDetailBody.map((row, index) => [normalizedHeader(row[0]), index]));
-  const grossRowIdx = updatedCategoryIndex.get('loi nhuan gop');
-  if (grossRowIdx !== undefined) {
-    const rowsAfterGross = repairedDetailBody.slice(grossRowIdx + 1).filter((r) => {
-      const h = normalizedHeader(r[0]);
-      return h !== 'loi nhuan thuc' && h !== 'loi nhuan thuc te';
-    });
-
-    const computeNet = (cIdx: number) => {
-      const gross = parseCellValue(repairedDetailBody[grossRowIdx][cIdx]) || 0;
-      const deductions = rowsAfterGross.reduce((sum, r) => sum + (parseCellValue(r[cIdx]) || 0), 0);
-      return gross - deductions;
-    };
-
-    const netTotal = computeNet(totalIdx);
-
-    const existingNetIdx = updatedCategoryIndex.get('loi nhuan thuc') ?? updatedCategoryIndex.get('loi nhuan thuc te');
-    const netRow: ReportCell[] = existingNetIdx !== undefined ? [...repairedDetailBody[existingNetIdx]] : new Array(detailParsed.head.length).fill('');
-    netRow[0] = 'Lợi nhuận thực';
-
-    const setRowVal = (cIdx: number, val: number) => {
-      const sample = repairedDetailBody[grossRowIdx][cIdx];
-      const formatted = formatValueLike(val, sample);
-      netRow[cIdx] = /[đ₫]/.test(String(sample)) && !/[đ₫]/.test(formatted) ? `${formatted} ₫` : formatted;
-    };
-
-    setRowVal(totalIdx, netTotal);
-    netRow[quangQuanIdx] = '';
-    netRow[minhVuongIdx] = '';
-
-    const expIdx = detailHeaders.findIndex((h) => h.includes('giai thich') || h.includes('noi dung'));
-    if (expIdx >= 0) {
-      netRow[expIdx] = 'Lợi nhuận gộp - chi dầu ngoài - chi phí lương - chi quỹ';
-    }
-
-    if (existingNetIdx !== undefined) {
-      repairedDetailBody[existingNetIdx] = netRow;
-    } else {
-      repairedDetailBody.push(netRow);
-    }
   }
 
   return { details: [detailParsed.head, ...repairedDetailBody] as ReportMatrix, vehicles: repairedVehicles };

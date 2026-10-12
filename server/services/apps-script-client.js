@@ -1,6 +1,6 @@
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
 
-function createAppsScriptClient({ fetchImpl = fetch, maxBodyBytes = DEFAULT_MAX_BODY_BYTES } = {}) {
+function createAppsScriptClient({ fetchImpl = fetch, maxBodyBytes = DEFAULT_MAX_BODY_BYTES, timeoutMs = 55000 } = {}) {
   async function forward({ url, action, method, params, body, proxySecret, requestUser }) {
     const payload = JSON.stringify({ action, method, params, body, proxySecret, requestUser });
     if (Buffer.byteLength(payload, 'utf8') > maxBodyBytes) {
@@ -9,6 +9,7 @@ function createAppsScriptClient({ fetchImpl = fetch, maxBodyBytes = DEFAULT_MAX_
     const upstream = await fetchImpl(url, {
       method: 'POST',
       redirect: 'follow',
+      signal: AbortSignal.timeout(timeoutMs),
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: payload
     });

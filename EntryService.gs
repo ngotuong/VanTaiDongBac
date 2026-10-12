@@ -27,7 +27,7 @@ var EntryService = (function () {
       var cfg = context.sheets[formType];
       var sheet = ss.getSheetByName(cfg.name);
       if (!sheet) throw new Error('Khong tim thay sheet ' + cfg.name);
-      var headers = assertLiveHeaders_(sheet, cfg);
+      var liveSchema = assertLiveHeaders_(sheet, cfg);
 
       var reservedRange = findWriteJobRange_(sheet, writeContext);
       var idempotentReplay = Boolean(reservedRange);
@@ -38,10 +38,23 @@ var EntryService = (function () {
         reservedRange = sheet.getRange(appendRow, 1, 1, sheet.getMaxColumns());
       }
 
-      var skippedColumns = (cfg.computedHeaders || []).map(function (header) {
-        return headers.indexOf(header);
+      var expectedIndexByLiveColumn = {};
+      liveSchema.expectedIndexes.forEach(function (liveIndex, expectedIndex) {
+        expectedIndexByLiveColumn[liveIndex] = expectedIndex;
+      });
+      var computedHeaders = cfg.computedHeaders || [];
+      var skippedColumns = liveSchema.headers.map(function (_, liveIndex) {
+        var expectedIndex = expectedIndexByLiveColumn[liveIndex];
+        return expectedIndex === undefined || computedHeaders.indexOf(cfg.headers[expectedIndex]) !== -1 ? liveIndex : -1;
       }).filter(function (index) { return index >= 0; });
-      context.writeRows(sheet, appendRow, result.values, skippedColumns);
+      var physicalRows = result.values.map(function (logicalRow) {
+        var physicalRow = liveSchema.headers.map(function () { return ''; });
+        liveSchema.expectedIndexes.forEach(function (liveIndex, expectedIndex) {
+          physicalRow[liveIndex] = logicalRow[expectedIndex];
+        });
+        return physicalRow;
+      });
+      context.writeRows(sheet, appendRow, physicalRows, skippedColumns);
       context.clearAfterSubmitCache();
       return {
         ok: result.errors.length === 0,
@@ -61,19 +74,31 @@ var EntryService = (function () {
     var expected = cfg.headers || [];
     var aliases = cfg.headerAliases || {};
     if (!expected.length) throw new Error('Chua khai bao schema ghi cho ' + cfg.name + '.');
-    var actual = sheet.getRange(cfg.headerRow, 1, 1, expected.length).getDisplayValues()[0].map(function (header) {
+    var actual = sheet.getRange(cfg.headerRow, 1, 1, sheet.getLastColumn()).getDisplayValues()[0].map(function (header) {
       return String(header || '').trim();
     });
+    var usedIndexes = {};
+    var expectedIndexes = [];
     for (var index = 0; index < expected.length; index++) {
       var canonical = String(expected[index]).trim();
       var accepted = [canonical].concat(aliases[canonical] || []).map(function (header) {
         return String(header || '').trim();
       });
-      if (accepted.indexOf(actual[index]) === -1) {
-        throw new Error('Schema ' + cfg.name + ' khong khop tai cot ' + (index + 1) + ': chap nhan "' + accepted.join('" hoac "') + '", dang la "' + actual[index] + '".');
+      var liveIndex = -1;
+      for (var candidateIndex = 0; candidateIndex < actual.length; candidateIndex++) {
+        if (!usedIndexes[candidateIndex] && accepted.indexOf(actual[candidateIndex]) !== -1) {
+          liveIndex = candidateIndex;
+          break;
+        }
       }
+      if (liveIndex === -1) {
+        var current = index < actual.length ? ', dang la "' + actual[index] + '"' : '';
+        throw new Error('Schema ' + cfg.name + ' thieu header bat buoc: chap nhan "' + accepted.join('" hoac "') + '"' + current + '.');
+      }
+      usedIndexes[liveIndex] = true;
+      expectedIndexes.push(liveIndex);
     }
-    return actual;
+    return { headers: actual, expectedIndexes: expectedIndexes };
   }
 
   function findWriteJobRange_(sheet, writeContext) {

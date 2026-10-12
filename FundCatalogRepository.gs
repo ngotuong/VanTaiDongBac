@@ -54,14 +54,14 @@ var FundCatalogRepository = (function () {
   function saveNativeValue(spreadsheet, sheet, spec, groupKey, rowNumber, value, context) {
     var targetRow = rowNumber || findAppendRowInColumn(sheet, spec.column, spec.startRow, spec.endRow, context.groupLabel, context.columnToLetter, context.sheetName);
     if (sheet.getMaxRows() < targetRow) sheet.insertRowsAfter(sheet.getMaxRows(), targetRow - sheet.getMaxRows());
-    sheet.getRange(targetRow, spec.column).setValue(value);
+    sheet.getRange(targetRow, spec.column).setValue(literal_(value));
     return { rowIndex: 'native:' + groupKey + ':' + targetRow, column: spec.column };
   }
 
   function saveManagedValue(sheet, rowNumber, values, getAppendRow) {
     var targetRow = rowNumber > 1 ? rowNumber : getAppendRow(sheet);
     if (sheet.getMaxRows() < targetRow) sheet.insertRowsAfter(sheet.getMaxRows(), targetRow - sheet.getMaxRows());
-    sheet.getRange(targetRow, 1, 1, 3).setValues([values]);
+    sheet.getRange(targetRow, 1, 1, 3).setValues([values.map(literal_)]);
     return targetRow;
   }
 
@@ -72,6 +72,8 @@ var FundCatalogRepository = (function () {
   function deleteManagedValue(sheet, rowNumber) {
     sheet.deleteRow(rowNumber);
   }
+
+  function literal_(value) { return typeof value === 'string' && /^\s*=/.test(value) ? "'" + value : value; }
 
   return { readManagedRows: readManagedRows, resolveNativeSpec: resolveNativeSpec, readNativeRows: readNativeRows,
     findAppendRowInColumn: findAppendRowInColumn, saveNativeValue: saveNativeValue, saveManagedValue: saveManagedValue,

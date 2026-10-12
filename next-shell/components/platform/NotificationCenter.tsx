@@ -7,18 +7,20 @@ import { showToast } from '../../lib/platform/toast';
 
 type NotificationItem = {
   id: string;
-  type: 'reconciliation' | 'hot-bonus' | 'attendance' | 'driver-assignment' | 'fund-low-balance' | 'sync-stale' | 'sync-failure' | 'write-failure';
+  type: 'reconciliation' | 'reconciliation-resolved' | 'reconciliation-resolved-group' | 'hot-bonus' | 'attendance' | 'driver-assignment' | 'fund-low-balance' | 'sync-stale' | 'sync-failure' | 'write-failure';
   notificationKey?: 'trip-reconciliation' | 'fund-low-balance' | 'operations-integrity' | 'system-health';
   severity: 'error' | 'warning' | 'success' | 'info';
   title: string;
   message: string;
   date: string;
+  sourceDate?: string;
   plate?: string;
   project?: string;
   amount?: number;
   excessTrips?: number;
   threshold?: number;
   url?: string;
+  legacyIds?: string[];
 };
 
 type NotificationResponse = {
@@ -31,10 +33,14 @@ type NotificationResponse = {
 };
 
 const api = createClientApiClient();
-const READ_STORAGE_VERSION = 'v1';
+const READ_STORAGE_VERSION = 'v2';
+const LEGACY_READ_STORAGE_VERSION = 'v1';
+const READ_RETENTION_MS = 120 * 24 * 60 * 60 * 1000;
+const READ_LEDGER_MAX_ITEMS = 2000;
 const EMPTY_ITEMS: NotificationItem[] = [];
 const COPY_LONG_PRESS_MS = 550;
 const COPY_MOVE_TOLERANCE_PX = 12;
+const NOTIFICATION_REVALIDATE_MS = 60 * 1000;
 
 type NotificationView = 'all' | 'unread';
 type BadgeNavigator = Navigator & {
@@ -64,7 +70,27 @@ function syncLabel(value?: string | null) {
 }
 
 function notificationKey(item: NotificationItem) {
+  return item.id;
+}
+
+function legacyNotificationKey(item: NotificationItem) {
   return [item.id, item.type, item.title, item.message, item.amount || 0, item.excessTrips || 0].join('|');
+}
+
+type ReadLedger = Record<string, number>;
+
+function isNotificationRead(item: NotificationItem, readLedger: ReadLedger) {
+  return Object.hasOwn(readLedger, notificationKey(item))
+    || Object.hasOwn(readLedger, legacyNotificationKey(item))
+    || (item.legacyIds || []).some((key) => Object.hasOwn(readLedger, key));
+}
+
+function pruneReadLedger(ledger: ReadLedger, currentTime = Date.now()) {
+  const cutoff = currentTime - READ_RETENTION_MS;
+  return Object.fromEntries(Object.entries(ledger)
+    .filter(([, readAt]) => Number.isFinite(readAt) && readAt >= cutoff)
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, READ_LEDGER_MAX_ITEMS));
 }
 
 function notificationClipboardText(item: NotificationItem) {
@@ -131,10 +157,12 @@ export function NotificationCenter({ userId }: { userId: string }) {
   const [error, setError] = useState('');
   const [data, setData] = useState<NotificationResponse>({ items: [], count: 0 });
   const [view, setView] = useState<NotificationView>('all');
-  const [readKeys, setReadKeys] = useState<Set<string>>(() => new Set());
+  const [readLedger, setReadLedger] = useState<ReadLedger>({});
   const [readHydrated, setReadHydrated] = useState(false);
+  const [legacyBaselineNeeded, setLegacyBaselineNeeded] = useState(false);
   const [pressingKey, setPressingKey] = useState('');
   const [copyFallback, setCopyFallback] = useState<NotificationItem | null>(null);
+  const [targetNotificationId, setTargetNotificationId] = useState('');
   const [anchor, setAnchor] = useState({ top: 72, right: 16 });
   const buttonRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -143,6 +171,7 @@ export function NotificationCenter({ userId }: { userId: string }) {
   const pressStateRef = useRef<{ key: string; startX: number; startY: number; triggered: boolean } | null>(null);
   const suppressClickRef = useRef('');
   const storageKey = `vtdb:notification-read:${READ_STORAGE_VERSION}:${userId}`;
+  const legacyStorageKey = `vtdb:notification-read:${LEGACY_READ_STORAGE_VERSION}:${userId}`;
 
   const load = useCallback(async (force = false) => {
     if (loading || (loaded && !force)) return;
@@ -165,27 +194,86 @@ export function NotificationCenter({ userId }: { userId: string }) {
     return () => window.clearTimeout(timer);
   }, [load]);
 
+  const openFromPush = useCallback((notificationId = '') => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setAnchor({ top: Math.round(rect.bottom + 10), right: Math.max(16, Math.round(window.innerWidth - rect.right)) });
+    }
+    setView('all');
+    setTargetNotificationId(notificationId);
+    setOpen(true);
+    void load(true);
+  }, [load]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('notifications') !== 'open') return;
+    const notificationId = url.searchParams.get('notificationId') || '';
+    const timer = window.setTimeout(() => openFromPush(notificationId), 0);
+    url.searchParams.delete('notifications');
+    url.searchParams.delete('notificationId');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    return () => window.clearTimeout(timer);
+  }, [openFromPush]);
+
+  useEffect(() => {
+    if (!('serviceWorker' in window.navigator)) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type !== 'OPEN_NOTIFICATION_CENTER') return;
+      openFromPush(String(event.data.notificationId || ''));
+    };
+    window.navigator.serviceWorker.addEventListener('message', onMessage);
+    void window.navigator.serviceWorker.getRegistration().then((registration) => registration?.update()).catch(() => undefined);
+    return () => window.navigator.serviceWorker.removeEventListener('message', onMessage);
+  }, [openFromPush]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const refreshVisible = () => {
+      if (document.visibilityState === 'visible') void load(true);
+    };
+    const onVisibilityChange = () => refreshVisible();
+    const timer = window.setInterval(refreshVisible, NOTIFICATION_REVALIDATE_MS);
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshVisible);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [loaded, load]);
+
   useEffect(() => {
     const hydrate = () => {
       try {
-        const stored = JSON.parse(window.localStorage.getItem(storageKey) || '[]');
-        setReadKeys(new Set(Array.isArray(stored) ? stored.filter((value): value is string => typeof value === 'string') : []));
+        const storedRaw = window.localStorage.getItem(storageKey);
+        const legacyRaw = window.localStorage.getItem(legacyStorageKey);
+        const stored = JSON.parse(storedRaw || '{}');
+        const legacy = JSON.parse(legacyRaw || '[]');
+        const migratedAt = Date.now();
+        const migrated = Array.isArray(legacy)
+          ? Object.fromEntries(legacy.filter((value): value is string => typeof value === 'string').map((key) => [key, migratedAt]))
+          : {};
+        const current = stored && typeof stored === 'object' && !Array.isArray(stored) ? stored as ReadLedger : {};
+        setReadLedger(pruneReadLedger({ ...migrated, ...current }, migratedAt));
+        setLegacyBaselineNeeded(!storedRaw && legacyRaw !== null);
       } catch {
-        setReadKeys(new Set());
+        setReadLedger({});
+        setLegacyBaselineNeeded(false);
       } finally {
         setReadHydrated(true);
       }
     };
     const timer = window.setTimeout(hydrate, 0);
     const syncTabs = (event: StorageEvent) => {
-      if (event.key === storageKey) hydrate();
+      if (event.key === storageKey || event.key === legacyStorageKey) hydrate();
     };
     window.addEventListener('storage', syncTabs);
     return () => {
       window.clearTimeout(timer);
       window.removeEventListener('storage', syncTabs);
     };
-  }, [storageKey]);
+  }, [legacyStorageKey, storageKey]);
 
   useEffect(() => {
     if (!open) return;
@@ -200,16 +288,57 @@ export function NotificationCenter({ userId }: { userId: string }) {
   }, [open]);
 
   const items = data.items || EMPTY_ITEMS;
-  const unreadItems = readHydrated ? items.filter((item) => !readKeys.has(notificationKey(item))) : [];
+  const unreadItems = readHydrated ? items.filter((item) => !isNotificationRead(item, readLedger)) : [];
   const unreadCount = unreadItems.length;
   const visibleItems = view === 'unread' ? unreadItems : items;
 
   useEffect(() => {
+    if (!open || !loaded || !targetNotificationId) return;
+    const timer = window.setTimeout(() => {
+      const target = Array.from(document.querySelectorAll<HTMLElement>('[data-notification-id]'))
+        .find((element) => element.dataset.notificationId === targetNotificationId);
+      target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [loaded, open, targetNotificationId, visibleItems]);
+
+  useEffect(() => {
     if (!readHydrated || !loaded) return;
-    const activeKeys = new Set(items.map(notificationKey));
-    const retainedKeys = [...readKeys].filter((key) => activeKeys.has(key));
-    try { window.localStorage.setItem(storageKey, JSON.stringify(retainedKeys)); } catch {}
-  }, [items, loaded, readHydrated, readKeys, storageKey]);
+    if (!legacyBaselineNeeded) return;
+    const readAt = Date.now();
+    const baseline = Object.fromEntries(items.map((item) => [notificationKey(item), readAt]));
+    const baselineTimer = window.setTimeout(() => {
+      setReadLedger((current) => ({ ...current, ...baseline }));
+      setLegacyBaselineNeeded(false);
+    }, 0);
+    return () => window.clearTimeout(baselineTimer);
+  }, [items, legacyBaselineNeeded, loaded, readHydrated]);
+
+  useEffect(() => {
+    if (!readHydrated || !loaded || legacyBaselineNeeded) return;
+    const migratedReadAt = Date.now();
+    const migrated = items.reduce<ReadLedger>((ledger, item) => {
+      if (!Object.hasOwn(readLedger, item.id) && isNotificationRead(item, readLedger)) ledger[item.id] = migratedReadAt;
+      return ledger;
+    }, {});
+    if (Object.keys(migrated).length) {
+      const migrationTimer = window.setTimeout(() => setReadLedger((current) => ({ ...current, ...migrated })), 0);
+      return () => window.clearTimeout(migrationTimer);
+    }
+  }, [items, legacyBaselineNeeded, loaded, readHydrated, readLedger]);
+
+  useEffect(() => {
+    if (!readHydrated || !loaded || legacyBaselineNeeded) return;
+    const pruned = pruneReadLedger(readLedger);
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(pruned));
+      window.localStorage.removeItem(legacyStorageKey);
+    } catch {}
+    const unchanged = Object.keys(pruned).length === Object.keys(readLedger).length
+      && Object.entries(pruned).every(([key, readAt]) => readLedger[key] === readAt);
+    const pruneTimer = unchanged ? null : window.setTimeout(() => setReadLedger(pruned), 0);
+    return () => { if (pruneTimer !== null) window.clearTimeout(pruneTimer); };
+  }, [legacyBaselineNeeded, legacyStorageKey, loaded, readHydrated, readLedger, storageKey]);
 
   useEffect(() => {
     if (!readHydrated || !loaded) return;
@@ -218,9 +347,12 @@ export function NotificationCenter({ userId }: { userId: string }) {
 
   const markRead = (item: NotificationItem) => {
     const key = notificationKey(item);
-    setReadKeys((current) => current.has(key) ? current : new Set([...current, key]));
+    setReadLedger((current) => Object.hasOwn(current, key) ? current : { ...current, [key]: Date.now() });
   };
-  const markAllRead = () => setReadKeys(new Set(items.map(notificationKey)));
+  const markAllRead = () => {
+    const readAt = Date.now();
+    setReadLedger((current) => ({ ...current, ...Object.fromEntries(items.map((item) => [notificationKey(item), readAt])) }));
+  };
   const clearLongPress = useCallback(() => {
     if (pressTimerRef.current !== null) window.clearTimeout(pressTimerRef.current);
     pressTimerRef.current = null;
@@ -278,6 +410,7 @@ export function NotificationCenter({ userId }: { userId: string }) {
   const close = () => {
     clearLongPress();
     setOpen(false);
+    setTargetNotificationId('');
     buttonRef.current?.focus();
   };
   const panelStyle = {
@@ -335,8 +468,8 @@ export function NotificationCenter({ userId }: { userId: string }) {
           {!loading && !error && items.length > 0 && !visibleItems.length ? <div className="notification-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg><strong>Đã xem tất cả thông báo</strong><span>Chọn “Tất cả” để xem lại lịch sử đang hoạt động.</span></div> : null}
           {visibleItems.length ? <ul className="notification-list">{visibleItems.map((item) => {
             const key = notificationKey(item);
-            const unread = !readKeys.has(key);
-            return <li className={`notification-item ${item.severity}${unread ? ' unread' : ' read'}`} key={notificationKey(item)}>
+            const unread = !isNotificationRead(item, readLedger);
+            return <li data-notification-id={key} className={`notification-item ${item.severity}${unread ? ' unread' : ' read'}${targetNotificationId === key ? ' targeted' : ''}`} key={notificationKey(item)}>
               <button
                 type="button"
                 className={`notification-item-action${pressingKey === key ? ' copy-pressing' : ''}`}
@@ -349,10 +482,6 @@ export function NotificationCenter({ userId }: { userId: string }) {
                     return;
                   }
                   markRead(item);
-                  if (item.url) {
-                    close();
-                    window.location.assign(item.url);
-                  }
                 }}
                 onPointerDown={(event) => beginLongPress(event, item)}
                 onPointerMove={moveLongPress}
@@ -366,7 +495,7 @@ export function NotificationCenter({ userId }: { userId: string }) {
                   showToast('Đã sao chép nội dung thông báo.', 'success');
                 }}
               >
-                <span className="notification-item-icon" aria-hidden="true">{item.type === 'hot-bonus' || item.type === 'fund-low-balance' ? '₫' : '!'}</span>
+                <span className="notification-item-icon" aria-hidden="true">{item.type === 'hot-bonus' || item.type === 'fund-low-balance' ? '₫' : item.type === 'reconciliation-resolved' || item.type === 'reconciliation-resolved-group' ? '✓' : '!'}</span>
                 <div><div className="notification-item-heading"><strong>{item.title}</strong><time dateTime={item.date}>{dateLabel(item.date)}</time></div><p>{item.message}</p>{item.type === 'hot-bonus' ? <div className="notification-item-meta"><span>{Number(item.excessTrips || 0)} chuyến vượt</span><strong>{money(item.amount)} đ</strong></div> : null}</div>
                 {unread ? <span className="notification-unread-dot" aria-hidden="true"/> : null}
               </button>

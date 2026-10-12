@@ -81,6 +81,24 @@ test('Personnel catalog hides formula helper columns even when the workbook rena
   assert.match(catalogServer, /visible\.has\(header\)/);
 });
 
+test('Project catalog keeps identity and distance fields across live header aliases', () => {
+  const source = {
+    ok: true,
+    headers: ['Dự án', 'Số km', 'Từ ngày', 'Đến ngày', 'Đơn giá', 'Lương chuyến', 'Thưởng', 'Nhóm vận hành', 'Lương chuyến?', 'Thưởng QL?', 'Ghi chú'],
+    rows: [{ rowIndex: 2, values: ['Mỏ A', 12.5, '2026-01-01', '', 'Đã cấu hình', 'Đã cấu hình', 'Không áp dụng', 'Dự án nhỏ', 'Có', 'Không', ''] }]
+  };
+  const context = vm.createContext({
+    SheetService: { getCatalogs: () => ({}) },
+    SheetReadService: { readSheetData: () => plain(source) },
+    ValidationService: { parseNumber: (value) => Number(value) || 0 }
+  });
+  new vm.Script(read('NormalizationUtils.gs'), { filename: 'NormalizationUtils.gs#project-alias' }).runInContext(context);
+  new vm.Script(read('CatalogService.gs'), { filename: 'CatalogService.gs#project-alias' }).runInContext(context);
+  const result = plain(context.CatalogService.readCatalogData('DM_DuAn'));
+  assert.deepEqual(result.editableHeaders, ['Dự án', 'Số km', 'Từ ngày', 'Đến ngày', 'Nhóm vận hành', 'Lương chuyến?', 'Thưởng QL?', 'Ghi chú']);
+  assert.doesNotMatch(result.editableHeaders.join('|'), /Đơn giá|^Lương chuyến$|^Thưởng$/);
+});
+
 test('Catalog writes and deletes are constrained to the visible primary table', () => {
   const sheetService = read('SheetService.gs');
   const catalogModule = read('next-shell/components/catalog/CatalogModule.tsx');
@@ -98,7 +116,7 @@ test('Manage exposes NL_PhanCongLai without routing its add button to another fo
   const manageSync = read('ManageSyncService.gs');
   assert.match(manageServer, /'NL_PhanCongLai'/);
   assert.match(manageModule, /\['NL_PhanCongLai','Phân công lái'\]/);
-  assert.match(manageModule, /canCreate=canWrite&&sheet!=='NL_PhanCongLai'/);
+  assert.match(manageModule, /canCreate=canWrite&&!NO_DATE_FILTER_SHEETS\.has\(sheet\)/);
   assert.match(manageSync, /'NL_PhanCongLai'/);
 });
 

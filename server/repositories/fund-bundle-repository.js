@@ -1,4 +1,6 @@
+const { withDeadline } = require('../services/request-deadline');
 function createFundBundleRepository({ fetchImpl = fetch, httpError }) {
+  fetchImpl = withDeadline(fetchImpl);
   async function find(config, table, filters) {
     const query = new URLSearchParams({ select: 'payload,synced_at', limit: '1' });
     Object.entries(filters).forEach(([key, value]) => query.set(key, `eq.${String(value ?? '').trim()}`));

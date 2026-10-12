@@ -28,6 +28,7 @@ function withEnvironment(values, fn) {
 }
 
 const environment = {
+  BUSINESS_WRITES_PAUSED: 'false',
   SYNC_WATCHDOG_SECRET: 'watchdog-secret',
   SUPABASE_URL: 'https://lyquwesyjbpalnwfxzwl.supabase.co',
   SUPABASE_SERVICE_ROLE_KEY: 'service-role',
@@ -38,6 +39,22 @@ const environment = {
   EXPECTED_VERCEL_PROJECT_ID: '',
   EXPECTED_APPS_SCRIPT_ID: ''
 };
+
+test('maintenance suppresses watchdog reads, writes and trigger recovery even for a forced authenticated request', async () => withEnvironment({ ...environment, BUSINESS_WRITES_PAUSED: 'true' }, async () => {
+  let calls = 0;
+  const handler = createSyncWatchdog({ fetchImpl: async () => { calls++; throw new Error('No upstream call is allowed during maintenance.'); } });
+  for (const method of ['GET', 'POST']) {
+    const res = responseRecorder();
+    await handler({ method, headers: { authorization: 'Bearer watchdog-secret' }, body: { force: true } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(JSON.parse(res.body).skipped, true);
+    assert.match(JSON.parse(res.body).reason, /Maintenance/);
+  }
+  const denied = responseRecorder();
+  await handler({ method: 'GET', headers: {} }, denied);
+  assert.equal(denied.statusCode, 401);
+  assert.equal(calls, 0);
+}));
 
 test('sync watchdog skips recovery while the worker heartbeat is fresh', async () => withEnvironment(environment, async () => {
   let upstreamCalls = 0;

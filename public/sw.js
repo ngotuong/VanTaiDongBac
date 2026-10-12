@@ -1,6 +1,14 @@
 const BADGE_STATE_CACHE = 'vtdb-badge-state-v1';
 const BADGE_STATE_URL = '/__vtdb_badge_state__';
 
+self.addEventListener('install', (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 async function readBadgeCount() {
   try {
     const cache = await caches.open(BADGE_STATE_CACHE);
@@ -35,7 +43,7 @@ self.addEventListener('push', (event) => {
       badge: '/static/assets/favicon.png',
       tag: String(payload.tag || 'vtdb-notification').slice(0, 80),
       renotify: false,
-      data: { url: target }
+      data: { url: target, notificationId: String(payload.notificationId || '') }
     });
     if (payload.preserveBadge === true) return;
     const delta = Number(payload.unreadDelta);
@@ -55,14 +63,18 @@ self.addEventListener('message', (event) => {
 });
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const notificationTarget = event.notification?.data?.url || '/';
-  const target = notificationTarget === '/entry/' ? '/manage/?entry=vanChuyen' : notificationTarget;
+  const notificationId = String(event.notification.data?.notificationId || '');
+  const target = `/?notifications=open${notificationId ? `&notificationId=${encodeURIComponent(notificationId)}` : ''}`;
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const existing = windows.find((client) => new URL(client.url).origin === self.location.origin);
     if (existing) {
-      await existing.focus();
-      if ('navigate' in existing) await existing.navigate(target);
+      let active = existing;
+      try {
+        if ('navigate' in existing) active = await existing.navigate(target) || existing;
+      } catch {}
+      await active.focus();
+      active.postMessage({ type: 'OPEN_NOTIFICATION_CENTER', notificationId });
       return;
     }
     await self.clients.openWindow(target);

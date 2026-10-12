@@ -92,7 +92,7 @@ var ValidationService = (function () {
   function optionalPositiveNumber_(value, label) {
     if (clean_(value) === '') return '';
     var number = parseNumber(value, true);
-    if (!(number > 0)) throw new Error(label + ' phai lon hon 0.');
+    if (!isFinite(number) || !(number > 0)) throw new Error(label + ' phai lon hon 0 va huu han.');
     return number;
   }
 
@@ -229,6 +229,20 @@ var ValidationService = (function () {
   }
 
   return {
+    validateManageRow: function (sheetName, rowData) {
+      if (sheetName !== 'NL_VanChuyen') return;
+      Object.keys(rowData || {}).forEach(function (header) {
+        if (['Khối lượng', 'Khối lượng thực tế', 'Khối lượng (m³)', 'Khối lượng thực tế (m³)'].indexOf(header.trim()) < 0) return;
+        var value = rowData[header];
+        if (value === undefined || value === null || clean_(value) === '') return;
+        var text = clean_(value);
+        // Manage payloads are canonical dot decimals, not localized entry input.
+        if ((typeof value !== 'number' && typeof value !== 'string') ||
+            !/^\d+(\.\d+)?$/.test(text) || !isFinite(Number(text)) || !(Number(text) > 0)) {
+          throw new Error('Khối lượng phải để trống hoặc là số hữu hạn lớn hơn 0.');
+        }
+      });
+    },
     buildRows: buildRows,
     parseDate: parseDate,
     parseNumber: parseNumber

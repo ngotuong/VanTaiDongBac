@@ -25,7 +25,10 @@ var AppConfig = (function () {
         vanChuyen: {
           name: 'NL_VanChuyen', headerRow: 2, columns: 8,
           headers: ['Ngày', 'Tháng', 'Biển số', 'Dự án', 'Số chuyến', 'Số phiếu', 'Ghi chú', 'Khối lượng thực tế (m³)'],
-          headerAliases: { 'Biển số': ['Biển số xe'] },
+          headerAliases: {
+            'Biển số': ['Biển số xe'],
+            'Khối lượng thực tế (m³)': ['Khối lượng', 'Khối lượng thực tế', 'Khối lượng (m³)']
+          },
           computedHeaders: ['Tháng']
         },
         taiXe: {

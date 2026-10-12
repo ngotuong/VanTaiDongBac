@@ -93,7 +93,7 @@ test('SupabaseService retains fund facades while FundSyncService owns fund sync 
   const implementation = read('FundSyncService.gs');
   assert.match(facade, /FundSyncService\.syncFundOverview\(year, month, fundSyncContext_\(\)\)/);
   assert.match(facade, /FundSyncService\.syncAllFundBundles\(year, fundSyncContext_\(\)\)/);
-  assert.match(facade, /FundSyncService\.syncFundAfterWrite\(year, options, fundSyncContext_\(\)\)/);
+  assert.match(facade, /FundSyncService\.syncFundAfterWrite\(year, input, fundSyncContext_\(\)\)/);
   assert.doesNotMatch(facade, /fund_overview:.*Fund overview cache synced/);
   assert.doesNotMatch(facade, /var explicitMonths = options\.months/);
   assert.match(implementation, /function getFundWriteMonthKeys\(year, options, context\)/);

@@ -93,6 +93,15 @@ test('C3 Report C2 search is accent-insensitive, multi-term and vehicle filters 
   assert.deepEqual(totalRow,['Tổng cộng','2 xe','450.000']);
 });
 
+test('Project filters discover the group column without depending on its physical position',async()=>{
+  const helpers=await import('../next-shell/lib/platform/report-c2.ts');
+  const head=['Công ty','Nhóm báo cáo','Dự án','Số chuyến'];
+  const body=[['Minh Vương','Dự án nhỏ','Hòa Phát','2'],['Quang Quân','Dự án nhỏ','An Dương','3'],['Minh Vương','Dự án nhỏ','Hòa Phát','1']];
+  const filters=helpers.filterOptions('projects',head,body);
+  assert.equal(filters.groupIdx,1);
+  assert.deepEqual(filters.groups,['Dự án nhỏ']);
+});
+
 test('Report range aggregation merges the new project group and project rows by business key',async()=>{
   const helpers=await import('../next-shell/lib/platform/report-c2.ts');
   const months=[['Tháng','Doanh thu'],['07/2026','100'],['08/2026','300']];
@@ -110,6 +119,7 @@ test('Report totals never coerce identifiers or notes that merely start with dig
   assert.equal(helpers.parseCellValue('1.527'),1527);
   assert.equal(helpers.parseCellValue('9.108,94'),9108.94);
   assert.equal(helpers.parseCellValue('34.378.000 ₫'),34378000);
+  assert.equal(helpers.parseCellValue('0,'),0);
 });
 
 test('Report display removes currency units and rounds every money column without changing quantities',async()=>{
@@ -119,6 +129,7 @@ test('Report display removes currency units and rounds every money column withou
   assert.equal(helpers.formatReportDisplayValue('payroll','Lương chuyến',['Tài xế','945.000 ₫'],1),'945.000');
   assert.equal(helpers.formatReportDisplayValue('vehicles','Tiền dầu',['20H001','34.378.000 đ'],1),'34.378.000');
   assert.equal(helpers.formatReportDisplayValue('finance','Tổng khối lượng',['9.108,94'],0),'9.108,94');
+  assert.equal(helpers.formatReportDisplayValue('vehicles','Tổng khối',['Quang Quân','0,'],1),'0');
 });
 
 test('Report repairs empty company detail columns from vehicle ownership without changing source totals',async()=>{
@@ -147,6 +158,26 @@ test('Report repairs empty company detail columns from vehicle ownership without
   assert.deepEqual(repaired.details[7].slice(2,4),['5.000.000 ₫','13.000.000 ₫']);
 });
 
+test('Report detail retains the new BHXH row and restores Lợi nhuận thực after it',async()=>{
+  const helpers=await import('../next-shell/lib/platform/report-c2.ts');
+  const details=[
+    ['Danh mục','Tổng','Quang Quân','Minh Vương','Giải thích'],
+    ['Lợi nhuận gộp','100.000.000 ₫','','',''],
+    ['Chi phí dầu đổ ngoài','10.000.000 ₫','','',''],
+    ['Chi phí lương','20.000.000 ₫','','',''],
+    ['BHXH','5.000.000 ₫','','',''],
+    ['Chi quỹ thực tế','15.000.000 ₫','','','']
+  ];
+  const completed=helpers.ensureDetailNetProfitRow(details);
+  assert.equal(completed.at(-1)[0],'Lợi nhuận thực');
+  assert.equal(completed.at(-1)[1],'50.000.000 ₫');
+  assert.match(completed.at(-1)[4],/BHXH/);
+  assert.equal(helpers.ensureDetailNetProfitRow(completed).length,completed.length);
+  const source=require('node:fs').readFileSync(require('node:path').resolve(__dirname,'../SheetService.gs'),'utf8');
+  assert.match(source,/var rowCount = Math\.max\(sheet\.getLastRow\(\) - 3, 1\);/);
+  assert.doesNotMatch(source,/getLastRow\(\) - 3, 1\), 14/);
+});
+
 test('Report detail gives Quang Quân and Minh Vương the same numeric typography contract',()=>{
   const fs=require('node:fs'),path=require('node:path');
   const source=fs.readFileSync(path.resolve(__dirname,'../next-shell/components/report/ReportModule.tsx'),'utf8');
@@ -154,6 +185,17 @@ test('Report detail gives Quang Quân and Minh Vương the same numeric typograp
   assert.match(source,/normalizedLabel\.includes\('quang quan'\) \|\| normalizedLabel\.includes\('minh vuong'\)/);
   assert.match(source,/fontSize: '12\.5px', lineHeight: 1\.3, fontWeight: 600/);
   assert.match(css,/body #reportsView table\.report-data-table-details td\.report-detail-company-cell[\s\S]*font-size: var\(--platform-table-body-font-size\) !important;[\s\S]*font-weight: 600 !important/);
+});
+
+test('Report detail category column reuses the overview weight hierarchy',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const source=fs.readFileSync(path.resolve(__dirname,'../next-shell/components/report/ReportModule.tsx'),'utf8');
+  assert.match(source,/function financeCategoryWeight\(category: string\)/);
+  assert.match(source,/function financeCategoryStyle\(category: string, value: number\)/);
+  assert.match(source,/if \(index === 0\) \{\s*Object\.assign\(style, \{ color: 'var\(--ink, #0f172a\)', fontWeight: financeCategoryWeight\(category\)/);
+  assert.match(source,/type === 'finance'[\s\S]*Object\.assign\(style, financeCategoryStyle\(category, value\)\)/);
+  assert.doesNotMatch(source,/fontWeight: 800, fontSize: '12\.5px'/);
+  assert.doesNotMatch(source,/if \(index === 0\) \{\s*Object\.assign\(style, financeCategoryStyle\(category, value\)/);
 });
 
 test('Vehicle report uses the profit semantic color for Lãi sau lương',()=>{

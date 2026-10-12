@@ -1,4 +1,6 @@
+const { withDeadline } = require('../services/request-deadline');
 function createNotificationRuleRepository({ fetchImpl = fetch, httpError }) {
+  fetchImpl = withDeadline(fetchImpl);
   function headers(config, extra = {}) {
     return {
       apikey: config.serviceRoleKey,

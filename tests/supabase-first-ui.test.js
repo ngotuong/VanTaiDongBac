@@ -44,6 +44,9 @@ test('cashflow applies one shared range request and loading copy identifies Supa
 
 test('source metadata never invents a current timestamp when synchronization time is absent', () => {
   const source = read('next-shell/lib/platform/data-source-meta.ts');
+  const shell = read('next-shell/components/platform/AppShell.tsx');
   assert.match(source, /if \(!value\) return ''/);
   assert.doesNotMatch(source, /new Date\(\)\.toISOString/);
+  assert.match(shell, /Nguồn: Google Sheet trực tiếp/);
+  assert.doesNotMatch(shell, /Chưa có thời điểm đồng bộ/);
 });

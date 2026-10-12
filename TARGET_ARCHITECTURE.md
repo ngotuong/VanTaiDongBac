@@ -191,21 +191,9 @@ Tóm tắt current state, deployment, checkpoint gần nhất và checkpoint ti�
 
 ## 11. Cổng phê duyệt dành cho Coding Agent
 
-Khi bắt đầu một cuộc trò chuyện mới, Coding Agent phải:
+Quy trình khởi động và phạm vi được phép do [AGENTS.md](AGENTS.md) sở hữu. Chỉ đọc/báo trạng thái thì báo đủ sáu nội dung trong [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) rồi dừng; tác vụ đã được duyệt tiếp tục trong đúng phạm vi phê duyệt còn áp dụng.
 
-1. Đọc `AGENTS.md` và toàn bộ `PROJECT_CONTEXT.md`.
-2. Kiểm tra `git status --short`.
-3. Báo lại ngắn gọn:
-   - dự án là gì;
-   - kiến trúc hiện tại;
-   - checkpoint hiện tại;
-   - mục tiêu kiến trúc dài hạn;
-   - step tiếp theo được đề xuất;
-   - các rủi ro hoặc điều kiện cần lưu ý.
-4. Không sửa file, chạy migration, deploy, commit hoặc push.
-5. Chờ người dùng phê duyệt rõ ràng một step cụ thể.
-
-Việc người dùng yêu cầu đọc dự án hoặc báo trạng thái không được hiểu là phê duyệt triển khai step tiếp theo.
+Tài liệu kiến trúc đích, plan/spec lịch sử hoặc cửa sổ deploy đã đóng không tự cấp quyền cho step/cửa sổ Production mới. Không tự rewrite, migration, commit/push hoặc deploy ngoài phạm vi người dùng đã duyệt.
 
 ## 12. Prompt chuẩn cho cuộc trò chuyện mới
 
@@ -221,10 +209,10 @@ Chỉ báo cáo trạng thái và dừng chờ phê duyệt.
 - Kiến trúc đích: `TARGET_ARCHITECTURE.md`.
 - Trạng thái/checkpoint sống: `PROJECT_CONTEXT.md`.
 - Roadmap/checkpoint đang hoạt động: `PROJECT_CONTEXT.md` và plan đã được người dùng phê duyệt trong task hiện tại.
-- Lịch sử migration/refactor đã hoàn tất: Git history và timeline rút gọn trong `PROJECT_CONTEXT.md`.
+- Lịch sử migration/refactor đã hoàn tất: Git history; baseline local chưa commit được bảo tồn trong artifact.
 - Kiến trúc hiện tại: `docs/architecture/SYSTEM_ARCHITECTURE.md`.
 - Module ownership: `docs/architecture/MODULE_MAP.md`.
 - Contract: `docs/contracts/`.
-- Quy tắc khởi động Agent: `docs/ai/AI_START_HERE.md`.
+- Quy tắc khởi động Agent: `AGENTS.md`; router theo tác vụ: `docs/ai/AI_START_HERE.md`.
 
 Không dùng tài liệu này để ghi lịch sử triển khai hoặc checkpoint tạm thời.

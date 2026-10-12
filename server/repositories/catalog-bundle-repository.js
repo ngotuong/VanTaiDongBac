@@ -1,4 +1,6 @@
+const { withDeadline } = require('../services/request-deadline');
 function createCatalogBundleRepository({ fetchImpl = fetch, httpError }) {
+  fetchImpl = withDeadline(fetchImpl);
   async function find(config, catalogKey) {
     const query = new URLSearchParams({
       select: 'catalog_key,payload,synced_at',

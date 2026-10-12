@@ -18,7 +18,20 @@ test('Web Push service worker persists only badge count and never caches app req
   assert.match(worker, /payload\.unreadDelta/);
   assert.match(worker, /payload\.preserveBadge/);
   assert.match(worker, /addEventListener\('notificationclick'/);
-  assert.match(worker, /notificationTarget === '\/entry\/' \? '\/manage\/\?entry=vanChuyen'/);
+  assert.match(worker, /OPEN_NOTIFICATION_CENTER/);
+  assert.match(worker, /existing\.navigate\(target\)/);
+  assert.match(worker, /active\.postMessage/);
+  assert.match(worker, /notificationId/);
+  assert.match(worker, /self\.skipWaiting\(\)/);
+  assert.match(worker, /self\.clients\.claim\(\)/);
+  assert.doesNotMatch(worker, /event\.notification\?\.data\?\.url/);
+  const center = read('next-shell/components/platform/NotificationCenter.tsx');
+  assert.match(center, /url\.searchParams\.get\('notifications'\) !== 'open'/);
+  assert.match(center, /setView\('all'\)/);
+  assert.match(center, /setOpen\(true\)/);
+  assert.match(center, /url\.searchParams\.delete\('notifications'\)/);
+  assert.match(center, /serviceWorker\.addEventListener\('message'/);
+  assert.match(center, /data-notification-id=\{key\}/);
   assert.doesNotMatch(worker, /addEventListener\(['"]fetch['"]/);
   assert.doesNotMatch(worker, /cache\.add|cache\.addAll|indexedDB/);
 });
@@ -70,4 +83,16 @@ test('Core API configuration does not depend on optional VAPID secrets', () => {
   const proxy = read('api/app.js');
   assert.match(proxy, /const coreConfig = \[config\.supabaseUrl, config\.anonKey, config\.serviceRoleKey, config\.appsScriptUrl, config\.proxySecret\]/);
   assert.doesNotMatch(proxy, /Object\.values\(config\)\.some/);
+});
+
+test('every server-originated Web Push destination is the Notification Center, including legacy workers', () => {
+  const dispatch = read('server/services/notification-dispatch-service.js');
+  const push = read('server/services/push-service.js');
+  const fundAlert = read('server/services/fund-low-balance-alert-service.js');
+
+  assert.match(dispatch, /function notificationCenterTarget/);
+  assert.match(dispatch, /notificationId: group\.length === 1 \? first\.id : ''/);
+  assert.doesNotMatch(dispatch, /url: first\.url \|\| channel\.url/);
+  assert.match(push, /url: '\/\?notifications=open'/);
+  assert.match(fundAlert, /url: '\/\?notifications=open'/);
 });

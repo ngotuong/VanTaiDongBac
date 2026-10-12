@@ -94,9 +94,9 @@ function updateFundTransaction(year, rowIndex, transaction) {
   });
 }
 
-function deleteFundTransaction(year, rowIndex) {
+function deleteFundTransaction(year, rowIndex, expectedTransaction) {
   return withFundSync_(year, {}, function () {
-    return FundService.deleteFundTransaction(year, rowIndex);
+    return FundService.deleteFundTransaction(year, rowIndex, expectedTransaction);
   });
 }
 
@@ -109,6 +109,12 @@ function addFundTransaction(year, transaction) {
 function addFundTransactions(year, transactions) {
   return withFundSync_(year, { transactions: transactions }, function () {
     return FundService.addFundTransactions(year, transactions);
+  });
+}
+
+function addFundDebtPayment(year, rowIndex, payment, clientRequestId) {
+  return withFundSync_(year, { transaction: payment }, function () {
+    return FundService.addFundDebtPayment(year, rowIndex, payment, clientRequestId);
   });
 }
 
@@ -177,6 +183,53 @@ function testSupabaseReportSync() {
 
 function syncAllReportBundlesToSupabase() {
   return SupabaseService.syncAllReportBundles();
+}
+
+function syncPayrollExplanationMonthToSupabase(month) {
+  var targetMonth = String(month || '').trim();
+  if (!targetMonth) {
+    targetMonth = Utilities.formatDate(
+      new Date(),
+      Session.getScriptTimeZone() || 'Asia/Ho_Chi_Minh',
+      'MM/yyyy'
+    );
+  }
+  var result = SupabaseService.syncPayrollExplanationMonth(targetMonth);
+  console.log(JSON.stringify(result));
+  return result;
+}
+
+/** Editor-only Preview cache backfill; never writes business Sheets or v5 cache. */
+function syncPayrollExplanationPreviewMonthsForR8() {
+  if (ScriptApp.getScriptId() !== '1hNKU7xNvhORJSgv8mNIWKNguHU8bmCmM7mQBjxXLfv5FhawbN2HfJ2GX' ||
+      APP_CONFIG.spreadsheetId !== '1VSNLzSNKJFXaY_dcyM7WkPz9Braia0AjPM7jHHXXyeA') {
+    throw new Error('R8 Preview backfill requires canonical project/workbook.');
+  }
+  var now = new Date();
+  var parts = Utilities.formatDate(now, APP_CONFIG.timezone, 'yyyy-MM').split('-');
+  var year = Number(parts[0]);
+  var month = Number(parts[1]);
+  var months = [month, month - 1].map(function (value) {
+    var targetYear = value ? year : year - 1;
+    return ('0' + (value || 12)).slice(-2) + '/' + targetYear;
+  });
+  var before = String(ReportService.getReportDataVersion());
+  var results = months.map(function (targetMonth) {
+    return SupabaseService.syncPayrollExplanationMonth(targetMonth, before);
+  });
+  var result = {
+    ok: results.every(function (item) { return item.ok === true; }),
+    sourceStable: before === String(ReportService.getReportDataVersion()),
+    sourceDataVersion: before,
+    results: results
+  };
+  console.log(JSON.stringify(result));
+  if (!result.ok || !result.sourceStable) throw new Error('R8 Preview cache backfill gate failed; inspect metadata.');
+  return result;
+}
+
+function requestPayrollExplanationRefresh(month) {
+  return SupabaseService.requestPayrollExplanationRefresh(month);
 }
 
 function syncDashboardToSupabase() {
@@ -295,6 +348,15 @@ function syncOperationalNotifications() {
   return SupabaseService.syncOperationalNotifications();
 }
 
+/**
+ * Editor-only maintenance entrypoint for refreshing the previous-day summary.
+ * This function is intentionally not registered as a public API action and does
+ * not dispatch notifications.
+ */
+function syncDailyBusinessSummary() {
+  return SupabaseService.syncDailyBusinessSummary();
+}
+
 function dispatchNotifications() {
   return SupabaseService.dispatchNotifications();
 }
@@ -309,6 +371,11 @@ function installFundSheetSyncTrigger(spreadsheetId) {
 
 function installE16RTriggers() {
   return SupabaseService.installE16RTriggers();
+}
+
+// Owner-only editor entrypoint; intentionally absent from the HTTP registry.
+function registerSheetTriggerBindings() {
+  return SupabaseService.registerSheetTriggerBindings();
 }
 
 function recoverSyncInfrastructure() {
@@ -449,6 +516,7 @@ function invokeApi(method, action, params, bodyData) {
   }
 
   if (normalizedMethod === 'POST') {
+    if (action === 'requestPayrollExplanationRefresh') return SupabaseService.requestPayrollExplanationRefresh(safeBody.month);
     if (action === 'submitRows') return SupabaseService.enqueueTransportSubmitRows(safeBody.formType, safeBody.rows || []);
     if (action === 'checkTripReconciliation') return EntryService.checkTripReconciliation(safeBody.rows);
     if (action === 'saveSheetRow') {
@@ -465,7 +533,7 @@ function invokeApi(method, action, params, bodyData) {
       return withSheetRowSync_(safeBody.sheetName, function () { return EntryService.deleteSheetRow(safeBody.sheetName, safeBody.rowIndex, safeBody.columnsToClear); });
     }
     if (action === 'updateFundTransaction') return withFundSync_(safeBody.year, { transaction: safeBody.transaction }, function () { return FundService.updateFundTransaction(safeBody.year, safeBody.rowIndex, safeBody.transaction); });
-    if (action === 'deleteFundTransaction') return withFundSync_(safeBody.year, {}, function () { return FundService.deleteFundTransaction(safeBody.year, safeBody.rowIndex); });
+    if (action === 'deleteFundTransaction') return withFundSync_(safeBody.year, {}, function () { return FundService.deleteFundTransaction(safeBody.year, safeBody.rowIndex, safeBody.expectedTransaction || {}); });
     if (action === 'addFundTransaction') return withFundSync_(safeBody.year, { transaction: safeBody.transaction }, function () { return FundService.addFundTransaction(safeBody.year, safeBody.transaction); });
     if (action === 'addFundTransactions') {
       if ((safeBody.useQueue === true || safeBody.useQueue === 'true') && SupabaseService.shouldQueueFundTransactions()) {
@@ -473,6 +541,7 @@ function invokeApi(method, action, params, bodyData) {
       }
       return withFundSync_(safeBody.year, { transactions: safeBody.transactions || [] }, function () { return FundService.addFundTransactions(safeBody.year, safeBody.transactions || []); });
     }
+    if (action === 'addFundDebtPayment') return withFundSync_(safeBody.year, { transaction: safeBody.payment }, function () { return FundService.addFundDebtPayment(safeBody.year, safeBody.rowIndex, safeBody.payment || {}, safeBody.clientRequestId); });
     if (action === 'addFundLoan') return withFundSync_(safeBody.year, { loan: safeBody.loan }, function () { return FundService.addFundLoan(safeBody.year, safeBody.loan); });
     if (action === 'addFundLoanPayment') return withFundSync_(safeBody.year, { payment: safeBody.payment }, function () { return FundService.addFundLoanPayment(safeBody.year, safeBody.payment); });
     if (action === 'saveFundCatalogItem') return withFundSync_(safeBody.year, { fundCatalog: true }, function () { return FundService.saveFundCatalogItem(safeBody.year, safeBody.item || safeBody.payload || safeBody); });
@@ -514,8 +583,7 @@ function withSheetRowSync_(sheetName, fn) {
   var safeSheetName = String(sheetName || '').trim();
   try {
     if (safeSheetName.indexOf('DM_') === 0) {
-      SupabaseService.syncCatalogAfterWrite(safeSheetName === 'DM_ThamSo' ? 'DM_ThamSo_TS' : safeSheetName);
-      SupabaseService.syncAllReportBundles();
+      result.supabaseSync = SupabaseService.syncCatalogWriteThrough(safeSheetName === 'DM_ThamSo' ? 'DM_ThamSo_TS' : safeSheetName);
     } else if (safeSheetName.indexOf('NL_') === 0) {
       result.supabaseSync = { ok: true, deferred: true, handler: 'syncRealtimeCache' };
     }

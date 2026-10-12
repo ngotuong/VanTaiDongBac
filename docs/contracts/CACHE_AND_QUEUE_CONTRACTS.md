@@ -1,5 +1,15 @@
 # CACHE_AND_QUEUE_CONTRACTS
 
+## Invariant ghi/queue (trạng thái triển khai tại PROJECT_CONTEXT)
+
+- Enqueue so canonical payload/action/module/actor; cùng key đổi intent → 409, kể cả insert race.
+- Fund append lưu note journal ở voucher cell trước values; chỉ complete sau verify/flush. Partial/drift/legacy markers → REQUIRES_RECONCILIATION, không replay append.
+- Migration 016 service-role RPC reap exhausted leases thành failed + log; min stale 900s; không claim active leases. Worker persistence error cô lập từng job.
+- Mọi mutation Thu chi theo dõi job; terminal invalidate/refetch. Pending không coi là số tài chính chính thức.
+- Push ledger theo endpoint/event hạn chế duplicate retry partial; vẫn at-least-once khi provider nhận/ledger lỗi hoặc concurrency.
+- Maintenance: BUSINESS_WRITES_PAUSED (Vercel), WRITE_QUEUE_PAUSED (Script). Rollout/shared HEAD/copy-canary/rollback theo [R8 runbook](../operations/R8_REMEDIATION.md).
+
+
 ## 1. Mục đích và phạm vi
 
 Tài liệu này định nghĩa contract hiện trạng của lớp Supabase cache, trạng thái đồng bộ và write queue trong hệ thống Vận tải Đông Bắc.
@@ -35,6 +45,8 @@ Tài liệu không chuyển source of truth sang Supabase. Google Sheets vẫn l
 11. Không dùng cache Supabase để sửa ngược Google Sheet.
 12. Migration đã chạy không được sửa; thay đổi schema phải dùng migration mới.
 
+`payroll_explanation_bundles` (legacy v5) và `payroll_explanation_bundles_v6` (migration 017, RPC riêng) là cache dữ liệu nhạy cảm; không refresh/invalidate chéo phiên bản: browser không có quyền `select` trực tiếp. Chỉ service role đọc/ghi và API proxy-local đã xác thực mới trả đúng một nhân sự cho `admin`/`operator`. API chỉ công nhận payload đúng `contractVersion` và cùng `source_data_version` với `report_bundles`; nếu lệch, payload cũ bị ẩn và client chỉ được xếp hàng refresh đúng tháng.
+
 ## 3. Phân loại bảng Supabase
 
 ### 3.1. Cache đọc
@@ -48,6 +60,7 @@ Tài liệu không chuyển source of truth sang Supabase. Google Sheets vẫn l
 | `fund_overview_bundles` | Thu chi | Tổng quan Thu chi latest/theo tháng |
 | `fund_transaction_bundles` | Thu chi | Giao dịch gần nhất/theo tháng |
 | `fund_loan_bundles` | Thu chi | Khoản vay latest/theo tháng |
+| `payroll_explanation_bundles` | Vận tải/Lương | Bằng chứng giải trình theo tháng và nhân sự; server-only |
 
 ### 3.2. Quan sát và queue
 
@@ -133,9 +146,11 @@ sheet_name = XL_VanChuyen
 filter_key = daily-summary:latest
 ```
 
-Payload chỉ tổng hợp các dòng của ngày Việt Nam liền trước từ nguồn công thức `XL_VanChuyen`: `trips`, `volume`, `revenue`, `vehicleCount`, `projectCount`, `sourceRows`, `date` và `syncedAt`. Service chỉ đọc workbook qua `SpreadsheetApp.openById`; không ghi hoặc sửa công thức/sheet. Bundle này là dữ liệu nội bộ của dispatcher, không được trả qua API trung tâm thông báo cho browser.
+Payload tổng hợp các dòng của ngày Việt Nam liền trước từ nguồn công thức `XL_VanChuyen`: `trips`, `volume`, `revenue`, `vehicleCount`, `projectCount`, `sourceRows`, `date`, `syncedAt`, chi phí dầu/lương cùng availability, số dòng lương khớp/không khớp và nhóm lý do không khả dụng không chứa PII. Các cột nghiệp vụ được resolve theo exact header; riêng doanh thu chấp nhận `Doanh thu` hoặc alias lịch sử `Doanh thu ước tính`, tuyệt đối không dùng index cố định vì cột `Ưu đãi nội bộ` có thể nằm trước `Đơn giá`/`Doanh thu`. Thiếu header bắt buộc phải fail-closed. Service chỉ đọc workbook qua `SpreadsheetApp.openById`; không ghi hoặc sửa công thức/sheet. Bundle này là dữ liệu nội bộ của dispatcher, không được trả qua API trung tâm thông báo cho browser.
 
-Khi dựng push, Vercel đọc thêm đúng `fund_overview_bundles(year, month_key)` chứa ngày liền trước và chỉ cộng các `details` có `date` trùng ngày đó. `fundIncome`/`fundExpense` vì vậy dùng cùng ngữ nghĩa KPI Quỹ, gồm cả khoản vay/trả nợ/trả lãi đã được `FundService.getFundOverview()` phân loại; không suy ra từ số dư và không dùng bundle tháng khác. Nếu bundle Quỹ chưa tồn tại, nội dung phải ghi rõ chưa có dữ liệu thay vì hiển thị 0 giả.
+Khi dựng push, Vercel đọc thêm đúng `fund_overview_bundles(year, month_key)` chứa ngày liền trước và chỉ cộng các `details` có `date` trùng ngày đó. `Chi Quỹ` loại nhiên liệu cùng các nhóm đã được hạch toán riêng theo spreadsheet contract để không trừ hai lần; tổng chi gốc vẫn có thể giữ cho đối soát. Nếu bundle Quỹ hoặc một nguồn chi bắt buộc chưa tồn tại, nội dung phải ghi rõ chưa có dữ liệu thay vì hiển thị 0 giả. Mỗi chỉ số trong body Web Push nằm trên một dòng riêng; delivery key theo ngày vẫn chống phát lặp.
+
+Bundle `notifications:active` giữ cảnh báo chênh lệch hiện hành và tối đa 48 giờ cho sự kiện `reconciliation-resolved`. Sự kiện thành công chỉ được tạo khi cùng khóa nguồn `ngày + biển số + dự án + sourceRow` chuyển từ một cảnh báo chênh lệch ở bundle trước sang trạng thái `Khớp`; không tạo cho mọi dòng vốn đã khớp và không phát lại ở mỗi tick.
 
 App badge dùng cùng số chưa đọc cục bộ với chuông. Client gửi số tuyệt đối bằng message `SET_APP_BADGE`; service worker chỉ lưu `{count}` trong cache riêng `vtdb-badge-state-v1`. Push nghiệp vụ mới gửi `unreadDelta`; daily digest gửi `preserveBadge=true` vì không tạo một item chưa đọc trong trung tâm. Service worker không có fetch handler và không cache request hay payload nghiệp vụ.
 
@@ -187,32 +202,27 @@ Payload có thể đọc từ:
 
 ### 5.4. Sync
 
-Các đường sync:
+Transport refresh dùng `SUPABASE_PENDING_TRANSPORT_REPORT_SYNC` và lease property riêng dưới ScriptLock; debounce 15 giây. Trigger ghi tín hiệu bền theo UID/workbook do owner đăng ký; không native metadata/ScriptLock. Worker drain vào queue, không xóa signal; tín hiệu mới vẫn pending nếu đến trong khi drain. Runtime live/gates thuộc context. Write payload và source fingerprint có thể chỉ định tháng hẹp; report label là `MM/YYYY`, queue month là `YYYY-MM`.
 
-- sync một tháng;
-- sync dashboard;
-- sync tất cả report months;
-- sync tháng liên quan sau write Vận tải;
-- tick luân phiên report recent/`Tất cả`;
-- hàng đợi ưu tiên sau chỉnh sửa trực tiếp Sheet Vận tải;
-- full backfill.
+- Lease queue/realtime bền vững **7 phút**, claim atomic và kiểm token ownership; parity guard cũng kiểm lease. Không dựa CacheService có thể bị evict.
+- Transport/Fund planner3 (runtime live theo context), tối đa30stage nhẹ; lượt chính45s, hai module chia sẻ60s giữa stage và mỗi lượt Transport dừng sau1report. Probe publish recent/tháng hiện hành hoặc tháng poll chỉ định trước khi quét catalog/helper; dashboard/report ưu tiên trước lịch sử. Sau probe, danh mục thay đổi đứng trước discovery/cache tháng cũ; tất cả tháng ưu tiên được publish trước background, chỉ ghi danh sách tháng đã publish sau sync thành công. Cache tháng cũ vẫn discover và refresh đầy đủ. Catchable failure retry cùng cursor sau30s, hard timeout reclaim sau expiry; một Google/UrlFetch call chưa có deadline cưỡng bức.
+- Sự kiện mới ở pending riêng; owner cũ không xóa hoặc ghi đè nó. Candidate chỉ gộp/replan pending edit/poll khi lease đã checkpoint/yield tại lịch sử hoặc Fund capture; giữ đủ sheets/catalogs/tháng cũ, đổi lease token. Capture bị đổi stamp vốn phải restart; lần restart ưu tiên publish lists mới. Không preempt active hoặc hard-crash lease. Sau3replan phải publish1cache lịch sử trước lần ưu tiên tiếp. ACK sau toàn bộ scope/verification; direct edit giữ verification sau2phút. Verification/safety không biến mọi tháng lịch sử thành scope ưu tiên.
+- Manage discovery hợp tháng nguồn với mọi `month:*` đã cache, chỉ đọc key và phân trang. Đổi ngày/xóa dòng cuối vẫn publish tháng cũ rỗng; cache-index lỗi phải retry discovery trước ACK. Payload `ok:false` không publish.
+- Catalog table/options/startup, manage, dashboard và report là stage riêng; log chỉ tên/thời gian, không payload/PII. Candidate Fund publish lists latest/tháng ưu tiên trước capture200rows/page, rồi overview latest/tháng ưu tiên, lịch sử/options/catalog. Discovery giữ tháng nguồn và scope lease cũ, lỗi phải retry trước ACK; không gọi full-year Fund batch trong realtime tick. Plan403 được lập lại theo scope khi candidate activate, không giữ cursor task cũ với planner mới.
+- Housekeeping đến hạn được ưu tiên mỗi4lượt; candidate tiếp tục worker nếu còn budget chung, không nhường cả phút chỉ vì tác vụ nền nhẹ. Safety mỗi giờ enqueue toàn scope bền. Transport probe values/display/formulas chỉ refresh input đổi; mixed signal/poll vẫn probe, hash chỉ commit sau cache dưới lease ownership. Fund scratch CacheService không phải queue; mất chunk/hash hoặc stamp đổi phải restart, không ACK thiếu dữ liệu. Forced reads bypass TTL; UTF-8 chunks dưới100KB.
+- Sync/audit nguồn Vận tải bắt buộc bypass read cache60s; catalog table/options và startup sync đọc mới, không dùng catalog cache6h. Tham số force chỉ đổi đường đọc nội bộ, không bump report version cho từng manage stage; public read mặc định giữ TTL. Không commit input hash mới dựa trên payload đọc cũ. Publisher startup/catalog từ chối payload null/ok=false trước upsert/status; lỗi nguồn phải retry, không ACK/cache success. Regression: `tests/r8-forced-source-read.test.js`.
+- Source fingerprint toàn vùng đến hạn 5 phút, report-output fingerprint đến hạn 1 phút. Transformation version thay đổi phải làm invalidation nguồn tương ứng.
+- Refresh nội bộ dùng token guard; `INSERT_GRID`/`REMOVE_GRID` do temp report skip để tránh vòng lặp; row-level structural changes vẫn queue.
 
-Sau write Vận tải, month key được lấy từ payload row rồi đổi sang report label. Có thể sync thêm `Tất cả`.
+Frontend revalidate mỗi 60 giây. Poll interval là thời điểm đến hạn, không phải SLA: full scope, quota/contention và native Google call có thể làm cache chậm. `synced_at`, stage cursor và report–v6 exact version là bằng chứng freshness; status OK cũ không chứng minh hàng đợi hiện tại đã ACK. Deployment và gate thực tế thuộc [context](../../PROJECT_CONTEXT.md).
 
-Chỉnh sửa trực tiếp `NL_*` dùng Script Property `SUPABASE_PENDING_TRANSPORT_REPORT_SYNC` làm hàng đợi debounce một item:
+**Contract R8 paging/deferral (trạng thái triển khai thuộc context):**Fund planner3 thêm `fundTransactionsScan/Publish`, đọc200rows/page một lần cho các filter tháng trong lease, cache manifest bất biến/chunk hash; durable queue chỉ giữ pointer nhỏ. Missing/corrupt chunks, headers/lastRow hoặc signal/data-version stamp đổi → restart trước publish; totalRows/months/rowIndex/date/money/debt/offset/limit giữ contract. Plan cũ được lập lại theo version3, giữ full/month scope; API edit không phát signal vẫn phụ thuộc polling/safety, không coi capture là snapshot giao dịch của Sheets.
 
-- các edit trong cùng cửa sổ 15 giây được gộp và dedupe theo `YYYY-MM`;
-- edit thông thường sync từng tháng bị ảnh hưởng rồi sync `Tất cả`;
-- xóa dòng/thay đổi cấu trúc/không xác định được sheet nâng item thành `full=true`;
-- `syncRealtimeCache()` atomically claim item đến hạn trước vòng tick thường và không tăng rotation index cho lượt ưu tiên;
-- edit mới trong khi item đang chạy tạo item kế tiếp, không bị claim cũ ghi đè;
-- lỗi requeue toàn scope sau 30 giây để đảm bảo eventual consistency.
-- edit trực tiếp Vận tải giữ một `verificationPasses=1`; sau lượt sync thành công đầu tiên, worker tự xếp thêm một lượt cùng scope sau 2 phút để bắt công thức tính muộn;
-- edit trực tiếp `NHAP_THUCHI` xếp refresh báo cáo Vận tải sau 30 giây với `verificationPasses=1`; worker chạy lượt đầu ở tick một phút kế tiếp và bắt buộc hậu kiểm cùng scope sau 2 phút để không chốt snapshot trước khi `IMPORTRANGE`/công thức lương hoàn tất;
-- poll 5 phút tính fingerprint theo từng tháng từ chính `BC_TongQuan`, `BC_BangLuong` và `BC_TongHopXe`; tháng có fingerprint đổi được queue lại cùng `Tất cả`, kể cả khi không có edit event mới;
-- report compute đăng ký token guard; `INSERT_GRID`/`REMOVE_GRID` do temp sheet nội bộ phải skip để queue không tự tạo vòng lặp, nhưng row-level structural changes vẫn phải queue.
+Candidate HTTP upsert dùng `return=minimal`; chỉ retry GET/upsert/PATCH an toàn, tối đa3lần và không bắt đầu retry khi call trước đã mất45s. Insert/claim RPC không replay khi response chưa rõ. Log method/target/attempt/status/duration/UTF-8 bytes, không URL filter/payload/credential. Quota tạo shared cooldown5–30phút+jitter, transport/throttling60–300s; lock serialize cooldown update/recovery. Property/lock outage có thể khiến cooldown chỉ giữ trong invocation; deferred là lỗi có giữ scope, không ACK hay success. Pause-property read lỗi fail closed, optional Fund flag đọc lazy.
 
-SLA mục tiêu cho edit Vận tải thông thường là tối đa khoảng 2 phút. Với edit `NHAP_THUCHI`, lượt đầu thường tới Supabase trong khoảng 1–2 phút và lượt xác minh trong khoảng 3–4 phút; frontend tự revalidate Supabase mỗi 60 giây. Đây không phải transaction guarantee khi Apps Script bị quota/contention hoặc Google Sheets chưa hoàn tất chuỗi `IMPORTRANGE`/công thức. Poll source/report-output 5 phút vẫn là safety net độc lập; full refresh do structural change có thể lâu hơn.
+Candidate queue dùng tryLock1s; transient Google lỗi được defer, không force-clear owner. Save cursor+yields một lần khi còn task, giữ lease active đến verification/ACK cuối; status một lần mỗi bounded worker turn. Housekeeping notification/source-poll lưu cursor sau bước thành công, tôn trọng budget giữa bước; partial được tiếp tục mỗi tick. Không advance fingerprint trước enqueue hoặc báo complete interval trước toàn chu kỳ; `ok:false` notification step phải retry. Dispatch giữ at-least-once. Native call/report-output poll/loan read chưa có hard deadline; không nới stale threshold hoặc tắt email.
+
+**Status batching (runtime live/gate thuộc context):**Trong `syncRealtimeCache`, các trạng thái cache/worker được gom theo `sync_key` và upsert một lần ở cuối lượt, giữ nguyên row/message/`synced_at`; cùng key giữ bản ghi cuối như upsert tuần tự. `realtime_cache_worker` vẫn gửi ngay trước stage để không trì hoãn watchdog heartbeat. Lệnh sync trực tiếp ngoài tick vẫn ghi ngay. Flush xảy ra cả khi nghiệp vụ throw; lỗi telemetry không che lỗi nghiệp vụ, không replay/rollback ACK và không giữ buffer sang lượt sau. Queue/journal/notification delivery/RBAC không đổi. Buffer chỉ trong invocation:hard timeout có thể mất telemetry chưa flush; cache timestamps/queue vẫn là bằng chứng, không ACK theo telemetry. Trạng thái triển khai do context sở hữu; giảm request không bảo đảm latency của một native RPC. Regression:`tests/r8-status-batching.test.js`.
 
 ### 5.5. Audit
 
@@ -240,8 +250,6 @@ Runtime ưu tiên `payload.overview.details` ở Supabase. Nếu Supabase read l
 3. giữ map chi tiết trong memory theo `(spreadsheet_id, dataVersion)` trong cùng execution;
 4. dựng/upsert từng tháng và `Tất cả` với cùng version;
 5. không gọi force refresh làm tăng version riêng cho từng tháng.
-
-E1.2 triển khai code/candidate nhưng production vẫn giữ `sheet`. Việc bật `dual` và chạy parity thuộc E1.3.
 
 ## 6. `startup_bundles`
 
@@ -354,7 +362,9 @@ Các sheet Vận hành:
 - `NL_Dau`;
 - `NL_ChamCong`;
 - `NL_Phat`;
-- `NL_NghiVanHanh`.
+- `NL_NghiVanHanh`;
+- `NL_PhanCongLai`;
+- `NL_SoDuLuong`.
 
 Không tạo manage cache cho `DM_*`, `XL_*` hoặc `BC_*` bằng bảng này.
 
@@ -387,7 +397,11 @@ Sau write `NL_*`:
 - nếu thiếu context, fallback các tháng gần nhất;
 - `NL_VanChuyen` còn ảnh hưởng dashboard/report.
 
-Trigger edit/change trực tiếp Sheet cũng sync bảng này.
+Trigger chỉ enqueue; worker refresh recent/month theo discovery nguồn + cached keys tại mục 5.4.
+
+Probe nguồn giữ hash của toàn vùng gồm values/display/formulas. Candidate local dùng cùng arrays để xác định tháng theo display header và raw date, tránh mở/quét Sheet lần hai khi kiểm tra cache đầy đủ. Chỉ giữ danh sách tháng cho probe vừa hoàn tất trong cùng lượt; mỗi probe mới đọc lại nguồn, không persist snapshot hoặc dùng cho writer. Discovery background vẫn đọc nguồn và cached month keys để xử lý tháng bị xóa/move. Trạng thái triển khai thuộc context.
+
+`transport_probe_phase` chỉ ghi sheet/bước/start–end/ms/ok cho open, metadata, values/display/formulas, hash/months, property và cache index. Không ghi cell/formula/hash/exception/HTTP payload. Log lỗi không chặn nghiệp vụ; hard timeout có thể chỉ còn start cuối. Số RPC giảm trong test local không chứng minh độ trễ Production; vẫn cần native timing và edit thật.
 
 ### 8.6. Audit
 
@@ -515,6 +529,8 @@ Mỗi row phản ánh trạng thái gần nhất của một sync scope, ví d�
 ### 10.3. Status
 
 Code hiện ghi các trạng thái text theo sync operation. Consumer không nên suy diễn job lifecycle từ `sync_status`; write lifecycle nằm trong `write_jobs`.
+
+Các trạng thái lỗi hàng đợi `refresh_queue_deferred:transport` và `refresh_queue_deferred:fund` phải được ghi đè về `ok` ngay khi một yêu cầu cùng scope được xếp hàng thành công. Notification Center cũng được phép coi lỗi hàng đợi đã hồi phục khi có trạng thái `ok` mới hơn tương ứng từ `transport_reports_manual_sheet` hoặc `fund_manual_sheet`. Nhờ đó lỗi contention tạm thời không tồn tại như một cảnh báo đang hoạt động.
 
 ### 10.4. Freshness
 
@@ -663,6 +679,8 @@ Nếu có idempotency key:
 
 Không dùng timestamp đơn thuần làm idempotency key nếu double-click có thể tạo hai timestamp khác nhau.
 
+Web proxy namespace khóa bằng `action:clientRequestId`; cùng một intent UI phải giữ nguyên `clientRequestId` qua retry, và chỉ tạo khóa mới khi người dùng mở một intent mới hoặc lần trước đã được enqueue thành công.
+
 ### 14.3. Enqueue response
 
 Response logic:
@@ -716,7 +734,7 @@ Job `processing` được xem là stale dựa trên:
 coalesce(claimed_at, locked_at, updated_at)
 ```
 
-và timeout tối thiểu 60 giây.
+và timeout tối thiểu 60 giây. Runtime hiện dùng 900 giây để dài hơn full report refresh đã quan sát. Update terminal chỉ hợp lệ khi row vẫn `processing` và `worker_id` còn thuộc worker hiện tại.
 
 Reclaim không có nghĩa write trước chưa xảy ra. Worker vẫn phải chạy idempotency check ở Google Sheet.
 
@@ -779,6 +797,14 @@ Contract:
 - nếu không, append và gắn metadata.
 
 Metadata phải gắn đúng range chứa các row của job, không gắn toàn sheet.
+
+### 17.1a. Append khoản vay Quỹ
+
+- `addFundLoan` và `addFundLoanPayment` ghi note `VTDB_JOB:<jobId>` vào ô mã vay cột A sau append;
+- trước append phải tìm đúng marker này và trả `idempotentReplay=true` nếu row còn tồn tại;
+- trả vay phải validate lại mã, đối tác, dư nợ, overpayment và phạm vi `Không qua Quỹ` trên Sheet trong cùng script lock.
+
+Xóa giao dịch Quỹ không dùng physical row delete. Payload chứa dấu vân tay row; worker so live row rồi clear A:M. Retry gặp row trống là replay, row khác dấu vân tay là conflict.
 
 ### 17.2. Save row
 
@@ -972,18 +998,10 @@ Contract:
 - time-driven trigger mỗi phút sau khi cài;
 - mỗi tick chạy một nhóm nhỏ;
 - có runtime guard tránh chạy chồng;
-- không phải full sync;
+- Transport và Fund scope được chia stage;
 - ghi sync status.
 
-Step families:
-
-- dashboard;
-- recent reports;
-- report `Tất cả`;
-- recent fund bundles;
-- fund catalogs;
-- startup/catalogs;
-- từng manage sheet và recent months.
+Timer enqueue đầy đủ scope Transport/Fund để stage runner xử lý; không chạy batch safety trực tiếp. Runtime live thuộc context. Native RPC không có deadline cưỡng bức; interval không phải SLA.
 
 ### 22.2. `syncFullRealtimeCache`
 
@@ -997,19 +1015,7 @@ Contract:
 
 ### 22.3. Transport Sheet triggers
 
-Handlers:
-
-- `handleTransportSheetEdit(e)`;
-- `handleTransportSheetChange(e)`.
-
-Scope:
-
-- file Vận tải được chỉ định;
-- chỉ `NL_*`;
-- edit: recent + month từ range;
-- change: recent + recent months;
-- `NL_VanChuyen`: dashboard;
-- unknown sheet fallback: `NL_VanChuyen` hẹp.
+Runtime401 kiểm identity/metadata rồi enqueue dưới ScriptLock. Candidate07/10: Transport/Fund onEdit/onChange dùng owner binding `triggerUid`→handler/event/workbook, chỉ ghi signal; thiếu/sai binding fail closed. onChange EDIT bỏ duplicate, internal temp INSERT/REMOVE_GRID skip. Worker kiểm input trước refresh; FORMAT không đổi read model không làm full refresh. Owner phải đăng ký lại binding khi unique IDs thay đổi; không expose hàm đăng ký qua HTTP registry.
 
 ### 22.4. Write job trigger
 
@@ -1085,7 +1091,8 @@ Nếu bundle sai:
 Sau migration authenticated cutover:
 
 - anon không được đọc cache/queue;
-- authenticated chỉ đọc khi `public.is_active_app_user()` true;
+- authenticated chỉ đọc các business read-model được cấp qua RLS khi `public.is_active_app_user()` true;
+- `catalog_bundles`, `sync_status`, `write_jobs`, `write_job_logs` là server-only sau migration `015`; browser đọc qua same-origin proxy;
 - `app_users` chỉ cho user đọc profile của chính mình theo policy;
 - Apps Script/Vercel server dùng service role cho write/admin operation.
 
@@ -1120,7 +1127,9 @@ Migration hiện theo thứ tự:
 6. `006_write_queue_hardening.sql`;
 7. `007_auth_hardening.sql`;
 8. `008_authenticated_read_cutover.sql`;
-9. `009_shareholder_role.sql`.
+9. `009_shareholder_role.sql`;
+10. `010–014` cho cache/auth notification và payroll explanation;
+11. `015` server-only operational tables/atomic payroll replacement; `016` exhausted lease RPC; `017` payroll-v6 isolation; `018` service-role log sequence permissions.
 
 Rules:
 
@@ -1268,5 +1277,5 @@ Queue/cache change phải kiểm tra:
 - Loại tài liệu: cache và write queue contract hiện trạng.
 - Phạm vi: Supabase schema, Apps Script sync/worker, frontend cache/pending state và RLS liên quan.
 - Nguồn kiểm chứng: `SupabaseService.gs`, `next-shell/components/entry/`, `next-shell/components/cashflow/`, `next-shell/lib/platform/`, Supabase migrations và contract tests.
-- Ngày xác nhận gần nhất: 2026-07-13 (D1).
+- Cập nhật contract Transport stage/lease/trigger: 2026-10-06; trạng thái live và giới hạn tại context.
 - Cần cập nhật khi: thêm/đổi bảng, key, payload, sync step, feature flag, job action/status, retry, idempotency, RLS hoặc pending UI behavior.

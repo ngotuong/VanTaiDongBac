@@ -25,7 +25,7 @@ function fixture({ balance = THRESHOLD - 1, lastSentAt = null, conditionActive =
     subscriptionRepository: {
       async listByUserIds(_config, ids) {
         assert.deepEqual(ids, disabledUserIds.includes('shareholder-1') ? ['admin-1'] : ['admin-1', 'shareholder-1']);
-        return Array.from({ length: subscriptions }, (_, index) => ({ id: `sub-${index}`, endpoint: `https://push.example/${index}`, p256dh: 'p', auth_secret: 'a' }));
+        return Array.from({ length: subscriptions }, (_, index) => ({ id: `sub-${index}`, endpoint: `https://fcm.googleapis.com/${index}`, p256dh: 'p', auth_secret: 'a' }));
       },
       async removeById(_config, id) { removed.push(id); }
     },
@@ -66,6 +66,7 @@ test('live rule sends to admin and shareholder devices then records the 24-hour 
   assert.equal(result.sent, 2);
   assert.equal(context.deliveries.length, 2);
   assert.equal(JSON.parse(context.deliveries[0].payload).body, NOTIFICATION.body);
+  assert.equal(JSON.parse(context.deliveries[0].payload).url, '/?notifications=open');
   assert.equal(context.writes[0].condition_active, true);
   assert.equal(context.writes[0].last_sent_at, '2026-07-30T01:00:00.000Z');
 });

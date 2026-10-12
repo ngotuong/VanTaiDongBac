@@ -6,7 +6,7 @@ import { createWorkbookContextService } from '../../server/services/workbook-con
 import { createServerApiClient } from './platform/server-api-client';
 import type { ManageBundle, ManageDataResponse, ManageRow, ManageSheetName } from './platform/manage-types';
 
-export const MANAGE_SHEETS: ManageSheetName[] = ['NL_VanChuyen','NL_TaiXe','NL_Dau','NL_ChamCong','NL_Phat','NL_NghiVanHanh','NL_PhanCongLai'];
+export const MANAGE_SHEETS: ManageSheetName[] = ['NL_VanChuyen','NL_TaiXe','NL_Dau','NL_ChamCong','NL_Phat','NL_NghiVanHanh','NL_PhanCongLai','NL_SoDuLuong'];
 const ISO_DATE = /^20\d{2}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/;
 function httpError(status: number, message: string) { return Object.assign(new Error(message), { status }); }
 function sheetName(value: unknown): ManageSheetName {

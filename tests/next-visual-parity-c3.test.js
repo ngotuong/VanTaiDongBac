@@ -6,11 +6,12 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('C3 candidate routes its root to Next Dashboard while retaining the C2 production rollback', () => {
+test('C3 candidate routes its root to Next Dashboard while retaining current deployment rollback', () => {
   const config = JSON.parse(read('vercel.json'));
   assert.equal(config.redirects, undefined);
   assert.match(read('next-shell/app/page.jsx'), /redirect\('\/dashboard'\)/);
-  assert.match(read('ROLLBACK.md'), /dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg/);
+  assert.match(read('ROLLBACK.md'), /PROJECT_CONTEXT/);
+  assert.match(read('PROJECT_CONTEXT.md'), /dpl_[A-Za-z0-9]+/);
 });
 
 test('C3 Next shell matches the six approved legacy navigation destinations', () => {

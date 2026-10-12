@@ -14,10 +14,9 @@ var FundTransactionService = (function () {
     if (!date) throw new Error('Vui lòng nhập ngày hợp lệ.');
     if (type !== 'Thu' && type !== 'Chi') throw new Error('Vui lòng chọn loại Thu hoặc Chi.');
     if (!category) throw new Error('Vui lòng nhập mục thu/chi.');
-    if (!(amount > 0)) throw new Error('Số tiền phải lớn hơn 0.');
+    if (!(amount > 0) || !isFinite(amount) || amount > 9007199254740991) throw new Error('Số tiền phải lớn hơn 0 và hữu hạn.');
     if (!actor) throw new Error('Vui lòng nhập Người Thu/Chi.');
     if (debt && !partner) throw new Error('Khoản công nợ cần có Đối tác.');
-    if (offset && type !== 'Chi') throw new Error('Cấn trừ chỉ áp dụng cho giao dịch Chi.');
     return [context.clean(item.voucher) || context.buildVoucher(voucherSeed, voucherIndex), date,
       type === 'Thu' ? category : '', type === 'Chi' ? category : '', '', amount, actor, partner, content, debt, '', offset ? true : ''];
   }
@@ -30,6 +29,50 @@ var FundTransactionService = (function () {
       catch (error) { throw new Error('Dòng ' + (index + 1) + ': ' + (error && error.message ? error.message : String(error))); }
     });
     return { ok: true, count: items.length };
+  }
+
+  function buildDebtPayment(sourceRow, payload, context) {
+    var source = Array.isArray(sourceRow) ? sourceRow : [];
+    var item = payload || {};
+    var columns = context.repository.getColumns(context.headers || [], context.normalizeHeader);
+    var voucher = columns.voucher >= 0 ? context.clean(source[columns.voucher]) : '';
+    var debtFlag = context.normalizeHeader(source[columns.debt]);
+    var remainingDebt = columns.remainingDebt >= 0 ? context.parseNumber(source[columns.remainingDebt]) : 0;
+    var incomeCategory = context.clean(source[columns.income]);
+    var expenseCategory = context.clean(source[columns.expense]);
+    var type = incomeCategory ? 'Thu' : (expenseCategory ? 'Chi' : '');
+    var category = incomeCategory || expenseCategory;
+    var partner = context.clean(source[columns.partner]);
+    var paymentAmount = context.parseNumber(item.amount);
+    if (!voucher) throw new Error('Khoản công nợ không có Số phiếu để đối chiếu.');
+    if (debtFlag !== 'co') throw new Error('Dòng được chọn không phải là khoản công nợ.');
+    if (!(remainingDebt > 0)) throw new Error('Khoản công nợ này đã được thanh toán hết.');
+    if (!type || !category) throw new Error('Khoản công nợ không có Mục thu/chi hợp lệ.');
+    if (!partner) throw new Error('Khoản công nợ không có Đối tác để đối chiếu.');
+    if (!(paymentAmount > 0)) throw new Error('Số tiền thanh toán phải lớn hơn 0.');
+    if (paymentAmount > remainingDebt) throw new Error('Số tiền thanh toán không được vượt quá công nợ còn lại.');
+    var paymentRow = buildRow({
+      voucher: voucher,
+      date: item.date,
+      type: type,
+      category: category,
+      amount: paymentAmount,
+      actor: item.actor,
+      partner: partner,
+      content: context.clean(item.content) || ('Thanh toán công nợ ' + voucher),
+      debt: '',
+      offset: item.offset === true
+    }, '', 0, context);
+    return {
+      row: paymentRow,
+      voucher: voucher,
+      type: type,
+      category: category,
+      partner: partner,
+      previousRemainingDebt: remainingDebt,
+      paymentAmount: paymentAmount,
+      expectedRemainingDebt: Math.max(0, remainingDebt - paymentAmount)
+    };
   }
 
   function addTransactions(payloads, writeContext, context) {
@@ -61,55 +104,133 @@ var FundTransactionService = (function () {
     if (!(rowNumber > 1)) throw new Error('Số dòng thu chi không hợp lệ: ' + rowIndex);
     var item = payload || {};
     var existing = context.repository.readRow(context.sheet, rowNumber, context.headers.length);
+    if (!context.clean(existing[0])) throw new Error('Không tìm thấy giao dịch cần sửa.');
     var row = buildRow(item, undefined, undefined, context);
-    row[0] = context.clean(item.voucher) || context.clean(existing[0]) || row[0];
+    if (context.clean(item.voucher) && context.clean(item.voucher) !== context.clean(existing[0])) throw new Error('Không được đổi Số phiếu của giao dịch.');
+    row[0] = context.clean(existing[0]);
     row[4] = context.clean(existing[4]);
+    row[10] = existing[10];
     if (item.offset === undefined || item.offset === null) row[11] = existing[11] === true || context.normalizeHeader(existing[11]) === 'true' ? true : '';
+    var expected = item.expectedTransaction;
+    if (!expected || !context.clean(expected.voucher)) throw new Error('Thiếu dấu vân tay giao dịch để sửa an toàn.');
+    if (!sameIdentity_(transactionIdentity_(existing, context), expected, context)) {
+      if (sameIdentity_(transactionIdentity_(existing, context), transactionIdentity_(row, context), context)) {
+        return { ok: true, rowIndex: rowNumber, voucher: row[0], sheetName: context.sheetName, idempotentReplay: true };
+      }
+      throw new Error('Dòng Thu chi đã thay đổi; tải lại trước khi sửa.');
+    }
     context.repository.updateRow(context.sheet, rowNumber, row, context.writeOptions);
     return { ok: true, rowIndex: rowNumber, voucher: row[0], sheetName: context.sheetName };
   }
 
-  function deleteTransaction(rowIndex, context) {
+  function transactionIdentity_(row, context) {
+    var values = Array.isArray(row) ? row : [];
+    var date = context.parseDate(values[1], values[1]);
+    var income = context.clean(values[2]);
+    var expense = context.clean(values[3]);
+    return {
+      voucher: context.clean(values[0]),
+      date: date && context.formatDate ? context.formatDate(date, 'yyyy-MM-dd') : context.clean(values[1]),
+      type: income ? 'Thu' : (expense ? 'Chi' : ''),
+      category: income || expense,
+      amount: context.parseNumber(values[5]),
+      actor: context.clean(values[6]),
+      partner: context.clean(values[7]),
+      content: context.clean(values[8]),
+      debt: context.normalizeHeader(values[9]) === 'co',
+      offset: values[11] === true || context.normalizeHeader(values[11]) === 'true'
+    };
+  }
+
+  function sameIdentity_(actual, wanted, context) {
+    var normalized = {
+      voucher: context.clean(wanted.voucher), date: context.clean(wanted.date).slice(0, 10),
+      type: context.clean(wanted.type), category: context.clean(wanted.category), amount: context.parseNumber(wanted.amount),
+      actor: context.clean(wanted.actor), partner: context.clean(wanted.partner), content: context.clean(wanted.content),
+      debt: wanted.debt === true || context.normalizeHeader(wanted.debt) === 'co', offset: wanted.offset === true
+    };
+    return Object.keys(normalized).every(function (field) { return actual[field] === normalized[field]; });
+  }
+
+  function assertIdentity(row, expected, context) {
+    if (!expected || !context.clean(expected.voucher) || !sameIdentity_(transactionIdentity_(row, context), expected, context)) {
+      throw new Error('Dòng Thu chi đã thay đổi hoặc thiếu dấu vân tay; dừng ghi để tránh nhầm giao dịch.');
+    }
+  }
+
+  function deleteTransaction(rowIndex, expected, context) {
     var rowNumber = parseInt(rowIndex, 10);
     if (!(rowNumber > 1)) throw new Error('Số dòng thu chi không hợp lệ: ' + rowIndex);
-    context.repository.deleteRow(context.sheet, rowNumber, context.writeOptions);
-    return { ok: true, rowIndex: rowNumber, sheetName: context.sheetName };
+    var existing = context.repository.readRow(context.sheet, rowNumber, 13);
+    if (!existing.slice(0, 10).concat([existing[11]]).some(function (cell) { return context.clean(cell); })) {
+      return { ok: true, rowIndex: rowNumber, sheetName: context.sheetName, idempotentReplay: true };
+    }
+    var wanted = expected || {};
+    if (!context.clean(wanted.voucher) || !context.clean(wanted.date) || !context.clean(wanted.type) ||
+        !context.clean(wanted.category) || !(context.parseNumber(wanted.amount) > 0)) {
+      throw new Error('Thiếu dấu vân tay giao dịch để xóa an toàn.');
+    }
+    var actual = transactionIdentity_(existing, context);
+    assertIdentity(existing, wanted, context);
+    context.repository.clearRow(context.sheet, rowNumber, context.writeOptions);
+    return { ok: true, rowIndex: rowNumber, voucher: actual.voucher, sheetName: context.sheetName };
   }
 
   function getTransactions(year, filter, context) {
+    var snapshot = context.repository.readSnapshot(context.spreadsheet, {
+      sheetName: context.sheetName, headers: context.headers, normalizeHeader: context.normalizeHeader
+    });
+    var state = beginCapture(year, filter, context);
+    appendCapture(state, snapshot, filter, context);
+    return finishCapture(state);
+  }
+
+  function beginCapture(year, filter, context) {
     var options = filter || {};
-    var selectedMonth = context.normalizeMonth(options.month);
+    return { year: context.clean(year) || '', sheetName: context.sheetName, headers: context.headers,
+      selectedMonth: context.normalizeMonth(options.month), empty: true, monthMap: {}, transactions: [], totalRows: 0,
+      limit: Math.max(1, Math.min(parseInt(options.limit, 10) || 300, 1000)) };
+  }
+
+  function appendCapture(state, snapshot, filter, context) {
+    if (snapshot.empty) return state;
+    state.empty = false;
+    state.headers = snapshot.headers.slice(0, context.headers.length);
+    var options = filter || {};
+    var selectedMonth = state.selectedMonth;
     var startFilter = context.parseDate(options.startDate, options.startDate);
     var endFilter = context.parseDate(options.endDate, options.endDate);
     var searchFilter = context.normalizeHeader(options.search || options.query || '');
-    var limit = Math.max(1, Math.min(parseInt(options.limit, 10) || 300, 1000));
-    var snapshot = context.repository.readSnapshot(context.spreadsheet, {
-      sheetName: context.sheetName,
-      headers: context.headers,
-      normalizeHeader: context.normalizeHeader
-    });
-    if (snapshot.empty) {
-      return { ok: true, year: context.clean(year) || '', sheetName: context.sheetName, headers: context.headers, months: [], transactions: [] };
+    // Page-local only: use the configured formatter, never UTC calendar fields.
+    // A new append/retry gets a fresh cache; nothing is persisted with the capture.
+    var dateFormats = Object.create(null);
+    function dateFields(date) {
+      var key = String(date.getTime());
+      if (!Object.prototype.hasOwnProperty.call(dateFormats, key)) {
+        var iso = context.formatDate(date, 'yyyy-MM-dd');
+        dateFormats[key] = /^\d{4}-\d{2}-\d{2}$/.test(iso)
+          ? { date: iso, month: iso.slice(0, 7), label: iso.slice(5, 7) + '/' + iso.slice(0, 4) }
+          : { date: iso, month: context.formatDate(date, 'yyyy-MM'), label: context.formatDate(date, 'MM/yyyy') };
+      }
+      return dateFormats[key];
     }
-
-    var transactions = [];
-    var monthMap = {};
     snapshot.displayValues.forEach(function (row, index) {
       if (!row.slice(0, context.headers.length).some(function (cell) { return context.clean(cell); })) return;
       var columns = snapshot.columns;
       var parsedDate = context.parseDate(snapshot.rawDateValues[index][0], row[columns.date]);
-      var monthKey = parsedDate ? context.formatDate(parsedDate, 'yyyy-MM') : '';
-      var monthLabel = parsedDate ? context.formatDate(parsedDate, 'MM/yyyy') : '';
-      if (monthKey) monthMap[monthKey] = monthLabel;
+      var formatted = parsedDate ? dateFields(parsedDate) : null;
+      var monthKey = formatted ? formatted.month : '';
+      var monthLabel = formatted ? formatted.label : '';
+      if (monthKey) state.monthMap[monthKey] = monthLabel;
       if (selectedMonth && monthKey !== selectedMonth) return;
       if (startFilter && (!parsedDate || parsedDate < startFilter)) return;
       if (endFilter && (!parsedDate || parsedDate > endFilter)) return;
       var incomeCategory = context.clean(row[columns.income]);
       var expenseCategory = context.clean(row[columns.expense]);
       var transaction = {
-        rowIndex: index + 2,
+        rowIndex: index + (snapshot.startRow || 2),
         voucher: columns.voucher >= 0 ? context.clean(row[columns.voucher]) : '',
-        date: parsedDate ? context.formatDate(parsedDate, 'yyyy-MM-dd') : context.clean(row[columns.date]),
+        date: formatted ? formatted.date : context.clean(row[columns.date]),
         dateText: context.clean(row[columns.date]), month: monthKey, monthLabel: monthLabel,
         type: incomeCategory ? 'Thu' : (expenseCategory ? 'Chi' : ''), category: incomeCategory || expenseCategory,
         incomeCategory: incomeCategory, expenseCategory: expenseCategory,
@@ -119,20 +240,24 @@ var FundTransactionService = (function () {
         remainingDebt: columns.remainingDebt >= 0 ? context.parseNumber(row[columns.remainingDebt]) : 0
       };
       if (searchFilter) {
-        var searchable = context.normalizeHeader([transaction.voucher, transaction.dateText, transaction.type, transaction.category, transaction.amountText, transaction.actor, transaction.partner, transaction.content, transaction.debt, transaction.offset ? 'Cấn trừ' : ''].join(' '));
+        var searchable = context.normalizeHeader([transaction.voucher, transaction.dateText, transaction.type, transaction.category, transaction.amountText, transaction.actor, transaction.partner, transaction.content, transaction.debt, transaction.offset ? 'Không qua Quỹ Cấn trừ' : ''].join(' '));
         if (searchable.indexOf(searchFilter) < 0) return;
       }
-      transactions.push(transaction);
+      state.totalRows++;
+      state.transactions.push(transaction);
     });
-    transactions.sort(function (a, b) { return a.date !== b.date ? (a.date < b.date ? 1 : -1) : b.rowIndex - a.rowIndex; });
-    return {
-      ok: true, year: context.clean(year) || '', sheetName: context.sheetName,
-      headers: snapshot.headers.slice(0, context.headers.length),
-      months: Object.keys(monthMap).sort().reverse().map(function (key) { return { key: key, label: monthMap[key] }; }),
-      selectedMonth: selectedMonth, transactions: transactions.slice(0, limit), totalRows: transactions.length, limited: transactions.length > limit
-    };
+    state.transactions.sort(function (a, b) { return a.date !== b.date ? (a.date < b.date ? 1 : -1) : b.rowIndex - a.rowIndex; });
+    state.transactions = state.transactions.slice(0, state.limit);
+    return state;
   }
 
-  return { buildRow: buildRow, validate: validate, addTransactions: addTransactions, updateTransaction: updateTransaction,
-    deleteTransaction: deleteTransaction, getTransactions: getTransactions };
+  function finishCapture(state) {
+    if (state.empty) return { ok: true, year: state.year, sheetName: state.sheetName, headers: state.headers, months: [], transactions: [] };
+    return { ok: true, year: state.year, sheetName: state.sheetName, headers: state.headers,
+      months: Object.keys(state.monthMap).sort().reverse().map(function (key) { return { key: key, label: state.monthMap[key] }; }),
+      selectedMonth: state.selectedMonth, transactions: state.transactions, totalRows: state.totalRows, limited: state.totalRows > state.limit };
+  }
+
+  return { assertIdentity: assertIdentity, buildRow: buildRow, buildDebtPayment: buildDebtPayment, validate: validate, addTransactions: addTransactions, updateTransaction: updateTransaction,
+    deleteTransaction: deleteTransaction, getTransactions: getTransactions, beginCapture: beginCapture, appendCapture: appendCapture, finishCapture: finishCapture };
 })();

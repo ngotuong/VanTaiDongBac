@@ -2,11 +2,11 @@ const FUND_NOTIFICATION_KEY = 'fund-low-balance';
 const FUND_RULE_KEY = 'fund-current-balance-below-10m';
 const FUND_ROLES = new Set(['admin', 'shareholder']);
 const NOTIFICATION_TYPES = Object.freeze([
-  { key: 'trip-reconciliation', label: 'Đối soát chuyến & thưởng', description: 'Chênh lệch, thiếu chuyến và thưởng nóng mới.', roles: ['admin', 'operator'] },
+  { key: 'trip-reconciliation', label: 'Đối soát chuyến & thưởng', description: 'Chênh lệch, thiếu chuyến, lượt vừa khớp và thưởng nóng mới.', roles: ['admin', 'operator'] },
   { key: FUND_NOTIFICATION_KEY, label: 'Cảnh báo số dư Quỹ', description: 'Số dư hiện tại xuống dưới ngưỡng đã đặt.', roles: ['admin', 'shareholder'] },
   { key: 'operations-integrity', label: 'Kiểm tra vận hành', description: 'Chấm công hoặc phân công lái được workbook báo bất thường.', roles: ['admin', 'operator'] },
   { key: 'system-health', label: 'Lỗi đồng bộ & hàng đợi', description: 'Cache cũ, đồng bộ lỗi hoặc thao tác ghi bị treo.', roles: ['admin'] },
-  { key: 'daily-digest', label: 'Tổng hợp ngày hôm trước', description: 'Gửi lúc 12:00 trưa với số chuyến, doanh thu và Thu/Chi Quỹ của ngày hôm trước.', roles: ['admin', 'operator', 'shareholder'] }
+  { key: 'daily-digest', label: 'Tổng hợp ngày hôm trước', description: 'Gửi lúc 12:00 trưa với số chuyến, doanh thu, chi phí và lợi nhuận ước tính của ngày hôm trước.', roles: ['admin', 'operator', 'shareholder'] }
 ]);
 
 function createNotificationSettingsService({ preferenceRepository, ruleConfigRepository, httpError, now = () => new Date() }) {

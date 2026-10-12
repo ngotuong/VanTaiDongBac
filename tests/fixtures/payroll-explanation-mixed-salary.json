@@ -1,0 +1,246 @@
+{
+  "month": "09/2026",
+  "employee": "Chu Đức Mười",
+  "sheets": {
+    "BC_BangLuong": {
+      "headerRow": 2,
+      "headers": [
+        "Tháng",
+        "Nhân sự",
+        "Chức vụ",
+        "Số chuyến",
+        "Lương chuyến",
+        "Lương cứng / khoán",
+        "Nghỉ phép",
+        "Ngày bị trừ",
+        "Thưởng",
+        "Tổng lương",
+        "Ứng lương",
+        "Phạt",
+        "BHXH",
+        "Thực nhận",
+        "Công ty",
+        "Ghi chú"
+      ],
+      "rows": [
+        [
+          "09/2026",
+          "Chu Đức Mười",
+          "Tài xế",
+          20,
+          4500000,
+          10000000,
+          1,
+          0,
+          500000,
+          15000000,
+          5000000,
+          0,
+          745000,
+          9255000,
+          "Quang Quân",
+          ""
+        ]
+      ]
+    },
+    "XL_LuongNhanSu": {
+      "headerRow": 1,
+      "headers": [
+        "Tháng",
+        "Nhân sự",
+        "Chức vụ",
+        "Số chuyến",
+        "Lương chuyến",
+        "Lương cứng",
+        "Ngày vào",
+        "Ngày nghỉ",
+        "Nghỉ chuẩn/tháng",
+        "Ngày biên chế",
+        "Nghỉ phép",
+        "Vượt phép",
+        "Nghỉ trừ lương",
+        "Ngày trừ lương",
+        "Lương cứng/ngày",
+        "Lương cứng / khoán",
+        "Thưởng",
+        "Ứng lương",
+        "Phạt",
+        "Tổng lương",
+        "Thực nhận"
+      ],
+      "rows": [
+        [
+          "09/2026",
+          "Chu Đức Mười",
+          "Tài xế",
+          20,
+          4500000,
+          10000000,
+          "01/01/2026",
+          "",
+          1,
+          30,
+          1,
+          0,
+          0,
+          0,
+          333333,
+          10000000,
+          500000,
+          5000000,
+          0,
+          15000000,
+          9255000
+        ]
+      ]
+    },
+    "XL_LuongTheoXe": {
+      "headerRow": 1,
+      "headers": [
+        "Tháng",
+        "Tài xế",
+        "Biển số",
+        "Cá nhân",
+        "Tổng xe",
+        "Số lái tháng",
+        "Loại tính",
+        "Đơn giá",
+        "Lương chuyến",
+        "Trừ KPI",
+        "KPI sau nghỉ",
+        "Lương chuyến thực"
+      ],
+      "rows": [
+        [
+          "09/2026",
+          "Chu Đức Mười",
+          "20H-00001",
+          10,
+          10,
+          1,
+          "1_LAI",
+          250000,
+          2500000,
+          0,
+          50,
+          2500000
+        ],
+        [
+          "09/2026",
+          "Chu Đức Mười",
+          "20H-00002",
+          10,
+          40,
+          2,
+          "NHIEU_LAI",
+          200000,
+          2000000,
+          2,
+          48,
+          2000000
+        ]
+      ]
+    },
+    "NL_ChamCong": {
+      "headerRow": 1,
+      "headers": [
+        "Từ ngày",
+        "Đến ngày",
+        "Tháng",
+        "Nhân sự",
+        "Hình thức",
+        "Số ngày",
+        "Tính lương cứng",
+        "Nhóm xử lý",
+        "Loại ngày công hợp lệ",
+        "Lưu ý",
+        "Ghi chú"
+      ],
+      "rows": [
+        [
+          "12/09/2026",
+          "12/09/2026",
+          "09/2026",
+          "Chu Đức Mười",
+          "Nghỉ phép",
+          1,
+          "Có",
+          "NGHI_PHEP",
+          "Hợp lệ",
+          "",
+          ""
+        ]
+      ]
+    },
+    "NL_NghiVanHanh": {
+      "headerRow": 1,
+      "headers": [
+        "Ngày",
+        "Tháng",
+        "Biển số",
+        "Loại nghỉ",
+        "Số ngày",
+        "Lý do",
+        "Tính KPI",
+        "Giảm KPI",
+        "Kiểm tra",
+        "Ghi chú"
+      ],
+      "rows": [
+        [
+          "15/09/2026",
+          "09/2026",
+          "20H-00002",
+          "Bảo dưỡng",
+          2,
+          "Sửa xe",
+          "Có",
+          2,
+          "",
+          "Không phải nghỉ phép nhân sự"
+        ]
+      ]
+    },
+    "DM_LichSuNhanSu": {
+      "headerRow": 1,
+      "headers": [
+        "Nhân sự",
+        "Đợt",
+        "Người tuyển",
+        "Ngày vào",
+        "Ngày nghỉ",
+        "Tính thưởng từ",
+        "Dừng thưởng",
+        "Điều kiện thưởng"
+      ],
+      "rows": []
+    },
+    "SYS_AggThuongTuyen": {
+      "headerRow": 1,
+      "headers": [
+        "Key",
+        "Tháng",
+        "Người tuyển",
+        "Thưởng tuyển"
+      ],
+      "rows": []
+    },
+    "DM_ThuongQuanLy": {
+      "headerRow": 1,
+      "headers": [
+        "Mã thưởng",
+        "Số tiền/xe",
+        "Hiệu lực từ",
+        "Hiệu lực đến"
+      ],
+      "rows": [
+        [
+          "TUYEN_DU_2_LAI",
+          2000000,
+          "01/01/2026",
+          ""
+        ]
+      ]
+    }
+  }
+}

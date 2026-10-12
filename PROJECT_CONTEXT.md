@@ -52,7 +52,7 @@ Evidence cửa sổ: `remote-source-attestation.json`,`preflight.json`,`producti
 - NativeABBA mapping exact409parseDate/NormalizationUtils11/10:720monthbaseline1423/534ms→675/202;dense4156range rows/21pages7738/5049→2437/1307ms/formattercalls12462→3513;720distinctrange/search614/814→229/265ms.12payloadSHAexact;extent có công thức/trống,không4156giao dịch. Syntheticformatting khôngchứng minhrootcausepublication144.973s408. Disposableđãdọn.
 - Giữ fixedmetadata instrumentation đến khi nghiệm thu timing;khônglogcells/payload/credential. Helperowner tạm đã bỏ;tests/scripts/artifacts khôngvàoAppsScriptbundle.4migration/recoveryfilescanonicalgiữphục hồi;dọnkhỏi65bundlecầnreviewcandidateSHA/cửa sổ riêng. FunctionalTransportProbe/CacheAudit/safetychecks vẫn cầnproduction.
 - Gmail connector tuongnt2105không là hộp thư forwardingbochungta/tuongnt666;khôngmail trênconnectorkhôngchứng minhhết email lỗi. Email08–09/10 từng xác minh10nativefailuresruntime404;khônghứa hết Googlefailure từQA ngắn.
-- Tài liệu hoàn tất không giữ như kế hoạch sống;history/baselineignored chođiều tra. Handoff này là nguồncurrentstate duy nhất.
+- Tài liệu hoàn tất không giữ như kế hoạch sống; dùng Git history hoặc baseline ignored khi cần điều tra lịch sử. Handoff này là nguồn current-state duy nhất.
 
 ## 5. Kiến trúc đích
 

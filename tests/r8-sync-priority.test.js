@@ -213,6 +213,19 @@ test('a narrow one-month scope does not retry forever after its priority report 
   assert.equal(h.queue.getPending(h.context), null);
 });
 
+test('a Fund month edit publishes dashboard and that report before the all-period background bundle', () => {
+  const h = harness();
+  h.queue.enqueue({ months: ['2026-09'], refreshDashboard: true, source: 'fund-sheet-downstream:NHAP_THUCHI:EDIT' }, h.context);
+  h.advance(15001);
+  const first = h.tick();
+  assert.deepEqual(h.published.map((row) => row.key), ['dashboard', 'report:2026-09']);
+  assert.deepEqual(plain(first.stages), ['dashboard', 'preparePriorityReport', 'report:2026-09']);
+  assert.equal(first.acknowledgement.acknowledged, false);
+  h.finish();
+  assert.ok(h.published.some((row) => row.key === 'report:Tất cả'));
+  assert.equal(h.queue.getPending(h.context), null);
+});
+
 test('an interrupted403 plan is upgraded from complete business scope rather than executing obsolete historical tasks', () => {
   const h = harness(); h.queue.enqueue({ full: true, sheets: ['NL_Dau'], catalogs: ['DM_Xe'] }, h.context); h.advance(15001);
   const old = h.queue.claimDue(h.context).item;

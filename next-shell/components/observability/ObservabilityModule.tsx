@@ -35,6 +35,20 @@ function age(seconds?: number | null, syncedAt?: string) {
   return time(syncedAt);
 }
 
+function reportAuditMonths(now = new Date()) {
+  return [0, 1, 2].map((offset) => {
+    const value = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    return `${String(value.getMonth() + 1).padStart(2, '0')}/${value.getFullYear()}`;
+  }).concat(['Tất cả']);
+}
+
+function auditErrorMessage(value: unknown) {
+  const message = value instanceof Error ? value.message : String(value);
+  const correlationId = value && typeof value === 'object' && 'correlationId' in value
+    ? String((value as { correlationId?: string }).correlationId || '') : '';
+  return correlationId ? `${message} Mã đối chiếu: ${correlationId}.` : message;
+}
+
 export function ObservabilityModule() {
   const { user } = useWorkbookContext();
   const api = useMemo(() => createClientApiClient(), []);
@@ -96,12 +110,22 @@ export function ObservabilityModule() {
   const auditReports = async () => {
     setBusy('reports');
     report('Đang kiểm tra cache Báo cáo...', false, false); showToast('Đang kiểm tra cache Báo cáo…', 'loading');
-    try {
-      const result = await api.get<{ ok?: boolean; results?: ReportAuditRow[] }>('getReportCacheAudit', { params: { forceRefresh: true } });
-      setReportAudit(result.results || []);
-      report(result.ok === false ? 'Audit Báo cáo phát hiện cache lệch.' : 'Audit Báo cáo OK.', result.ok === false);
-    } catch (auditError) { report(auditError instanceof Error ? auditError.message : String(auditError), true); }
-    finally { setBusy(''); }
+    const rows: ReportAuditRow[] = [];
+    for (const month of reportAuditMonths()) {
+      report(`Đang kiểm tra cache Báo cáo ${month}...`, false, false);
+      try {
+        const result = await api.get<{ ok?: boolean; results?: ReportAuditRow[] }>('getReportCacheAudit', { params: { months: month, forceRefresh: true } });
+        const resultRows = result.results || [];
+        if (resultRows.length) rows.push(...resultRows);
+        else rows.push({ month, ok: false, status: 'error', message: 'Audit không trả kết quả cho kỳ này.', syncedAt: '' });
+      } catch (auditError) {
+        rows.push({ month, ok: false, status: 'error', message: auditErrorMessage(auditError), syncedAt: '' });
+      }
+      setReportAudit(rows.slice());
+    }
+    const failed = rows.some((row) => row.ok === false);
+    report(failed ? 'Audit Báo cáo phát hiện cache lệch hoặc kỳ kiểm tra lỗi.' : 'Audit Báo cáo OK.', failed);
+    setBusy('');
   };
 
   const retry = async (job: WriteJob) => {
@@ -185,7 +209,7 @@ function JobRows({ jobs, totalJobs, busy, confirmCancelJobId, onRetry, onRequest
 }
 
 function AuditRows({ rows, kind }: { rows: ManageAuditRow[] | ReportAuditRow[] | null; kind: 'manage' | 'report' }) {
-  if (rows === null) return <div className="sync-status-empty">{kind === 'manage' ? 'Bấm Kiểm tra Vận hành để so cache với Google Sheet.' : 'Bấm Kiểm tra Báo cáo khi cần đối chiếu 05/2026, 06/2026, 07/2026 và Tất cả.'}</div>;
+  if (rows === null) return <div className="sync-status-empty">{kind === 'manage' ? 'Bấm Kiểm tra Vận hành để so cache với Google Sheet.' : `Bấm Kiểm tra Báo cáo khi cần đối chiếu ${reportAuditMonths().join(', ')}.`}</div>;
   if (!rows.length) return <div className="sync-status-empty">{kind === 'manage' ? 'Chưa có kết quả audit Vận hành.' : 'Chưa có kết quả audit Báo cáo.'}</div>;
   return <>{rows.map((row, index) => {
     const manage = row as ManageAuditRow;

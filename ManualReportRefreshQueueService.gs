@@ -18,6 +18,7 @@ var ManualReportRefreshQueueService = (function () {
         months: full ? [] : mergeUnique_(current.months, incomingMonths).sort(),
         priorityMonths: mergeUnique_(current.priorityMonths, isPrioritySource_(input.source) ? incomingMonths : []).sort(),
         priority: current.priority === true || isPrioritySource_(input.source),
+        refreshDashboard: current.refreshDashboard === true || input.refreshDashboard === true,
         sheets: mergeUnique_(current.sheets, input.sheets),
         catalogs: mergeUnique_(current.catalogs, input.catalogs),
         verificationPasses: Math.max(
@@ -315,6 +316,7 @@ var ManualReportRefreshQueueService = (function () {
       months: full ? [] : mergeUnique_(first.months, second.months).sort(),
       priorityMonths: mergeUnique_(first.priorityMonths, second.priorityMonths),
       priority: first.priority === true || second.priority === true,
+      refreshDashboard: first.refreshDashboard === true || second.refreshDashboard === true,
       sheets: mergeUnique_(first.sheets, second.sheets),
       catalogs: mergeUnique_(first.catalogs, second.catalogs),
       verificationPasses: Math.max(Number(first.verificationPasses || 0), Number(second.verificationPasses || 0)),
@@ -355,7 +357,8 @@ var ManualReportRefreshQueueService = (function () {
 
   function hasWork_(pending) {
     return Boolean(pending && (pending.full === true || (pending.months && pending.months.length) ||
-      (pending.sheets && pending.sheets.length) || (pending.catalogs && pending.catalogs.length) || Array.isArray(pending.tasks)));
+      pending.refreshDashboard === true || (pending.sheets && pending.sheets.length) ||
+      (pending.catalogs && pending.catalogs.length) || Array.isArray(pending.tasks)));
   }
 
   function isPrioritySource_(source) {
@@ -369,6 +372,7 @@ var ManualReportRefreshQueueService = (function () {
       months: (pending.months || []).slice(),
       priorityMonths: (pending.priorityMonths || []).slice(),
       priority: pending.priority === true,
+      refreshDashboard: pending.refreshDashboard === true,
       sheets: (pending.sheets || []).slice(),
       catalogs: (pending.catalogs || []).slice(),
       remainingStages: Array.isArray(pending.tasks) ? pending.tasks.length : null,

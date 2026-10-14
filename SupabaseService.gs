@@ -452,6 +452,7 @@ var SupabaseService = (function () {
               var downstream = enqueueManualReportRefresh_({
                 months: changeSet.months,
                 full: changeSet.full || !changeSet.months.length,
+                refreshDashboard: true,
                 delayMs: FUND_TO_TRANSPORT_DELAY_MS,
                 verificationPasses: 1,
                 source: 'poll:fund-downstream'
@@ -574,12 +575,37 @@ var SupabaseService = (function () {
       if (!props.getProperty('SUPABASE_SHEET_SIGNAL_' + module.toUpperCase())) return;
       var context = sheetSignalContext_(props);
       context.enqueue = function (signal) {
+        var scopes = signal && signal.eventType === 'EDIT' && Array.isArray(signal.scopes) ? signal.scopes : [];
+        if (module === 'transport' && scopes.length) {
+          var transportResult;
+          scopes.forEach(function (scope) {
+            transportResult = syncTransportSheetChange(signal.eventType, scope.sheetName, null);
+            if (transportResult && transportResult.skipped) transportResult = syncUnknownTransportSheetChange_(signal.eventType);
+          });
+          return transportResult || { queued: false };
+        }
         if (module === 'transport') return enqueueManualReportRefresh_({ full: true, sheets: MANAGE_SHEET_NAMES,
           catalogs: TRANSPORT_CATALOG_SHEET_NAMES.map(function (sheet) { return sheet === 'DM_ThamSo' ? 'DM_ThamSo_TS' : sheet; }),
           verificationPasses: 1, source: 'signal:transport:' + signal.eventType });
+        if (scopes.length) {
+          var fundSpreadsheet = SpreadsheetApp.openById(DEFAULT_FUND_SPREADSHEET_ID);
+          var fundResult;
+          var fundDeferred = null;
+          scopes.forEach(function (scope) {
+            var sheet = fundSpreadsheet.getSheetByName(clean_(scope.sheetName));
+            var range = sheet && Number(scope.startRow || 0) > 0 && Number(scope.numRows || 0) > 0
+              ? sheet.getRange(Number(scope.startRow), 1, Number(scope.numRows), 1) : null;
+            fundResult = syncFundSheetChange(signal.eventType, scope.sheetName, range);
+            if (fundResult && fundResult.fundRefresh && fundResult.fundRefresh.deferred) fundDeferred = fundResult.fundRefresh;
+            if (fundResult && fundResult.reportRefresh && fundResult.reportRefresh.deferred) fundDeferred = fundResult.reportRefresh;
+          });
+          if (fundDeferred) return fundDeferred;
+          props.setProperty(REALTIME_QUEUE_PREFERENCE_PROP, 'transport');
+          return { queued: true, result: fundResult };
+        }
         var fund = enqueueRefreshWithFallback_({ full: true, source: 'signal:fund:' + signal.eventType }, fundRefreshQueueContext_(), 'fund');
         if (fund.deferred) return fund;
-        var downstream = enqueueManualReportRefresh_({ full: true, delayMs: FUND_TO_TRANSPORT_DELAY_MS,
+        var downstream = enqueueManualReportRefresh_({ full: true, refreshDashboard: true, delayMs: FUND_TO_TRANSPORT_DELAY_MS,
           verificationPasses: 1, source: 'signal:fund-downstream' });
         return downstream.deferred ? downstream : fund;
       };
@@ -810,6 +836,9 @@ var SupabaseService = (function () {
     }
     return TransportRefreshWorker.run(pending, {
       step: 'fundPending', planVersion: 3, nowMillis: context.nowMillis, maxStages: 30, turnBudgetMs: budgetMs || 45000, deadlineMillis: deadlineMillis,
+      shouldYieldAfterStage: function (result) {
+        return /^(fundCapture|fundTransactionsScan):/.test(result.stage || '') && Number(result.elapsedMs || 0) >= 25000;
+      },
       claimNext: function () { return ManualReportRefreshQueueService.claimDue(context); },
       saveProgress: function (item, delay) { return ManualReportRefreshQueueService.saveProgress(item, context, delay); },
       acknowledge: function (item) { return ManualReportRefreshQueueService.acknowledge(item, context); },
@@ -968,6 +997,7 @@ var SupabaseService = (function () {
       reportRefresh = enqueueManualReportRefresh_({
         months: months,
         full: full,
+        refreshDashboard: true,
         delayMs: FUND_TO_TRANSPORT_DELAY_MS,
         verificationPasses: 1,
         source: 'fund-sheet-downstream:' + (safeSheetName || 'unknown') + ':' + safeEventType
@@ -1117,6 +1147,7 @@ var SupabaseService = (function () {
     return enqueueManualReportRefresh_({
       months: monthKeys,
       full: !monthKeys.length,
+      refreshDashboard: true,
       delayMs: FUND_TO_TRANSPORT_DELAY_MS,
       verificationPasses: 1,
       source: 'fund-web-write:NHAP_THUCHI'
@@ -1294,7 +1325,8 @@ var SupabaseService = (function () {
 
   function getReportCacheAudit(months) {
     var recentMonths = ReportSyncService.getRecentReportMonths(3, reportSyncContext_());
-    var requestedMonths = CacheAuditService.normalizeReportMonths(months, recentMonths.concat(['Tất cả']));
+    var requestedMonths = CacheAuditService.normalizeReportMonths(months, recentMonths.slice(0, 1));
+    if (requestedMonths.length !== 1) throw new Error('Audit Báo cáo chỉ kiểm tra một kỳ mỗi yêu cầu.');
     var rows = SupabaseBundleRepository.readRows(TABLE_REPORT_BUNDLES, {
       spreadsheet_id: 'eq.' + APP_CONFIG.spreadsheetId,
       report_month: 'in.(' + requestedMonths.map(CacheAuditService.encodeSupabaseInValue).join(',') + ')',

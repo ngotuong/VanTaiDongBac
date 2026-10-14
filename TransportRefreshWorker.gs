@@ -25,7 +25,7 @@ var TransportRefreshWorker = (function () {
       unique_((item.priorityMonths || []).concat(context.currentMonth ? [context.currentMonth] : []))
         .sort().reverse().forEach(function (month) { tasks.push(['manageMonth', sheet, month]); });
     });
-    if (!item.fastDashboard && (item.full || (item.sheets || []).length)) tasks.push(['dashboard']);
+    if (!item.fastDashboard && (item.refreshDashboard || item.full || (item.sheets || []).length)) tasks.push(['dashboard']);
     if (item.full) tasks.push(['discoverReports']);
     if (tasks.length || (item.catalogs || []).length) tasks.push(['preparePriorityReport']);
     else {
@@ -160,6 +160,7 @@ var TransportRefreshWorker = (function () {
       stages.push(result.stage);
       if (!result.ok || result.acknowledgement.acknowledged ||
           result.stage.indexOf('report:') === 0 ||
+          (context.shouldYieldAfterStage && context.shouldYieldAfterStage(result, item)) ||
           context.nowMillis() >= deadline ||
           !context.claimNext || index + 1 >= maxStages) break;
       var next;

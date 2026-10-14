@@ -104,6 +104,19 @@ test('publication timing exposes fixed metadata without leaking source, month, h
   assert.deepEqual(h.reads, [2, 202, 402]);
 });
 
+test('capture timing isolates serialization, chunking, CacheService writes and hashing without source values', () => {
+  const h = harness(); h.capture('2026-10');
+  const records = h.logs.filter((s) => s.startsWith('fund_transactions_capture_phase:'))
+    .map((s) => JSON.parse(s.slice(s.indexOf(':') + 1)));
+  for (const phase of ['serialize', 'chunk', 'cachePutAll', 'hash']) {
+    assert.ok(records.some((r) => r.phase === phase && r.event === 'end' && r.ok));
+  }
+  for (const r of records) {
+    assert.deepEqual(Object.keys(r).sort(), r.event === 'start' ? ['event', 'phase'] : ['event', 'ms', 'ok', 'phase']);
+  }
+  assert.doesNotMatch(JSON.stringify(records), /Partner|QA|Nội dung|NHAP_THUCHI|2026-10|1234567|234567|dateISO/);
+});
+
 test('a broken publication logger cannot interrupt publication or alter payload', () => {
   const baseline = harness(); baseline.capture('2026-10');
   const h = harness();

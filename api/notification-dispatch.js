@@ -9,6 +9,10 @@ const { createAuthService } = require('../server/services/auth-service');
 const { createAuthorizationPolicy } = require('../server/services/authorization-policy');
 const { createNotificationCenterService } = require('../server/services/notification-center-service');
 const { createNotificationDispatchService } = require('../server/services/notification-dispatch-service');
+const { createFundLowBalanceAlertService } = require('../server/services/fund-low-balance-alert-service');
+const { createFundBalanceRepository } = require('../server/repositories/fund-balance-repository');
+const { createNotificationRuleRepository } = require('../server/repositories/notification-rule-repository');
+const { createNotificationRuleConfigRepository } = require('../server/repositories/notification-rule-config-repository');
 const { assertSameOrigin } = require('../server/services/session-cookie-service');
 
 function send(res, status, body) {
@@ -26,6 +30,15 @@ module.exports = async function handler(req, res) {
   const center = createNotificationCenterService({ repository: createNotificationBundleRepository({ httpError }), httpError, send });
   const service = createNotificationDispatchService({
     centerService: center,
+    fundAlertService: createFundLowBalanceAlertService({
+      balanceRepository: createFundBalanceRepository({ httpError }),
+      ruleRepository: createNotificationRuleRepository({ httpError }),
+      ruleConfigRepository: createNotificationRuleConfigRepository({ httpError }),
+      preferenceRepository: createNotificationPreferenceRepository({ httpError }),
+      appUserRepository: appUsers,
+      subscriptionRepository: createPushSubscriptionRepository({ httpError }),
+      webPush, httpError
+    }),
     deliveryRepository: createNotificationDeliveryRepository({ httpError }),
     preferenceRepository: createNotificationPreferenceRepository({ httpError }),
     appUserRepository: appUsers,

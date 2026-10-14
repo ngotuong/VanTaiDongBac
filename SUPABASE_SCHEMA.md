@@ -315,6 +315,8 @@ Trạng thái server-only của các rule thông báo theo lịch, tạo bởi m
 
 Bảng bật RLS, thu hồi toàn bộ quyền `anon`/`authenticated` và chỉ cho `service_role` đọc/ghi. Đây không phải nguồn số dư; số dư vẫn lấy từ metric `currentBalance` của `fund_overview_bundles`, cùng dữ liệu card “Số dư hiện tại”.
 
+Candidate sửa cảnh báo Quỹ 14/10 dùng thêm row key `fund-current-balance-below-10m:device:<endpoint hash>` trong chính bảng này, không đổi schema/grants. Conditional PATCH giữ cooldown trước push và xác nhận kết quả theo token; state tổng rule vẫn giữ cho quan sát/kế thừa. Chính sách timeout, retry từng thiết bị và badge thuộc [cache contract](docs/contracts/CACHE_AND_QUEUE_CONTRACTS.md); trạng thái live do context sở hữu.
+
 ### Notification preferences và rule config (`013`)
 
 - `notification_preferences`: lựa chọn loại thông báo theo `(user_id, notification_key)`; loại đầu tiên là `fund-low-balance`. Admin/Cổ đông thiếu row được hiểu là bật để giữ default nghiệp vụ, còn lựa chọn tắt được lưu rõ ràng.

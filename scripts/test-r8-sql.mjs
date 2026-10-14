@@ -19,6 +19,7 @@ try {
   for (const file of fs.readdirSync(path.join(root, 'supabase/migrations')).filter((file) => file.endsWith('.sql')).sort()) sql(fs.readFileSync(path.join(root, 'supabase/migrations', file), 'utf8'));
   sql(fs.readFileSync(path.join(root, 'tests/sql/r8-queue.sql'), 'utf8'));
   sql(fs.readFileSync(path.join(root, 'tests/sql/r8-payroll-isolation.sql'), 'utf8'));
+  sql(fs.readFileSync(path.join(root, 'tests/sql/notification-cooldown.sql'), 'utf8'));
   assert.throws(() => sql('set role anon; select * from payroll_explanation_bundles_v6;'), /permission denied/);
   assert.throws(() => sql("set role authenticated; select replace_payroll_explanation_month_v6('sheet','09/2026','[]');"), /permission denied/);
   assert.throws(() => sql("set role anon; select * from claim_write_jobs(1,'denied',900);"), /permission denied/);
@@ -42,6 +43,20 @@ try {
   await completed;
   assert.ok(other.startsWith('concurrent-') && !output.includes(other), 'SKIP LOCKED must produce disjoint claims');
   assert.equal(sql("select count(*) from write_jobs where id like 'concurrent-%' and attempts=1 and status='processing';").trim(), '2');
+  // A second delivery blocks on the same row, then rechecks the old timestamp predicate.
+  sql("insert into notification_rule_states(rule_key) values ('notification-device-concurrent');");
+  const fundClaim = spawn('docker', ['exec', '-i', name, 'psql', '-X', '-qAt', '-h', '127.0.0.1', '-U', 'postgres', '-v', 'ON_ERROR_STOP=1']);
+  let fundOutput = ''; let fundError = '';
+  fundClaim.stdout.on('data', chunk => { fundOutput += chunk; });
+  fundClaim.stderr.on('data', chunk => { fundError += chunk; });
+  const fundCompleted = new Promise((resolve, reject) => { fundClaim.once('error', reject); fundClaim.once('close', code => code === 0 ? resolve() : reject(new Error(fundError))); });
+  fundClaim.stdin.end("begin; set role service_role; update notification_rule_states set last_sent_at='2026-10-14 01:00:00+00',last_result='sending:a' where rule_key='notification-device-concurrent' and last_sent_at is null returning rule_key; select pg_sleep(1); commit;");
+  for (let attempt = 0; attempt < 100 && !fundOutput.includes('notification-device-concurrent'); attempt++) await new Promise(resolve => setTimeout(resolve, 20));
+  assert.match(fundOutput, /notification-device-concurrent/);
+  const losingClaim = sql("set role service_role; update notification_rule_states set last_sent_at='2026-10-14 01:00:00+00',last_result='sending:b' where rule_key='notification-device-concurrent' and last_sent_at is null returning rule_key;").trim();
+  await fundCompleted;
+  assert.equal(losingClaim, '', 'only one concurrent push reservation may succeed');
+  console.log('Notification cooldown SQL PASS: conditional device reservation, owned completion and concurrent exclusion.');
   // Drive the production lifecycle/repository against actual isolated SQL.
   // Sheet execution remains a synthetic boundary; this is not live Sheet E2E.
   const literal = (value) => value === null ? 'null' : `'${String(value).replace(/'/g, "''")}'`;

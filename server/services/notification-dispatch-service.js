@@ -18,7 +18,7 @@ function notificationCenterTarget(notificationId = '') {
   return `/?notifications=open${suffix}`;
 }
 
-function createNotificationDispatchService({ centerService, deliveryRepository, preferenceRepository, appUserRepository, subscriptionRepository, webPush, httpError, now = () => new Date() }) {
+function createNotificationDispatchService({ centerService, fundAlertService, deliveryRepository, preferenceRepository, appUserRepository, subscriptionRepository, webPush, httpError, now = () => new Date() }) {
   function assertConfigured(config) {
     if (!config.supabaseUrl || !config.serviceRoleKey || !config.vapidPublicKey || !config.vapidPrivateKey || !config.vapidSubject) throw httpError(503, 'Delivery thông báo chưa được cấu hình đầy đủ.');
   }
@@ -72,6 +72,8 @@ function createNotificationDispatchService({ centerService, deliveryRepository, 
     return { baselineCreated: true, baselineItems: items.length, sent: 0 };
   }
   async function sendImmediate(config, items, currentIso) {
+    // Fund delivery owns its configured cooldown and per-device reservations.
+    items = items.filter((item) => item.notificationKey !== 'fund-low-balance');
     const keys = items.flatMap(itemEventKeys);
     const existing = new Set((await deliveryRepository.list(config, keys)).map((row) => row.rule_key));
     const fresh = items.filter((item) => CHANNELS[item.notificationKey] && !itemEventKeys(item).some((key) => existing.has(key)));
@@ -103,7 +105,7 @@ function createNotificationDispatchService({ centerService, deliveryRepository, 
     const body = group.length === 1 ? first.message : channelKey === 'trip-reconciliation'
       ? `Có ${group.length} cập nhật đối soát mới. Mở ứng dụng để xem chi tiết.`
       : `Có ${group.length} cảnh báo mới. Mở ứng dụng để xem chi tiết.`;
-    return { title: CHANNELS[channelKey].title, body, tag: `vtdb-${channelKey}`, url: notificationCenterTarget(group.length === 1 ? first.id : ''), notificationId: group.length === 1 ? first.id : '', unreadDelta: group.length };
+    return { title: CHANNELS[channelKey].title, body, tag: `vtdb-${channelKey}`, url: notificationCenterTarget(group.length === 1 ? first.id : ''), notificationId: group.length === 1 ? first.id : '', badgeIds: group.map((item) => item.id), unreadDelta: group.length };
   }
   function formatNumber(value, maximumFractionDigits = 0) {
     return Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits });
@@ -144,7 +146,8 @@ function createNotificationDispatchService({ centerService, deliveryRepository, 
     }
     const initialized = await baseline(config, items, currentIso);
     if (initialized) return initialized;
-    return { immediate: await sendImmediate(config, items, currentIso), digest: await sendDigest(config, items, center.dailySummary, currentTime, currentIso, forceDigest) };
+    if (items.some((item) => item.notificationKey === 'fund-low-balance') && !fundAlertService) throw httpError(503, 'Chưa cấu hình bộ gửi cảnh báo Quỹ.');
+    return { immediate: await sendImmediate(config, items, currentIso), fund: await fundAlertService?.dispatch(config), digest: await sendDigest(config, items, center.dailySummary, currentTime, currentIso, forceDigest) };
   }
   return { run, localClock };
 }

@@ -8,11 +8,20 @@ function fixture({ balance = THRESHOLD - 1, lastSentAt = null, conditionActive =
   const writes = [];
   const deliveries = [];
   const removed = [];
+  const deviceStates = new Map();
   const service = createFundLowBalanceAlertService({
     balanceRepository: { async currentBalance() { return { value: balance, syncedAt: '2026-07-30T00:00:00Z', monthKey: '2026-07' }; } },
     ruleRepository: {
-      async find() { return lastSentAt || conditionActive ? { condition_active: conditionActive, last_sent_at: lastSentAt } : null; },
-      async upsert(_config, row) { writes.push(row); return row; }
+      async find(_config, key) { return key.includes(':device:') ? deviceStates.get(key) || null : lastSentAt || conditionActive ? { condition_active: conditionActive, last_sent_at: lastSentAt } : null; },
+      async upsert(_config, row) { writes.push(row); return row; },
+      async claimDelivery(_config, key, iso, minutes, inherited) {
+        const previousSentAt = deviceStates.has(key) ? deviceStates.get(key).last_sent_at : inherited;
+        if (previousSentAt && Date.parse(iso) - Date.parse(previousSentAt) < minutes * 60000) return null;
+        const claim = { token: key, previousSentAt };
+        deviceStates.set(key, { last_sent_at: iso });
+        return claim;
+      },
+      async finishDelivery() {}
     },
     ruleConfigRepository: { async find() { return { rule_key: 'fund-current-balance-below-10m', enabled: true, threshold_value: THRESHOLD, cooldown_minutes: 1440, recipient_roles: ['admin', 'shareholder'], notification_body: NOTIFICATION.body }; } },
     preferenceRepository: { async listByUserIds() { return disabledUserIds.map((user_id) => ({ user_id, notification_key: 'fund-low-balance', enabled: false })); } },

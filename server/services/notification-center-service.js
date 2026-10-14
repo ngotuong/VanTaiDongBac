@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { FUND_NOTIFICATION_ID } = require('./fund-low-balance-alert-service');
 const { vietnamClock } = require('./vietnam-time');
 
 const CRITICAL_SYNC_KEYS = new Map([
@@ -92,7 +93,8 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
     const threshold = Number(rule?.threshold_value);
     if (!rule?.enabled || !Number.isFinite(balance) || !Number.isFinite(threshold) || balance >= threshold) return null;
     return {
-      id: id('fund-low-balance', threshold, balance, bundle?.synced_at),
+      id: FUND_NOTIFICATION_ID,
+      legacyIds: [id('fund-low-balance', threshold, balance, bundle?.synced_at)],
       type: 'fund-low-balance', notificationKey: 'fund-low-balance', severity: 'error',
       title: 'Số dư Quỹ dưới ngưỡng',
       message: `${String(rule.notification_body || 'Số dư Quỹ đang thấp')}: ${balance.toLocaleString('vi-VN')} đ.`,

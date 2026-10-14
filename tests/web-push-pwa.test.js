@@ -6,7 +6,7 @@ const test = require('node:test');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('Web Push service worker persists only badge count and never caches app requests', () => {
+test('Web Push service worker persists badge count and bounded notification IDs, never app requests', () => {
   const worker = read('public/sw.js');
   assert.match(worker, /addEventListener\('push'/);
   assert.match(worker, /showNotification/);
@@ -14,7 +14,7 @@ test('Web Push service worker persists only badge count and never caches app req
   assert.match(worker, /payload\.unreadCount/);
   assert.match(worker, /event\.data\?\.type !== 'SET_APP_BADGE'/);
   assert.match(worker, /BADGE_STATE_CACHE = 'vtdb-badge-state-v1'/);
-  assert.match(worker, /JSON\.stringify\(\{ count \}\)/);
+  assert.match(worker, /JSON\.stringify\(\{ count, seenIds: badgeIds\(seenIds\) \}\)/);
   assert.match(worker, /payload\.unreadDelta/);
   assert.match(worker, /payload\.preserveBadge/);
   assert.match(worker, /addEventListener\('notificationclick'/);

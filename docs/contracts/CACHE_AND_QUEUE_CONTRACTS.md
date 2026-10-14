@@ -152,6 +152,14 @@ Khi dựng push, Vercel đọc thêm đúng `fund_overview_bundles(year, month_k
 
 Bundle `notifications:active` giữ cảnh báo chênh lệch hiện hành và tối đa 48 giờ cho sự kiện `reconciliation-resolved`. Sự kiện thành công chỉ được tạo khi cùng khóa nguồn `ngày + biển số + dự án + sourceRow` chuyển từ một cảnh báo chênh lệch ở bundle trước sang trạng thái `Khớp`; không tạo cho mọi dòng vốn đã khớp và không phát lại ở mỗi tick.
 
+### 4.6. Cảnh báo số dư Quỹ và badge
+
+Trạng thái triển khai thuộc `PROJECT_CONTEXT.md`. Cảnh báo Quỹ có ID ổn định theo rule, không thay theo số dư hoặc `synced_at`. Dispatcher chung loại Quỹ khỏi nhánh sự kiện mới và gọi cùng `FundLowBalanceAlertService` với endpoint lịch riêng. Quy tắc bật/tắt, ngưỡng, nhóm nhận và preference vẫn do cấu hình hiện hành quyết định; cooldown tính riêng từng endpoint thiết bị theo số phút đã lưu. Quỹ an toàn rồi xuống thấp lại trong thời gian chờ không bỏ qua cooldown.
+
+State server-only dùng bảng `notification_rule_states` hiện có với key `fund-current-balance-below-10m:device:<endpoint SHA-256 prefix>`; không thêm schema. Lượt gửi khởi tạo row bằng insert-ignore rồi giữ chỗ bằng conditional PATCH theo `last_sent_at` đã đọc. Giữ chỗ ghi mốc thời gian trước khi gọi push; hoàn tất chỉ khi còn đúng token. Lỗi HTTP xác định trả lại mốc cũ để thiết bị đó được retry; thiết bị đã gửi thành công không bị gửi lại. Timeout không xác định hoặc crash sau khi push được nhận giữ thời gian chờ để tránh spam; có thể trì hoãn một lượt không xác định đến hết cooldown. State tổng của rule chỉ là tổng hợp/nguồn kế thừa khi thiết bị chưa có state riêng. Dry-run đọc eligibility từng thiết bị, không gửi hoặc giữ chỗ.
+
+Push sự kiện kèm `badgeIds`; worker chỉ tăng badge cho ID chưa thấy và tuần tự hóa cập nhật đồng thời. Lời nhắc Quỹ kèm `preserveBadge`, không đổi số chưa đọc. Worker chỉ cache count và tối đa 2.000 ID, không cache dữ liệu nghiệp vụ. Khi app mở, panel đồng bộ count thực và ID hiện hành (kể cả đã đọc) vào worker; retry cùng ID không biến cảnh báo đã đọc thành chưa đọc. Badge cũ đã cộng sai cần mở app một lần để được tính lại; không tự xóa các thông báo chưa đọc khác. Trạng thái đọc vẫn theo tài khoản trên từng thiết bị.
+
 App badge dùng cùng số chưa đọc cục bộ với chuông. Client gửi số tuyệt đối bằng message `SET_APP_BADGE`; service worker chỉ lưu `{count}` trong cache riêng `vtdb-badge-state-v1`. Push nghiệp vụ mới gửi `unreadDelta`; daily digest gửi `preserveBadge=true` vì không tạo một item chưa đọc trong trung tâm. Service worker không có fetch handler và không cache request hay payload nghiệp vụ.
 
 ## 5. `report_bundles`

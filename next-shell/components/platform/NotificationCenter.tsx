@@ -134,7 +134,7 @@ async function writeClipboardText(value: string) {
   throw new Error('Không thể sao chép nội dung thông báo.');
 }
 
-async function updateAppBadge(count: number) {
+async function updateAppBadge(count: number, notificationIds: string[]) {
   const badgeNavigator = window.navigator as BadgeNavigator;
   try {
     if (count > 0 && badgeNavigator.setAppBadge) await badgeNavigator.setAppBadge(count);
@@ -144,7 +144,7 @@ async function updateAppBadge(count: number) {
   }
   try {
     const registration = await window.navigator.serviceWorker?.getRegistration();
-    registration?.active?.postMessage({ type: 'SET_APP_BADGE', count });
+    registration?.active?.postMessage({ type: 'SET_APP_BADGE', count, notificationIds });
   } catch {
     // Service-worker badge sync is a best-effort fallback.
   }
@@ -342,8 +342,8 @@ export function NotificationCenter({ userId }: { userId: string }) {
 
   useEffect(() => {
     if (!readHydrated || !loaded) return;
-    void updateAppBadge(unreadCount);
-  }, [loaded, readHydrated, unreadCount]);
+    void updateAppBadge(unreadCount, items.map((item) => item.id));
+  }, [loaded, readHydrated, unreadCount, items]);
 
   const markRead = (item: NotificationItem) => {
     const key = notificationKey(item);

@@ -2,17 +2,35 @@
 var FundTransactionSnapshotService = (function () {
   var TTL = 7200;
 
-  function write_(key, value, context) {
-    var raw = JSON.stringify(value), values = {}, count = 0;
-    for (var offset = 0; offset < raw.length;) {
-      var end = Math.min(raw.length, offset + 16000);
-      var code = raw.charCodeAt(end - 1);
-      if (end < raw.length && code >= 0xD800 && code <= 0xDBFF) end--;
-      values[key + ':' + count++] = raw.slice(offset, end);
-      offset = end;
+  function measureCapture_(context, phase, work) {
+    function log(record) {
+      try { context.log('fund_transactions_capture_phase:' + JSON.stringify(record)); } catch (ignored) {}
     }
-    context.cache.putAll(values, TTL);
-    return { key: key, count: count, hash: context.hash(raw) };
+    var started = Date.now(), ok = false;
+    log({ phase: phase, event: 'start' });
+    try {
+      var result = work();
+      ok = true;
+      return result;
+    } finally {
+      log({ phase: phase, event: 'end', ms: Math.max(0, Date.now() - started), ok: ok });
+    }
+  }
+
+  function write_(key, value, context) {
+    var raw = measureCapture_(context, 'serialize', function () { return JSON.stringify(value); });
+    var values = {}, count = 0;
+    measureCapture_(context, 'chunk', function () {
+      for (var offset = 0; offset < raw.length;) {
+        var end = Math.min(raw.length, offset + 16000);
+        var code = raw.charCodeAt(end - 1);
+        if (end < raw.length && code >= 0xD800 && code <= 0xDBFF) end--;
+        values[key + ':' + count++] = raw.slice(offset, end);
+        offset = end;
+      }
+    });
+    measureCapture_(context, 'cachePutAll', function () { context.cache.putAll(values, TTL); });
+    return { key: key, count: count, hash: measureCapture_(context, 'hash', function () { return context.hash(raw); }) };
   }
 
   function keys_(block) {

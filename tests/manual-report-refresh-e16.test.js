@@ -197,6 +197,37 @@ test('E1.6R adds direct Fund Sheet triggers and delayed transport downstream ref
   assert.match(api, /function handleFundSheetChange\(e\)/);
 });
 
+test('a Fund Sheet edit keeps its exact month and requests dashboard plus report priority', () => {
+  const values = new Map();
+  const props = { getProperty: (key) => values.get(key) || null, setProperty: (key, value) => values.set(key, value), deleteProperty: (key) => values.delete(key) };
+  const context = vm.createContext({
+    console: { log() {} }, APP_CONFIG: { spreadsheetId: 'transport', timezone: 'Asia/Ho_Chi_Minh' },
+    normalizeCleanValue_: (value) => String(value ?? '').trim(),
+    PropertiesService: { getScriptProperties: () => props },
+    LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
+    Utilities: { formatDate: () => '2026-09', getUuid: () => 'uuid' },
+    SupabaseSyncStatusRepository: { upsert() {} }
+  });
+  for (const file of ['ManualReportRefreshQueueService.gs', 'SupabaseService.gs']) {
+    new vm.Script(read(file), { filename: `${file}#fund-month-signal` }).runInContext(context);
+  }
+  const sheet = {
+    getLastRow: () => 4215,
+    getRange: (row, column, count) => {
+      assert.equal(column, 2); assert.equal(row, 877); assert.equal(count, 1);
+      return { getValues: () => [['17/09/2026']] };
+    }
+  };
+  const range = { getSheet: () => sheet, getRow: () => 877, getNumRows: () => 1 };
+  const result = context.SupabaseService.syncFundSheetChange('EDIT', 'NHAP_THUCHI', range);
+  assert.equal(result.full, false);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.months)), ['2026-09']);
+  assert.equal(result.fundRefresh.full, false);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.fundRefresh.priorityMonths)), ['2026-09']);
+  assert.equal(result.reportRefresh.refreshDashboard, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.reportRefresh.priorityMonths)), ['2026-09']);
+});
+
 test('webapp NHAP_THUCHI writes explicitly enqueue delayed transport reports', () => {
   const source = read('SupabaseService.gs');
   const handler = read('FundJobHandler.gs');

@@ -200,9 +200,9 @@ test('durable refresh progresses one stage per tick and retains edits during wor
   assert.deepEqual(plain(q.getPending(c).months), ['2026-08', '2026-09', '2026-10']);
 });
 
-test('a burst of actual transport triggers persists signals without native metadata, network or shared lock calls', () => {
-  let now = 1000000; const props = new Map(); let native = 0;
-  const forbidden = () => { native++; throw Error('Native RPC or lock on event path'); };
+test('a burst of actual transport triggers persists bounded range metadata without Sheet reads, network or shared lock calls', () => {
+  let now = 1000000; const props = new Map(); let native = 0; let metadata = 0;
+  const forbidden = () => { native++; throw Error('Sheet read, network or lock on event path'); };
   const sandbox = vm.createContext({ console: { log() {} }, normalizeCleanValue_: (v) => String(v ?? '').trim(),
     APP_CONFIG: { spreadsheetId: 'isolated' },
     PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => props.get(k), setProperty: (k, v) => props.set(k, v) }) },
@@ -216,13 +216,19 @@ test('a burst of actual transport triggers persists signals without native metad
     foreign: { handler: 'handleTransportSheetEdit', spreadsheetId: 'foreign' }
   }));
   const service = sandbox.SupabaseService;
-  const event = { triggerUid: 'edit', source: { getId: forbidden, getActiveSheet: forbidden }, range: { getSheet: forbidden, getRow: forbidden } };
+  const event = { triggerUid: 'edit', source: { getId: forbidden, getActiveSheet: forbidden }, range: {
+    getSheet: () => { metadata++; return { getName: () => { metadata++; return 'NL_Dau'; } }; },
+    getRow: () => { metadata++; return 25; }, getNumRows: () => { metadata++; return 1; },
+    getValues: forbidden, getDisplayValues: forbidden
+  } };
   for (let i = 0; i < 100; i++) {
     assert.equal(service.handleTransportSheetEdit(event).queued, true);
     assert.equal(service.handleTransportSheetChange({ ...event, triggerUid: 'change', changeType: 'EDIT' }).skipped, true);
   }
   assert.equal(native, 0);
-  assert.ok(JSON.parse(props.get('SUPABASE_SHEET_SIGNAL_TRANSPORT')).token);
+  assert.ok(metadata > 0);
+  const signal = JSON.parse(props.get('SUPABASE_SHEET_SIGNAL_TRANSPORT'));
+  assert.ok(signal.token); assert.deepEqual(signal.scopes.at(-1), { sheetName: 'NL_Dau', startRow: 25, numRows: 1 });
   assert.equal(props.has('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC'), false);
   assert.throws(() => service.handleTransportSheetEdit({ ...event, triggerUid: 'foreign' }), /workbook/);
   assert.throws(() => service.handleTransportSheetEdit({ source: event.source }), /binding/);

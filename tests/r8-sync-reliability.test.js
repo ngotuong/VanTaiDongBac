@@ -21,6 +21,30 @@ test('signal drain keeps a later event racing enqueue/consumption, and a failed 
   assert.notEqual(p.get('SUPABASE_SHEET_SIGNAL_TRANSPORT_CONSUMED'), JSON.parse(p.get('SUPABASE_SHEET_SIGNAL_TRANSPORT')).token);
 });
 
+test('edit signals retain and coalesce bounded sheet row scopes until the durable ACK', () => {
+  const service = load('SheetChangeSignalService.gs').SheetChangeSignalService;
+  const p = new Map(); let seq = 0; let drained;
+  const ctx = { getProperty: (k) => p.get(k), setProperty: (k, v) => p.set(k, v), nowMillis: () => 1000, createUuid: () => String(++seq) };
+  p.set('SUPABASE_SHEET_TRIGGER_BINDINGS_V1', JSON.stringify({ e: { handler: 'handleFundSheetEdit', spreadsheetId: 'fund' } }));
+  const event = (row) => ({ triggerUid: 'e', range: {
+    getSheet: () => ({ getName: () => 'NHAP_THUCHI' }), getRow: () => row, getNumRows: () => 1
+  } });
+  service.record(event(877), 'fund', 'handleFundSheetEdit', 'fund', ctx);
+  service.record(event(878), 'fund', 'handleFundSheetEdit', 'fund', ctx);
+  const pending = JSON.parse(p.get('SUPABASE_SHEET_SIGNAL_FUND'));
+  assert.deepEqual(plain(pending.scopes), [
+    { sheetName: 'NHAP_THUCHI', startRow: 877, numRows: 1 },
+    { sheetName: 'NHAP_THUCHI', startRow: 878, numRows: 1 }
+  ]);
+  ctx.enqueue = (signal) => { drained = plain(signal); return { queued: true }; };
+  service.drain('fund', ctx);
+  assert.deepEqual(drained.scopes, pending.scopes);
+  service.record(event(900), 'fund', 'handleFundSheetEdit', 'fund', ctx);
+  assert.deepEqual(plain(JSON.parse(p.get('SUPABASE_SHEET_SIGNAL_FUND')).scopes), [
+    { sheetName: 'NHAP_THUCHI', startRow: 900, numRows: 1 }
+  ]);
+});
+
 test('owner binding registration rejects foreign workbooks and wrong event types without replacing prior bindings', () => {
   const service = load('SheetChangeSignalService.gs').SheetChangeSignalService;
   let saved = 'baseline'; const context = { handlers: { edit: { spreadsheetId: 'sheet', eventType: 'ON_EDIT' } }, setProperty: (_k, v) => { saved = v; } };

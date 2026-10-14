@@ -32,9 +32,46 @@ var SheetChangeSignalService = (function () {
     }
     var type = String(event && event.changeType || 'EDIT').toUpperCase();
     if (/Change$/.test(handler) && type === 'EDIT') return { ok: true, skipped: true, reason: 'Handled by onEdit.' };
+    var scope = editScope_(event && event.range);
+    var previous = parse_(context.getProperty(key_(module)));
+    var consumed = context.getProperty(key_(module) + '_CONSUMED');
+    var pendingPrevious = previous.token && String(previous.token) !== String(consumed || '');
+    var scopes = pendingPrevious && previous.eventType === 'EDIT' && type === 'EDIT'
+      ? (previous.scopes || []).slice() : [];
+    if (scope) scopes.push(scope);
+    if (scopes.length > 50) scopes = scopes.slice(scopes.length - 50);
     var token = context.createUuid();
-    context.setProperty(key_(module), JSON.stringify({ token: token, eventType: type, at: context.nowMillis() }));
+    context.setProperty(key_(module), JSON.stringify({
+      token: token,
+      eventType: pendingPrevious && previous.eventType !== type ? 'CHANGE' : type,
+      scopes: scopes,
+      at: context.nowMillis()
+    }));
     return { ok: true, queued: true, signaled: true };
+  }
+
+  function editScope_(range) {
+    if (!range || !range.getSheet || !range.getRow || !range.getNumRows) return null;
+    try {
+      var sheet = range.getSheet();
+      var sheetName = sheet && sheet.getName ? String(sheet.getName() || '') : '';
+      var startRow = Number(range.getRow() || 0);
+      var numRows = Number(range.getNumRows() || 0);
+      if (!sheetName || startRow < 1 || numRows < 1) return null;
+      return { sheetName: sheetName, startRow: startRow, numRows: numRows };
+    } catch (ignored) {
+      return null;
+    }
+  }
+
+  function parse_(raw) {
+    if (!raw) return {};
+    try {
+      var value = JSON.parse(raw);
+      return value && typeof value === 'object' ? value : {};
+    } catch (ignored) {
+      return {};
+    }
   }
 
   function drain(module, context) {

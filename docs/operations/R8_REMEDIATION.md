@@ -1,6 +1,6 @@
 # R8 — remediation và nghiệm thu
 
-Runbook cho checkpoint đang mở. Phê duyệt, deployment/version và gate hiện tại chỉ thuộc [PROJECT_CONTEXT](../../PROJECT_CONTEXT.md). Thao tác deploy theo [WORKFLOW](../../WORKFLOW.md), phục hồi theo [ROLLBACK](../../ROLLBACK.md). Không mở checkpoint mới, merge/mainpush, migration hoặc tạo giao dịch giả; commit/push branch riêng chỉ trong phạm vi phê duyệt ghi ở context.
+Runbook cho hai nghiệm thu quan sát còn mở sau khi remediation chức năng đã deploy. Deployment/version và gate hiện tại chỉ thuộc [PROJECT_CONTEXT](../../PROJECT_CONTEXT.md). Thao tác deploy theo [WORKFLOW](../../WORKFLOW.md), phục hồi theo [ROLLBACK](../../ROLLBACK.md). Không tạo giao dịch giả để đóng gate.
 
 ## Phạm vi và acceptance
 
@@ -26,7 +26,7 @@ Bằng chứng nghiệm thu gồm: immutable/live readback và consumer UID; sou
 
 Lịch sử các cửa sổ đã đóng ở Git history hoặc baseline local ignored; không giữ review/approval cũ làm kế hoạch triển khai mới. [Router](../ai/AI_START_HERE.md) dẫn tới contract cần đọc.
 
-## Kết thúc cửa sổ đã duyệt
+## Khi mở cửa sổ nghiệm thu mới
 
 Trạng thái/phê duyệt và baseline rollback do context sở hữu. Preflight identity/live versions/triggers/jobs/queue; maintenance +pause/drain và backup mới. Giữ live manifest, bốn UID và sáu consumer. Nghiệm thu cache nguồn/tháng/report-v6/full ACK, execution và edit thật; owner pump không chứng minh độ trễ. Gate fail thì dùng quy trình rollback dưới đây, không mở ghi sớm.
 
@@ -46,4 +46,4 @@ Trạng thái/phê duyệt và baseline rollback do context sở hữu. Prefligh
 
 ## Còn mở
 
-Độ trễ natural human-edit và subcall nguồn chậm chưa nghiệm thu theo context. Thiết bị thật iPhone/Safari/iOS push/Home Screen/reduced-motion còn mở. Git branch/draftPR và CI remote đã PASS đúng source được duyệt; không tự merge/mainpush. Payroll nguồn tháng5–8 và lịch sử volume giữ trạng thái/giới hạn trong context. Không yêu cầu bịa giao dịch để nghiệm thu. Runbook chưa đạt đủ acceptance phải giữ trạng thái chưa hoàn tất.
+Độ trễ natural human-edit chưa có cặp timestamp edit thật→UI đạt chuẩn bằng chứng. Thiết bị thật iPhone/Safari/iOS push/Home Screen/reduced-motion chưa được nghiệm thu. Payroll nguồn tháng5–8 và lịch sử volume giữ trạng thái/giới hạn trong context. Không yêu cầu bịa giao dịch để nghiệm thu.

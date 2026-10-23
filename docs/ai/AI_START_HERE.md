@@ -21,7 +21,7 @@ Yêu cầu chỉ đọc/báo trạng thái: báo đúng sáu phần của contex
 | Test/audit/rủi ro | `docs/quality/TEST_STRATEGY.md`, `KNOWN_RISKS.md`, test liên quan |
 | Deploy/trigger/rollback | `WORKFLOW.md`, `ROLLBACK.md`; `SUPABASE_SETUP.md` khi cấu hình Auth/Supabase |
 | Chuyển workbook sang năm mới | `docs/operations/YEAR_ROLLOVER.md`, sau đó owner kiến trúc/cache/Sheet/deploy liên quan |
-| Công việc R8 còn mở | `docs/operations/R8_REMEDIATION.md` |
+| Nghiệm thu R8 còn mở | `docs/operations/R8_REMEDIATION.md` |
 | Quản trị tài liệu | `docs/governance/DOCUMENTATION_POLICY.md` |
 | Điều tra lịch sử | Git history theo file/commit; baseline local nếu lịch sử chưa commit |
 

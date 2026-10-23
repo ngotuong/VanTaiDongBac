@@ -20,6 +20,7 @@ import { useVisibleRevalidation } from '../platform/useVisibleRevalidation';
 const api = createClientApiClient();
 const FUND_COMMAND_LABELS: Record<string, string> = { addFundTransactions: 'Thêm giao dịch', updateFundTransaction: 'Sửa giao dịch', deleteFundTransaction: 'Xóa giao dịch', addFundDebtPayment: 'Thanh toán công nợ', addFundLoan: 'Thêm khoản vay', addFundLoanPayment: 'Thanh toán khoản vay', saveFundCatalogItem: 'Lưu danh mục', deleteFundCatalogItem: 'Xóa danh mục', updateFundSettings: 'Lưu thiết lập' };
 const PAGE_SIZE = 20;
+const CUSTOM_RANGE_DEBOUNCE_MS = 280;
 const cashflowResponseCache = new Map<string, unknown>();
 const cashflowInflight = new Map<string, Promise<unknown>>();
 const GROUPS = [
@@ -298,7 +299,7 @@ function Pager({ page, total, setPage }: { page: number; total: number; setPage:
 export function CashflowModule({ initialData, initialError = '' }: { initialData: CashflowInitialData; initialError?: string }) {
   const context = useWorkbookContext();
   const year = initialData.year || context.workbook.year;
-  const canWrite = context.user.role === 'admin' || context.user.role === 'operator';
+  const canWrite = !context.workbook.readOnly && (context.user.role === 'admin' || context.user.role === 'operator');
   const currentYear = today().slice(0, 4);
   const initialPeriod: Period = year === currentYear ? 'thisMonth' : 'recent';
   const initialRange = year === currentYear ? rangeFor('thisMonth') : { start: `${year}-01-01`, end: `${year}-12-31` };
@@ -358,6 +359,9 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   const catalogPrefetchStarted = useRef(false);
   const expectedTransactionRef = useRef<FundTransaction | null>(null);
   const refreshAfterJobRef = useRef<() => Promise<void>>(async () => {});
+  const loadSharedRangeRef = useRef<(range: { start: string; end: string }, force?: boolean, cacheMonth?: string) => Promise<void>>(async () => {});
+  const sharedRangeRequestRef = useRef(0);
+  const appliedRangeRef = useRef(`${initialRange.start}|${initialRange.end}`);
   const intentIdsRef = useRef<Record<string, string>>({});
   const visibleQueryRef = useRef({ tab, startDate, endDate, group });
   const postFundCommand = async <T,>(action: string, options: ApiRequestOptions): Promise<T> => {
@@ -401,6 +405,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
         params: {
           module: 'fund',
           limit: '50',
+          year,
         },
       })
       .then((result) => {
@@ -534,6 +539,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     if (value === 'catalog' && canWrite && !(catalog.rows || []).length) void refresh(value);
   };
   const loadSharedRange = async (range: { start: string; end: string }, force = false, cacheMonth = '') => {
+    const requestVersion = ++sharedRangeRequestRef.current;
     setBusy(true);
     setMessage('Đang áp dụng bộ lọc Quỹ…');
     setError(false);
@@ -541,6 +547,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     try {
       const params: Record<string, string> = cacheMonth ? { month: cacheMonth } : { startDate: range.start, endDate: range.end };
       const rangePayload = await readSurface<FundRangePayload>(year, 'range', params, force);
+      if (requestVersion !== sharedRangeRequestRef.current) return;
       const { overview: nextOverview, transactions: nextTransactions, loans: nextLoans } = rangePayload;
       setOverview(nextOverview);
       setTransactions(nextTransactions);
@@ -549,13 +556,27 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
       setTxPage(1);
       setLoanPage(1);
       setLoanSummaryPage(1);
+      appliedRangeRef.current = `${range.start}|${range.end}`;
       report('Đã áp dụng bộ lọc cho Tổng quan, Danh sách thu chi và Khoản vay.');
     } catch (loadError) {
+      if (requestVersion !== sharedRangeRequestRef.current) return;
       report(loadError instanceof Error ? loadError.message : String(loadError), true);
     } finally {
-      setBusy(false);
+      if (requestVersion === sharedRangeRequestRef.current) setBusy(false);
     }
   };
+  useEffect(() => { loadSharedRangeRef.current = loadSharedRange; });
+  useEffect(() => {
+    if (period !== 'custom') return;
+    const rangeKey = `${startDate}|${endDate}`;
+    const validRange = Boolean(startDate && endDate && startDate <= endDate && startDate.startsWith(`${year}-`) && endDate.startsWith(`${year}-`));
+    if (!validRange || rangeKey === appliedRangeRef.current) return;
+    sharedRangeRequestRef.current += 1;
+    const timer = window.setTimeout(() => {
+      void loadSharedRangeRef.current({ start: startDate, end: endDate });
+    }, CUSTOM_RANGE_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [endDate, period, startDate, year]);
   const changePeriod = (value: Period) => {
     setPeriod(value);
     if (value === 'custom') return;
@@ -572,9 +593,15 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     setEndDate(range.end);
     void loadSharedRange(range, false, cacheMonth);
   };
-  const loadCustomRange = () => {
-    if (!startDate || !endDate || startDate > endDate || !startDate.startsWith(`${year}-`) || !endDate.startsWith(`${year}-`)) return report(`Vui lòng chọn khoảng ngày hợp lệ trong năm ${year}.`, true);
-    void loadSharedRange({ start: startDate, end: endDate });
+  const changeCustomStartDate = (value: string) => {
+    setStartDate(value);
+    if (value && (!endDate || value > endDate)) setEndDate(value);
+    setPeriod('custom');
+  };
+  const changeCustomEndDate = (value: string) => {
+    setEndDate(value);
+    if (value && (!startDate || value < startDate)) setStartDate(value);
+    setPeriod('custom');
   };
   const queued = useMemo(
     () =>
@@ -1046,7 +1073,6 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
           period={period}
           startDate={startDate}
           endDate={endDate}
-          busy={busy}
           query={tab === 'transactions' ? query : undefined}
           setQuery={
             tab === 'transactions'
@@ -1060,9 +1086,8 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
           add={tab === 'loans' ? openLoan : () => openTransactions()}
           addLabel={tab === 'loans' ? 'Nhập khoản vay mới' : 'Nhập giao dịch mới'}
           setPeriod={changePeriod}
-          setStartDate={setStartDate}
-          setEndDate={setEndDate}
-          applyCustom={loadCustomRange}
+          setStartDate={changeCustomStartDate}
+          setEndDate={changeCustomEndDate}
         />
       ) : null}
       {tab === 'overview' ? (
@@ -1214,7 +1239,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   );
 }
 
-function SharedCashflowFilter({ year, period, startDate, endDate, busy, query, setQuery, canAdd, add, addLabel, setPeriod, setStartDate, setEndDate, applyCustom }: { year: string; period: Period; startDate: string; endDate: string; busy: boolean; query?: string; setQuery?: (value: string) => void; canAdd: boolean; add: () => void; addLabel: string; setPeriod: (value: Period) => void; setStartDate: (value: string) => void; setEndDate: (value: string) => void; applyCustom: () => void }) {
+function SharedCashflowFilter({ year, period, startDate, endDate, query, setQuery, canAdd, add, addLabel, setPeriod, setStartDate, setEndDate }: { year: string; period: Period; startDate: string; endDate: string; query?: string; setQuery?: (value: string) => void; canAdd: boolean; add: () => void; addLabel: string; setPeriod: (value: Period) => void; setStartDate: (value: string) => void; setEndDate: (value: string) => void }) {
   const isCurrentYear = year === today().slice(0, 4);
   return (
     <section className="panel cashflow-overview-filter-panel cashflow-shared-filter" aria-label="Bộ lọc chung của module Quỹ">
@@ -1253,7 +1278,7 @@ function SharedCashflowFilter({ year, period, startDate, endDate, busy, query, s
               />
             </div>
           </div>
-          <select aria-label="Bộ lọc nhanh thời gian" className="cashflow-quick-period-select platform-content-select" value={period} onChange={(event) => setPeriod(event.target.value as Period)}>
+          <select aria-label="Bộ lọc nhanh thời gian" className="cashflow-quick-period-select platform-content-select" data-fixed-filter-width="true" value={period} onChange={(event) => setPeriod(event.target.value as Period)}>
             <option value="thisMonth" disabled={!isCurrentYear}>
               Tháng này
             </option>
@@ -1270,15 +1295,10 @@ function SharedCashflowFilter({ year, period, startDate, endDate, busy, query, s
             <option value="custom">Tùy chọn</option>
           </select>
         </div>
-        {(query !== undefined && setQuery) || canAdd || period === 'custom' ? (
+        {(query !== undefined && setQuery) || canAdd ? (
           <div className="cashflow-filter-row-search">
             {query !== undefined && setQuery ? <input type="search" className="cashflow-filter-search-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Mục, người, đối tác, nội dung…" aria-label="Tìm kiếm giao dịch thu chi" /> : <span className="cashflow-filter-action-spacer" />}
             <span className="cashflow-filter-actions">
-              {period === 'custom' ? (
-                <button type="button" className="secondary cashflow-filter-apply" onClick={applyCustom} disabled={busy}>
-                  Áp dụng
-                </button>
-              ) : null}
               {canAdd ? (
                 <button type="button" className="primary cashflow-filter-add touch-action-btn" aria-label={addLabel} onClick={add}>
                   ＋ Nhập mới

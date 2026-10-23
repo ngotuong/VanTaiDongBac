@@ -7,6 +7,7 @@ const { createCatalogService } = require('../server/services/catalog-service');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const httpError = (status, message) => Object.assign(new Error(message), { status });
+const workbookContextService = { resolve: ({ module, year }) => ({ module, year: year || '2026', spreadsheetId: 'transport-2026' }) };
 
 test('Catalog API serves one exact Supabase bundle without forwarding to Apps Script', async () => {
   let forwarded = 0;
@@ -14,11 +15,12 @@ test('Catalog API serves one exact Supabase bundle without forwarding to Apps Sc
   const service = createCatalogService({
     catalogBundleRepository: {
       find: async (_config, key) => {
-        assert.equal(key, 'catalogs:all');
+        assert.equal(key, 'transport:2026:catalogs:all');
         return { payload: { activeVehicles: [{ plate: '20H05602' }] }, synced_at: '2026-07-22T12:00:00Z' };
       }
     },
     appsScriptClient: { forward: async () => { forwarded += 1; } },
+    workbookContextService,
     httpError,
     send: (_res, status, body) => { response = { status, body }; return response; }
   });
@@ -36,6 +38,7 @@ test('Catalog API fails closed on an ordinary cache miss and only forwards an ex
   const service = createCatalogService({
     catalogBundleRepository: { find: async () => { reads += 1; return null; } },
     appsScriptClient: { forward: async () => { forwards += 1; return { status: 200, body: { projects: [] } }; } },
+    workbookContextService,
     httpError,
     send: (_res, status, body) => ({ status, body })
   });

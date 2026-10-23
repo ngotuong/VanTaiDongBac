@@ -10,20 +10,20 @@ test('same-origin dashboard and manage read routes authenticate before reading S
   const dashboard = read('next-shell/app/dashboard-data/route.ts');
   const manage = read('next-shell/app/manage-data/route.ts');
 
-  assert.match(dashboard, /await loadPlatformContext\(\{ module: 'transport' \}\)/);
+  assert.match(dashboard, /await loadPlatformContext\(\{ module: 'transport', year: url\.searchParams\.get\('year'\) \|\| undefined \}\)/);
   assert.ok(
     dashboard.indexOf('await loadPlatformContext') < dashboard.indexOf('await loadDashboardData'),
     'Dashboard must authenticate before reading a service-role cache.'
   );
 
-  assert.match(manage, /await loadPlatformContext\(\{ module: 'transport' \}\)/);
+  assert.match(manage, /await loadPlatformContext\(\{ module: 'transport', year: query\.get\('year'\) \|\| undefined \}\)/);
   assert.match(manage, /await loadPlatformContext\(\{ module: 'cashflow'/);
   assert.ok(
     manage.indexOf("await loadPlatformContext({ module: 'cashflow'") < manage.indexOf('await loadCashflowSurface'),
     'Cashflow must authenticate before reading a service-role cache.'
   );
   assert.ok(
-    manage.lastIndexOf("await loadPlatformContext({ module: 'transport' })") < manage.indexOf('await loadManageData'),
+    manage.lastIndexOf("await loadPlatformContext({ module: 'transport', year:") < manage.indexOf('await loadManageData'),
     'Manage must authenticate before reading a service-role cache.'
   );
 });

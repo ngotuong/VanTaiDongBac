@@ -13,7 +13,9 @@ const { createFundLowBalanceAlertService } = require('../server/services/fund-lo
 const { createFundBalanceRepository } = require('../server/repositories/fund-balance-repository');
 const { createNotificationRuleRepository } = require('../server/repositories/notification-rule-repository');
 const { createNotificationRuleConfigRepository } = require('../server/repositories/notification-rule-config-repository');
+const { createWorkbookContextRepository } = require('../server/repositories/workbook-context-repository');
 const { assertSameOrigin } = require('../server/services/session-cookie-service');
+const { createWorkbookContextService } = require('../server/services/workbook-context-service');
 
 function send(res, status, body) {
   res.statusCode = status;
@@ -27,7 +29,17 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return send(res, 405, { ok: false, error: 'Method not allowed.' });
   const config = runtimeConfig();
   const appUsers = createAppUserRepository({ httpError });
-  const center = createNotificationCenterService({ repository: createNotificationBundleRepository({ httpError }), httpError, send });
+  const workbookContextService = createWorkbookContextService({
+    httpError,
+    repository: createWorkbookContextRepository({ httpError }),
+    config
+  });
+  const center = createNotificationCenterService({
+    repository: createNotificationBundleRepository({ httpError }),
+    workbookContextService,
+    httpError,
+    send
+  });
   const service = createNotificationDispatchService({
     centerService: center,
     fundAlertService: createFundLowBalanceAlertService({
@@ -37,6 +49,7 @@ module.exports = async function handler(req, res) {
       preferenceRepository: createNotificationPreferenceRepository({ httpError }),
       appUserRepository: appUsers,
       subscriptionRepository: createPushSubscriptionRepository({ httpError }),
+      workbookContextService,
       webPush, httpError
     }),
     deliveryRepository: createNotificationDeliveryRepository({ httpError }),

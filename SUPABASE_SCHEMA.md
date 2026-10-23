@@ -120,7 +120,7 @@ Cache dữ liệu màn hình khởi động từ `SheetService.getStartupData(fo
 
 | Cột | Kiểu | Bắt buộc | Ghi chú |
 | --- | --- | --- | --- |
-| `form_type` | `text` | Có | Khóa chính. Hiện dùng chính là `vanChuyen`. |
+| `form_type` | `text` | Có | Khóa chính namespaced `<year>:<form_type>`, ví dụ `2026:vanChuyen`. |
 | `payload` | `jsonb` | Có | Dữ liệu startup gồm bootstrap, danh mục form đầu, dashboard nhẹ và links. |
 | `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
 | `created_at` | `timestamptz` | Có | Thời điểm tạo row. |
@@ -142,7 +142,7 @@ Cache dữ liệu danh mục dùng cho nhập liệu và màn hình Danh mục.
 
 | Cột | Kiểu | Bắt buộc | Ghi chú |
 | --- | --- | --- | --- |
-| `catalog_key` | `text` | Có | Khóa chính. Ví dụ `catalogs:vanChuyen`, `catalogs:all`, `catalog_data:DM_Xe`. |
+| `catalog_key` | `text` | Có | Khóa chính. Vận tải dùng `transport:<year>:catalogs:<form>` hoặc `transport:<year>:catalog_data:<sheet>`; Quỹ giữ key có năm. |
 | `payload` | `jsonb` | Có | Dữ liệu trả về từ `CatalogService.getCatalogs` hoặc `CatalogService.readCatalogData`. |
 | `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
 | `created_at` | `timestamptz` | Có | Thời điểm tạo row. |
@@ -190,7 +190,7 @@ Cache dữ liệu đọc danh sách mặc định của menu **Vận hành**.
 
 | Cột | Kiểu | Bắt buộc | Ghi chú |
 | --- | --- | --- | --- |
-| `sheet_name` | `text` | Có | Tên sheet vận hành, ví dụ `NL_VanChuyen`, `NL_TaiXe`. |
+| `sheet_name` | `text` | Có | Namespace `<year>:<sheet>`, ví dụ `2026:NL_VanChuyen`, `2026:NL_TaiXe`. |
 | `filter_key` | `text` | Có | `recent_500` cho dữ liệu gần nhất, hoặc `month:YYYY-MM` cho cache theo tháng. |
 | `payload` | `jsonb` | Có | Dữ liệu trả về từ `ManageService.readManageData`. |
 | `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
@@ -236,9 +236,9 @@ Luồng đúng cho thông báo:
 
 1. Google Sheet vẫn tính đối soát/thưởng nóng trong `XL_DoiSoatChuyen`.
 2. Apps Script trigger đọc sheet này theo chu kỳ 1-5 phút.
-3. `TripNotificationSyncService` ghi một bundle nhỏ vào `manage_data_bundles` với `sheet_name=XL_DoiSoatChuyen`, `filter_key=notifications:active`; bundle chứa tối đa 100 cảnh báo của 45 ngày gần nhất.
+3. `TripNotificationSyncService` ghi một bundle nhỏ vào `manage_data_bundles` với `sheet_name=<year>:XL_DoiSoatChuyen`, `filter_key=notifications:active`; bundle chứa tối đa 100 cảnh báo của 45 ngày gần nhất.
 4. Frontend gọi proxy-local `getNotifications`; API xác thực session/RBAC và chỉ đọc Supabase, không gọi Apps Script khi mở chuông.
-5. `OperationalNotificationSyncService` ghi bundle `SYSTEM_NOTIFICATIONS/operations:active` từ đúng hai helper công thức `NL_ChamCong.Lưu ý` và `NL_PhanCongLai.Kiểm tra`.
+5. `OperationalNotificationSyncService` ghi bundle `<year>:SYSTEM_NOTIFICATIONS/operations:active` từ đúng hai helper công thức `NL_ChamCong.Lưu ý` và `NL_PhanCongLai.Kiểm tra`.
 6. API hợp nhất thêm số dư Quỹ, `sync_status` và `write_jobs`; không gọi Apps Script khi mở chuông.
 7. Web Push delivery dùng `notification_rule_states` cho baseline/idempotency và preference mở rộng. Read-state của panel vẫn lưu theo tài khoản trên từng thiết bị; đồng bộ read-state đa thiết bị cần migration riêng.
 
@@ -334,3 +334,11 @@ Bảng là server-only: bật RLS, không tạo policy đọc, revoke `public`/`
 ### Payroll v6 cache isolation (`017`)
 
 `payroll_explanation_bundles_v6` giữ cùng schema/key với cache legacy nhưng có bảng/RPC riêng `replace_payroll_explanation_month_v6`. RLS bật, không policy browser, chỉ service_role. RPC kiểm tra workbook/tháng và payload `payroll-explanation-v6`, thay tháng atomically. Không sửa/invalidate bảng/RPC v5; hai runtime có thể refresh riêng trong cửa sổ Preview/Production. Source of truth vẫn là Sheets. Trạng thái apply do context sở hữu.
+
+## Registry workbook và self-service chuyển năm (`020`, candidate local)
+
+- `workbook_contexts` lưu exact pair Spreadsheet ID Vận tải/Thu chi theo năm cùng lifecycle `draft | ready | active | archived | failed`. Partial unique index chỉ cho một row `active`.
+- `workbook_rollover_runs` lưu trạng thái lượt tạo, version/kế hoạch manifest, audit và lỗi vận hành. ID workbook đích chỉ tồn tại server-side.
+- Hai bảng bật RLS, không có policy browser, revoke `public`/`anon`/`authenticated` và chỉ cấp service role.
+- RPC `activate_workbook_context(source, target, timestamp)` chỉ cho service role; kiểm năm kế tiếp và target `ready`, rồi đổi source `archived`/target `active` trong một transaction.
+- Registry không chứa dữ liệu nghiệp vụ và không thay Google Sheets làm source of truth. Next server merge registry với allowlist Vercel fallback; row registry hiện hữu thắng fallback, còn `draft`/`failed` bị loại khỏi selector.

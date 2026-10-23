@@ -14,7 +14,7 @@ function vietnamDateParts(date) {
   return { year: value('year'), monthKey: `${value('year')}-${value('month')}`, dateKey: `${value('year')}-${value('month')}-${value('day')}` };
 }
 
-function createFundLowBalanceAlertService({ balanceRepository, ruleRepository, ruleConfigRepository, preferenceRepository, appUserRepository, subscriptionRepository, webPush, httpError, now = () => new Date() }) {
+function createFundLowBalanceAlertService({ balanceRepository, ruleRepository, ruleConfigRepository, preferenceRepository, appUserRepository, subscriptionRepository, workbookContextService = null, webPush, httpError, now = () => new Date() }) {
   function deviceKey(row) { return `${RULE_KEY}:device:${crypto.createHash('sha256').update(row.endpoint).digest('hex').slice(0, 40)}`; }
   function assertConfigured(config) {
     if (!config.supabaseUrl || !config.serviceRoleKey || !config.vapidPublicKey || !config.vapidPrivateKey || !config.vapidSubject) throw httpError(503, 'Cảnh báo số dư Quỹ chưa được cấu hình đầy đủ.');
@@ -28,7 +28,13 @@ function createFundLowBalanceAlertService({ balanceRepository, ruleRepository, r
     const rule = await loadRule(config, override);
     const currentTime = now();
     const clock = vietnamDateParts(currentTime);
-    const year = /^20\d{2}$/.test(config.defaultWorkbookYear) ? config.defaultWorkbookYear : clock.year;
+    let year = /^20\d{2}$/.test(config.defaultWorkbookYear) ? config.defaultWorkbookYear : clock.year;
+    if (workbookContextService) {
+      const context = workbookContextService.resolveAsync
+        ? await workbookContextService.resolveAsync({ module: 'cashflow' })
+        : workbookContextService.resolve({ module: 'cashflow' });
+      year = context.year;
+    }
     const balance = await balanceRepository.currentBalance(config, year, clock.monthKey);
     const state = await ruleRepository.find(config, RULE_KEY);
     const roleSet = new Set(rule.recipient_roles || []);

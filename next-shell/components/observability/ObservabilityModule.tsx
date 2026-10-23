@@ -50,7 +50,7 @@ function auditErrorMessage(value: unknown) {
 }
 
 export function ObservabilityModule() {
-  const { user } = useWorkbookContext();
+  const { user, workbook } = useWorkbookContext();
   const api = useMemo(() => createClientApiClient(), []);
   const [syncRows, setSyncRows] = useState<SyncStatusRow[]>([]);
   const [jobs, setJobs] = useState<WriteJob[]>([]);
@@ -70,8 +70,8 @@ export function ObservabilityModule() {
     if (forceRefresh) showToast('Đang làm mới trạng thái…', 'loading');
     try {
       const [sync, recent] = await Promise.all([
-        api.get<{ rows?: SyncStatusRow[]; checkedAt?: string }>('getSupabaseSyncStatus', { params: { limit: 24, forceRefresh } }),
-        api.get<{ jobs?: WriteJob[]; checkedAt?: string }>('getRecentWriteJobs', { params: { module: 'transport', limit: 12, forceRefresh } })
+        api.get<{ rows?: SyncStatusRow[]; checkedAt?: string }>('getSupabaseSyncStatus', { params: { limit: 24, forceRefresh, year: workbook.year } }),
+        api.get<{ jobs?: WriteJob[]; checkedAt?: string }>('getRecentWriteJobs', { params: { module: 'transport', limit: 12, forceRefresh, year: workbook.year } })
       ]);
       setSyncRows(sync.rows || []);
       setJobs(recent.jobs || []);
@@ -82,7 +82,7 @@ export function ObservabilityModule() {
     } catch (loadError) {
       report(loadError instanceof Error ? loadError.message : String(loadError), true);
     } finally { setBusy(''); }
-  }, [api, user.role]);
+  }, [api, user.role, workbook.year]);
 
   useEffect(() => {
     if (user.role === 'shareholder') {
@@ -132,7 +132,7 @@ export function ObservabilityModule() {
     if (!job.jobId || !window.confirm(`Đưa job ${job.jobId} về hàng chờ?`)) return;
     setBusy(`retry:${job.jobId}`);
     try {
-      await api.post('retryWriteJob', { body: { jobId: job.jobId } });
+      await api.post('retryWriteJob', { body: { jobId: job.jobId, year: workbook.year } });
       report(`Đã đưa job ${job.jobId} về hàng chờ. Worker định kỳ sẽ tiếp tục xử lý.`);
       await loadStatus(true);
     } catch (retryError) { report(retryError instanceof Error ? retryError.message : String(retryError), true); }

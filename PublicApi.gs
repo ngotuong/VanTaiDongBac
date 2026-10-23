@@ -127,7 +127,7 @@ function getFundLoanOverview(year, filter) {
 }
 
 function auditFundLoanCase(year, partner, amount) {
-  var data = FundService.getFundLoanOverview(year || '2026', {});
+  var data = FundService.getFundLoanOverview(requireWorkbookYear_(year), {});
   var partnerKey = String(partner || '').trim().toLowerCase();
   var targetAmount = Number(amount || 0);
   return {
@@ -273,7 +273,7 @@ function syncFundTransactionsToSupabase(year) {
 }
 
 function syncFundTransactionMonthToSupabase(year, month) {
-  return SupabaseService.syncFundTransactionMonth(year || '2026', month);
+  return SupabaseService.syncFundTransactionMonth(requireWorkbookYear_(year), month);
 }
 
 function syncFundLoanOverviewToSupabase(year, month) {
@@ -281,11 +281,17 @@ function syncFundLoanOverviewToSupabase(year, month) {
 }
 
 function syncAllFundBundlesToSupabase(year) {
-  return SupabaseService.syncAllFundBundles(year || '2026');
+  return SupabaseService.syncAllFundBundles(requireWorkbookYear_(year));
 }
 
 function syncAllFundCatalogsToSupabase(year) {
-  return SupabaseService.syncAllFundCatalogBundles(year || '2026');
+  return SupabaseService.syncAllFundCatalogBundles(requireWorkbookYear_(year));
+}
+
+function requireWorkbookYear_(year) {
+  var value = String(year || APP_CONFIG.year || '').trim();
+  if (!/^20\d{2}$/.test(value)) throw new Error('Thiếu năm workbook hợp lệ.');
+  return value;
 }
 
 function syncRealtimeCache() {
@@ -508,10 +514,11 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'getFundFormOptions') return FundService.getFundFormOptions(safeParams.year, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
     if (action === 'getFundCatalog') return FundService.getFundCatalog(safeParams.year, safeParams.group, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
     if (action === 'getWriteJobStatus') return SupabaseService.getWriteJobStatus(safeParams.jobId);
-    if (action === 'getRecentWriteJobs') return SupabaseService.getRecentWriteJobs(safeParams.module, safeParams.actionName || safeParams.jobAction, safeParams.limit);
-    if (action === 'getSupabaseSyncStatus') return SupabaseService.getSupabaseSyncStatus(safeParams.limit, safeParams.module);
+    if (action === 'getRecentWriteJobs') return SupabaseService.getRecentWriteJobs(safeParams.module, safeParams.actionName || safeParams.jobAction, safeParams.limit, safeParams.year);
+    if (action === 'getSupabaseSyncStatus') return SupabaseService.getSupabaseSyncStatus(safeParams.limit, safeParams.module, safeParams.year);
     if (action === 'getReportCacheAudit') return SupabaseService.getReportCacheAudit(safeParams.months);
     if (action === 'getManageCacheAudit') return SupabaseService.getManageCacheAudit(safeParams.sheetNames || safeParams.sheets, safeParams.limit);
+    if (action === 'getYearRolloverStatus') return getYearRolloverStatus(safeParams.sourceYear, safeParams.targetYear);
     throw new Error('Hành động GET không hợp lệ: ' + action);
   }
 
@@ -551,6 +558,7 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'retryWriteJob') return SupabaseService.retryWriteJob(safeBody.jobId);
     if (action === 'processWriteJobs') return SupabaseService.processWriteJobs(safeBody.maxJobs || 3);
     if (action === 'recoverSyncInfrastructure') return recoverSyncInfrastructure();
+    if (action === 'manageYearRollover') return manageYearRollover(safeBody.operation, safeBody.sourceYear, safeBody.targetYear, safeBody.confirmationToken, safeBody.requestUser);
     throw new Error('Hành động POST không hợp lệ: ' + action);
   }
 

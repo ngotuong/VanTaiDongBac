@@ -59,11 +59,25 @@ var WriteJobRepository = (function () {
     return rows.length ? normalizeRow(rows[0]) : null;
   }
 
-  function listRecent(moduleName, actionName, limit) {
+  function listRecent(moduleName, actionName, limit, year) {
     var query = { select: RECENT_SELECT, order: 'created_at.desc', limit: String(limit) };
     if (moduleName) query.module = 'eq.' + moduleName;
     if (actionName) query.action = 'eq.' + actionName;
+    if (year) query['payload->>year'] = 'eq.' + year;
     return (SupabaseHttpClient.readRows(TABLE_WRITE_JOBS, query) || []).map(normalizeRow);
+  }
+
+  function listActiveForRollover(year, limit) {
+    var safeLimit = Math.min(Math.max(parseInt(limit || 101, 10) || 101, 1), 101);
+    return (SupabaseHttpClient.readRows(TABLE_WRITE_JOBS, {
+      status: 'in.(pending,processing)',
+      select: RECENT_SELECT,
+      order: 'updated_at.desc',
+      limit: String(safeLimit)
+    }) || []).map(normalizeRow).filter(function (job) {
+      var jobYear = job && job.payload ? String(job.payload.year || '').trim() : '';
+      return !jobYear || jobYear === String(year || '');
+    });
   }
 
   function retry(jobId, nextRunAt) {
@@ -122,6 +136,7 @@ var WriteJobRepository = (function () {
     appendLog: appendLog,
     get: get,
     listRecent: listRecent,
+    listActiveForRollover: listActiveForRollover,
     retry: retry,
     cancel: cancel,
     markProcessing: markProcessing,

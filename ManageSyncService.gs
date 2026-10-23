@@ -36,6 +36,14 @@ var ManageSyncService = (function () {
     return 'month:' + context.normalizeYearMonthKey(monthKey);
   }
 
+  function scopedSheetName_(sheetName, context) {
+    var year = context.clean(context.year);
+    var safeSheetName = context.clean(sheetName);
+    if (!/^20\d{2}$/.test(year)) throw new Error('Thiếu năm cache Vận hành hợp lệ.');
+    if (!safeSheetName) throw new Error('Thiếu tên sheet vận hành cần sync.');
+    return year + ':' + safeSheetName;
+  }
+
   function monthPeriod(monthKey, context) {
     var normalized = context.normalizeYearMonthKey(monthKey);
     var parts = normalized.split('-');
@@ -50,12 +58,12 @@ var ManageSyncService = (function () {
     if (!payload || payload.ok === false) throw new Error('Invalid manage source payload: ' + safeSheetName);
     var syncedAt = context.nowISOString();
     context.upsertRows(TABLE_MANAGE_DATA_BUNDLES, [{
-      sheet_name: safeSheetName,
+      sheet_name: scopedSheetName_(safeSheetName, context),
       filter_key: DEFAULT_MANAGE_FILTER_KEY,
       payload: payload,
       synced_at: syncedAt
     }], 'sheet_name,filter_key');
-    context.writeSyncStatus('manage_data:' + safeSheetName + ':' + DEFAULT_MANAGE_FILTER_KEY, 'manage', 'ok', 'Manage list cache synced.', syncedAt);
+    context.writeSyncStatus(context.year + ':manage_data:' + safeSheetName + ':' + DEFAULT_MANAGE_FILTER_KEY, 'manage', 'ok', 'Manage list cache synced.', syncedAt);
     return { ok: true, table: TABLE_MANAGE_DATA_BUNDLES, sheetName: safeSheetName, filterKey: DEFAULT_MANAGE_FILTER_KEY, syncedAt: syncedAt };
   }
 
@@ -70,12 +78,12 @@ var ManageSyncService = (function () {
     if (!payload || payload.ok === false) throw new Error('Invalid manage month source payload: ' + safeSheetName);
     var syncedAt = context.nowISOString();
     context.upsertRows(TABLE_MANAGE_DATA_BUNDLES, [{
-      sheet_name: safeSheetName,
+      sheet_name: scopedSheetName_(safeSheetName, context),
       filter_key: filterKey,
       payload: payload,
       synced_at: syncedAt
     }], 'sheet_name,filter_key');
-    context.writeSyncStatus('manage_data:' + safeSheetName + ':' + filterKey, 'manage', 'ok', 'Manage month cache synced.', syncedAt);
+    context.writeSyncStatus(context.year + ':manage_data:' + safeSheetName + ':' + filterKey, 'manage', 'ok', 'Manage month cache synced.', syncedAt);
     return { ok: true, table: TABLE_MANAGE_DATA_BUNDLES, sheetName: safeSheetName, filterKey: filterKey, monthKey: safeMonthKey, syncedAt: syncedAt };
   }
 
@@ -121,7 +129,7 @@ var ManageSyncService = (function () {
     var rows;
     do {
       rows = context.readCacheRows(TABLE_MANAGE_DATA_BUNDLES, {
-        select: 'filter_key', sheet_name: 'eq.' + context.clean(sheetName),
+        select: 'filter_key', sheet_name: 'eq.' + scopedSheetName_(sheetName, context),
         filter_key: 'like.month:*', order: 'filter_key.asc', limit: 100, offset: offset
       });
       if (!Array.isArray(rows)) throw new Error('Invalid manage cache month index.');
@@ -200,7 +208,7 @@ var ManageSyncService = (function () {
         context.runSyncStep(results, errors, 'dashboard', context.syncDashboard);
       }
       var syncedAt = context.nowISOString();
-      context.writeSyncStatus('transport_sheet_change:' + safeSheetName, 'manage', errors.length ? 'error' : 'ok', errors.length ? JSON.stringify(errors) : 'Transport sheet change synced: ' + safeEventType, syncedAt);
+      context.writeSyncStatus(context.year + ':transport_sheet_change:' + safeSheetName, 'manage', errors.length ? 'error' : 'ok', errors.length ? JSON.stringify(errors) : 'Transport sheet change synced: ' + safeEventType, syncedAt);
       return { ok: errors.length === 0, eventType: safeEventType, sheetName: safeSheetName, synced: results.length, failed: errors.length, months: monthKeys, results: results, errors: errors };
     } finally {
       context.runtimeCache.remove(runningKey);
@@ -223,7 +231,7 @@ var ManageSyncService = (function () {
       });
       context.runSyncStep(results, errors, 'dashboard', context.syncDashboard);
       var syncedAt = context.nowISOString();
-      context.writeSyncStatus('transport_sheet_change:unknown', 'manage', errors.length ? 'error' : 'ok', errors.length ? JSON.stringify(errors) : 'Transport sheet change synced without active sheet: ' + safeEventType, syncedAt);
+      context.writeSyncStatus(context.year + ':transport_sheet_change:unknown', 'manage', errors.length ? 'error' : 'ok', errors.length ? JSON.stringify(errors) : 'Transport sheet change synced without active sheet: ' + safeEventType, syncedAt);
       return { ok: errors.length === 0, eventType: safeEventType, sheetName: '', fallback: true, synced: results.length, failed: errors.length, results: results, errors: errors };
     } finally {
       context.runtimeCache.remove(runningKey);

@@ -10,9 +10,10 @@ export async function GET(request: Request) {
     const fromMonth = url.searchParams.get('fromMonth');
     const toMonth = url.searchParams.get('toMonth');
     const forceRefresh = url.searchParams.get('forceRefresh') === 'true';
+    const year = url.searchParams.get('year') || undefined;
     const data = fromMonth || toMonth
-      ? await loadReportRangeData(fromMonth, toMonth, forceRefresh)
-      : await loadReportData(url.searchParams.get('month'), forceRefresh);
+      ? await loadReportRangeData(fromMonth, toMonth, forceRefresh, year)
+      : await loadReportData(url.searchParams.get('month'), forceRefresh, year);
     return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const status = error instanceof PlatformApiError ? error.status : Number((error as { status?: number })?.status) || 500;

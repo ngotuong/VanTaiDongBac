@@ -39,15 +39,16 @@ function formatMonthControlLabel(month: string) {
   return match ? `${match[1]}/${match[2]}` : normalized;
 }
 
-function reportPeriodKey(mode: ReportPeriodMode, fromMonth = '', toMonth = '') {
-  return mode === 'year' ? 'year' : `range:${fromMonth}:${toMonth}`;
+function reportPeriodKey(mode: ReportPeriodMode, fromMonth = '', toMonth = '', year = '') {
+  return `${year}:${mode === 'year' ? 'year' : `range:${fromMonth}:${toMonth}`}`;
 }
 
-async function requestReport(mode: ReportPeriodMode, fromMonth: string, toMonth: string, forceRefresh: boolean, bypassClientCache = false, signal?: AbortSignal) {
-  const key = reportPeriodKey(mode, fromMonth, toMonth);
+async function requestReport(year: string, mode: ReportPeriodMode, fromMonth: string, toMonth: string, forceRefresh: boolean, bypassClientCache = false, signal?: AbortSignal) {
+  const key = reportPeriodKey(mode, fromMonth, toMonth, year);
   if (!forceRefresh && !bypassClientCache && reportResponseCache.has(key)) return reportResponseCache.get(key)!;
   if (!signal && !forceRefresh && !bypassClientCache && reportInflight.has(key)) return reportInflight.get(key)!;
   const url = new URL('/report-data/', window.location.origin);
+  url.searchParams.set('year', year);
   if (mode === 'year') {
     url.searchParams.set('month', 'Tất cả');
   } else if (forceRefresh && fromMonth === toMonth) {
@@ -250,6 +251,7 @@ function ReportTable({ type, matrix, query, periodLabel }: { type: ReportType; m
 }
 
 export function ReportModule({ initialBundle, initialVehicleOwners = {}, initialError = '' }: { initialBundle: ReportBundle | null; initialVehicleOwners?: Record<string, string>; initialError?: string }) {
+  const { workbook } = useWorkbookContext();
   const initialMonths = reportDataMonths(initialBundle?.overview?.months);
   const initialCurrentMonth = normalizeMonth(initialMonths.at(-1) || '');
   const [bundle, setBundle] = useState(initialBundle);
@@ -258,7 +260,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   const [quickPeriod, setQuickPeriod] = useState<ReportQuickPeriod>('current');
   const [fromMonth, setFromMonth] = useState(initialCurrentMonth);
   const [toMonth, setToMonth] = useState(initialCurrentMonth);
-  const [renderedPeriod, setRenderedPeriod] = useState<string | null>(initialBundle ? reportPeriodKey('range', initialCurrentMonth, initialCurrentMonth) : null);
+  const [renderedPeriod, setRenderedPeriod] = useState<string | null>(initialBundle ? reportPeriodKey('range', initialCurrentMonth, initialCurrentMonth, workbook.year) : null);
   const [availableMonths, setAvailableMonths] = useState(initialMonths);
   const [tab, setTab] = useState<(typeof TABS)[number][0]>('all');
   const [query, setQuery] = useState('');
@@ -268,7 +270,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   const latestRequest = useLatestAsyncRequest();
   const visiblePeriodRef = useRef({ mode: periodMode, fromMonth, toMonth });
   useEffect(() => { visiblePeriodRef.current = { mode: periodMode, fromMonth, toMonth }; }, [periodMode, fromMonth, toMonth]);
-  const periodKey = reportPeriodKey(periodMode, fromMonth, toMonth);
+  const periodKey = reportPeriodKey(periodMode, fromMonth, toMonth, workbook.year);
   const financeMonths = useMemo(() => periodMode === 'year' ? availableMonths : monthsWithinRange(availableMonths, fromMonth, toMonth), [periodMode, availableMonths, fromMonth, toMonth]);
   const finance = useMemo(() => transposeOverviewMatrix(bundle?.overview?.months, financeMonths, 'Tổng'), [bundle, financeMonths]);
   const repairedCompanyReport = useMemo(() => repairCompanyReport(bundle?.overview?.details, bundle?.vehicles, vehicleOwners), [bundle, vehicleOwners]);
@@ -284,8 +286,8 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
 
   useEffect(() => {
     if (!initialBundle) return;
-    reportResponseCache.set(reportPeriodKey('range', initialCurrentMonth, initialCurrentMonth), { bundle: initialBundle, vehicleOwners: initialVehicleOwners, requestedMonth: initialCurrentMonth });
-  }, [initialBundle, initialVehicleOwners, initialCurrentMonth]);
+    reportResponseCache.set(reportPeriodKey('range', initialCurrentMonth, initialCurrentMonth, workbook.year), { bundle: initialBundle, vehicleOwners: initialVehicleOwners, requestedMonth: initialCurrentMonth });
+  }, [initialBundle, initialVehicleOwners, initialCurrentMonth, workbook.year]);
 
   useEffect(() => {
     publishDataSourceMeta(bundle);
@@ -294,7 +296,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   const loadPeriod = async (targetMode: ReportPeriodMode, targetFrom = fromMonth, targetTo = toMonth, forceRefresh = false, announce = false) => {
     const normalizedFrom = normalizeMonth(targetFrom);
     const normalizedTo = normalizeMonth(targetTo);
-    const targetKey = reportPeriodKey(targetMode, normalizedFrom, normalizedTo);
+    const targetKey = reportPeriodKey(targetMode, normalizedFrom, normalizedTo, workbook.year);
     setPeriodMode(targetMode);
     if (normalizedFrom) setFromMonth(normalizedFrom);
     if (normalizedTo) setToMonth(normalizedTo);
@@ -317,7 +319,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
     setLoading(true); setError(''); setStatus('Đang tải báo cáo từ Supabase…');
     if (forceRefresh || announce) showToast(forceRefresh ? 'Đang đối soát Báo cáo từ Google Sheet…' : 'Đang tải Báo cáo từ Supabase…', 'loading');
     try {
-      const data = await requestReport(targetMode, normalizedFrom, normalizedTo, forceRefresh, announce, requestState.signal);
+      const data = await requestReport(workbook.year, targetMode, normalizedFrom, normalizedTo, forceRefresh, announce, requestState.signal);
       if (!requestState.isCurrent()) return;
       setBundle(data.bundle);
       setVehicleOwners(data.vehicleOwners || {});
@@ -339,9 +341,9 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   useVisibleRevalidation(async () => {
     if (loading) return;
     const target = visiblePeriodRef.current;
-    const targetKey = reportPeriodKey(target.mode, target.fromMonth, target.toMonth);
-    const data = await requestReport(target.mode, target.fromMonth, target.toMonth, false, true);
-    if (reportPeriodKey(visiblePeriodRef.current.mode, visiblePeriodRef.current.fromMonth, visiblePeriodRef.current.toMonth) !== targetKey) return;
+    const targetKey = reportPeriodKey(target.mode, target.fromMonth, target.toMonth, workbook.year);
+    const data = await requestReport(workbook.year, target.mode, target.fromMonth, target.toMonth, false, true);
+    if (reportPeriodKey(visiblePeriodRef.current.mode, visiblePeriodRef.current.fromMonth, visiblePeriodRef.current.toMonth, workbook.year) !== targetKey) return;
     setBundle(data.bundle);
     setVehicleOwners(data.vehicleOwners || {});
     setAvailableMonths(reportDataMonths(data.bundle.overview?.months));

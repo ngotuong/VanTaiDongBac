@@ -5,9 +5,9 @@ import { loadPlatformContext } from '../../lib/request-context.js';
 export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
-    await loadPlatformContext({ module: 'transport' });
     const url = new URL(request.url);
-    const data = await loadDashboardData(url.searchParams.get('forceRefresh') === 'true');
+    const context = await loadPlatformContext({ module: 'transport', year: url.searchParams.get('year') || undefined });
+    const data = await loadDashboardData(url.searchParams.get('forceRefresh') === 'true', context.workbook.year);
     return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const status = error instanceof PlatformApiError ? error.status : Number((error as { status?: number })?.status) || 500;

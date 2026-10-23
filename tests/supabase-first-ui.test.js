@@ -13,7 +13,7 @@ test('ordinary topbar refreshes stay on Supabase and bypass only the browser cac
   const catalog = read('next-shell/components/catalog/CatalogModule.tsx');
   const cashflow = read('next-shell/components/cashflow/CashflowModule.tsx');
 
-  assert.match(dashboard, /requestDashboard\(false, true\)/);
+  assert.match(dashboard, /requestDashboard\(workbook\.year, false, true\)/);
   assert.match(report, /loadPeriod\(periodMode, fromMonth, toMonth, false, true\)/);
   assert.match(manage, /load\(sheet,startDate,endDate,false,true\)/);
   assert.match(catalog, /load\(sheet,false,true\)/);

@@ -45,7 +45,7 @@ test('B2 dashboard UI owns filters KPIs chart and tables without report payload 
   assert.doesNotMatch(module, />Tùy chỉnh</);
   assert.doesNotMatch(module, /dashboard-latest-trip-scope/);
   assert.doesNotMatch(module, /Dữ Liệu Chuyến Gần Đây\s*<span[^>]*>Ngày mới nhất/);
-  assert.match(module, /Array\.from\(\{ length: 12 \}/);
+  assert.match(module, /profitChartMonthLabels\(chartYear\)/);
   assert.match(module, /<ProfitChart months=\{profitChartMonths\}/);
   assert.match(module, /row \? `\$\{row\.final < 0/);
   assert.doesNotMatch(module, /<ProfitChart rows=\{selectedRows\}/);

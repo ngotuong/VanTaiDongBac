@@ -1221,6 +1221,8 @@ var FundService = (function () {
       if (fundByYear) return fundByYear;
       var cashflowByYear = clean_(props.getProperty(CASHFLOW_SPREADSHEET_ID_PREFIX + normalizedYear));
       if (cashflowByYear) return cashflowByYear;
+      if (normalizedYear === '2026') return clean_(props.getProperty(FUND_SPREADSHEET_ID_PROP)) || DEFAULT_FUND_SPREADSHEET_ID;
+      return '';
     }
 
     return clean_(props.getProperty(FUND_SPREADSHEET_ID_PROP)) || DEFAULT_FUND_SPREADSHEET_ID;
@@ -1243,11 +1245,19 @@ var FundService = (function () {
   }
 
   function getFundDataVersion_() {
-    return PropertiesService.getScriptProperties().getProperty(FUND_DATA_VERSION_PROP) || '0';
+    var props = PropertiesService.getScriptProperties();
+    var key = fundDataVersionPropertyKey_();
+    return props.getProperty(key) || (APP_CONFIG.year === '2026' ? props.getProperty(FUND_DATA_VERSION_PROP) : '') || '0';
   }
 
   function bumpFundDataVersion_() {
-    PropertiesService.getScriptProperties().setProperty(FUND_DATA_VERSION_PROP, String(new Date().getTime()));
+    PropertiesService.getScriptProperties().setProperty(fundDataVersionPropertyKey_(), String(new Date().getTime()));
+  }
+
+  function fundDataVersionPropertyKey_() {
+    var year = clean_(APP_CONFIG && APP_CONFIG.year);
+    if (!/^20\d{2}$/.test(year)) throw new Error('Năm workbook chưa được cấu hình cho Fund data version.');
+    return FUND_DATA_VERSION_PROP + '_' + year;
   }
 
   function getFundCache_(key) {

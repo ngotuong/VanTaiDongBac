@@ -8,7 +8,7 @@ function harness({ failStatus = false } = {}) {
   const calls = [], events = [], logs = [], properties = new Map();
   const props = { getProperty: (k) => properties.get(k), setProperty: (k, v) => properties.set(k, v), deleteProperty: (k) => { events.push(`delete:${k}`); properties.delete(k); } };
   const context = vm.createContext({ console: { log: (line) => logs.push(line) },
-    normalizeCleanValue_: (v) => String(v ?? '').trim(), APP_CONFIG: { spreadsheetId: 'isolated', timezone: 'Asia/Ho_Chi_Minh' },
+    normalizeCleanValue_: (v) => String(v ?? '').trim(), APP_CONFIG: { spreadsheetId: 'isolated', year: '2026', timezone: 'Asia/Ho_Chi_Minh' },
     PropertiesService: { getScriptProperties: () => props },
     LockService: { getScriptLock: () => ({ tryLock: () => true, waitLock() {}, releaseLock() {} }) },
     Utilities: { getUuid: () => 'isolated-owner', formatDate: () => '2026-10' },
@@ -35,7 +35,7 @@ function harness({ failStatus = false } = {}) {
   });
   vm.runInContext(fs.readFileSync('SupabaseSyncStatusRepository.gs', 'utf8'), context);
   vm.runInContext(fs.readFileSync('SupabaseService.gs', 'utf8'), context);
-  for (const k of ['SUPABASE_REALTIME_HEARTBEAT_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) properties.set(k, String(Date.now() + 86400000));
+  for (const k of ['SUPABASE_REALTIME_HEARTBEAT_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) properties.set(k + '_2026', String(Date.now() + 86400000));
   return { repo: context.SupabaseSyncStatusRepository, service: context.SupabaseService, context, calls, events, logs, properties };
 }
 const status = (key, value = 'ok') => ({ sync_key: key, module: 'manage', status: value, message: 'isolated', synced_at: '2026-10-09T13:00:00Z' });
@@ -46,8 +46,8 @@ test('a realtime turn publishes all stage statuses in one request before releasi
   assert.equal(h.calls.length, 1); assert.equal(h.calls[0].table, 'sync_status');
   assert.deepEqual(h.calls[0].rows.map((x) => x.sync_key), ['manage_data:NL_Dau:recent_500', 'manage_data:NL_TaiXe:recent_500', 'transport_reports_manual_sheet']);
   assert.equal(h.calls[0].rows[0].synced_at, '2026-10-09T13:00:00Z');
-  assert.ok(h.events.indexOf('publish:sync_status') < h.events.indexOf('delete:SUPABASE_REALTIME_TICK_RUNNING'));
-  assert.equal(h.properties.has('SUPABASE_REALTIME_TICK_RUNNING'), false);
+  assert.ok(h.events.indexOf('publish:sync_status') < h.events.indexOf('delete:SUPABASE_REALTIME_TICK_RUNNING_2026'));
+  assert.equal(h.properties.has('SUPABASE_REALTIME_TICK_RUNNING_2026'), false);
 });
 
 test('duplicate status keys retain the last row, while unrelated keys and timestamps remain intact', () => {
@@ -76,15 +76,15 @@ test('status failure after a realtime ACK does not replay business work or leave
   const h = harness({ failStatus: true }); const r = h.service.syncRealtimeCache();
   assert.equal(r.ok, true); assert.equal(r.acknowledgement.acknowledged, true);
   assert.equal(h.events.filter((x) => x === 'business-ack').length, 1);
-  assert.equal(h.calls.length, 1); assert.equal(h.properties.has('SUPABASE_REALTIME_TICK_RUNNING'), false);
+  assert.equal(h.calls.length, 1); assert.equal(h.properties.has('SUPABASE_REALTIME_TICK_RUNNING_2026'), false);
   assert.equal(h.logs.length, 1);
 });
 
 test('paused/overlapping ticks publish no batch and preserve another owner', () => {
   const h = harness(); const owner = JSON.stringify({ token: 'other', expiresAt: Date.now() + 60000 });
-  h.properties.set('SUPABASE_REALTIME_TICK_RUNNING', owner);
+  h.properties.set('SUPABASE_REALTIME_TICK_RUNNING_2026', owner);
   assert.equal(h.service.syncRealtimeCache().skipped, true);
-  assert.equal(h.calls.length, 0); assert.equal(h.properties.get('SUPABASE_REALTIME_TICK_RUNNING'), owner);
+  assert.equal(h.calls.length, 0); assert.equal(h.properties.get('SUPABASE_REALTIME_TICK_RUNNING_2026'), owner);
   h.properties.set('REPORT_CACHE_E1_PARITY_RUNNING', 'true');
   assert.equal(h.service.syncRealtimeCache().skipped, true); assert.equal(h.calls.length, 0);
 });
@@ -95,7 +95,7 @@ test('empty batches send no HTTP request; standalone publication remains immedia
 });
 
 test('a due watchdog heartbeat publishes before business stages, separately from the status batch', () => {
-  const h = harness(); h.properties.delete('SUPABASE_REALTIME_HEARTBEAT_NEXT_AT');
+  const h = harness(); h.properties.delete('SUPABASE_REALTIME_HEARTBEAT_NEXT_AT_2026');
   assert.equal(h.service.syncRealtimeCache().ok, true);
   assert.equal(h.calls.length, 2);
   assert.deepEqual(h.calls[0].rows.map((x) => x.sync_key), ['realtime_cache_worker']);

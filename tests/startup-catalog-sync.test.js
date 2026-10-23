@@ -13,6 +13,7 @@ function loadService(overrides = {}) {
   const calls = { reads: [], upserts: [], statuses: [] };
   const syncTime = '2026-07-11T14:00:00.000Z';
   const dependencies = {
+    year: '2026',
     clean(value) {
       return value === null || value === undefined ? '' : String(value).trim();
     },
@@ -57,30 +58,30 @@ test('startup and catalog bundle sync preserve rows, conflict keys, status keys,
 
   assert.deepEqual(JSON.parse(JSON.stringify([startup, catalogs, catalogData])), [
     { ok: true, table: 'startup_bundles', formType: 'vanChuyen', syncedAt: syncTime },
-    { ok: true, table: 'catalog_bundles', catalogKey: 'catalogs:all', syncedAt: syncTime },
-    { ok: true, table: 'catalog_bundles', catalogKey: 'catalog_data:DM_Xe', syncedAt: syncTime }
+    { ok: true, table: 'catalog_bundles', catalogKey: 'transport:2026:catalogs:all', syncedAt: syncTime },
+    { ok: true, table: 'catalog_bundles', catalogKey: 'transport:2026:catalog_data:DM_Xe', syncedAt: syncTime }
   ]);
   assert.deepEqual(JSON.parse(JSON.stringify(calls.upserts)), [
     {
       tableName: 'startup_bundles',
-      rows: [{ form_type: 'vanChuyen', payload: { kind: 'startup', formType: 'vanChuyen' }, synced_at: syncTime }],
+      rows: [{ form_type: '2026:vanChuyen', payload: { kind: 'startup', formType: 'vanChuyen' }, synced_at: syncTime }],
       onConflict: 'form_type'
     },
     {
       tableName: 'catalog_bundles',
-      rows: [{ catalog_key: 'catalogs:all', payload: { kind: 'catalogs', formType: '' }, synced_at: syncTime }],
+      rows: [{ catalog_key: 'transport:2026:catalogs:all', payload: { kind: 'catalogs', formType: '' }, synced_at: syncTime }],
       onConflict: 'catalog_key'
     },
     {
       tableName: 'catalog_bundles',
-      rows: [{ catalog_key: 'catalog_data:DM_Xe', payload: { kind: 'catalogData', displaySheetName: 'DM_Xe' }, synced_at: syncTime }],
+      rows: [{ catalog_key: 'transport:2026:catalog_data:DM_Xe', payload: { kind: 'catalogData', displaySheetName: 'DM_Xe' }, synced_at: syncTime }],
       onConflict: 'catalog_key'
     }
   ]);
   assert.deepEqual(JSON.parse(JSON.stringify(calls.statuses)), [
-    ['startup:vanChuyen', 'startup', 'ok', 'Startup cache synced.', syncTime],
-    ['catalogs:all', 'catalog', 'ok', 'Catalog options cache synced.', syncTime],
-    ['catalog_data:DM_Xe', 'catalog', 'ok', 'Catalog table cache synced.', syncTime]
+    ['2026:startup:vanChuyen', 'startup', 'ok', 'Startup cache synced.', syncTime],
+    ['2026:catalogs:all', 'catalog', 'ok', 'Catalog options cache synced.', syncTime],
+    ['2026:catalog_data:DM_Xe', 'catalog', 'ok', 'Catalog table cache synced.', syncTime]
   ]);
 });
 

@@ -1,7 +1,11 @@
 /** Installable events persist intent without Sheet RPCs or the shared ScriptLock. */
 var SheetChangeSignalService = (function () {
   var BINDINGS = 'SUPABASE_SHEET_TRIGGER_BINDINGS_V1';
-  function key_(module) { return 'SUPABASE_SHEET_SIGNAL_' + module.toUpperCase(); }
+  function key_(module, context) {
+    var year = String(context && context.year || '').trim();
+    if (!/^20\d{2}$/.test(year)) throw new Error('Thiếu năm cho Sheet change signal.');
+    return 'SUPABASE_SHEET_SIGNAL_' + module.toUpperCase() + '_' + year;
+  }
 
   function register(triggers, context) {
     var bindings = {};
@@ -33,15 +37,15 @@ var SheetChangeSignalService = (function () {
     var type = String(event && event.changeType || 'EDIT').toUpperCase();
     if (/Change$/.test(handler) && type === 'EDIT') return { ok: true, skipped: true, reason: 'Handled by onEdit.' };
     var scope = editScope_(event && event.range);
-    var previous = parse_(context.getProperty(key_(module)));
-    var consumed = context.getProperty(key_(module) + '_CONSUMED');
+    var previous = parse_(context.getProperty(key_(module, context)));
+    var consumed = context.getProperty(key_(module, context) + '_CONSUMED');
     var pendingPrevious = previous.token && String(previous.token) !== String(consumed || '');
     var scopes = pendingPrevious && previous.eventType === 'EDIT' && type === 'EDIT'
       ? (previous.scopes || []).slice() : [];
     if (scope) scopes.push(scope);
     if (scopes.length > 50) scopes = scopes.slice(scopes.length - 50);
     var token = context.createUuid();
-    context.setProperty(key_(module), JSON.stringify({
+    context.setProperty(key_(module, context), JSON.stringify({
       token: token,
       eventType: pendingPrevious && previous.eventType !== type ? 'CHANGE' : type,
       scopes: scopes,
@@ -51,14 +55,13 @@ var SheetChangeSignalService = (function () {
   }
 
   function editScope_(range) {
-    if (!range || !range.getSheet || !range.getRow || !range.getNumRows) return null;
+    if (!range || !range.getGridId || !range.getRow || !range.getNumRows) return null;
     try {
-      var sheet = range.getSheet();
-      var sheetName = sheet && sheet.getName ? String(sheet.getName() || '') : '';
+      var gridId = Number(range.getGridId());
       var startRow = Number(range.getRow() || 0);
       var numRows = Number(range.getNumRows() || 0);
-      if (!sheetName || startRow < 1 || numRows < 1) return null;
-      return { sheetName: sheetName, startRow: startRow, numRows: numRows };
+      if (!(gridId >= 0) || startRow < 1 || numRows < 1) return null;
+      return { gridId: gridId, startRow: startRow, numRows: numRows };
     } catch (ignored) {
       return null;
     }
@@ -75,7 +78,7 @@ var SheetChangeSignalService = (function () {
   }
 
   function drain(module, context) {
-    var key = key_(module);
+    var key = key_(module, context);
     var raw = context.getProperty(key);
     if (!raw) return { pending: false };
     var signal = JSON.parse(raw);

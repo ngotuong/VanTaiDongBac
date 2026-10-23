@@ -21,9 +21,9 @@ test('business read modules bypass only browser cache during silent revalidation
   const catalog = read('next-shell/components/catalog/CatalogModule.tsx');
   const cashflow = read('next-shell/components/cashflow/CashflowModule.tsx');
   [dashboard, report, manage, catalog, cashflow].forEach((source) => assert.match(source, /useVisibleRevalidation/));
-  assert.match(dashboard, /requestDashboard\(false, true\)/);
-  assert.match(report, /requestReport\(target\.mode, target\.fromMonth, target\.toMonth, false, true\)/);
-  assert.match(manage, /requestManage\(target\.sheet,target\.startDate,target\.endDate,false,true\)/);
-  assert.match(catalog, /requestCatalog\(target,false,true\)/);
+  assert.match(dashboard, /requestDashboard\(workbook\.year, false, true\)/);
+  assert.match(report, /requestReport\(workbook\.year, target\.mode, target\.fromMonth, target\.toMonth, false, true\)/);
+  assert.match(manage, /requestManage\(year,target\.sheet,target\.startDate,target\.endDate,false,true\)/);
+  assert.match(catalog, /requestCatalog\(year,target,false,true\)/);
   assert.match(cashflow, /readSurface<[\s\S]*false, true/);
 });

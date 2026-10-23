@@ -15,6 +15,7 @@ function loadService(overrides = {}) {
   const dates = [new Date(2026, 6, 11), new Date(2026, 5, 30), new Date(2026, 6, 1)];
   const runtimeValues = {};
   const context = {
+    year: '2026',
     clean(value) { return value === null || value === undefined ? '' : String(value).trim(); },
     nowISOString() { return syncTime; },
     normalizeYearMonthKey(value) {
@@ -51,7 +52,7 @@ function loadService(overrides = {}) {
       put(key, value, ttl) { runtimeValues[key] = value; calls.cache.push(['put', key, ttl]); },
       remove(key) { delete runtimeValues[key]; calls.cache.push(['remove', key]); }
     },
-    runningKeyPrefix: 'SYNC_RUNNING',
+    runningKeyPrefix: 'SYNC_RUNNING_2026',
     runningTtlSeconds: 120,
     ...overrides
   };
@@ -75,7 +76,7 @@ test('recent and month bundle sync preserve payload limits, rows, conflict keys,
     ['manage_data_bundles', 'month:2026-07', 'sheet_name,filter_key']
   ]);
   assert.deepEqual(JSON.parse(JSON.stringify(calls.statuses.map((row) => row[0]))), [
-    'manage_data:NL_VanChuyen:recent_500', 'manage_data:NL_VanChuyen:month:2026-07'
+    '2026:manage_data:NL_VanChuyen:recent_500', '2026:manage_data:NL_VanChuyen:month:2026-07'
   ]);
 });
 
@@ -99,14 +100,14 @@ test('sheet-change sync preserves lock, edited/fallback scope, dashboard rule, a
   assert.deepEqual(JSON.parse(JSON.stringify(result.months)), ['2026-07']);
   assert.equal(result.synced, 3);
   assert.equal(edited.calls.dashboards, 1);
-  assert.deepEqual(edited.calls.cache, [['put', 'SYNC_RUNNING:NL_VanChuyen', 120], ['remove', 'SYNC_RUNNING:NL_VanChuyen']]);
-  assert.equal(edited.calls.statuses.at(-1)[0], 'transport_sheet_change:NL_VanChuyen');
+  assert.deepEqual(edited.calls.cache, [['put', 'SYNC_RUNNING_2026:NL_VanChuyen', 120], ['remove', 'SYNC_RUNNING_2026:NL_VanChuyen']]);
+  assert.equal(edited.calls.statuses.at(-1)[0], '2026:transport_sheet_change:NL_VanChuyen');
 
   const fallback = loadService();
   const fallbackResult = fallback.service.syncUnknownTransportSheetChange('REMOVE_ROW', fallback.context);
   assert.equal(fallbackResult.fallback, true);
   assert.equal(fallbackResult.synced, 4);
-  assert.equal(fallback.calls.statuses.at(-1)[0], 'transport_sheet_change:unknown');
+  assert.equal(fallback.calls.statuses.at(-1)[0], '2026:transport_sheet_change:unknown');
   assert.equal(fallback.calls.dashboards, 1);
 });
 

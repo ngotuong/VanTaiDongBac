@@ -17,5 +17,6 @@ test('maintenance blocks direct writes and queue control before dispatch, includ
 test('maintenance allows queries and Production keeps existing write behavior when flag is off', () => {
   for (const action of ['getPayrollExplanation', 'getReportBundle', 'getFundTransactions', 'getWriteJobStatus', 'health']) assert.doesNotThrow(() => assertBusinessWritesAvailable({ action, method: 'GET', config: { businessWritesPaused: true }, httpError }));
   assert.doesNotThrow(() => assertBusinessWritesAvailable({ action: 'checkTripReconciliation', method: 'POST', config: { businessWritesPaused: true }, httpError }));
+  assert.doesNotThrow(() => assertBusinessWritesAvailable({ action: 'manageYearRollover', method: 'POST', config: { businessWritesPaused: true }, httpError }));
   assert.doesNotThrow(() => assertBusinessWritesAvailable({ action: 'addFundTransaction', method: 'POST', config: { businessWritesPaused: false }, httpError }));
 });

@@ -145,14 +145,17 @@ var TransportRefreshWorker = (function () {
   function run(item, context) {
     var startedAt = context.nowMillis();
     var deadline = Math.min(startedAt + Number(context.turnBudgetMs || 60000), Number(context.deadlineMillis || Infinity));
+    var minStageStartBudgetMs = Math.max(0, Number(context.minStageStartBudgetMs || 0));
     var stages = [];
     var result;
     var maxStages = Math.max(1, Math.min(30, Number(context.maxStages || 1)));
     for (var index = 0; index < maxStages; index++) {
-      if (context.nowMillis() >= deadline) {
+      var remainingBudgetMs = deadline - context.nowMillis();
+      if (remainingBudgetMs <= 0 || (index > 0 && remainingBudgetMs < minStageStartBudgetMs)) {
         context.saveProgress(item, 0);
         result = result || { ok: true, mode: 'tick', step: context.step || 'transportReportsPending', skipped: true,
-          reason: 'Refresh deadline elapsed before stage.', remainingStages: (item.tasks || []).length,
+          reason: remainingBudgetMs <= 0 ? 'Refresh deadline elapsed before stage.' : 'Refresh yielded before starting a stage without safe runway.',
+          remainingStages: (item.tasks || []).length,
           acknowledgement: { acknowledged: false, continuing: true } };
         break;
       }

@@ -2,13 +2,13 @@ import 'server-only';
 import { createFundBundleRepository } from '../../server/repositories/fund-bundle-repository.js';
 import { createFundRangeService } from '../../server/services/fund-range-service.js';
 import { runtimeConfig } from '../../server/runtime-config.js';
-import { createWorkbookContextService } from '../../server/services/workbook-context-service.js';
+import { loadServerWorkbookContext } from './request-context.js';
 import { createServerApiClient } from './platform/server-api-client';
 import type { CashflowInitialData, FundCatalog, FundLoans, FundOptions, FundOverview, FundTransactions } from './platform/cashflow-types';
 
 const TABLES={overview:'fund_overview_bundles',transactions:'fund_transaction_bundles',loans:'fund_loan_bundles',catalog:'catalog_bundles'} as const;
 function httpError(status:number,message:string){return Object.assign(new Error(message),{status});}
-function validYear(value:unknown){const year=String(value||'2026').trim();if(!/^20\d{2}$/.test(year))throw httpError(400,'Năm Thu chi không hợp lệ.');return year;}
+function validYear(value:unknown){const year=String(value||'').trim();if(!/^20\d{2}$/.test(year))throw httpError(400,'Năm Thu chi không hợp lệ.');return year;}
 function validMonth(value:unknown){const month=String(value||'').trim();if(month&&!/^20\d{2}-(0[1-9]|1[0-2])$/.test(month))throw httpError(400,'Tháng Thu chi không hợp lệ.');return month;}
 function validDate(value:unknown,label:string){const date=String(value||'').trim();if(date&&!/^20\d{2}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(date))throw httpError(400,`${label} không hợp lệ.`);return date;}
 function validGroup(value:unknown){const group=String(value||'incomeCategories').trim();const allowed=['incomeCategories','expenseCategories','actors','partners','loanPartners'];if(!allowed.includes(group))throw httpError(400,'Nhóm danh mục Thu chi không hợp lệ.');return group;}
@@ -26,11 +26,11 @@ function catalogFromOptions(options:FundOptions,group:string):FundCatalog{
 }
 
 export async function loadCashflowSurface(input:{year?:unknown;surface?:unknown;month?:unknown;group?:unknown;startDate?:unknown;endDate?:unknown;search?:unknown;forceRefresh?:boolean}={}):Promise<unknown>{
-  const year=validYear(input.year);const surface=String(input.surface||'all');const month=validMonth(input.month);const group=validGroup(input.group);const startDate=validDate(input.startDate,'Ngày bắt đầu');const endDate=validDate(input.endDate,'Ngày kết thúc');const search=String(input.search||'').trim().slice(0,200);
+  const workbook=await loadServerWorkbookContext({module:'cashflow',year:input.year});
+  const year=validYear(workbook.year);const surface=String(input.surface||'all');const month=validMonth(input.month);const group=validGroup(input.group);const startDate=validDate(input.startDate,'Ngày bắt đầu');const endDate=validDate(input.endDate,'Ngày kết thúc');const search=String(input.search||'').trim().slice(0,200);
   if(Boolean(startDate)!==Boolean(endDate))throw httpError(400,'Cần chọn đủ ngày bắt đầu và ngày kết thúc.');
   if(startDate&&endDate&&startDate>endDate)throw httpError(400,'Khoảng ngày Thu chi không hợp lệ.');
   if((startDate&&!startDate.startsWith(`${year}-`))||(endDate&&!endDate.startsWith(`${year}-`)))throw httpError(400,`Khoảng ngày Thu chi phải thuộc năm ${year}.`);
-  createWorkbookContextService({httpError}).resolve({module:'cashflow',year});
   if(surface==='range'){
     const params={year,startDate,endDate,month,forceRefresh:input.forceRefresh};
     const [overview,transactions,loans]=await Promise.all([
@@ -101,8 +101,9 @@ export async function loadCashflowSurface(input:{year?:unknown;surface?:unknown;
   throw httpError(503,catalogCacheOnly?'Cache Danh mục Quỹ trên Supabase chưa sẵn sàng.':'Cache Quỹ trên Supabase chưa sẵn sàng.');
 }
 
-export async function loadCashflowInitial(yearInput:unknown='2026',forceRefresh=false):Promise<CashflowInitialData>{
-  const year=validYear(yearInput);const warnings:string[]=[];
+export async function loadCashflowInitial(yearInput?:unknown,forceRefresh=false):Promise<CashflowInitialData>{
+  const workbook=await loadServerWorkbookContext({module:'cashflow',year:yearInput});
+  const year=validYear(workbook.year);const warnings:string[]=[];
   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
   const datePart=(type:string)=>parts.find(part=>part.type===type)?.value||'';
   const currentYear=datePart('year');const isCurrentYear=year===currentYear;

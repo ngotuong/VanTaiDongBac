@@ -20,12 +20,22 @@ var StartupCatalogSyncService = (function () {
     'DM_UuDaiNoiBo'
   ];
 
-  function buildCatalogsKey(formType, clean) {
-    return 'catalogs:' + (clean(formType) || 'all');
+  function requireYear_(context) {
+    var year = context.clean(context.year);
+    if (!/^20\d{2}$/.test(year)) throw new Error('Thiếu năm cache Vận tải hợp lệ.');
+    return year;
   }
 
-  function buildCatalogDataKey(displaySheetName, clean) {
-    return 'catalog_data:' + clean(displaySheetName);
+  function buildStartupKey_(formType, context) {
+    return requireYear_(context) + ':' + (context.clean(formType) || DEFAULT_STARTUP_FORM_TYPE);
+  }
+
+  function buildCatalogsKey(formType, year, clean) {
+    return 'transport:' + clean(year) + ':catalogs:' + (clean(formType) || 'all');
+  }
+
+  function buildCatalogDataKey(displaySheetName, year, clean) {
+    return 'transport:' + clean(year) + ':catalog_data:' + clean(displaySheetName);
   }
 
   function syncStartupBundle(formType, context) {
@@ -34,17 +44,17 @@ var StartupCatalogSyncService = (function () {
     if (!payload || payload.ok === false) throw new Error('Invalid startup source payload.');
     var syncedAt = context.nowISOString();
     context.upsertRows(TABLE_STARTUP_BUNDLES, [{
-      form_type: safeFormType,
+      form_type: buildStartupKey_(safeFormType, context),
       payload: payload,
       synced_at: syncedAt
     }], 'form_type');
-    context.writeSyncStatus('startup:' + safeFormType, 'startup', 'ok', 'Startup cache synced.', syncedAt);
+    context.writeSyncStatus(requireYear_(context) + ':startup:' + safeFormType, 'startup', 'ok', 'Startup cache synced.', syncedAt);
     return { ok: true, table: TABLE_STARTUP_BUNDLES, formType: safeFormType, syncedAt: syncedAt };
   }
 
   function syncCatalogsBundle(formType, context) {
     var safeFormType = context.clean(formType);
-    var catalogKey = buildCatalogsKey(safeFormType, context.clean);
+    var catalogKey = buildCatalogsKey(safeFormType, requireYear_(context), context.clean);
     var payload = context.getCatalogs(safeFormType);
     if (!payload || payload.ok === false) throw new Error('Invalid catalog options source payload.');
     var syncedAt = context.nowISOString();
@@ -53,14 +63,14 @@ var StartupCatalogSyncService = (function () {
       payload: payload,
       synced_at: syncedAt
     }], 'catalog_key');
-    context.writeSyncStatus('catalogs:' + (safeFormType || 'all'), 'catalog', 'ok', 'Catalog options cache synced.', syncedAt);
+    context.writeSyncStatus(requireYear_(context) + ':catalogs:' + (safeFormType || 'all'), 'catalog', 'ok', 'Catalog options cache synced.', syncedAt);
     return { ok: true, table: TABLE_CATALOG_BUNDLES, catalogKey: catalogKey, syncedAt: syncedAt };
   }
 
   function syncCatalogDataBundle(displaySheetName, context) {
     var safeDisplaySheetName = context.clean(displaySheetName);
     if (!safeDisplaySheetName) throw new Error('Thiếu tên danh mục cần sync.');
-    var catalogKey = buildCatalogDataKey(safeDisplaySheetName, context.clean);
+    var catalogKey = buildCatalogDataKey(safeDisplaySheetName, requireYear_(context), context.clean);
     var payload = context.readCatalogData(safeDisplaySheetName);
     if (!payload || payload.ok === false) throw new Error('Invalid catalog table source payload.');
     var syncedAt = context.nowISOString();
@@ -69,7 +79,7 @@ var StartupCatalogSyncService = (function () {
       payload: payload,
       synced_at: syncedAt
     }], 'catalog_key');
-    context.writeSyncStatus('catalog_data:' + safeDisplaySheetName, 'catalog', 'ok', 'Catalog table cache synced.', syncedAt);
+    context.writeSyncStatus(requireYear_(context) + ':catalog_data:' + safeDisplaySheetName, 'catalog', 'ok', 'Catalog table cache synced.', syncedAt);
     return { ok: true, table: TABLE_CATALOG_BUNDLES, catalogKey: catalogKey, syncedAt: syncedAt };
   }
 

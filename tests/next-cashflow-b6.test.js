@@ -22,7 +22,7 @@ test('B6 shares manage-data boundary and reads every fund cache Supabase-first w
   assert.match(route,/surface.*cashflow/);assert.match(route,/loadCashflowSurface/);
   for(const table of ['fund_overview_bundles','fund_transaction_bundles','fund_loan_bundles','catalog_bundles'])assert.match(server,new RegExp(table));
   for(const action of ['getFundOverview','getFundTransactions','getFundLoanOverview','getFundFormOptions','getFundCatalog'])assert.match(server,new RegExp(`'${action}'`));
-  assert.match(server,/resolve\(\{module:'cashflow',year\}\)/);assert.match(server,/month:\$\{month\}/);assert.match(server,/recent_500/);
+  assert.match(server,/loadServerWorkbookContext\(\{module:'cashflow',year:input\.year\}\)/);assert.match(server,/month:\$\{month\}/);assert.match(server,/recent_500/);
   assert.doesNotMatch(server,/getActiveSpreadsheet|NEXT_PUBLIC_.*SERVICE/);
 });
 

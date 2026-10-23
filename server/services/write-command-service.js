@@ -45,7 +45,8 @@ function createWriteCommandService({ repository, workbookContextService, httpErr
     const amounts = action === 'addFundTransactions' ? payload.transactions : action === 'updateFundTransaction' ? [payload.transaction] : ['addFundDebtPayment', 'addFundLoanPayment'].includes(action) ? [payload.payment] : action === 'addFundLoan' ? [payload.loan] : [];
     if (!Array.isArray(amounts) || amounts.some((item) => !Number.isFinite(Number(item?.amount)) || Number(item.amount) <= 0 || Number(item.amount) > Number.MAX_SAFE_INTEGER)) throw httpError(400, 'Số tiền phải là số dương hữu hạn trong giới hạn an toàn.');
     if (action === 'addFundTransactions' && !amounts.length) throw httpError(400, 'Chưa có giao dịch để ghi.');
-    const workbook = workbookContextService.resolve({
+    const assertWritable = workbookContextService.assertWritableAsync || workbookContextService.assertWritable;
+    const workbook = await assertWritable.call(workbookContextService, {
       module: moduleName === 'fund' ? 'cashflow' : 'transport',
       year: payload.year
     });

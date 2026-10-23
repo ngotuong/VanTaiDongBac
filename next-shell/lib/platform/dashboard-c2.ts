@@ -16,6 +16,7 @@ export type DashboardMonthRow = {
   roadFee: number;
   wardFee: number;
   payroll: number;
+  bhxh: number;
   fund: number;
   raw: ReportCell[];
 };
@@ -88,6 +89,7 @@ export function parseDashboardRows(matrix?: ReportMatrix): DashboardMonthRow[] {
   const wardFeeIndex = column(['phí phường'], -1);
   const grossIndex = column(['lợi nhuận gộp'], 8);
   const payrollIndex = column(['chi phí lương', 'chi lương', 'lương'], 9);
+  const bhxhIndex = column(['bhxh', 'bảo hiểm xã hội'], -1);
   const fundIndex = column(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 10);
   const finalIndex = column(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận thực'], 11);
   const body = headerIndex >= 0 ? matrix.slice(headerIndex + 1) : matrix.slice(1);
@@ -102,8 +104,9 @@ export function parseDashboardRows(matrix?: ReportMatrix): DashboardMonthRow[] {
     const calculatedGross = revenue - taxTndn - taxVat - fuelQm - roadFee - wardFee;
     const gross = grossIndex >= 0 ? numberValue(raw[grossIndex]) : calculatedGross;
     const payroll = payrollIndex >= 0 ? numberValue(raw[payrollIndex]) : 0;
+    const bhxh = bhxhIndex >= 0 ? numberValue(raw[bhxhIndex]) : 0;
     const fund = fundIndex >= 0 ? numberValue(raw[fundIndex]) : 0;
-    const final = finalIndex >= 0 ? numberValue(raw[finalIndex]) : gross - payroll - fund - fuelOut;
+    const final = finalIndex >= 0 ? numberValue(raw[finalIndex]) : gross - payroll - bhxh - fund - fuelOut;
     return {
       month: normalizeMonth(raw[monthIndex]),
       volume: numberValue(raw[volumeIndex]),
@@ -119,6 +122,7 @@ export function parseDashboardRows(matrix?: ReportMatrix): DashboardMonthRow[] {
       roadFee,
       wardFee,
       payroll,
+      bhxh,
       fund,
       raw
     };
@@ -159,9 +163,65 @@ export function aggregateDashboardPeriod(rows: DashboardMonthRow[], kpiMap: Map<
     roadFee: rows.reduce((sum, row) => sum + row.roadFee, 0),
     wardFee: rows.reduce((sum, row) => sum + row.wardFee, 0),
     payroll: rows.reduce((sum, row) => sum + row.payroll, 0),
+    bhxh: rows.reduce((sum, row) => sum + row.bhxh, 0),
     fund: rows.reduce((sum, row) => sum + row.fund, 0),
     raw: []
   };
+}
+
+export const DASHBOARD_OPERATING_START_MONTH = '05/2026';
+
+export type ProfitChartTick = {
+  value: number;
+  positionPercent: number;
+};
+
+export type ProfitChartScale = {
+  positiveMax: number;
+  negativeMin: number;
+  zeroPositionPercent: number;
+  ticks: ProfitChartTick[];
+  positionPercent: (value: number) => number;
+};
+
+export function buildProfitChartScale(values: number[], step = 500_000_000): ProfitChartScale {
+  const safeStep = Number.isFinite(step) && step > 0 ? step : 500_000_000;
+  const finiteValues = values.map(Number).filter(Number.isFinite);
+  const highest = Math.max(0, ...finiteValues);
+  const lowest = Math.min(0, ...finiteValues);
+  let positiveMax = highest > 0 ? Math.ceil(highest / safeStep) * safeStep : 0;
+  const negativeMin = lowest < 0 ? -Math.ceil(Math.abs(lowest) / safeStep) * safeStep : 0;
+
+  if (positiveMax === 0 && negativeMin === 0) positiveMax = safeStep;
+  const span = positiveMax - negativeMin;
+  const positionPercent = (value: number) => {
+    const bounded = Math.min(positiveMax, Math.max(negativeMin, Number(value) || 0));
+    return ((positiveMax - bounded) / span) * 100;
+  };
+
+  const ticks: ProfitChartTick[] = [];
+  for (let value = positiveMax; value >= negativeMin; value -= safeStep) {
+    ticks.push({ value, positionPercent: positionPercent(value) });
+  }
+
+  return {
+    positiveMax,
+    negativeMin,
+    zeroPositionPercent: positionPercent(0),
+    ticks,
+    positionPercent
+  };
+}
+
+export function profitChartMonthLabels(chartYear: string, operatingStartMonth = DASHBOARD_OPERATING_START_MONTH) {
+  const year = Number(chartYear);
+  const startMatch = normalizeMonth(operatingStartMonth).match(/^(\d{2})\/(20\d{2})$/);
+  if (!Number.isInteger(year) || !startMatch) return [];
+  const startMonth = Number(startMatch[1]);
+  const startYear = Number(startMatch[2]);
+  if (year < startYear) return [];
+  const firstMonth = year === startYear ? startMonth : 1;
+  return Array.from({ length: 13 - firstMonth }, (_, index) => `${String(firstMonth + index).padStart(2, '0')}/${year}`);
 }
 
 export function formatCurrencyText(value: number) {

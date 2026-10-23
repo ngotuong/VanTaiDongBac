@@ -52,6 +52,7 @@ var DashboardService = (function () {
     var tollCol = colIndex(['cầu đường', 'phí cầu đường'], 7);
     var grossCol = colIndex(['lợi nhuận gộp'], 8);
     var payrollCol = colIndex(['chi phí lương', 'tổng lương'], -1);
+    var bhxhCol = colIndex(['bhxh', 'bảo hiểm xã hội'], -1);
     var fundCol = colIndex(['chi quỹ thực tế', 'chi quỹ', 'quỹ'], 9);
     var finalCol = colIndex(['lợi nhuận thực tế', 'lợi nhuận thực nhận', 'lợi nhuận thực'], 10);
 
@@ -64,13 +65,14 @@ var DashboardService = (function () {
       var fuelQm = parseNumber_(row[fuelQmCol]);
       var fuelOut = parseNumber_(row[fuelOutCol]);
       var toll = parseNumber_(row[tollCol]);
+      var bhxh = bhxhCol >= 0 ? parseNumber_(row[bhxhCol]) : 0;
       var fund = parseNumber_(row[fundCol]);
       var finalProfit = parseNumber_(row[finalCol]);
       var calculatedGross = revenue - taxTndn - taxVat - fuelQm - toll;
       var gross = grossCol >= 0 ? parseNumber_(row[grossCol]) : calculatedGross;
       var operatingCost = revenue - gross;
       var cashCost = gross - finalProfit;
-      var payroll = payrollCol >= 0 ? parseNumber_(row[payrollCol]) : cashCost - fuelOut - fund;
+      var payroll = payrollCol >= 0 ? parseNumber_(row[payrollCol]) : cashCost - fuelOut - bhxh - fund;
       return {
         month: monthName,
         monthKey: normalizeMonthKey(monthName),
@@ -85,6 +87,7 @@ var DashboardService = (function () {
         cashCost: cashCost,
         fuelOut: fuelOut,
         payroll: payroll,
+        bhxh: bhxh,
         fund: fund,
         totalCost: operatingCost + cashCost
       };
@@ -96,10 +99,11 @@ var DashboardService = (function () {
     var gross = readDetailNumber_(rows, 'Lợi nhuận gộp');
     var outsideFuel = readDetailNumber_(rows, 'Chi phí dầu', 'đổ ngoài');
     var payroll = readDetailNumber_(rows, 'Chi phí lương');
+    var bhxh = readDetailNumber_(rows, 'BHXH');
     var fund = readDetailNumber_(rows, 'Chi quỹ thực tế');
     var finalProfit = readDetailNumber_(rows, 'Lợi nhuận thực');
     if (!finalProfit && hasDetailFormulaError_(rows, 'Lợi nhuận thực')) {
-      finalProfit = gross - outsideFuel - payroll - fund;
+      finalProfit = gross - outsideFuel - payroll - bhxh - fund;
     }
     var cashCost = gross - finalProfit;
     return {
@@ -108,6 +112,7 @@ var DashboardService = (function () {
       cashCost: cashCost,
       fuelOut: outsideFuel,
       payroll: payroll,
+      bhxh: bhxh,
       fund: fund,
       totalCost: cashCost
     };

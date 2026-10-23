@@ -5,11 +5,13 @@ const { createNotificationRuleRepository } = require('../server/repositories/not
 const { createPushSubscriptionRepository } = require('../server/repositories/push-subscription-repository');
 const { createNotificationPreferenceRepository } = require('../server/repositories/notification-preference-repository');
 const { createNotificationRuleConfigRepository } = require('../server/repositories/notification-rule-config-repository');
+const { createWorkbookContextRepository } = require('../server/repositories/workbook-context-repository');
 const { runtimeConfig } = require('../server/runtime-config');
 const { createAuthService } = require('../server/services/auth-service');
 const { createAuthorizationPolicy } = require('../server/services/authorization-policy');
 const { createFundLowBalanceAlertService } = require('../server/services/fund-low-balance-alert-service');
 const { createNotificationSettingsService } = require('../server/services/notification-settings-service');
+const { createWorkbookContextService } = require('../server/services/workbook-context-service');
 const { assertSameOrigin } = require('../server/services/session-cookie-service');
 
 function send(res, status, body) {
@@ -29,6 +31,11 @@ module.exports = async function handler(req, res) {
   const ruleConfigs = createNotificationRuleConfigRepository({ httpError });
   const preferences = createNotificationPreferenceRepository({ httpError });
   const settings = createNotificationSettingsService({ preferenceRepository: preferences, ruleConfigRepository: ruleConfigs, httpError });
+  const workbookContextService = createWorkbookContextService({
+    httpError,
+    repository: createWorkbookContextRepository({ httpError }),
+    config
+  });
   const service = createFundLowBalanceAlertService({
     balanceRepository: createFundBalanceRepository({ httpError }),
     ruleRepository: createNotificationRuleRepository({ httpError }),
@@ -36,6 +43,7 @@ module.exports = async function handler(req, res) {
     preferenceRepository: preferences,
     appUserRepository: appUsers,
     subscriptionRepository: subscriptions,
+    workbookContextService,
     webPush,
     httpError
   });

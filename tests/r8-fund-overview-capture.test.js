@@ -32,7 +32,7 @@ function harness(longContent = false, telemetry = false) {
   const named = { TMDK: '500', TKDK: '400', NGAYNHAPLIEU: '01/01/2026', NGAYTINHVAY: '07/01/2026', NOPTIEN: 'Nộp vào TK', RUTTIEN: 'Rút tiền', KHOANVAY: 'Khoản vay' };
   const ss = { getSheetByName: (name) => sheets[name], getRangeByName: (name) => named[name] === undefined ? null : ({ getDisplayValue: () => named[name], getValue: () => named[name] }) };
   class Today extends Date { constructor(...args) { super(...(args.length ? args : [2026, 9, 7, 12])); } }
-  const sandbox = vm.createContext({ Date: Today, console: { log: line => logs.push(line) }, APP_CONFIG: { timezone: 'Asia/Ho_Chi_Minh' },
+  const sandbox = vm.createContext({ Date: Today, console: { log: line => logs.push(line) }, APP_CONFIG: { year: '2026', timezone: 'Asia/Ho_Chi_Minh' },
     PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) }, SpreadsheetApp: { openById: () => ss },
     CacheService: { getScriptCache: () => ({ get: () => marker ? '1' : null, put() {}, getAll: (keys) => marker ? Object.fromEntries(keys.map((k) => [k, marker])) : {}, putAll(values) { Object.values(values).forEach((value) => assert.ok(Buffer.byteLength(value) < 100000)); } }) },
     Utilities: { formatDate: (d, _tz, pattern) => {

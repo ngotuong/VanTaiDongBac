@@ -2,7 +2,7 @@ import 'server-only';
 
 import { createReportBundleRepository } from '../../server/repositories/report-bundle-repository.js';
 import { runtimeConfig } from '../../server/runtime-config.js';
-import { createWorkbookContextService } from '../../server/services/workbook-context-service.js';
+import { loadServerWorkbookContext } from './request-context.js';
 import { createServerApiClient } from './platform/server-api-client';
 import type { DashboardBundle, DashboardDataResponse } from './platform/dashboard-types';
 
@@ -14,8 +14,8 @@ function publicDashboard(value: DashboardBundle & { links?: unknown }): Dashboar
   return dashboard;
 }
 
-export async function loadDashboardData(forceRefresh = false): Promise<DashboardDataResponse> {
-  const workbook = createWorkbookContextService({ httpError }).resolve({ module: 'transport' });
+export async function loadDashboardData(forceRefresh = false, yearInput?: unknown): Promise<DashboardDataResponse> {
+  const workbook = await loadServerWorkbookContext({ module: 'transport', year: yearInput });
   if (!forceRefresh) {
     try {
       const config = runtimeConfig();
@@ -33,7 +33,7 @@ export async function loadDashboardData(forceRefresh = false): Promise<Dashboard
   }
   const api = await createServerApiClient();
   const dashboard = await api.get<DashboardBundle & { links?: unknown }>('getDashboard', {
-    params: { forceRefresh: forceRefresh ? 'true' : '', spreadsheetId: workbook.spreadsheetId }
+    params: { year: workbook.year, forceRefresh: forceRefresh ? 'true' : '', spreadsheetId: workbook.spreadsheetId }
   });
   return { dashboard: publicDashboard(dashboard) };
 }

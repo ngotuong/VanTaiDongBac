@@ -10,39 +10,53 @@ function load(...files) { const s = vm.createContext({}); for (const f of files)
 test('signal drain keeps a later event racing enqueue/consumption, and a failed enqueue remains unconsumed', () => {
   const service = load('SheetChangeSignalService.gs').SheetChangeSignalService;
   const p = new Map(); let seq = 0; let enqueues = 0;
-  const ctx = { getProperty: (k) => p.get(k), setProperty: (k, v) => p.set(k, v), nowMillis: () => 1000, createUuid: () => String(++seq) };
+  const ctx = { year: '2026', getProperty: (k) => p.get(k), setProperty: (k, v) => p.set(k, v), nowMillis: () => 1000, createUuid: () => String(++seq) };
   p.set('SUPABASE_SHEET_TRIGGER_BINDINGS_V1', JSON.stringify({ e: { handler: 'handleTransportSheetEdit', spreadsheetId: 'sheet' } }));
   const event = () => service.record({ triggerUid: 'e' }, 'transport', 'handleTransportSheetEdit', 'sheet', ctx);
   event(); ctx.enqueue = () => { enqueues++; if (enqueues === 1) event(); return { queued: true }; };
   service.drain('transport', ctx); service.drain('transport', ctx); service.drain('transport', ctx);
-  assert.equal(enqueues, 2); assert.ok(p.has('SUPABASE_SHEET_SIGNAL_TRANSPORT'));
+  assert.equal(enqueues, 2); assert.ok(p.has('SUPABASE_SHEET_SIGNAL_TRANSPORT_2026'));
   event(); ctx.enqueue = () => ({ deferred: true });
   assert.throws(() => service.drain('transport', ctx), /enqueue failed/);
-  assert.notEqual(p.get('SUPABASE_SHEET_SIGNAL_TRANSPORT_CONSUMED'), JSON.parse(p.get('SUPABASE_SHEET_SIGNAL_TRANSPORT')).token);
+  assert.notEqual(p.get('SUPABASE_SHEET_SIGNAL_TRANSPORT_2026_CONSUMED'), JSON.parse(p.get('SUPABASE_SHEET_SIGNAL_TRANSPORT_2026')).token);
 });
 
 test('edit signals retain and coalesce bounded sheet row scopes until the durable ACK', () => {
   const service = load('SheetChangeSignalService.gs').SheetChangeSignalService;
   const p = new Map(); let seq = 0; let drained;
-  const ctx = { getProperty: (k) => p.get(k), setProperty: (k, v) => p.set(k, v), nowMillis: () => 1000, createUuid: () => String(++seq) };
+  const ctx = { year: '2026', getProperty: (k) => p.get(k), setProperty: (k, v) => p.set(k, v), nowMillis: () => 1000, createUuid: () => String(++seq) };
   p.set('SUPABASE_SHEET_TRIGGER_BINDINGS_V1', JSON.stringify({ e: { handler: 'handleFundSheetEdit', spreadsheetId: 'fund' } }));
   const event = (row) => ({ triggerUid: 'e', range: {
-    getSheet: () => ({ getName: () => 'NHAP_THUCHI' }), getRow: () => row, getNumRows: () => 1
+    getGridId: () => 731, getSheet: () => { throw Error('trigger must not resolve a Sheet'); }, getRow: () => row, getNumRows: () => 1
   } });
   service.record(event(877), 'fund', 'handleFundSheetEdit', 'fund', ctx);
   service.record(event(878), 'fund', 'handleFundSheetEdit', 'fund', ctx);
-  const pending = JSON.parse(p.get('SUPABASE_SHEET_SIGNAL_FUND'));
+  const pending = JSON.parse(p.get('SUPABASE_SHEET_SIGNAL_FUND_2026'));
   assert.deepEqual(plain(pending.scopes), [
-    { sheetName: 'NHAP_THUCHI', startRow: 877, numRows: 1 },
-    { sheetName: 'NHAP_THUCHI', startRow: 878, numRows: 1 }
+    { gridId: 731, startRow: 877, numRows: 1 },
+    { gridId: 731, startRow: 878, numRows: 1 }
   ]);
   ctx.enqueue = (signal) => { drained = plain(signal); return { queued: true }; };
   service.drain('fund', ctx);
   assert.deepEqual(drained.scopes, pending.scopes);
   service.record(event(900), 'fund', 'handleFundSheetEdit', 'fund', ctx);
-  assert.deepEqual(plain(JSON.parse(p.get('SUPABASE_SHEET_SIGNAL_FUND')).scopes), [
-    { sheetName: 'NHAP_THUCHI', startRow: 900, numRows: 1 }
+  assert.deepEqual(plain(JSON.parse(p.get('SUPABASE_SHEET_SIGNAL_FUND_2026')).scopes), [
+    { gridId: 731, startRow: 900, numRows: 1 }
   ]);
+});
+
+test('worker keeps enough runway before starting another native stage', () => {
+  const worker = load('TransportRefreshWorker.gs').TransportRefreshWorker;
+  let now = 0; const item = { tasks: [['native', 'first'], ['native', 'second']] }; let saves = 0;
+  const result = worker.run(item, {
+    nowMillis: () => now, maxStages: 30, turnBudgetMs: 45000, minStageStartBudgetMs: 20000,
+    runTask: () => { now += 30000; return { result: { ok: true } }; },
+    saveProgress: () => { saves++; }, claimNext: () => ({ due: true, item }),
+    acknowledge: () => ({ acknowledged: true }), requeue: () => ({}), writeStatus() {}, log() {}
+  });
+  assert.deepEqual(plain(result.stages), ['native:first']);
+  assert.deepEqual(plain(item.tasks), [['native', 'second']]);
+  assert.ok(saves >= 2);
 });
 
 test('owner binding registration rejects foreign workbooks and wrong event types without replacing prior bindings', () => {
@@ -155,7 +169,7 @@ function timerHarness() {
   let now = 1000000; const p = new Map(); const notifications = []; const queued = [];
   class ClockDate extends Date { constructor(...args) { super(...(args.length ? args : [now])); } }
   const sandbox = vm.createContext({ Date: ClockDate, console: { log() {} }, normalizeCleanValue_: (v) => String(v ?? '').trim(),
-    APP_CONFIG: { spreadsheetId: 'sheet' }, PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => p.get(k), setProperty: (k, v) => p.set(k, v), deleteProperty: (k) => p.delete(k) }) },
+    APP_CONFIG: { spreadsheetId: 'sheet', year: '2026' }, PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => p.get(k), setProperty: (k, v) => p.set(k, v), deleteProperty: (k) => p.delete(k) }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, waitLock() {}, releaseLock() {} }) }, Utilities: { getUuid: () => crypto.randomUUID() },
     SupabaseSyncStatusRepository: { upsert() {} },
     // Preserve a sustained backlog without executing its native work in this scheduler test.
@@ -165,7 +179,7 @@ function timerHarness() {
     SpreadsheetApp: { openById: () => { throw Error('Unbounded legacy sweep must never run'); } }
   });
   vm.runInContext(read('SupabaseService.gs'), sandbox);
-  for (const key of ['SUPABASE_SOURCE_POLL_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) p.set(key, String(now + 86400000));
+  for (const key of ['SUPABASE_SOURCE_POLL_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) p.set(key + '_2026', String(now + 86400000));
   return { p, queued, notifications, service: sandbox.SupabaseService, tick: () => sandbox.SupabaseService.syncRealtimeCache(), advance: (ms) => { now += ms; } };
 }
 
@@ -182,5 +196,5 @@ test('notification due work is checked on each reserved turn under backlog, with
   const h = timerHarness(); for (let i = 0; i < 30; i++) { h.tick(); h.advance(60000); }
   assert.ok(h.notifications.length >= 4);
   for (let i = 1; i < h.notifications.length; i++) assert.ok(h.notifications[i] - h.notifications[i - 1] <= 8 * 60000);
-  assert.ok(Number(h.p.get('SUPABASE_REALTIME_HEARTBEAT_NEXT_AT')) > 0);
+  assert.ok(Number(h.p.get('SUPABASE_REALTIME_HEARTBEAT_NEXT_AT_2026')) > 0);
 });

@@ -50,7 +50,7 @@ function loadService() {
     },
   };
   const sandbox = vm.createContext({
-    APP_CONFIG: { timezone: 'Asia/Ho_Chi_Minh' },
+    APP_CONFIG: { year: '2026', timezone: 'Asia/Ho_Chi_Minh' },
     Utilities: { formatDate: (date, timezone, pattern) => {
       const yyyy = date.getFullYear(); const mm = String(date.getMonth() + 1).padStart(2, '0'); const dd = String(date.getDate()).padStart(2, '0');
       return pattern === 'yyyy-MM' ? `${yyyy}-${mm}` : pattern === 'MM/yyyy' ? `${mm}/${yyyy}` : `${yyyy}-${mm}-${dd}`;

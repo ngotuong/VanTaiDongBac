@@ -9,7 +9,7 @@ test('write command service queues every business form mutation without calling 
   const calls = [];
   const service = createWriteCommandService({
     repository: { enqueue: async (_config, value) => { calls.push(value); return { ok: true, queued: true, jobId: 'job-1', status: 'pending' }; } },
-    workbookContextService: { resolve: ({ module, year }) => ({ module, year, spreadsheetId: `${module}-${year}` }) },
+    workbookContextService: { assertWritable: ({ module, year }) => ({ module, year, spreadsheetId: `${module}-${year}` }) },
     httpError,
     send: (_res, status, body) => ({ status, body })
   });

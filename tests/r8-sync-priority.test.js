@@ -138,7 +138,7 @@ function timer(primaryCost = 4000) {
   class ClockDate extends Date { constructor(...args) { super(...(args.length ? args : [now])); } }
   const properties = { getProperty: (k) => props.get(k), setProperty: (k, v) => props.set(k, v), deleteProperty: (k) => props.delete(k) };
   const record = (module) => { calls.push({ module, at: now }); now += module === 'transport' ? primaryCost : 4000; return { ok: true }; };
-  const s = vm.createContext({ Date: ClockDate, console: { log() {} }, APP_CONFIG: { spreadsheetId: 'synthetic', timezone: 'Asia/Ho_Chi_Minh' },
+  const s = vm.createContext({ Date: ClockDate, console: { log() {} }, APP_CONFIG: { spreadsheetId: 'synthetic', year: '2026', timezone: 'Asia/Ho_Chi_Minh' },
     normalizeCleanValue_: (v) => String(v ?? '').trim(), PropertiesService: { getScriptProperties: () => properties },
     LockService: { getScriptLock: () => ({ waitLock() {}, tryLock: () => true, releaseLock() {} }) },
     Utilities: { formatDate: () => '2026-10', getUuid: () => 'tick' }, CacheService: { getScriptCache: () => ({}) },
@@ -146,7 +146,7 @@ function timer(primaryCost = 4000) {
     FundSyncService: { syncFundLoanOverview: () => record('fund') }, SupabaseSyncStatusRepository: { upsert() {} } });
   for (const file of ['ManualReportRefreshQueueService.gs', 'TransportRefreshWorker.gs', 'TransportSourceProbeService.gs', 'SupabaseService.gs']) vm.runInContext(read(file), s);
   const ctx = { ...properties, withLock: (fn) => fn(), nowMillis: () => now, nowISOString: () => new Date(now).toISOString(), normalizeYearMonthKey: String };
-  for (const [module, key, task] of [['transport', 'SUPABASE_PENDING_TRANSPORT_REPORT_SYNC', ['manage', 'NL_Dau']], ['fund', 'SUPABASE_PENDING_FUND_SYNC', ['fundLoans', '']]]) {
+  for (const [module, key, task] of [['transport', 'SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_2026', ['manage', 'NL_Dau']], ['fund', 'SUPABASE_PENDING_FUND_SYNC_2026', ['fundLoans', '']]]) {
     s.ManualReportRefreshQueueService.enqueue({ full: true }, { ...ctx, propertyKey: key });
     const item = s.ManualReportRefreshQueueService.claimDue({ ...ctx, propertyKey: key });
     // Pending debounce: seed an interrupted checkpoint directly, as Production
@@ -157,7 +157,7 @@ function timer(primaryCost = 4000) {
       s.ManualReportRefreshQueueService.saveProgress({ ...claimed.item, planVersion: 3, tasks: Array.from({ length: 40 }, () => task) }, { ...ctx, propertyKey: key }, 0);
     }
   }
-  for (const key of ['SUPABASE_REALTIME_HEARTBEAT_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_TRIP_NOTIFICATION_NEXT_AT', 'SUPABASE_SOURCE_POLL_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) props.set(key, String(now + 3600000));
+  for (const key of ['SUPABASE_REALTIME_HEARTBEAT_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_TRIP_NOTIFICATION_NEXT_AT', 'SUPABASE_SOURCE_POLL_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) props.set(key + '_2026', String(now + 3600000));
   const started = now;
   return { calls, props, started, tick: () => s.SupabaseService.syncRealtimeCache() };
 }
@@ -168,16 +168,16 @@ test('actual coordinator advances both module backlogs in one tick within a shar
   assert.ok(h.calls.some((c) => c.module === 'transport'));
   assert.ok(h.calls.some((c) => c.module === 'fund'));
   assert.ok(h.calls.every((c) => c.at - h.started < 60000), 'no native stage starts after the shared deadline');
-  assert.ok(h.props.has('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_LEASE'));
-  assert.ok(h.props.has('SUPABASE_PENDING_FUND_SYNC_LEASE'));
+  assert.ok(h.props.has('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_2026_LEASE'));
+  assert.ok(h.props.has('SUPABASE_PENDING_FUND_SYNC_2026_LEASE'));
 });
 
 test('one slow native call exhausts the tick without claiming or running its companion', () => {
-  const h = timer(65000); const before = h.props.get('SUPABASE_PENDING_FUND_SYNC_LEASE'); const result = h.tick();
+  const h = timer(65000); const before = h.props.get('SUPABASE_PENDING_FUND_SYNC_2026_LEASE'); const result = h.tick();
   assert.equal(result.ok, true); assert.equal(result.companion, undefined);
   assert.deepEqual(h.calls.map((c) => c.module), ['transport']);
-  assert.equal(h.props.get('SUPABASE_PENDING_FUND_SYNC_LEASE'), before);
-  assert.equal(h.props.has('SUPABASE_REALTIME_TICK_RUNNING'), false);
+  assert.equal(h.props.get('SUPABASE_PENDING_FUND_SYNC_2026_LEASE'), before);
+  assert.equal(h.props.has('SUPABASE_REALTIME_TICK_RUNNING_2026'), false);
 });
 
 test('unchanged input hashes cannot swallow a computed-output poll merged with an edit signal', () => {

@@ -74,6 +74,10 @@ Không restore toàn workbook vì có thể ghi đè dữ liệu nghiệp vụ p
 - Trước data migration destructive: backup riêng, dry-run, fingerprint, exact target và one-shot approval.
 - Sau rollback: đối chiếu Sheet, Supabase bundle, queue và UI authenticated.
 
+## 7.1. Rollback chuyển năm
+
+Theo [YEAR_ROLLOVER](docs/operations/YEAR_ROLLOVER.md): nếu copy file thứ hai lỗi, service chỉ Trash file mới của chính lượt đó. Nếu transform/audit lỗi sau đăng ký, giữ context `failed` và hai bản sao để điều tra; không tạo lại hoặc xóa tay. Activation lỗi khôi phục properties/trigger nguồn; RPC registry là transaction. Sau activation thành công, giữ pause, rollback deployment và exact properties/trigger bằng cửa sổ duyệt, rồi forward-correct registry. Giữ migration 019–020, cache namespaced, row, signal, queue và journal; không restore toàn workbook. Nếu năm đích đã nhận dữ liệu nghiệp vụ, phải đối soát exact job/row trước khi đổi năm hoạt động.
+
 ## 8. Trạng thái tài liệu
 
 - Loại: `CURRENT` rollback runbook.

@@ -34,7 +34,7 @@ test('forced source failure cannot fall back to an old cached success or overwri
 });
 test('forced catalog option read bypasses six-hour cache and warms only its own key', () => {
   let cached = { vehicles: ['old'] }; const writes = []; let reads = 0;
-  const s = vm.createContext({ APP_CONFIG: { spreadsheetId: 'fixture' }, normalizeCleanValue_: (v) => String(v || '').trim(),
+  const s = vm.createContext({ APP_CONFIG: { spreadsheetId: 'fixture', year: '2026' }, normalizeCleanValue_: (v) => String(v || '').trim(),
     RuntimeCacheService: { buildKey: (parts) => parts.join(':'), getChunked: () => cached, putChunked: (key, value) => { cached = value; writes.push(key); } },
     SpreadsheetApp: { openById: () => ({}) }, CatalogService: { readCatalogs: () => { reads++; return { vehicles: ['new'] }; } } });
   vm.runInContext(read('SheetService.gs'), s);
@@ -45,7 +45,7 @@ test('forced catalog option read bypasses six-hour cache and warms only its own 
 });
 test('actual sync and audit boundaries request fresh manage, catalog table, options and startup reads', () => {
   const captured = []; const source = (forced) => ({ ok: true, rows: [{ rowIndex: 2, values: [forced ? '' : '0,0'] }] });
-  const s = vm.createContext({ APP_CONFIG: { spreadsheetId: 'fixture' }, normalizeCleanValue_: (v) => String(v || '').trim(), console: { log() {} }, Utilities: { formatDate: (d) => [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-') },
+  const s = vm.createContext({ APP_CONFIG: { spreadsheetId: 'fixture', year: '2026' }, normalizeCleanValue_: (v) => String(v || '').trim(), console: { log() {} }, Utilities: { formatDate: (d) => [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-') },
     PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) },
     ManageService: { readManageData: (_name, _start, _end, _limit, options) => source(options?.forceRefresh) },
     SheetService: { getStartupData: (_form, force) => source(force) },
@@ -64,7 +64,7 @@ test('actual sync and audit boundaries request fresh manage, catalog table, opti
 for (const [method, reader, scope] of [['syncStartupBundle', 'getStartupData', 'vanChuyen'], ['syncCatalogsBundle', 'getCatalogs', 'vanChuyen'], ['syncCatalogDataBundle', 'readCatalogData', 'DM_Xe']]) {
   test(`${method} cannot publish a source error as success or acknowledge its cache stage`, () => {
     const s = vm.createContext({}); vm.runInContext(read('StartupCatalogSyncService.gs'), s); let writes = 0; let statuses = 0;
-    const ctx = { clean: String, nowISOString: () => '2026-10-07', [reader]: () => ({ ok: false, error: 'Source unavailable' }),
+    const ctx = { year: '2026', clean: String, nowISOString: () => '2026-10-07', [reader]: () => ({ ok: false, error: 'Source unavailable' }),
       upsertRows: () => { writes++; }, writeSyncStatus: () => { statuses++; } };
     assert.throws(() => s.StartupCatalogSyncService[method](scope, ctx), /Invalid .* source payload/);
     assert.equal(writes, 0); assert.equal(statuses, 0);

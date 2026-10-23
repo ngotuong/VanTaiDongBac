@@ -259,7 +259,7 @@ test('Fixed-option filters use intrinsic width while search and date controls st
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc các khoản vay theo nơi vay"/);
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc lịch sử theo loại giao dịch"/);
   assert.doesNotMatch(css, /select\.platform-content-select \{[\s\S]*field-sizing: content;/);
-  assert.match(adaptive, /FILTER_SELECTOR = 'select\.platform-content-select'/);
+  assert.match(adaptive, /FILTER_SELECTOR = 'select\.platform-content-select:not\(\[data-fixed-filter-width\]\)'/);
   assert.match(adaptive, /selectedLabel\(select\)/);
   assert.match(adaptive, /--platform-filter-selected-width/);
   assert.match(adaptive, /MutationObserver\(schedule\)/);

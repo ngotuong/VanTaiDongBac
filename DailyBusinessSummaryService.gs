@@ -74,7 +74,7 @@ var DailyBusinessSummaryService = (function () {
       syncedAt: syncedAt
     };
     context.upsertRows(CACHE_TABLE, [{
-      sheet_name: SOURCE_SHEET,
+      sheet_name: context.year + ':' + SOURCE_SHEET,
       filter_key: CACHE_FILTER_KEY,
       payload: payload,
       synced_at: syncedAt

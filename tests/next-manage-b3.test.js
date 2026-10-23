@@ -7,7 +7,7 @@ const read = (file) => fs.readFileSync(path.join(root,file),'utf8');
 
 test('C3 Manage route server-loads Manage and reuses the loaded catalogs when opening Entry',()=>{
   const page=read('next-shell/app/manage/page.jsx'),module=read('next-shell/components/manage/ManageReadOnlyModule.tsx');
-  assert.match(page,/loadManageData\(currentTransportMonthRange\(\)\)/); assert.doesNotMatch(page,/loadEntryCatalogs\(\)/); assert.match(page,/<ManageReadOnlyModule initialData=/);
+  assert.match(page,/loadPlatformContext\(\{module:'transport'\}\)/); assert.match(page,/loadManageData\(\{\.\.\.range,year:context\.workbook\.year\}\)/); assert.doesNotMatch(page,/loadEntryCatalogs\(\)/); assert.match(page,/<ManageReadOnlyModule initialData=/);
   assert.match(module,/entryOpen\?<BodyPortal>[\s\S]*<EntryModule initialCatalogs=\{catalogs\}/); assert.doesNotMatch(module,/loadEntryCatalogs\(\)/);
   assert.doesNotMatch(page,/bridge=|next-accounts-shell/);
 });

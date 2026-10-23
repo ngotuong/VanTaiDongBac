@@ -12,6 +12,9 @@ export type RequestUser = {
 export type WorkbookContext = {
   module: WorkbookModule;
   year: string;
+  activeYear: string;
+  availableYears: string[];
+  readOnly: boolean;
 };
 
 export type PlatformContext = {

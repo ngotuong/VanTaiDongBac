@@ -8,7 +8,9 @@ export type RuntimeConfig = {
   vapidPrivateKey: string;
   vapidSubject: string;
   cronSecret: string;
+  syncWatchdogSecret: string;
   fundLowBalanceAlertEnabled: boolean;
+  businessWritesPaused: boolean;
   defaultWorkbookYear: string;
 };
 export function runtimeConfig(env?: Record<string, string | undefined>): RuntimeConfig;

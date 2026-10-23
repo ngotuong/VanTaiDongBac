@@ -4,9 +4,14 @@ var FundSyncService = (function () {
   var TABLE_FUND_TRANSACTION_BUNDLES = 'fund_transaction_bundles';
   var TABLE_FUND_LOAN_BUNDLES = 'fund_loan_bundles';
   var TABLE_CATALOG_BUNDLES = 'catalog_bundles';
-  var DEFAULT_FUND_YEAR = '2026';
   var DEFAULT_FUND_TRANSACTION_FILTER_KEY = 'recent_500';
   var FUND_CATALOG_GROUPS = ['incomeCategories', 'expenseCategories', 'actors', 'partners', 'loanPartners'];
+
+  function requireYear_(year, clean) {
+    var value = clean(year);
+    if (!/^20\d{2}$/.test(value)) throw new Error('Thiếu năm Thu chi hợp lệ.');
+    return value;
+  }
 
   function normalizeFundMonthKey(month, clean) {
     var text = clean(month);
@@ -30,11 +35,11 @@ var FundSyncService = (function () {
   }
 
   function buildFundFormOptionsKey(year, clean) {
-    return 'fund_form_options:' + (clean(year) || DEFAULT_FUND_YEAR);
+    return 'fund_form_options:' + requireYear_(year, clean);
   }
 
   function buildFundCatalogKey(year, group, clean) {
-    return 'fund_catalog:' + (clean(year) || DEFAULT_FUND_YEAR) + ':' + (clean(group) || 'all');
+    return 'fund_catalog:' + requireYear_(year, clean) + ':' + (clean(group) || 'all');
   }
 
   function normalizeFundWriteMonthKey(value, context) {
@@ -103,7 +108,7 @@ var FundSyncService = (function () {
   }
 
   function syncFundOverview(year, month, context) {
-    var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
+    var safeYear = requireYear_(year, context.clean);
     var monthKey = normalizeFundMonthKey(month, context.clean);
     var payload = context.getFundOverview(safeYear, { month: monthKey });
     var syncedAt = context.nowISOString();
@@ -113,7 +118,7 @@ var FundSyncService = (function () {
   }
 
   function syncFundTransactions(year, options, context) {
-    var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
+    var safeYear = requireYear_(year, context.clean);
     var filter = options || {};
     var normalized = {
       month: normalizeFundMonthKey(filter.month, context.clean),
@@ -133,11 +138,11 @@ var FundSyncService = (function () {
   function syncFundTransactionMonth(year, month, context) {
     var monthKey = normalizeFundMonthKey(month, context.clean);
     if (!monthKey) throw new Error('Thiếu tháng giao dịch quỹ cần sync.');
-    return syncFundTransactions(year || DEFAULT_FUND_YEAR, { month: monthKey, limit: 1000 }, context);
+    return syncFundTransactions(requireYear_(year, context.clean), { month: monthKey, limit: 1000 }, context);
   }
 
   function syncFundLoanOverview(year, month, context) {
-    var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
+    var safeYear = requireYear_(year, context.clean);
     var monthKey = normalizeFundMonthKey(month, context.clean);
     var payload = context.getFundLoanOverview(safeYear, { month: monthKey });
     var syncedAt = context.nowISOString();
@@ -147,7 +152,7 @@ var FundSyncService = (function () {
   }
 
   function syncFundFormOptionsBundle(year, context) {
-    var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
+    var safeYear = requireYear_(year, context.clean);
     var catalogKey = buildFundFormOptionsKey(safeYear, context.clean);
     var payload = context.getFundFormOptions(safeYear, true);
     var syncedAt = context.nowISOString();
@@ -157,7 +162,7 @@ var FundSyncService = (function () {
   }
 
   function syncFundCatalogBundle(year, group, context) {
-    var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
+    var safeYear = requireYear_(year, context.clean);
     var safeGroup = context.clean(group) || 'all';
     var catalogKey = buildFundCatalogKey(safeYear, safeGroup, context.clean);
     var payload = context.getFundCatalog(safeYear, safeGroup, true);
@@ -168,7 +173,7 @@ var FundSyncService = (function () {
   }
 
   function syncAllFundCatalogBundles(year, context) {
-    var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
+    var safeYear = requireYear_(year, context.clean);
     var results = [];
     var errors = [];
     context.runSyncStep(results, errors, 'fundFormOptions:' + safeYear, function () { return syncFundFormOptionsBundle(safeYear, context); });
@@ -179,7 +184,7 @@ var FundSyncService = (function () {
   }
 
   function syncAllFundBundles(year, context) {
-    var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
+    var safeYear = requireYear_(year, context.clean);
     var results = [];
     var errors = [];
     var overviewSeed = null;
@@ -200,7 +205,7 @@ var FundSyncService = (function () {
   }
 
   function syncFundAfterWrite(year, options, context) {
-    var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
+    var safeYear = requireYear_(year, context.clean);
     var monthKeys = getFundWriteMonthKeys(safeYear, options || {}, context);
     var results = [];
     var errors = [];
@@ -217,7 +222,7 @@ var FundSyncService = (function () {
   }
 
   function syncFundTransactionsAfterWrite(year, transactions, context) {
-    var safeYear = context.clean(year) || DEFAULT_FUND_YEAR;
+    var safeYear = requireYear_(year, context.clean);
     var monthKeys = getFundWriteMonthKeys(safeYear, { transactions: transactions || [] }, context);
     var results = [];
     var errors = [];

@@ -106,6 +106,12 @@ Sau cut-forward:
 - RLS/server-only grants và service-role boundary phải có test.
 - Không đưa secret/token vào source, log hoặc tài liệu.
 
+## 7.1. Chuyển năm dữ liệu
+
+Chuyển năm là một cửa sổ ghép cặp Vercel + Apps Script + Supabase + hai workbook, thực hiện theo [YEAR_ROLLOVER](docs/operations/YEAR_ROLLOVER.md). Chuẩn bị mapping/audit không tự cấp quyền apply migration, cài trigger, deploy Preview hoặc Production. Mỗi bước live cần exact target và phê duyệt tương ứng; Production vẫn là yêu cầu riêng.
+
+Self-service lần đầu phải tách ba cửa sổ: (1) migration `019`–`020`; (2) Apps Script/Preview, owner cấp scope Drive và dry-run manifest; (3) tạo hai workbook thật. Activation là cửa sổ Production riêng. Trước Apps Script push phải review exact-range manifest/folder; sau Preview phải kiểm admin/operator/shareholder, không lộ Spreadsheet ID, `draft/failed` không hiện selector và `ready/archived` từ chối mutation.
+
 ## 8. Git và handoff
 
 - `main` là nhánh canonical; branch checkpoint đã merge phải được xóa thay vì tích lũy lâu dài.

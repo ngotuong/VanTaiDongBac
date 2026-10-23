@@ -41,7 +41,7 @@ function loadService(overrides = {}) {
 
 test('fund overview, transaction, and loan sync preserve tables, keys, rows, and statuses', () => {
   const { service, context, calls, syncTime } = loadService();
-  const overview = service.syncFundOverview('', '07/2026', context);
+  const overview = service.syncFundOverview('2026', '07/2026', context);
   const transactions = service.syncFundTransactions('2026', { month: '2026-07', limit: 1000 }, context);
   const loans = service.syncFundLoanOverview('2026', '', context);
   assert.deepEqual(JSON.parse(JSON.stringify([overview, transactions, loans])), [

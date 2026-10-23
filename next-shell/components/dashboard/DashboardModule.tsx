@@ -3,15 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { DashboardBundle, DashboardDataResponse, DashboardTrip } from '../../lib/platform/dashboard-types';
-import { aggregateDashboardPeriod, buildKpiMap, countUniqueVehicles, formatCurrencyText, growth, metricValue, parseDashboardRows, type DashboardMetricKey, type DashboardMonthRow } from '../../lib/platform/dashboard-c2';
+import { aggregateDashboardPeriod, buildKpiMap, buildProfitChartScale, countUniqueVehicles, formatCurrencyText, growth, metricValue, parseDashboardRows, profitChartMonthLabels, type DashboardMetricKey, type DashboardMonthRow } from '../../lib/platform/dashboard-c2';
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { exportCardAsImage } from '../../lib/platform/export-card';
 import { showToast } from '../../lib/platform/toast';
+import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import { useVisibleRevalidation } from '../platform/useVisibleRevalidation';
 
 type MetricSpec = { key: DashboardMetricKey; label: string; fullLabel: string; badge: 'blue' | 'red' | 'amber' | 'green'; invert?: boolean; icon: React.ReactNode };
-let dashboardResponseCache: DashboardDataResponse | null = null;
-let dashboardInflight: Promise<DashboardDataResponse> | null = null;
+const dashboardResponseCache = new Map<string, DashboardDataResponse>();
+const dashboardInflight = new Map<string, Promise<DashboardDataResponse>>();
 
 const HERO_SPEC: MetricSpec = {
   key: 'final',
@@ -28,20 +29,21 @@ const SUB_METRICS: MetricSpec[] = [
   { key: 'cashCost', label: 'Chi Phí Sau Vận Hành', fullLabel: 'Chi Phí Sau Vận Hành', badge: 'red', invert: true, icon: <svg className="btn-svg" viewBox="0 0 24 24"><path d="M3 6h18v12H3z"/><path d="M7 10h.01M17 14h.01M12 12a2 2 0 1 0 0 .01"/></svg> }
 ];
 
-async function requestDashboard(forceRefresh = false, bypassClientCache = false): Promise<DashboardDataResponse> {
-  if (!forceRefresh && !bypassClientCache && dashboardResponseCache) return dashboardResponseCache;
-  if (!forceRefresh && !bypassClientCache && dashboardInflight) return dashboardInflight;
+async function requestDashboard(year: string, forceRefresh = false, bypassClientCache = false): Promise<DashboardDataResponse> {
+  if (!forceRefresh && !bypassClientCache && dashboardResponseCache.has(year)) return dashboardResponseCache.get(year)!;
+  if (!forceRefresh && !bypassClientCache && dashboardInflight.has(year)) return dashboardInflight.get(year)!;
   const url = new URL('/dashboard-data/', window.location.origin);
+  url.searchParams.set('year', year);
   if (forceRefresh) url.searchParams.set('forceRefresh', 'true');
   const request = (async () => {
     const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
-    dashboardResponseCache = payload;
+    dashboardResponseCache.set(year, payload);
     return payload;
   })();
-  if (!forceRefresh && !bypassClientCache) dashboardInflight = request;
-  try { return await request; } finally { dashboardInflight = null; }
+  if (!forceRefresh && !bypassClientCache) dashboardInflight.set(year, request);
+  try { return await request; } finally { if (dashboardInflight.get(year) === request) dashboardInflight.delete(year); }
 }
 
 function BodyPortal({ children }: { children: React.ReactNode }) {
@@ -182,22 +184,35 @@ type ProfitChartMonth = { month: string; row: DashboardMonthRow | null };
 function ProfitChart({ months }: { months: ProfitChartMonth[] }) {
   const data = months.filter((item) => item.row);
   if (!data.length) return <div className="panel-note">Chưa có dữ liệu báo cáo lợi nhuận.</div>;
-  const step = 500_000_000;
-  const maxValue = Math.max(...data.map((item) => Math.abs(item.row?.final || 0)), 1);
-  const max = Math.max(step, Math.ceil(maxValue / step) * step);
-  const ticks: number[] = [];
-  for (let value = max; value >= 0; value -= step) ticks.push(value);
+  const scale = buildProfitChartScale(data.map((item) => item.row?.final || 0));
   const short = (value: number) => Math.abs(value) >= 1e9 ? `${(value / 1e9).toFixed(1).replace('.', ',').replace(',0', '')} tỷ` : Math.abs(value) >= 1e6 ? `${(value / 1e6).toFixed(0)} tr` : String(value);
-  return <div className="chart-wrapper" style={{ display: 'flex', alignItems: 'flex-end', position: 'relative', marginTop: 10 }}>
-    <div className="chart-y-axis tabular-nums" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: 130, paddingRight: 12, textAlign: 'right', width: 60, color: 'var(--muted)', fontSize: 10, fontWeight: 600, marginBottom: 23, flexShrink: 0, borderRight: '1px solid var(--line)' }}>{ticks.map((value) => <div key={value}>{short(value)}</div>)}</div>
-    <div className="chart-area" style={{ flex: 1, position: 'relative', overflowX: 'auto' }}>
-      <div className="chart-grid-lines" style={{ position: 'absolute', left: 0, right: 0, height: 130, bottom: 23, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none', zIndex: 1 }}>{ticks.map((value) => <div key={value} style={{ borderBottom: value === 0 ? '2px solid var(--muted)' : '1px dashed var(--line)', width: '100%' }}/>)}</div>
-      <div className="chart-v" style={{ position: 'relative', zIndex: 2, background: 'transparent', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: 190, width: '100%', gap: 8 }}>
+  return <div className="chart-wrapper profit-chart">
+    <div className="chart-y-axis profit-chart-y-axis tabular-nums">
+      {scale.ticks.map((tick) => <div key={tick.value} style={{ top: `${tick.positionPercent}%` }}>{short(tick.value)}</div>)}
+    </div>
+    <div className="chart-area profit-chart-area">
+      <div className="chart-grid-lines profit-chart-grid" aria-hidden="true">
+        {scale.ticks.map((tick) => <div className={tick.value === 0 ? 'is-zero' : ''} key={tick.value} style={{ top: `${tick.positionPercent}%` }}/>) }
+      </div>
+      <div className="chart-v profit-chart-bars">
         {months.map(({ month, row }) => {
-          const percent = row ? Math.max(2, Math.round(Math.abs(row.final) / max * 100)) : 0;
+          const value = row?.final || 0;
+          const valuePosition = scale.positionPercent(value);
+          const rawBarHeight = Math.abs(valuePosition - scale.zeroPositionPercent);
+          const barHeight = value === 0 ? 0 : Math.max(2, rawBarHeight);
+          const barTop = value > 0 ? scale.zeroPositionPercent - barHeight : scale.zeroPositionPercent;
           return <div className={`chart-col${row ? '' : ' is-empty'}`} key={month}>
             <div className="bar-value tabular-nums">{row ? `${row.final < 0 ? '-' : ''}${formatCurrencyText(Math.abs(row.final))}` : '—'}</div>
-            <div className="bar-track-v">{row ? <div className="bar-fill-v" style={{ height: `${percent}%`, borderRadius: '6px 6px 0 0', background: row.final < 0 ? 'linear-gradient(180deg, #f87171, var(--red))' : 'linear-gradient(180deg, var(--teal), var(--deep-2))', width: '100%' }}/> : null}</div>
+            <div className="profit-bar-plot">
+              <div className="bar-track-v">
+                {row && value !== 0 ? <div
+                  aria-label={`Lợi nhuận thực tháng ${month}: ${formatCurrencyText(value)}`}
+                  className={`bar-fill-v ${value < 0 ? 'is-negative' : 'is-positive'}`}
+                  role="img"
+                  style={{ top: `${barTop}%`, height: `${barHeight}%` }}
+                /> : null}
+              </div>
+            </div>
             <div className="bar-label">{month}</div>
           </div>;
         })}
@@ -227,6 +242,7 @@ function FinancialDonutChart({ row, kpi }: { row?: DashboardMonthRow; kpi?: Retu
   const netProfit = row.final;
 
   const payrollCost = row.payroll || Number(kpi?.payroll || 0);
+  const bhxhCost = row.bhxh || Number(kpi?.bhxh || 0);
   const fundCost = row.fund || Number(kpi?.fund || 0);
 
   const allCategories = [
@@ -234,6 +250,7 @@ function FinancialDonutChart({ row, kpi }: { row?: DashboardMonthRow; kpi?: Retu
     { label: 'Phường & Luật', value: Math.max(0, wardAndRoadFee), chartValue: Math.max(0, wardAndRoadFee), color: '#8b5cf6' },
     { label: 'Thuế DN & VAT', value: Math.max(0, taxTNDN + taxVAT), chartValue: Math.max(0, taxTNDN + taxVAT), color: '#ef4444' },
     { label: 'Chi lương', value: Math.max(0, payrollCost), chartValue: Math.max(0, payrollCost), color: '#f59e0b' },
+    { label: 'BHXH', value: Math.max(0, bhxhCost), chartValue: Math.max(0, bhxhCost), color: '#0d9488' },
     { label: 'Chi quỹ', value: Math.max(0, fundCost), chartValue: Math.max(0, fundCost), color: '#64748b' },
     { label: 'Lợi nhuận thực', value: netProfit, chartValue: Math.abs(netProfit), color: netProfit < 0 ? '#dc2626' : '#0284c7' }
   ];
@@ -313,6 +330,7 @@ function ExportButton({ title }: { title: string }) {
 }
 
 export function DashboardModule({ initialDashboard, initialError = '' }: { initialDashboard: DashboardBundle | null; initialError?: string }) {
+  const { workbook } = useWorkbookContext();
   const [dashboard, setDashboard] = useState(initialDashboard);
   const [periodRange, setPeriodRange] = useState({ start: '', end: '' });
   const [periodDrawerOpen, setPeriodDrawerOpen] = useState(false);
@@ -328,13 +346,10 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
   const endIndex = Math.max(startIndex, monthList.indexOf(effectiveEnd));
   const selectedRows = rows.slice(startIndex, endIndex + 1);
   const selectedPeriod = periodLabel(effectiveStart, effectiveEnd);
-  const chartYear = effectiveEnd.split('/')[1] || latestMonth.split('/')[1] || String(new Date().getFullYear());
+  const chartYear = effectiveEnd.split('/')[1] || latestMonth.split('/')[1] || workbook.year;
   const profitChartMonths = useMemo<ProfitChartMonth[]>(() => {
     const byMonth = new Map(rows.map((row) => [row.month, row]));
-    return Array.from({ length: 12 }, (_, index) => {
-      const month = `${String(index + 1).padStart(2, '0')}/${chartYear}`;
-      return { month, row: byMonth.get(month) || null };
-    });
+    return profitChartMonthLabels(chartYear).map((month) => ({ month, row: byMonth.get(month) || null }));
   }, [rows, chartYear]);
   const selected = useMemo(() => aggregateDashboardPeriod(selectedRows, kpiMap, selectedPeriod), [selectedRows, kpiMap, selectedPeriod]);
   const previous = useMemo(() => {
@@ -353,13 +368,13 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
   const refresh = async () => {
     setLoading(true); setError('');
     showToast('Đang tải dữ liệu Tổng quan từ Supabase…', 'loading');
-    try { const data = await requestDashboard(false, true); setDashboard(data.dashboard); showToast('Dữ liệu Tổng quan đã được cập nhật.', 'success'); }
+    try { const data = await requestDashboard(workbook.year, false, true); setDashboard(data.dashboard); showToast('Dữ liệu Tổng quan đã được cập nhật.', 'success'); }
     finally { setLoading(false); }
   };
 
   useVisibleRevalidation(async () => {
     if (loading) return;
-    const data = await requestDashboard(false, true);
+    const data = await requestDashboard(workbook.year, false, true);
     setDashboard(data.dashboard);
     setError('');
   }, !loading);

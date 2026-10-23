@@ -3,11 +3,13 @@ const { createAuthorizationPolicy } = require('../server/services/authorization-
 const { createAuthService } = require('../server/services/auth-service');
 const { createAccountService } = require('../server/services/account-service');
 const { createAppUserRepository } = require('../server/repositories/app-user-repository');
+const { createWorkbookContextRepository } = require('../server/repositories/workbook-context-repository');
 const { createReportBundleRepository } = require('../server/repositories/report-bundle-repository');
 const { createReportService } = require('../server/services/report-service');
 const { createCatalogBundleRepository } = require('../server/repositories/catalog-bundle-repository');
 const { createCatalogService } = require('../server/services/catalog-service');
 const { createWorkbookContextService } = require('../server/services/workbook-context-service');
+const { createYearRolloverService } = require('../server/services/year-rollover-service');
 const { createNotificationBundleRepository } = require('../server/repositories/notification-bundle-repository');
 const { createNotificationCenterService } = require('../server/services/notification-center-service');
 const { createWriteJobRepository } = require('../server/repositories/write-job-repository');
@@ -16,6 +18,7 @@ const { createPayrollExplanationRepository } = require('../server/repositories/p
 const { createPayrollExplanationService } = require('../server/services/payroll-explanation-service');
 const { runtimeConfig } = require('../server/runtime-config');
 const { assertBusinessWritesAvailable } = require('../server/services/business-maintenance-policy');
+const { assertSameOrigin } = require('../server/services/session-cookie-service');
 const { assertRuntimeIdentity, publicEnvironmentIdentity } = require('../server/environment-identity');
 
 function send(res, status, body) {
@@ -34,16 +37,21 @@ const appUserRepository = createAppUserRepository({ httpError });
 const { getAuthenticatedUser } = createAuthService({ appUserRepository, httpError });
 const accountService = createAccountService({ appUserRepository, assertAdmin, httpError, send });
 const appsScriptClient = createAppsScriptClient();
+const workbookContextRepository = createWorkbookContextRepository({ httpError });
+const workbookContextService = createWorkbookContextService({
+  httpError,
+  repository: workbookContextRepository,
+  config: runtimeConfig()
+});
 const reportBundleRepository = createReportBundleRepository({ httpError });
-const reportService = createReportService({ reportBundleRepository, appsScriptClient, httpError, send });
+const reportService = createReportService({ reportBundleRepository, appsScriptClient, workbookContextService, httpError, send });
 const catalogBundleRepository = createCatalogBundleRepository({
   httpError,
   fetchImpl: (request, init = {}) => fetch(request, { ...init, signal: AbortSignal.timeout(5000) })
 });
-const catalogService = createCatalogService({ catalogBundleRepository, appsScriptClient, httpError, send });
-const workbookContextService = createWorkbookContextService({ httpError });
+const catalogService = createCatalogService({ catalogBundleRepository, appsScriptClient, workbookContextService, httpError, send });
 const notificationBundleRepository = createNotificationBundleRepository({ httpError });
-const notificationCenterService = createNotificationCenterService({ repository: notificationBundleRepository, httpError, send });
+const notificationCenterService = createNotificationCenterService({ repository: notificationBundleRepository, workbookContextService, httpError, send });
 const writeJobRepository = createWriteJobRepository({ httpError });
 const writeCommandService = createWriteCommandService({
   repository: writeJobRepository,
@@ -61,6 +69,7 @@ const payrollExplanationService = createPayrollExplanationService({
   httpError,
   send
 });
+const yearRolloverService = createYearRolloverService({ appsScriptClient, assertAdmin, assertSameOrigin, httpError, send });
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return send(res, 405, { ok: false, error: 'Method not allowed.' });
@@ -82,12 +91,15 @@ module.exports = async function handler(req, res) {
     if (action === 'runtimeContext') {
       if (req.method !== 'GET') throw httpError(405, 'Method not allowed.');
       assertAuthorized(user, action);
-      return send(res, 200, { ok: true, user, context: workbookContextService.publicContext(req.query || {}) });
+      return send(res, 200, { ok: true, user, context: await workbookContextService.publicContextAsync(req.query || {}) });
     }
     assertAuthorized(user, action);
     assertBusinessWritesAvailable({ action, method: req.method, config, httpError });
     if (accountService.handles(action)) {
       return await accountService.handle(action, req, res, config, user);
+    }
+    if (yearRolloverService.handles(action)) {
+      return await yearRolloverService.handle(action, req, res, config, user);
     }
     if (reportService.handles(action)) {
       return await reportService.handle(action, req, res, config, user);

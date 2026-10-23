@@ -201,7 +201,7 @@ test('a Fund Sheet edit keeps its exact month and requests dashboard plus report
   const values = new Map();
   const props = { getProperty: (key) => values.get(key) || null, setProperty: (key, value) => values.set(key, value), deleteProperty: (key) => values.delete(key) };
   const context = vm.createContext({
-    console: { log() {} }, APP_CONFIG: { spreadsheetId: 'transport', timezone: 'Asia/Ho_Chi_Minh' },
+    console: { log() {} }, APP_CONFIG: { spreadsheetId: 'transport', year: '2026', timezone: 'Asia/Ho_Chi_Minh' },
     normalizeCleanValue_: (value) => String(value ?? '').trim(),
     PropertiesService: { getScriptProperties: () => props },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
@@ -275,9 +275,9 @@ test('E1.6R retries queue contention without acknowledging a source fingerprint 
   assert.match(source, /function withRefreshQueueLock_/);
   assert.match(source, /lock\.tryLock\(1000\)/);
   assert.match(source, /busy\.refreshDeferred = true/);
-  assert.match(source, /enqueueRefreshWithFallback_[\s\S]*SOURCE_POLL_NEXT_AT_PROP, '0'/);
+  assert.match(source, /enqueueRefreshWithFallback_[\s\S]*yearPropertyKey_\(SOURCE_POLL_NEXT_AT_PROP\), '0'/);
   assert.match(source, /if \(queued && queued\.deferred\) throw new Error[\s\S]*props\.setProperty\(propertyKey, SourceFingerprintService\.serialize\(state\)\)/);
-  assert.match(source, /SOURCE_POLL_NEXT_AT_PROP, String\(nowMillis \+ SOURCE_POLL_RETRY_MS\)[\s\S]*source_poll_failed:/);
+  assert.match(source, /sourcePollNextAtKey, String\(nowMillis \+ SOURCE_POLL_RETRY_MS\)[\s\S]*source_poll_failed:/);
 });
 
 test('a successful queue request resolves the matching deferred sync status', () => {

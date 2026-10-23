@@ -29,6 +29,9 @@ function handlerFor(t, role, downstreamStatus = 200) {
           DEFAULT_WORKBOOK_YEAR: '2026', WORKBOOK_CONTEXTS_JSON: JSON.stringify({ 2026: { transport: 'isolated-workbook' } })
         } })
       };
+      if (name === '../server/repositories/workbook-context-repository') return {
+        createWorkbookContextRepository: () => ({ async list() { return []; } })
+      };
       return realRequire(name);
     },
     fetch: global.fetch, AbortSignal

@@ -48,7 +48,7 @@ test('idempotency, status, and recent reads preserve queries and normalized resp
   const { repository, calls } = loadRepository([[rawJob], [rawJob], [rawJob]]);
   const duplicate = repository.findByIdempotency('transport', 'request-1');
   const status = repository.get('job-1');
-  const recent = repository.listRecent('transport', 'submitRows', 20);
+  const recent = repository.listRecent('transport', 'submitRows', 20, '2026');
   assert.equal(duplicate.jobId, 'job-1');
   assert.equal(status.maxAttempts, 3);
   assert.deepEqual(JSON.parse(JSON.stringify(recent)), [JSON.parse(JSON.stringify(status))]);
@@ -57,6 +57,7 @@ test('idempotency, status, and recent reads preserve queries and normalized resp
   assert.equal(calls[1].query.id, 'eq.job-1');
   assert.equal(calls[2].query.order, 'created_at.desc');
   assert.equal(calls[2].query.limit, '20');
+  assert.equal(calls[2].query['payload->>year'], 'eq.2026');
 });
 
 test('retry and worker lifecycle preserve patches, filters, logs, and retry status', () => {
@@ -86,6 +87,19 @@ test('retry and worker lifecycle preserve patches, filters, logs, and retry stat
   assert.deepEqual(calls.filter((call) => call.operation === 'insert').map((call) => call.rows[0].status), [
     'pending', 'processing', 'synced', 'pending'
   ]);
+});
+
+test('rollover audit treats legacy jobs as source-year work and excludes another explicit year', () => {
+  const rows = [
+    { ...rawJob, id: 'legacy', payload: { rows: [] } },
+    { ...rawJob, id: 'source', payload: { year: '2026' } },
+    { ...rawJob, id: 'future', payload: { year: '2027' } }
+  ];
+  const { repository, calls } = loadRepository([rows]);
+  const active = repository.listActiveForRollover('2026', 101);
+  assert.deepEqual(active.map((job) => job.jobId), ['legacy', 'source']);
+  assert.equal(calls[0].query.status, 'in.(pending,processing)');
+  assert.equal(calls[0].query.limit, '101');
 });
 
 test('cancel changes only a pending job, preserves audit history, and returns terminal state', () => {

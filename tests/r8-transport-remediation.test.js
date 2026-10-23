@@ -32,7 +32,7 @@ function sheetHarness(volume = '') {
     }
   };
   const sandbox = vm.createContext({
-    APP_CONFIG: { spreadsheetId: 'isolated', sheets: { vanChuyen: { name: 'NL_VanChuyen', headerRow: 2 } } },
+    APP_CONFIG: { spreadsheetId: 'isolated', year: '2026', sheets: { vanChuyen: { name: 'NL_VanChuyen', headerRow: 2 } } },
     SpreadsheetApp: { openById: (id) => { assert.equal(id, 'isolated'); return { getSheetByName: () => sheet }; } },
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
     PropertiesService: { getScriptProperties: () => ({ setProperty() {} }) }
@@ -59,7 +59,7 @@ test('actual Manage openEdit -> payload -> Sheet retains blank volume, helper an
   const rowData = Object.fromEntries(Object.entries(draft).map(([key, value]) => [key, sandbox.numericInputHeader(key) ? n.normalizeVietnameseNumberInput(value) : value]));
   const svc = createWriteCommandService({
     httpError: (status, message) => Object.assign(new Error(message), { status }),
-    workbookContextService: { resolve: () => ({ year: '2026', spreadsheetId: 'isolated' }) },
+    workbookContextService: { assertWritable: () => ({ year: '2026', spreadsheetId: 'isolated' }) },
     repository: { enqueue: async (_config, intent) => intent }, send: (_res, _status, body) => body
   });
   const intent = await svc.handle('saveSheetRow', { method: 'POST', body: { sheetName: 'NL_VanChuyen', rowData } }, {}, {}, { id: 'synthetic' });
@@ -82,7 +82,7 @@ test('stored numeric editor round trips blanks, zero, negatives and fractional p
 test('API and Sheet backend reject zero/negative/nonfinite volume before enqueue/write, retaining explicit zero in other fields', async () => {
   let enqueues = 0;
   const svc = createWriteCommandService({ httpError: (status, message) => Object.assign(new Error(message), { status }),
-    workbookContextService: { resolve: () => ({ year: '2026', spreadsheetId: 'isolated' }) },
+    workbookContextService: { assertWritable: () => ({ year: '2026', spreadsheetId: 'isolated' }) },
     repository: { enqueue: async () => { enqueues++; return {}; } }, send() {} });
   const h = sheetHarness();
   for (const volume of [0, '0', -1, 'Infinity', 'NaN', Infinity, true, {}, '1,2', '1e999']) {
@@ -115,12 +115,12 @@ test('refresh clears an old cached month after its last source row moves or is d
   const sandbox = vm.createContext({}); vm.runInContext(read('ManageSyncService.gs'), sandbox);
   const manage = sandbox.ManageSyncService; const published = [];
   let fail = false; let sourceHasRows = true; const offsets = [];
-  const mc = { clean: String, normalizeYearMonthKey: (v) => /^\d{4}-\d{2}$/.test(v) ? v : '',
+  const mc = { year: '2026', clean: String, normalizeYearMonthKey: (v) => /^\d{4}-\d{2}$/.test(v) ? v : '',
     parseDateValue: () => null, getHeaderRow: () => 2,
     getSheet: () => ({ getLastColumn: () => 2, getLastRow: () => sourceHasRows ? 3 : 2,
       getRange: (row) => ({ getDisplayValues: () => [['Ngày', 'Tháng']], getValues: () => row === 3 ? [['2026-10']] : [] }) }),
     readCacheRows: (table, query) => {
-      assert.equal(table, 'manage_data_bundles'); assert.equal(query.sheet_name, 'eq.NL_VanChuyen');
+      assert.equal(table, 'manage_data_bundles'); assert.equal(query.sheet_name, 'eq.2026:NL_VanChuyen');
       assert.equal(query.select, 'filter_key'); assert.equal(query.filter_key, 'like.month:*'); offsets.push(query.offset);
       if (fail) throw new Error('cache unavailable');
       return query.offset === 0 ? Array.from({ length: 100 }, () => ({ filter_key: 'month:2026-09' })) : [{ filter_key: 'month:2026-10' }];
@@ -204,7 +204,7 @@ test('a burst of actual transport triggers persists bounded range metadata witho
   let now = 1000000; const props = new Map(); let native = 0; let metadata = 0;
   const forbidden = () => { native++; throw Error('Sheet read, network or lock on event path'); };
   const sandbox = vm.createContext({ console: { log() {} }, normalizeCleanValue_: (v) => String(v ?? '').trim(),
-    APP_CONFIG: { spreadsheetId: 'isolated' },
+    APP_CONFIG: { spreadsheetId: 'isolated', year: '2026' },
     PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => props.get(k), setProperty: (k, v) => props.set(k, v) }) },
     LockService: { getScriptLock: forbidden }, Utilities: { getUuid: () => crypto.randomUUID() },
     SpreadsheetApp: { openById: forbidden }, SupabaseSyncStatusRepository: { upsert: forbidden }
@@ -217,7 +217,7 @@ test('a burst of actual transport triggers persists bounded range metadata witho
   }));
   const service = sandbox.SupabaseService;
   const event = { triggerUid: 'edit', source: { getId: forbidden, getActiveSheet: forbidden }, range: {
-    getSheet: () => { metadata++; return { getName: () => { metadata++; return 'NL_Dau'; } }; },
+    getGridId: () => { metadata++; return 731; }, getSheet: forbidden,
     getRow: () => { metadata++; return 25; }, getNumRows: () => { metadata++; return 1; },
     getValues: forbidden, getDisplayValues: forbidden
   } };
@@ -227,26 +227,26 @@ test('a burst of actual transport triggers persists bounded range metadata witho
   }
   assert.equal(native, 0);
   assert.ok(metadata > 0);
-  const signal = JSON.parse(props.get('SUPABASE_SHEET_SIGNAL_TRANSPORT'));
-  assert.ok(signal.token); assert.deepEqual(signal.scopes.at(-1), { sheetName: 'NL_Dau', startRow: 25, numRows: 1 });
-  assert.equal(props.has('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC'), false);
+  const signal = JSON.parse(props.get('SUPABASE_SHEET_SIGNAL_TRANSPORT_2026'));
+  assert.ok(signal.token); assert.deepEqual(signal.scopes.at(-1), { gridId: 731, startRow: 25, numRows: 1 });
+  assert.equal(props.has('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_2026'), false);
   assert.throws(() => service.handleTransportSheetEdit({ ...event, triggerUid: 'foreign' }), /workbook/);
   assert.throws(() => service.handleTransportSheetEdit({ source: event.source }), /binding/);
-  const old = props.get('SUPABASE_SHEET_SIGNAL_TRANSPORT');
+  const old = props.get('SUPABASE_SHEET_SIGNAL_TRANSPORT_2026');
   now += 100; assert.equal(service.handleTransportSheetChange({ triggerUid: 'change', changeType: 'REMOVE_ROW' }).signaled, true);
-  assert.notEqual(props.get('SUPABASE_SHEET_SIGNAL_TRANSPORT'), old);
+  assert.notEqual(props.get('SUPABASE_SHEET_SIGNAL_TRANSPORT_2026'), old);
 });
 
 test('actual timer lease survives cache eviction and prevents overlapping work at 330s; new events survive the old ACK', () => {
   let now = 1000000; const props = new Map(); let service; let nested; let reports = 0;
   class ClockDate extends Date { constructor(...args) { super(...(args.length ? args : [now])); } }
   const sandbox = vm.createContext({ Date: ClockDate, console: { log() {} }, normalizeCleanValue_: (v) => String(v ?? '').trim(),
-    APP_CONFIG: { spreadsheetId: 'isolated' },
+    APP_CONFIG: { spreadsheetId: 'isolated', year: '2026' },
     PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => props.get(k), setProperty: (k, v) => props.set(k, v), deleteProperty: (k) => props.delete(k) }) },
     LockService: { getScriptLock: () => ({ waitLock() {}, tryLock: () => true, releaseLock() {} }) },
     CacheService: { getScriptCache: () => { throw new Error('lease must not depend on evictable cache'); } },
     Utilities: { formatDate: () => '2026-10', getUuid: () => crypto.randomUUID() },
-    SupabaseSyncStatusRepository: { upsert() {} },
+    SupabaseSyncStatusRepository: { upsert() {} }, NotificationPipelineService: { run: () => ({ checked: false }) },
     ReportSyncService: { syncReportBundle() {
       reports++; now += 330000;
       nested = service.syncRealtimeCache();
@@ -258,15 +258,16 @@ test('actual timer lease survives cache eviction and prevents overlapping work a
   service = sandbox.SupabaseService;
   sandbox.ManualReportRefreshQueueService.enqueue({ months: ['2026-10'], includeAll: false }, {
     nowMillis: () => now, nowISOString: () => new Date(now).toISOString(), normalizeYearMonthKey: String,
+    propertyKey: 'SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_2026',
     withLock: (fn) => fn(), getProperty: (k) => props.get(k), setProperty: (k, v) => props.set(k, v), deleteProperty: (k) => props.delete(k)
   });
   now += 15001;
-  for (const key of ['SUPABASE_REALTIME_HEARTBEAT_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_TRIP_NOTIFICATION_NEXT_AT', 'SUPABASE_SOURCE_POLL_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) props.set(key, String(now + 3600000));
+  for (const key of ['SUPABASE_REALTIME_HEARTBEAT_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_TRIP_NOTIFICATION_NEXT_AT', 'SUPABASE_SOURCE_POLL_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) props.set(key + '_2026', String(now + 3600000));
   const result = service.syncRealtimeCache();
   assert.equal(result.ok, true); assert.equal(result.acknowledgement.acknowledged, true);
   assert.equal(nested.skipped, true); assert.match(nested.reason, /still running/); assert.equal(reports, 1);
-  assert.equal(props.has('SUPABASE_REALTIME_TICK_RUNNING'), false);
-  assert.deepEqual(JSON.parse(props.get('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC')).sheets, ['NL_TaiXe']);
+  assert.equal(props.has('SUPABASE_REALTIME_TICK_RUNNING_2026'), false);
+  assert.deepEqual(JSON.parse(props.get('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_2026')).sheets, ['NL_TaiXe']);
 });
 
 test('bounded worker stops after one report or the elapsed-time budget, preserving the remaining cursor', () => {

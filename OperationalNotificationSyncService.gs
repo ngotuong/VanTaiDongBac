@@ -34,7 +34,7 @@ var OperationalNotificationSyncService = (function () {
       syncedAt: syncedAt
     };
     context.upsertRows(CACHE_TABLE, [{
-      sheet_name: CACHE_SHEET,
+      sheet_name: context.year + ':' + CACHE_SHEET,
       filter_key: CACHE_FILTER_KEY,
       payload: payload,
       synced_at: syncedAt

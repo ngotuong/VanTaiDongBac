@@ -62,6 +62,25 @@ test('dry-run uses the currentBalance metric result and never sends or mutates s
   assert.equal(context.writes.length, 0);
 });
 
+test('Fund alert resolves the active cashflow year from the server registry', async () => {
+  let requestedYear = '';
+  const context = fixture();
+  context.service = createFundLowBalanceAlertService({
+    balanceRepository: { async currentBalance(_config, year) { requestedYear = year; return { value: THRESHOLD, syncedAt: '2027-01-01T00:00:00Z', monthKey: '2027-01' }; } },
+    ruleRepository: { async find() { return null; } },
+    ruleConfigRepository: { async find() { return { enabled: true, threshold_value: THRESHOLD, cooldown_minutes: 1440, recipient_roles: [], notification_body: NOTIFICATION.body }; } },
+    preferenceRepository: { async listByUserIds() { return []; } },
+    appUserRepository: { async list() { return []; } },
+    subscriptionRepository: { async listByUserIds() { return []; } },
+    workbookContextService: { async resolveAsync(input) { assert.deepEqual(input, { module: 'cashflow' }); return { year: '2027' }; } },
+    webPush: { setVapidDetails() {}, async sendNotification() {} },
+    httpError,
+    now: () => new Date('2027-01-01T01:00:00.000Z')
+  });
+  await context.service.dryRun(context.config);
+  assert.equal(requestedYear, '2027');
+});
+
 test('an explicit per-user preference removes that account and its devices from delivery', async () => {
   const context = fixture({ disabledUserIds: ['shareholder-1'], subscriptions: 1 });
   const result = await context.service.dryRun(context.config);

@@ -3,7 +3,11 @@ const test = require('node:test');
 const crypto = require('node:crypto');
 const { createFundLowBalanceAlertService, RULE_KEY, FUND_NOTIFICATION_ID } = require('../server/services/fund-low-balance-alert-service');
 const { createNotificationRuleRepository } = require('../server/repositories/notification-rule-repository');
-const { createNotificationCenterService } = require('../server/services/notification-center-service');
+const { createNotificationCenterService: createNotificationCenterServiceRaw } = require('../server/services/notification-center-service');
+const createNotificationCenterService = (options) => createNotificationCenterServiceRaw({
+  ...options,
+  workbookContextService: { resolve: () => ({ year: '2026' }) }
+});
 const { createNotificationDispatchService, BASELINE_KEY } = require('../server/services/notification-dispatch-service');
 
 function fixture({ deviceCount = 1, cooldownMinutes = 1440 } = {}) {

@@ -91,6 +91,7 @@ const FORM_TYPES = Object.keys(FORMS) as EntryFormType[];
 const CANCELED_JOB_PREFIX = 'CANCELED_BY_OPERATOR:';
 const catalogsForAllForms = (value: EntryCatalogs) => Object.fromEntries(FORM_TYPES.map((type) => [type, value])) as Record<string, EntryCatalogs>;
 const isActiveEntryJob = (job: WriteJob) => ['pending', 'processing', 'failed'].includes(job.status) && !String(job.lastError || '').startsWith(CANCELED_JOB_PREFIX);
+const isWorkbookJob = (job: WriteJob, year: string, activeYear: string) => job.payload?.year ? job.payload.year === year : year === activeYear;
 const jobFormLabel = (job: WriteJob) => {
   const formType = job.payload?.formType;
   return formType && FORMS[formType] ? FORMS[formType].label : 'Nhập liệu';
@@ -137,14 +138,14 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
   };
   const currentCatalogs = catalogs[form] || {};
   const config = FORMS[form];
-  const canWrite = context.user.role === 'admin' || context.user.role === 'operator';
+  const canWrite = !context.workbook.readOnly && (context.user.role === 'admin' || context.user.role === 'operator');
   useEffect(() => {
     if (!canWrite || initialCatalogsRequested.current) return;
     initialCatalogsRequested.current = true;
     let active = true;
     setCatalogLoading(true);
     api
-      .get<EntryCatalogs & { catalogs?: EntryCatalogs }>('getCatalogs', { params: { formType: '' } })
+      .get<EntryCatalogs & { catalogs?: EntryCatalogs }>('getCatalogs', { params: { formType: '', year: context.workbook.year } })
       .then((res) => {
         if (active) setCatalogs(catalogsForAllForms(res.catalogs || res));
       })
@@ -162,7 +163,7 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
     return () => {
       active = false;
     };
-  }, [canWrite]);
+  }, [canWrite, context.workbook.year]);
   useEffect(() => {
     publishDataSourceMeta(initialCatalogs);
   }, [initialCatalogs]);
@@ -170,15 +171,15 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
     if (!canWrite) return;
     let active = true;
     api
-      .get<{ jobs?: WriteJob[] }>('getRecentWriteJobs', { params: { module: 'transport', actionName: 'submitRows', limit: '12' } })
+      .get<{ jobs?: WriteJob[] }>('getRecentWriteJobs', { params: { module: 'transport', actionName: 'submitRows', limit: '12', year: context.workbook.year } })
       .then((res) => {
-        if (active) setJobs((res.jobs || []).filter(isActiveEntryJob));
+        if (active) setJobs((res.jobs || []).filter(isActiveEntryJob).filter((job) => isWorkbookJob(job, context.workbook.year, context.workbook.activeYear)));
       })
       .catch(() => {});
     return () => {
       active = false;
     };
-  }, [canWrite]);
+  }, [canWrite, context.workbook.activeYear, context.workbook.year]);
   useEffect(() => {
     const pending = jobs.filter((j) => j.jobId && ['pending', 'processing'].includes(j.status));
     if (!pending.length) return;
@@ -225,7 +226,7 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
     showToast('Đang gửi lệnh ghi dữ liệu…', 'loading');
     try {
       const submittedRows = rows.map((row) => ({ ...row }));
-      const queued = { ...normalizeJob(await api.post<WriteJob>('submitRows', { body: { formType: form, rows, clientRequestId: `entry-${Date.now()}-${crypto.randomUUID()}` } })), payload: { formType: form } };
+      const queued = { ...normalizeJob(await api.post<WriteJob>('submitRows', { body: { year: context.workbook.year, formType: form, rows, clientRequestId: `entry-${Date.now()}-${crypto.randomUUID()}` } })), payload: { formType: form, year: context.workbook.year } };
       if (!queued.jobId) throw new Error('API không trả về mã write job.');
       setJobs((old) => [queued, ...old.filter((j) => j.jobId !== queued.jobId)].slice(0, 12));
       setRows([blank(form)]);
@@ -242,7 +243,7 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
   const retry = async (jobId: string) => {
     showToast('Đang đưa lệnh về hàng chờ…', 'loading');
     try {
-      const job = normalizeJob(await api.post<WriteJob>('retryWriteJob', { body: { jobId } }));
+      const job = normalizeJob(await api.post<WriteJob>('retryWriteJob', { body: { jobId, year: context.workbook.year } }));
       setJobs((old) => old.map((item) => (item.jobId === jobId ? job : item)));
       report(`Đã đưa job ${jobId} về hàng chờ.`);
       void api.post('processWriteJobs', { body: { maxJobs: 2 } }).catch(() => {});
@@ -256,7 +257,7 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
         <div className="panel entry-permission" role="alert">
           <div className="panel-body">
             <h2>Không có quyền nhập liệu</h2>
-            <p>Tài khoản cổ đông chỉ được xem dữ liệu Vận hành.</p>
+            <p>{context.workbook.readOnly ? `Năm ${context.workbook.year} đã lưu trữ và chỉ được xem.` : 'Tài khoản cổ đông chỉ được xem dữ liệu Vận hành.'}</p>
           </div>
         </div>
       </section>

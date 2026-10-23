@@ -22,7 +22,8 @@ function createPayrollExplanationService({ repository, workbookContextService, h
     const employeeName = String(req.query?.employee || '').trim();
     const normalizedEmployeeKey = employeeKey(employeeName);
     if (!normalizedEmployeeKey) throw httpError(400, 'Thiếu nhân sự cần giải trình.');
-    const workbook = workbookContextService.resolve({ module: 'transport', year: req.query?.year });
+    const resolveWorkbook = workbookContextService.resolveAsync || workbookContextService.resolve;
+    const workbook = await resolveWorkbook.call(workbookContextService, { module: 'transport', year: req.query?.year });
     const [row, reportVersion] = await Promise.all([
       repository.findOne(config, workbook.spreadsheetId, reportMonth, normalizedEmployeeKey),
       repository.findReportVersion(config, workbook.spreadsheetId, reportMonth)

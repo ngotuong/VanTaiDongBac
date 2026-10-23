@@ -419,11 +419,19 @@ var SheetService = (function () {
   }
 
   function getReportDataVersion_() {
-    return PropertiesService.getScriptProperties().getProperty(REPORT_DATA_VERSION_PROP) || '0';
+    var props = PropertiesService.getScriptProperties();
+    var key = reportDataVersionPropertyKey_();
+    return props.getProperty(key) || (APP_CONFIG.year === '2026' ? props.getProperty(REPORT_DATA_VERSION_PROP) : '') || '0';
   }
 
   function bumpReportDataVersion_() {
-    PropertiesService.getScriptProperties().setProperty(REPORT_DATA_VERSION_PROP, String(new Date().getTime()));
+    PropertiesService.getScriptProperties().setProperty(reportDataVersionPropertyKey_(), String(new Date().getTime()));
+  }
+
+  function reportDataVersionPropertyKey_() {
+    var year = clean_(APP_CONFIG && APP_CONFIG.year);
+    if (!/^20\d{2}$/.test(year)) throw new Error('Năm workbook chưa được cấu hình cho report data version.');
+    return REPORT_DATA_VERSION_PROP + '_' + year;
   }
 
   function readReportDetailsCacheMap_(ss, dataVersion) {

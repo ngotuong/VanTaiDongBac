@@ -22,6 +22,10 @@
 - `DELETE /api/session`: yêu cầu same-origin và CSRF header, sau đó xóa access/refresh cookie.
 - Shared shell gọi `GET /api/session` khi mount, mỗi 40 phút và khi tab hoạt động lại sau khoảng nghỉ tương ứng. Nếu root guard gặp access cookie đã hết hạn, `LoginGate` thử khôi phục bằng refresh cookie trước khi hiển thị form đăng nhập; token vẫn chỉ nằm trong cookie `HttpOnly`.
 - `GET /api/app?action=runtimeContext&module=<transport|cashflow>&year=<YYYY>`: action read-only; resolve workbook từ `WORKBOOK_CONTEXTS_JSON`; chỉ trả user, module và year; không trả Spreadsheet ID, không fallback bundle mới nhất và không gọi Apps Script.
+- `POST /api/workbook-year`: same-origin + `X-VTDB-CSRF: workbook-year` + session hợp lệ; chỉ nhận năm có đủ Vận tải và Thu chi trong allowlist rồi đặt cookie `vtdb_workbook_year` HttpOnly/SameSite=Strict. Spreadsheet ID không đi qua browser.
+- `GET /api/app?action=getYearRolloverStatus&sourceYear=YYYY&targetYear=YYYY`: admin-only; trả trạng thái manifest/registry/run gần nhất đã loại Spreadsheet ID. Operator/shareholder nhận 403 trước khi forward.
+- `POST /api/app` action `manageYearRollover`: admin-only; operation allowlist chính xác `preview | canary | provision | audit | prepare | activate`. `canary` tạo hai bản sao có tên kỹ thuật, áp manifest rồi luôn chuyển chúng vào thùng rác; không đăng ký ID/property. Actor do server chèn và ghi đè mọi actor client gửi. `activate` chỉ được forward khi `BUSINESS_WRITES_PAUSED=true`; Apps Script tiếp tục kiểm `WRITE_QUEUE_PAUSED`, queue/audit token và role actor.
+- Mọi mutation resolve lại workbook server-side. Nếu năm khác `DEFAULT_WORKBOOK_YEAR`, API trả 409 và không enqueue/forward ghi.
 
 ## 1. Mục đích và phạm vi
 

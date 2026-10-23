@@ -21,6 +21,7 @@ test('OAuth public homepage describes the app and links policy pages', () => {
 test('OAuth privacy policy discloses Google data access and infrastructure processors', () => {
   const source = read('public/oauth/privacy.html');
   assert.match(source, /Google Sheets/);
+  assert.match(source, /hai bản sao Google Sheets Vận tải và Thu chi/);
   assert.match(source, /Supabase/);
   assert.match(source, /Vercel/);
   assert.match(source, /Limited Use/);

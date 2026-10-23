@@ -187,7 +187,7 @@ var TripNotificationSyncService = (function () {
       syncedAt: syncedAt
     };
     context.upsertRows(CACHE_TABLE, [{
-      sheet_name: SOURCE_SHEET,
+      sheet_name: context.year + ':' + SOURCE_SHEET,
       filter_key: CACHE_FILTER_KEY,
       payload: payload,
       synced_at: syncedAt
@@ -199,7 +199,7 @@ var TripNotificationSyncService = (function () {
   function readPreviousItems_(context) {
     if (!context.readRows) return [];
     var rows = context.readRows(CACHE_TABLE, {
-      sheet_name: 'eq.' + SOURCE_SHEET,
+      sheet_name: 'eq.' + context.year + ':' + SOURCE_SHEET,
       filter_key: 'eq.' + CACHE_FILTER_KEY,
       select: 'payload',
       limit: '1'

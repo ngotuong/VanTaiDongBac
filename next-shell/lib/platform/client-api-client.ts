@@ -15,7 +15,7 @@ export function createClientApiClient(fetchImpl: typeof fetch = fetch) {
         method: 'POST',
         credentials: 'same-origin',
         signal: options.signal,
-        headers: { 'Content-Type': 'application/json', 'X-VTDB-Client': 'next-platform' },
+        headers: { 'Content-Type': 'application/json', 'X-VTDB-Client': 'next-platform', 'X-VTDB-CSRF': 'session' },
         body: JSON.stringify({ action, params: options.params || {}, ...(options.body || {}) })
       });
       return parseApiResponse<T>(response);

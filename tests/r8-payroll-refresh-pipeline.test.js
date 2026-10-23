@@ -36,7 +36,7 @@ function pipeline() {
   class ClockDate extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } }
   const sandbox = vm.createContext({
     Date: ClockDate, console: { log() {} },
-    APP_CONFIG: { spreadsheetId: 'synthetic-workbook', timezone: 'Asia/Ho_Chi_Minh' },
+    APP_CONFIG: { spreadsheetId: 'synthetic-workbook', year: '2026', timezone: 'Asia/Ho_Chi_Minh' },
     normalizeCleanValue_: (value) => String(value ?? '').trim(),
     PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => props.get(k) ?? null, setProperty: (k, v) => props.set(k, v), deleteProperty: (k) => props.delete(k) }) },
     CacheService: { getScriptCache: () => ({ get: (k) => cache.get(k), put: (k, v) => cache.set(k, v), remove: (k) => cache.delete(k) }) },
@@ -73,7 +73,7 @@ function pipeline() {
     new vm.Script(fs.readFileSync(path.join(root, file), 'utf8'), { filename: file }).runInContext(sandbox);
   }
   function disableUnrelatedTicks() {
-    for (const key of ['SUPABASE_TRIP_NOTIFICATION_NEXT_AT', 'SUPABASE_SOURCE_POLL_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_REALTIME_HEARTBEAT_NEXT_AT']) props.set(key, String(now + 3600000));
+    for (const key of ['SUPABASE_TRIP_NOTIFICATION_NEXT_AT', 'SUPABASE_SOURCE_POLL_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_REALTIME_HEARTBEAT_NEXT_AT']) props.set(key + '_2026', String(now + 3600000));
   }
   disableUnrelatedTicks();
   const service = sandbox.SupabaseService;

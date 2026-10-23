@@ -183,7 +183,8 @@ function getReportCacheCutoverAuditForMigration() {
 
 function runReportCacheGuardedBatch_(callback) {
   var parityProperty = 'REPORT_CACHE_E1_PARITY_RUNNING';
-  var realtimeRunningKey = 'SUPABASE_REALTIME_TICK_RUNNING';
+  var activeYear = String(APP_CONFIG.year || '').trim();
+  var realtimeRunningKey = 'SUPABASE_REALTIME_TICK_RUNNING' + (activeYear ? '_' + activeYear : '');
   var properties = PropertiesService.getScriptProperties();
   var runtimeCache = CacheService.getScriptCache();
   var guardLock = LockService.getScriptLock();

@@ -56,7 +56,7 @@ function loadFund(rows, options = {}) {
   };
   const properties = { getProperty: (key) => key === 'FUND_SPREADSHEET_ID_2026' ? 'fund-2026' : '', setProperty: (...args) => calls.push(['property', ...args]) };
   const sandbox = vm.createContext({
-    APP_CONFIG: { timezone: 'Asia/Ho_Chi_Minh' },
+    APP_CONFIG: { year: '2026', timezone: 'Asia/Ho_Chi_Minh' },
     Utilities: { DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' }, computeDigest: (_algorithm, text) => crypto.createHash('sha256').update(text).digest(), base64EncodeWebSafe: (bytes) => Buffer.from(bytes).toString('base64url'), formatDate: (date, timezone, pattern) => format(date, pattern) },
     SpreadsheetApp: { openById: (id) => ({
       getSheetByName: (name) => name === 'NHAP_VAY' ? sheet : null,

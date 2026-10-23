@@ -107,7 +107,8 @@ test('report infrastructure keeps versions in Script Properties and has no SYS_R
 
   const source = read('SheetService.gs');
   assert.match(source, /ReportTempSheetService\.computeDetails/);
-  assert.match(source, /PropertiesService\.getScriptProperties\(\)\.getProperty\(REPORT_DATA_VERSION_PROP\)/);
+  assert.match(source, /reportDataVersionPropertyKey_\(\)/);
+  assert.match(source, /REPORT_DATA_VERSION_PROP \+ '_' \+ year/);
   assert.match(source, /SupabaseReportCacheRepository\.readDetailsMap/);
   assert.doesNotMatch(source, /SheetReportCacheRepository\./);
   assert.doesNotMatch(source, /SYS_ReportCache/);

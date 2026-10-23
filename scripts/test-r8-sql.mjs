@@ -16,7 +16,32 @@ try {
     create schema auth; create table auth.users(id uuid primary key);
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true),'')::uuid $$;
     grant usage on schema auth to authenticated, service_role;`);
-  for (const file of fs.readdirSync(path.join(root, 'supabase/migrations')).filter((file) => file.endsWith('.sql')).sort()) sql(fs.readFileSync(path.join(root, 'supabase/migrations', file), 'utf8'));
+  const migrationFiles = fs.readdirSync(path.join(root, 'supabase/migrations')).filter((file) => file.endsWith('.sql')).sort();
+  for (const file of migrationFiles) {
+    if (file === '019_multi_year_cache_namespace.sql') {
+      sql(`insert into startup_bundles(form_type,payload) values ('vanChuyen','{"source":"legacy"}');
+        insert into catalog_bundles(catalog_key,payload) values ('catalogs:all','{"source":"legacy"}'),('fund_catalog:2026:partners','{"source":"fund"}');
+        insert into manage_data_bundles(sheet_name,filter_key,payload) values ('NL_Dau','recent_500','{"source":"legacy"}');`);
+    }
+    sql(fs.readFileSync(path.join(root, 'supabase/migrations', file), 'utf8'));
+  }
+  assert.equal(sql("select payload->>'source' from startup_bundles where form_type='2026:vanChuyen';").trim(), 'legacy');
+  assert.equal(sql("select payload->>'source' from catalog_bundles where catalog_key='transport:2026:catalogs:all';").trim(), 'legacy');
+  assert.equal(sql("select payload->>'source' from manage_data_bundles where sheet_name='2026:NL_Dau' and filter_key='recent_500';").trim(), 'legacy');
+  assert.equal(sql("select count(*) from catalog_bundles where catalog_key='fund_catalog:2026:partners';").trim(), '1');
+  sql(fs.readFileSync(path.join(root, 'supabase/migrations/019_multi_year_cache_namespace.sql'), 'utf8'));
+  assert.equal(sql("select count(*) from startup_bundles where form_type in ('vanChuyen','2026:vanChuyen');").trim(), '2');
+  sql(`insert into workbook_contexts(year,transport_spreadsheet_id,cashflow_spreadsheet_id,lifecycle_status,source_year)
+       values ('2026','transport-workbook-2026-id','cashflow-workbook-2026-id','active',null),
+              ('2027','transport-workbook-2027-id','cashflow-workbook-2027-id','ready','2026');`);
+  assert.throws(() => sql("set role service_role; select activate_workbook_context('2025','2026',now());"), /source workbook context is not active/);
+  for (const role of ['anon', 'authenticated']) {
+    assert.throws(() => sql(`set role ${role}; select * from workbook_contexts;`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select activate_workbook_context('2026','2027',now());`), /permission denied/);
+  }
+  sql("set role service_role; select activate_workbook_context('2026','2027',now());");
+  sql("set role service_role; select activate_workbook_context('2026','2027',now());");
+  assert.equal(sql("select string_agg(year||':'||lifecycle_status,',' order by year) from workbook_contexts;").trim(), '2026:archived,2027:active');
   sql(fs.readFileSync(path.join(root, 'tests/sql/r8-queue.sql'), 'utf8'));
   sql(fs.readFileSync(path.join(root, 'tests/sql/r8-payroll-isolation.sql'), 'utf8'));
   sql(fs.readFileSync(path.join(root, 'tests/sql/notification-cooldown.sql'), 'utf8'));
@@ -95,5 +120,5 @@ try {
   assert.equal(sql("select status from write_jobs where id='sql-worker-fault';").trim(), 'failed');
   assert.equal(sql("select count(*) from write_job_logs where job_id='sql-worker-fault' and status='failed';").trim(), '1');
   console.log('R8 SQL worker/repository PASS: real claims, owned updates, terminal logs, fault isolation and exhausted lease recovery; Sheet boundary synthetic.');
-  console.log('R8 SQL PASS: migrations 001–018, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
+  console.log('R8 SQL PASS: migrations 001–020, multi-year cache copy/idempotency, server-only workbook registry/transactional activation, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
 } finally { try { docker(['rm', '--force', name]); } catch {} }

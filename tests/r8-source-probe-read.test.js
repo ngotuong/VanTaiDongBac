@@ -133,7 +133,7 @@ function coordinator({ missing = false, failIndex = false, page = false, changed
   h.calls.length = 0;
   const initialOpens = h.opens();
   const s = vm.createContext({ console: { log: (line) => h.logs.push(line) },
-    normalizeCleanValue_: h.context.clean, APP_CONFIG: { spreadsheetId: 'isolated', timezone: 'Asia/Ho_Chi_Minh', sheets: { fuel: { name: 'NL_Dau', headerRow: 2 }, driver: { name: 'NL_TaiXe', headerRow: 2 } } },
+    normalizeCleanValue_: h.context.clean, APP_CONFIG: { spreadsheetId: 'isolated', year: '2026', timezone: 'Asia/Ho_Chi_Minh', sheets: { fuel: { name: 'NL_Dau', headerRow: 2 }, driver: { name: 'NL_TaiXe', headerRow: 2 } } },
     SpreadsheetApp: { openById: h.options.openSpreadsheet },
     PropertiesService: { getScriptProperties: () => props }, CacheService: { getScriptCache: () => ({}) },
     Utilities: { getUuid: () => 'isolated-tick', formatDate: (date, pattern) => pattern === 'yyyy-MM' ? h.context.formatDate(date) : '',
@@ -154,7 +154,7 @@ function coordinator({ missing = false, failIndex = false, page = false, changed
     } }
   });
   for (const file of ['ManageSyncService.gs', 'TransportSourceProbeService.gs', 'SupabaseService.gs']) vm.runInContext(read(file), s);
-  for (const k of ['SUPABASE_REALTIME_HEARTBEAT_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) properties.set(k, String(Date.now() + 86400000));
+  for (const k of ['SUPABASE_REALTIME_HEARTBEAT_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) properties.set(k + '_2026', String(Date.now() + 86400000));
   return { h, results, queries, properties, initialOpens, run: () => s.SupabaseService.syncRealtimeCache() };
 }
 
@@ -182,7 +182,7 @@ test('cache index failure propagates without committing input hashes or retainin
   const c = coordinator({ failIndex: true }); const old = c.properties.get('SUPABASE_TRANSPORT_INPUT_HASH_V1_NL_Dau');
   assert.throws(c.run, /index unavailable/);
   assert.equal(c.properties.get('SUPABASE_TRANSPORT_INPUT_HASH_V1_NL_Dau'), old);
-  assert.equal(c.properties.has('SUPABASE_REALTIME_TICK_RUNNING'), false);
+  assert.equal(c.properties.has('SUPABASE_REALTIME_TICK_RUNNING_2026'), false);
   const last = c.h.logs.filter((line) => line.startsWith('transport_probe_phase:')).at(-1);
   assert.equal(JSON.parse(last.split('transport_probe_phase:')[1]).ok, false);
   assert.ok(!last.includes('index unavailable'));

@@ -3,7 +3,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
-const { createNotificationCenterService } = require('../server/services/notification-center-service');
+const { createNotificationCenterService: createNotificationCenterServiceRaw } = require('../server/services/notification-center-service');
+const { createNotificationBundleRepository } = require('../server/repositories/notification-bundle-repository');
+const createNotificationCenterService = (options) => createNotificationCenterServiceRaw({
+  ...options,
+  workbookContextService: { resolve: () => ({ year: '2026' }) }
+});
 
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -66,6 +71,20 @@ test('daily digest summary uses previous-day transport and exact monthly Fund ov
   assert.match(dispatch, /Số chuyến:/);
   assert.match(dispatch, /Doanh thu:/);
   assert.match(dispatch, /\.join\('\\n'\)/);
+});
+
+test('notification repository keeps Fund on the active workbook and daily summary on the previous-date year', async () => {
+  const requested = [];
+  const repository = createNotificationBundleRepository({
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    fetchImpl: async (url) => {
+      requested.push(String(url));
+      return { ok: true, json: async () => [] };
+    }
+  });
+  await repository.find({ supabaseUrl: 'https://example.supabase.co', serviceRoleKey: 'test' }, '2026-12-31', '2027');
+  assert.equal(requested.some((url) => url.includes('fund_overview_bundles') && url.includes('year=eq.2027')), true);
+  assert.equal(requested.some((url) => url.includes('manage_data_bundles') && url.includes('sheet_name=eq.2026%3AXL_VanChuyen')), true);
 });
 
 test('daily summary resolves the live revenue header after the internal-discount column', () => {
@@ -295,12 +314,14 @@ test('operational notification ids remain stable when rows move', () => {
 
 test('notification delivery is opt-in, baselined and disabled in Apps Script until production rollout', () => {
   const dispatch = read('NotificationDispatchService.gs');
+  const endpoint = read('api/notification-dispatch.js');
   const service = read('server/services/notification-dispatch-service.js');
   const preferences = read('server/repositories/notification-preference-repository.js');
   assert.match(dispatch, /NOTIFICATION_DISPATCH_ENABLED/);
   assert.match(dispatch, /Notification dispatch is disabled/);
   assert.match(dispatch, /replace\(\/\\\/\+\$\/, ''\) \+ '\/'/);
   assert.match(dispatch, /method: 'post'/);
+  assert.match(endpoint, /createNotificationCenterService\(\{[\s\S]*?workbookContextService,[\s\S]*?\}\)/);
   assert.match(service, /notification-dispatch-baseline-v1/);
   assert.match(service, /Daily digest is scheduled at 12:00/);
   assert.match(preferences, /notification-preference:/);

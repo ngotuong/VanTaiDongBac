@@ -44,6 +44,8 @@ Tài liệu không chuyển source of truth sang Supabase. Google Sheets vẫn l
 10. Không đưa service role key vào browser.
 11. Không dùng cache Supabase để sửa ngược Google Sheet.
 12. Migration đã chạy không được sửa; thay đổi schema phải dùng migration mới.
+13. Mọi cache/queue có thể trùng logical key giữa các năm phải mang namespace năm hoặc exact Spreadsheet ID; không đọc row mới nhất không khóa năm.
+14. Browser chỉ gửi năm. Vercel resolve exact workbook pair; năm lưu trữ chỉ đọc và write job phải chứa `payload.year` cùng server-resolved `payload.spreadsheetId`.
 
 `payroll_explanation_bundles` (legacy v5) và `payroll_explanation_bundles_v6` (migration 017, RPC riêng) là cache dữ liệu nhạy cảm; không refresh/invalidate chéo phiên bản: browser không có quyền `select` trực tiếp. Chỉ service role đọc/ghi và API proxy-local đã xác thực mới trả đúng một nhân sự cho `admin`/`operator`. API chỉ công nhận payload đúng `contractVersion` và cùng `source_data_version` với `report_bundles`; nếu lệch, payload cũ bị ẩn và client chỉ được xếp hàng refresh đúng tháng.
 
@@ -79,6 +81,18 @@ Tài liệu không chuyển source of truth sang Supabase. Google Sheets vẫn l
 `app_users` không phải cache nghiệp vụ nhưng được RLS function dùng để cấp quyền đọc các bảng cache/queue.
 
 ## 4. Contract chung của cache bundle
+
+### 4.0. Namespace nhiều năm
+
+- `report_bundles`: tách bằng `spreadsheet_id`.
+- `startup_bundles`: `form_type=<year>:<legacy_form_type>`.
+- `catalog_bundles` Vận tải: `catalog_key=transport:<year>:<legacy_catalog_key>`; key Quỹ tiếp tục chứa năm.
+- `manage_data_bundles`: `sheet_name=<year>:<legacy_sheet_name>`.
+- `fund_*_bundles`: tách bằng cột `year`.
+- `sync_status`: status gắn dữ liệu năm dùng prefix `<year>:`; health hạ tầng dùng key global.
+- Script Properties của signal/queue/lease/cursor/data-version mang suffix `_<year>`.
+
+Migration `019` sao chép row legacy Vận tải sang namespace 2026 và giữ row cũ cho rollback. Runtime mới không fallback sang row legacy khi đọc năm đã chọn.
 
 ### 4.1. Payload
 
@@ -142,7 +156,7 @@ Nếu không hợp lệ, frontend fallback Apps Script thay vì render lỗi cac
 `manage_data_bundles` giữ một bundle nội bộ phục vụ bản tổng hợp 12:00 trưa ngày hôm sau:
 
 ```text
-sheet_name = XL_VanChuyen
+sheet_name = <year>:XL_VanChuyen
 filter_key = daily-summary:latest
 ```
 

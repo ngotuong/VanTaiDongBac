@@ -305,3 +305,19 @@ Sau backup/gate và maintenance được duyệt, apply `017_payroll_v6_cache_is
 ### R8 sequence log (`018`)
 
 Apply `018_write_job_log_sequence_permissions.sql` sau 017 bằng transaction guarded trong cửa sổ được duyệt. Migration chỉ thu hẹp ACL của sequence hiện hữu; không tạo/xóa job, đổi ID hoặc sửa Sheet. Hậu kiểm history/source, browser không USAGE/SELECT/UPDATE, service_role chỉ USAGE và vẫn INSERT log; sequence value, counts/queue giữ nguyên. Test database mới phải chạy worker/repository thực bằng service_role. Rollback runtime giữ 018; correction dùng migration forward, không cấp lại browser privileges.
+
+### Namespace cache nhiều năm (`019`, chưa apply)
+
+`019_multi_year_cache_namespace.sql` là migration additive cho runtime chọn workbook theo năm. Migration sao chép startup/catalog/manage legacy sang namespace 2026, giữ nguyên row legacy và không sửa Google Sheet. Chỉ apply trong cửa sổ được phê duyệt sau backup/gate; chạy lại phải idempotent. Runtime candidate phải qua Preview với exact `WORKBOOK_CONTEXTS_JSON` trước khi đổi `DEFAULT_WORKBOOK_YEAR`. Quy trình đầy đủ tại [YEAR_ROLLOVER](docs/operations/YEAR_ROLLOVER.md).
+
+### Registry và tạo workbook năm mới (`020`, chưa apply)
+
+Apply `020_year_rollover_self_service.sql` sau `019` trong cùng cửa sổ schema đã được duyệt. Migration tạo hai bảng server-only và RPC activation transactional; không đọc/ghi Google Sheet và không tự seed Spreadsheet ID. Hậu kiểm bắt buộc:
+
+- `anon`/`authenticated` không đọc được `workbook_contexts`, `workbook_rollover_runs` và không gọi được RPC;
+- service role đọc/ghi được registry;
+- partial unique index từ chối hai năm `active`;
+- RPC chỉ nhận năm liền kề, target `ready` và đổi trạng thái trong một transaction;
+- trước khi registry có dữ liệu, runtime vẫn resolve exact allowlist Vercel hiện hành.
+
+Sau migration mới deploy candidate Apps Script có Drive scope và webapp Preview. Owner cấp OAuth một lần, rồi cấu hình manifest exact theo [YEAR_ROLLOVER](docs/operations/YEAR_ROLLOVER.md). Việc apply `020` không tự tạo file, đổi năm active, trigger hoặc default year. Rollback runtime giữ schema additive; correction dùng migration forward.

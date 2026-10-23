@@ -7,6 +7,7 @@ const { createReportService } = require('../server/services/report-service');
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const httpError = (status, message) => Object.assign(new Error(message), { status });
+const workbookContextService = { resolve: ({ module, year }) => ({ module, year: year || '2026', spreadsheetId: 'sheet-1' }) };
 
 test('Report repository reads one exact month/workbook bundle with server credentials', async () => {
   let request;
@@ -54,6 +55,7 @@ test('Report API serves cached bundle and does not call Apps Script', async () =
   const service = createReportService({
     reportBundleRepository: { findLatest: async () => ({ payload: { ok: true, month: '07/2026' }, synced_at: 'now' }) },
     appsScriptClient: { forward: async () => { forwarded += 1; } }, httpError,
+    workbookContextService,
     send: (_res, status, body) => { response = { status, body }; return response; }
   });
   await service.handle('getReportBundle', { method: 'GET', query: { month: '07/2026', spreadsheetId: 'sheet-1' } }, {}, {}, { id: 'u1' });
@@ -65,6 +67,7 @@ test('Report API fails closed on an ordinary cache miss and only falls back for 
   const service = createReportService({
     reportBundleRepository: { findLatest: async () => { reads += 1; return null; } },
     appsScriptClient: { forward: async () => { forwards += 1; return { status: 200, body: { ok: true, source: 'apps-script' } }; } },
+    workbookContextService,
     httpError, send: (_res, status, body) => ({ status, body })
   });
   await assert.rejects(

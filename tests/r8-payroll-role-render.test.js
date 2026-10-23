@@ -36,7 +36,11 @@ const initialBundle = {
 for (const role of ['admin', 'operator', 'shareholder', 'unknown']) {
   test(`actual report render: ${role} retains payroll, explanation follows permission`, () => {
     const html = renderToStaticMarkup(React.createElement(WorkbookContextProvider, {
-      value: { user: { role } }
+      value: {
+        user: { id: 'qa-user', email: 'qa@example.com', displayName: 'QA', role },
+        workbook: { module: 'transport', year: '2026', activeYear: '2026', availableYears: ['2026'], readOnly: false },
+        correlationId: 'payroll-role-render'
+      }
     }, React.createElement(ReportModule, { initialBundle })));
     assert.match(html, /QA Person/);
     assert.match(html, /123\.456/);

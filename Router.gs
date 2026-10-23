@@ -34,10 +34,11 @@ function doGet(e) {
     if (action === 'readManageData') return timedJsonResponse_(action, startedAt, ManageService.readManageData(e.parameter.sheetName, e.parameter.startDate, e.parameter.endDate, e.parameter.limit));
     if (action === 'readCatalogData') return timedJsonResponse_(action, startedAt, CatalogService.readCatalogData(e.parameter.displaySheetName || e.parameter.sheetName));
     if (action === 'getWriteJobStatus') return timedJsonResponse_(action, startedAt, SupabaseService.getWriteJobStatus(e.parameter.jobId));
-    if (action === 'getRecentWriteJobs') return timedJsonResponse_(action, startedAt, SupabaseService.getRecentWriteJobs(e.parameter.module, e.parameter.actionName || e.parameter.jobAction, e.parameter.limit));
-    if (action === 'getSupabaseSyncStatus') return timedJsonResponse_(action, startedAt, SupabaseService.getSupabaseSyncStatus(e.parameter.limit, e.parameter.module));
+    if (action === 'getRecentWriteJobs') return timedJsonResponse_(action, startedAt, SupabaseService.getRecentWriteJobs(e.parameter.module, e.parameter.actionName || e.parameter.jobAction, e.parameter.limit, e.parameter.year));
+    if (action === 'getSupabaseSyncStatus') return timedJsonResponse_(action, startedAt, SupabaseService.getSupabaseSyncStatus(e.parameter.limit, e.parameter.module, e.parameter.year));
     if (action === 'getReportCacheAudit') return timedJsonResponse_(action, startedAt, SupabaseService.getReportCacheAudit(e.parameter.months));
     if (action === 'getManageCacheAudit') return timedJsonResponse_(action, startedAt, SupabaseService.getManageCacheAudit(e.parameter.sheetNames || e.parameter.sheets, e.parameter.limit));
+    if (action === 'getYearRolloverStatus') return timedJsonResponse_(action, startedAt, getYearRolloverStatus(e.parameter.sourceYear, e.parameter.targetYear));
     if (action === 'submitRowsGet') {
       throw new Error('submitRowsGet đã tắt để tránh ghi trùng dữ liệu. Vui lòng tải lại frontend mới và gửi bằng POST.');
     }
@@ -86,6 +87,7 @@ function doPost(e) {
     var requestMethod = String(payload.method || 'POST').toUpperCase();
     var requestParams = payload.params || {};
     var requestBody = payload.body && typeof payload.body === 'object' ? payload.body : payload;
+    requestBody.requestUser = payload.requestUser || null;
     requestBody.proxySecret = payload.proxySecret;
     return timedJsonResponse_(action, startedAt, invokeApi(requestMethod, action, requestParams, requestBody));
   } catch (err) {

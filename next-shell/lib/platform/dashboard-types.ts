@@ -10,6 +10,7 @@ export type DashboardKpi = {
   final?: number;
   fuelOut?: number;
   payroll?: number;
+  bhxh?: number;
   fund?: number;
 };
 export type DashboardBundle = {

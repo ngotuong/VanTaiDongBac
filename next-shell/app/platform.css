@@ -1407,12 +1407,6 @@ body .table-card.is-exporting .report-data-table th {
   width: 100% !important;
 }
 
-.cashflow-filter-apply {
-  min-width: 96px !important;
-  height: 44px !important;
-  flex: 0 0 auto !important;
-}
-
 .manage-add-top-btn {
   flex: 0 0 auto !important;
   white-space: nowrap !important;
@@ -2047,10 +2041,6 @@ body > #fundCategoryDetailDrawer.swipe-dismiss-surface.closing {
 
   .cashflow-filter-row-bottom {
     flex-wrap: wrap !important;
-  }
-
-  .cashflow-filter-apply {
-    width: 100% !important;
   }
 
   body > .modal-overlay.side-drawer-overlay > .modal-container.swipe-dismiss-surface,
@@ -4148,10 +4138,6 @@ html body .catalog-c2 #catalogVehicleOwnerFilterWrap {
     width: 100% !important;
   }
 
-  html body .cashflow-filter-row-bottom:has(.cashflow-filter-apply) {
-    grid-column: 1 / -1 !important;
-  }
-
   html body .cashflow-filter-row-search {
     grid-column: 1 / -1 !important;
   }
@@ -4243,7 +4229,7 @@ html body .cashflow-filter-actions > :only-child {
   width: 100% !important;
 }
 
-html body .cashflow-filter-actions :is(.cashflow-filter-add, .cashflow-filter-apply) {
+html body .cashflow-filter-actions .cashflow-filter-add {
   flex: 0 0 auto !important;
 }
 
@@ -5430,6 +5416,68 @@ html body .cashflow-c2 .fund-loan-history-filters {
     width: min(var(--platform-filter-selected-width), 100%) !important;
     min-width: 0 !important;
     max-width: 100% !important;
+  }
+}
+
+/* Quỹ applies date ranges immediately, so its shared time toolbar must not
+ * resize when the selected quick-period label changes. */
+html body .app main.main#platform-content .cashflow-c2 .cashflow-overview-filter-panel .cashflow-quick-period-select.platform-content-select,
+html body .app main.main#platform-content .cashflow-c2 .cashflow-overview-filter-panel .cashflow-quick-period-select.platform-content-select[data-adaptive-filter="selected"] {
+  width: 142px !important;
+  min-width: 142px !important;
+  max-width: 142px !important;
+}
+
+.shell-year-control select {
+  min-width: 104px;
+  height: 40px;
+  padding: 0 30px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  background: var(--surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.shell-year-readonly {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: var(--warning-text, #92400e);
+  background: var(--warning-soft, #fef3c7);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.shell-year-error {
+  position: absolute;
+  right: 16px;
+  top: calc(100% + 6px);
+  z-index: 20;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 8px 10px;
+  border-radius: 9px;
+  color: var(--danger-text, #991b1b);
+  background: var(--danger-soft, #fee2e2);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .shell-year-control select { min-width: 76px; max-width: 92px; padding-right: 24px; }
+  .shell-year-readonly { display: none; }
+}
+
+@media (max-width: 768px) {
+  html body .app main.main#platform-content .cashflow-c2 .cashflow-overview-filter-panel .cashflow-quick-period-select.platform-content-select,
+  html body .app main.main#platform-content .cashflow-c2 .cashflow-overview-filter-panel .cashflow-quick-period-select.platform-content-select[data-adaptive-filter="selected"] {
+    width: 122px !important;
+    min-width: 122px !important;
+    max-width: 122px !important;
   }
 }
 

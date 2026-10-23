@@ -32,7 +32,7 @@ test('enqueue race also checks immutable intent before accepting ignored duplica
 
 test('API rejects unsafe amounts and missing fingerprints before persistence and ignores forged actor', async () => {
   const calls = [];
-  const svc = createWriteCommandService({ httpError, send: (_res, _status, value) => value, repository: { enqueue: async (_config, value) => { calls.push(value); return {}; } }, workbookContextService: { resolve: () => ({ year: '2026', spreadsheetId: 'server-workbook' }) } });
+  const svc = createWriteCommandService({ httpError, send: (_res, _status, value) => value, repository: { enqueue: async (_config, value) => { calls.push(value); return {}; } }, workbookContextService: { assertWritable: () => ({ year: '2026', spreadsheetId: 'server-workbook' }) } });
   for (const amount of ['Infinity', 'NaN', -1, 0, Number.MAX_SAFE_INTEGER + 1]) await assert.rejects(svc.handle('addFundLoan', { method: 'POST', body: { loan: { amount } } }, {}, config), { status: 400 });
   await assert.rejects(svc.handle('updateFundTransaction', { method: 'POST', body: { rowIndex: 2, transaction: { amount: 10 } } }, {}, config), { status: 400 });
   await assert.rejects(svc.handle('addFundTransactions', { method: 'POST', body: { transactions: Array(101).fill({ amount: 1 }) } }, {}, config), { status: 400 });

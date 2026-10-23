@@ -24,7 +24,7 @@ const DAILY_ACTUAL_CASH_EXCLUDED_CATEGORIES = new Set([
 ]);
 const DAILY_FUEL_CATEGORIES = new Set(['xang dau', 'dau', 'chi phi dau', 'dau nhien lieu', 'nhien lieu']);
 function syncSourceLabel(syncKey) {
-  const key = String(syncKey || '');
+  const key = String(syncKey || '').replace(/^20\d{2}:/, '');
   if (key === 'realtime_cache_worker') return 'Worker đồng bộ nền';
   if (key === 'realtime_cache' || key === 'realtime_cache_tick') return 'Đồng bộ nền định kỳ';
   if (key === 'notification_pipeline') return 'Pipeline thông báo';
@@ -48,6 +48,16 @@ function syncSourceLabel(syncKey) {
 function statusUpdatedAt(row) {
   const value = new Date(row?.updated_at || row?.synced_at || 0);
   return Number.isNaN(value.getTime()) ? null : value;
+}
+
+function syncKeyBelongsToYear(syncKey, year) {
+  const selectedYear = String(year || '');
+  if (!/^20\d{2}$/.test(selectedYear)) return true;
+  const key = String(syncKey || '');
+  const colonYear = key.match(/(?:^|:)(20\d{2})(?=:|$)/);
+  if (colonYear) return colonYear[1] === selectedYear;
+  const reportYear = key.match(/(?:^|:)(?:0?[1-9]|1[0-2])\/(20\d{2})(?=:|$)/);
+  return !reportYear || reportYear[1] === selectedYear;
 }
 
 function hasNewerRecoveryEvidence(row, syncStatuses) {
@@ -75,7 +85,7 @@ function hasNewerRecoveryEvidence(row, syncStatuses) {
   });
 }
 
-function createNotificationCenterService({ repository, httpError, send, now = () => new Date() }) {
+function createNotificationCenterService({ repository, workbookContextService, httpError, send, now = () => new Date() }) {
   function handles(action) { return action === 'getNotifications'; }
   function safeItems(row) { return Array.isArray(row?.payload?.items) ? row.payload.items : []; }
   function isoDate(value, fallback) {
@@ -153,7 +163,7 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
   }
   function systemItems(snapshot, currentTime) {
     const result = [];
-    const syncStatuses = snapshot.syncStatuses || [];
+    const syncStatuses = (snapshot.syncStatuses || []).filter((row) => syncKeyBelongsToYear(row.sync_key, snapshot.workbookYear));
     const worker = syncStatuses.find((row) => row.sync_key === 'realtime_cache_worker');
     const workerUpdated = new Date(worker?.updated_at || worker?.synced_at || 0);
     const workerAgeMinutes = Number.isNaN(workerUpdated.getTime())
@@ -238,7 +248,9 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
   async function list(config) {
     const currentTime = now();
     const clock = vietnamClock(currentTime);
-    const snapshot = await repository.find(config, clock.previousDateKey);
+    const resolveWorkbook = workbookContextService.resolveAsync || workbookContextService.resolve;
+    const workbook = await resolveWorkbook.call(workbookContextService, { module: 'transport' });
+    const snapshot = await repository.find(config, clock.previousDateKey, workbook.year);
     const fund = fundItem(snapshot.fund, currentTime);
     const items = [
       ...safeItems(snapshot.trip).map((item) => ({ ...item, notificationKey: 'trip-reconciliation', url: '/manage/?entry=vanChuyen' })),
@@ -270,4 +282,4 @@ function createNotificationCenterService({ repository, httpError, send, now = ()
   return { handles, handle, list };
 }
 
-module.exports = { createNotificationCenterService, CRITICAL_SYNC_KEYS, SYSTEM_FAILURE_LOOKBACK_MINUTES, DAILY_ACTUAL_CASH_EXCLUDED_CATEGORIES, syncSourceLabel, hasNewerRecoveryEvidence };
+module.exports = { createNotificationCenterService, CRITICAL_SYNC_KEYS, SYSTEM_FAILURE_LOOKBACK_MINUTES, DAILY_ACTUAL_CASH_EXCLUDED_CATEGORIES, syncSourceLabel, syncKeyBelongsToYear, hasNewerRecoveryEvidence };

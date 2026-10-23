@@ -104,7 +104,7 @@ test('Catalog writes update the edited table optimistically and defer authoritat
   const writeWrapper=api.match(/function withSheetRowSync_\([\s\S]*?\n}\n\nfunction isTransportManageSheet_/)?.[0]||'';
   assert.match(module,/clientRequestId:`catalog-save-/);
   assert.match(module,/const nextData=\{\.\.\.data,rows:nextRows\};setData\(nextData\)/);
-  assert.match(module,/catalogResponseCache\.set\(catalogCacheKey\(sheet\)/);
+  assert.match(module,/catalogResponseCache\.set\(catalogCacheKey\(year,sheet\)/);
   assert.match(module,/void api\.post\('processWriteJobs'/);
   assert.doesNotMatch(module,/void requestCatalog\(sheet,false,true\)/);
   assert.match(api,/result\.supabaseSync = SupabaseService\.syncCatalogWriteThrough/);
@@ -112,5 +112,5 @@ test('Catalog writes update the edited table optimistically and defer authoritat
   assert.match(supabase,/function syncCatalogWriteThrough\(displaySheetName\)/);
   assert.match(supabase,/syncCatalogDataBundle\(safeDisplaySheetName\)/);
   assert.match(supabase,/source: 'catalog-web:' \+ safeDisplaySheetName/);
-  assert.match(supabase,/props\.setProperty\(REALTIME_TICK_INDEX_KEY, '5'\)/);
+  assert.match(supabase,/props\.setProperty\(yearPropertyKey_\(REALTIME_TICK_INDEX_KEY\), '5'\)/);
 });

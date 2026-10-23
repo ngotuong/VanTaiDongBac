@@ -173,20 +173,20 @@ Frontend phải reject bundle có payload nghiệp vụ `ok: false`; không đư
 
 | Màn hình/chức năng | Bảng Supabase | Key chính |
 | --- | --- | --- |
-| Startup | `startup_bundles` | `form_type` |
-| Danh mục dùng cho form | `catalog_bundles` | `catalog_key` theo form |
-| Bảng Danh mục | `catalog_bundles` | `catalog_key` theo display sheet |
+| Startup | `startup_bundles` | `form_type=<year>:<form_type>` |
+| Danh mục dùng cho form | `catalog_bundles` | `catalog_key=transport:<year>:catalogs:<form>` |
+| Bảng Danh mục | `catalog_bundles` | `catalog_key=transport:<year>:catalog_data:<sheet>` |
 | Dashboard | `report_bundles` | `report_month=__dashboard_latest__` + `spreadsheet_id` |
 | Báo cáo | `report_bundles` | `report_month` + `spreadsheet_id` |
-| Vận hành gần nhất | `manage_data_bundles` | `sheet_name`, `filter_key=recent_500` |
-| Vận hành theo tháng | `manage_data_bundles` | `sheet_name`, `filter_key=month:YYYY-MM` |
+| Vận hành gần nhất | `manage_data_bundles` | `sheet_name=<year>:<sheet>`, `filter_key=recent_500` |
+| Vận hành theo tháng | `manage_data_bundles` | `sheet_name=<year>:<sheet>`, `filter_key=month:YYYY-MM` |
 | Tổng quan Thu chi | `fund_overview_bundles` | `year`, `month_key` |
 | Giao dịch Thu chi gần nhất | `fund_transaction_bundles` | `year`, `filter_key=recent_500` |
 | Giao dịch Thu chi theo tháng | `fund_transaction_bundles` | `year`, `filter_key=month:YYYY-MM` |
 | Khoản vay | `fund_loan_bundles` | `year`, `month_key` |
 | Form/danh mục Thu chi | `catalog_bundles` | key riêng theo year/group |
 | Trạng thái sync | `sync_status` | `sync_key`/module |
-| Trạng thái ghi | `write_jobs` | `id`, module/action |
+| Trạng thái ghi | `write_jobs` | `id`, module/action, `payload.year` và server-resolved `payload.spreadsheetId` |
 
 ### 6.3. Đọc khoảng thời gian nhiều tháng
 
@@ -212,6 +212,33 @@ Chuông và icon PWA dùng một nghĩa duy nhất: số thông báo chưa đọ
 Dashboard không suy diễn số liệu tài chính theo ngày. Browser lấy các dòng báo cáo tháng đã có trong `BC_TongQuan` qua dashboard bundle, chọn inclusive từ tháng đầu đến tháng cuối rồi cộng toàn bộ trường doanh thu, chi phí, thuế, nhiên liệu, phí, lương, quỹ và lợi nhuận. KPI override đã hydrate tiếp tục được ưu tiên cho từng tháng trước khi cộng. So sánh tăng/giảm dùng khoảng liền trước có cùng số tháng nếu đủ dữ liệu; biểu đồ lợi nhuận chỉ render các tháng trong khoảng. Bộ chọn kỳ là modal giữa viewport, mặc định tháng hiện tại nếu có dữ liệu và fallback tháng mới nhất; preset gồm Tháng này, Tháng trước, 3 tháng gần nhất và Năm nay, đồng thời vẫn cho chọn `Từ tháng`–`Đến tháng` hoặc Tất cả kỳ. Bảng chuyến gần đây vẫn là snapshot ngày mới nhất độc lập.
 
 Trên thiết bị cảm ứng nhỏ, shell cho phép kéo xuống từ vùng không tương tác của header khi trang đang ở đầu để gọi đúng refresh handler của module hiện hành. Gesture có ngưỡng, phản hồi theo ngón tay, bỏ qua kéo ngang và bị khóa khi dialog/drawer đang mở. Nút header vẫn tồn tại trên desktop; mobile có nút dự phòng trong menu để không biến refresh thành gesture-only.
+
+### 6.6. Tạo và chuyển workbook sang năm mới
+
+```mermaid
+sequenceDiagram
+    participant A as Admin
+    participant P as Next/Vercel
+    participant S as Apps Script
+    participant D as Google Drive/Sheets
+    participant R as Supabase registry
+    A->>P: Preview/provision năm kế tiếp
+    P-->>P: Session + admin guard + operation allowlist
+    P->>S: Actor server-side + source/target year
+    S-->>S: Validate approved exact-range manifest
+    S->>R: Verify migration 020 exists
+    S->>D: makeCopy hai workbook nguồn
+    S->>D: Chỉ sửa range manifest trên bản sao
+    S->>S: Audit structure/formula/carry-over/queue
+    S->>R: draft → ready hoặc failed
+    A->>P: Activate với confirmation token
+    P-->>P: BUSINESS_WRITES_PAUSED phải bật
+    S-->>S: WRITE_QUEUE_PAUSED + drain + token gate
+    S->>S: Đổi active properties và trigger
+    S->>R: RPC source archived / target active atomically
+```
+
+Workbook nguồn không có write path trong service này. Bản sao `draft/failed` không xuất hiện trong selector; `ready` chỉ đọc cho đến khi activate. Chi tiết manifest, gate và rollback thuộc [YEAR_ROLLOVER](../operations/YEAR_ROLLOVER.md).
 
 ## 7. Cache phía Browser
 

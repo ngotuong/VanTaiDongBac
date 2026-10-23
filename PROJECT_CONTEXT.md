@@ -24,6 +24,7 @@ Current-state handoff duy nhất. Khi bắt đầu phiên mới, đọc toàn b�
 - Preview ổn định: `https://vantaidongbac-preview.vercel.app`, deployment `dpl_5g7dxwLJi1ZEjpRXiWPhfSPW1T8V`. Production alias duy nhất: `https://dongbac.vercel.app`.
 - Apps Script Production/Preview đều version 425; paired rollback 424. Migrations 001–020 đã live và không rollback ngược.
 - Source đã được gom vào commit `b6f2cf5` trên nhánh `codex/r8-mapping-optimization`. Full 907 tests, SQL 001–020, lint, typecheck, build/identity, diff-check và production dependency audit đều PASS trước commit.
+- Chi tiết các checkpoint đã đóng nằm trong Git history; file này chỉ giữ trạng thái đang có hiệu lực.
 
 ## 4. Checkpoint tiếp theo
 

@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
+const crypto = require('node:crypto');
 
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -13,6 +14,8 @@ const format = (date, pattern) => pattern.replace('yyyy', date.getFullYear()).re
 
 function loadFund(rows, options = {}) {
   const calls = [];
+  const notes = [];
+  const rawRows = rows.map((row) => { const values = row.values.slice(); values[1] = row.rawDate || values[1]; values[5] = Number(values[5]); values[11] = values[11] === 'TRUE'; return values; });
   const rawDates = rows.map((row) => [row.rawDate || row.values[1]]);
   const displayRows = rows.map((row) => row.values);
   const sheet = {
@@ -31,20 +34,40 @@ function loadFund(rows, options = {}) {
           if (row === 2 && column === 2 && width === 1) return rawDates;
           if (row === 2 && column === 1 && width === 1) return displayRows.map((item) => [item[0]]);
           if (row === 1 && column === 2) return [['']];
-          return [];
+          return Array.from({ length: height || 1 }, (_, i) => Array.from({ length: width || 1 }, (_, j) => rawRows[row - 2 + i]?.[column - 1 + j] ?? ''));
         },
-        setValues: (value) => calls.push(['values', key, value]),
+        getFormula: () => options.missingFilter ? '' : '=ARRAYFORMULA(A2:A)',
+        getNote: () => notes[row - 2] || '',
+        setValues: (value) => {
+          calls.push(['values', key, value]);
+          if (column === 1 && Array.isArray(value) && value[0]) {
+            rawRows[row - 2] = value[0].slice();
+            displayRows[row - 2] = value[0].map((cell) => cell instanceof Date ? format(cell, 'dd/MM/yyyy') : String(cell == null ? '' : cell));
+            rawDates[row - 2] = [value[0][1]];
+          }
+        },
         setNumberFormat: (value) => calls.push(['format', key, value]),
         setFormula: (value) => calls.push(['formula', key, value]),
-        clearContent: () => calls.push(['clear', key])
+        clearContent: () => calls.push(['clear', key]),
+        getNotes: () => notes.slice(0, height || 1).map((value) => [value || '']),
+        setNote: (value) => { notes[row - 2] = value; calls.push(['note', key, value]); }
       };
     }
   };
   const properties = { getProperty: (key) => key === 'FUND_SPREADSHEET_ID_2026' ? 'fund-2026' : '', setProperty: (...args) => calls.push(['property', ...args]) };
   const sandbox = vm.createContext({
-    APP_CONFIG: { timezone: 'Asia/Ho_Chi_Minh' },
-    Utilities: { formatDate: (date, timezone, pattern) => format(date, pattern) },
-    SpreadsheetApp: { openById: (id) => ({ getSheetByName: (name) => name === 'NHAP_VAY' ? sheet : null, getId: () => id }), flush: () => calls.push(['flush']) },
+    APP_CONFIG: { year: '2026', timezone: 'Asia/Ho_Chi_Minh' },
+    Utilities: { DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' }, computeDigest: (_algorithm, text) => crypto.createHash('sha256').update(text).digest(), base64EncodeWebSafe: (bytes) => Buffer.from(bytes).toString('base64url'), formatDate: (date, timezone, pattern) => format(date, pattern) },
+    SpreadsheetApp: { openById: (id) => ({
+      getSheetByName: (name) => name === 'NHAP_VAY' ? sheet : null,
+      getRangeByName(name) {
+        const displays = { TMDK: '0', TKDK: '0', NGAYNHAPLIEU: '28/04/2026', NGAYTINHVAY: '28/04/2026', NOPTIEN: 'Nộp vào TK', RUTTIEN: 'Rút tiền' };
+        const dates = { NGAYNHAPLIEU: new Date('2026-04-28T00:00:00'), NGAYTINHVAY: new Date('2026-04-28T00:00:00') };
+        if (!(name in displays)) return null;
+        return { getDisplayValue: () => displays[name], getValue: () => dates[name] || Number(displays[name]) || displays[name] };
+      },
+      getId: () => id,
+    }), flush: () => calls.push(['flush']) },
     PropertiesService: { getScriptProperties: () => properties },
     CacheService: { getScriptCache: () => ({ get: () => null, getAll: () => ({}), putAll() {}, put() {} }) },
     LockService: { getScriptLock: () => ({ waitLock: (ms) => calls.push(['lock', ms]), releaseLock: () => calls.push(['unlock']) }) },
@@ -52,6 +75,7 @@ function loadFund(rows, options = {}) {
     console: { warn() {} }
   });
   new vm.Script(read('NormalizationUtils.gs')).runInContext(sandbox);
+  new vm.Script(read('FundWriteIntentRepository.gs')).runInContext(sandbox);
   new vm.Script(read('FundLoanRepository.gs')).runInContext(sandbox);
   new vm.Script(read('FundLoanService.gs')).runInContext(sandbox);
   new vm.Script(read('FundService.gs')).runInContext(sandbox);
@@ -60,7 +84,7 @@ function loadFund(rows, options = {}) {
 
 function loan(code, date, type, partner, amount, extras = {}) {
   return { rawDate: new Date(`${date}T00:00:00`), values: [code, date.split('-').reverse().join('/'), type, extras.method || '', partner,
-    String(amount), String(extras.termMonths || ''), String(extras.annualRate || ''), String(extras.interestPeriodMonths || ''), extras.firstInterestDate || '', extras.content || ''] };
+    String(amount), String(extras.termMonths || ''), String(extras.annualRate || ''), String(extras.interestPeriodMonths || ''), extras.firstInterestDate || '', extras.content || '', extras.nonFund ? 'TRUE' : 'FALSE'] };
 }
 
 test('loan overview preserves exact reconciliation, partial settlement, interest, and current totals', () => {
@@ -144,40 +168,85 @@ test('loan row reader preserves type variants, terms, rate, first-interest date,
   assert.equal(result.recentRows[1].firstInterestDate, '01/08/2026');
 });
 
-test('add loan preserves A:K mapping, formats B/F, repairs the N2 array formula, growth, lock, and response', () => {
+test('non-fund loan rows change debt but never change the Fund cash balance', () => {
+  const rows = [
+    loan('L1', '2026-08-01', 'Vay', 'A', 1000),
+    loan('L2', '2026-08-02', 'Vay', 'B', 700, { nonFund: true }),
+    loan('L1', '2026-08-03', 'Trả nợ', 'A', 300),
+    loan('L2', '2026-08-04', 'Trả nợ', 'B', 200, { nonFund: true }),
+  ];
+  const app = loadFund(rows);
+  const fund = app.service.getFundOverview('2026', { month: '2026-08' });
+  assert.deepEqual(JSON.parse(JSON.stringify(fund.metrics.map((item) => [item.key, item.value]))), [
+    ['openingBalance', 0], ['periodIncome', 1000], ['periodExpense', 300], ['periodNet', 700], ['closingBalance', 700], ['currentBalance', 700],
+  ]);
+  const loans = app.service.getFundLoanOverview('2026', { month: '2026-08' });
+  assert.deepEqual(JSON.parse(JSON.stringify(loans.metrics.map((item) => [item.key, item.value]))),
+    [['borrowed', 1700], ['principalPaid', 500], ['interestPaid', 0], ['outstanding', 1200]]);
+  assert.equal(loans.recentRows.find((item) => item.code === 'L2' && item.type === 'Vay').nonFund, true);
+});
+
+test('add loan preserves A:L mapping, formats B/F, preserves the N2 array formula, growth, lock, and response', () => {
   const app = loadFund([], { empty: true, maxRows: 1 });
-  const result = app.service.addFundLoan('2026', { date: '2026-07-11', partner: 'Bank', amount: 1000, termMonths: 12, annualRate: 8, interestPeriodMonths: 3, firstInterestDate: '2026-08-01', content: 'Vay vốn' });
+  const result = app.service.addFundLoan('2026', { date: '2026-07-11', partner: 'Bank', amount: 1000, termMonths: 12, annualRate: 8, interestPeriodMonths: 3, firstInterestDate: '2026-08-01', content: 'Vay vốn', nonFund: true });
   assert.equal(result.ok, true);
   assert.equal(result.rowIndex, 2);
   assert.equal(result.sheetName, 'NHAP_VAY');
   const written = app.calls.find((call) => call[0] === 'values')[2][0];
-  assert.equal(written.length, 11);
+  assert.equal(written.length, 12);
+  assert.equal(written[11], true);
   assert.deepEqual(JSON.parse(JSON.stringify(written.slice(2, 6))), ['Vay', '', 'Bank', 1000]);
-  assert.equal(app.calls.some((call) => call[0] === 'formula' && call[1] === '2:14:1:1' && /ARRAYFORMULA/.test(call[2])), true);
+  assert.equal(app.calls.some((call) => call[0] === 'formula' && call[1] === '2:14:1:1' && /ARRAYFORMULA/.test(call[2])), false);
   assert.equal(app.calls.some((call) => call[0] === 'formula' && call[1] !== '2:14:1:1'), false);
   assert.deepEqual(app.calls.find((call) => call[0] === 'grow'), ['grow', 1, 1]);
   assert.match(String(result.code), /^260711\d{6}$/);
 });
 
-test('add payment preserves loan code/type and rejects invalid loan/payment payloads before write', () => {
-  const app = loadFund([], { empty: true });
-  const result = app.service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L1', type: 'Trả lãi', partner: 'Bank', amount: 50, content: 'Lãi kỳ 1' });
+test('add payment preserves loan code/type/non-fund flag and rejects invalid loan/payment payloads before write', () => {
+  const app = loadFund([loan('L1', '2026-07-01', 'Vay', 'Bank', 1000, { nonFund: true })]);
+  const result = app.service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L1', type: 'Trả lãi', partner: 'Bank', amount: 50, content: 'Lãi kỳ 1', nonFund: true });
   const written = app.calls.find((call) => call[0] === 'values')[2][0];
   assert.equal(result.code, 'L1');
   assert.equal(written[0], 'L1');
   assert.equal(written[2], 'Trả lãi');
+  assert.equal(written[11], true);
   assert.deepEqual(JSON.parse(JSON.stringify(written.slice(3, 6))), ['', 'Bank', 50]);
   assert.throws(() => loadFund([], { empty: true }).service.addFundLoan('2026', { date: '', partner: 'A', amount: 1 }), /ngày vay hợp lệ/);
   assert.throws(() => loadFund([], { empty: true }).service.addFundLoanPayment('2026', { date: '2026-07-11', code: '', type: 'Trả nợ', partner: 'A', amount: 1 }), /Thiếu mã khoản vay/);
   assert.throws(() => loadFund([], { empty: true }).service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L', type: 'Khác', partner: 'A', amount: 1 }), /Trả nợ hoặc Trả lãi/);
 });
 
-test('loan append clears blocking helper cells below N2 before restoring the array formula', () => {
+test('loan append never clears or repairs the computed filter column', () => {
   const rows = [loan('L1', '2026-07-01', 'Vay', 'A', 1000), loan('L2', '2026-07-02', 'Vay', 'B', 2000)];
   const app = loadFund(rows);
   app.service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L1', type: 'Trả lãi', partner: 'A', amount: 50 });
-  assert.deepEqual(app.calls.find((call) => call[0] === 'clear'), ['clear', '3:14:1:1']);
-  assert.equal(app.calls.some((call) => call[0] === 'formula' && call[1] === '2:14:1:1' && /ARRAYFORMULA/.test(call[2])), true);
+  assert.equal(app.calls.some((call) => call[0] === 'clear'), false);
+  assert.equal(app.calls.some((call) => call[0] === 'formula' && call[1] === '2:14:1:1' && /ARRAYFORMULA/.test(call[2])), false);
+});
+
+test('loan writes replay by the Sheet job marker and never append the same job twice', () => {
+  const app = loadFund([], { maxRows: 20 });
+  const payload = { date: '2026-07-11', partner: 'Bank', amount: 1000 };
+  const first = app.service.addFundLoan('2026', payload, { jobId: 'job-loan-1' });
+  const second = app.service.addFundLoan('2026', payload, { jobId: 'job-loan-1' });
+  assert.equal(first.rowIndex, 2);
+  assert.equal(second.idempotentReplay, true);
+  assert.equal(app.calls.filter((call) => call[0] === 'values').length, 1);
+  assert.equal(app.calls.some((call) => call[0] === 'note' && call[2].startsWith('VTDB_INTENT_V1:')), true);
+  assert.ok(app.calls.findIndex((call) => call[0] === 'note') < app.calls.findIndex((call) => call[0] === 'values'));
+  assert.throws(() => app.service.addFundLoan('2026', { ...payload, amount: 999 }, { jobId: 'job-loan-1' }), /nội dung khác/);
+});
+
+test('loan payment rejects wrong partner, settled loans and principal overpayment, and inherits non-fund scope', () => {
+  assert.throws(() => loadFund([loan('L1', '2026-07-01', 'Vay', 'Bank', 1000)]).service.addFundLoanPayment('2026',
+    { date: '2026-07-11', code: 'L1', type: 'Trả nợ', partner: 'Other', amount: 10 }), /Đối tác thanh toán không khớp/);
+  assert.throws(() => loadFund([loan('L1', '2026-07-01', 'Vay', 'Bank', 1000)]).service.addFundLoanPayment('2026',
+    { date: '2026-07-11', code: 'L1', type: 'Trả nợ', partner: 'Bank', amount: 1001 }), /vượt quá dư nợ/);
+  assert.throws(() => loadFund([loan('L1', '2026-07-01', 'Vay', 'Bank', 1000), loan('L1', '2026-07-10', 'Trả nợ', 'Bank', 1000)]).service.addFundLoanPayment('2026',
+    { date: '2026-07-11', code: 'L1', type: 'Trả lãi', partner: 'Bank', amount: 10 }), /đã trả hết nợ gốc/);
+  const nonFund = loadFund([loan('L2', '2026-07-01', 'Vay', 'Bank', 1000, { nonFund: true })]);
+  nonFund.service.addFundLoanPayment('2026', { date: '2026-07-11', code: 'L2', type: 'Trả lãi', partner: 'Bank', amount: 10, nonFund: false });
+  assert.equal(nonFund.calls.find((call) => call[0] === 'values')[2][0][11], true);
 });
 
 test('loan filter array formula contract and FundService ownership markers remain explicit before extraction', () => {
@@ -192,5 +261,17 @@ test('loan filter array formula contract and FundService ownership markers remai
   assert.match(source, /FundLoanService\.getOverview\(filter \|\| \{\}/);
   assert.match(implementation, /function reconcile\(rows, context\)/);
   assert.match(source, /FundLoanService\.addLoan\(payload, context\)/);
-  assert.match(source, /FundLoanService\.addPayment\(payload, context\)/);
+  assert.match(source, /FundLoanService\.addPayment\(safePayload, context\)/);
+});
+
+test('R8 rejects a payment against a loan already settled through exact orphan reconciliation', () => {
+  const app = loadFund([loan('L1','2026-07-01','Vay','Bank',1000),loan('WRONG','2026-07-10','Trả nợ','Bank',1000)]);
+  assert.throws(()=>app.service.addFundLoanPayment('2026',{date:'2026-07-11',code:'L1',type:'Trả nợ',partner:'Bank',amount:1}),/đã trả hết/);
+  assert.equal(app.calls.some(call=>call[0]==='values'),false);
+});
+
+test('R8 refuses a missing loan filter root without clearing or restoring any workbook formula', () => {
+  const app=loadFund([],{empty:true,missingFilter:true});
+  assert.throws(()=>app.service.addFundLoan('2026',{date:'2026-07-11',partner:'Bank',amount:1}),/migration/);
+  assert.equal(app.calls.some(call=>['values','clear','formula'].includes(call[0])),false);
 });

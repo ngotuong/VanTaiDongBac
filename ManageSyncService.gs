@@ -2,7 +2,31 @@
 var ManageSyncService = (function () {
   var TABLE_MANAGE_DATA_BUNDLES = 'manage_data_bundles';
   var DEFAULT_MANAGE_FILTER_KEY = 'recent_500';
-  var MANAGE_SHEET_NAMES = ['NL_VanChuyen', 'NL_TaiXe', 'NL_Dau', 'NL_ChamCong', 'NL_Phat', 'NL_NghiVanHanh', 'NL_PhanCongLai'];
+  var MANAGE_SHEET_NAMES = ['NL_VanChuyen', 'NL_TaiXe', 'NL_Dau', 'NL_ChamCong', 'NL_Phat', 'NL_NghiVanHanh', 'NL_PhanCongLai', 'NL_SoDuLuong'];
+
+  function resolveMonthColumn_(sheet, headerRow, context) {
+    var width = Math.max(1, Number(sheet.getLastColumn ? sheet.getLastColumn() : 1));
+    var headerRange = sheet.getRange(headerRow, 1, 1, width);
+    if (!headerRange || !headerRange.getDisplayValues) return 1;
+    return resolveMonthColumnFromHeaders_(headerRange.getDisplayValues()[0], context);
+  }
+
+  function resolveMonthColumnFromHeaders_(rawHeaders, context) {
+    var headers = rawHeaders.map(function (header) {
+      return context.clean(header).toLowerCase();
+    });
+    var preferred = ['tháng xử lý', 'thang xu ly', 'kỳ phát sinh', 'ky phat sinh', 'tháng', 'thang', 'ngày', 'ngay'];
+    for (var nameIndex = 0; nameIndex < preferred.length; nameIndex++) {
+      var index = headers.indexOf(preferred[nameIndex]);
+      if (index >= 0) return index + 1;
+    }
+    return 1;
+  }
+
+  function monthKeyFromValue_(value, context) {
+    var date = context.parseDateValue(value);
+    return date ? context.formatDate(date, 'yyyy-MM') : context.normalizeYearMonthKey(value);
+  }
 
   function isManageSheetName(sheetName, clean) {
     return MANAGE_SHEET_NAMES.indexOf(clean(sheetName)) !== -1;
@@ -10,6 +34,14 @@ var ManageSyncService = (function () {
 
   function buildManageMonthFilterKey(monthKey, context) {
     return 'month:' + context.normalizeYearMonthKey(monthKey);
+  }
+
+  function scopedSheetName_(sheetName, context) {
+    var year = context.clean(context.year);
+    var safeSheetName = context.clean(sheetName);
+    if (!/^20\d{2}$/.test(year)) throw new Error('Thiếu năm cache Vận hành hợp lệ.');
+    if (!safeSheetName) throw new Error('Thiếu tên sheet vận hành cần sync.');
+    return year + ':' + safeSheetName;
   }
 
   function monthPeriod(monthKey, context) {
@@ -23,14 +55,15 @@ var ManageSyncService = (function () {
     var safeSheetName = context.clean(sheetName);
     if (!safeSheetName) throw new Error('Thiếu tên sheet vận hành cần sync.');
     var payload = context.readManageData(safeSheetName, '', '', 500);
+    if (!payload || payload.ok === false) throw new Error('Invalid manage source payload: ' + safeSheetName);
     var syncedAt = context.nowISOString();
     context.upsertRows(TABLE_MANAGE_DATA_BUNDLES, [{
-      sheet_name: safeSheetName,
+      sheet_name: scopedSheetName_(safeSheetName, context),
       filter_key: DEFAULT_MANAGE_FILTER_KEY,
       payload: payload,
       synced_at: syncedAt
     }], 'sheet_name,filter_key');
-    context.writeSyncStatus('manage_data:' + safeSheetName + ':' + DEFAULT_MANAGE_FILTER_KEY, 'manage', 'ok', 'Manage list cache synced.', syncedAt);
+    context.writeSyncStatus(context.year + ':manage_data:' + safeSheetName + ':' + DEFAULT_MANAGE_FILTER_KEY, 'manage', 'ok', 'Manage list cache synced.', syncedAt);
     return { ok: true, table: TABLE_MANAGE_DATA_BUNDLES, sheetName: safeSheetName, filterKey: DEFAULT_MANAGE_FILTER_KEY, syncedAt: syncedAt };
   }
 
@@ -42,14 +75,15 @@ var ManageSyncService = (function () {
     var period = monthPeriod(safeMonthKey, context);
     var filterKey = buildManageMonthFilterKey(safeMonthKey, context);
     var payload = context.readManageData(safeSheetName, period.startDate, period.endDate, 500);
+    if (!payload || payload.ok === false) throw new Error('Invalid manage month source payload: ' + safeSheetName);
     var syncedAt = context.nowISOString();
     context.upsertRows(TABLE_MANAGE_DATA_BUNDLES, [{
-      sheet_name: safeSheetName,
+      sheet_name: scopedSheetName_(safeSheetName, context),
       filter_key: filterKey,
       payload: payload,
       synced_at: syncedAt
     }], 'sheet_name,filter_key');
-    context.writeSyncStatus('manage_data:' + safeSheetName + ':' + filterKey, 'manage', 'ok', 'Manage month cache synced.', syncedAt);
+    context.writeSyncStatus(context.year + ':manage_data:' + safeSheetName + ':' + filterKey, 'manage', 'ok', 'Manage month cache synced.', syncedAt);
     return { ok: true, table: TABLE_MANAGE_DATA_BUNDLES, sheetName: safeSheetName, filterKey: filterKey, monthKey: safeMonthKey, syncedAt: syncedAt };
   }
 
@@ -61,15 +95,52 @@ var ManageSyncService = (function () {
     var lastRow = sheet.getLastRow();
     if (lastRow <= headerRow) return [];
     var seen = {};
-    sheet.getRange(headerRow + 1, 1, lastRow - headerRow, 1).getValues().forEach(function (row) {
-      var date = context.parseDateValue(row[0]);
-      if (date) seen[context.formatDate(date, 'yyyy-MM')] = true;
+    var monthColumn = resolveMonthColumn_(sheet, headerRow, context);
+    sheet.getRange(headerRow + 1, monthColumn, lastRow - headerRow, 1).getValues().forEach(function (row) {
+      var monthKey = monthKeyFromValue_(row[0], context);
+      if (monthKey) seen[monthKey] = true;
     });
+    return Object.keys(seen).sort().reverse();
+  }
+
+  // Reuse the probe's full read, with the same display-header/date semantics.
+  // This snapshot belongs to one probe only; never persist or use it for writes.
+  function getManageMonthKeysFromSnapshot(sheetName, values, displayValues, context) {
+    var headerRow = context.getHeaderRow(context.clean(sheetName));
+    if (values.length <= headerRow) return [];
+    var monthColumn = resolveMonthColumnFromHeaders_(displayValues[headerRow - 1] || [], context);
+    var seen = {};
+    for (var row = headerRow; row < values.length; row++) {
+      var monthKey = monthKeyFromValue_(values[row][monthColumn - 1], context);
+      if (monthKey) seen[monthKey] = true;
+    }
     return Object.keys(seen).sort().reverse();
   }
 
   function getRecentManageMonthKeys(sheetName, maxCount, context) {
     return getManageMonthKeys(sheetName, context).slice(0, Math.max(1, maxCount || 1));
+  }
+
+  function getManageRefreshMonthKeys(sheetName, context) {
+    var months = getManageMonthKeys(sheetName, context);
+    // The last row of an old month can be moved/deleted. Source-only discovery
+    // would leave that cached month populated forever; refresh it to empty too.
+    var offset = 0;
+    var rows;
+    do {
+      rows = context.readCacheRows(TABLE_MANAGE_DATA_BUNDLES, {
+        select: 'filter_key', sheet_name: 'eq.' + scopedSheetName_(sheetName, context),
+        filter_key: 'like.month:*', order: 'filter_key.asc', limit: 100, offset: offset
+      });
+      if (!Array.isArray(rows)) throw new Error('Invalid manage cache month index.');
+      rows.forEach(function (row) {
+        var key = String(row.filter_key || '').match(/^month:(\d{4}-\d{2})$/);
+        var month = key && context.normalizeYearMonthKey(key[1]);
+        if (month && months.indexOf(month) < 0) months.push(month);
+      });
+      offset += rows.length;
+    } while (rows.length === 100);
+    return months.sort().reverse();
   }
 
   function getEditedManageMonthKeys(sheetName, editedRange, context) {
@@ -84,9 +155,10 @@ var ManageSyncService = (function () {
       var maxLastRow = Math.min(lastRow, sheet.getLastRow());
       if (maxLastRow < firstRow) return [];
       var seen = {};
-      sheet.getRange(firstRow, 1, maxLastRow - firstRow + 1, 1).getValues().forEach(function (row) {
-        var date = context.parseDateValue(row[0]);
-        if (date) seen[context.formatDate(date, 'yyyy-MM')] = true;
+      var monthColumn = resolveMonthColumn_(sheet, headerRow, context);
+      sheet.getRange(firstRow, monthColumn, maxLastRow - firstRow + 1, 1).getValues().forEach(function (row) {
+        var monthKey = monthKeyFromValue_(row[0], context);
+        if (monthKey) seen[monthKey] = true;
       });
       return Object.keys(seen).sort().reverse();
     } catch (err) {
@@ -136,7 +208,7 @@ var ManageSyncService = (function () {
         context.runSyncStep(results, errors, 'dashboard', context.syncDashboard);
       }
       var syncedAt = context.nowISOString();
-      context.writeSyncStatus('transport_sheet_change:' + safeSheetName, 'manage', errors.length ? 'error' : 'ok', errors.length ? JSON.stringify(errors) : 'Transport sheet change synced: ' + safeEventType, syncedAt);
+      context.writeSyncStatus(context.year + ':transport_sheet_change:' + safeSheetName, 'manage', errors.length ? 'error' : 'ok', errors.length ? JSON.stringify(errors) : 'Transport sheet change synced: ' + safeEventType, syncedAt);
       return { ok: errors.length === 0, eventType: safeEventType, sheetName: safeSheetName, synced: results.length, failed: errors.length, months: monthKeys, results: results, errors: errors };
     } finally {
       context.runtimeCache.remove(runningKey);
@@ -159,7 +231,7 @@ var ManageSyncService = (function () {
       });
       context.runSyncStep(results, errors, 'dashboard', context.syncDashboard);
       var syncedAt = context.nowISOString();
-      context.writeSyncStatus('transport_sheet_change:unknown', 'manage', errors.length ? 'error' : 'ok', errors.length ? JSON.stringify(errors) : 'Transport sheet change synced without active sheet: ' + safeEventType, syncedAt);
+      context.writeSyncStatus(context.year + ':transport_sheet_change:unknown', 'manage', errors.length ? 'error' : 'ok', errors.length ? JSON.stringify(errors) : 'Transport sheet change synced without active sheet: ' + safeEventType, syncedAt);
       return { ok: errors.length === 0, eventType: safeEventType, sheetName: '', fallback: true, synced: results.length, failed: errors.length, results: results, errors: errors };
     } finally {
       context.runtimeCache.remove(runningKey);
@@ -173,6 +245,8 @@ var ManageSyncService = (function () {
     syncTransportSheetChange: syncTransportSheetChange,
     syncUnknownTransportSheetChange: syncUnknownTransportSheetChange,
     getManageMonthKeys: getManageMonthKeys,
+    getManageMonthKeysFromSnapshot: getManageMonthKeysFromSnapshot,
+    getManageRefreshMonthKeys: getManageRefreshMonthKeys,
     getRecentManageMonthKeys: getRecentManageMonthKeys,
     getEditedManageMonthKeys: getEditedManageMonthKeys,
     buildManageMonthFilterKey: buildManageMonthFilterKey,

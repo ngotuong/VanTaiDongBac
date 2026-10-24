@@ -24,6 +24,7 @@ var ApiActionRegistry = (function () {
     getSupabaseSyncStatus: { method: 'GET', kind: 'query', permission: 'adminOperator' },
     getReportCacheAudit: { method: 'GET', kind: 'query', permission: 'adminOperator' },
     getManageCacheAudit: { method: 'GET', kind: 'query', permission: 'adminOperator' },
+    getYearRolloverStatus: { method: 'GET', kind: 'query', permission: 'admin' },
     submitRows: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     checkTripReconciliation: { method: 'POST', kind: 'query', permission: 'shareholder' },
     saveSheetRow: { method: 'POST', kind: 'command', permission: 'adminOperator' },
@@ -32,6 +33,7 @@ var ApiActionRegistry = (function () {
     deleteFundTransaction: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     addFundTransaction: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     addFundTransactions: { method: 'POST', kind: 'command', permission: 'adminOperator' },
+    addFundDebtPayment: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     addFundLoan: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     addFundLoanPayment: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     saveFundCatalogItem: { method: 'POST', kind: 'command', permission: 'adminOperator' },
@@ -41,11 +43,14 @@ var ApiActionRegistry = (function () {
     retryWriteJob: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     processWriteJobs: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     recoverSyncInfrastructure: { method: 'POST', kind: 'command', permission: 'adminOperator' },
+    manageYearRollover: { method: 'POST', kind: 'command', permission: 'admin' },
     debugSheet: { method: 'GET', kind: 'query', permission: 'adminOperator', routerOnly: true },
     submitRowsGet: { method: 'GET', kind: 'disabled', permission: 'adminOperator', routerOnly: true, disabled: true },
     authSession: { method: 'GET', kind: 'query', permission: 'shareholder', proxyLocal: true },
     runtimeContext: { method: 'GET', kind: 'query', permission: 'shareholder', proxyLocal: true },
     getNotifications: { method: 'GET', kind: 'query', permission: 'shareholder', proxyLocal: true },
+    getPayrollExplanation: { method: 'GET', kind: 'query', permission: 'adminOperator', proxyLocal: true },
+    requestPayrollExplanationRefresh: { method: 'POST', kind: 'command', permission: 'adminOperator' },
     changeOwnPassword: { method: 'POST', kind: 'command', permission: 'shareholder', proxyLocal: true },
     listUsers: { method: 'GET', kind: 'query', permission: 'admin', proxyLocal: true },
     createUser: { method: 'POST', kind: 'command', permission: 'admin', proxyLocal: true },
@@ -55,6 +60,11 @@ var ApiActionRegistry = (function () {
   };
 
   function get(action) { return ACTIONS[String(action || '')] || null; }
+  function isBusinessWrite(action) {
+    return ['submitRows', 'saveSheetRow', 'deleteSheetRow', 'updateFundTransaction', 'deleteFundTransaction',
+      'addFundTransaction', 'addFundTransactions', 'addFundDebtPayment', 'addFundLoan', 'addFundLoanPayment',
+      'saveFundCatalogItem', 'deleteFundCatalogItem', 'updateFundSettings'].indexOf(action) !== -1;
+  }
   function list() { return Object.keys(ACTIONS).map(function (action) { var item = ACTIONS[action]; return { action: action, method: item.method, kind: item.kind, permission: item.permission, routerOnly: Boolean(item.routerOnly), proxyLocal: Boolean(item.proxyLocal), disabled: Boolean(item.disabled) }; }); }
 
   function assertPublicAction(method, action) {
@@ -71,5 +81,5 @@ var ApiActionRegistry = (function () {
     return item;
   }
 
-  return { get: get, list: list, assertPublicAction: assertPublicAction, assertRouterGetAction: assertRouterGetAction };
+  return { get: get, list: list, isBusinessWrite: isBusinessWrite, assertPublicAction: assertPublicAction, assertRouterGetAction: assertRouterGetAction };
 })();

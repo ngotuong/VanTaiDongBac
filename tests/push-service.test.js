@@ -10,7 +10,7 @@ const config = {
   vapidSubject: 'https://dongbac.vercel.app'
 };
 const user = { id: 'user-1' };
-const endpoint = 'https://push.example/device-one';
+const endpoint = 'https://fcm.googleapis.com/device-one';
 const subscription = { endpoint, keys: { p256dh: 'device-public-key', auth: 'device-secret' } };
 
 test('PushService stores only the authenticated user subscription and exposes the public key', async () => {
@@ -43,6 +43,7 @@ test('PushService sends a generic test only to the current device endpoint', asy
   assert.deepEqual(await service.sendTest(config, user, endpoint), { sent: true });
   assert.deepEqual(sent[0], ['vapid', config.vapidSubject, config.vapidPublicKey, config.vapidPrivateKey]);
   assert.deepEqual(JSON.parse(sent[1][2]), TEST_NOTIFICATION);
+  assert.equal(TEST_NOTIFICATION.url, '/?notifications=open');
   assert.equal(sent[1][1].endpoint, endpoint);
 });
 

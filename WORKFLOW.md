@@ -66,7 +66,7 @@ Vercel Git Integration đã disconnect và `gitProviderOptions.createDeployments
 Khi backend thay đổi và checkpoint cho phép:
 
 1. chạy gate local;
-2. `clasp push` đúng standalone project canonical;
+2. xác minh ảnh hưởng shared HEAD tới Production triggers và duyệt cửa sổ triển khai ghép cặp trước `clasp push`;
 3. tạo version bất biến có mô tả;
 4. update đúng deployment ID Preview đã khóa;
 5. kiểm tra direct health và health qua Vercel;
@@ -74,7 +74,7 @@ Khi backend thay đổi và checkpoint cho phép:
 7. chạy canary có kiểm soát nếu write/sync path thay đổi;
 8. cleanup exact test jobs/data.
 
-Không update production deployment trong checkpoint Preview.
+Không update production deployment trong checkpoint Preview. Preview cùng project không cô lập trigger HEAD; không push backend để thử Preview khi chưa duyệt ảnh hưởng worker Production.
 
 ## 6. Production
 
@@ -88,6 +88,8 @@ Trước cut-forward:
 - kiểm tra đúng bộ environment Production;
 - nếu có migration destructive: backup, fingerprint, dry-run và one-shot approval.
 
+Khi cutover đã được phê duyệt riêng, dùng `npm run deploy:production -- --phase=prepare|activate|rollback --expected-production=dpl_... --record=artifacts/...json`. Prepare cần `--writes-paused=true|false`, chạy full local/isolated SQL/runtime audit gates, đóng gói đúng endpoint Production và không đổi alias. Activate/rollback kiểm tra baseline/project/READY/health; mở ghi yêu cầu paired backend, exact payroll parity, browser roles và queue reconciliation trong record có bằng chứng. Candidate bảo trì không thay việc chốt gate; không kích hoạt để chờ người dùng đăng nhập kéo dài. ID/state do context sở hữu.
+
 Sau cut-forward:
 
 - smoke root, route chính, manifest/service worker, session 401 và health;
@@ -98,11 +100,17 @@ Sau cut-forward:
 
 ## 7. Supabase migration
 
-- Production đã apply `001–013`.
-- Không sửa migration cũ; migration tiếp theo dùng `014+`.
+- Migration live hiện hành do [PROJECT_CONTEXT](PROJECT_CONTEXT.md) sở hữu.
+- Không sửa migration đã apply; correction phải dùng số phiên bản tiếp theo.
 - Ưu tiên additive migration và rollback runtime/feature flag.
 - RLS/server-only grants và service-role boundary phải có test.
 - Không đưa secret/token vào source, log hoặc tài liệu.
+
+## 7.1. Chuyển năm dữ liệu
+
+Chuyển năm là một cửa sổ ghép cặp Vercel + Apps Script + Supabase + hai workbook, thực hiện theo [YEAR_ROLLOVER](docs/operations/YEAR_ROLLOVER.md). Chuẩn bị mapping/audit không tự cấp quyền apply migration, cài trigger, deploy Preview hoặc Production. Mỗi bước live cần exact target và phê duyệt tương ứng; Production vẫn là yêu cầu riêng.
+
+Self-service lần đầu phải tách ba cửa sổ: (1) migration `019`–`020`; (2) Apps Script/Preview, owner cấp scope Drive và dry-run manifest; (3) tạo hai workbook thật. Activation là cửa sổ Production riêng. Trước Apps Script push phải review exact-range manifest/folder; sau Preview phải kiểm admin/operator/shareholder, không lộ Spreadsheet ID, `draft/failed` không hiện selector và `ready/archived` từ chối mutation.
 
 ## 8. Git và handoff
 

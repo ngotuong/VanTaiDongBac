@@ -117,7 +117,7 @@ File 2026 trong raw snapshot có Spreadsheet ID riêng và không phải file V�
 
 ## 6. Danh mục sheet Vận tải hiện có trong snapshot
 
-Snapshot chuẩn hóa hiện liệt kê 24 sheet:
+Snapshot cũ liệt kê 24 sheet; live audit 2026-09-10 ghi nhận workbook hiện có 44 sheet. Hai sheet mới được web app đưa vào contract ở checkpoint này là `NL_SoDuLuong` và `DM_BaoHiem`; các sheet còn lại vẫn tuân theo phân lớp prefix và chỉ được mở rộng contract khi có nghiệp vụ web tương ứng.
 
 | Sheet | Vai trò | Hidden trong snapshot |
 | --- | --- | --- |
@@ -127,6 +127,7 @@ Snapshot chuẩn hóa hiện liệt kê 24 sheet:
 | `NL_ChamCong` | Chấm công/nghỉ | Không |
 | `NL_Phat` | Phạt nội bộ | Không |
 | `NL_NghiVanHanh` | Nghỉ/dừng vận hành | Không |
+| `NL_SoDuLuong` | Theo dõi số dư lương theo kỳ | Không |
 | `XL_DoiSoatChuyen` | Đối soát chuyến/cảnh báo | Không |
 | `XL_VanChuyen` | Xử lý doanh thu vận tải | Không |
 | `XL_LuongTheoXe` | Tính lương chuyến theo xe | Không |
@@ -138,6 +139,7 @@ Snapshot chuẩn hóa hiện liệt kê 24 sheet:
 | `DM_DuAn` | Danh mục dự án/tuyến | Có |
 | `DM_Xe` | Danh mục xe | Có |
 | `DM_NhanSu` | Danh mục nhân sự | Không theo metadata snapshot |
+| `DM_BaoHiem` | Mức khấu trừ bảo hiểm theo hiệu lực | Không |
 | `DM_ThamSo` | Tham số/lịch sử giá dầu | Có |
 | `DM_LuongChuyen` | Bậc lương chuyến | Có |
 | `DM_DonGiaVanChuyen` | Quy tắc đơn giá vận chuyển | Có |
@@ -161,6 +163,7 @@ Không dùng trạng thái hidden làm permission. Code mở sheet theo tên dù
 | `phat` | `NL_Phat` | 1 | 7 |
 | `nghiVanHanh` | `NL_NghiVanHanh` | 1 | 10 |
 | — | `NL_PhanCongLai` | 1 | 4 cột nhập + 1 cột kiểm tra |
+| — | `NL_SoDuLuong` | 1 | 8 cột nhập + 9 cột công thức/helper |
 
 Số cột row builder không nhất thiết bằng tổng số cột vật lý của sheet. Snapshot cho thấy một số sheet có nhiều cột helper/formula ở phía sau. Chỉ ghi các segment nghiệp vụ được service cho phép.
 
@@ -182,12 +185,12 @@ Cột nghiệp vụ logic:
 5. Số chuyến;
 6. Số phiếu;
 7. Ghi chú.
-8. Khối lượng thực tế (m³), input tùy chọn.
+8. Khối lượng thực tế (m³), input tùy chọn; header live có thể là `Khối lượng`.
 
 Quy tắc:
 
 - cột Tháng được suy ra từ Ngày bằng công thức/hệ thống Sheet;
-- header live cột C là `Biển số`; write path vẫn chấp nhận alias legacy `Biển số xe` đúng tại cột C để các job đang chờ và rollback workbook không bị kẹt, nhưng không chấp nhận tên tùy ý hoặc đổi vị trí cột;
+- header live cột C là `Biển số`; write path chấp nhận alias legacy `Biển số xe` và map tất cả trường theo header, vì vậy việc đổi vị trí `Khối lượng`/`Ghi chú` không làm ghi sai cột;
 - giữ subtotal/công thức ở vùng đầu sheet;
 - app không ghi đè công thức tháng;
 - append phải copy format/công thức dòng trước;
@@ -238,8 +241,8 @@ Live schema ngày 2026-07-24:
 1. Tháng;
 2. Tài xế;
 3. Công ty;
-4. Ghi chú;
-5. Kiểm tra.
+4. Kiểm tra;
+5. Ghi chú.
 
 Quy tắc:
 
@@ -247,6 +250,10 @@ Quy tắc:
 - tab Vận hành cho phép đọc và sửa bốn cột nghiệp vụ của dòng hiện có;
 - chưa có contract append riêng, vì vậy web app không hiển thị nút `Nhập mới` khi đang ở tab này;
 - dữ liệu tháng phải giữ dạng Date/tháng của Sheet, không chuyển thành text tùy ý.
+
+### 7.9. `NL_SoDuLuong`
+
+Live schema ngày 2026-09-10 có 17 cột. Web app chỉ được sửa `Mã khoản`, `Kỳ phát sinh`, `Nhân sự`, `Loại`, `Số dư gốc`, `Tháng xử lý`, `Xử lý kỳ này` và `Nội dung / lý do`. Các cột `Số dư đầu kỳ`, `Còn sau kỳ`, `Trạng thái`, `Ghi chú hiển thị` và toàn bộ `_SYS_*` là công thức/helper chỉ đọc. Tab Vận hành chưa có append riêng.
 
 ### 7.4. `NL_Dau`
 
@@ -468,6 +475,7 @@ Contract:
 - protected/calculated sheet;
 - không append/sửa row từ web app;
 - kết quả lịch sử phụ thuộc danh mục có hiệu lực theo ngày.
+- live audit ngày 2026-09-05 xác nhận K `Ưu đãi nội bộ`, L `Đơn giá`, M `Doanh thu`; consumer tổng hợp ngày phải tìm cột theo header và fail closed nếu thiếu header bắt buộc, không được giả định `Doanh thu` vẫn ở cột L.
 
 ### 9.3. `XL_LuongTheoXe`
 
@@ -486,6 +494,20 @@ Dependency:
 - `DM_ThamSo`.
 
 Contract: chỉ đọc từ web app/report, không ghi nghiệp vụ.
+
+Consumer tổng hợp ngày:
+
+- chi phí dầu lấy đúng các dòng `NL_Dau` có `Ngày` D−1 và cộng `Thành tiền`;
+- chi phí lương ngày gộp ba thành phần nhưng chỉ xuất một dòng trong thông báo: lương chuyến, lương cứng/khoán theo ngày và thưởng tuyển người có căn cứ ngày;
+- lương chuyến: dòng có đơn giá trực tiếp dùng `Số chuyến × Đơn giá`; dòng `HỖN_HỢP` phải tái sử dụng bằng chứng ngày có thẩm quyền của giải trình lương, ghép theo ngày–nhân sự–biển số–nhóm vận hành và đối chiếu lại số chuyến nguồn;
+- lương cứng/khoán theo ngày: chỉ lấy tài xế đang trong thời gian làm việc của tháng, dùng đúng `XL_LuongNhanSu.Lương cứng/ngày`; ngày có `NL_ChamCong.Tính lương cứng = Không` không phát sinh thành phần này, còn `Có` vẫn tính. Không tự chia `Lương cứng / khoán` tháng khi thiếu đơn giá ngày;
+- thưởng tuyển người: `DM_LichSuNhanSu` đợt ĐỦ, giao ngày vào/nghỉ và tính/dừng thưởng với tháng; dated `TUYEN_DU_2_LAI.Số tiền/xe / 2 / số ngày tháng`. Không lifetime cap 30 ngày; giữ raw accrual, đối chiếu SYS_AggThuongTuyen. Version triển khai theo context; chi tiết payroll contract;
+- không phân bổ `Thưởng` khác, thưởng KPI quản lý, phạt, BHXH hoặc các khoản tháng khi chưa có căn cứ ngày;
+- nếu bằng chứng chuyến thiếu/đa nghĩa/lệch, chấm công mâu thuẫn hoặc tài xế có lương cứng/khoán nhưng thiếu `Lương cứng/ngày`, toàn bộ chỉ tiêu lương ngày phải đánh dấu `chưa có dữ liệu`, không trả tổng một phần;
+- tổng hợp ngày chỉ trình bày lợi nhuận gộp vận hành, không dùng để thay thế lợi nhuận thực tế hoặc kết quả kế toán theo tháng;
+- `Lợi nhuận gộp ước tính ngày = Doanh thu − Chi phí dầu ngày − Chi phí lương ngày − Chi Quỹ ngày`; nếu thiếu một nguồn thì phải trả `chưa có dữ liệu`, không tính tổng một phần;
+- `Chi Quỹ` là khoản chi tiền mặt thực tế còn lại sau khi loại các nhóm đã hạch toán riêng hoặc không thuộc mục tiêu báo cáo ngày: góp quỹ, nhiên liệu, thuế TNDN/VAT, phí đi đường/đường bộ, trả/ứng lương, trả nợ và trả lãi. Tổng chi gốc và tổng bị loại vẫn được giữ nội bộ để đối soát;
+- tên `Lợi nhuận gộp ước tính` là chỉ tiêu quản trị nội bộ theo ngày, không đồng nghĩa lợi nhuận gộp kế toán. Thuế, phí đi đường/đường bộ, BHXH, thưởng khác và các khoản phân bổ tháng tiếp tục thuộc báo cáo tháng.
 
 ### 9.4. `XL_LuongNhanSu`
 
@@ -550,6 +572,7 @@ Contract bắt buộc:
 
 - request web không được đổi `BC_TongQuan!B1` trên sheet gốc để đọc tháng;
 - backend dùng sheet tạm copy từ `BC_TongQuan` khi cần tính tháng khác;
+- matrix chi tiết `A:E` có số dòng động; phải đọc tới hàng dữ liệu cuối thay vì cap theo số thứ tự. Dòng `BHXH` mới nằm trước `Lợi nhuận thực` và cả hai phải được giữ trong bundle;
 - frontend render bảng backend trả về, không tự thay tên danh mục/cột;
 - cleanup sheet tạm phải chạy trong `finally` và có cleanup thủ công.
 
@@ -643,7 +666,12 @@ Logical headers:
 - `Số km`;
 - `Hiệu lực từ`;
 - `Hiệu lực đến`;
+- `Nhóm vận hành`;
+- `Lương chuyến?`;
+- `Thưởng QL?`;
 - `Ghi chú` nếu có trong live sheet.
+
+Live workbook có thể dùng alias `Dự án`, `Từ ngày`, `Đến ngày`, `Áp dụng lương chuyến?` và `Áp dụng thưởng QL?`. Drawer phải trả đúng tên header vật lý và cho nhập tám trường trên. Các cột trạng thái tổng hợp `Đơn giá`, `Lương chuyến`, `Thưởng` chỉ đọc và không được đưa vào payload ghi.
 
 Quy tắc lịch sử:
 
@@ -855,23 +883,24 @@ Header row: 1.
 | I | `Nội dung` | Diễn giải |
 | J | `Công nợ` | Flag/trạng thái công nợ |
 | K | `2` | Helper legacy, ý nghĩa phải kiểm tra live |
-| L | `Cấn trừ` | Checkbox cho giao dịch `Chi`: vẫn vào chi phí/báo cáo Vận tải nhưng không làm thay đổi số dư Quỹ |
+| L | `Không qua Quỹ` | Checkbox cho giao dịch `Thu` hoặc `Chi`: vẫn giữ nghiệp vụ cho báo cáo/đối soát nhưng không làm thay đổi số dư Quỹ; reader vẫn nhận alias cũ `Cấn trừ` |
 | M | `Công nợ còn lại` | Giá trị công nợ tính toán |
-| N | `Lọc` | Helper filter |
+| N | `Lọc` | Helper do `ARRAYFORMULA` duy nhất tại N2 quản lý |
 
 Snapshot có max 15 cột nhưng lastColumn 14. Không ghi vào cột O hoặc mở rộng cấu trúc nếu chưa có migration.
 
 ### 14.2. Quy tắc ghi
 
 - Một row chỉ có một trong `MỤC THU` hoặc `MỤC CHI` theo loại giao dịch.
-- `Số phiếu` phải duy nhất và ổn định khi retry queue.
+- `Số phiếu` phải duy nhất và ổn định khi tạo giao dịch mới. Riêng dòng thanh toán công nợ phải dùng lại `Số phiếu` của dòng công nợ gốc để công thức M đối trừ đúng.
 - `Ngày` phải là date hợp lệ.
 - `Số tiền` phải là số dương theo validation nghiệp vụ hiện tại.
-- Cột J là flag công nợ; cột L là flag `Cấn trừ`; các cột helper/công thức K, M, N phải được giữ theo template/công thức.
-- `Cấn trừ` chỉ hợp lệ với giao dịch `Chi`; tổng Quỹ và số dư kỳ loại trừ các dòng này.
+- Cột J là flag công nợ; cột L là flag `Không qua Quỹ`; K và M phải được giữ theo template/công thức. N2 là công thức mảng của workbook, writer tuyệt đối không ghi công thức từng dòng vào N3:N.
+- `Không qua Quỹ` hợp lệ với cả giao dịch `Thu` và `Chi`; tổng Quỹ và số dư kỳ loại trừ các dòng này.
 - Batch append phải rollback vùng vừa ghi nếu lỗi giữa chừng.
 - Nếu voucher đã tồn tại đủ số dòng, queued retry trả idempotent replay thay vì ghi lại.
-- Không xóa công thức lọc/công nợ ở cột helper.
+- Thanh toán công nợ đi qua action riêng `addFundDebtPayment`: khóa theo `rowIndex` dòng gốc, chỉ nhận dòng J=`Có` còn dư, không cho thanh toán vượt M, ghi một dòng J rỗng cùng voucher và hậu kiểm M giảm đúng số tiền. Nếu hậu kiểm sai, writer clear-only dòng vừa append và báo lỗi. `clientRequestId` được lưu dưới fingerprint trong Script Properties để retry không ghi trùng.
+- Không xóa công thức công nợ ở M hoặc công thức mảng lọc tại N2. Dữ liệu/công thức legacy đang chặn spill N3:N chỉ được dọn qua `FundTransactionFilterMigration` có snapshot, fingerprint và one-shot approval.
 
 ### 14.3. API mapping logic
 
@@ -887,10 +916,10 @@ Transaction object chứa các field logic như:
 - partner;
 - content/note;
 - debt flag;
-- offset flag (`Cấn trừ`, đọc/ghi tại cột L).
+- offset/non-fund flag (`Không qua Quỹ`, tương thích alias `Cấn trừ`, đọc/ghi tại cột L).
 - remaining debt đọc từ cột M `Công nợ còn lại` cho màn hình Công nợ; writer không ghi trực tiếp field này.
 
-Mapping chính xác do `FundTransactionService.buildRow()` sở hữu; `FundService.buildTransactionRow_()` chỉ là compatibility wrapper nội bộ. Append/update A:L, format B/F, helper formulas M:N, physical delete và batch rollback A:N do `FundTransactionRepository` thực hiện. Không duplicate mapping theo index ở frontend.
+Mapping chính xác do `FundTransactionService.buildRow()` sở hữu; `FundService.buildTransactionRow_()` chỉ là compatibility wrapper nội bộ. Writer append/update chỉ A:J và L, format B/F; giữ K và công thức/helpers M/N/O. M debt formula theo contract; không có writer legacy N từng dòng dù N2 thiếu. Formula repair qua migration riêng. Không duplicate mapping theo index ở frontend.
 
 ## 15. `NHAP_VAY` contract
 
@@ -911,14 +940,14 @@ Header row: 1.
 | I | `Kỳ hạn trả lãi (Tháng)` | Chu kỳ lãi |
 | J | `Ngày trả lãi lần đầu` | Ngày lãi đầu tiên |
 | K | `Nội dung` | Diễn giải |
-| L | rỗng | Helper/reserved |
+| L | `Không qua Quỹ` | Checkbox: nghiệp vụ bù trừ/đối soát không phát sinh dòng tiền Quỹ |
 | M | rỗng | Helper/reserved |
 | N | `LỌC` | Công thức/helper filter |
 
 ### 15.2. Quy tắc mã vay
 
 - Row `Vay` tạo mã khoản vay.
-- Loan/payment mapping và validation do `FundLoanService` sở hữu. `FundLoanRepository` append A:K, định dạng B/F và bảo đảm một `ARRAYFORMULA` duy nhất tại `N2` qua facade/lock của `FundService`.
+- Loan/payment mapping và validation do `FundLoanService` sở hữu. `FundLoanRepository` append A:L, định dạng B/F và kiểm root `ARRAYFORMULA` tại `N2`, reject nếu thiếu; không tự repair filter trong append.
 - Row `Trả nợ`/`Trả lãi` phải tham chiếu mã vay tương ứng.
 - Ưu tiên ghép chính xác theo mã.
 - Chỉ reconcile mã orphan khi có duy nhất một khoản cùng đối tác, phát sinh trước ngày trả và outstanding khớp hoàn toàn số tiền trả.
@@ -927,8 +956,9 @@ Header row: 1.
 
 ### 15.3. Quy tắc ghi
 
-- Không ghi trực tiếp vào `N3:N`; cột N do `ARRAYFORMULA` tại `N2` quản lý. Trước mỗi append, repository xóa nội dung chặn trong `N3:N` và phục hồi formula `N2`.
-- Giữ nguyên helper/reserved L–M.
+- Không ghi trực tiếp vào `N3:N`; cột N do `ARRAYFORMULA` tại `N2` quản lý. Writer append không clear/repair N; thiếu root ARRAYFORMULA phải reject và migration riêng. Runtime rollback cũ phải kiểm compatibility trước dùng.
+- Writer ghi đúng checkbox L `Không qua Quỹ`, giữ nguyên cột M reserved.
+- Dòng L=`TRUE` vẫn tham gia dư nợ vay/trả, nhưng bị loại khỏi toàn bộ phép tính thu, chi và số dư Quỹ; quy tắc này phải khớp công thức `BC_THUCHI`.
 - Row vay có thể dùng G–J; row trả có thể để trống các field điều khoản.
 - Không cho thanh toán lại khoản hiện đã tất toán.
 - Khi xem tháng lịch sử, outstanding là số dư cuối kỳ theo contract backend.

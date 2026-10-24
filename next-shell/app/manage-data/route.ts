@@ -17,15 +17,15 @@ export async function GET(request: Request) {
       return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (query.get('surface') === 'catalog') {
-      const context = await loadPlatformContext({ module: 'transport' });
+      const context = await loadPlatformContext({ module: 'transport', year: query.get('year') || undefined });
       if (context.user.role === 'shareholder') {
         throw Object.assign(new Error('Tài khoản cổ đông không có quyền đọc Danh mục Vận tải.'), { status: 403 });
       }
-      const catalog = await loadCatalogData({ sheetName: query.get('sheetName'), forceRefresh: query.get('forceRefresh') === 'true' });
+      const catalog = await loadCatalogData({ sheetName: query.get('sheetName'), year: context.workbook.year, forceRefresh: query.get('forceRefresh') === 'true' });
       return NextResponse.json(catalog, { headers: { 'Cache-Control': 'no-store' } });
     }
-    await loadPlatformContext({ module: 'transport' });
-    const data = await loadManageData({ sheetName: query.get('sheetName'), startDate: query.get('startDate'), endDate: query.get('endDate'), forceRefresh: query.get('forceRefresh') === 'true' });
+    const context = await loadPlatformContext({ module: 'transport', year: query.get('year') || undefined });
+    const data = await loadManageData({ sheetName: query.get('sheetName'), year: context.workbook.year, startDate: query.get('startDate'), endDate: query.get('endDate'), forceRefresh: query.get('forceRefresh') === 'true' });
     return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const status = error instanceof PlatformApiError ? error.status : Number((error as { status?: number })?.status) || 500;

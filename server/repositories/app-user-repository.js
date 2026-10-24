@@ -1,4 +1,6 @@
+const { withDeadline } = require('../services/request-deadline');
 function createAppUserRepository({ fetchImpl = fetch, httpError }) {
+  fetchImpl = withDeadline(fetchImpl);
   function serviceHeaders(config, extra = {}) {
     return {
       apikey: config.serviceRoleKey,

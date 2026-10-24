@@ -109,7 +109,7 @@ test('feature flag defaults match the characterized baseline', () => {
   assert.match(service, new RegExp(`ASYNC_TRANSPORT_WRITE_ENABLED = ${baseline.featureFlags.ASYNC_TRANSPORT_WRITE_ENABLED}`));
   assert.match(
     service,
-    new RegExp(`ASYNC_FUND_TRANSACTION_ADD_ENABLED = readBooleanProperty_\\('ASYNC_FUND_TRANSACTION_ADD_ENABLED', ${baseline.featureFlags.ASYNC_FUND_TRANSACTION_ADD_ENABLED}\\)`)
+    new RegExp(`return readBooleanProperty_\\('ASYNC_FUND_TRANSACTION_ADD_ENABLED', ${baseline.featureFlags.ASYNC_FUND_TRANSACTION_ADD_ENABLED}\\)`)
   );
   assert.match(reportCacheMode, /PROPERTY_NAME = 'REPORT_CACHE_MODE'/);
   assert.match(reportCacheMode, new RegExp(`var SUPABASE = '${baseline.featureFlags.REPORT_CACHE_MODE}'`));

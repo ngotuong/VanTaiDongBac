@@ -61,7 +61,10 @@ var TransportJobHandler = (function () {
       return result;
     }
     if (actionName === 'saveSheetRow') {
-      var saveResult = context.saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData || {}, payload.previousRowData || null);
+      var saveResult = context.saveSheetRow(payload.sheetName, payload.rowIndex, payload.rowData || {}, payload.previousRowData || null, {
+        jobId: job.id,
+        idempotencyKey: job.idempotency_key
+      });
       assertResult_(saveResult, 'Không thể sửa dòng Vận hành.');
       if (saveResult && saveResult.ok !== false) {
         syncAfterRowMutation_(saveResult, payload, context, [payload.previousRowData || {}, payload.rowData || {}]);

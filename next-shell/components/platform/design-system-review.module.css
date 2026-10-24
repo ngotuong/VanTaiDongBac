@@ -1,0 +1,22 @@
+.review { min-width: 0; max-width: 920px; display: grid; gap: 16px; padding-bottom: 24px; margin-inline: auto; color: var(--platform-text); }
+.notice, .note { color: var(--platform-muted); font-size: 14px; line-height: 1.5; margin: 0; overflow-wrap: anywhere; }
+.note { margin-top: 12px; }
+.swatches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.swatches > div { display: grid; min-width: 0; gap: 4px; }
+.swatches i { display: block; height: 44px; border: 1px solid var(--platform-border); border-radius: 8px; }
+.swatches code { font-size: 12px; overflow-wrap: anywhere; }
+.swatches small, .example > small { color: var(--platform-muted); font-size: 12px; overflow-wrap: anywhere; }
+.contrasts { display: grid; gap: 8px; margin-top: 16px; }
+.contrasts > div { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 14px; }
+.contrasts strong { font-variant-numeric: tabular-nums; }
+.typography { display: grid; gap: 12px; }
+.typography p { margin: 0; font-size: 18px; font-weight: 700; }
+.typography strong { font-size: 16px; }
+.typography span { font-size: 14px; }
+.typography small { font-size: 12px; font-weight: 600; }
+.examples { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 12px; }
+.example { display: grid; min-width: 0; align-content: start; gap: 8px; }
+.example > div { min-width: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.formExample { width: 100%; max-width: 680px; min-width: 0; }
+@media (max-width: 560px) { .swatches, .examples { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

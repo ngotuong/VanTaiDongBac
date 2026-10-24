@@ -68,6 +68,7 @@
       "getStartupData",
       "getSupabaseSyncStatus",
       "getWriteJobStatus",
+      "getYearRolloverStatus",
       "health",
       "invalidateCaches",
       "readCatalogData",
@@ -77,6 +78,7 @@
     "postActions": [
       "addFundLoan",
       "addFundLoanPayment",
+      "addFundDebtPayment",
       "addFundTransaction",
       "addFundTransactions",
       "cancelWriteJob",
@@ -86,6 +88,8 @@
       "deleteSheetRow",
       "processWriteJobs",
       "recoverSyncInfrastructure",
+      "manageYearRollover",
+      "requestPayrollExplanationRefresh",
       "retryWriteJob",
       "saveFundCatalogItem",
       "saveSheetRow",
@@ -115,7 +119,8 @@
     ],
     "localFoundationActions": [
       "runtimeContext",
-      "getNotifications"
+      "getNotifications",
+      "getPayrollExplanation"
     ],
     "shareholderActions": [
       "authSession",

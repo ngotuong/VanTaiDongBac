@@ -18,6 +18,9 @@ function loadRepositories() {
       readRows(tableName, query) {
         calls.push({ operation: 'read', tableName, query });
         return [{ synthetic: true }];
+      },
+      updateRows(tableName, patch, filters) {
+        calls.push({ operation: 'update', tableName, patch, filters });
       }
     }
   });
@@ -36,10 +39,12 @@ test('bundle repository preserves table, rows, conflict key, and query without t
   const query = { spreadsheet_id: 'eq.synthetic-sheet', report_month: 'eq.07/2026', limit: '1' };
   bundles.upsertRows('report_bundles', rows, 'spreadsheet_id,report_month');
   const result = bundles.readRows('report_bundles', query);
+  bundles.updateRows('report_bundles', { active: false }, query);
   assert.deepEqual(JSON.parse(JSON.stringify(result)), [{ synthetic: true }]);
   assert.deepEqual(JSON.parse(JSON.stringify(calls)), [
     { operation: 'upsert', tableName: 'report_bundles', rows, onConflict: 'spreadsheet_id,report_month' },
-    { operation: 'read', tableName: 'report_bundles', query }
+    { operation: 'read', tableName: 'report_bundles', query },
+    { operation: 'update', tableName: 'report_bundles', patch: { active: false }, filters: query }
   ]);
 });
 

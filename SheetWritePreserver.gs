@@ -2,7 +2,7 @@ var SheetWritePreserver = (function () {
   function writeRowSkippingColumns(sheet, rowNum, values, skippedColumns) {
     var skipMap = buildSkipMap_(skippedColumns);
     writeRowSegments_(sheet, rowNum, values, skipMap, function (range, segment) {
-      range.setValues([segment]);
+      range.setValues([segment.map(literal_)]);
     });
   }
 
@@ -58,12 +58,12 @@ var SheetWritePreserver = (function () {
 
   function writeSegmentSafely_(sheet, range, rowNum, segment, stage) {
     try {
-      range.setValues([segment]);
+      range.setValues([segment.map(literal_)]);
     } catch (error) {
       if (!isFilteredRangeError_(error)) throwStageError_(stage, error);
       for (var columnOffset = 0; columnOffset < segment.length; columnOffset++) {
         runWriteStage_(stage + '_cell', function () {
-          sheet.getRange(rowNum, range.getColumn() + columnOffset).setValue(segment[columnOffset]);
+          sheet.getRange(rowNum, range.getColumn() + columnOffset).setValue(literal_(segment[columnOffset]));
         });
       }
     }
@@ -104,6 +104,8 @@ var SheetWritePreserver = (function () {
     if (cache) cache.put(cacheKey, String(minRow - 1), cacheTtlSeconds);
     return minRow - 1;
   }
+
+  function literal_(value) { return typeof value === 'string' && /^\s*=/.test(value) ? "'" + value : value; }
 
   function buildSkipMap_(skippedColumns) {
     var skipMap = {};

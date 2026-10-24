@@ -1,52 +1,52 @@
 var CatalogService = (function () {
-  function getCatalogs(formType) {
-    return SheetService.getCatalogs(formType);
+  function getCatalogs(formType, forceRefresh) {
+    return SheetService.getCatalogs(formType, forceRefresh);
   }
 
   function readCatalogs(ss, formType) {
     var needs = catalogNeeds_(formType);
     var params = needs.params ? readParams_(ss) : {};
-    var peopleRows = needs.people ? readRows_(ss, 'DM_NhanSu') : [];
-    var vehicleRows = needs.vehicles ? readRows_(ss, 'DM_Xe') : [];
-    var projectRows = needs.projects ? readRows_(ss, 'DM_DuAn') : [];
-    var penaltyRows = needs.penalties ? readRows_(ss, 'DM_PhatNoiBo') : [];
-    var assignmentRows = needs.assignments ? readRows_(ss, 'DM_PhanCongXe') : [];
+    var peopleTable = needs.people ? readTable_(ss, 'DM_NhanSu') : emptyTable_();
+    var vehicleTable = needs.vehicles ? readTable_(ss, 'DM_Xe') : emptyTable_();
+    var projectTable = needs.projects ? readTable_(ss, 'DM_DuAn') : emptyTable_();
+    var penaltyTable = needs.penalties ? readTable_(ss, 'DM_PhatNoiBo') : emptyTable_();
+    var assignmentTable = needs.assignments ? readTable_(ss, 'DM_PhanCongXe') : emptyTable_();
     var chamCongTypes = needs.chamCongTypes ? readChamCongTypes_(ss) : [];
     var fuelSources = needs.fuelOptions ? readColumnOptions_(ss, 'NL_Dau', 2, ['Nguồn dầu']) : [];
     var fuelPaymentSources = needs.fuelOptions ? readColumnOptions_(ss, 'NL_Dau', 2, ['Nguồn chi']) : [];
     var nghiVanHanhTypes = needs.stopTypes ? readColumnOptions_(ss, 'NL_NghiVanHanh', 1, ['Loại nghỉ']) : [];
     var companies = needs.companies ? readColumnOptions_(ss, 'DM_Xe', 1, ['Công ty sở hữu']) : [];
 
-    var people = peopleRows.map(function (row) {
+    var people = peopleTable.rows.map(function (row) {
       return {
-        name: clean_(row[0]),
-        role: clean_(row[1]),
-        recruiter: clean_(row[2]),
-        status: clean_(row[9])
+        name: clean_(tableValue_(peopleTable, row, ['Nhân sự', 'Tên'])),
+        role: clean_(tableValue_(peopleTable, row, ['Chức vụ', 'Vai trò'])),
+        recruiter: clean_(tableValue_(peopleTable, row, ['Người tuyển'])),
+        status: clean_(tableValue_(peopleTable, row, ['Trạng Thái', 'Trạng thái']))
       };
     }).filter(function (item) { return item.name; });
 
-    var vehicles = vehicleRows.map(function (row) {
+    var vehicles = vehicleTable.rows.map(function (row) {
       return {
-        plate: clean_(row[1]),
-        status: clean_(row[5]),
-        owner: clean_(row[7])
+        plate: clean_(tableValue_(vehicleTable, row, ['Biển số xe', 'Biển số'])),
+        status: clean_(tableValue_(vehicleTable, row, ['Trạng thái', 'Trạng Thái'])),
+        owner: clean_(tableValue_(vehicleTable, row, ['Công ty sở hữu', 'Chủ xe']))
       };
     }).filter(function (item) { return item.plate; });
 
-    var projects = projectRows.map(function (row) {
+    var projects = projectTable.rows.map(function (row) {
       return {
-        name: clean_(row[0]),
-        distanceKm: parseNumber_(row[1])
+        name: clean_(tableValue_(projectTable, row, ['Tên dự án', 'Dự án'])),
+        distanceKm: parseNumber_(tableValue_(projectTable, row, ['Số km', 'Km']))
       };
     }).filter(function (item) { return item.name; });
 
-    var penalties = penaltyRows.map(function (row) {
+    var penalties = penaltyTable.rows.map(function (row) {
       return {
-        code: clean_(row[0]),
-        content: clean_(row[1]),
-        amount: parseNumber_(row[2]),
-        status: clean_(row[3])
+        code: clean_(tableValue_(penaltyTable, row, ['Mã phạt', 'Mã'])),
+        content: clean_(tableValue_(penaltyTable, row, ['Nội dung', 'Nội dung phạt'])),
+        amount: parseNumber_(tableValue_(penaltyTable, row, ['Số tiền', 'Mức phạt'])),
+        status: clean_(tableValue_(penaltyTable, row, ['Trạng thái', 'Trạng Thái']))
       };
     }).filter(function (item) { return item.code; });
 
@@ -59,19 +59,21 @@ var CatalogService = (function () {
     var activeDrivers = people.filter(function (item) {
       return (item.status === 'Dang lam' || item.status === 'Đang làm') && item.role === 'Tài xế';
     });
-    var assignments = assignmentRows.map(function (row) {
+    var assignments = assignmentTable.rows.map(function (row) {
       return {
-        plate: clean_(row[0]),
-        operationGroup: clean_(row[1]),
-        startDate: formatDateValue_(row[2]),
-        endDate: formatDateValue_(row[3]),
-        note: clean_(row[4]),
-        status: clean_(row[5])
+        plate: clean_(tableValue_(assignmentTable, row, ['Biển số xe', 'Biển số'])),
+        operationGroup: clean_(tableValue_(assignmentTable, row, ['Nhóm vận hành'])),
+        startDate: formatDateValue_(tableValue_(assignmentTable, row, ['Từ ngày', 'Ngày bắt đầu'])),
+        endDate: formatDateValue_(tableValue_(assignmentTable, row, ['Đến ngày', 'Ngày kết thúc'])),
+        note: clean_(tableValue_(assignmentTable, row, ['Ghi chú'])),
+        status: clean_(tableValue_(assignmentTable, row, ['Trạng thái', 'Trạng Thái']))
       };
     }).filter(function (item) { return item.plate && item.operationGroup && item.startDate; });
     var operationGroupValues = needs.projects ? readColumnOptions_(ss, 'SYS_DanhSach', 1, ['DS_NhomVanHanh']) : [];
     if (!operationGroupValues.length) {
-      operationGroupValues = projectRows.map(function (row) { return clean_(row[8]); });
+      operationGroupValues = projectTable.rows.map(function (row) {
+        return clean_(tableValue_(projectTable, row, ['Nhóm vận hành']));
+      });
     }
     var operationGroups = uniqueNamed_(operationGroupValues.map(function (name) {
       return { name: clean_(name) };
@@ -132,28 +134,44 @@ var CatalogService = (function () {
     return needs;
   }
 
-  function readRows_(ss, sheetName) {
+  function emptyTable_() {
+    return { headers: [], headerIndex: {}, rows: [] };
+  }
+
+  function readTable_(ss, sheetName) {
     var sheet = ss.getSheetByName(sheetName);
-    if (!sheet) return [];
+    if (!sheet) return emptyTable_();
     var lastRow = sheet.getLastRow();
     var lastColumn = sheet.getLastColumn();
-    if (lastRow < 2 || lastColumn < 1) return [];
-    return sheet.getRange(2, 1, lastRow - 1, lastColumn).getValues();
+    if (lastRow < 1 || lastColumn < 1) return emptyTable_();
+    var headers = sheet.getRange(1, 1, 1, lastColumn).getDisplayValues()[0];
+    var headerIndex = {};
+    headers.forEach(function (header, index) {
+      var key = normalizeCatalogHeader_(header);
+      if (key && headerIndex[key] === undefined) headerIndex[key] = index;
+    });
+    return {
+      headers: headers,
+      headerIndex: headerIndex,
+      rows: lastRow < 2 ? [] : sheet.getRange(2, 1, lastRow - 1, lastColumn).getValues()
+    };
+  }
+
+  function tableValue_(table, row, headerNames) {
+    var value = '';
+    (headerNames || []).some(function (headerName) {
+      var index = table.headerIndex[normalizeCatalogHeader_(headerName)];
+      if (index === undefined) return false;
+      value = row[index];
+      return true;
+    });
+    return value;
   }
 
   function readChamCongTypes_(ss) {
-    var sheet = ss.getSheetByName('NL_ChamCong');
-    if (!sheet || sheet.getLastRow() < 2 || sheet.getLastColumn() < 10) return [];
-    var values = sheet.getRange(2, 10, sheet.getLastRow() - 1, 1).getDisplayValues();
-    var seen = {};
-    var result = [];
-    values.forEach(function (row) {
-      var name = clean_(row[0]);
-      if (!name || seen[name]) return;
-      seen[name] = true;
-      result.push({ name: name, group: '', salary: '' });
+    return readColumnOptions_(ss, 'NL_ChamCong', 1, ['Loại ngày công hợp lệ']).map(function (name) {
+      return { name: name, group: '', salary: '' };
     });
-    return result;
   }
 
   function uniqueStrings_(values) {
@@ -216,7 +234,7 @@ var CatalogService = (function () {
 
   function readCatalogFieldOptions_(sheetName, result) {
     var optionHeaders = {
-      DM_DuAn: ['Nhóm vận hành', 'Áp dụng lương chuyến?', 'Áp dụng thưởng QL?'],
+      DM_DuAn: ['Nhóm vận hành', 'Lương chuyến?', 'Thưởng QL?', 'Áp dụng lương chuyến?', 'Áp dụng thưởng QL?'],
       DM_NhanSu: ['Chức vụ', 'Người tuyển', 'Trạng Thái', 'Công ty'],
       DM_Xe: ['Loại xe', 'Trạng thái', 'Công ty sở hữu'],
       DM_CheDoLuong: ['Chế độ lương'],
@@ -224,7 +242,8 @@ var CatalogService = (function () {
       DM_DonGiaVanChuyen: ['Cách tính'],
       DM_ThuongQuanLy: ['Trạng thái', 'Nhóm vận hành'],
       DM_PhatNoiBo: ['Trạng thái'],
-      DM_PhanCongXe: ['Nhóm vận hành']
+      DM_PhanCongXe: ['Nhóm vận hành'],
+      DM_BaoHiem: ['Nhân sự']
     };
     var requested = optionHeaders[sheetName] || [];
     if (!requested.length) return {};
@@ -237,7 +256,10 @@ var CatalogService = (function () {
       });
       if (headerIndex < 0) return;
       var header = result.headers[headerIndex];
-      var values = spreadsheet ? readColumnOptions_(spreadsheet, sheetName, 1, [header]) : [];
+      var optionSheetName = sheetName === 'DM_BaoHiem' && normalizeCatalogHeader_(header) === 'nhan su'
+        ? 'DM_NhanSu'
+        : sheetName;
+      var values = spreadsheet ? readColumnOptions_(spreadsheet, optionSheetName, 1, [header]) : [];
       if (values.length) options[header] = values;
     });
     return options;
@@ -280,10 +302,10 @@ var CatalogService = (function () {
     });
   }
 
-  function readCatalogData(displaySheetName) {
+  function readCatalogData(displaySheetName, forceRefresh) {
     var requestedName = String(displaySheetName || '').trim();
     var sheetName = requestedName === 'DM_ThamSo_TS' ? 'DM_ThamSo' : requestedName;
-    var data = SheetReadService.readSheetData(sheetName, '', '', 500);
+    var data = SheetReadService.readSheetData(sheetName, '', '', 500, { forceRefresh: forceRefresh === true });
     if (!data || data.ok === false) return data;
 
     var result = {
@@ -330,11 +352,23 @@ var CatalogService = (function () {
 
   function editableHeadersForSheet_(sheetName, headers) {
     var explicit = {
-      DM_DuAn: ['Tên dự án', 'Số km', 'Từ ngày', 'Đến ngày', 'Ghi chú', 'Áp dụng lương chuyến?', 'Áp dụng thưởng QL?'],
+      // Each item is an alias group. The API always returns the exact live
+      // workbook header so write payloads continue to address the real column.
+      DM_DuAn: [
+        ['Tên dự án', 'Dự án'],
+        ['Số km', 'Km', 'Cự ly'],
+        ['Từ ngày', 'Hiệu lực từ'],
+        ['Đến ngày', 'Hiệu lực đến'],
+        ['Nhóm vận hành'],
+        ['Áp dụng lương chuyến?', 'Lương chuyến?'],
+        ['Áp dụng thưởng QL?', 'Thưởng QL?'],
+        ['Ghi chú']
+      ],
       DM_Xe: ['Biển số xe', 'Biển số rơ mooc', 'Khối lượng', 'Loại xe', 'Trạng thái', 'Ghi chú', 'Công ty sở hữu'],
       DM_NhanSu: ['Nhân sự', 'Chức vụ', 'Người tuyển', 'Tính thưởng', 'Dừng thưởng', 'Ngày vào', 'Ngày nghỉ', 'Lương cứng', 'Nghỉ chuẩn', 'Công ty'],
       DM_CheDoLuong: ['Nhân sự', 'Chế độ lương', 'Mức khoán', 'Hiệu lực từ', 'Hiệu lực đến', 'Dự án', 'Ghi chú'],
-      DM_PhanCongXe: ['Biển số xe', 'Nhóm vận hành', 'Hiệu lực từ', 'Hiệu lực đến', 'Ghi chú'],
+      DM_PhanCongXe: ['Biển số xe', 'Nhóm vận hành', 'Từ ngày', 'Đến ngày', 'Ghi chú'],
+      DM_BaoHiem: ['Nhân sự', 'Mức khấu trừ/tháng', 'Hiệu lực từ', 'Hiệu lực đến', 'Ghi chú'],
       // Column C is labelled "Ghi chú" in the live workbook, but rows 3+
       // contain the price-delta formula. Keep it read-only so an append copies
       // the preceding formula instead of replacing it with user input.
@@ -343,7 +377,15 @@ var CatalogService = (function () {
     };
     if (sheetName === 'DM_ThamSo_TS') return ['Mã tham số', 'Tên tham số', 'Giá trị', 'Ngày áp dụng tham số'];
     var allowed = explicit[sheetName] || headers;
-    return allowed.filter(function (header) { return headers.indexOf(header) !== -1; });
+    return allowed.map(function (candidate) {
+      var aliases = Array.isArray(candidate) ? candidate : [candidate];
+      var wanted = aliases.map(normalizeCatalogHeader_);
+      return headers.find(function (header) {
+        return wanted.indexOf(normalizeCatalogHeader_(header)) !== -1;
+      });
+    }).filter(function (header, index, result) {
+      return header !== undefined && result.indexOf(header) === index;
+    });
   }
 
   function projectPrimaryTable_(result) {

@@ -7,14 +7,14 @@ const read = (file) => fs.readFileSync(path.join(root,file),'utf8');
 
 test('C3 Manage route server-loads Manage and reuses the loaded catalogs when opening Entry',()=>{
   const page=read('next-shell/app/manage/page.jsx'),module=read('next-shell/components/manage/ManageReadOnlyModule.tsx');
-  assert.match(page,/loadManageData\(currentTransportMonthRange\(\)\)/); assert.doesNotMatch(page,/loadEntryCatalogs\(\)/); assert.match(page,/<ManageReadOnlyModule initialData=/);
+  assert.match(page,/loadPlatformContext\(\{module:'transport'\}\)/); assert.match(page,/loadManageData\(\{\.\.\.range,year:context\.workbook\.year\}\)/); assert.doesNotMatch(page,/loadEntryCatalogs\(\)/); assert.match(page,/<ManageReadOnlyModule initialData=/);
   assert.match(module,/entryOpen\?<BodyPortal>[\s\S]*<EntryModule initialCatalogs=\{catalogs\}/); assert.doesNotMatch(module,/loadEntryCatalogs\(\)/);
   assert.doesNotMatch(page,/bridge=|next-accounts-shell/);
 });
 
 test('B3 loader keeps ordinary Manage reads on Supabase and reserves Apps Script for explicit refresh',()=>{
   const loader=read('next-shell/lib/manage-server.ts');
-  for(const sheet of ['NL_VanChuyen','NL_TaiXe','NL_Dau','NL_ChamCong','NL_Phat','NL_NghiVanHanh','NL_PhanCongLai']) assert.match(loader,new RegExp(`'${sheet}'`));
+  for(const sheet of ['NL_VanChuyen','NL_TaiXe','NL_Dau','NL_ChamCong','NL_Phat','NL_NghiVanHanh','NL_PhanCongLai','NL_SoDuLuong']) assert.match(loader,new RegExp(`'${sheet}'`));
   assert.match(loader,/'recent_500'/); assert.match(loader,/`month:\$\{month\}`/); assert.match(loader,/AbortSignal\.timeout\(5000\)/);
   assert.match(loader,/const \[rows, recentRow\] = await Promise\.all/);
   assert.match(loader,/if \(recentBundle\) return/);
@@ -22,6 +22,14 @@ test('B3 loader keeps ordinary Manage reads on Supabase and reserves Apps Script
   assert.match(loader,/api\.get<ManageBundle>\('readManageData'/); assert.match(loader,/spreadsheetId: workbook\.spreadsheetId/);
   assert.match(loader,/limit: startDate \|\| endDate \? '500' : '50'/);
   assert.ok(loader.indexOf("if (!input.forceRefresh)") < loader.indexOf("api.get<ManageBundle>('readManageData'"));
+});
+
+test('Manage exposes salary balances but protects every formula and system column',()=>{
+  const module=read('next-shell/components/manage/ManageReadOnlyModule.tsx');
+  assert.match(module,/\['NL_SoDuLuong','Số dư lương'\]/);
+  assert.match(module,/NO_DATE_FILTER_SHEETS=new Set<ManageSheetName>/);
+  assert.match(module,/h\.startsWith\('_sys_'\)/);
+  for(const header of ['so du dau ky','con sau ky','trang thai','ghi chu hien thi']) assert.match(module,new RegExp(header));
 });
 
 test('C3 Manage ports C2 tabs filters stats pagination and RBAC write lifecycle',()=>{

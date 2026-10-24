@@ -1,6 +1,6 @@
 var SheetReadService = (function () {
-  function readSheetData(sheetName, startDateStr, endDateStr, limit) {
-    return SheetService.readSheetData(sheetName, startDateStr, endDateStr, limit);
+  function readSheetData(sheetName, startDateStr, endDateStr, limit, options) {
+    return SheetService.readSheetData(sheetName, startDateStr, endDateStr, limit, options);
   }
 
   function readSheetDataFromSpreadsheet(ss, sheetName, startDateStr, endDateStr, limit, context) {
@@ -17,7 +17,7 @@ var SheetReadService = (function () {
       var responseCacheKey = context.buildCacheKey(
         'read_sheet', sheetName, startDateStr || '', endDateStr || '', rowLimit, context.getDataVersion()
       );
-      var responseCached = context.getCached(responseCacheKey);
+      var responseCached = context.forceRefresh === true ? null : context.getCached(responseCacheKey);
       if (responseCached) return responseCached;
 
       if (lastCol > 0) {

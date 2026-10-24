@@ -10,10 +10,12 @@ test('Report period selection clears stale rows immediately and only the latest 
   const source = read('next-shell/components/report/ReportModule.tsx');
   const normalized = source.indexOf('const normalizedFrom = normalizeMonth(targetFrom)');
   const immediate = source.indexOf('setPeriodMode(targetMode)');
+  const cached = source.indexOf('reportResponseCache.get(targetKey)');
   const clearStale = source.indexOf('setRenderedPeriod(null)');
-  const request = source.indexOf('await requestReport(targetMode');
+  const request = source.indexOf('await requestReport(workbook.year, targetMode');
 
-  assert.ok(normalized >= 0 && immediate > normalized && clearStale > immediate && clearStale < request);
+  assert.ok(normalized >= 0 && immediate > normalized && cached > immediate && clearStale > cached && clearStale < request);
+  assert.match(source, /if \(targetKey !== renderedPeriod\) \{\s*setBundle\(null\);\s*setRenderedPeriod\(null\);/);
   assert.match(source, /const latestRequest = useLatestAsyncRequest\(\)/);
   assert.match(source, /if \(!requestState\.isCurrent\(\)\) return/);
   assert.match(source, /const hasCurrentBundle = Boolean\(bundle && renderedPeriod === periodKey\)/);

@@ -86,12 +86,26 @@ test('insert, update, and upsert request snapshots preserve methods, payloads, a
         method: 'post', muteHttpExceptions: true, contentType: 'application/json',
         headers: {
           apikey: 'test-service-key', Authorization: 'Bearer test-service-key',
-          Prefer: 'resolution=merge-duplicates,return=representation'
+          Prefer: 'resolution=merge-duplicates,return=minimal'
         },
         payload: '[{"sync_key":"dashboard"}]'
       }
     }
   ]);
+});
+
+test('conditional update returns affected rows only when representation is requested', () => {
+  const { client, requests } = loadClient({ responses: [
+    { code: 200, body: '[{"id":"job-1","status":"pending"}]' },
+    { code: 200, body: '[]' }
+  ] });
+  const filters = { id: 'eq.job-1', status: 'eq.failed', updated_at: 'eq.2026-10-23T00:00:00Z' };
+  const first = client.updateRows('write_jobs', { status: 'pending' }, filters, { returnRepresentation: true });
+  const second = client.updateRows('write_jobs', { status: 'pending' }, filters, { returnRepresentation: true });
+  assert.equal(first[0].status, 'pending');
+  assert.equal(second.length, 0);
+  assert.equal(requests[0].options.headers.Prefer, 'return=representation');
+  assert.match(requests[0].url, /updated_at=eq\.2026-10-23T00%3A00%3A00Z/);
 });
 
 test('empty insert and upsert keep the legacy no-request behavior', () => {

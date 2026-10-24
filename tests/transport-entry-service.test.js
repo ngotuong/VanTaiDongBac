@@ -9,10 +9,6 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 function loadEntry(buildResult, reservedRange = null, options = {}) {
   const events = [];
-  const properties = new Map();
-  if (reservedRange) {
-    properties.set('WRITE_JOB_RESERVATION_job-123', JSON.stringify({ sheetName: 'NL_VanChuyen', startRow: reservedRange.getRow() }));
-  }
   const liveHeaders = {
     NL_VanChuyen: options.liveVanChuyenHeaders || ['Ngày', 'Tháng', 'Biển số', 'Dự án', 'Số chuyến', 'Số phiếu', 'Ghi chú', 'Khối lượng thực tế (m³)'],
     NL_Dau: ['Ngày', 'Tháng', 'Biển số', 'Nguồn dầu', 'Số lít', 'Giá dầu', 'Thành tiền', 'Nguồn chi', 'Công ty sở hữu', 'Ghi Chú']
@@ -33,11 +29,19 @@ function loadEntry(buildResult, reservedRange = null, options = {}) {
   const context = vm.createContext({
     SheetService: {},
     LockService: { getScriptLock: () => lock },
-    PropertiesService: { getScriptProperties: () => ({
-      getProperty: (key) => properties.get(key) || null,
-      setProperty(key, value) { properties.set(key, value); events.push({ type: 'reservation', key, value }); },
-      deleteProperty(key) { properties.delete(key); events.push({ type: 'release', key }); }
-    }) },
+    SheetWriteJournal: {
+      locate() { return reservedRange ? { range: reservedRange, markerValue: 'job-123|hash', legacy: false } : null; },
+      prepare(sheet, writeContext, intent) {
+        events.push({ type: 'journal', startRow: intent.startRow, intendedRows: intent.intendedRows, writableColumns: intent.writableColumns });
+        return {
+          range: intent.located ? intent.located.range : sheet.getRange(intent.startRow, 1, intent.intendedRows.length, intent.intendedRows[0].length),
+          startRow: intent.located ? intent.located.range.getRow() : intent.startRow,
+          shouldWrite: !intent.located,
+          idempotentReplay: Boolean(intent.located)
+        };
+      },
+      release(jobId) { events.push({ type: 'release', jobId }); }
+    },
     ValidationService: { buildRows: () => buildResult }
   });
   new vm.Script(read('EntryService.gs'), { filename: 'EntryService.gs#test' }).runInContext(context);
@@ -55,7 +59,10 @@ function loadEntry(buildResult, reservedRange = null, options = {}) {
     clearAfterSubmitCache: () => events.push({ type: 'clearCache' })
   };
   submitContext.sheets.vanChuyen.headers = ['Ngày', 'Tháng', 'Biển số', 'Dự án', 'Số chuyến', 'Số phiếu', 'Ghi chú', 'Khối lượng thực tế (m³)'];
-  submitContext.sheets.vanChuyen.headerAliases = { 'Biển số': ['Biển số xe'] };
+  submitContext.sheets.vanChuyen.headerAliases = {
+    'Biển số': ['Biển số xe'],
+    'Khối lượng thực tế (m³)': ['Khối lượng', 'Khối lượng thực tế', 'Khối lượng (m³)']
+  };
   submitContext.sheets.vanChuyen.computedHeaders = ['Tháng'];
   submitContext.sheets.dau.headers = liveHeaders.NL_Dau;
   submitContext.sheets.dau.computedHeaders = ['Tháng', 'Thành tiền', 'Công ty sở hữu'];
@@ -76,17 +83,14 @@ test('transport submit preserves validation result, append range, cache callback
   assert.equal(events.at(-1).type, 'unlock');
 });
 
-test('queued submit stores a stable Script Property reservation and replay reuses its original range', () => {
+test('queued submit journals the physical intent and replay follows the marked range without rewriting', () => {
   const result = { values: [[1], [2]], errors: [], warnings: [] };
   const first = loadEntry(result);
   const firstResponse = first.service.submitRowsWithContext('vanChuyen', [{}, {}], { jobId: 'job-123' }, first.submitContext);
   assert.equal(firstResponse.startRow, 10);
-  assert.deepEqual(first.events.find((event) => event.type === 'reservation'), {
-    type: 'reservation', key: 'WRITE_JOB_RESERVATION_job-123',
-    value: JSON.stringify({ sheetName: 'NL_VanChuyen', startRow: 10 })
-  });
+  assert.equal(first.events.find((event) => event.type === 'journal').startRow, 10);
   assert.deepEqual(first.events.find((event) => event.type === 'range'), {
-    type: 'range', row: 10, column: 1, rowCount: 1, columnCount: 12
+    type: 'range', row: 10, column: 1, rowCount: 2, columnCount: 8
   });
 
   const replayRange = { getRow: () => 27 };
@@ -94,7 +98,8 @@ test('queued submit stores a stable Script Property reservation and replay reuse
   const replayResponse = replay.service.submitRowsWithContext('vanChuyen', [{}, {}], { jobId: 'job-123' }, replay.submitContext);
   assert.equal(replayResponse.startRow, 27);
   assert.equal(replayResponse.idempotentReplay, true);
-  assert.equal(replay.events.some((event) => event.type === 'reservation'), false);
+  assert.equal(replay.events.some((event) => event.type === 'write'), false);
+  assert.equal(replay.events.some((event) => event.type === 'clearCache'), false);
 });
 
 test('fuel submit preserves formula/helper skip columns and queued validation errors never write', () => {
@@ -125,6 +130,17 @@ test('transport submit accepts the renamed NL_VanChuyen plate header and its con
     () => invalid.service.submitRowsWithContext('vanChuyen', [{}], null, invalid.submitContext),
     /chap nhan "Biển số" hoac "Biển số xe", dang la "Xe"/
   );
+});
+
+test('transport submit maps moved live columns by header and leaves helper columns untouched', () => {
+  const logical = ['10/09/2026', '', '15C12345', 'Dự án A', 2, 'P1', 'ghi chú', 12.5];
+  const liveHeaders = ['Ngày', 'Tháng', 'Biển số', 'Dự án', 'Số chuyến', 'Số phiếu', 'Khối lượng ', 'Ghi chú', '_SYS_CHECK'];
+  const current = loadEntry({ values: [logical], errors: [], warnings: [] }, null, { liveVanChuyenHeaders: liveHeaders });
+  const response = current.service.submitRowsWithContext('vanChuyen', [{}], null, current.submitContext);
+  const write = current.events.find((event) => event.type === 'write');
+  assert.equal(response.ok, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(write.values[0])), ['10/09/2026', '', '15C12345', 'Dự án A', 2, 'P1', 12.5, 'ghi chú', '']);
+  assert.deepEqual(JSON.parse(JSON.stringify(write.skipped)), [1, 8]);
 });
 
 test('EntryService owns submit orchestration while SheetService retains only the compatibility adapter', () => {

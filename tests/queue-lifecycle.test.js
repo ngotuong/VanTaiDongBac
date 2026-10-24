@@ -11,6 +11,7 @@ const worker = read('WriteJobWorker.gs');
 const transportHandler = read('TransportJobHandler.gs');
 const sheetService = read('SheetService.gs');
 const entryService = read('EntryService.gs');
+const sheetWriteJournal = read('SheetWriteJournal.gs');
 const fundService = read('FundService.gs');
 const fundTransactionService = read('FundTransactionService.gs');
 const migration = read('supabase/migrations/006_write_queue_hardening.sql');
@@ -121,9 +122,10 @@ test('transport retry reuses its durable reservation and preserves the original 
   assert.match(transportHandler, /context\.submitRows\(payload\.formType, payload\.rows \|\| \[\], \{/);
   assert.match(transportHandler, /jobId: job\.id/);
   assert.match(transportHandler, /idempotencyKey: job\.idempotency_key/);
-  assert.match(entryService, /WRITE_JOB_RESERVATION_/);
-  assert.match(entryService, /PropertiesService\.getScriptProperties\(\)\.setProperty/);
-  assert.match(entryService, /PropertiesService\.getScriptProperties\(\)\.getProperty/);
+  assert.match(entryService, /SheetWriteJournal\.prepare/);
+  assert.match(sheetWriteJournal, /WRITE_JOB_INTENT_V2/);
+  assert.match(sheetWriteJournal, /addDeveloperMetadata/);
+  assert.match(sheetWriteJournal, /REQUIRES_RECONCILIATION/);
 });
 
 test('fund full replay succeeds while a partial voucher match stops the entire batch', () => {
@@ -142,7 +144,8 @@ test('failure after a Sheet write remains retryable and replay guards prevent du
   const afterPostWriteFailure = finishFailure(claimed, 'sync failed after Sheet write');
   assert.equal(afterPostWriteFailure.status, 'pending');
   assert.match(worker, /var result = context\.executeJob\(job\);[\s\S]*?status: 'synced'/);
-  assert.match(entryService, /var idempotentReplay = Boolean\(reservedRange\)/);
+  assert.match(entryService, /if \(intent\.shouldWrite\)/);
+  assert.match(sheetWriteJournal, /state === 'exact'/);
   assert.match(fundTransactionService, /idempotentReplay: true/);
 });
 
@@ -162,6 +165,7 @@ test('runtime and migration retain atomic claim, stale reclaim, max-attempt and 
   assert.match(migration, /status = 'processing'[\s\S]*?p_stale_seconds/i);
   assert.match(migration, /create unique index[\s\S]*?on public\.write_jobs \(module, idempotency_key\)/i);
   assert.match(worker, /p_stale_seconds: STALE_SECONDS/);
-  assert.match(worker, /STALE_SECONDS = 300/);
+  assert.match(worker, /STALE_SECONDS = 900/);
+  assert.match(worker, /markSynced\(jobId, result, context\.nowISOString\(\), workerId\)/);
   assert.match(worker, /failedPermanently = attempts >= Number\(job\.max_attempts \|\| 3\)/);
 });

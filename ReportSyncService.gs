@@ -44,17 +44,39 @@ var ReportSyncService = (function () {
   function syncReportBundle(month, context, options) {
     var syncOptions = options || {};
     var targetMonth = context.clean(month) || 'latest';
+    if (targetMonth === 'latest') {
+      var recentMonths = getRecentReportMonths(1, context);
+      if (recentMonths.length) targetMonth = recentMonths[0];
+    }
+    var dataVersion = String(syncOptions.dataVersion || (syncOptions.skipInvalidation === true
+      ? context.getReportDataVersion() : context.beginReportRefreshBatch()));
+    assertSourceVersion_(context, dataVersion);
     var bundle = context.getReportBundle(targetMonth, true, {
-      skipInvalidation: syncOptions.skipInvalidation === true,
-      dataVersion: syncOptions.dataVersion || '',
+      skipInvalidation: true,
+      dataVersion: dataVersion,
       suppressSupabaseWrite: true
     });
-    return upsertPreparedReportBundle_(targetMonth, bundle, context, syncOptions.dataVersion || context.getReportDataVersion());
+    return upsertPreparedReportBundle_(targetMonth, bundle, context, dataVersion);
+  }
+
+  function assertSourceVersion_(context, dataVersion) {
+    if (String(context.getReportDataVersion()) !== String(dataVersion)) {
+      throw new Error('Nguồn Báo cáo đổi phiên bản trong lúc đồng bộ; cần thử lại.');
+    }
   }
 
   function upsertPreparedReportBundle_(targetMonth, bundle, context, dataVersion) {
+    assertSourceVersion_(context, dataVersion);
     var resolvedMonth = resolveBundleMonth(targetMonth, bundle, context.clean);
     var syncedAt = context.nowISOString();
+    if (/^(0[1-9]|1[0-2])\/20\d{2}$/.test(resolvedMonth)) {
+      var explanationResult = context.syncPayrollExplanations(resolvedMonth, dataVersion);
+      if (!explanationResult || explanationResult.ok === false) {
+        throw new Error('Không đồng bộ được giải trình lương ' + resolvedMonth + ': ' +
+          ((explanationResult && explanationResult.error) || 'Không có kết quả đồng bộ.'));
+      }
+    }
+    assertSourceVersion_(context, dataVersion);
     context.upsertReportBundle({
       spreadsheetId: context.spreadsheetId,
       reportMonth: resolvedMonth,

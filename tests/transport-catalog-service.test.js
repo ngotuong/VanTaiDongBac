@@ -46,10 +46,10 @@ const sheetRows = {
   DM_PhatNoiBo: [['Mã', 'Nội dung', 'Số tiền', 'Trạng thái'], ['P01', 'Đi muộn', 100000, 'Đang áp dụng']],
   DM_ThamSo: [['Mã', 'Tên', 'Giá trị'], ['KPI', 'Mức KPI', 25]],
   NL_ChamCong: [
-    ['', '', '', '', '', '', '', '', '', 'Loại'],
-    ['', '', '', '', '', '', '', '', '', 'Ngày công'],
-    ['', '', '', '', '', '', '', '', '', 'Ngày công'],
-    ['', '', '', '', '', '', '', '', '', 'Nghỉ phép']
+    ['Từ ngày', 'Đến ngày', 'Tháng', 'Nhân sự', 'Hình thức', 'Số ngày', 'Tính lương cứng', 'Nhóm xử lý', 'Loại ngày công hợp lệ', 'Lưu ý', 'Ghi chú'],
+    ['', '', '', '', '', '', '', '', 'Ngày công', 'Không dùng làm lựa chọn', ''],
+    ['', '', '', '', '', '', '', '', 'Ngày công', '', ''],
+    ['', '', '', '', '', '', '', '', 'Nghỉ phép', '', '']
   ],
   NL_Dau: [
     [],
@@ -110,6 +110,46 @@ test('catalog form needs remain narrow and unknown forms fall back to the full s
   assert.equal(fallback.vehicles.length, 2);
   assert.equal(fallback.projects.length, 1);
   assert.equal(fallback.penalties.length, 1);
+});
+
+test('transport catalogs follow header names when source columns move', () => {
+  const reordered = {
+    DM_NhanSu: [
+      ['Trạng Thái', 'Người tuyển', 'Nhân sự', 'Chức vụ'],
+      ['Đang làm', 'Bình', 'An', 'Tài xế']
+    ],
+    DM_Xe: [
+      ['Công ty sở hữu', 'Trạng thái', 'Biển số xe'],
+      ['Đông Bắc', 'Đang chạy', '30A-001']
+    ],
+    DM_DuAn: [
+      ['Nhóm vận hành', 'Số km', 'Tên dự án'],
+      ['Tràng Duệ', 12.5, 'Mỏ A']
+    ],
+    DM_PhatNoiBo: [
+      ['Trạng thái', 'Số tiền', 'Nội dung', 'Mã phạt'],
+      ['Đang áp dụng', 100000, 'Đi muộn', 'P01']
+    ],
+    DM_PhanCongXe: [
+      ['Ghi chú', 'Đến ngày', 'Nhóm vận hành', 'Biển số xe', 'Từ ngày', 'Trạng thái'],
+      ['', '', 'Tràng Duệ', '30A-001', '2026-09-01', 'Đang áp dụng']
+    ],
+    NL_NghiVanHanh: [['Loại nghỉ'], ['Mỏ báo nghỉ']],
+    DM_ThamSo: [['Mã', 'Tên', 'Giá trị']]
+  };
+  const { service, ss } = loadService(reordered);
+  const full = plain(service.readCatalogs(ss, ''));
+  assert.deepEqual(full.activeDrivers.map((item) => item.name), ['An']);
+  assert.deepEqual(full.activeVehicles.map((item) => item.plate), ['30A-001']);
+  assert.deepEqual(full.projects, [{ name: 'Mỏ A', distanceKm: 12.5 }]);
+  assert.deepEqual(full.activePenalties.map((item) => item.code), ['P01']);
+  assert.deepEqual(full.operationGroups.map((item) => item.name), ['Tràng Duệ']);
+
+  const stop = plain(service.readCatalogs(ss, 'nghiVanHanh'));
+  assert.deepEqual(stop.assignments, [{
+    plate: '30A-001', operationGroup: 'Tràng Duệ', startDate: '2026-09-01',
+    endDate: '', note: '', status: 'Đang áp dụng'
+  }]);
 });
 
 test('CatalogService owns transport catalog implementation while SheetService retains cache orchestration only', () => {

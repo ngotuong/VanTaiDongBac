@@ -23,8 +23,8 @@ function loadWorker(options = {}) {
     },
     repository: {
       markProcessing(jobId, details) { calls.processing.push({ jobId, details }); },
-      markSynced(jobId, result, syncedAt) { calls.synced.push({ jobId, result, syncedAt }); },
-      markFailure(jobId, status, error, nextRunAt, details) { calls.failures.push({ jobId, status, error, nextRunAt, details }); }
+      markSynced(jobId, result, syncedAt, workerId) { calls.synced.push({ jobId, result, syncedAt, workerId }); },
+      markFailure(jobId, status, error, nextRunAt, details, workerId) { calls.failures.push({ jobId, status, error, nextRunAt, details, workerId }); }
     },
     releaseReservation: (jobId) => calls.releases.push(jobId),
     clean: (value) => String(value || '').trim(),
@@ -46,7 +46,7 @@ test('disabled and idle worker preserve response and atomic claim parameters', (
   assert.equal(result.ok, true);
   assert.equal(result.processed, 0);
   assert.equal(result.workerId, 'gas-worker-uuid');
-  assert.deepEqual(JSON.parse(JSON.stringify(idle.calls.claims)), [{ p_limit: 20, p_worker_id: 'gas-worker-uuid', p_stale_seconds: 300 }]);
+  assert.deepEqual(JSON.parse(JSON.stringify(idle.calls.claims)), [{ p_limit: 20, p_worker_id: 'gas-worker-uuid', p_stale_seconds: 900 }]);
 });
 
 test('successful lifecycle preserves processing details, result, and synced response', () => {
@@ -60,6 +60,7 @@ test('successful lifecycle preserves processing details, result, and synced resp
     jobId: 'job-1', details: { attempt: 1, workerId: 'gas-worker-uuid', claimedAt: 'claimed', idempotencyKey: 'request-1' }
   }]);
   assert.equal(loaded.calls.synced[0].syncedAt, 'synced-at');
+  assert.equal(loaded.calls.synced[0].workerId, 'gas-worker-uuid');
   assert.deepEqual(loaded.calls.releases, ['job-1']);
 });
 
@@ -70,7 +71,7 @@ test('failure remains pending below max attempts and permanent at max attempts',
   assert.equal(retryResult.results[0].status, 'pending');
   assert.deepEqual(JSON.parse(JSON.stringify(retryable.calls.failures[0])), {
     jobId: 'job-1', status: 'pending', error: 'synthetic failure', nextRunAt: 'retry-after-2',
-    details: { attempt: 2, retryable: true }
+    details: { attempt: 2, retryable: true }, workerId: 'gas-worker-uuid'
   });
 
   const permanent = loadWorker({ jobs: [{ id: 'job-2', attempts: 3, max_attempts: 3 }], error: 'permanent failure' });
@@ -88,4 +89,28 @@ test('SupabaseService delegates worker lifecycle and dispatches transport/fund h
   assert.match(service, /TransportJobHandler\.execute/);
   assert.match(service, /FundJobHandler\.execute/);
   assert.doesNotMatch(service, /function processWriteJob_/);
+});
+
+test('R8 processing/log failure is isolated and does not abandon the rest of the claimed batch', () => {
+  const loaded = loadWorker({ jobs: [{ id: 'first', attempts: 3 }, { id: 'second', attempts: 1 }] });
+  loaded.context.repository.markProcessing = (id) => { if (id === 'first') throw new Error('processing log unavailable'); };
+  loaded.context.repository.markFailure = () => { throw new Error('status persistence unavailable'); };
+  const result = loaded.worker.process(2, loaded.context);
+  assert.equal(result.results[0].status, 'processing');
+  assert.match(result.results[0].persistenceError, /status persistence/);
+  assert.equal(result.results[1].status, 'synced');
+  assert.deepEqual(loaded.calls.executions, ['second']);
+});
+
+test('R8 uncertain Sheet state terminates immediately instead of automatically replaying', () => {
+  const loaded = loadWorker({ jobs: [{ id: 'first', attempts: 1, max_attempts: 3 }], error: 'REQUIRES_RECONCILIATION: partial values' });
+  const result = loaded.worker.process(1, loaded.context);
+  assert.equal(result.results[0].status, 'failed'); assert.equal(loaded.calls.failures[0].details.retryable, false);
+});
+
+test('R8 persistence failure after successful Sheet execution reports uncertainty rather than success', () => {
+  const loaded = loadWorker({ jobs: [{ id: 'first', attempts: 3 }] });
+  loaded.context.repository.markSynced = () => { throw new Error('synced persistence unavailable'); };
+  const result = loaded.worker.process(1, loaded.context);
+  assert.equal(result.results[0].status, 'failed'); assert.deepEqual(loaded.calls.executions, ['first']);
 });

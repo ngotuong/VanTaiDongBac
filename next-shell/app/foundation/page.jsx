@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { createAppUserRepository } from '../../../server/repositories/app-user-repository.js';
+import { createWorkbookContextRepository } from '../../../server/repositories/workbook-context-repository.js';
 import { runtimeConfig } from '../../../server/runtime-config.js';
 import { createAuthService } from '../../../server/services/auth-service.js';
 import { createWorkbookContextService } from '../../../server/services/workbook-context-service.js';
@@ -16,10 +17,10 @@ export default async function FoundationPage({ searchParams }) {
   const config = runtimeConfig();
   const repository = createAppUserRepository({ httpError });
   const auth = createAuthService({ appUserRepository: repository, httpError });
-  const contexts = createWorkbookContextService({ httpError });
+  const contexts = createWorkbookContextService({ httpError, repository: createWorkbookContextRepository({ httpError }), config });
   try {
     const user = await auth.getAuthenticatedUser(request, config);
-    const context = contexts.publicContext({ module: query?.module, year: query?.year });
+    const context = await contexts.publicContextAsync({ module: query?.module, year: query?.year });
     return <main className="next-accounts-shell" data-foundation-slice="authenticated">
       <section className="info-card">
         <p className="next-report-eyebrow">NEXT FOUNDATION A1</p>

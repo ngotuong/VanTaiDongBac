@@ -8,6 +8,8 @@ import { exportCardAsImage, exportTableAsCsv } from '../../lib/platform/export-c
 import { showToast } from '../../lib/platform/toast';
 import { useLatestAsyncRequest } from '../platform/useLatestAsyncRequest';
 import { useVisibleRevalidation } from '../platform/useVisibleRevalidation';
+import { PayrollExplanationDialog } from './PayrollExplanationDialog';
+import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 
 const TABS = [
   ['all', 'Tất Cả'],
@@ -29,7 +31,7 @@ const LABELS: Record<ReportType, string> = {
 const reportResponseCache = new Map<string, ReportDataResponse>();
 const reportInflight = new Map<string, Promise<ReportDataResponse>>();
 type ReportPeriodMode = 'year' | 'range';
-type ReportQuickPeriod = 'current' | 'year' | 'q1' | 'q2' | 'q3' | 'q4' | 'custom';
+type ReportQuickPeriod = 'current' | 'previous' | 'year' | 'q1' | 'q2' | 'q3' | 'q4' | 'custom';
 
 function formatMonthControlLabel(month: string) {
   const normalized = normalizeMonth(month);
@@ -37,15 +39,16 @@ function formatMonthControlLabel(month: string) {
   return match ? `${match[1]}/${match[2]}` : normalized;
 }
 
-function reportPeriodKey(mode: ReportPeriodMode, fromMonth = '', toMonth = '') {
-  return mode === 'year' ? 'year' : `range:${fromMonth}:${toMonth}`;
+function reportPeriodKey(mode: ReportPeriodMode, fromMonth = '', toMonth = '', year = '') {
+  return `${year}:${mode === 'year' ? 'year' : `range:${fromMonth}:${toMonth}`}`;
 }
 
-async function requestReport(mode: ReportPeriodMode, fromMonth: string, toMonth: string, forceRefresh: boolean, bypassClientCache = false, signal?: AbortSignal) {
-  const key = reportPeriodKey(mode, fromMonth, toMonth);
+async function requestReport(year: string, mode: ReportPeriodMode, fromMonth: string, toMonth: string, forceRefresh: boolean, bypassClientCache = false, signal?: AbortSignal) {
+  const key = reportPeriodKey(mode, fromMonth, toMonth, year);
   if (!forceRefresh && !bypassClientCache && reportResponseCache.has(key)) return reportResponseCache.get(key)!;
   if (!signal && !forceRefresh && !bypassClientCache && reportInflight.has(key)) return reportInflight.get(key)!;
   const url = new URL('/report-data/', window.location.origin);
+  url.searchParams.set('year', year);
   if (mode === 'year') {
     url.searchParams.set('month', 'Tất cả');
   } else if (forceRefresh && fromMonth === toMonth) {
@@ -72,6 +75,21 @@ function sticky(type: ReportType, index: number): CSSProperties | undefined {
   return undefined;
 }
 
+function financeCategoryWeight(category: string): CSSProperties['fontWeight'] {
+  return category.includes('doanh thu') || category.includes('lợi nhuận') || category.includes('gộp') ? 700 : 600;
+}
+
+function financeCategoryStyle(category: string, value: number): CSSProperties {
+  if (category.includes('thuế') || category.includes('chi') || category.includes('dầu') || category.includes('phí')) {
+    return { color: '#dc2626', fontWeight: financeCategoryWeight(category) };
+  }
+  if (category.includes('khối lượng')) return { color: '#0d9488', fontWeight: financeCategoryWeight(category) };
+  if (category.includes('doanh thu') || category.includes('lợi nhuận') || category.includes('gộp')) {
+    return { color: value < 0 ? '#dc2626' : '#0284c7', fontWeight: financeCategoryWeight(category) };
+  }
+  return { color: 'var(--ink, #0f172a)', fontWeight: financeCategoryWeight(category) };
+}
+
 function cellStyle(type: ReportType, header: ReportCell, row: ReportCell[], index: number): CSSProperties {
   const label = String(header ?? '').toLowerCase().trim();
   const normalizedLabel = removeAccents(label);
@@ -81,7 +99,7 @@ function cellStyle(type: ReportType, header: ReportCell, row: ReportCell[], inde
 
   if (type === 'details') {
     if (index === 0) {
-      Object.assign(style, { color: 'var(--deep, #062e2b)', fontWeight: 800, fontSize: '12.5px', lineHeight: 1.22, minWidth: 190, width: 190, maxWidth: 190, overflow: 'hidden', textOverflow: 'clip', whiteSpace: 'nowrap' });
+      Object.assign(style, { color: 'var(--ink, #0f172a)', fontWeight: financeCategoryWeight(category), fontSize: '12.5px', lineHeight: 1.22, minWidth: 190, width: 190, maxWidth: 190, overflow: 'hidden', textOverflow: 'clip', whiteSpace: 'nowrap' });
     } else if (label.includes('giải thích') || label.includes('nội dung')) {
       Object.assign(style, { color: 'var(--ink, #0f172a)', fontWeight: 500, fontSize: 12, lineHeight: 1.28, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip' });
     } else if (category.includes('thuế') || category.includes('phí') || category.includes('chi') || category.includes('dầu')) {
@@ -99,15 +117,7 @@ function cellStyle(type: ReportType, header: ReportCell, row: ReportCell[], inde
       Object.assign(style, { fontSize: '12.5px', lineHeight: 1.3, fontWeight: 600 });
     }
   } else if (type === 'finance') {
-    if (category.includes('thuế') || category.includes('chi') || category.includes('dầu') || category.includes('phí')) {
-      Object.assign(style, { color: '#dc2626', fontWeight: 600 });
-    } else if (category.includes('khối lượng')) {
-      Object.assign(style, { color: '#0d9488', fontWeight: 600 });
-    } else if (category.includes('doanh thu') || category.includes('lợi nhuận') || category.includes('gộp')) {
-      Object.assign(style, { color: value < 0 ? '#dc2626' : '#0284c7', fontWeight: 700 });
-    } else {
-      Object.assign(style, { color: 'var(--ink, #0f172a)', fontWeight: 600 });
-    }
+    Object.assign(style, financeCategoryStyle(category, value));
   } else if (type === 'payroll') {
     if (index === 0) {
       Object.assign(style, { fontWeight: 700, color: 'var(--deep)' });
@@ -140,88 +150,108 @@ function ActionButton({ kind, title, onClick }: { kind: 'image' | 'csv'; title: 
   </button>;
 }
 
+function PayrollExplanationIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>;
+}
+
 function ReportTable({ type, matrix, query, periodLabel }: { type: ReportType; matrix: ReportMatrix | undefined; query: string; periodLabel: string }) {
+  const { user } = useWorkbookContext();
+  const showPayrollExplanation = type === 'payroll' && (user.role === 'admin' || user.role === 'operator');
   const parsed = useMemo(() => matrixRows(matrix), [matrix]);
   const prepared = useMemo(() => stripMonthColumn(type, parsed.head, parsed.body), [parsed, type]);
   const options = useMemo(() => filterOptions(type, prepared.head, prepared.body), [type, prepared]);
   const [company, setCompany] = useState('');
   const [plate, setPlate] = useState('');
   const [job, setJob] = useState('');
+  const [projectGroup, setProjectGroup] = useState('');
+  const [payrollEmployee, setPayrollEmployee] = useState('');
   const effectiveCompany = company && options.companies.includes(company) ? company : '';
   const effectivePlate = plate && options.plates.includes(plate) ? plate : '';
   const effectiveJob = job && options.jobs.includes(job) ? job : '';
+  const effectiveProjectGroup = projectGroup && options.groups.includes(projectGroup) ? projectGroup : '';
   const dataRows = useMemo(() => reportSourceRows(type, prepared.body).filter((row) => {
     if (!matchesReportRow(row, query)) return false;
     if (effectiveCompany && String(row[options.companyIdx] ?? '') !== effectiveCompany) return false;
+    if ((type === 'projectGroups' || type === 'projects') && effectiveProjectGroup && String(row[options.groupIdx] ?? '') !== effectiveProjectGroup) return false;
     if (type === 'payroll' && effectiveJob && String(row[options.jobIdx] ?? '') !== effectiveJob) return false;
     return !(type === 'vehicles' && effectivePlate && String(row[options.plateIdx] ?? '') !== effectivePlate);
-  }), [prepared.body, type, query, effectiveCompany, effectivePlate, effectiveJob, options]);
+  }), [prepared.body, type, query, effectiveCompany, effectivePlate, effectiveJob, effectiveProjectGroup, options]);
   const shouldTotal = type === 'payroll' || type === 'vehicles' || type === 'projectGroups' || type === 'projects';
   const visibleRows = shouldTotal ? appendTotal(prepared.head, dataRows) : dataRows;
+  const exactPayrollMonth = /^(0[1-9]|1[0-2])\/20\d{2}$/.test(periodLabel) ? periodLabel : '';
+  const payrollEmployeeIndex = Math.max(0, prepared.head.findIndex((header) => removeAccents(String(header ?? '').toLowerCase()).includes('nhan su')));
   const explanation = (cell: ReportCell) => { const value = String(cell ?? '').toLowerCase(); return value.includes('giải thích') || value.includes('nội dung'); };
   const companyDetail = (cell: ReportCell) => type === 'details' && ['quang quan', 'minh vuong'].some((name) => removeAccents(String(cell ?? '').toLowerCase()).includes(name));
+  const renderCardFilters = (placement: 'desktop' | 'mobile') => {
+    const className = `report-card-filters report-card-filters-${placement}${placement === 'mobile' ? ' table-card-subhead' : ''}`;
+    if (type === 'payroll' && options.companyIdx >= 0) return <div className={className} data-card-head-controls={placement === 'desktop' ? 'true' : undefined}>
+      <label className="compact-filter">
+        <select className="report-payroll-filter platform-content-select" aria-label="Lọc công ty bảng lương" value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}>
+          <option value="">Tất cả công ty</option>
+          {options.companies.map((value) => <option value={value} key={value}>{value}</option>)}
+        </select>
+      </label>
+      <label className="compact-filter">
+        <select className="report-payroll-filter platform-content-select" aria-label="Lọc chức vụ bảng lương" value={effectiveJob} onChange={(event) => setJob(event.target.value)}>
+          <option value="">Tất cả chức vụ</option>
+          {options.jobs.map((value) => <option value={value} key={value}>{value}</option>)}
+        </select>
+      </label>
+    </div>;
+    if (type === 'vehicles') return <div className={className} data-card-head-controls={placement === 'desktop' ? 'true' : undefined}>
+      <label className="compact-filter">
+        <select className="report-vehicle-filter platform-content-select" aria-label="Lọc công ty tổng hợp xe" value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}>
+          <option value="">Tất cả công ty</option>
+          {options.companies.map((value) => <option value={value} key={value}>{value}</option>)}
+        </select>
+      </label>
+      <label className="compact-filter">
+        <select className="report-vehicle-filter platform-content-select" aria-label="Lọc biển số xe" value={effectivePlate} onChange={(event) => setPlate(event.target.value)}>
+          <option value="">Tất cả xe</option>
+          {options.plates.map((value) => <option value={value} key={value}>{value}</option>)}
+        </select>
+      </label>
+    </div>;
+    if ((type === 'projectGroups' || type === 'projects') && options.companyIdx >= 0) return <div className={`${className} report-project-filter-set`} data-card-head-controls={placement === 'desktop' ? 'true' : undefined}>
+      <label className="compact-filter">
+        <select className="report-project-filter platform-content-select" aria-label={`Lọc công ty ${LABELS[type].toLocaleLowerCase('vi-VN')}`} value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}>
+          <option value="">Tất cả</option>
+          {options.companies.map((value) => <option value={value} key={value}>{value}</option>)}
+        </select>
+      </label>
+      <label className="compact-filter">
+        <select className="report-project-filter platform-content-select" aria-label={`Lọc nhóm dự án ${LABELS[type].toLocaleLowerCase('vi-VN')}`} value={effectiveProjectGroup} onChange={(event) => setProjectGroup(event.target.value)}>
+          <option value="">Tất cả</option>
+          {options.groups.map((value) => <option value={value} key={value}>{value}</option>)}
+        </select>
+      </label>
+    </div>;
+    return null;
+  };
 
   return <section className="table-card high-density-table" data-report-type={type} aria-labelledby={`report-title-${type}`}>
     <div className="table-card-head report-table-head">
       <div><div className="table-title" id={`report-title-${type}`}>{LABELS[type]} <span style={{ opacity: 0.85, fontWeight: 700, fontSize: '0.9em', marginLeft: 4 }}>({periodLabel})</span></div></div>
+      {renderCardFilters('desktop')}
       <div className="report-card-actions">
         <ActionButton kind="image" title={type} onClick={(button) => void exportCardAsImage(button, type)}/>
         <ActionButton kind="csv" title={type} onClick={(button) => exportTableAsCsv(button, type)}/>
       </div>
     </div>
-    {type === 'payroll' && options.companyIdx >= 0 ? (
-      <div className="table-card-subhead">
-        <label className="compact-filter">
-          <select className="report-payroll-filter platform-content-select" aria-label="Lọc công ty bảng lương" value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}>
-            <option value="">Tất cả công ty</option>
-            {options.companies.map((value) => <option value={value} key={value}>{value}</option>)}
-          </select>
-        </label>
-        <label className="compact-filter">
-          <select className="report-payroll-filter platform-content-select" aria-label="Lọc chức vụ bảng lương" value={effectiveJob} onChange={(event) => setJob(event.target.value)}>
-            <option value="">Tất cả chức vụ</option>
-            {options.jobs.map((value) => <option value={value} key={value}>{value}</option>)}
-          </select>
-        </label>
-      </div>
-    ) : null}
-    {type === 'vehicles' ? (
-      <div className="table-card-subhead">
-        <label className="compact-filter">
-          <select className="report-vehicle-filter platform-content-select" aria-label="Lọc công ty tổng hợp xe" value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}>
-            <option value="">Tất cả công ty</option>
-            {options.companies.map((value) => <option value={value} key={value}>{value}</option>)}
-          </select>
-        </label>
-        <label className="compact-filter">
-          <select className="report-vehicle-filter platform-content-select" aria-label="Lọc biển số xe" value={effectivePlate} onChange={(event) => setPlate(event.target.value)}>
-            <option value="">Tất cả xe</option>
-            {options.plates.map((value) => <option value={value} key={value}>{value}</option>)}
-          </select>
-        </label>
-      </div>
-    ) : null}
-    {(type === 'projectGroups' || type === 'projects') && options.companyIdx >= 0 ? (
-      <div className="table-card-subhead">
-        <label className="compact-filter">
-          <select className="report-project-filter platform-content-select" aria-label={`Lọc công ty ${LABELS[type].toLocaleLowerCase('vi-VN')}`} value={effectiveCompany} onChange={(event) => setCompany(event.target.value)}>
-            <option value="">Tất cả công ty</option>
-            {options.companies.map((value) => <option value={value} key={value}>{value}</option>)}
-          </select>
-        </label>
-      </div>
-    ) : null}
+    {renderCardFilters('mobile')}
     <div className="table-wrap" tabIndex={0} aria-label={`${LABELS[type]} — cuộn ngang để xem đủ cột`}>
       <table className={`report-data-table report-data-table-${type}`}>
         {type === 'details' ? <colgroup>{prepared.head.map((cell, index) => <col key={index} style={index === 0 ? { width: 190, minWidth: 190 } : explanation(cell) ? { width: 300, minWidth: 300 } : { width: 142, minWidth: 142 }}/>)}</colgroup> : null}
-        <thead><tr>{prepared.head.map((cell, index) => <th scope="col" key={index} className={`${sticky(type, index) ? 'sticky-col' : ''}${type === 'details' && explanation(cell) ? ' report-detail-explanation-head' : ''}${type === 'finance' && index === prepared.head.length - 1 ? ' report-period-total' : ''}`.trim()} style={sticky(type, index)}>{String(cell ?? '')}</th>)}</tr></thead>
-        <tbody>{visibleRows.length ? visibleRows.map((row, rowIndex) => { const total = isTotalRow(row); const grand = total && rowIndex === visibleRows.length - 1; return <tr key={rowIndex} className={type !== 'details' && type !== 'finance' && total ? `total-row${grand ? ' grand-total-row' : ''}` : undefined} style={{ fontWeight: total ? 800 : 500, fontSize: total ? 13 : 12.5, color: total ? 'var(--deep)' : undefined }}>{prepared.head.map((header, index) => <td key={index} className={`${sticky(type, index) ? 'sticky-col' : ''}${type === 'details' && explanation(header) ? ' report-detail-explanation-cell' : ''}${companyDetail(header) ? ' report-detail-company-cell' : ''}${type === 'finance' && index === prepared.head.length - 1 ? ' report-period-total' : ''}${index > 0 ? ' tabular-nums' : ''}`.trim()} style={cellStyle(type, header, row, index)}>{formatReportDisplayValue(type, header, row, index)}</td>)}</tr>; }) : <tr><td colSpan={Math.max(1, prepared.head.length)} className="report-c2-empty">Không có dữ liệu phù hợp với bộ lọc.</td></tr>}</tbody>
+        <thead><tr>{prepared.head.map((cell, index) => <th scope="col" className={`${sticky(type, index) ? 'sticky-col' : ''}${type === 'details' && explanation(cell) ? ' report-detail-explanation-head' : ''}${type === 'finance' && index === prepared.head.length - 1 ? ' report-period-total' : ''}`.trim()} style={sticky(type, index)} key={index}>{String(cell ?? '')}</th>)}{showPayrollExplanation ? <th scope="col" className="report-payroll-explanation-head" aria-label="Giải trình" title="Giải trình" data-export-hidden><PayrollExplanationIcon/><span className="platform-visually-hidden">Giải trình</span></th> : null}</tr></thead>
+        <tbody>{visibleRows.length ? visibleRows.map((row, rowIndex) => { const total = isTotalRow(row); const grand = total && rowIndex === visibleRows.length - 1; const employeeName = String(row[payrollEmployeeIndex] ?? '').trim(); return <tr key={rowIndex} className={type !== 'details' && type !== 'finance' && total ? `total-row${grand ? ' grand-total-row' : ''}` : undefined} style={{ fontWeight: total ? 800 : 500, fontSize: total ? 13 : 12.5, color: total ? 'var(--deep)' : undefined }}>{prepared.head.map((header, index) => <td className={`${sticky(type, index) ? 'sticky-col' : ''}${type === 'details' && explanation(header) ? ' report-detail-explanation-cell' : ''}${companyDetail(header) ? ' report-detail-company-cell' : ''}${type === 'finance' && index === prepared.head.length - 1 ? ' report-period-total' : ''}${index > 0 ? ' tabular-nums' : ''}`.trim()} style={cellStyle(type, header, row, index)} key={index}>{formatReportDisplayValue(type, header, row, index)}</td>)}{showPayrollExplanation ? <td className="report-payroll-explanation-action-cell" data-export-hidden>{!total && employeeName ? <button type="button" className="report-payroll-explanation-button" aria-label={`Xem giải trình lương của ${employeeName}`} title={exactPayrollMonth ? `Xem giải trình lương ${employeeName}` : 'Chỉ xem giải trình khi chọn đúng một tháng'} disabled={!exactPayrollMonth} onClick={() => setPayrollEmployee(employeeName)}><PayrollExplanationIcon/></button> : null}</td> : null}</tr>; }) : <tr><td colSpan={Math.max(1, prepared.head.length + (showPayrollExplanation ? 1 : 0))} className="report-c2-empty">Không có dữ liệu phù hợp với bộ lọc.</td></tr>}</tbody>
       </table>
     </div>
+    {showPayrollExplanation && payrollEmployee && exactPayrollMonth ? <PayrollExplanationDialog employeeName={payrollEmployee} month={exactPayrollMonth} onClose={() => setPayrollEmployee('')}/> : null}
   </section>;
 }
 
 export function ReportModule({ initialBundle, initialVehicleOwners = {}, initialError = '' }: { initialBundle: ReportBundle | null; initialVehicleOwners?: Record<string, string>; initialError?: string }) {
+  const { workbook } = useWorkbookContext();
   const initialMonths = reportDataMonths(initialBundle?.overview?.months);
   const initialCurrentMonth = normalizeMonth(initialMonths.at(-1) || '');
   const [bundle, setBundle] = useState(initialBundle);
@@ -230,7 +260,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   const [quickPeriod, setQuickPeriod] = useState<ReportQuickPeriod>('current');
   const [fromMonth, setFromMonth] = useState(initialCurrentMonth);
   const [toMonth, setToMonth] = useState(initialCurrentMonth);
-  const [renderedPeriod, setRenderedPeriod] = useState<string | null>(initialBundle ? reportPeriodKey('range', initialCurrentMonth, initialCurrentMonth) : null);
+  const [renderedPeriod, setRenderedPeriod] = useState<string | null>(initialBundle ? reportPeriodKey('range', initialCurrentMonth, initialCurrentMonth, workbook.year) : null);
   const [availableMonths, setAvailableMonths] = useState(initialMonths);
   const [tab, setTab] = useState<(typeof TABS)[number][0]>('all');
   const [query, setQuery] = useState('');
@@ -240,7 +270,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   const latestRequest = useLatestAsyncRequest();
   const visiblePeriodRef = useRef({ mode: periodMode, fromMonth, toMonth });
   useEffect(() => { visiblePeriodRef.current = { mode: periodMode, fromMonth, toMonth }; }, [periodMode, fromMonth, toMonth]);
-  const periodKey = reportPeriodKey(periodMode, fromMonth, toMonth);
+  const periodKey = reportPeriodKey(periodMode, fromMonth, toMonth, workbook.year);
   const financeMonths = useMemo(() => periodMode === 'year' ? availableMonths : monthsWithinRange(availableMonths, fromMonth, toMonth), [periodMode, availableMonths, fromMonth, toMonth]);
   const finance = useMemo(() => transposeOverviewMatrix(bundle?.overview?.months, financeMonths, 'Tổng'), [bundle, financeMonths]);
   const repairedCompanyReport = useMemo(() => repairCompanyReport(bundle?.overview?.details, bundle?.vehicles, vehicleOwners), [bundle, vehicleOwners]);
@@ -256,8 +286,8 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
 
   useEffect(() => {
     if (!initialBundle) return;
-    reportResponseCache.set(reportPeriodKey('range', initialCurrentMonth, initialCurrentMonth), { bundle: initialBundle, vehicleOwners: initialVehicleOwners, requestedMonth: initialCurrentMonth });
-  }, [initialBundle, initialVehicleOwners, initialCurrentMonth]);
+    reportResponseCache.set(reportPeriodKey('range', initialCurrentMonth, initialCurrentMonth, workbook.year), { bundle: initialBundle, vehicleOwners: initialVehicleOwners, requestedMonth: initialCurrentMonth });
+  }, [initialBundle, initialVehicleOwners, initialCurrentMonth, workbook.year]);
 
   useEffect(() => {
     publishDataSourceMeta(bundle);
@@ -266,7 +296,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   const loadPeriod = async (targetMode: ReportPeriodMode, targetFrom = fromMonth, targetTo = toMonth, forceRefresh = false, announce = false) => {
     const normalizedFrom = normalizeMonth(targetFrom);
     const normalizedTo = normalizeMonth(targetTo);
-    const targetKey = reportPeriodKey(targetMode, normalizedFrom, normalizedTo);
+    const targetKey = reportPeriodKey(targetMode, normalizedFrom, normalizedTo, workbook.year);
     setPeriodMode(targetMode);
     if (normalizedFrom) setFromMonth(normalizedFrom);
     if (normalizedTo) setToMonth(normalizedTo);
@@ -289,7 +319,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
     setLoading(true); setError(''); setStatus('Đang tải báo cáo từ Supabase…');
     if (forceRefresh || announce) showToast(forceRefresh ? 'Đang đối soát Báo cáo từ Google Sheet…' : 'Đang tải Báo cáo từ Supabase…', 'loading');
     try {
-      const data = await requestReport(targetMode, normalizedFrom, normalizedTo, forceRefresh, announce, requestState.signal);
+      const data = await requestReport(workbook.year, targetMode, normalizedFrom, normalizedTo, forceRefresh, announce, requestState.signal);
       if (!requestState.isCurrent()) return;
       setBundle(data.bundle);
       setVehicleOwners(data.vehicleOwners || {});
@@ -311,9 +341,9 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
   useVisibleRevalidation(async () => {
     if (loading) return;
     const target = visiblePeriodRef.current;
-    const targetKey = reportPeriodKey(target.mode, target.fromMonth, target.toMonth);
-    const data = await requestReport(target.mode, target.fromMonth, target.toMonth, false, true);
-    if (reportPeriodKey(visiblePeriodRef.current.mode, visiblePeriodRef.current.fromMonth, visiblePeriodRef.current.toMonth) !== targetKey) return;
+    const targetKey = reportPeriodKey(target.mode, target.fromMonth, target.toMonth, workbook.year);
+    const data = await requestReport(workbook.year, target.mode, target.fromMonth, target.toMonth, false, true);
+    if (reportPeriodKey(visiblePeriodRef.current.mode, visiblePeriodRef.current.fromMonth, visiblePeriodRef.current.toMonth, workbook.year) !== targetKey) return;
     setBundle(data.bundle);
     setVehicleOwners(data.vehicleOwners || {});
     setAvailableMonths(reportDataMonths(data.bundle.overview?.months));
@@ -344,6 +374,11 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
       if (currentMonth) void loadPeriod('range', currentMonth, currentMonth);
       return;
     }
+    if (value === 'previous') {
+      const previousMonth = normalizeMonth(availableMonths.at(-2) || '');
+      if (previousMonth) void loadPeriod('range', previousMonth, previousMonth);
+      return;
+    }
     if (value === 'year') {
       void loadPeriod('year');
       return;
@@ -372,6 +407,7 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
           </div>
           <select id="reportQuickPeriodFilter" aria-label="Bộ lọc nhanh thời gian Báo cáo" className="report-quick-period-select cashflow-quick-period-select platform-content-select" value={quickPeriod} onChange={(event) => selectQuickPeriod(event.target.value as ReportQuickPeriod)}>
             <option value="current">Tháng này</option>
+            <option value="previous" disabled={availableMonths.length < 2}>Tháng trước</option>
             <option value="year">Năm nay</option>
             {[1, 2, 3, 4].map((quarter) => <option value={`q${quarter}`} disabled={!reportQuarterMonths(availableMonths, quarter).length} key={quarter}>Quý {quarter}</option>)}
             <option value="custom">Tùy chọn</option>

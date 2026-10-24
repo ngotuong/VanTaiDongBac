@@ -41,7 +41,7 @@ function loadService(overrides = {}) {
 
 test('fund overview, transaction, and loan sync preserve tables, keys, rows, and statuses', () => {
   const { service, context, calls, syncTime } = loadService();
-  const overview = service.syncFundOverview('', '07/2026', context);
+  const overview = service.syncFundOverview('2026', '07/2026', context);
   const transactions = service.syncFundTransactions('2026', { month: '2026-07', limit: 1000 }, context);
   const loans = service.syncFundLoanOverview('2026', '', context);
   assert.deepEqual(JSON.parse(JSON.stringify([overview, transactions, loans])), [
@@ -93,7 +93,7 @@ test('SupabaseService retains fund facades while FundSyncService owns fund sync 
   const implementation = read('FundSyncService.gs');
   assert.match(facade, /FundSyncService\.syncFundOverview\(year, month, fundSyncContext_\(\)\)/);
   assert.match(facade, /FundSyncService\.syncAllFundBundles\(year, fundSyncContext_\(\)\)/);
-  assert.match(facade, /FundSyncService\.syncFundAfterWrite\(year, options, fundSyncContext_\(\)\)/);
+  assert.match(facade, /FundSyncService\.syncFundAfterWrite\(year, input, fundSyncContext_\(\)\)/);
   assert.doesNotMatch(facade, /fund_overview:.*Fund overview cache synced/);
   assert.doesNotMatch(facade, /var explicitMonths = options\.months/);
   assert.match(implementation, /function getFundWriteMonthKeys\(year, options, context\)/);

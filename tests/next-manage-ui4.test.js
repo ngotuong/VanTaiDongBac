@@ -70,14 +70,15 @@ test('UI-4 totals are scoped to the complete filtered result and all edit dropdo
   assert.match(source, /formatQuantity\(totalLiters\)/);
   assert.match(source, /replace\(\/\\s\*\(\?:₫\|đ\)\\s\*\$\/i,''\)/);
   assert.doesNotMatch(source, /toLocaleString\('vi-VN'\)\} đ/);
-  assert.match(source, /params:\{formType:''\}/);
+  assert.match(source, /params:\{formType:'',year\}/);
   assert.doesNotMatch(source, /const totalTrips=pageRows\.reduce/);
 });
 
 test('UI-4 initial payload uses the current transport month instead of an unlabeled recent cache', () => {
   const page = read('next-shell/app/manage/page.jsx');
   const server = read('next-shell/lib/manage-server.ts');
-  assert.match(page, /loadManageData\(currentTransportMonthRange\(\)\)/);
+  assert.match(page, /const range=context\.workbook\.readOnly\?\{\}:currentTransportMonthRange\(\)/);
+  assert.match(page, /loadManageData\(\{\.\.\.range,year:context\.workbook\.year\}\)/);
   assert.match(server, /timeZone: 'Asia\/Ho_Chi_Minh'/);
   assert.match(server, /startDate: `\$\{value\.year\}-\$\{value\.month\}-01`/);
 });

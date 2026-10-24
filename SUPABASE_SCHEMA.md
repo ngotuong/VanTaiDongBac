@@ -4,7 +4,7 @@
 
 Supabase hiện cung cấp Auth, read model/cache, write queue, sync status và notification state cho nhiều module. Google Sheets vẫn là nguồn dữ liệu chuẩn; Supabase không phải source of truth nghiệp vụ.
 
-Migration production đã apply đến `013`. Migration đã chạy là bất biến; correction tiếp theo phải dùng `014+`.
+Migration live và gate do [PROJECT_CONTEXT](PROJECT_CONTEXT.md) sở hữu. Migration đã chạy là bất biến; correction phải dùng phiên bản tiếp theo.
 
 Nguồn Google Sheet:
 
@@ -41,7 +41,7 @@ Quan hệ:
 RLS:
 
 - Bật Row Level Security.
-- Cho phép `anon` và `authenticated` chỉ `select`.
+- Migration `008` thu hồi quyền `anon`; `authenticated` chỉ SELECT khi `is_active_app_user()`. Runtime browser dùng API có session/RBAC; Next server dùng service role.
 - Không cấp quyền ghi cho frontend.
 - Apps Script dùng service role key để upsert dữ liệu.
 
@@ -49,16 +49,10 @@ Migration `010_report_cache_cutover_foundation.sql` không tạo bảng cache th
 
 ## Luồng đồng bộ
 
-1. Người dùng nhập/sửa dữ liệu như cũ trong web app hoặc Google Sheet.
-2. Công thức trong Google Sheet tính các sheet báo cáo như cũ.
-3. Chạy thủ công Apps Script function `testSupabaseReportSync()` hoặc `syncReportBundleToSupabase(month)`.
-4. Apps Script đọc Google Sheet bằng `SpreadsheetApp.openById(APP_CONFIG.spreadsheetId)`.
-5. Apps Script gọi Supabase REST API bằng `SUPABASE_SERVICE_ROLE_KEY` trong Script Properties.
-6. Supabase lưu một row trong `report_bundles`.
-7. Frontend Vercel đọc `report_bundles.payload` bằng anon key.
-8. Nếu đọc Supabase lỗi, frontend tự gọi Apps Script `getReportBundle` như trước.
-
-Từ E1.2, Apps Script cũng có thể đọc `payload.overview.details` theo đúng `cache_version` và `source_data_version`. Khi sync toàn bộ, backend tạo một `dataVersion`, dựng `Tất cả` trước để tính các tháng một lần, rồi upsert từng bundle tháng và `Tất cả` với cùng metadata/hash.
+1. Web app ghi qua API/queue/journal; chỉnh Sheet phát invalidation qua trigger. Google Sheets/công thức vẫn là nguồn chuẩn, đọc bằng `openById`.
+2. Worker Transport/Fund xử lý stage/cursor theo [cache/queue contract](docs/contracts/CACHE_AND_QUEUE_CONTRACTS.md), rồi upsert cache bằng service role. Scope thường và full refresh đều có ACK; các helper bulk thủ công không mô tả lịch chạy priority hiện tại.
+3. Browser gọi same-origin API; Next server đọc cache. Cache miss/lỗi hoặc force refresh đi qua server tới Apps Script live compute + upsert; không đọc bằng anon key trong browser.
+4. Report và payroll-v6 cần exact `source_data_version` cùng tháng. Các report stage có version riêng; không giả định cả lượt refresh tháng khác nhau dùng một version chung.
 
 ## File liên quan
 
@@ -115,8 +109,8 @@ Frontend không đọc bảng này trực tiếp. Apps Script expose action `get
 
 RLS của các bảng giai đoạn 2:
 
-- `anon` và `authenticated` chỉ được `select`.
-- Apps Script dùng service role key để ghi.
+- Quyền hiện hành theo migration `008`/`015` và mục allowlist dưới đây; `anon` không được đọc. Read model còn policy active-user SELECT; `catalog_bundles`/`sync_status` là service-only.
+- Runtime browser dùng API có session/RBAC; Apps Script/Next server dùng service role.
 
 ## Bảng cache giai đoạn 3
 
@@ -126,7 +120,7 @@ Cache dữ liệu màn hình khởi động từ `SheetService.getStartupData(fo
 
 | Cột | Kiểu | Bắt buộc | Ghi chú |
 | --- | --- | --- | --- |
-| `form_type` | `text` | Có | Khóa chính. Hiện dùng chính là `vanChuyen`. |
+| `form_type` | `text` | Có | Khóa chính namespaced `<year>:<form_type>`, ví dụ `2026:vanChuyen`. |
 | `payload` | `jsonb` | Có | Dữ liệu startup gồm bootstrap, danh mục form đầu, dashboard nhẹ và links. |
 | `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
 | `created_at` | `timestamptz` | Có | Thời điểm tạo row. |
@@ -148,7 +142,7 @@ Cache dữ liệu danh mục dùng cho nhập liệu và màn hình Danh mục.
 
 | Cột | Kiểu | Bắt buộc | Ghi chú |
 | --- | --- | --- | --- |
-| `catalog_key` | `text` | Có | Khóa chính. Ví dụ `catalogs:vanChuyen`, `catalogs:all`, `catalog_data:DM_Xe`. |
+| `catalog_key` | `text` | Có | Khóa chính. Vận tải dùng `transport:<year>:catalogs:<form>` hoặc `transport:<year>:catalog_data:<sheet>`; Quỹ giữ key có năm. |
 | `payload` | `jsonb` | Có | Dữ liệu trả về từ `CatalogService.getCatalogs` hoặc `CatalogService.readCatalogData`. |
 | `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
 | `created_at` | `timestamptz` | Có | Thời điểm tạo row. |
@@ -180,13 +174,13 @@ Luồng đồng bộ:
 1. Google Sheet vẫn là nguồn chuẩn.
 2. Apps Script chạy `syncAllStartupAndCatalogsToSupabase()` khi backfill, hoặc trigger tick `syncRealtimeCache()` đồng bộ luân phiên.
 3. Apps Script upsert vào `startup_bundles` và `catalog_bundles` bằng service role key.
-4. Frontend Vercel đọc bằng anon key.
+4. Next server đọc qua service role; browser gọi same-origin API có session/RBAC.
 5. Khi sửa/xóa danh mục qua web app, Apps Script ghi Google Sheet trước rồi sync lại cache liên quan.
 
 RLS:
 
-- `anon` và `authenticated` chỉ được `select`.
-- Apps Script dùng service role key để ghi.
+- `startup_bundles` giữ active-user SELECT theo `008`; `catalog_bundles` chỉ service role theo `015`; `anon` không được đọc.
+- Runtime browser dùng API có session/RBAC; Apps Script/Next server dùng service role.
 
 ## Bảng cache giai đoạn 4
 
@@ -196,7 +190,7 @@ Cache dữ liệu đọc danh sách mặc định của menu **Vận hành**.
 
 | Cột | Kiểu | Bắt buộc | Ghi chú |
 | --- | --- | --- | --- |
-| `sheet_name` | `text` | Có | Tên sheet vận hành, ví dụ `NL_VanChuyen`, `NL_TaiXe`. |
+| `sheet_name` | `text` | Có | Namespace `<year>:<sheet>`, ví dụ `2026:NL_VanChuyen`, `2026:NL_TaiXe`. |
 | `filter_key` | `text` | Có | `recent_500` cho dữ liệu gần nhất, hoặc `month:YYYY-MM` cho cache theo tháng. |
 | `payload` | `jsonb` | Có | Dữ liệu trả về từ `ManageService.readManageData`. |
 | `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
@@ -226,13 +220,13 @@ Luồng đồng bộ:
 
 1. Google Sheet vẫn là nguồn chuẩn.
 2. Apps Script chạy `syncAllManageDataToSupabase()` khi backfill, hoặc trigger tick `syncRealtimeCache()` đồng bộ lần lượt từng sheet gần đây.
-3. Apps Script upsert `recent_500` và các cache tháng đang có dữ liệu.
-4. Khi nhập/sửa/xóa dữ liệu vận hành qua web app, Apps Script ghi Google Sheet trước rồi sync lại cache sheet liên quan và các tháng gần nhất.
+3. Apps Script upsert `recent_500` và union tháng nguồn/cached keys; tháng mất dòng cuối cũng được publish cache rỗng.
+4. Web app ghi Sheet qua queue/journal rồi refresh các scope liên quan; trigger Sheet chỉ enqueue. Stage/cursor/verification theo cache/queue contract.
 
 RLS:
 
-- `anon` và `authenticated` chỉ được `select`.
-- Apps Script dùng service role key để ghi.
+- `anon` không được đọc; `authenticated` chỉ SELECT khi active theo `008`.
+- Runtime browser dùng API có session/RBAC; Apps Script/Next server dùng service role.
 
 ## Thông báo in-app đối soát chuyến
 
@@ -242,9 +236,9 @@ Luồng đúng cho thông báo:
 
 1. Google Sheet vẫn tính đối soát/thưởng nóng trong `XL_DoiSoatChuyen`.
 2. Apps Script trigger đọc sheet này theo chu kỳ 1-5 phút.
-3. `TripNotificationSyncService` ghi một bundle nhỏ vào `manage_data_bundles` với `sheet_name=XL_DoiSoatChuyen`, `filter_key=notifications:active`; bundle chứa tối đa 100 cảnh báo của 45 ngày gần nhất.
+3. `TripNotificationSyncService` ghi một bundle nhỏ vào `manage_data_bundles` với `sheet_name=<year>:XL_DoiSoatChuyen`, `filter_key=notifications:active`; bundle chứa tối đa 100 cảnh báo của 45 ngày gần nhất.
 4. Frontend gọi proxy-local `getNotifications`; API xác thực session/RBAC và chỉ đọc Supabase, không gọi Apps Script khi mở chuông.
-5. `OperationalNotificationSyncService` ghi bundle `SYSTEM_NOTIFICATIONS/operations:active` từ đúng hai helper công thức `NL_ChamCong.Lưu ý` và `NL_PhanCongLai.Kiểm tra`.
+5. `OperationalNotificationSyncService` ghi bundle `<year>:SYSTEM_NOTIFICATIONS/operations:active` từ đúng hai helper công thức `NL_ChamCong.Lưu ý` và `NL_PhanCongLai.Kiểm tra`.
 6. API hợp nhất thêm số dư Quỹ, `sync_status` và `write_jobs`; không gọi Apps Script khi mở chuông.
 7. Web Push delivery dùng `notification_rule_states` cho baseline/idempotency và preference mở rộng. Read-state của panel vẫn lưu theo tài khoản trên từng thiết bị; đồng bộ read-state đa thiết bị cần migration riêng.
 
@@ -272,7 +266,7 @@ Các cột chính:
 
 ### `public.write_job_logs`
 
-Log từng lần xử lý job, dùng để debug lỗi và làm nền cho retry/notification sau này.
+Log từng lần xử lý job, dùng để debug lỗi và làm nền cho retry/notification sau này. `id` dùng bigserial `write_job_logs_id_seq`: migration 018 khai báo service-only USAGE, thu hồi mọi quyền sequence của public/anon/authenticated và SELECT/UPDATE của service_role. Quyền table không tự cấp quyền sequence trên database mới. Không dùng setval/nextval bằng browser.
 
 Frontend hiện poll trạng thái qua Apps Script action `getWriteJobStatus`. Retry thủ công dùng `retryWriteJob(jobId)`. Worker Apps Script chạy `processWriteJobs()` bằng trigger 1 phút, cài bằng `installWriteJobTrigger()`.
 
@@ -284,7 +278,7 @@ Write queue v2 hiện hỗ trợ `transport/submitRows`, `transport/saveSheetRow
 - Worker ghi Google Sheet bằng `EntryService.submitRows()`, sau đó sync nhanh cache Vận hành liên quan.
 - Action `getRecentWriteJobs` cho phép frontend khôi phục job gần đây sau khi reload, dùng để hiển thị lại pending/synced tạm thời trong bảng Vận hành và Tổng quan.
 
-Migration `006_write_queue_hardening.sql` bổ sung `idempotency_key`, `worker_id`, `claimed_at` và RPC `claim_write_jobs()`. RPC claim atomically bằng `FOR UPDATE SKIP LOCKED`, chỉ lấy `pending` hoặc `processing` quá 5 phút. Append Vận hành giữ `jobId` trong Developer Metadata của vùng Sheet để retry không append dòng mới.
+Migration `006_write_queue_hardening.sql` bổ sung `idempotency_key`, `worker_id`, `claimed_at` và RPC `claim_write_jobs()`. RPC claim atomically bằng `FOR UPDATE SKIP LOCKED`; runtime R1 dùng stale window 15 phút và terminal update có điều kiện theo owner worker. Append Vận hành giữ `jobId` trong Developer Metadata của vùng Sheet để retry không append dòng mới; khoản vay Quỹ dùng note `VTDB_JOB:<jobId>` ở cột mã vay.
 
 Pilot Quỹ dùng `module=fund`, `action=addFundTransactions`. Voucher được sinh trước và lưu trong payload; worker kiểm tra toàn bộ voucher trước khi append. Flag `ASYNC_FUND_TRANSACTION_ADD_ENABLED` đọc từ Script Properties, mặc định false trong code và đã bật true trên production ngày 2026-07-10. Pending Quỹ không được cộng vào KPI trước khi job `synced`.
 
@@ -298,7 +292,7 @@ Role ứng dụng:
 - `operator`: đọc/ghi nghiệp vụ, không quản lý tài khoản.
 - `shareholder`: chỉ đọc báo cáo, bảng Vận hành, giao dịch Thu chi và khoản vay. Proxy từ chối action ghi bằng HTTP 403.
 
-RLS cho phép user `authenticated` đang active đọc cache; ghi cache/queue vẫn chỉ dùng service role. Phân quyền action chi tiết được thực thi tại Vercel API proxy, không dựa riêng vào việc ẩn nút frontend.
+RLS cho phép user `authenticated` đang active đọc business read-model cần thiết; ghi cache/queue vẫn chỉ dùng service role. Sau khi apply `015`, `catalog_bundles`, `sync_status`, `write_jobs` và `write_job_logs` chỉ còn service role, browser đi qua proxy. Phân quyền action chi tiết được thực thi tại Vercel API proxy.
 
 ### `public.web_push_subscriptions`
 
@@ -321,6 +315,8 @@ Trạng thái server-only của các rule thông báo theo lịch, tạo bởi m
 
 Bảng bật RLS, thu hồi toàn bộ quyền `anon`/`authenticated` và chỉ cho `service_role` đọc/ghi. Đây không phải nguồn số dư; số dư vẫn lấy từ metric `currentBalance` của `fund_overview_bundles`, cùng dữ liệu card “Số dư hiện tại”.
 
+Candidate sửa cảnh báo Quỹ 14/10 dùng thêm row key `fund-current-balance-below-10m:device:<endpoint hash>` trong chính bảng này, không đổi schema/grants. Conditional PATCH giữ cooldown trước push và xác nhận kết quả theo token; state tổng rule vẫn giữ cho quan sát/kế thừa. Chính sách timeout, retry từng thiết bị và badge thuộc [cache contract](docs/contracts/CACHE_AND_QUEUE_CONTRACTS.md); trạng thái live do context sở hữu.
+
 ### Notification preferences và rule config (`013`)
 
 - `notification_preferences`: lựa chọn loại thông báo theo `(user_id, notification_key)`; loại đầu tiên là `fund-low-balance`. Admin/Cổ đông thiếu row được hiểu là bật để giữ default nghiệp vụ, còn lựa chọn tắt được lưu rõ ràng.
@@ -328,3 +324,21 @@ Bảng bật RLS, thu hồi toàn bộ quyền `anon`/`authenticated` và chỉ 
 - `notification_rule_audit_logs`: trigger ghi `previous_config`/`next_config` và người thay đổi cho mỗi lần admin lưu.
 
 Cả ba bảng bật RLS, revoke `public`/`anon`/`authenticated` và chỉ cấp quyền cho `service_role`. Browser chỉ đi qua API same-origin có session/RBAC.
+
+### Payroll explanation bundles (`014`; atomic replace ở `015`, đã apply)
+
+`payroll_explanation_bundles` lưu bằng chứng giải trình theo khóa `(spreadsheet_id, report_month, employee_key)`. Payload đối chiếu `BC_BangLuong` với `XL_LuongNhanSu`, chi tiết `XL_LuongTheoXe` và nghỉ phép chính thức từ `NL_ChamCong`; không tự tính lại hoặc ghi ngược lương.
+
+Bảng là server-only: bật RLS, không tạo policy đọc, revoke `public`/`anon`/`authenticated` và chỉ grant `service_role`. API chỉ đọc `is_current=true`. Migration `015` thêm RPC service-role `replace_payroll_explanation_month`, thực hiện stale + upsert trong cùng transaction và từ chối row lệch workbook/tháng. Browser chỉ gọi proxy-local `getPayrollExplanation`, dành cho `admin`/`operator` và không nhận Spreadsheet ID từ client.
+
+### Payroll v6 cache isolation (`017`)
+
+`payroll_explanation_bundles_v6` giữ cùng schema/key với cache legacy nhưng có bảng/RPC riêng `replace_payroll_explanation_month_v6`. RLS bật, không policy browser, chỉ service_role. RPC kiểm tra workbook/tháng và payload `payroll-explanation-v6`, thay tháng atomically. Không sửa/invalidate bảng/RPC v5; hai runtime có thể refresh riêng trong cửa sổ Preview/Production. Source of truth vẫn là Sheets. Trạng thái apply do context sở hữu.
+
+## Registry workbook và self-service chuyển năm (`020`, candidate local)
+
+- `workbook_contexts` lưu exact pair Spreadsheet ID Vận tải/Thu chi theo năm cùng lifecycle `draft | ready | active | archived | failed`. Partial unique index chỉ cho một row `active`.
+- `workbook_rollover_runs` lưu trạng thái lượt tạo, version/kế hoạch manifest, audit và lỗi vận hành. ID workbook đích chỉ tồn tại server-side.
+- Hai bảng bật RLS, không có policy browser, revoke `public`/`anon`/`authenticated` và chỉ cấp service role.
+- RPC `activate_workbook_context(source, target, timestamp)` chỉ cho service role; kiểm năm kế tiếp và target `ready`, rồi đổi source `archived`/target `active` trong một transaction.
+- Registry không chứa dữ liệu nghiệp vụ và không thay Google Sheets làm source of truth. Next server merge registry với allowlist Vercel fallback; row registry hiện hữu thắng fallback, còn `draft`/`failed` bị loại khỏi selector.

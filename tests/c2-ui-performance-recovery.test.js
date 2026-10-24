@@ -11,7 +11,8 @@ test('D1 removes the temporary C2 presentation route while retaining documented 
   assert.equal(config.redirects, undefined);
   assert.equal(config.rewrites, undefined);
   assert.doesNotMatch(JSON.parse(read('package.json')).scripts['build:next-accounts'], /prepare-legacy-shell/);
-  assert.match(read('ROLLBACK.md'), /dpl_Bz2g66qFuPMcKkRriQgWbxCsNSFg/);
+  assert.match(read('ROLLBACK.md'), /PROJECT_CONTEXT/);
+  assert.match(read('PROJECT_CONTEXT.md'), /dpl_[A-Za-z0-9]+/);
 });
 
 test('C3 golden shell keeps navigation client-driven without data-heavy Link prefetch', () => {

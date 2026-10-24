@@ -27,25 +27,29 @@ var FundTransactionRepository = (function () {
       partner: requiredHeaderIndex(headers, ['doi tac', 'đối tác'], 7 + offset, normalizeHeader),
       content: requiredHeaderIndex(headers, ['noi dung', 'nội dung'], 8 + offset, normalizeHeader),
       debt: requiredHeaderIndex(headers, ['cong no', 'công nợ'], 9 + offset, normalizeHeader),
-      offset: findHeaderIndex(headers, ['can tru', 'cấn trừ'], normalizeHeader),
+      offset: findHeaderIndex(headers, ['khong qua quy', 'không qua quỹ', 'can tru', 'cấn trừ'], normalizeHeader),
       remainingDebt: findHeaderIndex(headers, ['cong no con lai', 'công nợ còn lại'], normalizeHeader)
     };
   }
 
   function readSnapshot(spreadsheet, options) {
-    var sheet = spreadsheet.getSheetByName(options.sheetName);
+    function measure(phase, work) { return options.measure ? options.measure(phase, work) : work(); }
+    var sheet = measure('getSheet', function () { return spreadsheet.getSheetByName(options.sheetName); });
     if (!sheet) throw new Error('Không tìm thấy sheet Thu chi: ' + options.sheetName);
-    var lastRow = sheet.getLastRow();
-    var lastCol = Math.max(sheet.getLastColumn(), options.headers.length);
+    var lastRow = measure('lastRow', function () { return sheet.getLastRow(); });
+    var lastCol = measure('lastColumn', function () { return Math.max(sheet.getLastColumn(), options.headers.length); });
     if (lastRow < 2) return { empty: true, headers: options.headers };
-    var headers = sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    var headers = measure('headers', function () { return sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0]; });
     var columns = getColumns(headers, options.normalizeHeader);
+    var startRow = Math.max(2, Number(options.startRow || 2));
+    var count = options.pageSize ? Math.min(200, Math.max(1, Number(options.pageSize)), Math.max(0, lastRow - startRow + 1)) : lastRow - 1;
     return {
       empty: false,
       headers: headers,
       columns: columns,
-      displayValues: sheet.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues(),
-      rawDateValues: sheet.getRange(2, columns.date + 1, lastRow - 1, 1).getValues()
+      startRow: startRow, lastRow: lastRow, nextRow: options.pageSize && startRow + count <= lastRow ? startRow + count : 0,
+      displayValues: count ? measure('display', function () { return sheet.getRange(startRow, 1, count, lastCol).getDisplayValues(); }) : [],
+      rawDateValues: count ? measure('dates', function () { return sheet.getRange(startRow, columns.date + 1, count, 1).getValues(); }) : []
     };
   }
 
@@ -66,21 +70,21 @@ var FundTransactionRepository = (function () {
   }
 
   function appendRows(sheet, rows, options) {
-    var appendRow = options.getAppendRow(sheet);
+    var appendRow = options.reservedRow || options.getAppendRow(sheet);
     var lastRow = appendRow + rows.length - 1;
     if (sheet.getMaxRows() < lastRow) sheet.insertRowsAfter(sheet.getMaxRows(), lastRow - sheet.getMaxRows());
     try {
-      sheet.getRange(appendRow, 1, rows.length, rows[0].length).setValues(rows);
+      sheet.getRange(appendRow, 1, rows.length, 10).setValues(rows.map(function (row) { return row.slice(0, 10).map(literal_); }));
+      sheet.getRange(appendRow, 12, rows.length, 1).setValues(rows.map(function (row) { return [row[11]]; }));
       sheet.getRange(appendRow, 2, rows.length, 1).setNumberFormat('dd/MM/yyyy');
       sheet.getRange(appendRow, 6, rows.length, 1).setNumberFormat('#,##0');
       rows.forEach(function (row, index) {
         var rowNumber = appendRow + index;
         if (row[9] === 'Có') sheet.getRange(rowNumber, 13).setFormula(options.buildDebtFormula(rowNumber));
-        sheet.getRange(rowNumber, 14).setFormula(options.buildFilterFormula(rowNumber));
       });
       options.flush();
     } catch (error) {
-      rollbackRows(sheet, appendRow, rows.length, options);
+      if (!options.reservedRow) rollbackRows(sheet, appendRow, rows.length, options);
       throw error;
     }
     return { firstRow: appendRow, lastRow: lastRow };
@@ -89,7 +93,8 @@ var FundTransactionRepository = (function () {
   function rollbackRows(sheet, startRow, rowCount, options) {
     if (!(startRow > 1) || !(rowCount > 0)) return;
     try {
-      sheet.getRange(startRow, 1, rowCount, Math.max(sheet.getLastColumn(), 14)).clearContent();
+      sheet.getRange(startRow, 1, rowCount, 10).clearContent();
+      sheet.getRange(startRow, 12, rowCount, 1).clearContent();
       options.flush();
     } catch (error) {
       options.warn('Không thể rollback vùng Thu chi ghi lỗi:', error);
@@ -102,20 +107,23 @@ var FundTransactionRepository = (function () {
   }
 
   function updateRow(sheet, rowNumber, row, options) {
-    sheet.getRange(rowNumber, 1, 1, row.length).setValues([row]);
+    // K is workbook-owned (including literal notes); never replace its formula.
+    sheet.getRange(rowNumber, 1, 1, 10).setValues([row.slice(0, 10).map(literal_)]);
+    sheet.getRange(rowNumber, 12, 1, 1).setValues([[row[11]]]);
     sheet.getRange(rowNumber, 2).setNumberFormat('dd/MM/yyyy');
     sheet.getRange(rowNumber, 6).setNumberFormat('#,##0');
     if (row[9] === 'Có') sheet.getRange(rowNumber, 13).setFormula(options.buildDebtFormula(rowNumber));
-    else sheet.getRange(rowNumber, 13).clearContent();
-    sheet.getRange(rowNumber, 14).setFormula(options.buildFilterFormula(rowNumber));
     options.flush();
   }
 
-  function deleteRow(sheet, rowNumber, options) {
-    sheet.deleteRow(rowNumber);
+  function clearRow(sheet, rowNumber, options) {
+    sheet.getRange(rowNumber, 1, 1, 10).clearContent();
+    sheet.getRange(rowNumber, 12).clearContent();
     options.flush();
   }
+
+  function literal_(value) { return typeof value === 'string' && /^\s*=/.test(value) ? "'" + value : value; }
 
   return { getColumns: getColumns, readSnapshot: readSnapshot, findVoucherRows: findVoucherRows, appendRows: appendRows,
-    rollbackRows: rollbackRows, readRow: readRow, updateRow: updateRow, deleteRow: deleteRow };
+    rollbackRows: rollbackRows, readRow: readRow, updateRow: updateRow, clearRow: clearRow };
 })();

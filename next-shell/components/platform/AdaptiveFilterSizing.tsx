@@ -2,7 +2,7 @@
 
 import { useLayoutEffect } from 'react';
 
-const FILTER_SELECTOR = 'select.platform-content-select';
+const FILTER_SELECTOR = 'select.platform-content-select:not([data-fixed-filter-width])';
 const FILTER_INLINE_PADDING = '0px 30px 0px 10px';
 
 function numericStyle(value: string) {

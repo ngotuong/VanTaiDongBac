@@ -48,15 +48,11 @@ flowchart LR
 
 Apps Script backend là project độc lập trong My projects tại `script.google.com`. Backend không được copy vào từng Google Sheet theo năm và không được giả định active spreadsheet là file dữ liệu chính.
 
-File dữ liệu được chọn bằng Spreadsheet ID, ưu tiên theo thứ tự:
+Vercel resolve workbook từ allowlist server-only `WORKBOOK_CONTEXTS_JSON` theo cặp `year + module`; `DEFAULT_WORKBOOK_YEAR` là năm hoạt động. Browser chỉ gửi năm và không được quyết định Spreadsheet ID. Năm khác năm hoạt động được mở ở chế độ chỉ đọc.
 
-1. `spreadsheetId` hoặc `ssId` trong request;
-2. Script Property `SPREADSHEET_ID_<year>`;
-3. `ACTIVE_SPREADSHEET_ID`;
-4. `DEFAULT_SPREADSHEET_ID`;
-5. ID mặc định trong `AppConfig.gs`.
+Apps Script xác minh lại cặp năm/ID bằng `SPREADSHEET_ID_<year>` cho Vận tải và `FUND_SPREADSHEET_ID_<year>` hoặc alias `CASHFLOW_SPREADSHEET_ID_<year>` cho Thu chi. ID request không khớp mapping bị từ chối. Fallback ID hardcoded chỉ còn là bootstrap tương thích 2026 trước khi cấu hình mapping; không áp dụng cho năm mới.
 
-Các thao tác dữ liệu chính mở file bằng `SpreadsheetApp.openById(id)`.
+Các thao tác dữ liệu chính mở file bằng `SpreadsheetApp.openById(id)`. `ACTIVE_WORKBOOK_YEAR`, `DEFAULT_WORKBOOK_YEAR` và `ACTIVE_SPREADSHEET_ID` chọn năm chạy trigger/worker; các trigger Sheet chỉ gắn với hai workbook của năm hoạt động.
 
 ### 3.2. Hai module nghiệp vụ không bị gộp
 
@@ -210,7 +206,9 @@ Tuy nhiên, nhiều implementation Vận tải vẫn nằm trong `SheetService.g
 
 `AppConfig.activate()` thiết lập biến global `APP_CONFIG` cho request hiện tại. Config chứa Spreadsheet ID, timezone và mapping form Vận tải sang sheet/header row/số cột.
 
-Mọi entry point nhận `year` hoặc Spreadsheet ID phải kích hoạt config trước khi truy cập dữ liệu.
+Mọi entry point nhận `year` hoặc Spreadsheet ID phải kích hoạt config và xác minh exact pair trước khi truy cập dữ liệu. Queue, signal, lease, cursor và data-version của worker được tách theo năm.
+
+Candidate self-service chuyển năm đọc `workbook_contexts` bằng service role phía server. Registry merge với allowlist env để giữ rollback trước migration; row registry hiện hữu là thẩm quyền lifecycle và loại `draft`/`failed` khỏi selector. Browser không nhận Spreadsheet ID. Apps Script `YearWorkbookProvisioningService` sở hữu copy/manifest/audit; `YearRolloverMigration` sở hữu token, active properties và trigger rollback.
 
 ## 7. Kiến trúc dữ liệu đọc
 

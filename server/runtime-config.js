@@ -11,7 +11,8 @@ function runtimeConfig(env = process.env) {
     cronSecret: String(env.CRON_SECRET || ''),
     syncWatchdogSecret: String(env.SYNC_WATCHDOG_SECRET || ''),
     fundLowBalanceAlertEnabled: String(env.FUND_LOW_BALANCE_ALERT_ENABLED || '').toLowerCase() === 'true',
-    defaultWorkbookYear: String(env.DEFAULT_WORKBOOK_YEAR || '2026')
+    businessWritesPaused: String(env.BUSINESS_WRITES_PAUSED || '').toLowerCase() === 'true',
+    defaultWorkbookYear: String(env.DEFAULT_WORKBOOK_YEAR || '')
   };
 }
 

@@ -6,6 +6,7 @@ next-shell/**
 server/**
 tests/**
 assets/**
+artifacts/**
 *.md
 .next/**
 .vercel/**

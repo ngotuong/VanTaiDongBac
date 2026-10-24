@@ -53,7 +53,11 @@ test('B7 observability preserves quick deep all report and explicit cancel/retry
   assert.match(source, /mode === 'quick' \? 50 : 500/);
   assert.match(source, /DEFAULT_MANAGE_SHEET = 'NL_VanChuyen'/);
   assert.match(source, /sheetNames: allSheets \? '' : DEFAULT_MANAGE_SHEET/);
-  assert.match(source, /05\/2026,06\/2026,07\/2026,Tất cả/);
+  assert.doesNotMatch(source, /05\/2026,06\/2026,07\/2026,Tất cả/);
+  assert.match(source, /'getReportCacheAudit'.+forceRefresh: true/);
+  assert.match(source, /for \(const month of reportAuditMonths\(\)\)/);
+  assert.match(source, /params: \{ months: month, forceRefresh: true \}/);
+  assert.match(source, /Mã đối chiếu:/);
   assert.match(source, /'getManageCacheAudit'/);
   assert.match(source, /'getReportCacheAudit'/);
   assert.doesNotMatch(source.slice(source.indexOf('const cancel'), source.indexOf('if (user.role', source.indexOf('const cancel'))), /window\.confirm/);

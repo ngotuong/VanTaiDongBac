@@ -17,7 +17,7 @@ function loadRepository(readQueue = []) {
         calls.push({ operation: 'read', tableName, query });
         return readQueue.length ? readQueue.shift() : [];
       },
-      updateRows(tableName, patch, filters) { calls.push({ operation: 'update', tableName, patch, filters }); }
+      updateRows(tableName, patch, filters) { calls.push({ operation: 'update', tableName, patch, filters }); return [{ id: 'job-1', ...patch }]; }
     }
   });
   new vm.Script(read('WriteJobRepository.gs'), { filename: 'WriteJobRepository.gs#test' }).runInContext(context);
@@ -48,7 +48,7 @@ test('idempotency, status, and recent reads preserve queries and normalized resp
   const { repository, calls } = loadRepository([[rawJob], [rawJob], [rawJob]]);
   const duplicate = repository.findByIdempotency('transport', 'request-1');
   const status = repository.get('job-1');
-  const recent = repository.listRecent('transport', 'submitRows', 20);
+  const recent = repository.listRecent('transport', 'submitRows', 20, '2026');
   assert.equal(duplicate.jobId, 'job-1');
   assert.equal(status.maxAttempts, 3);
   assert.deepEqual(JSON.parse(JSON.stringify(recent)), [JSON.parse(JSON.stringify(status))]);
@@ -57,35 +57,49 @@ test('idempotency, status, and recent reads preserve queries and normalized resp
   assert.equal(calls[1].query.id, 'eq.job-1');
   assert.equal(calls[2].query.order, 'created_at.desc');
   assert.equal(calls[2].query.limit, '20');
+  assert.equal(calls[2].query['payload->>year'], 'eq.2026');
 });
 
 test('retry and worker lifecycle preserve patches, filters, logs, and retry status', () => {
   const { repository, calls } = loadRepository();
   repository.retry('job-1', 'retry-at');
   repository.markProcessing('job-1', { attempt: 1, workerId: 'worker-1', claimedAt: 'claimed', idempotencyKey: 'request-1' });
-  repository.markSynced('job-1', { inserted: 1 }, 'synced-at');
-  repository.markFailure('job-1', 'pending', 'synthetic failure', 'next-run', { attempt: 1, retryable: true });
+  repository.markSynced('job-1', { inserted: 1 }, 'synced-at', 'worker-1');
+  repository.markFailure('job-1', 'pending', 'synthetic failure', 'next-run', { attempt: 1, retryable: true }, 'worker-1');
   const updates = calls.filter((call) => call.operation === 'update');
   assert.deepEqual(JSON.parse(JSON.stringify(updates)), [
     {
       operation: 'update', tableName: 'write_jobs',
       patch: { status: 'pending', attempts: 0, last_error: '', next_run_at: 'retry-at', locked_at: null, claimed_at: null, worker_id: null },
-      filters: { id: 'eq.job-1' }
+      filters: { id: 'eq.job-1', status: 'eq.failed' }
     },
     {
       operation: 'update', tableName: 'write_jobs',
       patch: { status: 'synced', result: { inserted: 1 }, synced_at: 'synced-at', locked_at: null, last_error: '' },
-      filters: { id: 'eq.job-1' }
+      filters: { id: 'eq.job-1', status: 'eq.processing', worker_id: 'eq.worker-1' }
     },
     {
       operation: 'update', tableName: 'write_jobs',
       patch: { status: 'pending', last_error: 'synthetic failure', locked_at: null, next_run_at: 'next-run' },
-      filters: { id: 'eq.job-1' }
+      filters: { id: 'eq.job-1', status: 'eq.processing', worker_id: 'eq.worker-1' }
     }
   ]);
   assert.deepEqual(calls.filter((call) => call.operation === 'insert').map((call) => call.rows[0].status), [
     'pending', 'processing', 'synced', 'pending'
   ]);
+});
+
+test('rollover audit treats legacy jobs as source-year work and excludes another explicit year', () => {
+  const rows = [
+    { ...rawJob, id: 'legacy', payload: { rows: [] } },
+    { ...rawJob, id: 'source', payload: { year: '2026' } },
+    { ...rawJob, id: 'future', payload: { year: '2027' } }
+  ];
+  const { repository, calls } = loadRepository([rows]);
+  const active = repository.listActiveForRollover('2026', 101);
+  assert.deepEqual(active.map((job) => job.jobId), ['legacy', 'source']);
+  assert.equal(calls[0].query.status, 'in.(pending,processing)');
+  assert.equal(calls[0].query.limit, '101');
 });
 
 test('cancel changes only a pending job, preserves audit history, and returns terminal state', () => {

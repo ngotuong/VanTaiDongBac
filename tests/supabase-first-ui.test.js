@@ -13,7 +13,7 @@ test('ordinary topbar refreshes stay on Supabase and bypass only the browser cac
   const catalog = read('next-shell/components/catalog/CatalogModule.tsx');
   const cashflow = read('next-shell/components/cashflow/CashflowModule.tsx');
 
-  assert.match(dashboard, /requestDashboard\(false, true\)/);
+  assert.match(dashboard, /requestDashboard\(workbook\.year, false, true\)/);
   assert.match(report, /loadPeriod\(periodMode, fromMonth, toMonth, false, true\)/);
   assert.match(manage, /load\(sheet,startDate,endDate,false,true\)/);
   assert.match(catalog, /load\(sheet,false,true\)/);
@@ -44,6 +44,9 @@ test('cashflow applies one shared range request and loading copy identifies Supa
 
 test('source metadata never invents a current timestamp when synchronization time is absent', () => {
   const source = read('next-shell/lib/platform/data-source-meta.ts');
+  const shell = read('next-shell/components/platform/AppShell.tsx');
   assert.match(source, /if \(!value\) return ''/);
   assert.doesNotMatch(source, /new Date\(\)\.toISOString/);
+  assert.match(shell, /Nguồn: Google Sheet trực tiếp/);
+  assert.doesNotMatch(shell, /Chưa có thời điểm đồng bộ/);
 });

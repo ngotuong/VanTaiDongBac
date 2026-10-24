@@ -8,4 +8,4 @@ export type EntryCatalogs = Record<string, unknown> & {
   fuelSources?: string[]; fuelPaymentSources?: string[]; chamCongTypes?: Array<{name?:string}>; nghiVanHanhTypes?: string[]; companies?: string[];
   supabaseCached?: boolean; supabaseSyncedAt?: string; updatedAt?: string;
 };
-export type WriteJob = { ok?:boolean; queued?:boolean; jobId:string; action?:string; status:'pending'|'processing'|'synced'|'failed'; lastError?:string; result?:unknown };
+export type WriteJob = { ok?:boolean; queued?:boolean; jobId:string; action?:string; status:'pending'|'processing'|'synced'|'failed'; payload?:{formType?:EntryFormType;year?:string}; lastError?:string; result?:unknown };

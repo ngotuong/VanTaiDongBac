@@ -1,4 +1,6 @@
+const { withDeadline } = require('../services/request-deadline');
 function createNotificationPreferenceRepository({ fetchImpl = fetch, httpError }) {
+  fetchImpl = withDeadline(fetchImpl);
   const headers = (config, extra = {}) => ({ apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, 'Content-Type': 'application/json', ...extra });
   async function parse(response, message) {
     const data = await response.json().catch(() => ({}));

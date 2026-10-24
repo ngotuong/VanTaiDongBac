@@ -36,6 +36,7 @@
       "cashCost": 120,
       "fuelOut": 30,
       "payroll": 50,
+      "bhxh": 0,
       "fund": 40,
       "totalCost": 440
     },
@@ -53,6 +54,7 @@
       "cashCost": 240,
       "fuelOut": 60,
       "payroll": 100,
+      "bhxh": 0,
       "fund": 80,
       "totalCost": 880
     },
@@ -70,6 +72,7 @@
       "cashCost": 360,
       "fuelOut": 90,
       "payroll": 150,
+      "bhxh": 0,
       "fund": 120,
       "totalCost": 1320
     }

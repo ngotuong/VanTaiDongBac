@@ -13,6 +13,7 @@ function loadService(overrides = {}) {
   const calls = { reads: [], upserts: [], statuses: [] };
   const syncTime = '2026-07-11T14:00:00.000Z';
   const dependencies = {
+    year: '2026',
     clean(value) {
       return value === null || value === undefined ? '' : String(value).trim();
     },
@@ -57,38 +58,38 @@ test('startup and catalog bundle sync preserve rows, conflict keys, status keys,
 
   assert.deepEqual(JSON.parse(JSON.stringify([startup, catalogs, catalogData])), [
     { ok: true, table: 'startup_bundles', formType: 'vanChuyen', syncedAt: syncTime },
-    { ok: true, table: 'catalog_bundles', catalogKey: 'catalogs:all', syncedAt: syncTime },
-    { ok: true, table: 'catalog_bundles', catalogKey: 'catalog_data:DM_Xe', syncedAt: syncTime }
+    { ok: true, table: 'catalog_bundles', catalogKey: 'transport:2026:catalogs:all', syncedAt: syncTime },
+    { ok: true, table: 'catalog_bundles', catalogKey: 'transport:2026:catalog_data:DM_Xe', syncedAt: syncTime }
   ]);
   assert.deepEqual(JSON.parse(JSON.stringify(calls.upserts)), [
     {
       tableName: 'startup_bundles',
-      rows: [{ form_type: 'vanChuyen', payload: { kind: 'startup', formType: 'vanChuyen' }, synced_at: syncTime }],
+      rows: [{ form_type: '2026:vanChuyen', payload: { kind: 'startup', formType: 'vanChuyen' }, synced_at: syncTime }],
       onConflict: 'form_type'
     },
     {
       tableName: 'catalog_bundles',
-      rows: [{ catalog_key: 'catalogs:all', payload: { kind: 'catalogs', formType: '' }, synced_at: syncTime }],
+      rows: [{ catalog_key: 'transport:2026:catalogs:all', payload: { kind: 'catalogs', formType: '' }, synced_at: syncTime }],
       onConflict: 'catalog_key'
     },
     {
       tableName: 'catalog_bundles',
-      rows: [{ catalog_key: 'catalog_data:DM_Xe', payload: { kind: 'catalogData', displaySheetName: 'DM_Xe' }, synced_at: syncTime }],
+      rows: [{ catalog_key: 'transport:2026:catalog_data:DM_Xe', payload: { kind: 'catalogData', displaySheetName: 'DM_Xe' }, synced_at: syncTime }],
       onConflict: 'catalog_key'
     }
   ]);
   assert.deepEqual(JSON.parse(JSON.stringify(calls.statuses)), [
-    ['startup:vanChuyen', 'startup', 'ok', 'Startup cache synced.', syncTime],
-    ['catalogs:all', 'catalog', 'ok', 'Catalog options cache synced.', syncTime],
-    ['catalog_data:DM_Xe', 'catalog', 'ok', 'Catalog table cache synced.', syncTime]
+    ['2026:startup:vanChuyen', 'startup', 'ok', 'Startup cache synced.', syncTime],
+    ['2026:catalogs:all', 'catalog', 'ok', 'Catalog options cache synced.', syncTime],
+    ['2026:catalog_data:DM_Xe', 'catalog', 'ok', 'Catalog table cache synced.', syncTime]
   ]);
 });
 
-test('full startup/catalog sync preserves the 20 live targets and isolated failure response', () => {
+test('full startup/catalog sync preserves the 21 live targets and isolated failure response', () => {
   const original = loadService();
   const result = original.service.syncAllStartupAndCatalogs(original.dependencies);
   assert.equal(result.ok, true);
-  assert.equal(result.synced, 20);
+  assert.equal(result.synced, 21);
   assert.equal(result.failed, 0);
   assert.deepEqual(JSON.parse(JSON.stringify(result.results.map((entry) => entry.name))), [
     'startup:vanChuyen',
@@ -97,7 +98,8 @@ test('full startup/catalog sync preserves the 20 live targets and isolated failu
     'catalogData:DM_NhanSu', 'catalogData:DM_Xe', 'catalogData:DM_DuAn',
     'catalogData:DM_CheDoLuong', 'catalogData:DM_LuongChuyen', 'catalogData:DM_ThamSo_TS',
     'catalogData:DM_GiaDau', 'catalogData:DM_DonGiaVanChuyen', 'catalogData:DM_ThuongQuanLy',
-    'catalogData:DM_PhatNoiBo', 'catalogData:DM_PhanCongXe', 'catalogData:DM_UuDaiNoiBo'
+    'catalogData:DM_PhatNoiBo', 'catalogData:DM_PhanCongXe', 'catalogData:DM_BaoHiem',
+    'catalogData:DM_UuDaiNoiBo'
   ]);
 
   const failed = loadService({
@@ -108,7 +110,7 @@ test('full startup/catalog sync preserves the 20 live targets and isolated failu
   });
   const failedResult = failed.service.syncAllStartupAndCatalogs(failed.dependencies);
   assert.equal(failedResult.ok, false);
-  assert.equal(failedResult.synced, 19);
+  assert.equal(failedResult.synced, 20);
   assert.equal(failedResult.failed, 1);
   assert.deepEqual(JSON.parse(JSON.stringify(failedResult.errors)), [
     { name: 'catalogData:DM_Xe', error: 'synthetic read failure' }

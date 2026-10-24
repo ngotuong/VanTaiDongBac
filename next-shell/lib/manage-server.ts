@@ -2,11 +2,11 @@ import 'server-only';
 
 import { createManageBundleRepository } from '../../server/repositories/manage-bundle-repository.js';
 import { runtimeConfig } from '../../server/runtime-config.js';
-import { createWorkbookContextService } from '../../server/services/workbook-context-service.js';
+import { loadServerWorkbookContext } from './request-context.js';
 import { createServerApiClient } from './platform/server-api-client';
 import type { ManageBundle, ManageDataResponse, ManageRow, ManageSheetName } from './platform/manage-types';
 
-export const MANAGE_SHEETS: ManageSheetName[] = ['NL_VanChuyen','NL_TaiXe','NL_Dau','NL_ChamCong','NL_Phat','NL_NghiVanHanh','NL_PhanCongLai'];
+export const MANAGE_SHEETS: ManageSheetName[] = ['NL_VanChuyen','NL_TaiXe','NL_Dau','NL_ChamCong','NL_Phat','NL_NghiVanHanh','NL_PhanCongLai','NL_SoDuLuong'];
 const ISO_DATE = /^20\d{2}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/;
 function httpError(status: number, message: string) { return Object.assign(new Error(message), { status }); }
 function sheetName(value: unknown): ManageSheetName {
@@ -71,11 +71,11 @@ function combine(bundles: ManageBundle[]) {
   return { ...first, rows, isLimited: bundles.some((bundle) => bundle.isLimited), supabaseCached: true, supabaseMonthlyCached: true };
 }
 
-export async function loadManageData(input: { sheetName?: unknown; startDate?: unknown; endDate?: unknown; forceRefresh?: boolean } = {}): Promise<ManageDataResponse> {
+export async function loadManageData(input: { sheetName?: unknown; year?: unknown; startDate?: unknown; endDate?: unknown; forceRefresh?: boolean } = {}): Promise<ManageDataResponse> {
   const requestedSheet = sheetName(input.sheetName || MANAGE_SHEETS[0]);
   const startDate = dateValue(input.startDate); const endDate = dateValue(input.endDate);
   if (startDate && endDate && startDate > endDate) throw httpError(400, 'Ngày bắt đầu phải trước ngày kết thúc.');
-  const workbook = createWorkbookContextService({ httpError }).resolve({ module: 'transport' });
+  const workbook = await loadServerWorkbookContext({ module: 'transport', year: input.year });
   if (!input.forceRefresh) {
     try {
       const config = runtimeConfig();
@@ -84,15 +84,15 @@ export async function loadManageData(input: { sheetName?: unknown; startDate?: u
       const months = monthKeys(startDate, endDate);
       if (config.supabaseUrl && config.serviceRoleKey && months.length) {
         const [rows, recentRow] = await Promise.all([
-          Promise.all(months.map((month) => repository.find(config, requestedSheet, `month:${month}`))),
-          repository.find(config, requestedSheet, 'recent_500')
+          Promise.all(months.map((month) => repository.find(config, `${workbook.year}:${requestedSheet}`, `month:${month}`))),
+          repository.find(config, `${workbook.year}:${requestedSheet}`, 'recent_500')
         ]);
         const bundles = rows.map((row) => row && publicBundle(row.payload, row.synced_at, true));
         if (bundles.every(Boolean)) return { data: filterDates(combine(bundles as ManageBundle[]), startDate, endDate), sheetName: requestedSheet, startDate, endDate };
         const recentBundle = recentRow && publicBundle(recentRow.payload, recentRow.synced_at, false);
         if (recentBundle) return { data: filterDates(recentBundle, startDate, endDate), sheetName: requestedSheet, startDate, endDate };
       } else if (config.supabaseUrl && config.serviceRoleKey) {
-        const row = await repository.find(config, requestedSheet, 'recent_500');
+        const row = await repository.find(config, `${workbook.year}:${requestedSheet}`, 'recent_500');
         const bundle = row && publicBundle(row.payload, row.synced_at, false);
         if (bundle) return { data: filterDates(bundle, startDate, endDate), sheetName: requestedSheet, startDate, endDate };
       }
@@ -103,7 +103,7 @@ export async function loadManageData(input: { sheetName?: unknown; startDate?: u
   }
   const api = await createServerApiClient();
   const data = await api.get<ManageBundle>('readManageData', { params: {
-    sheetName: requestedSheet, startDate, endDate, limit: startDate || endDate ? '500' : '50',
+    sheetName: requestedSheet, year: workbook.year, startDate, endDate, limit: startDate || endDate ? '500' : '50',
     forceRefresh: input.forceRefresh ? 'true' : '', spreadsheetId: workbook.spreadsheetId
   } });
   if (data.ok === false) throw httpError(502, (data as ManageBundle & { error?: string }).error || 'Không đọc được dữ liệu Vận hành.');

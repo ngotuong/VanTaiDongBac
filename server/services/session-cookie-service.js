@@ -11,7 +11,12 @@ function parseCookies(header = '') {
     if (index < 0) return cookies;
     const key = part.slice(0, index).trim();
     if (!key) return cookies;
-    cookies[key] = decodeURIComponent(part.slice(index + 1).trim());
+    try {
+      cookies[key] = decodeURIComponent(part.slice(index + 1).trim());
+    } catch {
+      // A malformed cookie must not take down all authenticated endpoints.
+      // An invalid auth value is absent, allowing the normal refresh/401 path.
+    }
     return cookies;
   }, {});
 }

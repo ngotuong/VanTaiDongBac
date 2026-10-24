@@ -19,9 +19,16 @@
 
 - `POST /api/session`: nhận Supabase session từ same-origin browser sau sign-in; bắt buộc `X-VTDB-CSRF: session`; xác minh Auth và active allowlist trước khi đặt cookie `HttpOnly`.
 - `GET /api/session`: đọc cookie server, xác minh request user và chủ động refresh qua Supabase khi access token còn không quá 25 phút hoặc đã hết hạn; chỉ ghi lại cookie khi refresh thành công và không trả token trong response. Nếu refresh tạm lỗi nhưng access token vẫn còn hợp lệ, request hiện tại vẫn được phép hoàn tất bằng token cũ.
+- Cookie sai percent-encoding được bỏ qua riêng; không làm hỏng token hợp lệ trong cookie khác. Auth cookie sai đi qua luồng refresh/401.
 - `DELETE /api/session`: yêu cầu same-origin và CSRF header, sau đó xóa access/refresh cookie.
 - Shared shell gọi `GET /api/session` khi mount, mỗi 40 phút và khi tab hoạt động lại sau khoảng nghỉ tương ứng. Nếu root guard gặp access cookie đã hết hạn, `LoginGate` thử khôi phục bằng refresh cookie trước khi hiển thị form đăng nhập; token vẫn chỉ nằm trong cookie `HttpOnly`.
-- `GET /api/app?action=runtimeContext&module=<transport|cashflow>&year=<YYYY>`: action read-only; resolve workbook từ `WORKBOOK_CONTEXTS_JSON`; chỉ trả user, module và year; không trả Spreadsheet ID, không fallback bundle mới nhất và không gọi Apps Script.
+- `GET /api/app?action=runtimeContext&module=<transport|cashflow>&year=<YYYY>`: action read-only; resolve từ registry server-only, fallback env khi registry chưa có dữ liệu; trả user và public context (module/year/activeYear/availableYears/readOnly), không trả Spreadsheet ID hoặc gọi Apps Script. Registry đã có dữ liệu phải có đúng một cặp active hợp lệ; không dùng env default để mở ghi một năm ready/archived.
+- `POST /api/workbook-year`: same-origin + `X-VTDB-CSRF: workbook-year` + session hợp lệ; chỉ nhận năm có đủ Vận tải và Thu chi trong allowlist rồi đặt cookie `vtdb_workbook_year` HttpOnly/SameSite=Strict. Spreadsheet ID không đi qua browser.
+- `GET /api/app?action=getYearRolloverStatus&sourceYear=YYYY&targetYear=YYYY`: admin-only; trả trạng thái manifest/registry/run gần nhất đã loại Spreadsheet ID. Operator/shareholder nhận 403 trước khi forward.
+- `POST /api/app` action `manageYearRollover`: admin-only; operation allowlist chính xác `preview | canary | provision | resume | audit | prepare | activate`. `canary` tạo hai bản sao có tên kỹ thuật, áp manifest rồi luôn chuyển chúng vào thùng rác; không đăng ký ID/property. Actor do server chèn và ghi đè mọi actor client gửi. `activate` chỉ được forward khi `BUSINESS_WRITES_PAUSED=true`; Apps Script tiếp tục kiểm `WRITE_QUEUE_PAUSED`, queue/audit token và role actor.
+- Mọi mutation resolve lại workbook server-side. Nếu năm khác `DEFAULT_WORKBOOK_YEAR`, API trả 409 và không enqueue/forward ghi.
+- Legacy `addFundTransaction` cũng kiểm registry trước forward, giữ response đồng bộ hiện hữu. Apps Script business-write dispatch và worker kiểm lại operational active year trước writer; chọn workbook bằng `AppConfig.activate()` không tự cấp quyền ghi năm đó.
+- `/api/app` loại các key routing ID khỏi JSON ở mọi độ sâu, kể cả health và job payload/result; không mutate intent nội bộ. Không coi đây là việc che mọi URL Google Sheet: legacy links và `/open-sheet` có phạm vi riêng. Candidate/source và trạng thái đã deploy được phân biệt tại `PROJECT_CONTEXT.md`.
 
 ## 1. Mục đích và phạm vi
 
@@ -96,6 +103,8 @@ invokeApi(method, action, params, body)
 Frontend Next gọi same-origin `/api/app` bằng client/server API client. Vercel xác thực session, enforce RBAC và thêm `proxySecret` trước khi forward Apps Script. D1 đã loại bỏ transport `google.script.run`/HtmlService.
 
 ### 2.4. Response thành công
+
+Khi server bật `BUSINESS_WRITES_PAUSED=true`, proxy `/api/app` kiểm tra sau RBAC và trước dispatch: trả HTTP 503 cho POST, trừ action chỉ đọc `checkTripReconciliation`, và GET `invalidateCaches`. Guard bao gồm enqueue, ghi trực tiếp, điều khiển queue và refresh; không thay quyền/RBAC hoặc tự dừng trigger Apps Script. Read/auth/session và các endpoint push/preferences riêng không nằm trong phạm vi guard này. Kiểm thử: `tests/business-maintenance-policy.test.js`.
 
 Response nghiệp vụ là JSON object. Phần lớn response có:
 
@@ -221,6 +230,8 @@ Inventory nội bộ được biểu diễn tại `ApiActionRegistry.gs` với `
 | `getFundLoanOverview` | GET | Thu chi | Có | Không |
 | `getFundFormOptions` | GET | Thu chi | Có | Không |
 | `getNotifications` | GET | Thông báo | Có | Không |
+| `getPayrollExplanation` | GET | Báo cáo lương | Không | Không |
+| `requestPayrollExplanationRefresh` | POST | Xếp hàng làm mới Báo cáo + giải trình đúng tháng | Có | Có |
 | `getFundCatalog` | GET | Thu chi | Không | Không |
 | `addFundTransaction` | POST | Thu chi | Không | Direct |
 | `addFundTransactions` | POST | Thu chi | Không | Queue có điều kiện hoặc direct |
@@ -238,6 +249,10 @@ Inventory nội bộ được biểu diễn tại `ApiActionRegistry.gs` với `
 | `getReportCacheAudit` | GET | Audit | Không | Đọc live/cache |
 | `getManageCacheAudit` | GET | Audit | Không | Đọc live/cache |
 
+`getPayrollExplanation` là action proxy-local chỉ dành cho `admin`/`operator`. Action nhận `month=MM/YYYY`, `employee=<tên nhân sự>` và `year`; proxy tự resolve workbook, đọc bảng server-only bằng service role và không forward tới Apps Script trong request người dùng. Chi tiết payload và bảo mật nằm tại `docs/contracts/PAYROLL_EXPLANATION_CONTRACT.md`.
+
+`requestPayrollExplanationRefresh` chỉ dành cho `admin`/`operator`, nhận `month=MM/YYYY`, chuyển tháng sang khóa queue `YYYY-MM` và xếp hàng refresh giới hạn đúng tháng, không ghi trực tiếp Google Sheet. Client chỉ gọi khi API giải trình trả `stale`.
+
 ## 5. Auth và account actions
 
 ### 5.1. `health`
@@ -248,7 +263,7 @@ GET /api/app?action=health
 
 Auth: không bắt buộc tại proxy.
 
-Apps Script handler: `SheetService.health()`.
+Apps Script handler: `SheetService.health()`. Proxy bổ sung `businessWritesPaused` boolean từ server config để kiểm chứng guard bảo trì; field không chứng minh trigger/worker đã dừng và không chứa secret.
 
 Response điển hình:
 
@@ -1107,7 +1122,9 @@ Body:
 }
 ```
 
-Handler: direct `FundService.deleteFundTransaction()`; facade giữ resolver/lock/cache bump và delegate row validation/physical delete cho `FundTransactionService`/`FundTransactionRepository`.
+Payload bắt buộc gồm `year`, `rowIndex`, `clientRequestId` ổn định và `expectedTransaction` với `voucher`, `date`, `type`, `category`, `amount`, `actor`, `partner`, `content`.
+
+Handler queue khóa workbook/năm lúc enqueue. Worker đọc lại row live, so dấu vân tay nghiệp vụ rồi clear A:M tại chỗ; không xóa dòng vật lý. Row đã trống được coi là idempotent replay, còn row đã thay đổi phải fail-closed.
 
 ### 12.5. `addFundLoan`
 
@@ -1154,6 +1171,8 @@ Body:
 Handler: direct `FundService.addFundLoanPayment()`; facade giữ resolver/lock/cache bump và delegate payment validation/build/append/format/formula N cho `FundLoanService`/`FundLoanRepository`.
 
 Backend phải bảo toàn mã khoản vay, công thức và các rule thanh toán.
+
+Queued `addFundLoan`/`addFundLoanPayment` dùng note `VTDB_JOB:<jobId>` tại ô mã vay để chống append lại. Thanh toán phải tìm đúng mã vay, khớp đối tác, còn dư nợ gốc, không trả gốc vượt dư nợ và kế thừa cờ `Không qua Quỹ` từ khoản vay gốc.
 
 ### 12.7. `saveFundCatalogItem`
 

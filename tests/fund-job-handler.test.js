@@ -12,6 +12,7 @@ function loadHandler(overrides = {}) {
   new vm.Script(read('FundJobHandler.gs'), { filename: 'FundJobHandler.gs#test' }).runInContext(vmContext);
   const calls = { writes: [], syncs: [] };
   const context = {
+    assertWorkbook() {},
     addFundTransactions(...args) { calls.writes.push(args); return { ok: true, inserted: 2 }; },
     syncFundTransactionsAfterWrite(...args) { calls.syncs.push(args); return { ok: true, synced: 4 }; },
     ...overrides
@@ -19,12 +20,38 @@ function loadHandler(overrides = {}) {
   return { handler: vmContext.FundJobHandler, context, calls };
 }
 
-test('Fund handler accepts only fund/addFundTransactions jobs', () => {
+test('Fund handler accepts all queued Fund mutations and rejects other modules', () => {
   const { handler } = loadHandler();
   const clean = (value) => String(value || '').trim();
-  assert.equal(handler.canHandle({ module: 'fund', action: 'addFundTransactions' }, clean), true);
+  for (const action of ['addFundTransactions', 'updateFundTransaction', 'deleteFundTransaction', 'addFundDebtPayment', 'addFundLoan', 'addFundLoanPayment', 'saveFundCatalogItem', 'deleteFundCatalogItem', 'updateFundSettings']) {
+    assert.equal(handler.canHandle({ module: 'fund', action }, clean), true);
+  }
   assert.equal(handler.canHandle({ module: 'transport', action: 'addFundTransactions' }, clean), false);
   assert.equal(handler.canHandle({ module: 'fund', action: 'submitRows' }, clean), false);
+});
+
+test('Fund handler dispatches an edit through the worker and defers cache refresh', () => {
+  const calls = [];
+  const loaded = loadHandler({
+    updateFundTransaction(...args) { calls.push(['write', ...args]); return { ok: true, rowIndex: 9 }; },
+    syncFundAfterWrite(...args) { calls.push(['sync', ...args]); return { ok: true, deferred: true }; }
+  });
+  const result = loaded.handler.execute({ id: 'job-edit', module: 'fund', action: 'updateFundTransaction', idempotency_key: 'edit-1', payload: { year: '2026', spreadsheetId: 'fund-2026', rowIndex: 9, transaction: { amount: '1000' } } }, loaded.context);
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls[0], ['write', '2026', 9, { amount: '1000' }]);
+  assert.equal(calls[1][0], 'sync');
+  assert.equal(calls[1][2].transportDownstream, true);
+  assert.equal(calls[1][2].result.rowIndex, 9);
+});
+
+test('Fund handler requests downstream reports only for NHAP_THUCHI mutations', () => {
+  const calls = [];
+  const loaded = loadHandler({
+    addFundLoan(year, loan) { return { ok: true, year, loan }; },
+    syncFundAfterWrite(year, options) { calls.push([year, options]); return { ok: true }; }
+  });
+  loaded.handler.execute({ module: 'fund', action: 'addFundLoan', payload: { year: '2026', spreadsheetId: 'fund-2026', loan: { amount: 5000 } } }, loaded.context);
+  assert.equal(calls[0][1].transportDownstream, false);
 });
 
 test('Fund execution preserves job replay metadata, payload, sync scope, and result mutation', () => {
@@ -32,7 +59,7 @@ test('Fund execution preserves job replay metadata, payload, sync scope, and res
   const transactions = [{ voucher: 'synthetic-voucher' }];
   const job = {
     id: 'job-fund-1', module: 'fund', action: 'addFundTransactions', idempotency_key: 'fund-request-1',
-    payload: { year: '2026', transactions }
+    payload: { year: '2026', spreadsheetId: 'fund-2026', transactions }
   };
   const result = loaded.handler.execute(job, loaded.context);
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.writes)), [[
@@ -40,6 +67,22 @@ test('Fund execution preserves job replay metadata, payload, sync scope, and res
   ]]);
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.syncs)), [['2026', transactions]]);
   assert.deepEqual(JSON.parse(JSON.stringify(result)), { ok: true, inserted: 2, supabaseSync: { ok: true, synced: 4 } });
+});
+
+test('Fund execution verifies the queued workbook before any financial write', () => {
+  let wrote = false;
+  const loaded = loadHandler({
+    assertWorkbook(year, spreadsheetId) {
+      assert.equal(year, '2026');
+      assert.equal(spreadsheetId, 'wrong-workbook');
+      throw new Error('workbook mismatch');
+    },
+    addFundTransactions() { wrote = true; return { ok: true }; }
+  });
+  assert.throws(() => loaded.handler.execute({ module: 'fund', action: 'addFundTransactions', payload: {
+    year: '2026', spreadsheetId: 'wrong-workbook', transactions: []
+  } }, loaded.context), /workbook mismatch/);
+  assert.equal(wrote, false);
 });
 
 test('Fund cache sync failure is isolated while write failure propagates to lifecycle', () => {

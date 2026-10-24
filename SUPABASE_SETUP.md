@@ -192,9 +192,9 @@ REPORT_CACHE_MODE=sheet
 
 Không xóa hoặc compact `SYS_ReportCache` ở E1.1 hoặc E1.2.
 
-E1.3 đã đạt dual parity. E1.4 đã DONE với `REPORT_CACHE_MODE=supabase`: batch, nhiều trigger và force refresh authenticated preview/production giữ `SYS_ReportCache` không tăng; Supabase đủ bốn row hiện hành có metadata hợp lệ. E1.5 đã DONE sau dry-run, full-workbook backup và phê duyệt destructive riêng: 198.860 dòng stale đã được compact, production `SYS_ReportCache` còn header + 39 dòng rollback (40 dòng vật lý), còn backup giữ nguyên 198.900 dòng. Production deployment ID hiện ở Apps Script `@290`, rollback cùng-ID là `@282`; migration helper bất biến ở `@291`.
+Trạng thái cache/retirement và deployment hiện hành do [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) sở hữu. Khi điều tra dual-run/compaction đã hoàn tất, tra Git history; không dùng deployment ID lịch sử để vận hành hiện tại.
 
-Checkpoint retirement tiếp theo khóa runtime ở Supabase-only: `sheet`/`dual` không còn được chấp nhận, cache miss/lỗi tính trực tiếp từ sheet tạm và upsert lại `report_bundles`. Không xóa `SYS_ReportCache` thủ công. Chỉ chạy các wrapper `ReportCacheRetirementMigration` theo đúng thứ tự dry-run → refresh nếu cần → backup → prepare → approve → run; thao tác delete production vẫn cần phê duyệt destructive sau khi Preview gate PASS.
+Runtime đã khóa ở Supabase-only: `sheet`/`dual` không còn được chấp nhận, cache miss/lỗi tính trực tiếp từ sheet tạm và upsert lại `report_bundles`. Không xóa `SYS_ReportCache` thủ công. Chỉ chạy các wrapper `ReportCacheRetirementMigration` theo đúng thứ tự dry-run → refresh nếu cần → backup → prepare → approve → run; thao tác delete production vẫn cần phê duyệt destructive sau khi Preview gate PASS.
 
 ## 10. Web Push foundation
 
@@ -264,8 +264,60 @@ Quy trình chẩn đoán read-only trong Apps Script editor:
 
 GitHub `schedule` là best-effort và có thể trễ/bỏ lượt; cron `*/5` không phải cam kết SLA 5 phút. Không mô tả cơ chế này là phát hiện bảo đảm trong 5–15 phút nếu chưa có scheduler production khác được phê duyệt và kiểm chứng.
 
+## 12. Giải trình lương server-only (`014`, đã apply)
+
+Migration additive sau đã được apply trước khi runtime đọc/ghi bundle được triển khai:
+
+```text
+supabase/migrations/014_payroll_explanation_bundles.sql
+```
+
+Hậu kiểm bắt buộc:
+
+- bảng có primary key `(spreadsheet_id, report_month, employee_key)`;
+- RLS bật và không có policy cho browser;
+- `anon`/`authenticated` không có table privilege;
+- `service_role` có quyền đọc/ghi;
+- runtime chỉ đồng bộ bundle sau khi migration thành công.
+
+Migration không đọc hoặc sửa Google Sheet. Backfill đã chạy qua `syncPayrollExplanationMonthToSupabase('MM/YYYY')` sau khi Apps Script candidate chứa service mới được phê duyệt cho môi trường tương ứng.
+
+### 12.1. Remediation R1 (`015`, đã apply 2026-09-26)
+
+Migration `supabase/migrations/015_financial_write_and_server_only_hardening.sql` đã được apply trong checkpoint deploy riêng trước runtime R1 phụ thuộc RPC mới. Migration:
+
+- thu hồi browser read trực tiếp trên `catalog_bundles`, `sync_status`, `write_jobs`, `write_job_logs`; Vercel/Apps Script tiếp tục dùng service role;
+- tạo RPC service-role `replace_payroll_explanation_month(text,text,jsonb)` để thay một tháng giải trình trong một transaction;
+- không đọc hoặc ghi Google Sheet và không xóa write job.
+
+Hậu kiểm bắt buộc: `anon`/`authenticated` bị từ chối bốn bảng operational, các API same-origin tương ứng vẫn trả đúng theo RBAC, service role đọc/ghi được, RPC từ chối row lệch workbook/tháng và thay thế tháng hợp lệ atomically. Nếu migration thành công nhưng runtime chưa deploy, giữ schema; rollback runtime bằng deployment cũ. Mọi schema rollback tiếp theo phải là migration `016+`.
+
 Nguồn tham khảo chính thức:
 
 - [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys)
 - [Supabase JavaScript installing](https://supabase.com/docs/reference/javascript/installing)
 - [Supabase secure data](https://supabase.com/docs/guides/database/secure-data)
+
+### R8 cache isolation (`017`)
+
+Sau backup/gate và maintenance được duyệt, apply `017_payroll_v6_cache_isolation.sql` trước sync/API v6. Xác minh table/RPC v6 server-only, legacy table/RPC/hash/row count không đổi. Backfill v6 chỉ bằng runtime v6; so exact source_data_version với report. Không chạy v6 replacement vào bảng v5. Rollback runtime giữ migration/cache additive; current state tại PROJECT_CONTEXT và R8 runbook.
+
+### R8 sequence log (`018`)
+
+Apply `018_write_job_log_sequence_permissions.sql` sau 017 bằng transaction guarded trong cửa sổ được duyệt. Migration chỉ thu hẹp ACL của sequence hiện hữu; không tạo/xóa job, đổi ID hoặc sửa Sheet. Hậu kiểm history/source, browser không USAGE/SELECT/UPDATE, service_role chỉ USAGE và vẫn INSERT log; sequence value, counts/queue giữ nguyên. Test database mới phải chạy worker/repository thực bằng service_role. Rollback runtime giữ 018; correction dùng migration forward, không cấp lại browser privileges.
+
+### Namespace cache nhiều năm (`019`, chưa apply)
+
+`019_multi_year_cache_namespace.sql` là migration additive cho runtime chọn workbook theo năm. Migration sao chép startup/catalog/manage legacy sang namespace 2026, giữ nguyên row legacy và không sửa Google Sheet. Chỉ apply trong cửa sổ được phê duyệt sau backup/gate; chạy lại phải idempotent. Runtime candidate phải qua Preview với exact `WORKBOOK_CONTEXTS_JSON` trước khi đổi `DEFAULT_WORKBOOK_YEAR`. Quy trình đầy đủ tại [YEAR_ROLLOVER](docs/operations/YEAR_ROLLOVER.md).
+
+### Registry và tạo workbook năm mới (`020`, chưa apply)
+
+Apply `020_year_rollover_self_service.sql` sau `019` trong cùng cửa sổ schema đã được duyệt. Migration tạo hai bảng server-only và RPC activation transactional; không đọc/ghi Google Sheet và không tự seed Spreadsheet ID. Hậu kiểm bắt buộc:
+
+- `anon`/`authenticated` không đọc được `workbook_contexts`, `workbook_rollover_runs` và không gọi được RPC;
+- service role đọc/ghi được registry;
+- partial unique index từ chối hai năm `active`;
+- RPC chỉ nhận năm liền kề, target `ready` và đổi trạng thái trong một transaction;
+- trước khi registry có dữ liệu, runtime vẫn resolve exact allowlist Vercel hiện hành.
+
+Sau migration mới deploy candidate Apps Script có Drive scope và webapp Preview. Owner cấp OAuth một lần, rồi cấu hình manifest exact theo [YEAR_ROLLOVER](docs/operations/YEAR_ROLLOVER.md). Việc apply `020` không tự tạo file, đổi năm active, trigger hoặc default year. Rollback runtime giữ schema additive; correction dùng migration forward.

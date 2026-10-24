@@ -92,6 +92,9 @@ function createSyncWatchdog({ fetchImpl = fetch, now = () => new Date() } = {}) 
     }
     try {
       assertRuntimeIdentity(config);
+      if (config.businessWritesPaused) {
+        return send(res, 200, { ok: true, skipped: true, reason: 'Maintenance window: sync recovery is paused.' });
+      }
       const worker = await readWorker(config, fetchImpl);
       const currentTime = now();
       const ageMs = workerAgeMs(worker, currentTime);

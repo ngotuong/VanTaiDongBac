@@ -52,13 +52,34 @@ test('payroll matching uses the explicit salary column and never the volume colu
 
 test('detail KPI parsing matches each golden month and selects outside-fuel explanation', () => {
   const expected = {
-    '05/2026': { gross: 680, final: 560, cashCost: 120, fuelOut: 30, payroll: 50, fund: 40, totalCost: 120 },
-    '06/2026': { gross: 1360, final: 1120, cashCost: 240, fuelOut: 60, payroll: 100, fund: 80, totalCost: 240 },
-    '07/2026': { gross: 2040, final: 1680, cashCost: 360, fuelOut: 90, payroll: 150, fund: 120, totalCost: 360 }
+    '05/2026': { gross: 680, final: 560, cashCost: 120, fuelOut: 30, payroll: 50, bhxh: 0, fund: 40, totalCost: 120 },
+    '06/2026': { gross: 1360, final: 1120, cashCost: 240, fuelOut: 60, payroll: 100, bhxh: 0, fund: 80, totalCost: 240 },
+    '07/2026': { gross: 2040, final: 1680, cashCost: 360, fuelOut: 90, payroll: 150, bhxh: 0, fund: 120, totalCost: 360 }
   };
   for (const [month, matrix] of Object.entries(fixture.detailMatrices)) {
     assert.deepEqual(plain(backend.parseOverviewKpiDetails(matrix)), expected[month], `Detail KPI drifted for ${month}`);
   }
+});
+
+test('dashboard KPI parsing carries non-zero BHXH in both month and detail payloads', () => {
+  const monthMatrix = [
+    ['Tháng', 'Doanh thu', 'Lợi nhuận gộp', 'Dầu ngoài', 'Chi phí lương', 'BHXH', 'Chi quỹ', 'Lợi nhuận thực'],
+    ['07/2026', 1200, 1000, 50, 100, 25, 75, 750]
+  ];
+  const [month] = plain(backend.readOverviewKpisFromMonthTable(monthMatrix));
+  assert.equal(month.bhxh, 25);
+
+  const detail = plain(backend.parseOverviewKpiDetails([
+    ['Danh mục', 'Tổng', '', '', 'Giải thích'],
+    ['Lợi nhuận gộp', 1000, '', '', ''],
+    ['Chi phí dầu', 50, '', '', 'Đổ ngoài'],
+    ['Chi phí lương', 100, '', '', ''],
+    ['BHXH', 25, '', '', ''],
+    ['Chi quỹ thực tế', 75, '', '', ''],
+    ['Lợi nhuận thực', 750, '', '', '']
+  ]));
+  assert.equal(detail.bhxh, 25);
+  assert.equal(detail.final, 750);
 });
 
 test('all-period detail aggregation matches the golden sum and keeps source labels', () => {

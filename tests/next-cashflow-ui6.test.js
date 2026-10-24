@@ -114,10 +114,12 @@ test('Loan writes give immediate feedback and keep the displayed cache Supabase-
   const submitLoan = module.slice(submitStart, submitEnd);
 
   assert.match(submitLoan, /showToast\(loanRows\.length > 1/);
-  assert.match(submitLoan, /for \(const loan of loanRows\)/);
+  assert.match(submitLoan, /for \(let loanIndex = 0; loanIndex < loanRows\.length; loanIndex \+= 1\)/);
+  assert.match(submitLoan, /getIntentId\(`loan:add:\$\{loanIndex\}`\)/);
   assert.match(submitLoan, /applyOptimisticLoan\(nextLoans, loan, saved, startDate, endDate\)/);
   assert.match(submitLoan, /setLoanRows\(loanRows\.slice\(savedCount\)\)/);
-  assert.match(submitLoan, /Cache Supabase sẽ tự đồng bộ nền/);
+  assert.match(submitLoan, /Đã nhận.*khoản vay.*đang đồng bộ nền/);
+  assert.match(submitLoan, /api\.post\('processWriteJobs'/);
   assert.doesNotMatch(submitLoan, /refresh\('loans', true\)/);
   assert.doesNotMatch(submitLoan, /refresh\('overview', true\)/);
 });
@@ -132,7 +134,7 @@ test('Transaction writes show immediate feedback and return to Supabase without 
   assert.match(submitTransactions, /setJobs\(\(old\) =>/);
   assert.match(submitTransactions, /setTransactions\(nextTransactions\)/);
   assert.doesNotMatch(submitTransactions, /refresh\('transactions', true\)/);
-  assert.match(flat(module), /readSurface<FundTransactions>\(year, ['"]transactions['"], \{ startDate, endDate \}, false, true\)/);
+  assert.match(flat(module), /readSurface<FundTransactions>\(year, ['"]transactions['"], { startDate, endDate }, force, bypassClientCache\)/);
   assert.doesNotMatch(flat(module), /readSurface<FundTransactions>\(year, ['"]transactions['"], \{\}, true\)/);
 });
 
@@ -157,13 +159,14 @@ test('Loan entry form uses grouped vector-labelled touch-safe controls', () => {
   assert.match(module, /className="loan-entry-form"/);
   assert.match(module, /Thông tin khoản vay/);
   assert.match(module, /Kỳ hạn và lãi suất/);
-  for (const icon of ['calendar', 'building', 'money', 'term', 'rate', 'cycle', 'note']) {
-    assert.match(module, new RegExp(`icon="${icon}"`));
-  }
-  assert.match(module, /className="cashflow-field-label"/);
+  assert.match(module, /BusinessFieldControl/);
   assert.match(css, /#fundLoanAddDrawer \.loan-form-grid[\s\S]*min-height: 44px !important/);
-  assert.match(css, /@media \(max-width: 374px\)[\s\S]*grid-template-columns: 1fr !important/);
+  assert.doesNotMatch(css, /@media \(max-width: 374px\)[\s\S]*?body > #fundLoanAddDrawer \.loan-form-grid \{\s*grid-template-columns: 1fr !important/);
   assert.match(css, /Final loan-form lock[\s\S]*#fundLoanAddDrawer\.cashflow-c2\.fund-detail-drawer\.swipe-dismiss-surface[\s\S]*transform: translate3d\(0, var\(--drawer-swipe-offset\), 0\) !important/);
+  assert.match(module, /Không qua Quỹ/);
+  assert.match(module, /checked=\{value\.nonFund\}/);
+  assert.match(module, /if \(value\.nonFund\) return bundle/);
+  assert.match(module, /item\.nonFund \? ' · Không qua Quỹ'/);
 });
 
 test('Cashflow paginates every long data table at 20 rows and removes technical helper copy', () => {
@@ -256,7 +259,7 @@ test('Fixed-option filters use intrinsic width while search and date controls st
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc các khoản vay theo nơi vay"/);
   assert.match(cashflow, /className="platform-content-select" aria-label="Lọc lịch sử theo loại giao dịch"/);
   assert.doesNotMatch(css, /select\.platform-content-select \{[\s\S]*field-sizing: content;/);
-  assert.match(adaptive, /FILTER_SELECTOR = 'select\.platform-content-select'/);
+  assert.match(adaptive, /FILTER_SELECTOR = 'select\.platform-content-select:not\(\[data-fixed-filter-width\]\)'/);
   assert.match(adaptive, /selectedLabel\(select\)/);
   assert.match(adaptive, /--platform-filter-selected-width/);
   assert.match(adaptive, /MutationObserver\(schedule\)/);
@@ -296,7 +299,7 @@ test('Cashflow bottom-sheet headers are compact and align titles to the left', (
   assert.match(css, /cashflow-fb-drawer-head \{[\s\S]*justify-content: flex-start !important/);
   assert.match(css, /cashflow-fb-drawer-head \{[\s\S]*height: 60px !important/);
   assert.match(css, /cashflow-fb-drawer-head > \.table-title \{[\s\S]*text-align: left !important/);
-  assert.match(css, /cashflow-fb-drawer-head > \.cashflow-back-btn \{[\s\S]*min-width: 36px !important/);
+  assert.match(css, /cashflow-fb-drawer-head > \.cashflow-back-btn \{[\s\S]*min-width: 44px !important/);
 });
 
 test('Cashflow category detail removes the redundant header action and label while keeping date sticky', () => {
@@ -368,13 +371,13 @@ test('Cashflow write errors stay visible inside the active business form', () =>
   assert.match(css, /> \.business-form-error \{[\s\S]*background: #fef2f2 !important;/);
 });
 
-test('Cashflow supports offset expenses and renders deterministic loan summary columns', () => {
+test('Cashflow supports non-fund income and expenses and renders deterministic loan summary columns', () => {
   const module = read('next-shell/components/cashflow/CashflowModule.tsx');
   const types = read('next-shell/lib/platform/cashflow-types.ts');
   const css = read('next-shell/app/platform.css');
 
   assert.match(types, /offset\?:\s*boolean/);
-  assert.match(module, /<span>Cấn trừ<\/span>/);
+  assert.match(module, /<span>Không qua Quỹ<\/span>/);
   assert.match(module, /row\.type === 'Chi'/);
   assert.match(module, /const compareLoans/);
   assert.match(module, /\.sort\(compareLoans\)/);
@@ -396,12 +399,16 @@ test('Fund opening settings share the standard date and numeric input contracts'
   const module = read('next-shell/components/cashflow/CashflowModule.tsx');
   const css = read('next-shell/app/platform.css');
 
-  assert.match(module, /className="panel-body modal-grid fund-settings-grid"/);
+  assert.match(module, /className="panel-body"><BusinessGrid>/);
   assert.match(module, /formatVietnameseNumberInput\(String\(value\.cashOpening/);
   assert.match(module, /formatVietnameseNumberInput\(String\(value\.bankOpening/);
-  assert.match(flat(module), /Ngày bắt đầu nhập liệu<\/span><div className="custom-date-box">/);
-  assert.match(flat(module), /Ngày bắt đầu tính khoản vay<\/span><div className="custom-date-box">/);
+  assert.match(flat(module), /label:'Bắt đầu nhập liệu',kind:'date',span:'half'/);
+  assert.match(flat(module), /label:'Bắt đầu tính vay',kind:'date',span:'half'/);
   assert.match(css, /fund-settings-grid > label \{[\s\S]*grid-template-rows: minmax\(34px, auto\) var\(--platform-control-height\)/);
+  const terminal = css.slice(css.indexOf('/* R5 business form and density contract (2026-09-29).'));
+  assert.match(terminal, /@media \(max-width: 560px\)[\s\S]*?#cashflowView \.fund-settings-grid \{[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\) !important;/);
+  assert.match(css, /--platform-on-primary: #063b36/);
+  assert.match(terminal, /button\.primary,[\s\S]*?color: var\(--platform-on-primary\) !important;/);
 });
 
 test('Cashflow success feedback stays in toast and each drawer owns one portal and backdrop', () => {
@@ -410,9 +417,14 @@ test('Cashflow success feedback stays in toast and each drawer owns one portal a
   assert.match(flat(module), /message && error \?/);
   assert.doesNotMatch(module, /role=\{error \? ["']alert["'] : ["']status["']\}/);
   assert.match(module, /function DrawerShell/);
+  assert.match(module, /useDialogFocusTrap<HTMLElement>/);
+  const focus = read('next-shell/components/platform/useDialogFocusTrap.ts');
+  assert.match(focus, /event\.key === 'Escape'/);
+  assert.match(focus, /event\.key !== 'Tab'/);
+  assert.match(focus, /previous\?\.focus\(\)/);
   assert.match(flat(module), /<BodyPortal> <div className=\{`cashflow-drawer-backdrop/);
   assert.doesNotMatch(module, /\{drawer \? <BodyPortal>/);
-  assert.match(module, /useSwipeDismiss\(\{ onDismiss: close \}\)/);
+  assert.match(module, /useSwipeDismiss\(\{ canDismiss: \(\) => confirmDiscardUnsavedChanges\(dirty\), disabled: dismissDisabled, onDismiss: close \}\)/);
   assert.match(module, /setDrawerCloseRequest\(\(value\) => value \+ 1\)/);
   assert.match(module, /typeof footer === 'function' \? footer\(swipe\.close\) : footer/);
   assert.doesNotMatch(module, /onClick=\{close\}/);

@@ -5,6 +5,7 @@ import type { TouchEventHandler } from 'react';
 
 type SwipeDismissOptions = {
   active?: boolean;
+  canDismiss?: () => boolean;
   direction?: 'down' | 'right';
   disabled?: boolean;
   onDismiss: () => void;
@@ -18,6 +19,7 @@ const MIN_FLING_DISTANCE_PX = 24;
 
 export function useSwipeDismiss({
   active = true,
+  canDismiss,
   direction = 'down',
   disabled = false,
   onDismiss,
@@ -32,6 +34,7 @@ export function useSwipeDismiss({
   const dragFrame = useRef<number | null>(null);
   const pendingOffset = useRef(0);
   const pendingSurface = useRef<HTMLElement | null>(null);
+  const activeSurface = useRef<HTMLElement | null>(null);
   const [closing, setClosing] = useState(false);
 
   const writeOffset = (surface: HTMLElement, value: number) => {
@@ -53,8 +56,12 @@ export function useSwipeDismiss({
     if (dragFrame.current !== null) window.cancelAnimationFrame(dragFrame.current);
   }, []);
 
-  const finishClose = () => {
-    if (disabled || closing) return;
+  const finishClose = (force = false) => {
+    if ((!force && disabled) || closing) return;
+    if (!force && canDismiss && !canDismiss()) {
+      if (activeSurface.current) writeOffset(activeSurface.current, 0);
+      return;
+    }
     tracking.current = false;
     dragging.current = false;
     setClosing(true);
@@ -72,11 +79,9 @@ export function useSwipeDismiss({
     const startedAtEdge = event.touches[0].clientX <= 36;
     const canStartAwayFromHandle = direction === 'right' && startedAtEdge;
     const scrollRegion = target.closest<HTMLElement>('[data-overlay-scroll]');
-    const startedOnBlankContent = direction === 'down'
-      && !target.closest(INTERACTIVE_SELECTOR)
-      && (!scrollRegion || scrollRegion.scrollTop <= 0);
-    if (!startedOnHandle && !canStartAwayFromHandle && !startedOnBlankContent) return;
+    if (!startedOnHandle && !canStartAwayFromHandle) return;
     if (!startedOnHandle && target.closest(INTERACTIVE_SELECTOR)) return;
+    if (direction === 'down' && scrollRegion && scrollRegion.scrollTop > 0) return;
     const now = performance.now();
     const touch = event.touches[0];
     start.current = { x: touch.clientX, y: touch.clientY };
@@ -84,6 +89,7 @@ export function useSwipeDismiss({
     velocity.current = 0;
     tracking.current = true;
     dragging.current = false;
+    activeSurface.current = event.currentTarget;
   };
 
   const onTouchMove: TouchEventHandler<HTMLElement> = (event) => {
@@ -100,7 +106,6 @@ export function useSwipeDismiss({
       dragging.current = true;
       event.currentTarget.classList.add('dragging');
     }
-    event.preventDefault();
     const now = performance.now();
     const position = direction === 'down' ? event.touches[0].clientY : event.touches[0].clientX;
     const elapsed = Math.max(1, now - latest.current.time);
@@ -139,7 +144,8 @@ export function useSwipeDismiss({
   };
 
   return {
-    close: finishClose,
+    close: () => finishClose(false),
+    forceClose: () => finishClose(true),
     closing,
     direction,
     gestureProps: { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel },

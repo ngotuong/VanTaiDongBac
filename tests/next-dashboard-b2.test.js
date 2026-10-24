@@ -40,10 +40,15 @@ test('B2 dashboard UI owns filters KPIs chart and tables without report payload 
   assert.match(module, />Đến tháng</);
   assert.match(module, />Tất cả kỳ</);
   assert.match(module, />Áp dụng</);
-  assert.match(module, /useSwipeDismiss/);
+  for (const preset of ['Tháng này', 'Tháng trước', '3 tháng gần nhất', 'Năm nay']) assert.match(module, new RegExp(preset));
+  assert.doesNotMatch(module, /useSwipeDismiss/);
   assert.doesNotMatch(module, />Tùy chỉnh</);
   assert.doesNotMatch(module, /dashboard-latest-trip-scope/);
   assert.doesNotMatch(module, /Dữ Liệu Chuyến Gần Đây\s*<span[^>]*>Ngày mới nhất/);
+  assert.match(module, /profitChartMonthLabels\(chartYear\)/);
+  assert.match(module, /<ProfitChart months=\{profitChartMonths\}/);
+  assert.match(module, /row \? `\$\{row\.final < 0/);
+  assert.doesNotMatch(module, /<ProfitChart rows=\{selectedRows\}/);
 });
 
 test('B2 dashboard styles contain responsive cards and scroll-contained tables', () => {
@@ -53,9 +58,33 @@ test('B2 dashboard styles contain responsive cards and scroll-contained tables',
   assert.match(css, /@media \(max-width: 640px\)/);
   assert.match(css, /Dashboard month-range contract/);
   assert.match(css, /\.dashboard-period-trigger \{[\s\S]*width: 44px !important;[\s\S]*height: 44px !important;/);
-  assert.match(css, /body > \.dashboard-period-drawer \{[\s\S]*width: min\(560px, 100vw\) !important;/);
+  assert.match(css, /body > \.dashboard-period-drawer \{[\s\S]*top: 50% !important;[\s\S]*left: 50% !important;[\s\S]*width: min\(440px, calc\(100vw - 32px\)\) !important;/);
+  assert.match(css, /\.dashboard-period-presets button \{[\s\S]*min-height: 44px !important;/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*dashboard-period-drawer/);
   assert.doesNotMatch(css, /overflow-x:\s*hidden/);
+});
+
+test('App shell supports guarded mobile pull-to-refresh with a visible menu fallback', () => {
+  const shell = read('next-shell/components/platform/AppShell.tsx');
+  const pull = read('next-shell/components/platform/PullToRefresh.tsx');
+  const css = read('next-shell/app/platform.css');
+  assert.match(shell, /<PullToRefresh onRefresh=\{refresh\}/);
+  assert.match(shell, /className="shell-menu-refresh"/);
+  assert.match(shell, /className="shell-account-actions"/);
+  assert.match(shell, /aria-label="Làm mới dữ liệu"/);
+  assert.doesNotMatch(shell, /<span>Làm mới dữ liệu<\/span>/);
+  assert.match(shell, /className="ghost icon-button shell-header-refresh"/);
+  assert.match(pull, /PULL_THRESHOLD_PX = 68/);
+  assert.match(pull, /target\.closest\('\.topbar'\)/);
+  assert.match(pull, /window\.scrollY > 0/);
+  assert.match(pull, /deltaY < Math\.abs\(deltaX\) \* 1\.25/);
+  assert.match(pull, /event\.preventDefault\(\)/);
+  assert.match(pull, /Thả để cập nhật/);
+  assert.match(css, /@media \(max-width: 768px\) and \(pointer: coarse\)/);
+  assert.match(css, /\.shell-header-refresh \{[\s\S]*display: none !important;/);
+  assert.match(css, /\.auth-user \.shell-account-actions > \.shell-menu-refresh \{[\s\S]*width: 44px;[\s\S]*height: 44px;[\s\S]*min-height: 44px;/);
+  assert.match(css, /\.shell-account-actions \{[\s\S]*display: flex;[\s\S]*gap: 8px;/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*pull-to-refresh-indicator/);
 });
 
 test('Dashboard donut keeps signed real profit and places its unclipped legend to the right', () => {

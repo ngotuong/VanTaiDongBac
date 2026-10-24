@@ -15,6 +15,7 @@ function loadService(overrides = {}) {
   const dates = [new Date(2026, 6, 11), new Date(2026, 5, 30), new Date(2026, 6, 1)];
   const runtimeValues = {};
   const context = {
+    year: '2026',
     clean(value) { return value === null || value === undefined ? '' : String(value).trim(); },
     nowISOString() { return syncTime; },
     normalizeYearMonthKey(value) {
@@ -51,7 +52,7 @@ function loadService(overrides = {}) {
       put(key, value, ttl) { runtimeValues[key] = value; calls.cache.push(['put', key, ttl]); },
       remove(key) { delete runtimeValues[key]; calls.cache.push(['remove', key]); }
     },
-    runningKeyPrefix: 'SYNC_RUNNING',
+    runningKeyPrefix: 'SYNC_RUNNING_2026',
     runningTtlSeconds: 120,
     ...overrides
   };
@@ -75,16 +76,16 @@ test('recent and month bundle sync preserve payload limits, rows, conflict keys,
     ['manage_data_bundles', 'month:2026-07', 'sheet_name,filter_key']
   ]);
   assert.deepEqual(JSON.parse(JSON.stringify(calls.statuses.map((row) => row[0]))), [
-    'manage_data:NL_VanChuyen:recent_500', 'manage_data:NL_VanChuyen:month:2026-07'
+    '2026:manage_data:NL_VanChuyen:recent_500', '2026:manage_data:NL_VanChuyen:month:2026-07'
   ]);
 });
 
-test('manage month discovery remains unique, newest-first, and full sync keeps all seven sheets', () => {
+test('manage month discovery remains unique, newest-first, and full sync keeps all eight sheets', () => {
   const original = loadService();
   assert.deepEqual(JSON.parse(JSON.stringify(original.service.getManageMonthKeys('NL_VanChuyen', original.context))), ['2026-07', '2026-06']);
   const result = original.service.syncAllManageDataBundles(original.context);
   assert.equal(result.ok, true);
-  assert.equal(result.synced, 21);
+  assert.equal(result.synced, 24);
   assert.equal(result.failed, 0);
   assert.deepEqual(JSON.parse(JSON.stringify(result.results.slice(0, 3).map((item) => item.name))), [
     'manageData:NL_VanChuyen', 'manageData:NL_VanChuyen:2026-07', 'manageData:NL_VanChuyen:2026-06'
@@ -99,14 +100,14 @@ test('sheet-change sync preserves lock, edited/fallback scope, dashboard rule, a
   assert.deepEqual(JSON.parse(JSON.stringify(result.months)), ['2026-07']);
   assert.equal(result.synced, 3);
   assert.equal(edited.calls.dashboards, 1);
-  assert.deepEqual(edited.calls.cache, [['put', 'SYNC_RUNNING:NL_VanChuyen', 120], ['remove', 'SYNC_RUNNING:NL_VanChuyen']]);
-  assert.equal(edited.calls.statuses.at(-1)[0], 'transport_sheet_change:NL_VanChuyen');
+  assert.deepEqual(edited.calls.cache, [['put', 'SYNC_RUNNING_2026:NL_VanChuyen', 120], ['remove', 'SYNC_RUNNING_2026:NL_VanChuyen']]);
+  assert.equal(edited.calls.statuses.at(-1)[0], '2026:transport_sheet_change:NL_VanChuyen');
 
   const fallback = loadService();
   const fallbackResult = fallback.service.syncUnknownTransportSheetChange('REMOVE_ROW', fallback.context);
   assert.equal(fallbackResult.fallback, true);
   assert.equal(fallbackResult.synced, 4);
-  assert.equal(fallback.calls.statuses.at(-1)[0], 'transport_sheet_change:unknown');
+  assert.equal(fallback.calls.statuses.at(-1)[0], '2026:transport_sheet_change:unknown');
   assert.equal(fallback.calls.dashboards, 1);
 });
 
@@ -114,8 +115,8 @@ test('SupabaseService retains manage facades while ManageSyncService owns manage
   const facade = read('SupabaseService.gs');
   const implementation = read('ManageSyncService.gs');
   assert.match(facade, /ManageSyncService\.syncManageDataBundle\(sheetName, manageSyncContext_\(\)\)/);
-  assert.match(facade, /ManageSyncService\.syncTransportSheetChange\(eventType, sheetName, editedRange, manageSyncContext_\(\)\)/);
-  assert.match(facade, /ManageSyncService\.syncUnknownTransportSheetChange\(eventType, manageSyncContext_\(\)\)/);
+  assert.match(facade, /function syncTransportSheetChange[\s\S]*ManualReportRefreshQueueService\.enqueue/);
+  assert.match(facade, /function syncUnknownTransportSheetChange_[\s\S]*ManualReportRefreshQueueService\.enqueue/);
   assert.doesNotMatch(facade, /filter_key: DEFAULT_MANAGE_FILTER_KEY/);
   assert.match(implementation, /var DEFAULT_MANAGE_FILTER_KEY = 'recent_500'/);
 });

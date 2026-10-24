@@ -77,7 +77,9 @@ test('E1.3 editor wrappers run one batch and audit Supabase metadata only', () =
   assert.match(realtime, /REPORT_CACHE_E1_PARITY_RUNNING_PROP = 'REPORT_CACHE_E1_PARITY_RUNNING'/);
   assert.match(realtime, /startLock\.tryLock\(1000\)/);
   assert.match(realtime, /E1 report cache parity window is active/);
-  assert.match(realtime, /runtimeCache\.put\(REALTIME_TICK_RUNNING_CACHE_KEY/);
+  assert.match(realtime, /props\.setProperty\(yearPropertyKey_\(REALTIME_TICK_RUNNING_CACHE_KEY\)/);
+  assert.match(source, /realtimeRunningKey = 'SUPABASE_REALTIME_TICK_RUNNING' \+ \(activeYear \? '_' \+ activeYear : ''\)/);
+  assert.match(source, /reportRealtimeLeaseActive_\(properties\.getProperty\(realtimeRunningKey\)\)/);
   assert.match(source, /function getReportCacheSupabaseAuditForMigration\(\)/);
   assert.match(source, /select: 'report_month,cache_version,source_data_version,details_hash,synced_at'/);
   const metadataAudit = source.slice(

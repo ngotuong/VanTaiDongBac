@@ -1,6 +1,11 @@
 'use client';
+import { ENTRY_FIELD_SPANS, type BusinessField } from '../../lib/platform/business-form-schema';
+import { fuelAmountPreview, formatFuelAmountPreview } from '../../lib/platform/fuel-amount-preview';
+import { BusinessButton, BusinessGrid, BusinessFieldControl, BusinessAmountSummary } from '../platform/BusinessPrimitives';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
+import { createRetrySafeWriteClient } from '../../lib/platform/retry-safe-write-client';
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { formatVietnameseNumberInput } from '../../lib/platform/numeric-input';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
@@ -42,7 +47,7 @@ const FORMS: Record<EntryFormType, { label: string; note: string; fields: Array<
       ['source', 'Nguồn cung cấp', 'fuelSources'],
       ['liters', 'Số lít dầu', 'number'],
       ['price', 'Giá dầu / lít', 'number'],
-      ['sourcePay', 'Nguồn chi', 'fuelPaymentSources'],
+      ['sourcePay', 'Nguồn chi', 'fuelPaymentSources', false],
       ['note', 'Ghi chú', 'textarea', false],
     ],
   },
@@ -84,7 +89,14 @@ const today = () => new Date().toISOString().slice(0, 10);
 const blank = (type: EntryFormType): EntryRow => Object.fromEntries(FORMS[type].fields.map(([key, , kind]) => [key, kind === 'date' ? today() : '']));
 const api = createClientApiClient();
 const FORM_TYPES = Object.keys(FORMS) as EntryFormType[];
+const CANCELED_JOB_PREFIX = 'CANCELED_BY_OPERATOR:';
 const catalogsForAllForms = (value: EntryCatalogs) => Object.fromEntries(FORM_TYPES.map((type) => [type, value])) as Record<string, EntryCatalogs>;
+const isActiveEntryJob = (job: WriteJob) => ['pending', 'processing', 'failed'].includes(job.status) && !String(job.lastError || '').startsWith(CANCELED_JOB_PREFIX);
+const isWorkbookJob = (job: WriteJob, year: string, activeYear: string) => job.payload?.year ? job.payload.year === year : year === activeYear;
+const jobFormLabel = (job: WriteJob) => {
+  const formType = job.payload?.formType;
+  return formType && FORMS[formType] ? FORMS[formType].label : 'Nhập liệu';
+};
 function options(c: EntryCatalogs, source: string) {
   const item = (value: string, label = value) => ({ value, label });
   if (source === 'vehicles') return (c.activeVehicles?.length ? c.activeVehicles : c.vehicles || []).map((x) => item(x.plate || '')).filter((x) => x.value);
@@ -92,7 +104,7 @@ function options(c: EntryCatalogs, source: string) {
   if (source === 'operationGroups') return (c.operationGroups || []).map((x) => item(x.name || '')).filter((x) => x.value);
   if (source === 'stopVehicles') return [item('TẤT CẢ XE'), ...(c.activeVehicles?.length ? c.activeVehicles : c.vehicles || []).map((x) => item(x.plate || '')).filter((x) => x.value)];
   if (source === 'drivers') return (c.activeDrivers?.length ? c.activeDrivers : c.people || []).map((x) => item(x.name || '')).filter((x) => x.value);
-  if (source === 'people') return (c.activePeople?.length ? c.activePeople : c.people || []).map((x) => item(x.name || '', `${x.name || ''}${x.role ? ' - ' + x.role : ''}`)).filter((x) => x.value);
+  if (source === 'people') return (c.activePeople?.length ? c.activePeople : c.people || []).map((x) => item(x.name || '')).filter((x) => x.value);
   if (source === 'penalties') return (c.activePenalties || []).map((x) => item(x.code || '', `${x.code || ''} - ${x.content || ''}`)).filter((x) => x.value);
   if (source === 'fuelSources') return (c.fuelSources || []).map((x) => item(x));
   if (source === 'fuelPaymentSources') return (c.fuelPaymentSources || []).map((x) => item(x));
@@ -105,19 +117,12 @@ function normalizeJob(value: unknown): WriteJob {
   return raw.job || raw;
 }
 
-function formatDisplayDate(isoDate: string): string {
-  if (!isoDate) return 'Chọn ngày';
-  const parts = isoDate.split('-');
-  if (parts.length === 3) {
-    const [year, month, day] = parts;
-    return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
-  }
-  return isoDate;
-}
 
-export function EntryModule({ initialCatalogs, initialError = '', initialForm = 'vanChuyen', onClose }: { initialCatalogs: EntryCatalogs; initialError?: string; initialForm?: EntryFormType; onClose?: () => void }) {
+
+export function EntryModule({ initialCatalogs, initialError = '', initialForm = 'vanChuyen', onClose, onSubmitted, onDirtyChange }: { initialCatalogs: EntryCatalogs; initialError?: string; initialForm?: EntryFormType; onClose?: () => void; onSubmitted?: (submission: { form: EntryFormType; rows: EntryRow[] }) => void; onDirtyChange?: (dirty: boolean) => void }) {
   const hasInitialCatalogs = Object.keys(initialCatalogs).length > 0;
   const context = useWorkbookContext();
+  const [writeApi] = useState(() => createRetrySafeWriteClient(api));
   const [form, setForm] = useState<EntryFormType>(initialForm);
   const [catalogs, setCatalogs] = useState<Record<string, EntryCatalogs>>(hasInitialCatalogs ? catalogsForAllForms(initialCatalogs) : {});
   const initialCatalogsRequested = useRef(Object.keys(initialCatalogs).length > 0);
@@ -127,6 +132,7 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
   const [catalogLoading, setCatalogLoading] = useState(!hasInitialCatalogs);
   const [message, setMessage] = useState(initialError);
   const [error, setError] = useState(Boolean(initialError));
+  const formTabsRef = useRef<HTMLElement | null>(null);
   const report = (text: string, isError = false) => {
     setMessage(text);
     setError(isError);
@@ -134,14 +140,14 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
   };
   const currentCatalogs = catalogs[form] || {};
   const config = FORMS[form];
-  const canWrite = context.user.role === 'admin' || context.user.role === 'operator';
+  const canWrite = !context.workbook.readOnly && (context.user.role === 'admin' || context.user.role === 'operator');
   useEffect(() => {
     if (!canWrite || initialCatalogsRequested.current) return;
     initialCatalogsRequested.current = true;
     let active = true;
     setCatalogLoading(true);
     api
-      .get<EntryCatalogs & { catalogs?: EntryCatalogs }>('getCatalogs', { params: { formType: '' } })
+      .get<EntryCatalogs & { catalogs?: EntryCatalogs }>('getCatalogs', { params: { formType: '', year: context.workbook.year } })
       .then((res) => {
         if (active) setCatalogs(catalogsForAllForms(res.catalogs || res));
       })
@@ -159,7 +165,7 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
     return () => {
       active = false;
     };
-  }, [canWrite]);
+  }, [canWrite, context.workbook.year]);
   useEffect(() => {
     publishDataSourceMeta(initialCatalogs);
   }, [initialCatalogs]);
@@ -167,31 +173,51 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
     if (!canWrite) return;
     let active = true;
     api
-      .get<{ jobs?: WriteJob[] }>('getRecentWriteJobs', { params: { module: 'transport', actionName: 'submitRows', limit: '12' } })
+      .get<{ jobs?: WriteJob[] }>('getRecentWriteJobs', { params: { module: 'transport', actionName: 'submitRows', limit: '12', year: context.workbook.year } })
       .then((res) => {
-        if (active) setJobs((res.jobs || []).filter((j) => ['pending', 'processing', 'failed'].includes(j.status)));
+        if (active) setJobs((res.jobs || []).filter(isActiveEntryJob).filter((job) => isWorkbookJob(job, context.workbook.year, context.workbook.activeYear)));
       })
       .catch(() => {});
     return () => {
       active = false;
     };
-  }, [canWrite]);
+  }, [canWrite, context.workbook.activeYear, context.workbook.year]);
   useEffect(() => {
     const pending = jobs.filter((j) => j.jobId && ['pending', 'processing'].includes(j.status));
     if (!pending.length) return;
     const timer = window.setTimeout(() => {
       Promise.all(pending.map((j) => api.get<WriteJob | { job: WriteJob }>('getWriteJobStatus', { params: { jobId: j.jobId } }).then(normalizeJob)))
-        .then((updated) => setJobs((old) => old.map((job) => updated.find((item) => item.jobId === job.jobId) || job).filter((job) => job.status !== 'synced')))
+        .then((updated) => setJobs((old) => old.map((job) => ({ ...job, ...(updated.find((item) => item.jobId === job.jobId) || {}) })).filter(isActiveEntryJob)))
         .catch(() => {});
     }, 1800);
     return () => window.clearTimeout(timer);
   }, [jobs]);
   const valid = useMemo(() => rows.every((row) => config.fields.every(([key, , , required = true]) => !required || String(row[key] || '').trim())), [rows, config]);
+  const dirty = useMemo(() => JSON.stringify(rows) !== JSON.stringify([blank(form)]), [form, rows]);
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+    return () => onDirtyChange?.(false);
+  }, [dirty, onDirtyChange]);
   const switchForm = (type: EntryFormType) => {
     setForm(type);
     setRows([blank(type)]);
     setMessage('');
     setError(false);
+  };
+  useEffect(() => {
+    const activeTab = formTabsRef.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    activeTab?.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+  }, [form]);
+  const handleFormTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+    let nextIndex = currentIndex;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (currentIndex + 1) % FORM_TYPES.length;
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (currentIndex - 1 + FORM_TYPES.length) % FORM_TYPES.length;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = FORM_TYPES.length - 1;
+    else return;
+    event.preventDefault();
+    switchForm(FORM_TYPES[nextIndex]);
+    window.requestAnimationFrame(() => formTabsRef.current?.querySelector<HTMLElement>(`#entry-form-tab-${FORM_TYPES[nextIndex]}`)?.focus());
   };
   const update = (index: number, key: string, value: string) => setRows((old) => old.map((row, i) => (i === index ? { ...row, [key]: value } : row)));
   const submit = async () => {
@@ -201,13 +227,15 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
     setMessage('Đang gửi lệnh ghi dữ liệu…');
     showToast('Đang gửi lệnh ghi dữ liệu…', 'loading');
     try {
-      const queued = normalizeJob(await api.post<WriteJob>('submitRows', { body: { formType: form, rows } }));
+      const submittedRows = rows.map((row) => ({ ...row }));
+      const queued = { ...normalizeJob(await writeApi.post<WriteJob>('submitRows', { body: { year: context.workbook.year, formType: form, rows } })), payload: { formType: form, year: context.workbook.year } };
       if (!queued.jobId) throw new Error('API không trả về mã write job.');
       setJobs((old) => [queued, ...old.filter((j) => j.jobId !== queued.jobId)].slice(0, 12));
       setRows([blank(form)]);
       report('Đã nhận lệnh. Dữ liệu sẽ được đồng bộ nền.');
       void api.post('processWriteJobs', { body: { maxJobs: 2 } }).catch(() => {});
-      onClose?.();
+      if (onSubmitted) onSubmitted({ form, rows: submittedRows });
+      else onClose?.();
     } catch (submitError) {
       report(submitError instanceof Error ? submitError.message : String(submitError), true);
     } finally {
@@ -217,7 +245,7 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
   const retry = async (jobId: string) => {
     showToast('Đang đưa lệnh về hàng chờ…', 'loading');
     try {
-      const job = normalizeJob(await api.post<WriteJob>('retryWriteJob', { body: { jobId } }));
+      const job = normalizeJob(await api.post<WriteJob>('retryWriteJob', { body: { jobId, year: context.workbook.year } }));
       setJobs((old) => old.map((item) => (item.jobId === jobId ? job : item)));
       report(`Đã đưa job ${jobId} về hàng chờ.`);
       void api.post('processWriteJobs', { body: { maxJobs: 2 } }).catch(() => {});
@@ -231,16 +259,16 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
         <div className="panel entry-permission" role="alert">
           <div className="panel-body">
             <h2>Không có quyền nhập liệu</h2>
-            <p>Tài khoản cổ đông chỉ được xem dữ liệu Vận hành.</p>
+            <p>{context.workbook.readOnly ? `Năm ${context.workbook.year} đã lưu trữ và chỉ được xem.` : 'Tài khoản cổ đông chỉ được xem dữ liệu Vận hành.'}</p>
           </div>
         </div>
       </section>
     );
   return (
     <section id="entryShell" className="entry-shell entry-shell-visible" data-next-entry="true" aria-labelledby="entry-title">
-      <aside className="form-list" role="tablist" aria-label="Loại chứng từ">
+      <aside ref={formTabsRef} className="form-list entry-form-tabs" role="tablist" aria-label="Loại chứng từ">
         {FORM_TYPES.map((type, index) => (
-          <button type="button" role="tab" aria-selected={form === type} className={`form-tab${form === type ? ' active' : ''}`} onClick={() => switchForm(type)} key={type}>
+          <button type="button" id={`entry-form-tab-${type}`} role="tab" aria-controls="entry-form-panel" aria-selected={form === type} tabIndex={form === type ? 0 : -1} className={`form-tab${form === type ? ' active' : ''}`} onClick={() => switchForm(type)} onKeyDown={(event) => handleFormTabKeyDown(event, index)} key={type}>
             <span className="form-tab-icon">{String(index + 1).padStart(2, '0')}</span>
             <span>
               <span className="form-tab-title">{FORMS[type].label}</span>
@@ -249,7 +277,7 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
           </button>
         ))}
       </aside>
-      <section className="panel grow entry-panel">
+      <section id="entry-form-panel" className="panel grow entry-panel" role="tabpanel" aria-labelledby={`entry-form-tab-${form}`}>
         <div className="panel-head" data-swipe-dismiss-handle={onClose ? true : undefined}>
           <div>
             <h2 className="panel-title" id="entry-title">
@@ -273,87 +301,56 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
                   <span className="row-number">{index + 1}</span>Dòng chứng từ {index + 1}
                 </div>
                 {rows.length > 1 ? (
-                  <button type="button" className="outline btn-table-action entry-danger" title="Xóa dòng" aria-label={`Xóa dòng ${index + 1}`} onClick={() => setRows((old) => old.filter((_, i) => i !== index))}>
+                  <BusinessButton variant="outline" type="button" className="btn-table-action entry-danger" title="Xóa dòng" aria-label={`Xóa dòng ${index + 1}`} onClick={() => setRows((old) => old.filter((_, i) => i !== index))}>
                     <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
                       <line x1="18" y1="6" x2="6" y2="18" />
                       <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
-                  </button>
+                  </BusinessButton>
                 ) : null}
               </header>
-              <div className="fields">
+              <BusinessGrid>
                 {config.fields.map(([key, label, kind, required = true]) => {
-                  const isSearchableCatalog = kind === 'vehicles' || kind === 'drivers';
+                  const searchable = kind === 'vehicles' || kind === 'drivers';
                   const datalistId = `entry-${form}-${kind}-${index}`;
-                  return (
-                    <label className={kind === 'textarea' || key === 'tickets' ? 'full' : ''} key={key}>
-                      <span>
-                        {label}
-                        {required ? ' *' : ''}
-                      </span>
-                      {kind === 'textarea' ? (
-                        <textarea value={row[key] || ''} onChange={(e) => update(index, key, e.target.value)} />
-                      ) : kind === 'date' ? (
-                        <div className="custom-date-box">
-                          <span className="date-display-text">{formatDisplayDate(row[key] || '')}</span>
-                          <input type="date" className="native-date-input vi-date-input" value={row[key] || ''} onChange={(e) => update(index, key, e.target.value)} />
-                        </div>
-                      ) : isSearchableCatalog ? (
-                        <>
-                          <input className="entry-searchable-catalog" type="text" list={datalistId} autoComplete="off" disabled={catalogLoading} value={row[key] || ''} placeholder={catalogLoading ? 'Đang tải danh mục…' : `Chọn hoặc nhập ${label.toLocaleLowerCase('vi-VN')}`} onChange={(e) => update(index, key, e.target.value)} />
-                          <datalist id={datalistId}>
-                            {options(currentCatalogs, kind).map((option) => (
-                              <option value={option.value} key={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </datalist>
-                        </>
-                      ) : ['text', 'number'].includes(kind) ? (
-                        <input type={kind === 'number' ? 'text' : kind} inputMode={kind === 'number' ? 'decimal' : key === 'tickets' ? 'text' : undefined} autoCapitalize={key === 'tickets' ? 'none' : undefined} value={row[key] || ''} onChange={(e) => update(index, key, kind === 'number' ? formatVietnameseNumberInput(e.target.value) : e.target.value)} />
-                      ) : (
-                        <select value={row[key] || ''} disabled={catalogLoading} onChange={(e) => update(index, key, e.target.value)}>
-                          <option value="">{catalogLoading ? 'Đang tải danh mục…' : `Chọn ${label.toLocaleLowerCase('vi-VN')}`}</option>
-                          {options(currentCatalogs, kind).map((option) => (
-                            <option value={option.value} key={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </label>
-                  );
+                  const choices = options(currentCatalogs, kind);
+                  const field: BusinessField = { key, label, required, span: ENTRY_FIELD_SPANS[form]?.[key] || 'full', kind: searchable ? 'text' : ['text','number','date','textarea'].includes(kind) ? kind as BusinessField['kind'] : 'select' };
+                  return <div key={key} data-span={field.span} style={{ minWidth: 0, gridColumn: field.span === 'full' ? '1 / -1' : undefined }}>
+                    <BusinessFieldControl field={field} value={row[key] || ''} disabled={catalogLoading && !['text','number','date','textarea'].includes(kind)} options={choices.map(option=>option.value)} optionLabels={Object.fromEntries(choices.map(option=>[option.value,option.label]))} inputList={searchable ? datalistId : undefined} placeholder={searchable ? 'Chọn hoặc nhập' : undefined} onChange={value=>update(index,key,kind==='number'?formatVietnameseNumberInput(value):value)}/>
+                    {searchable ? <datalist id={datalistId}>{choices.map(option=><option value={option.value} key={option.value}>{option.label}</option>)}</datalist> : null}
+                  </div>;
                 })}
-              </div>
+              </BusinessGrid>
+              {form === 'dau' ? <BusinessAmountSummary value={formatFuelAmountPreview(fuelAmountPreview(row.liters || '',row.price || ''))} hint="Số lít × đơn giá. Đây là thành tiền dầu, chưa xác nhận đã thanh toán."/> : null}
             </article>
           ))}
         </div>
         <div className="submit-bar">
-          <button type="button" className="primary grow" id="submitBtn" onClick={() => void submit()} disabled={busy || !valid}>
+          <BusinessButton variant="primary" type="button" className="grow" id="submitBtn" onClick={() => void submit()} disabled={busy || !valid}>
             <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
             </svg>
             {busy ? 'Đang gửi…' : 'Cập nhật'}
-          </button>
-          <button type="button" className="ghost icon-button" id="cloneBtn" title="Nhân bản dòng cuối" aria-label="Nhân bản dòng cuối" onClick={() => setRows((old) => [...old, { ...old.at(-1)! }])}>
+          </BusinessButton>
+          <BusinessButton variant="ghost" type="button" className="icon-button" id="cloneBtn" title="Nhân bản dòng cuối" aria-label="Nhân bản dòng cuối" onClick={() => setRows((old) => [...old, { ...old.at(-1)! }])}>
             <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
             </svg>
-          </button>
-          <button type="button" className="secondary icon-button" id="addBtn" title="Thêm dòng" aria-label="Thêm dòng" onClick={() => setRows((old) => [...old, blank(form)])}>
+          </BusinessButton>
+          <BusinessButton variant="secondary" type="button" className="icon-button" id="addBtn" title="Thêm dòng" aria-label="Thêm dòng" onClick={() => setRows((old) => [...old, blank(form)])}>
             <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-          </button>
+          </BusinessButton>
           {onClose ? (
-            <button type="button" id="closeMobileEntryBtn" className="outline icon-button" title="Hủy bỏ/Đóng" aria-label="Hủy bỏ/Đóng" onClick={onClose}>
+            <BusinessButton variant="outline" type="button" id="closeMobileEntryBtn" className="icon-button" title="Hủy bỏ/Đóng" aria-label="Hủy bỏ/Đóng" onClick={onClose}>
               <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
-            </button>
+            </BusinessButton>
           ) : null}
         </div>
       </section>
@@ -371,14 +368,14 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
             {jobs.map((job) => (
               <article key={job.jobId}>
                 <div>
-                  <strong>{job.status}</strong>
+                  <strong>{job.status} · {jobFormLabel(job)}</strong>
                   <code>{job.jobId}</code>
                   {job.lastError ? <p>{job.lastError}</p> : null}
                 </div>
                 {job.status === 'failed' ? (
-                  <button type="button" className="outline" onClick={() => void retry(job.jobId)}>
+                  <BusinessButton variant="outline" type="button"  onClick={() => void retry(job.jobId)}>
                     Thử lại
-                  </button>
+                  </BusinessButton>
                 ) : null}
               </article>
             ))}

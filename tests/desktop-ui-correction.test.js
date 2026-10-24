@@ -36,8 +36,8 @@ test('desktop entry exposes every form type in one compact row', () => {
 test('desktop date controls render only one native value', () => {
   const css = read('next-shell/app/platform.css');
 
-  assert.match(css, /\.manage-filter-panel \.cashflow-date-input \.date-display-text,[\s\S]*display: none !important;/);
-  assert.match(css, /\.manage-filter-panel \.cashflow-date-input \.native-date-input,[\s\S]*position: static !important;[\s\S]*opacity: 1 !important;/);
+  assert.match(css, /\.manage-filter-panel \.cashflow-date-input \.date-display-text\s*\{[\s\S]*display: none !important;/);
+  assert.match(css, /\.manage-filter-panel \.cashflow-date-input \.native-date-input\s*\{[\s\S]*position: static !important;[\s\S]*opacity: 1 !important;/);
   assert.match(css, /html body \.cashflow-c2 \.cashflow-overview-filter-panel \.cashflow-date-input input\.native-date-input,[\s\S]*position: static !important;[\s\S]*opacity: 1 !important;/);
 });
 

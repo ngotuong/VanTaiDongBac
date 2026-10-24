@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { Fragment, useEffect, useState, useTransition } from 'react';
 import { normalizeRoutePath, routesEqual } from '../../lib/platform/routes';
 import type { PlatformContext } from '../../lib/platform/types';
 import { ShellNavigation, type NavigationItem } from './ShellNavigation';
@@ -10,6 +10,8 @@ import { SessionKeepAlive, SignOutButton } from './SessionControls';
 import { ToastViewport } from './ToastViewport';
 import { NotificationCenter } from './NotificationCenter';
 import { AdaptiveFilterSizing } from './AdaptiveFilterSizing';
+import { PullToRefresh } from './PullToRefresh';
+import { ThemeRuntimeSync } from './ThemePreferenceControl';
 
 const ALL_ROLES = ['admin', 'operator', 'shareholder'] as const;
 const WRITE_ROLES = ['admin', 'operator'] as const;
@@ -27,7 +29,7 @@ const PAGE_META: Record<string, string> = {
   '/': 'Tổng Quan', '/dashboard': 'Tổng Quan',
   '/reports': 'Báo Cáo', '/manage': 'Vận Hành',
   '/entry': 'Nhập Liệu', '/catalog': 'Danh Mục',
-  '/cashflow': 'Quỹ Thu Chi', '/settings': 'Cài Đặt', '/observability': 'Trạng Thái Đồng Bộ'
+  '/design-system': 'Design System', '/cashflow': 'Quỹ Thu Chi', '/settings': 'Cài Đặt', '/observability': 'Trạng Thái Đồng Bộ'
 };
 
 type DashboardMeta = { updatedAt?: string; source?: 'supabase' | 'apps-script'; path?: string };
@@ -39,9 +41,13 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
   const [dashboardMeta, setDashboardMeta] = useState<DashboardMeta>({});
   const [pendingHref, setPendingHref] = useState('');
   const [isNavigationPending, startNavigation] = useTransition();
+  const [pendingYear, setPendingYear] = useState('');
+  const [yearError, setYearError] = useState('');
   const currentPath = normalizeRoutePath(pathname);
   const pageTitle = PAGE_META[currentPath] || 'Vận Tải Đông Bắc';
   const navigationTarget = pendingHref && !routesEqual(pendingHref, currentPath) ? pendingHref : '';
+  const yearPending = Boolean(pendingYear && pendingYear !== context.workbook.year);
+  const showYearControl = context.workbook.availableYears.length > 1;
 
   useEffect(() => {
     document.body.classList.toggle('shell-drawer-open', drawerOpen);
@@ -68,11 +74,33 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
   };
 
   const refresh = () => document.querySelector<HTMLButtonElement>('[data-shell-refresh]')?.click();
+  const changeYear = async (year: string) => {
+    if (year === context.workbook.year || yearPending) return;
+    setPendingYear(year);
+    setYearError('');
+    try {
+      const response = await fetch('/api/workbook-year', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-VTDB-CSRF': 'workbook-year' },
+        body: JSON.stringify({ year })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || payload.ok === false) throw new Error(payload.error || 'Không chuyển được năm dữ liệu.');
+      router.refresh();
+    } catch (error) {
+      setYearError(error instanceof Error ? error.message : String(error));
+      setPendingYear('');
+    }
+  };
   const currentMeta = dashboardMeta.path && routesEqual(dashboardMeta.path, currentPath) ? dashboardMeta : {};
-  const subtitle = `Cập nhật: ${currentMeta.updatedAt || (currentMeta.source ? 'Chưa có thời điểm đồng bộ' : 'Vui lòng chờ...')}`;
+  const subtitle = currentMeta.source === 'apps-script' && !currentMeta.updatedAt
+    ? 'Nguồn: Google Sheet trực tiếp'
+    : `Cập nhật: ${currentMeta.updatedAt || 'Vui lòng chờ...'}`;
 
   return <div className="app">
     <SessionKeepAlive />
+    <ThemeRuntimeSync />
     <AdaptiveFilterSizing />
     <a className="platform-skip-link" href="#platform-content">Bỏ qua điều hướng</a>
     <div className="drawer-backdrop shell-drawer-backdrop" aria-hidden={!drawerOpen} onClick={() => setDrawerOpen(false)}/>
@@ -84,21 +112,37 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
           <span><span className="brand-name">Vận tải Đông Bắc</span><span className="brand-sub">Hệ thống nội bộ</span></span>
         </button>
         <ShellNavigation items={NAVIGATION} role={context.user.role} pendingHref={navigationTarget} onNavigate={navigate}/>
-        <div className="auth-user"><div className="auth-user-email">{context.user.displayName}</div><SignOutButton /></div>
+        <div className="auth-user">
+          <div className="auth-user-email">{context.user.displayName}</div>
+          <div className="shell-account-actions">
+            <button type="button" className="shell-menu-refresh" aria-label="Làm mới dữ liệu" title="Làm mới dữ liệu" onClick={refresh}>
+              <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            </button>
+            <SignOutButton />
+          </div>
+        </div>
       </div>
     </aside>
     <main className="main" id="platform-content">
       <header className="topbar">
         <button type="button" className="menu-button" aria-label="Mở menu" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}><svg className="btn-svg" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-        <div><h1>{pageTitle}</h1><div className="subtitle">{subtitle}{currentMeta.source ? <span className={`source-badge ${currentMeta.source === 'supabase' ? 'source-supabase' : 'source-appscript'}`} title={currentMeta.source === 'supabase' ? 'Dữ liệu được đọc từ Supabase' : 'Dữ liệu đang đọc fallback từ Apps Script'}>{currentMeta.source === 'supabase' ? 'S' : 'AS'}</span> : null}</div></div>
+        <div><h1>{pageTitle}</h1><div className="subtitle">{subtitle}{currentMeta.source ? <span className={`source-badge ${currentMeta.source === 'supabase' ? 'source-supabase' : 'source-appscript'}`} title={currentMeta.source === 'supabase' ? 'Dữ liệu được đọc từ Supabase' : 'Dữ liệu được đối soát trực tiếp từ Google Sheet qua Apps Script'}>{currentMeta.source === 'supabase' ? 'S' : 'AS'}</span> : null}</div></div>
         <div className="top-actions">
-          <button type="button" className="ghost icon-button" aria-label="Tải lại dữ liệu từ Supabase" title="Tải lại từ Supabase" onClick={refresh}><svg className="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg></button>
+          {showYearControl ? <label className="shell-year-control" title={context.workbook.readOnly ? `Năm ${context.workbook.year} chỉ đọc` : `Năm ${context.workbook.year} đang hoạt động`}>
+            <select aria-label="Năm dữ liệu" value={context.workbook.year} disabled={yearPending} onChange={(event) => void changeYear(event.target.value)}>
+              {context.workbook.availableYears.map((year) => <option key={year} value={year}>{year}</option>)}
+            </select>
+          </label> : null}
+          {showYearControl && context.workbook.readOnly ? <span className="shell-year-readonly" title="Dữ liệu năm lưu trữ chỉ được xem">Chỉ xem</span> : null}
+          <button type="button" className="ghost icon-button shell-header-refresh" aria-label="Tải lại dữ liệu từ Supabase" title="Tải lại từ Supabase" onClick={refresh}><svg className="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg></button>
           <NotificationCenter userId={context.user.id} />
         </div>
+        {yearError ? <div className="shell-year-error" role="alert">{yearError}</div> : null}
       </header>
+      <PullToRefresh onRefresh={refresh}/>
       <div className={`route-progress${navigationTarget || isNavigationPending ? ' active' : ''}`} aria-hidden="true"><span/></div>
       {navigationTarget ? <div className="route-navigation-feedback" role="status" aria-live="polite"><span className="route-navigation-spinner" aria-hidden="true"/><strong>Đang mở {PAGE_META[navigationTarget] || 'màn hình mới'}…</strong></div> : null}
-      {children}
+      <Fragment key={context.workbook.year}>{children}</Fragment>
     </main>
     <ShellNavigation items={NAVIGATION} role={context.user.role} mode="bottom" pendingHref={navigationTarget} onNavigate={navigate}/>
     <BackToTopButton />

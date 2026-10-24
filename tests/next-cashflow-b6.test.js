@@ -22,7 +22,7 @@ test('B6 shares manage-data boundary and reads every fund cache Supabase-first w
   assert.match(route,/surface.*cashflow/);assert.match(route,/loadCashflowSurface/);
   for(const table of ['fund_overview_bundles','fund_transaction_bundles','fund_loan_bundles','catalog_bundles'])assert.match(server,new RegExp(table));
   for(const action of ['getFundOverview','getFundTransactions','getFundLoanOverview','getFundFormOptions','getFundCatalog'])assert.match(server,new RegExp(`'${action}'`));
-  assert.match(server,/resolve\(\{module:'cashflow',year\}\)/);assert.match(server,/month:\$\{month\}/);assert.match(server,/recent_500/);
+  assert.match(server,/loadServerWorkbookContext\(\{module:'cashflow',year:input\.year\}\)/);assert.match(server,/month:\$\{month\}/);assert.match(server,/recent_500/);
   assert.doesNotMatch(server,/getActiveSpreadsheet|NEXT_PUBLIC_.*SERVICE/);
 });
 
@@ -34,7 +34,8 @@ test('B6 serves range filters and keeps ordinary Fund catalog reads on Supabase'
   assert.match(server,/buildLoansRange/);
   assert.match(server,/catalogCacheVersion==='fund_catalog_v2'/);
   assert.match(server,/surface==='range'/);
-  assert.match(server,/contiguousCachedRows\(rows\)/);
+  assert.match(server,/contiguousCachedRows\(rows,requestedMonths\)/);
+  assert.match(server,/displayedRows:transactions\.length/);
   assert.match(server,/catalogFromOptions/);
   assert.match(server,/fund_form_options:\$\{year\}/);
   assert.match(server,/Cache Quỹ theo khoảng ngày trên Supabase chưa đầy đủ/);
@@ -47,7 +48,10 @@ test('B6 preserves transaction queue idempotency pending overlay and direct row 
   const source=read('next-shell/components/cashflow/CashflowModule.tsx');
   for(const action of ['addFundTransactions','getRecentWriteJobs','getWriteJobStatus','retryWriteJob','processWriteJobs','updateFundTransaction','deleteFundTransaction'])assert.match(source,new RegExp(`'${action}'`));
   for(const status of ['pending','processing','synced','failed'])assert.match(source,new RegExp(status));
-  assert.match(source,/useQueue:\s*true/);assert.match(source,/clientRequestId:\s*requestId\(\)/);assert.match(source,/voucher/);assert.match(source,/rowIndex/);assert.match(source,/pending:\s*true/);
+  assert.match(source,/useQueue:\s*true/);assert.match(source,/clientRequestId:\s*getIntentId\(/);assert.match(source,/voucher/);assert.match(source,/rowIndex/);assert.match(source,/pending:\s*true/);
+  assert.match(source,/saved\.jobId && saved\.jobId === item\.jobId/);
+  assert.match(source,/jobId: job\.jobId/);
+  assert.match(source,/Đã nhận thay đổi giao dịch; đang đồng bộ nền/);
 });
 
 test('B6 keeps loan reconciliation payload and native catalog row bounds owned by Apps Script',()=>{
@@ -68,11 +72,32 @@ test('B6 applies existing RBAC: shareholder reads cashflow but cannot see fund c
 
 test('Cashflow parity includes debt balances and guarded CAIDAT first-use settings without printing',()=>{
   const source=read('next-shell/components/cashflow/CashflowModule.tsx');
+  const css=read('next-shell/app/platform.css');
   const service=read('FundService.gs');
   const transaction=read('FundTransactionService.gs');
   const registry=read('ApiActionRegistry.gs');
   assert.match(source,/\['debts', 'Công nợ'\]/);
   assert.match(source,/Công nợ còn lại/);
+  assert.match(source,/const \[debtTransactions, setDebtTransactions\]/);
+  assert.match(source,/const \[debtPartner, setDebtPartner\]/);
+  assert.match(source,/startDate: `\$\{year\}-01-01`/);
+  assert.match(source,/item\.partner !== debtPartner/);
+  assert.match(source,/Phải thu/);
+  assert.match(source,/Phải trả/);
+  assert.match(source,/const netDebtLabel = netDebt > 0 \? 'Tổng thu' : netDebt < 0 \? 'Tổng trả' : 'Cân bằng'/);
+  assert.match(source,/<small>Phải thu:<\/small><strong>/);
+  assert.match(source,/<small>Phải trả:<\/small><strong>/);
+  assert.match(source,/<\/div>\s*\{props\.debtMode \? \(\s*<div className="cashflow-debt-toolbar">/);
+  assert.match(source,/cashflow-debt-payable/);
+  assert.match(source,/cashflow-debt-net \$\{netDebt > 0 \? 'cash-in' : netDebt < 0 \? 'cash-out' : 'balanced'\}/);
+  assert.match(css,/\.cashflow-debt-toolbar \{[\s\S]*background: var\(--mint-soft/);
+  assert.match(css,/\.cashflow-debt-summary > span \{[\s\S]*white-space: nowrap;/);
+  assert.match(css,/\.cashflow-debt-summary small \{[\s\S]*color: var\(--deep/);
+  assert.match(css,/\.cashflow-debt-summary strong \{[\s\S]*color: var\(--teal/);
+  assert.match(css,/\.cashflow-debt-payable strong,[\s\S]*color: var\(--red/);
+  assert.match(source,/addFundDebtPayment/);
+  assert.match(source,/title="Thanh toán công nợ"/);
+  assert.match(source,/function DebtPaymentDrawer/);
   assert.match(transaction,/remainingDebt/);
   for(const range of ['TMDK','TKDK','NGAYNHAPLIEU','NGAYTINHVAY']) assert.match(service,new RegExp(`getRangeByName\\('${range}'\\)`));
   assert.match(registry,/updateFundSettings: \{ method: 'POST', kind: 'command', permission: 'adminOperator'/);

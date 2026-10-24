@@ -1,8 +1,9 @@
+const { assertPushEndpoint } = require('./push-endpoint-policy');
 const TEST_NOTIFICATION = Object.freeze({
   title: 'Vận tải Đông Bắc',
   body: 'Thông báo thử nghiệm đã hoạt động trên thiết bị này.',
   tag: 'vtdb-push-test',
-  url: '/settings/'
+  url: '/?notifications=open'
 });
 
 function createPushService({ repository, preferenceService, webPush, httpError, now = () => new Date() }) {
@@ -19,6 +20,7 @@ function createPushService({ repository, preferenceService, webPush, httpError, 
     if (!endpoint.startsWith('https://') || endpoint.length > 2048 || !p256dh || !auth || p256dh.length > 512 || auth.length > 512) {
       throw httpError(400, 'Đăng ký thông báo của thiết bị không hợp lệ.');
     }
+    try { assertPushEndpoint(endpoint); } catch (error) { throw httpError(400, error.message); }
     return { endpoint, expirationTime: value?.expirationTime || null, keys: { p256dh, auth } };
   }
 
@@ -50,12 +52,13 @@ function createPushService({ repository, preferenceService, webPush, httpError, 
     if (!normalized.startsWith('https://') || normalized.length > 2048) throw httpError(400, 'Thiết bị hiện tại chưa đăng ký thông báo.');
     const row = await repository.findByUserAndEndpoint(config, user.id, normalized);
     if (!row) throw httpError(404, 'Không tìm thấy đăng ký thông báo của thiết bị hiện tại.');
+    try { assertPushEndpoint(row.endpoint); } catch (error) { throw httpError(400, error.message); }
     webPush.setVapidDetails(config.vapidSubject, config.vapidPublicKey, config.vapidPrivateKey);
     try {
       await webPush.sendNotification({
         endpoint: row.endpoint,
         keys: { p256dh: row.p256dh, auth: row.auth_secret }
-      }, JSON.stringify(TEST_NOTIFICATION), { TTL: 60, urgency: 'normal' });
+      }, JSON.stringify(TEST_NOTIFICATION), { TTL: 60, urgency: 'normal', timeout: 10000 });
     } catch (error) {
       if (error?.statusCode === 404 || error?.statusCode === 410) {
         await repository.remove(config, user.id, normalized);

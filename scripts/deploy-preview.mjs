@@ -162,6 +162,8 @@ async function main() {
       TEAM_SLUG,
       "--env",
       `APPS_SCRIPT_URL=${PREVIEW_APPS_SCRIPT_URL}`,
+      "--env",
+      "BUSINESS_WRITES_PAUSED=true",
     ],
     { capture: true },
   );

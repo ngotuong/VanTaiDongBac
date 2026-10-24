@@ -10,6 +10,8 @@ import type { AppRole } from '../../lib/platform/types';
 import { showToast } from '../../lib/platform/toast';
 import { PushNotificationSettings } from './PushNotificationSettings';
 import { PillSwitch } from './PillSwitch';
+import { ThemePreferenceControl } from '../platform/ThemePreferenceControl';
+import { YearRolloverSettings } from './YearRolloverSettings';
 
 const ROLE_LABELS: Record<AppRole, string> = {
   admin: 'Quản trị viên',
@@ -20,7 +22,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
 type AccountDraft = { displayName: string; role: AppRole; active: boolean };
 type NewAccount = { username: string; displayName: string; role: AppRole; password: string };
 type PasswordKey = 'current' | 'next' | 'confirm' | 'create';
-type SettingsTab = 'notifications' | 'accounts' | 'sync';
+type SettingsTab = 'appearance' | 'notifications' | 'accounts' | 'sync' | 'years';
 const EMPTY_ACCOUNT: NewAccount = { username: '', displayName: '', role: 'shareholder', password: '' };
 
 export function SettingsModule() {
@@ -28,11 +30,13 @@ export function SettingsModule() {
   const api = useMemo(() => createClientApiClient(), []);
   const isAdmin = user.role === 'admin';
   const availableTabs: { key: SettingsTab; label: string }[] = [
+    { key: 'appearance', label: 'Giao diện' },
     { key: 'notifications', label: 'Thông báo' },
     { key: 'accounts', label: 'Tài khoản' },
+    ...(isAdmin ? [{ key: 'years' as const, label: 'Năm dữ liệu' }] : []),
     ...(user.role !== 'shareholder' ? [{ key: 'sync' as const, label: 'Đồng bộ' }] : [])
   ];
-  const [activeTab, setActiveTab] = useState<SettingsTab>('notifications');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
   const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [shownPasswords, setShownPasswords] = useState<Record<PasswordKey, boolean>>({ current: false, next: false, confirm: false, create: false });
   const [newAccount, setNewAccount] = useState<NewAccount>(EMPTY_ACCOUNT);
@@ -158,6 +162,9 @@ export function SettingsModule() {
     <div className="settings-section-tabs" role="tablist" aria-label="Nhóm cài đặt" style={{ gridTemplateColumns: `repeat(${availableTabs.length}, minmax(0, 1fr))` }}>
       {availableTabs.map((tab) => <button key={tab.key} type="button" role="tab" aria-selected={activeTab === tab.key} aria-controls={`settings-panel-${tab.key}`} id={`settings-tab-${tab.key}`} onClick={() => setActiveTab(tab.key)}>{tab.label}</button>)}
     </div>
+    <div id="settings-panel-appearance" className="settings-tab-panel settings-grid" role="tabpanel" aria-labelledby="settings-tab-appearance" hidden={activeTab !== 'appearance'}>
+      <ThemePreferenceControl />
+    </div>
     <div id="settings-panel-notifications" className="settings-tab-panel settings-grid" role="tabpanel" aria-labelledby="settings-tab-notifications" hidden={activeTab !== 'notifications'}>
       <PushNotificationSettings isAdmin={isAdmin} />
     </div>
@@ -217,6 +224,9 @@ export function SettingsModule() {
 
     {user.role !== 'shareholder' ? <div id="settings-panel-sync" className="settings-tab-panel settings-grid" role="tabpanel" aria-labelledby="settings-tab-sync" hidden={activeTab !== 'sync'}>
       <article className="info-card settings-sync-card"><div><h2>Đồng bộ dữ liệu</h2><p>Theo dõi trạng thái cache, hàng đợi và lần đồng bộ gần nhất.</p></div><Link className="ghost icon-text-btn settings-route-link" href="/observability" prefetch={false}><SettingsIcon icon="sync" />Mở trạng thái đồng bộ</Link></article>
+    </div> : null}
+    {isAdmin ? <div id="settings-panel-years" className="settings-tab-panel" role="tabpanel" aria-labelledby="settings-tab-years" hidden={activeTab !== 'years'}>
+      {activeTab === 'years' ? <YearRolloverSettings /> : null}
     </div> : null}
   </section>;
 }

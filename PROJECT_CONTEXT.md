@@ -28,7 +28,7 @@ Current-state handoff duy nhất. Khi bắt đầu phiên mới, đọc toàn b�
 - Preview ổn định: `https://vantaidongbac-preview.vercel.app`, deployment `dpl_3AsaDD6cGMijzHpih2r2zpFro6nT`. Deploy script xác nhận HTTP 200, title `Vận tải Đông Bắc`, không chuyển tới Vercel Login, health `businessWritesPaused=true`, không lộ `spreadsheetId`; authenticated QA PASS. Production alias duy nhất: `https://dongbac.vercel.app`.
 - GitHub `ngotuong/VanTaiDongBac` đã chuyển Public ngày 24/10. Trước khi đổi visibility, toàn bộ branch/tag được rewrite để loại `client_secret.json` lịch sử; 3.715 blob sau rewrite không còn finding credential/token/key, tip tree của 4 branch và 5 tag giữ nguyên. Secret Scanning và Push Protection đã bật. Bundle lịch sử cũ được giữ cục bộ ngoài repo với quyền `600`, không được push hoặc chia sẻ.
 - Apps Script Production/Preview đều version 425; paired rollback 424. Migrations 001–020 đã live và không rollback ngược.
-- Candidate audit gốc nằm tại commit `3f3385d`; thay đổi UX năm nằm tại `b2aa042` trên nhánh `codex/r8-mapping-optimization`, Draft PR #3. PR #2 đã đóng vì GitHub giữ snapshot SHA cũ sau security rewrite và không thể mở lại. Release Production hiện hành được khóa bằng source-tree hash trong cutover record. Full release gate 935 tests, SQL 001–020, lint, typecheck, build/identity, diff-check và production dependency audit PASS; GitHub Quality gates trên head `10cd68a` của PR #3 PASS toàn bộ.
+- Candidate audit gốc nằm tại commit `3f3385d`; thay đổi UX năm nằm tại `b2aa042` trên nhánh `codex/r8-mapping-optimization`, Draft PR #3. PR #2 đã đóng vì GitHub giữ snapshot SHA cũ sau security rewrite và không thể mở lại. Release Production hiện hành được khóa bằng source-tree hash trong cutover record. Full release gate 935 tests, SQL 001–020, lint, typecheck, build/identity, diff-check và production dependency audit PASS; GitHub Quality gates trên PR head hiện hành PASS toàn bộ.
 - Chi tiết các checkpoint đã đóng nằm trong Git history; file này chỉ giữ trạng thái đang có hiệu lực.
 
 ## 4. Checkpoint tiếp theo
@@ -46,7 +46,7 @@ Current-state handoff duy nhất. Khi bắt đầu phiên mới, đọc toàn b�
 
 ## 6. Rủi ro và gate
 
-1. Nhánh hiện hành còn Draft PR #3 chưa merge. Không reset commit `b2aa042`; GitHub Quality gates đã PASS trên head `10cd68a`, nhưng mọi commit mới phải PASS lại trước merge. Không làm thay đổi Production ngoài quy trình deploy riêng.
+1. Nhánh hiện hành còn Draft PR #3 chưa merge. Không reset commit `b2aa042`; GitHub Quality gates đã PASS trên PR head hiện hành, nhưng mọi commit mới phải PASS lại trước merge. Không làm thay đổi Production ngoài quy trình deploy riêng.
 2. Rollback hiện hành: Vercel `dpl_Ff2u5zzKtkSBuSDBHh1DTuqv1iGR` → `dpl_GBoatQF8rDwzLNtddtRr79wULwSL`; Apps Script 425 → 424. Giữ migrations 019–020, registry/cache/queue/journal; không restore toàn workbook hoặc clear pending/cursor.
 3. Payroll nguồn tháng 5–8 và một số volume lịch sử còn `needs_review`; không sửa tiền nguồn để ép matched. Uncertain write phải đối soát exact job/journal/marker/row trước retry.
 4. Production dependencies có 0 vulnerability; dev lint chain còn advisory chưa có bản vá tương thích. Web Push vẫn có residual at-least-once; tiếp tục theo dõi delivery ledger/log.

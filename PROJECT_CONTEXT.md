@@ -32,7 +32,7 @@ Current-state handoff duy nhất. Khi bắt đầu phiên mới, đọc toàn b�
 
 ## 4. Checkpoint tiếp theo
 
-- Production cutover, authenticated hậu kiểm và commit/push source đã hoàn tất. Bước tiếp theo là review Draft PR #2 và xin phê duyệt merge vào `main`; Vercel Git Integration đang tắt nên merge không tự deploy. Pagination giao dịch nguồn là cải tiến riêng, chưa triển khai.
+- Production cutover, authenticated hậu kiểm và commit/push source đã hoàn tất. GitHub Quality gates trên PR head không được cấp runner vì tài khoản báo payment failure hoặc cần tăng Actions spending limit; không có step CI nào chạy. Bước tiếp theo là xử lý billing, chạy lại CI, review Draft PR #2 rồi xin phê duyệt merge vào `main`; Vercel Git Integration đang tắt nên merge không tự deploy. Pagination giao dịch nguồn là cải tiến riêng, chưa triển khai.
 - Chuyển năm vẫn chưa được phép kích hoạt. Trước cửa sổ vận hành 2027 phải đóng gate audit liên quan, tạo audit mới/token, pause cả hai lớp ghi, drain queue/signal/lease, activate registry/properties/triggers, full sync 2027, authenticated QA rồi mở ghi.
 - R8 còn hai nghiệm thu quan sát, không chặn vận hành hiện tại: một edit người dùng thật để đo edit→UI mục tiêu 1–2 phút và kiểm thử Safari/PWA/push trên iPhone vật lý. Không tạo giao dịch giả trong Production để đóng hai gate này.
 - Theo dõi execution/error-rate sau các bản sửa trigger và notification; lỗi nền tảng Google 0 giây/hard timeout không thể được code bắt tuyệt đối. Không tắt email hoặc nới stale threshold để che lỗi.
@@ -45,7 +45,7 @@ Current-state handoff duy nhất. Khi bắt đầu phiên mới, đọc toàn b�
 
 ## 6. Rủi ro và gate
 
-1. Nhánh hiện hành còn Draft PR #2 chưa merge. Không reset commit `24becac`; trước merge phải xác nhận CI đúng PR head và không làm thay đổi Production ngoài quy trình deploy riêng.
+1. Nhánh hiện hành còn Draft PR #2 chưa merge. Không reset commit `24becac`; local release gates PASS nhưng remote CI chưa chạy do GitHub Actions billing/spending limit. Trước merge phải khôi phục runner và xác nhận CI đúng PR head; không làm thay đổi Production ngoài quy trình deploy riêng.
 2. Rollback hiện hành: Vercel `dpl_Ff2u5zzKtkSBuSDBHh1DTuqv1iGR` → `dpl_GBoatQF8rDwzLNtddtRr79wULwSL`; Apps Script 425 → 424. Giữ migrations 019–020, registry/cache/queue/journal; không restore toàn workbook hoặc clear pending/cursor.
 3. Payroll nguồn tháng 5–8 và một số volume lịch sử còn `needs_review`; không sửa tiền nguồn để ép matched. Uncertain write phải đối soát exact job/journal/marker/row trước retry.
 4. Production dependencies có 0 vulnerability; dev lint chain còn advisory chưa có bản vá tương thích. Web Push vẫn có residual at-least-once; tiếp tục theo dõi delivery ledger/log.

@@ -2,7 +2,7 @@
 
 ## Phạm vi và kết luận
 
-Audit source trên `codex/r8-mapping-optimization`, base HEAD `68c704b`; working tree sạch trước audit. Candidate đã được gom tại commit `3f3385d`, push lên Draft PR #2 và deploy Preview `dpl_5GvH7ZL2yHEZLf8c85pDmEwYDt5G` ngày 24/10/2026. Production chưa đổi. Trạng thái vận hành duy nhất vẫn ở [PROJECT_CONTEXT](../../PROJECT_CONTEXT.md).
+Audit source trên `codex/r8-mapping-optimization`, base HEAD `68c704b`; working tree sạch trước audit. Candidate đã được gom tại commit `3f3385d`, ban đầu đưa lên PR #2, kế nhiệm bằng PR #3 sau security rewrite và deploy Preview `dpl_5GvH7ZL2yHEZLf8c85pDmEwYDt5G` ngày 24/10/2026. PR #3 đã merge vào `main` bằng `eaf2b2b`; trạng thái vận hành duy nhất vẫn ở [PROJECT_CONTEXT](../../PROJECT_CONTEXT.md).
 
 Đã sửa **11 nhóm lỗi** trong candidate local, không đổi công thức, tiền nguồn, schema, dependency hay quy tắc nghiệp vụ. Sau khi người dùng phê duyệt checkpoint U01–U04, candidate có thêm journal append Vận tải/Danh mục và coverage/incomplete Thu chi. Review diff và canary tiếp theo sửa API Developer Metadata location không tồn tại, đổi marker sang row dimension A1 thật và loại năm env-only khi registry đã có dữ liệu. Full suite **933/933 PASS**; SQL cô lập migrations 001–020 và các kiểm tra retry mới PASS. Không kết luận hệ thống đã hết lỗi nghiêm trọng; không dùng kết quả canary tách biệt để tuyên bố Production đã được sửa.
 
@@ -131,4 +131,4 @@ Không chạy trigger, financial reconciliation, đối soát số tiền nguồ
 | P2 — Phân trang giao dịch theo dữ liệu nguồn | Limit 1.000 gây thiếu khi volume tăng | Cursor ổn định/server pagination với total/coverage đúng; tìm kiếm trên toàn phạm vi | Trung bình–cao | API/read-model có thể cần schema migration, duyệt riêng | Dữ liệu đổi giữa các trang; phải khóa version hoặc báo cần tải lại |
 | P3 — Cảnh báo lệch tài liệu/source | Contract dễ mô tả cơ chế đã đổi | Contract tests ở ranh giới observable và kiểm trạng thái snapshot; ưu tiên behavior thay regex | Thấp–trung bình | Tests/docs, không đổi dữ liệu | Không biến test thành bản sao implementation |
 
-Review diff, canary journal, Fund coverage, commit/push và authenticated Preview QA đã hoàn tất. Bước tiếp theo là review Draft PR #2 và quyết định merge/promote Production trong một yêu cầu phê duyệt riêng. Chưa QA đủ role/thiết bị. Không reset queue/journal hoặc phục hồi nguyên workbook để triển khai/rollback candidate này.
+Review diff, canary journal, Fund coverage, commit/push, authenticated Preview QA và merge PR #3 vào `main` đã hoàn tất. Production chỉ được promote/rollback trong một yêu cầu phê duyệt riêng. Chưa QA đủ role/thiết bị. Không reset queue/journal hoặc phục hồi nguyên workbook để triển khai/rollback candidate này.

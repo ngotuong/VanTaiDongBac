@@ -182,7 +182,7 @@ Frontend phải reject bundle có payload nghiệp vụ `ok: false`; không đư
 | Vận hành theo tháng | `manage_data_bundles` | `sheet_name=<year>:<sheet>`, `filter_key=month:YYYY-MM` |
 | Tổng quan Thu chi | `fund_overview_bundles` | `year`, `month_key` |
 | Giao dịch Thu chi gần nhất | `fund_transaction_bundles` | `year`, `filter_key=recent_500` |
-| Giao dịch Thu chi theo tháng | `fund_transaction_bundles` | `year`, `filter_key=month:YYYY-MM` |
+| Giao dịch Thu chi theo tháng | `fund_transaction_bundles` | manifest `year`, `filter_key=month:YYYY-MM`; page bất biến `month:YYYY-MM:version:<version>:page:<n>`; bounded sync nhanh `month:YYYY-MM:recent_N` |
 | Khoản vay | `fund_loan_bundles` | `year`, `month_key` |
 | Form/danh mục Thu chi | `catalog_bundles` | key riêng theo year/group |
 | Trạng thái sync | `sync_status` | `sync_key`/module |

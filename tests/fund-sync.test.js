@@ -10,7 +10,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 function loadService(overrides = {}) {
   const vmContext = vm.createContext({});
   new vm.Script(read('FundSyncService.gs'), { filename: 'FundSyncService.gs#test' }).runInContext(vmContext);
-  const calls = { reads: [], upserts: [], statuses: [] };
+  const calls = { reads: [], upserts: [], deletes: [], statuses: [] };
   const syncTime = '2026-07-11T17:00:00.000Z';
   const context = {
     clean(value) { return value === null || value === undefined ? '' : String(value).trim(); },
@@ -30,6 +30,7 @@ function loadService(overrides = {}) {
     },
     formatDate(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; },
     upsertRows(tableName, rows, onConflict) { calls.upserts.push({ tableName, rows, onConflict }); },
+    deleteRows(tableName, filters) { calls.deletes.push({ tableName, filters }); },
     writeSyncStatus(...args) { calls.statuses.push(args); },
     runSyncStep(results, errors, name, fn) {
       try { results.push({ name, result: fn() }); } catch (error) { errors.push({ name, error: error.message }); }
@@ -46,7 +47,7 @@ test('fund overview, transaction, and loan sync preserve tables, keys, rows, and
   const loans = service.syncFundLoanOverview('2026', '', context);
   assert.deepEqual(JSON.parse(JSON.stringify([overview, transactions, loans])), [
     { ok: true, table: 'fund_overview_bundles', year: '2026', monthKey: '2026-07', syncedAt: syncTime },
-    { ok: true, table: 'fund_transaction_bundles', year: '2026', filterKey: 'month:2026-07', syncedAt: syncTime },
+    { ok: true, table: 'fund_transaction_bundles', year: '2026', filterKey: 'month:2026-07:recent_1000', syncedAt: syncTime },
     { ok: true, table: 'fund_loan_bundles', year: '2026', monthKey: '', syncedAt: syncTime }
   ]);
   assert.deepEqual(calls.upserts.map((call) => [call.tableName, call.onConflict]), [
@@ -55,8 +56,35 @@ test('fund overview, transaction, and loan sync preserve tables, keys, rows, and
     ['fund_loan_bundles', 'year,month_key']
   ]);
   assert.deepEqual(calls.statuses.map((row) => row[0]), [
-    'fund_overview:2026:2026-07', 'fund_transactions:2026:month:2026-07', 'fund_loans:2026:latest'
+    'fund_overview:2026:2026-07', 'fund_transactions:2026:month:2026-07:recent_1000', 'fund_loans:2026:latest'
   ]);
+});
+
+test('complete monthly capture publishes immutable pages before the canonical manifest', () => {
+  const rows = Array.from({ length: 405 }, (_, index) => ({ rowIndex: index + 2, voucher: `V${index}`, date: '2026-07-01', amount: index }));
+  const { service, context, calls } = loadService({
+    getFundTransactions() {
+      return { ok: true, selectedMonth: '2026-07', transactions: rows, totalRows: rows.length, completeCapture: true, cacheVersion: 'version-1', months: [{ key: '2026-07' }] };
+    }
+  });
+  const result = service.syncFundTransactions('2026', { month: '2026-07', limit: 1000 }, context);
+  assert.equal(result.pageCount, 3);
+  assert.equal(calls.upserts.length, 2);
+  assert.deepEqual(JSON.parse(JSON.stringify(calls.upserts[0].rows.map((row) => row.filter_key))), [
+    'month:2026-07:version:version-1:page:1',
+    'month:2026-07:version:version-1:page:2',
+    'month:2026-07:version:version-1:page:3'
+  ]);
+  const publishedManifest = calls.upserts[1].rows[0];
+  assert.equal(publishedManifest.filter_key, 'month:2026-07');
+  assert.equal(publishedManifest.payload.transactions.length, 200);
+  assert.equal(publishedManifest.payload.totalRows, 405);
+  assert.deepEqual(JSON.parse(JSON.stringify(publishedManifest.payload.pagination)), { version: 'version-1', cachePageSize: 200, pageCount: 3, totalRows: 405 });
+  assert.equal(publishedManifest.payload.completeCapture, undefined);
+  assert.deepEqual(JSON.parse(JSON.stringify(calls.deletes)), [{ tableName: 'fund_transaction_bundles', filters: {
+    year: 'eq.2026',
+    and: '(filter_key.like.month:2026-07:version:*,filter_key.not.like.month:2026-07:version:version-1:*)'
+  } }]);
 });
 
 test('fund catalog sync preserves six targets and stable catalog keys', () => {

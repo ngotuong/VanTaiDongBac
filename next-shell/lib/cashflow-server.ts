@@ -1,6 +1,7 @@
 import 'server-only';
 import { createFundBundleRepository } from '../../server/repositories/fund-bundle-repository.js';
 import { createFundRangeService } from '../../server/services/fund-range-service.js';
+import { createFundTransactionPageService } from '../../server/services/fund-transaction-page-service.js';
 import { runtimeConfig } from '../../server/runtime-config.js';
 import { loadServerWorkbookContext } from './request-context.js';
 import { createServerApiClient } from './platform/server-api-client';
@@ -12,6 +13,8 @@ function validYear(value:unknown){const year=String(value||'').trim();if(!/^20\d
 function validMonth(value:unknown){const month=String(value||'').trim();if(month&&!/^20\d{2}-(0[1-9]|1[0-2])$/.test(month))throw httpError(400,'Tháng Thu chi không hợp lệ.');return month;}
 function validDate(value:unknown,label:string){const date=String(value||'').trim();if(date&&!/^20\d{2}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(date))throw httpError(400,`${label} không hợp lệ.`);return date;}
 function validGroup(value:unknown){const group=String(value||'incomeCategories').trim();const allowed=['incomeCategories','expenseCategories','actors','partners','loanPartners'];if(!allowed.includes(group))throw httpError(400,'Nhóm danh mục Thu chi không hợp lệ.');return group;}
+function validPage(value:unknown){const page=Number.parseInt(String(value||'1'),10);if(!Number.isFinite(page)||page<1||page>100000)throw httpError(400,'Trang giao dịch Thu chi không hợp lệ.');return page;}
+function validPageSize(value:unknown){const pageSize=Number.parseInt(String(value||'20'),10);if(!Number.isFinite(pageSize)||pageSize<1||pageSize>100)throw httpError(400,'Số dòng mỗi trang Thu chi không hợp lệ.');return pageSize;}
 function publicPayload<T>(row:{payload:unknown;synced_at:string}|null):T|null{if(!row?.payload||typeof row.payload!=='object'||(row.payload as {ok?:boolean}).ok===false)return null;return {...row.payload as object,supabaseCached:true,supabaseSyncedAt:row.synced_at} as T;}
 function normalizedText(value:unknown){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').toLowerCase();}
 function filterTransactionSearch(payload:FundTransactions,search:string){
@@ -25,14 +28,14 @@ function catalogFromOptions(options:FundOptions,group:string):FundCatalog{
   return {ok:true,catalogCacheVersion:'fund_catalog_v2',selectedGroup:group,rows:values.map((value,index)=>({rowIndex:`fallback:${group}:${index}`,value,source:'fallback'})),supabaseCached:true,supabaseSyncedAt:options.supabaseSyncedAt};
 }
 
-export async function loadCashflowSurface(input:{year?:unknown;surface?:unknown;month?:unknown;group?:unknown;startDate?:unknown;endDate?:unknown;search?:unknown;forceRefresh?:boolean}={}):Promise<unknown>{
+export async function loadCashflowSurface(input:{year?:unknown;surface?:unknown;month?:unknown;group?:unknown;startDate?:unknown;endDate?:unknown;search?:unknown;page?:unknown;pageSize?:unknown;transactionMode?:unknown;partner?:unknown;forceRefresh?:boolean}={}):Promise<unknown>{
   const workbook=await loadServerWorkbookContext({module:'cashflow',year:input.year});
-  const year=validYear(workbook.year);const surface=String(input.surface||'all');const month=validMonth(input.month);const group=validGroup(input.group);const startDate=validDate(input.startDate,'Ngày bắt đầu');const endDate=validDate(input.endDate,'Ngày kết thúc');const search=String(input.search||'').trim().slice(0,200);
+  const year=validYear(workbook.year);const surface=String(input.surface||'all');const month=validMonth(input.month);const group=validGroup(input.group);const startDate=validDate(input.startDate,'Ngày bắt đầu');const endDate=validDate(input.endDate,'Ngày kết thúc');const search=String(input.search||'').trim().slice(0,200);const page=validPage(input.page);const pageSize=validPageSize(input.pageSize);const transactionMode=input.transactionMode==='debt'?'debt':'all';const partner=String(input.partner||'').trim().slice(0,200);
   if(Boolean(startDate)!==Boolean(endDate))throw httpError(400,'Cần chọn đủ ngày bắt đầu và ngày kết thúc.');
   if(startDate&&endDate&&startDate>endDate)throw httpError(400,'Khoảng ngày Thu chi không hợp lệ.');
   if((startDate&&!startDate.startsWith(`${year}-`))||(endDate&&!endDate.startsWith(`${year}-`)))throw httpError(400,`Khoảng ngày Thu chi phải thuộc năm ${year}.`);
   if(surface==='range'){
-    const params={year,startDate,endDate,month,forceRefresh:input.forceRefresh};
+    const params={year,startDate,endDate,month,page,pageSize,transactionMode,partner,search,forceRefresh:input.forceRefresh};
     const [overview,transactions,loans]=await Promise.all([
       loadCashflowSurface({...params,surface:'overview'}),
       loadCashflowSurface({...params,surface:'transactions'}),
@@ -43,6 +46,7 @@ export async function loadCashflowSurface(input:{year?:unknown;surface?:unknown;
   if(surface==='all')return loadCashflowInitial(year,Boolean(input.forceRefresh));
   const api=await createServerApiClient();
   const rangeService=createFundRangeService();
+  const transactionPageService=createFundTransactionPageService();
   const fallback=async()=>{
     if(surface==='overview')return api.get<FundOverview>('getFundOverview',{params:{year,month,startDate,endDate,forceRefresh:input.forceRefresh?'true':''}});
     if(surface==='transactions')return api.get<FundTransactions>('getFundTransactions',{params:{year,month,startDate,endDate,search,limit:'500',forceRefresh:input.forceRefresh?'true':''}});
@@ -56,6 +60,29 @@ export async function loadCashflowSurface(input:{year?:unknown;surface?:unknown;
   try{
     const config=runtimeConfig();if(!config.supabaseUrl||!config.serviceRoleKey)throw httpError(503,'Cache Quỹ trên Supabase chưa được cấu hình.');
     const repo=createFundBundleRepository({httpError,fetchImpl:(request,init={})=>fetch(request,{...init,signal:AbortSignal.timeout(5000)})});
+    const loadDirectTransactionPage=async(manifest:FundTransactions)=>{
+      const selectedMonth=String(manifest.selectedMonth||'');const version=String(manifest.pagination?.version||'');const cachePageSize=Number(manifest.pagination?.cachePageSize||0);const expected=Number(manifest.pagination?.pageCount||0);
+      if(!selectedMonth||!version||cachePageSize<1||expected<1)throw httpError(503,'Manifest phân trang Thu chi không hợp lệ.');
+      const totalRows=Number(manifest.pagination?.totalRows||0);const totalPages=Math.max(1,Math.ceil(totalRows/pageSize));const currentPage=Math.min(page,totalPages);const firstSourceOffset=(currentPage-1)*pageSize;const firstCachePage=Math.floor(firstSourceOffset/cachePageSize)+1;const lastCachePage=Math.floor((firstSourceOffset+pageSize-1)/cachePageSize)+1;
+      const pageNumbers=Array.from(new Set([firstCachePage,Math.min(lastCachePage,expected)]));
+      const rows=await Promise.all(pageNumbers.map(pageNumber=>repo.find(config,TABLES.transactions,{year,filter_key:`month:${selectedMonth}:version:${version}:page:${pageNumber}`})));
+      if(rows.some(row=>!row))throw httpError(503,'Cache trang Thu chi chưa đầy đủ.');
+      const bundles=rows.map(row=>publicPayload<FundTransactions>(row)).filter(Boolean) as FundTransactions[];
+      return transactionPageService.buildDirectPage(manifest as unknown as Record<string,unknown>,bundles as unknown as Array<Record<string,unknown>>,currentPage,pageSize) as FundTransactions;
+    };
+    const loadPagedTransactions=async(manifests:FundTransactions[])=>{
+      const rows=await Promise.all(manifests.map(async(manifest)=>{
+        const selectedMonth=String(manifest.selectedMonth||'');
+        const version=String(manifest.pagination?.version||'');
+        const expected=Number(manifest.pagination?.pageCount||0);
+        if(!selectedMonth||!version||expected<1)throw httpError(503,'Manifest phân trang Thu chi không hợp lệ.');
+        const prefix=`month:${selectedMonth}:version:${version}:page:`;
+        const pages=await repo.findPages(config,TABLES.transactions,year,prefix);
+        if(pages.length!==expected)throw httpError(503,'Cache trang Thu chi chưa đầy đủ.');
+        return pages.map(row=>publicPayload<FundTransactions>(row)).filter(Boolean) as FundTransactions[];
+      }));
+      return transactionPageService.build({manifests,pageBundles:rows.flat(),startDate,endDate,search,page,pageSize,mode:transactionMode,partner}) as FundTransactions;
+    };
     if(startDate&&endDate){
       if(surface==='overview'){
         const requestedMonths=rangeService.monthKeys(startDate,endDate);
@@ -72,7 +99,11 @@ export async function loadCashflowSurface(input:{year?:unknown;surface?:unknown;
         const cachedRows=rangeService.contiguousCachedRows(rows,requestedMonths);
         if(cachedRows.length){
           const payloads=cachedRows.map(row=>publicPayload<FundTransactions>(row)).filter(Boolean) as FundTransactions[];
-          if(payloads.length===cachedRows.length)return filterTransactionSearch(rangeService.mergeTransactionBundles(payloads as unknown as Array<Record<string,unknown>>,startDate,endDate) as FundTransactions,search);
+          if(payloads.length===cachedRows.length){
+            if(payloads.every(payload=>transactionPageService.isPagedManifest(payload)))return loadPagedTransactions(payloads);
+            if(payloads.some(payload=>transactionPageService.isPagedManifest(payload)))throw httpError(503,'Cache trang Thu chi đang chuyển phiên bản; vui lòng thử lại sau khi đồng bộ hoàn tất.');
+            return filterTransactionSearch(rangeService.mergeTransactionBundles(payloads as unknown as Array<Record<string,unknown>>,startDate,endDate) as FundTransactions,search);
+          }
         }
       }
       if(surface==='loans'){
@@ -86,7 +117,13 @@ export async function loadCashflowSurface(input:{year?:unknown;surface?:unknown;
       const row=await repo.find(config,spec[0] as string,spec[1] as Record<string,string>);
       const cached=publicPayload<Record<string,unknown>>(row);
       const isCatalog=surface==='options'||surface==='catalog';
-      if(cached&&(!isCatalog||cached.catalogCacheVersion==='fund_catalog_v2'))return surface==='transactions'?filterTransactionSearch(cached as FundTransactions,search):cached;
+      if(cached&&(!isCatalog||cached.catalogCacheVersion==='fund_catalog_v2')){
+        if(surface==='transactions'&&transactionPageService.isPagedManifest(cached)){
+          if(month&&!startDate&&!endDate&&!search&&transactionMode==='all'&&!partner)return loadDirectTransactionPage(cached as FundTransactions);
+          return loadPagedTransactions([cached as FundTransactions]);
+        }
+        return surface==='transactions'?filterTransactionSearch(cached as FundTransactions,search):cached;
+      }
       if(surface==='catalog'){
         const options=publicPayload<FundOptions>(await repo.find(config,TABLES.catalog,{catalog_key:`fund_form_options:${year}`}));
         if(options?.catalogCacheVersion==='fund_catalog_v2')return catalogFromOptions(options,group);

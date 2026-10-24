@@ -470,9 +470,20 @@ Filter key:
 ```text
 recent_500
 month:YYYY-MM
+month:YYYY-MM:recent_N
+month:YYYY-MM:version:<cacheVersion>:page:<pageNumber>
 ```
 
-Payload: kết quả `FundService.getFundTransactions()` theo filter tương ứng.
+Payload:
+
+- `recent_500`: bundle gần nhất tương thích;
+- `month:YYYY-MM`: manifest canonical của snapshot tháng, chứa `pagination.version/cachePageSize/pageCount/totalRows` và tối đa page đầu để tương thích đường đọc cũ;
+- `month:YYYY-MM:version:...:page:...`: page bất biến tối đa 200 giao dịch;
+- `month:YYYY-MM:recent_N`: kết quả bounded của sync nhanh sau write; không được ghi đè manifest canonical đầy đủ.
+
+Worker capture đọc Sheet 200 dòng/lượt, xác minh header/lastRow/stamp rồi dựng snapshot tháng đầy đủ. Publisher ghi tất cả page của version mới trước, ghi manifest canonical sau cùng, rồi mới xóa page của version cũ. Vì vậy lỗi giữa chừng không làm browser thấy snapshot nửa vời; cleanup retry là idempotent. Không cần migration bảng vì primary key hiện hành đã cho phép namespace `filter_key` này.
+
+Reader phải xác minh đủ `pageCount`. Một tháng không search có thể đọc trực tiếp page cần thiết; search/công nợ/khoảng nhiều tháng đọc đủ page của các manifest liên quan, lọc/dedupe/sort trước khi cắt trang. Lẫn bundle legacy và versioned trong cùng range phải fail closed.
 
 ### 9.3. `fund_loan_bundles`
 

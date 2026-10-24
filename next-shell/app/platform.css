@@ -7340,3 +7340,70 @@ html body [data-business-form-sheet].fund-detail-drawer .cashflow-back-btn .btn-
   display: block;
   stroke-width: 2;
 }
+
+/* Source-backed Fund pagination keeps one compact, stable control row. */
+html body .cashflow-c2 .cashflow-pagination {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  background: var(--platform-surface);
+  border-color: var(--platform-border);
+}
+html body .cashflow-c2 .cashflow-page-controls,
+html body .cashflow-c2 .cashflow-desktop-page-slots {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+html body .cashflow-c2 .cashflow-pagination button {
+  min-width: 44px;
+  min-height: 44px;
+  height: 44px;
+  padding: 0 10px;
+}
+html body .cashflow-c2 .cashflow-page-number.active {
+  color: var(--platform-on-primary);
+  border-color: var(--platform-primary);
+  background: var(--platform-primary);
+}
+html body .cashflow-c2 .cashflow-page-ellipsis {
+  min-width: 20px;
+  text-align: center;
+}
+html body .cashflow-c2 .cashflow-mobile-page-status {
+  display: none;
+  min-width: 64px;
+  color: var(--platform-text);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 768px) {
+  html body .cashflow-c2 .cashflow-pagination {
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 10px;
+  }
+  html body .cashflow-c2 .cashflow-pagination > span:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  html body .cashflow-c2 .cashflow-page-controls {
+    width: auto;
+    flex: 0 0 auto;
+  }
+  html body .cashflow-c2 .cashflow-desktop-page-slots,
+  html body .cashflow-c2 .cashflow-page-button-label {
+    display: none;
+  }
+  html body .cashflow-c2 .cashflow-mobile-page-status {
+    display: inline-block;
+  }
+  html body .cashflow-c2 .cashflow-page-arrow {
+    flex: 0 0 44px;
+    width: 44px;
+    padding: 0;
+    font-size: 22px;
+  }
+}

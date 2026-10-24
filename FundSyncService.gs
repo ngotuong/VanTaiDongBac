@@ -5,6 +5,8 @@ var FundSyncService = (function () {
   var TABLE_FUND_LOAN_BUNDLES = 'fund_loan_bundles';
   var TABLE_CATALOG_BUNDLES = 'catalog_bundles';
   var DEFAULT_FUND_TRANSACTION_FILTER_KEY = 'recent_500';
+  var FUND_TRANSACTION_CACHE_PAGE_SIZE = 200;
+  var FUND_TRANSACTION_UPSERT_BATCH_SIZE = 10;
   var FUND_CATALOG_GROUPS = ['incomeCategories', 'expenseCategories', 'actors', 'partners', 'loanPartners'];
 
   function requireYear_(year, clean) {
@@ -130,6 +132,46 @@ var FundSyncService = (function () {
     var filterKey = buildFundTransactionFilterKey(normalized, context);
     var payload = context.getFundTransactions(safeYear, normalized);
     var syncedAt = context.nowISOString();
+    if (normalized.month && payload && payload.completeCapture === true && payload.cacheVersion) {
+      var transactions = Array.isArray(payload.transactions) ? payload.transactions : [];
+      var pageCount = Math.max(1, Math.ceil(transactions.length / FUND_TRANSACTION_CACHE_PAGE_SIZE));
+      var pageRows = [];
+      for (var pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
+        pageRows.push({
+          year: safeYear,
+          filter_key: filterKey + ':version:' + payload.cacheVersion + ':page:' + (pageIndex + 1),
+          payload: {
+            ok: true, year: safeYear, selectedMonth: normalized.month,
+            cacheVersion: payload.cacheVersion, cachePage: pageIndex + 1, cachePageSize: FUND_TRANSACTION_CACHE_PAGE_SIZE,
+            pageCount: pageCount, totalRows: transactions.length,
+            transactions: transactions.slice(pageIndex * FUND_TRANSACTION_CACHE_PAGE_SIZE, (pageIndex + 1) * FUND_TRANSACTION_CACHE_PAGE_SIZE)
+          },
+          synced_at: syncedAt
+        });
+      }
+      for (var batchStart = 0; batchStart < pageRows.length; batchStart += FUND_TRANSACTION_UPSERT_BATCH_SIZE) {
+        context.upsertRows(TABLE_FUND_TRANSACTION_BUNDLES, pageRows.slice(batchStart, batchStart + FUND_TRANSACTION_UPSERT_BATCH_SIZE), 'year,filter_key');
+      }
+      var manifest = {};
+      Object.keys(payload).forEach(function (key) { if (key !== 'transactions' && key !== 'completeCapture') manifest[key] = payload[key]; });
+      manifest.transactions = transactions.slice(0, FUND_TRANSACTION_CACHE_PAGE_SIZE);
+      manifest.totalRows = transactions.length;
+      manifest.displayedRows = manifest.transactions.length;
+      manifest.sourceTotalRows = transactions.length;
+      manifest.limited = false;
+      manifest.incomplete = false;
+      manifest.pagination = { version: payload.cacheVersion, cachePageSize: FUND_TRANSACTION_CACHE_PAGE_SIZE, pageCount: pageCount, totalRows: transactions.length };
+      context.upsertRows(TABLE_FUND_TRANSACTION_BUNDLES, [{ year: safeYear, filter_key: filterKey, payload: manifest, synced_at: syncedAt }], 'year,filter_key');
+      context.deleteRows(TABLE_FUND_TRANSACTION_BUNDLES, {
+        year: 'eq.' + safeYear,
+        and: '(filter_key.like.' + filterKey + ':version:*,filter_key.not.like.' + filterKey + ':version:' + payload.cacheVersion + ':*)'
+      });
+      context.writeSyncStatus('fund_transactions:' + safeYear + ':' + filterKey, 'fund', 'ok', 'Fund transaction paged cache synced.', syncedAt);
+      return { ok: true, table: TABLE_FUND_TRANSACTION_BUNDLES, year: safeYear, filterKey: filterKey, syncedAt: syncedAt, pageCount: pageCount };
+    }
+    // A bounded direct read must never replace a complete monthly manifest.
+    // The realtime capture worker publishes the canonical month key after all source pages are available.
+    if (normalized.month) filterKey += ':recent_' + normalized.limit;
     context.upsertRows(TABLE_FUND_TRANSACTION_BUNDLES, [{ year: safeYear, filter_key: filterKey, payload: payload, synced_at: syncedAt }], 'year,filter_key');
     context.writeSyncStatus('fund_transactions:' + safeYear + ':' + filterKey, 'fund', 'ok', 'Fund transaction cache synced.', syncedAt);
     return { ok: true, table: TABLE_FUND_TRANSACTION_BUNDLES, year: safeYear, filterKey: filterKey, syncedAt: syncedAt };

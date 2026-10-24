@@ -1067,6 +1067,11 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
           {message}
         </div>
       ) : null}
+      {(tab === 'transactions' || tab === 'debts') && ((tab === 'transactions' ? transactions : debtTransactions).limited || (tab === 'transactions' ? transactions : debtTransactions).incomplete) ? (
+        <div className="status show warn" role="status" aria-live="polite">
+          Dữ liệu cache Thu chi đang bị giới hạn. Danh sách và kết quả tìm kiếm hiện chỉ dựa trên {(tab === 'transactions' ? transactions : debtTransactions).displayedRows ?? (tab === 'transactions' ? transactions : debtTransactions).transactions?.length ?? 0} dòng đã tải; hãy làm mới để đối chiếu dữ liệu đầy đủ từ Google Sheet.
+        </div>
+      ) : null}
       {tab !== 'catalog' && tab !== 'debts' ? (
         <SharedCashflowFilter
           year={year}

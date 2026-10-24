@@ -21,6 +21,15 @@ var AppConfig = (function () {
     });
   }
 
+  function assertWritableYear(year) {
+    // Resolve the operational default independently of the request's APP_CONFIG.
+    // Selecting a configured historical/future workbook only grants read access.
+    var activeYear = resolveWorkbook_({}).year;
+    var requestedYear = clean_(year) || activeYear;
+    if (requestedYear !== activeYear) throw new Error('Năm ' + requestedYear + ' đã khóa chỉ đọc. Hãy chuyển sang năm ' + activeYear + ' để ghi dữ liệu.');
+    return activeYear;
+  }
+
   function buildConfig_(spreadsheetId, year) {
     return {
       spreadsheetId: spreadsheetId,
@@ -127,6 +136,7 @@ var AppConfig = (function () {
 
   return {
     activate: activate,
+    assertWritableYear: assertWritableYear,
     activateFromEvent: activateFromEvent
   };
 })();

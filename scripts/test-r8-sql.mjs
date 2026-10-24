@@ -96,9 +96,15 @@ try {
       if (table === 'write_job_logs' && rows[0]?.job_id === 'sql-worker-fault' && rows[0].status === 'processing') throw new Error('injected log persistence failure');
       for (const row of rows) sql(`set role service_role; insert into ${identifier(table)}(${Object.keys(row).map(identifier).join(',')}) values (${Object.values(row).map(valueSql).join(',')});`);
     },
-    updateRows(table, row, filters) {
+    readRows(table, query) {
+      const selected = query.select.split(',').map(identifier).join(',');
+      return JSON.parse(sql(`set role service_role; select coalesce(json_agg(t),'[]') from (select ${selected} from ${identifier(table)} where ${where({ id: query.id })}) t;`).trim());
+    },
+    updateRows(table, row, filters, options) {
       if (filters.id === 'eq.sql-worker-fault' && !faulted) { faulted = true; throw new Error('injected status persistence failure'); }
-      sql(`set role service_role; update ${identifier(table)} set ${Object.entries(row).map(([key, value]) => `${identifier(key)}=${valueSql(value)}`).join(',')} where ${where(filters)};`);
+      const update = `update ${identifier(table)} set ${Object.entries(row).map(([key, value]) => `${identifier(key)}=${valueSql(value)}`).join(',')} where ${where(filters)}`;
+      if (options?.returnRepresentation) return JSON.parse(sql(`set role service_role; with changed as (${update} returning *) select coalesce(json_agg(changed),'[]') from changed;`).trim());
+      sql(`set role service_role; ${update};`);
     }
   } });
   for (const file of ['WriteJobRepository.gs', 'WriteJobWorker.gs']) new vm.Script(fs.readFileSync(path.join(root, file), 'utf8'), { filename: file }).runInContext(sandbox);
@@ -119,6 +125,18 @@ try {
   sql("update write_jobs set claimed_at=now()-interval '16 minutes' where id='sql-worker-fault'; set role service_role; select * from claim_write_jobs(1,'isolated-reaper',900);");
   assert.equal(sql("select status from write_jobs where id='sql-worker-fault';").trim(), 'failed');
   assert.equal(sql("select count(*) from write_job_logs where job_id='sql-worker-fault' and status='failed';").trim(), '1');
+  sql(`insert into write_jobs(id,module,action,status,payload,last_error) values ('sql-manual-retry','transport','submitRows','failed','{"year":"2027"}','temporary error');`);
+  const retrySnapshot = sandbox.WriteJobRepository.get('sql-manual-retry');
+  assert.equal(retrySnapshot.payload.year, '2027');
+  sandbox.WriteJobRepository.retry('sql-manual-retry', new Date().toISOString(), retrySnapshot);
+  sql("select * from claim_write_jobs(20,'retry-race-worker',900);");
+  assert.throws(() => sandbox.WriteJobRepository.retry('sql-manual-retry', new Date().toISOString(), retrySnapshot), /trạng thái.*thay đổi/);
+  assert.equal(sql("select status from write_jobs where id='sql-manual-retry';").trim(), 'processing');
+  sql("update write_jobs set status='failed', last_error='REQUIRES_RECONCILIATION: uncertain' where id='sql-manual-retry';");
+  assert.throws(() => sandbox.WriteJobRepository.retry('sql-manual-retry', new Date().toISOString(), retrySnapshot), /trạng thái.*thay đổi/);
+  assert.equal(sql("select last_error from write_jobs where id='sql-manual-retry';").trim(), 'REQUIRES_RECONCILIATION: uncertain');
+  assert.equal(sql("select count(*) from write_job_logs where job_id='sql-manual-retry' and message='Write job manually retried.';").trim(), '1');
+  console.log('Audit SQL retry PASS: persisted year, exact failed snapshot, worker ownership and reconciliation ABA guard.');
   console.log('R8 SQL worker/repository PASS: real claims, owned updates, terminal logs, fault isolation and exhausted lease recovery; Sheet boundary synthetic.');
   console.log('R8 SQL PASS: migrations 001–020, multi-year cache copy/idempotency, server-only workbook registry/transactional activation, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
 } finally { try { docker(['rm', '--force', name]); } catch {} }

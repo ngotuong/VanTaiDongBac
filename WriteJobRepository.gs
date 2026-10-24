@@ -2,7 +2,7 @@
 var WriteJobRepository = (function () {
   var TABLE_WRITE_JOBS = 'write_jobs';
   var TABLE_WRITE_JOB_LOGS = 'write_job_logs';
-  var JOB_SELECT = 'id,module,action,status,result,attempts,max_attempts,last_error,idempotency_key,worker_id,claimed_at,created_at,updated_at,synced_at';
+  var JOB_SELECT = 'id,module,action,status,payload,result,attempts,max_attempts,last_error,idempotency_key,worker_id,claimed_at,created_at,updated_at,synced_at';
   var RECENT_SELECT = 'id,module,action,status,payload,result,attempts,max_attempts,last_error,idempotency_key,worker_id,claimed_at,created_at,updated_at,synced_at';
 
   function normalizeRow(row) {
@@ -80,11 +80,16 @@ var WriteJobRepository = (function () {
     });
   }
 
-  function retry(jobId, nextRunAt) {
-    SupabaseHttpClient.updateRows(TABLE_WRITE_JOBS, {
+  function retry(jobId, nextRunAt, expectedJob) {
+    var filters = { id: 'eq.' + jobId, status: 'eq.failed' };
+    // Compare the observed version as well: another retry may have already
+    // failed again with REQUIRES_RECONCILIATION while this request was waiting.
+    if (expectedJob && expectedJob.updatedAt) filters.updated_at = 'eq.' + expectedJob.updatedAt;
+    var rows = SupabaseHttpClient.updateRows(TABLE_WRITE_JOBS, {
       status: 'pending', attempts: 0, last_error: '', next_run_at: nextRunAt,
       locked_at: null, claimed_at: null, worker_id: null
-    }, { id: 'eq.' + jobId });
+    }, filters, { returnRepresentation: true });
+    if (!rows || !rows.length) throw new Error('Không thể retry job vì trạng thái đã thay đổi. Hãy tải lại và đối soát Google Sheet.');
     appendLog({ job_id: jobId, status: 'pending', message: 'Write job manually retried.' });
   }
 

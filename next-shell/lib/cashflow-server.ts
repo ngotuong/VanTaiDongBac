@@ -18,7 +18,7 @@ function filterTransactionSearch(payload:FundTransactions,search:string){
   if(!search)return payload;
   const query=normalizedText(search);
   const transactions=(payload.transactions||[]).filter((row)=>normalizedText([row.voucher,row.dateText||row.date,row.type,row.category,row.actor,row.partner,row.content].join(' ')).includes(query));
-  return {...payload,transactions,totalRows:transactions.length};
+  return {...payload,transactions,totalRows:transactions.length,displayedRows:transactions.length};
 }
 function catalogFromOptions(options:FundOptions,group:string):FundCatalog{
   const values=(options[group as keyof FundOptions] as string[]|undefined)||[];
@@ -58,16 +58,18 @@ export async function loadCashflowSurface(input:{year?:unknown;surface?:unknown;
     const repo=createFundBundleRepository({httpError,fetchImpl:(request,init={})=>fetch(request,{...init,signal:AbortSignal.timeout(5000)})});
     if(startDate&&endDate){
       if(surface==='overview'){
-        const rows=await Promise.all(rangeService.monthKeys(startDate,endDate).map(monthKey=>repo.find(config,TABLES.overview,{year,month_key:monthKey})));
-        const cachedRows=rangeService.contiguousCachedRows(rows);
+        const requestedMonths=rangeService.monthKeys(startDate,endDate);
+        const rows=await Promise.all(requestedMonths.map(monthKey=>repo.find(config,TABLES.overview,{year,month_key:monthKey})));
+        const cachedRows=rangeService.contiguousCachedRows(rows,requestedMonths);
         if(cachedRows.length){
           const payloads=cachedRows.map(row=>publicPayload<FundOverview>(row)).filter(Boolean) as FundOverview[];
           if(payloads.length===cachedRows.length)return rangeService.buildOverviewRange(payloads as unknown as Array<Record<string,unknown>>,startDate,endDate) as FundOverview;
         }
       }
       if(surface==='transactions'){
-        const rows=await Promise.all(rangeService.monthKeys(startDate,endDate).map(monthKey=>repo.find(config,TABLES.transactions,{year,filter_key:`month:${monthKey}`})));
-        const cachedRows=rangeService.contiguousCachedRows(rows);
+        const requestedMonths=rangeService.monthKeys(startDate,endDate);
+        const rows=await Promise.all(requestedMonths.map(monthKey=>repo.find(config,TABLES.transactions,{year,filter_key:`month:${monthKey}`})));
+        const cachedRows=rangeService.contiguousCachedRows(rows,requestedMonths);
         if(cachedRows.length){
           const payloads=cachedRows.map(row=>publicPayload<FundTransactions>(row)).filter(Boolean) as FundTransactions[];
           if(payloads.length===cachedRows.length)return filterTransactionSearch(rangeService.mergeTransactionBundles(payloads as unknown as Array<Record<string,unknown>>,startDate,endDate) as FundTransactions,search);

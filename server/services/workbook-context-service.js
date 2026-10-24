@@ -36,8 +36,10 @@ function createWorkbookContextService({ env = process.env, repository = null, co
       }
       return fallback;
     }
-    const contexts = { ...fallback.contexts };
-    let defaultYear = fallback.defaultYear;
+    const contexts = {};
+    // Once populated, lifecycle authority belongs to the registry. An env
+    // default must not reopen a ready/archived year when there is no active row.
+    const activeYears = [];
     for (const row of rows) {
       const year = String(row?.year || '').trim();
       const status = String(row?.lifecycle_status || '').trim();
@@ -48,10 +50,12 @@ function createWorkbookContextService({ env = process.env, repository = null, co
       }
       const transport = String(row?.transport_spreadsheet_id || '').trim();
       const cashflow = String(row?.cashflow_spreadsheet_id || '').trim();
+      delete contexts[year];
       if (!transport || !cashflow || transport === cashflow) continue;
       contexts[year] = { transport, cashflow };
-      if (status === 'active') defaultYear = year;
+      if (status === 'active') activeYears.push(year);
     }
+    const defaultYear = activeYears.length === 1 ? activeYears[0] : '';
     const availableYears = Object.keys(contexts).filter((year) => YEAR_PATTERN.test(year) && contexts[year]?.transport && contexts[year]?.cashflow).sort().reverse();
     if (!YEAR_PATTERN.test(defaultYear) || !availableYears.includes(defaultYear)) {
       throw httpError(503, 'Registry workbook chưa có một năm hoạt động hợp lệ.');

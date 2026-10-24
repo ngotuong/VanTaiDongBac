@@ -120,12 +120,20 @@ function createFundRangeService() {
     }));
     transactions.sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || number(b.rowIndex) - number(a.rowIndex));
     const syncTimes = payloads.map((item) => text(item.supabaseSyncedAt)).filter(Boolean).sort();
+    const limited = payloads.some((item) => item?.limited === true || item?.incomplete === true);
+    const sourceTotalRows = payloads.reduce((sum, item) => {
+      const total = Number(item?.sourceTotalRows ?? item?.totalRows);
+      return sum + (Number.isFinite(total) ? total : (item?.transactions || []).length);
+    }, 0);
     return {
       ok: true,
       months: payloads.flatMap((item) => item.months || []).filter((item, index, all) => all.findIndex((candidate) => candidate.key === item.key) === index),
       transactions,
       totalRows: transactions.length,
-      limited: false,
+      displayedRows: transactions.length,
+      sourceTotalRows,
+      limited,
+      incomplete: limited,
       supabaseCached: true,
       supabaseSyncedAt: syncTimes[0] || ''
     };
@@ -144,12 +152,36 @@ function createFundRangeService() {
     return result;
   }
 
-  function contiguousCachedRows(rows) {
+  function monthSet_(row) {
+    const payload = row?.payload && typeof row.payload === 'object' ? row.payload : row;
+    if (!Array.isArray(payload?.months)) return null;
+    return payload.months.map((item) => text(item?.key || item)).filter(Boolean).sort();
+  }
+
+  function contiguousCachedRows(rows, requestedMonthKeys) {
     const input = Array.isArray(rows) ? rows : [];
     const firstCachedIndex = input.findIndex(Boolean);
     if (firstCachedIndex < 0) return [];
     const available = input.slice(firstCachedIndex);
-    return available.every(Boolean) ? available : [];
+    if (!available.every(Boolean)) return [];
+    if (firstCachedIndex === 0) return available;
+
+    const requested = Array.isArray(requestedMonthKeys) ? requestedMonthKeys.map(text) : [];
+    if (requested.length !== input.length) return [];
+    const coverageSets = available.map(monthSet_);
+    if (coverageSets.some((set) => !set)) return [];
+    const baseline = JSON.stringify(coverageSets[0]);
+    if (coverageSets.some((set) => JSON.stringify(set) !== baseline)) return [];
+    const covered = new Set(coverageSets[0]);
+    const missingLeading = requested.slice(0, firstCachedIndex);
+    if (missingLeading.some((monthKey) => covered.has(monthKey))) return [];
+    if (!requested.slice(firstCachedIndex).every((monthKey) => covered.has(monthKey))) return [];
+    const aligned = available.every((row, index) => {
+      const payload = row?.payload && typeof row.payload === 'object' ? row.payload : row;
+      return text(payload?.selectedMonth || payload?.month || payload?.monthKey) === requested[firstCachedIndex + index];
+    });
+    if (!aligned) return [];
+    return available;
   }
 
   return { buildOverviewRange, buildLoansRange, mergeTransactionBundles, monthKeys, contiguousCachedRows };

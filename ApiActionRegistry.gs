@@ -60,6 +60,11 @@ var ApiActionRegistry = (function () {
   };
 
   function get(action) { return ACTIONS[String(action || '')] || null; }
+  function isBusinessWrite(action) {
+    return ['submitRows', 'saveSheetRow', 'deleteSheetRow', 'updateFundTransaction', 'deleteFundTransaction',
+      'addFundTransaction', 'addFundTransactions', 'addFundDebtPayment', 'addFundLoan', 'addFundLoanPayment',
+      'saveFundCatalogItem', 'deleteFundCatalogItem', 'updateFundSettings'].indexOf(action) !== -1;
+  }
   function list() { return Object.keys(ACTIONS).map(function (action) { var item = ACTIONS[action]; return { action: action, method: item.method, kind: item.kind, permission: item.permission, routerOnly: Boolean(item.routerOnly), proxyLocal: Boolean(item.proxyLocal), disabled: Boolean(item.disabled) }; }); }
 
   function assertPublicAction(method, action) {
@@ -76,5 +81,5 @@ var ApiActionRegistry = (function () {
     return item;
   }
 
-  return { get: get, list: list, assertPublicAction: assertPublicAction, assertRouterGetAction: assertRouterGetAction };
+  return { get: get, list: list, isBusinessWrite: isBusinessWrite, assertPublicAction: assertPublicAction, assertRouterGetAction: assertRouterGetAction };
 })();

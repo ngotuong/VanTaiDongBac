@@ -102,7 +102,8 @@ test('Catalog writes update the edited table optimistically and defer authoritat
   const api=read('PublicApi.gs');
   const supabase=read('SupabaseService.gs');
   const writeWrapper=api.match(/function withSheetRowSync_\([\s\S]*?\n}\n\nfunction isTransportManageSheet_/)?.[0]||'';
-  assert.match(module,/clientRequestId:`catalog-save-/);
+  assert.match(module,/useState\(\(\) => createRetrySafeWriteClient\(api\)\)/);
+  assert.match(module,/writeApi\.post<[^>]+>\('saveSheetRow'/);
   assert.match(module,/const nextData=\{\.\.\.data,rows:nextRows\};setData\(nextData\)/);
   assert.match(module,/catalogResponseCache\.set\(catalogCacheKey\(year,sheet\)/);
   assert.match(module,/void api\.post\('processWriteJobs'/);

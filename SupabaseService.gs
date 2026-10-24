@@ -1446,7 +1446,7 @@ var SupabaseService = (function () {
     if (clean_(currentJob.status).toLowerCase() !== 'failed') {
       throw new Error('Chỉ có thể retry job đang ở trạng thái failed.');
     }
-    WriteJobRepository.retry(safeJobId, new Date().toISOString());
+    WriteJobRepository.retry(safeJobId, new Date().toISOString(), currentJob);
     return getWriteJobStatus(safeJobId);
   }
 
@@ -1633,6 +1633,7 @@ var SupabaseService = (function () {
   function executeWriteJob_(job) {
     var actionName = clean_(job.action);
     var payload = job.payload || {};
+    AppConfig.assertWritableYear(payload.year);
     if (TransportJobHandler.canHandle(actionName)) {
       if (!payload.spreadsheetId) throw new Error('Job Vận tải thiếu workbook đã khóa khi enqueue.');
       AppConfig.activate({ spreadsheetId: payload.spreadsheetId, year: payload.year });
@@ -1909,8 +1910,8 @@ var SupabaseService = (function () {
     return {
       clean: clean_,
       submitRows: function (formType, rows, options) { return EntryService.submitRows(formType, rows, options); },
-      saveSheetRow: function (sheetName, rowIndex, rowData, previousRowData) {
-        return EntryService.saveSheetRow(sheetName, rowIndex, rowData, previousRowData);
+      saveSheetRow: function (sheetName, rowIndex, rowData, previousRowData, writeContext) {
+        return EntryService.saveSheetRow(sheetName, rowIndex, rowData, previousRowData, writeContext);
       },
       deleteSheetRow: function (sheetName, rowIndex, columnsToClear, rowData) {
         return EntryService.deleteSheetRow(sheetName, rowIndex, columnsToClear, rowData);

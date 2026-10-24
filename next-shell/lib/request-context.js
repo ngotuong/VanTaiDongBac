@@ -32,7 +32,13 @@ export async function loadPlatformContext(input = {}) {
   });
   const matchedPath = headerStore.get('x-matched-path') || headerStore.get('x-invoke-path') || '';
   const routeModule = /^\/cashflow(?:\/|$)/.test(matchedPath) ? 'cashflow' : input.module;
-  const workbook = await workbookService.publicContextAsync({ module: routeModule, year: input.year || selectedYear });
+  let workbook;
+  try {
+    workbook = await workbookService.publicContextAsync({ module: routeModule, year: input.year || selectedYear });
+  } catch (error) {
+    if (input.year || !selectedYear || error?.status !== 404) throw error;
+    workbook = await workbookService.publicContextAsync({ module: routeModule });
+  }
   return { user, workbook, correlationId };
 }
 
@@ -46,5 +52,10 @@ export async function loadServerWorkbookContext(input = {}) {
   });
   const matchedPath = headerStore.get('x-matched-path') || headerStore.get('x-invoke-path') || '';
   const routeModule = /^\/cashflow(?:\/|$)/.test(matchedPath) ? 'cashflow' : input.module;
-  return workbookService.resolveAsync({ module: routeModule, year: input.year || selectedYear });
+  try {
+    return await workbookService.resolvePublicAsync({ module: routeModule, year: input.year || selectedYear });
+  } catch (error) {
+    if (input.year || !selectedYear || error?.status !== 404) throw error;
+    return workbookService.resolvePublicAsync({ module: routeModule });
+  }
 }

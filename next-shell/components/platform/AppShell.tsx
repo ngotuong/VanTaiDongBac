@@ -47,6 +47,7 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
   const pageTitle = PAGE_META[currentPath] || 'Vận Tải Đông Bắc';
   const navigationTarget = pendingHref && !routesEqual(pendingHref, currentPath) ? pendingHref : '';
   const yearPending = Boolean(pendingYear && pendingYear !== context.workbook.year);
+  const showYearControl = context.workbook.availableYears.length > 1;
 
   useEffect(() => {
     document.body.classList.toggle('shell-drawer-open', drawerOpen);
@@ -127,13 +128,12 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
         <button type="button" className="menu-button" aria-label="Mở menu" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}><svg className="btn-svg" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
         <div><h1>{pageTitle}</h1><div className="subtitle">{subtitle}{currentMeta.source ? <span className={`source-badge ${currentMeta.source === 'supabase' ? 'source-supabase' : 'source-appscript'}`} title={currentMeta.source === 'supabase' ? 'Dữ liệu được đọc từ Supabase' : 'Dữ liệu được đối soát trực tiếp từ Google Sheet qua Apps Script'}>{currentMeta.source === 'supabase' ? 'S' : 'AS'}</span> : null}</div></div>
         <div className="top-actions">
-          <label className="shell-year-control" title={context.workbook.readOnly ? `Năm ${context.workbook.year} chỉ đọc` : `Năm ${context.workbook.year} đang hoạt động`}>
-            <span className="sr-only">Năm dữ liệu</span>
+          {showYearControl ? <label className="shell-year-control" title={context.workbook.readOnly ? `Năm ${context.workbook.year} chỉ đọc` : `Năm ${context.workbook.year} đang hoạt động`}>
             <select aria-label="Năm dữ liệu" value={context.workbook.year} disabled={yearPending} onChange={(event) => void changeYear(event.target.value)}>
-              {context.workbook.availableYears.map((year) => <option key={year} value={year}>{year}{year === context.workbook.activeYear ? ' · đang hoạt động' : ' · chỉ xem'}</option>)}
+              {context.workbook.availableYears.map((year) => <option key={year} value={year}>{year}</option>)}
             </select>
-          </label>
-          {context.workbook.readOnly ? <span className="shell-year-readonly" title="Dữ liệu năm lưu trữ chỉ được xem">Chỉ xem</span> : null}
+          </label> : null}
+          {showYearControl && context.workbook.readOnly ? <span className="shell-year-readonly" title="Dữ liệu năm lưu trữ chỉ được xem">Chỉ xem</span> : null}
           <button type="button" className="ghost icon-button shell-header-refresh" aria-label="Tải lại dữ liệu từ Supabase" title="Tải lại từ Supabase" onClick={refresh}><svg className="btn-svg" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg></button>
           <NotificationCenter userId={context.user.id} />
         </div>

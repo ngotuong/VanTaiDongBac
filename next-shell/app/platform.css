@@ -5428,9 +5428,14 @@ html body .app main.main#platform-content .cashflow-c2 .cashflow-overview-filter
   max-width: 142px !important;
 }
 
+.shell-year-control {
+  display: inline-flex;
+  align-items: center;
+}
+
 .shell-year-control select {
   min-width: 104px;
-  height: 40px;
+  height: 44px;
   padding: 0 30px 0 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -5468,7 +5473,7 @@ html body .app main.main#platform-content .cashflow-c2 .cashflow-overview-filter
 }
 
 @media (max-width: 640px) {
-  .shell-year-control select { min-width: 76px; max-width: 92px; padding-right: 24px; }
+  .shell-year-control select { min-width: 76px; max-width: 92px; padding-right: 24px; font-size: 16px; }
   .shell-year-readonly { display: none; }
 }
 

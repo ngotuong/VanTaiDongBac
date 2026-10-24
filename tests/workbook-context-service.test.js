@@ -56,3 +56,20 @@ test('dynamic registry preserves the exact Vercel allowlist before migration 020
   });
   assert.equal((await service.resolveAsync({ module: 'transport' })).spreadsheetId, 'transport-2026');
 });
+
+test('ready future workbook remains available to internal rollover services but stays out of public year selection', async () => {
+  const rows = [
+    { year: '2027', transport_spreadsheet_id: 'transport-2027', cashflow_spreadsheet_id: 'cashflow-2027', lifecycle_status: 'ready' },
+    { year: '2026', transport_spreadsheet_id: 'transport-2026', cashflow_spreadsheet_id: 'cashflow-2026', lifecycle_status: 'active' }
+  ];
+  const service = createWorkbookContextService({
+    env: {}, httpError,
+    config: { supabaseUrl: 'https://isolated.invalid', serviceRoleKey: 'server-only' },
+    repository: { async list() { return rows; } }
+  });
+  const internal = await service.resolveAsync({ module: 'transport', year: '2027' });
+  assert.equal(internal.spreadsheetId, 'transport-2027');
+  assert.deepEqual(internal.availableYears, ['2026']);
+  await assert.rejects(service.resolvePublicAsync({ module: 'transport', year: '2027' }), { status: 404 });
+  assert.deepEqual((await service.publicContextAsync({ module: 'transport' })).availableYears, ['2026']);
+});

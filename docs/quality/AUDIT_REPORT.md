@@ -2,7 +2,7 @@
 
 ## Phạm vi và kết luận
 
-Audit source trên `codex/r8-mapping-optimization`, base HEAD `75c5d91`; working tree sạch trước audit. Candidate đã được gom tại commit `470c265`, push lên Draft PR #2 và deploy Preview `dpl_5GvH7ZL2yHEZLf8c85pDmEwYDt5G` ngày 24/10/2026. Production chưa đổi. Trạng thái vận hành duy nhất vẫn ở [PROJECT_CONTEXT](../../PROJECT_CONTEXT.md).
+Audit source trên `codex/r8-mapping-optimization`, base HEAD `68c704b`; working tree sạch trước audit. Candidate đã được gom tại commit `3f3385d`, push lên Draft PR #2 và deploy Preview `dpl_5GvH7ZL2yHEZLf8c85pDmEwYDt5G` ngày 24/10/2026. Production chưa đổi. Trạng thái vận hành duy nhất vẫn ở [PROJECT_CONTEXT](../../PROJECT_CONTEXT.md).
 
 Đã sửa **11 nhóm lỗi** trong candidate local, không đổi công thức, tiền nguồn, schema, dependency hay quy tắc nghiệp vụ. Sau khi người dùng phê duyệt checkpoint U01–U04, candidate có thêm journal append Vận tải/Danh mục và coverage/incomplete Thu chi. Review diff và canary tiếp theo sửa API Developer Metadata location không tồn tại, đổi marker sang row dimension A1 thật và loại năm env-only khi registry đã có dữ liệu. Full suite **933/933 PASS**; SQL cô lập migrations 001–020 và các kiểm tra retry mới PASS. Không kết luận hệ thống đã hết lỗi nghiêm trọng; không dùng kết quả canary tách biệt để tuyên bố Production đã được sửa.
 

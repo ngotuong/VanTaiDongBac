@@ -15,6 +15,8 @@ export function createWorkbookContextService(input: {
 }): {
   resolve(value?: { module?: string; year?: string }): ResolvedWorkbookContext;
   resolveAsync(value?: { module?: string; year?: string }, options?: Record<string, unknown>): Promise<ResolvedWorkbookContext>;
+  resolvePublic(value?: { module?: string; year?: string }): ResolvedWorkbookContext;
+  resolvePublicAsync(value?: { module?: string; year?: string }, options?: Record<string, unknown>): Promise<ResolvedWorkbookContext>;
   publicContext(value?: { module?: string; year?: string }): Omit<ResolvedWorkbookContext, 'spreadsheetId'>;
   publicContextAsync(value?: { module?: string; year?: string }, options?: Record<string, unknown>): Promise<Omit<ResolvedWorkbookContext, 'spreadsheetId'>>;
   assertWritable(value?: { module?: string; year?: string }): ResolvedWorkbookContext;

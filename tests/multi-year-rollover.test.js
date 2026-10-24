@@ -49,6 +49,18 @@ test('selected year cookie is HttpOnly, same-origin scoped and rejects malformed
   assert.throws(() => workbookYearCookie('202X'), /không hợp lệ/);
 });
 
+test('global year control only appears for multiple public years and keeps its label accessible without visible helper text', () => {
+  const shell = read('next-shell/components/platform/AppShell.tsx');
+  const css = read('next-shell/app/platform.css');
+  assert.match(shell, /showYearControl = context\.workbook\.availableYears\.length > 1/);
+  assert.match(shell, /showYearControl \? <label className="shell-year-control"/);
+  assert.match(shell, /<select aria-label="Năm dữ liệu"/);
+  assert.doesNotMatch(shell, /<span className="sr-only">Năm dữ liệu<\/span>/);
+  assert.match(shell, /<option key=\{year\} value=\{year\}>\{year\}<\/option>/);
+  assert.match(css, /\.shell-year-control select \{[\s\S]*?height: 44px/);
+  assert.match(css, /@media \(max-width: 640px\) \{[\s\S]*?\.shell-year-control select \{[^}]*font-size: 16px/);
+});
+
 test('year rollover audit is read-only, checks active work, and activation remains token/rollback guarded', () => {
   const migration = read('YearRolloverMigration.gs');
   assert.match(migration, /SpreadsheetApp\.openById/);

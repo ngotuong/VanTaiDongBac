@@ -40,6 +40,7 @@ function createWorkbookContextService({ env = process.env, repository = null, co
     // Once populated, lifecycle authority belongs to the registry. An env
     // default must not reopen a ready/archived year when there is no active row.
     const activeYears = [];
+    const availableYears = [];
     for (const row of rows) {
       const year = String(row?.year || '').trim();
       const status = String(row?.lifecycle_status || '').trim();
@@ -54,9 +55,10 @@ function createWorkbookContextService({ env = process.env, repository = null, co
       if (!transport || !cashflow || transport === cashflow) continue;
       contexts[year] = { transport, cashflow };
       if (status === 'active') activeYears.push(year);
+      if (status === 'active' || status === 'archived') availableYears.push(year);
     }
     const defaultYear = activeYears.length === 1 ? activeYears[0] : '';
-    const availableYears = Object.keys(contexts).filter((year) => YEAR_PATTERN.test(year) && contexts[year]?.transport && contexts[year]?.cashflow).sort().reverse();
+    availableYears.sort().reverse();
     if (!YEAR_PATTERN.test(defaultYear) || !availableYears.includes(defaultYear)) {
       throw httpError(503, 'Registry workbook chưa có một năm hoạt động hợp lệ.');
     }
@@ -84,8 +86,24 @@ function createWorkbookContextService({ env = process.env, repository = null, co
     return resolvedFrom_(input, await configurationAsync(options));
   }
 
+  function resolvedPublicFrom_(input, state) {
+    const requestedYear = String(input.year || '').trim();
+    if (requestedYear && !state.availableYears.includes(requestedYear)) {
+      throw httpError(404, `Năm ${requestedYear} chưa được mở để xem.`);
+    }
+    return resolvedFrom_(input, state);
+  }
+
+  function resolvePublic(input = {}) {
+    return resolvedPublicFrom_(input, configuration());
+  }
+
+  async function resolvePublicAsync(input = {}, options = {}) {
+    return resolvedPublicFrom_(input, await configurationAsync(options));
+  }
+
   function publicContext(input = {}) {
-    const context = resolve(input);
+    const context = resolvePublic(input);
     return {
       module: context.module,
       year: context.year,
@@ -102,7 +120,7 @@ function createWorkbookContextService({ env = process.env, repository = null, co
   }
 
   async function publicContextAsync(input = {}, options = {}) {
-    const context = await resolveAsync(input, options);
+    const context = await resolvePublicAsync(input, options);
     return {
       module: context.module,
       year: context.year,
@@ -119,7 +137,7 @@ function createWorkbookContextService({ env = process.env, repository = null, co
   }
 
   return {
-    resolve, resolveAsync, publicContext, publicContextAsync,
+    resolve, resolveAsync, resolvePublic, resolvePublicAsync, publicContext, publicContextAsync,
     assertWritable, assertWritableAsync, configuration, configurationAsync
   };
 }

@@ -5,6 +5,7 @@ import { BusinessButton, BusinessGrid, BusinessFieldControl, BusinessAmountSumma
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
+import { createRetrySafeWriteClient } from '../../lib/platform/retry-safe-write-client';
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { formatVietnameseNumberInput } from '../../lib/platform/numeric-input';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
@@ -121,6 +122,7 @@ function normalizeJob(value: unknown): WriteJob {
 export function EntryModule({ initialCatalogs, initialError = '', initialForm = 'vanChuyen', onClose, onSubmitted, onDirtyChange }: { initialCatalogs: EntryCatalogs; initialError?: string; initialForm?: EntryFormType; onClose?: () => void; onSubmitted?: (submission: { form: EntryFormType; rows: EntryRow[] }) => void; onDirtyChange?: (dirty: boolean) => void }) {
   const hasInitialCatalogs = Object.keys(initialCatalogs).length > 0;
   const context = useWorkbookContext();
+  const [writeApi] = useState(() => createRetrySafeWriteClient(api));
   const [form, setForm] = useState<EntryFormType>(initialForm);
   const [catalogs, setCatalogs] = useState<Record<string, EntryCatalogs>>(hasInitialCatalogs ? catalogsForAllForms(initialCatalogs) : {});
   const initialCatalogsRequested = useRef(Object.keys(initialCatalogs).length > 0);
@@ -226,7 +228,7 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
     showToast('Đang gửi lệnh ghi dữ liệu…', 'loading');
     try {
       const submittedRows = rows.map((row) => ({ ...row }));
-      const queued = { ...normalizeJob(await api.post<WriteJob>('submitRows', { body: { year: context.workbook.year, formType: form, rows, clientRequestId: `entry-${Date.now()}-${crypto.randomUUID()}` } })), payload: { formType: form, year: context.workbook.year } };
+      const queued = { ...normalizeJob(await writeApi.post<WriteJob>('submitRows', { body: { year: context.workbook.year, formType: form, rows } })), payload: { formType: form, year: context.workbook.year } };
       if (!queued.jobId) throw new Error('API không trả về mã write job.');
       setJobs((old) => [queued, ...old.filter((j) => j.jobId !== queued.jobId)].slice(0, 12));
       setRows([blank(form)]);

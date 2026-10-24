@@ -29,15 +29,6 @@ var EntryService = (function () {
       if (!sheet) throw new Error('Khong tim thay sheet ' + cfg.name);
       var liveSchema = assertLiveHeaders_(sheet, cfg);
 
-      var reservedRange = findWriteJobRange_(sheet, writeContext);
-      var idempotentReplay = Boolean(reservedRange);
-      var appendRow = reservedRange ? reservedRange.getRow() : context.getAppendRow(sheet, cfg.headerRow);
-      context.ensureRows(sheet, appendRow + result.values.length - 1);
-      if (!reservedRange && writeContext && writeContext.jobId) {
-        reserveWriteJobRange_(sheet, writeContext.jobId, appendRow);
-        reservedRange = sheet.getRange(appendRow, 1, 1, sheet.getMaxColumns());
-      }
-
       var expectedIndexByLiveColumn = {};
       liveSchema.expectedIndexes.forEach(function (liveIndex, expectedIndex) {
         expectedIndexByLiveColumn[liveIndex] = expectedIndex;
@@ -54,14 +45,29 @@ var EntryService = (function () {
         });
         return physicalRow;
       });
-      context.writeRows(sheet, appendRow, physicalRows, skippedColumns);
-      context.clearAfterSubmitCache();
+      var located = writeContext && writeContext.jobId ? SheetWriteJournal.locate(sheet, writeContext) : null;
+      var appendRow = located ? located.range.getRow() : context.getAppendRow(sheet, cfg.headerRow);
+      context.ensureRows(sheet, appendRow + result.values.length - 1);
+      var writableColumns = liveSchema.headers.map(function (_, index) { return index; }).filter(function (index) {
+        return skippedColumns.indexOf(index) === -1;
+      });
+      var intent = SheetWriteJournal.prepare(sheet, writeContext, {
+        startRow: appendRow,
+        intendedRows: physicalRows,
+        writableColumns: writableColumns,
+        located: located
+      });
+      appendRow = intent.startRow;
+      if (intent.shouldWrite) {
+        context.writeRows(sheet, appendRow, physicalRows, skippedColumns);
+        context.clearAfterSubmitCache();
+      }
       return {
         ok: result.errors.length === 0,
         inserted: result.values.length,
         startRow: appendRow,
         sheetName: cfg.name,
-        idempotentReplay: idempotentReplay,
+        idempotentReplay: intent.idempotentReplay,
         errors: result.errors,
         warnings: result.warnings
       };
@@ -101,45 +107,16 @@ var EntryService = (function () {
     return { headers: actual, expectedIndexes: expectedIndexes };
   }
 
-  function findWriteJobRange_(sheet, writeContext) {
-    var jobId = writeContext && writeContext.jobId ? String(writeContext.jobId).trim() : '';
-    if (!jobId) return null;
-    var raw = PropertiesService.getScriptProperties().getProperty(reservationKey_(jobId));
-    if (!raw) return null;
-    try {
-      var reservation = JSON.parse(raw);
-      var startRow = Number(reservation.startRow);
-      if (String(reservation.sheetName || '') !== String(sheet.getName() || '')) return null;
-      if (!Number.isInteger(startRow) || startRow <= 0) return null;
-      return sheet.getRange(startRow, 1, 1, sheet.getMaxColumns());
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function reserveWriteJobRange_(sheet, jobId, startRow) {
-    PropertiesService.getScriptProperties().setProperty(reservationKey_(jobId), JSON.stringify({
-      sheetName: sheet.getName(),
-      startRow: startRow
-    }));
-  }
-
   function releaseWriteJobReservation(jobId) {
-    var safeJobId = jobId ? String(jobId).trim() : '';
-    if (!safeJobId) return;
-    PropertiesService.getScriptProperties().deleteProperty(reservationKey_(safeJobId));
-  }
-
-  function reservationKey_(jobId) {
-    return 'WRITE_JOB_RESERVATION_' + String(jobId);
+    SheetWriteJournal.release(jobId);
   }
 
   function checkTripReconciliation(rows) {
     return TransportReconciliationService.checkTripReconciliation(rows);
   }
 
-  function saveSheetRow(sheetName, rowIndex, rowData, expectedRowData) {
-    return SheetService.saveSheetRow(sheetName, rowIndex, rowData, expectedRowData);
+  function saveSheetRow(sheetName, rowIndex, rowData, expectedRowData, writeContext) {
+    return SheetService.saveSheetRow(sheetName, rowIndex, rowData, expectedRowData, writeContext);
   }
 
   function deleteSheetRow(sheetName, rowIndex, columnsToClear, expectedRowData) {

@@ -8,6 +8,8 @@
 - Mọi mutation Thu chi theo dõi job; terminal invalidate/refetch. Pending không coi là số tài chính chính thức.
 - Push ledger theo endpoint/event hạn chế duplicate retry partial; vẫn at-least-once khi provider nhận/ledger lỗi hoặc concurrency.
 - Maintenance: BUSINESS_WRITES_PAUSED (Vercel), WRITE_QUEUE_PAUSED (Script). Rollout/shared HEAD/copy-canary/rollback theo [R8 runbook](../operations/R8_REMEDIATION.md).
+- Entry/Manage/Catalog giữ request ID của intent chưa xác nhận trong đời component; chỉ tạo ID mới cho cùng nội dung sau khi nhận jobId. Không cam kết giữ qua reload/đóng component; không lưu raw payload vào browser storage.
+- Manual retry phải lấy persisted `payload.year`, kiểm năm active và PATCH theo `id + failed + updated_at` đã quan sát. Không có row đổi → báo conflict, không ghi log nhận retry giả; worker kiểm lại năm trước execute.
 
 
 ## 1. Mục đích và phạm vi
@@ -810,15 +812,9 @@ Khi lỗi:
 
 ### 17.1. Append
 
-Contract:
+Candidate hiện hành truyền job ID xuống write context và dùng `SheetWriteJournal`: Developer Metadata `WRITE_JOB_INTENT_V2` gắn vào đúng range cùng intent hash, cộng Script Property `WRITE_JOB_JOURNAL_<jobId>` cho trạng thái chuẩn bị. Marker theo range khi Sheet chèn hoặc di chuyển dòng; hash bao gồm sheet, shape, writable columns và giá trị dự kiến nhưng không khóa row number.
 
-- job ID được truyền xuống write context;
-- range đã ghi được gắn Developer Metadata key `WRITE_JOB_ID`;
-- trước append, service tìm metadata cùng job ID;
-- nếu tìm thấy, trả `idempotentReplay=true`/range hiện có;
-- nếu không, append và gắn metadata.
-
-Metadata phải gắn đúng range chứa các row của job, không gắn toàn sheet.
+Replay chỉ có ba kết quả: writable cells khớp hoàn toàn thì trả `idempotentReplay=true` mà không gọi writer; tất cả còn trống thì tiếp tục crash-before-write; partial/drift/hash/shape/marker không nhất quán thì trả `REQUIRES_RECONCILIATION`. Reservation legacy `WRITE_JOB_RESERVATION_<jobId>` chỉ được chấp nhận khi row hiện tại đã khớp hoàn toàn; không dùng row number legacy để ghi lại. Marker bền vững được giữ sau khi job synced, còn Script Property tạm được dọn để tránh quota. Cơ chế này áp dụng cho `submitRows` và append `saveSheetRow`, gồm Danh mục.
 
 ### 17.1a. Append khoản vay Quỹ
 

@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT
 
-Current-state handoff duy nhất. Khi bắt đầu phiên mới, đọc toàn bộ `AGENTS.md`, file này và `git status --short`; dùng [router](docs/ai/AI_START_HERE.md) cho tài liệu chuyên biệt. Cập nhật 23/10/2026 18:55 ICT.
+Current-state handoff duy nhất. Khi bắt đầu phiên mới, đọc toàn bộ `AGENTS.md`, file này và `git status --short`; dùng [router](docs/ai/AI_START_HERE.md) cho tài liệu chuyên biệt. Cập nhật 24/10/2026 ICT.
 
 ## 1. Dự án và module
 
@@ -18,6 +18,9 @@ Current-state handoff duy nhất. Khi bắt đầu phiên mới, đọc toàn b�
 
 ## 3. Checkpoint gần nhất
 
+- Audit/khắc phục local đang mở theo yêu cầu người dùng: A01–A07 và checkpoint U01–U04 đã được phê duyệt, triển khai trong candidate. Review tiếp theo đã sửa ba lỗi trong chính candidate: Developer Metadata location dùng API Apps Script không tồn tại (`getRange`), metadata được gắn lên numeric range thay vì row dimension thật, và registry có dữ liệu vẫn giữ năm chỉ tồn tại ở env. Journal dùng row marker + intent hash để bảo vệ append Vận tải/Danh mục; Fund range yêu cầu coverage tháng có bằng chứng và giữ `limited/incomplete` tới UI. Source base HEAD `75c5d91`; thay đổi chưa commit/deploy. Full 933 tests, SQL001–020 kèm retry/ABA, lint/typecheck/build/identity/diff-check PASS; production deps0, dev1High ở transitive `zod`. [Báo cáo audit](docs/quality/AUDIT_REPORT.md) giữ phạm vi, file, evidence và giới hạn.
+- U01/U04 journal đã chạy PASS trên Apps Script và Google Sheet thật trong project canary tách biệt ngày 24/10. Lần chạy đầu sau khi xác minh tài khoản phát hiện Apps Script từ chối metadata trên numeric full-width range; candidate đã đổi sang row dimension A1 `N:N`, bổ sung regression rồi chạy lại PASS các kịch bản exact replay, row shift, crash-before-write, partial/drift/hash, missing marker, split block và occupied target. Hai spreadsheet dữ liệu giả đều được đưa vào Thùng rác qua `finally`; project canary cũng đã trở lại Thùng rác.
+- U02/U03 Fund coverage canary read-only ngày 24/10 PASS với metadata cache thật qua phiên Production đã xác thực: nguồn hiện có 05–10/2026, bốn tháng 01–04 pre-data được candidate chấp nhận khi có coverage đồng nhất; 282/282 giao dịch, `limited=false`, `incomplete=false`. Fault cases thiếu tháng đã biết, internal/trailing gap, selectedMonth lệch, coverage lệch/mất và limited provenance đều fail closed/pass regression. Authenticated QA Production PASS cho Quỹ 2026, khoảng cả năm, phân trang giao dịch và năm 2027 chỉ đọc; phiên đã trả về 2026. Đây chưa phải browser QA candidate vì candidate chưa deploy Preview. Production vẫn chạy code cũ; không có bằng chứng các lỗi mô phỏng đã xảy ra trên Production.
 - `year-rollover-self-service` đã deploy Production. Audit cuối `39fff5a9-7fc0-4452-b6ad-ccd7a868a5dc` là `ready`; 2026 vẫn active, 2027 chỉ đọc; chưa tạo confirmation token, pause writes hoặc chuyển trigger sang 2027.
 - Sự cố ba cảnh báo ngày 23/10 đã đóng. `api/notification-dispatch.js` truyền lại đúng `workbookContextService`; `AppConfig.gs` chấp nhận explicit `year=2026`; bundle chuyến xe và vận hành đã làm mới. `notification_pipeline`, `trip_notifications`, `operational_notifications` đều `ok`; Production không còn “Lỗi đồng bộ”, badge còn một thông báo nghiệp vụ chưa đọc.
 - Production Vercel: `dpl_GBoatQF8rDwzLNtddtRr79wULwSL`. Rollback tức thời: `dpl_FQZWP2fTYMJ6kLwR5yPVoTX54nVs`. Full pre-feature rollback: `dpl_41LPARvygaP9ZUFFK2hV4PYHm9CB`.
@@ -28,7 +31,8 @@ Current-state handoff duy nhất. Khi bắt đầu phiên mới, đọc toàn b�
 
 ## 4. Checkpoint tiếp theo
 
-- Không còn code/deploy đã biết cần làm cho chức năng chuyển năm. Cửa sổ tiếp theo chỉ mở gần thời điểm vận hành 2027: tạo audit mới/token, pause cả hai lớp ghi, drain queue/signal/lease, activate registry/properties/triggers, full sync 2027, authenticated QA rồi mở ghi.
+- Review diff, canary journal, Fund coverage và authenticated Production baseline QA đã hoàn tất. Bước tiếp theo cần phê duyệt riêng là commit/push candidate và deploy đúng Preview ổn định để QA candidate authenticated; Production vẫn là yêu cầu riêng. Pagination giao dịch nguồn là cải tiến riêng, chưa triển khai.
+- Chuyển năm vẫn chưa được phép kích hoạt. Trước cửa sổ vận hành 2027 phải đóng gate audit liên quan, tạo audit mới/token, pause cả hai lớp ghi, drain queue/signal/lease, activate registry/properties/triggers, full sync 2027, authenticated QA rồi mở ghi.
 - R8 còn hai nghiệm thu quan sát, không chặn vận hành hiện tại: một edit người dùng thật để đo edit→UI mục tiêu 1–2 phút và kiểm thử Safari/PWA/push trên iPhone vật lý. Không tạo giao dịch giả trong Production để đóng hai gate này.
 - Theo dõi execution/error-rate sau các bản sửa trigger và notification; lỗi nền tảng Google 0 giây/hard timeout không thể được code bắt tuyệt đối. Không tắt email hoặc nới stale threshold để che lỗi.
 
@@ -46,3 +50,4 @@ Current-state handoff duy nhất. Khi bắt đầu phiên mới, đọc toàn b�
 4. Production dependencies có 0 vulnerability; dev lint chain còn advisory chưa có bản vá tương thích. Web Push vẫn có residual at-least-once; tiếp tục theo dõi delivery ledger/log.
 5. Alias cũ `vantaidongbac-legacy`, ba alias `next-canary` và alias Git C3 đã gỡ ngày 23/10. Không tái sử dụng `vantaidongbac-c3-preview.vercel.app`; Preview chỉ qua `npm run deploy:preview`.
 6. Evidence cũ đã chuyển khỏi worktree sang `/Users/ngotuong/AppsScript/VanTaiDongBac_2026_WebApp_Archives/artifacts-through-20261023`, checksum tại file cùng tên đuôi `.sha256`. `artifacts/` local chỉ giữ evidence rollout/rollback ngày 23/10; không coi artifact là chỉ dẫn sống.
+7. Candidate audit chưa thay đổi runtime live. Journal canary và Fund coverage canary ngày 24/10 PASS; authenticated browser QA mới xác minh Production baseline, không phải candidate. A07 vẫn không bảo đảm chống trùng sau reload. Canary tách biệt không chứng minh tải/quota metadata, dữ liệu legacy Production hay toàn bộ worker/trigger; retry job chưa đối soát vẫn phải fail closed.

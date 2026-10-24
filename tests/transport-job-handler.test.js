@@ -42,8 +42,8 @@ test('submitRows preserves replay metadata and all three sync scopes', () => {
 test('saveSheetRow preserves previous/current report scope and dashboard only for trips', () => {
   const loaded = loadHandler();
   const payload = { sheetName: 'NL_VanChuyen', rowIndex: 7, previousRowData: { old: true }, rowData: { current: true } };
-  loaded.handler.execute({ action: 'saveSheetRow', payload }, loaded.context);
-  assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.save)), [['NL_VanChuyen', 7, { current: true }, { old: true }]]);
+  loaded.handler.execute({ id: 'job-save', idempotency_key: 'intent-save', action: 'saveSheetRow', payload }, loaded.context);
+  assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.save)), [['NL_VanChuyen', 7, { current: true }, { old: true }, { jobId: 'job-save', idempotencyKey: 'intent-save' }]]);
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.manage)), [['NL_VanChuyen', [{ current: true }], { fast: true }]]);
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.reports)), [['NL_VanChuyen', [{ old: true }, { current: true }], { includeAll: true }]]);
   assert.equal(loaded.calls.dashboard, 1);

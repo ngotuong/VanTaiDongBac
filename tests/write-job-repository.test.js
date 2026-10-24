@@ -17,7 +17,7 @@ function loadRepository(readQueue = []) {
         calls.push({ operation: 'read', tableName, query });
         return readQueue.length ? readQueue.shift() : [];
       },
-      updateRows(tableName, patch, filters) { calls.push({ operation: 'update', tableName, patch, filters }); }
+      updateRows(tableName, patch, filters) { calls.push({ operation: 'update', tableName, patch, filters }); return [{ id: 'job-1', ...patch }]; }
     }
   });
   new vm.Script(read('WriteJobRepository.gs'), { filename: 'WriteJobRepository.gs#test' }).runInContext(context);
@@ -71,7 +71,7 @@ test('retry and worker lifecycle preserve patches, filters, logs, and retry stat
     {
       operation: 'update', tableName: 'write_jobs',
       patch: { status: 'pending', attempts: 0, last_error: '', next_run_at: 'retry-at', locked_at: null, claimed_at: null, worker_id: null },
-      filters: { id: 'eq.job-1' }
+      filters: { id: 'eq.job-1', status: 'eq.failed' }
     },
     {
       operation: 'update', tableName: 'write_jobs',

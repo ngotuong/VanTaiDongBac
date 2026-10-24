@@ -797,7 +797,7 @@ var SheetService = (function () {
     });
   }
 
-  function saveSheetRow(sheetName, rowIndex, rowData, expectedRowData) {
+  function saveSheetRow(sheetName, rowIndex, rowData, expectedRowData, writeContext) {
     ValidationService.validateManageRow(sheetName, rowData);
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
@@ -829,8 +829,10 @@ var SheetService = (function () {
 
       var rowNum = parseInt(rowIndex, 10);
       var isAppend = isNaN(rowNum) || rowNum <= 0;
+      var locatedIntent = null;
       if (isAppend) {
-        rowNum = getAppendRowForRowData_(sheet, headerRow, headers, rowData);
+        locatedIntent = writeContext && writeContext.jobId ? SheetWriteJournal.locate(sheet, writeContext) : null;
+        rowNum = locatedIntent ? locatedIntent.range.getRow() : getAppendRowForRowData_(sheet, headerRow, headers, rowData);
         ensureRows_(sheet, rowNum);
       }
 
@@ -841,7 +843,7 @@ var SheetService = (function () {
         existingValues = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
       }
 
-      if (existingValues && rowObjectMatchesValues_(headers, existingValues, rowData)) {
+      if (!isAppend && existingValues && rowObjectMatchesValues_(headers, existingValues, rowData)) {
         return { ok: true, rowIndex: rowNum, idempotentReplay: true };
       }
       if (existingValues && expectedRowData && !rowObjectMatchesValues_(headers, existingValues, expectedRowData)) {
@@ -903,13 +905,25 @@ var SheetService = (function () {
         }
       }
 
+      var idempotentReplay = false;
       if (isAppend) {
-        writeRowsPreservingSheetState_(sheet, rowNum, [valuesToSet], skippedColumns);
+        var writableColumns = headers.map(function (_, index) { return index; }).filter(function (index) {
+          return skippedColumns.indexOf(index) === -1;
+        });
+        var intent = SheetWriteJournal.prepare(sheet, writeContext, {
+          startRow: rowNum,
+          intendedRows: [valuesToSet],
+          writableColumns: writableColumns,
+          located: locatedIntent
+        });
+        rowNum = intent.startRow;
+        idempotentReplay = intent.idempotentReplay;
+        if (intent.shouldWrite) writeRowsPreservingSheetState_(sheet, rowNum, [valuesToSet], skippedColumns);
       } else {
         writeRowSkippingColumns_(sheet, rowNum, valuesToSet, skippedColumns);
       }
 
-      clearAfterSubmitCache_();
+      if (!idempotentReplay) clearAfterSubmitCache_();
 
       if (sheetName.indexOf('DM_') === 0) {
         removeChunkedCache_(cacheKey_('catalogs', 'all'));
@@ -918,7 +932,7 @@ var SheetService = (function () {
         }
       }
 
-      return { ok: true, rowIndex: rowNum };
+      return { ok: true, rowIndex: rowNum, idempotentReplay: idempotentReplay };
     } catch (e) {
       return { ok: false, error: e.message };
     } finally {

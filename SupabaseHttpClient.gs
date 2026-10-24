@@ -49,17 +49,18 @@ var SupabaseHttpClient = (function () {
     return JSON.parse(response.getContentText() || '[]');
   }
 
-  function updateRows(tableName, patch, filters) {
+  function updateRows(tableName, patch, filters, options) {
     var config = getConfig_();
     var endpoint = appendQuery_(restTableEndpoint_(config.url, tableName), filters);
     var response = fetchWithRetry_(endpoint, {
       method: 'patch',
       muteHttpExceptions: true,
       contentType: 'application/json',
-      headers: serviceHeaders_(config.serviceRoleKey, 'return=minimal'),
+      headers: serviceHeaders_(config.serviceRoleKey, options && options.returnRepresentation ? 'return=representation' : 'return=minimal'),
       payload: JSON.stringify(patch || {})
     }, true);
     assertSuccess_(response, 'Supabase update thất bại');
+    if (options && options.returnRepresentation) return JSON.parse(response.getContentText() || '[]');
   }
 
   function callRpc(functionName, payload) {

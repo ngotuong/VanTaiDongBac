@@ -20,12 +20,13 @@ const { runtimeConfig } = require('../server/runtime-config');
 const { assertBusinessWritesAvailable } = require('../server/services/business-maintenance-policy');
 const { assertSameOrigin } = require('../server/services/session-cookie-service');
 const { assertRuntimeIdentity, publicEnvironmentIdentity } = require('../server/environment-identity');
+const { publicApiResponseReplacer } = require('../server/services/public-api-response');
 
 function send(res, status, body) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
-  res.end(JSON.stringify(body));
+  res.end(JSON.stringify(body, publicApiResponseReplacer));
 }
 
 function httpError(status, message) {
@@ -122,6 +123,13 @@ module.exports = async function handler(req, res) {
     const body = req.method === 'POST' ? { ...(req.body || {}) } : {};
     delete body.action;
     delete body.params;
+    // Legacy single-transaction API bypasses the queued write service. Keep its
+    // synchronous response, but enforce the same registry lifecycle admission.
+    if (action === 'addFundTransaction') {
+      if (req.method !== 'POST') throw httpError(405, 'Lệnh ghi dữ liệu chỉ chấp nhận POST.');
+      const workbook = await workbookContextService.assertWritableAsync({ module: 'cashflow', year: body.year || params.year });
+      body.year = workbook.year;
+    }
     const client = appsScriptClient;
     const result = await client.forward({
       url: config.appsScriptUrl,

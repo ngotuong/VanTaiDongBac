@@ -474,6 +474,7 @@ function invokeApi(method, action, params, bodyData) {
     year: safeBody.year || safeParams.year
   });
   ApiActionRegistry.assertPublicAction(normalizedMethod, action);
+  if (ApiActionRegistry.isBusinessWrite(action)) AppConfig.assertWritableYear(APP_CONFIG.year);
 
   if (normalizedMethod === 'GET') {
     if (action === 'health') return SheetService.health();

@@ -42,20 +42,39 @@ test('Supabase transaction range merges monthly bundles, de-duplicates rows, and
   ], '2026-07-30', '2026-08-01');
   assert.deepEqual(result.transactions.map((row) => row.voucher), ['3', '2', '1']);
   assert.equal(result.totalRows, 3);
+  assert.equal(result.displayedRows, 3);
+  assert.equal(result.limited, false);
   assert.equal(result.supabaseSyncedAt, '2026-07-29T01:00:00Z');
   assert.deepEqual(service.monthKeys('2026-07-30', '2026-09-02'), ['2026-07', '2026-08', '2026-09']);
 });
 
-test('all-year Fund ranges ignore only leading pre-data cache gaps and reject internal or trailing gaps', () => {
+test('all-year Fund ranges ignore leading gaps only when every bundle proves identical source-month coverage', () => {
   const service = createFundRangeService();
-  const may = { month: '2026-05' };
-  const june = { month: '2026-06' };
-  const july = { month: '2026-07' };
+  const keys = ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07'];
+  const months = ['2026-05', '2026-06', '2026-07'].map((key) => ({ key }));
+  const may = { payload: { month: '2026-05', months } };
+  const june = { payload: { month: '2026-06', months } };
+  const july = { payload: { month: '2026-07', months } };
 
-  assert.deepEqual(service.contiguousCachedRows([null, null, null, null, may, june, july]), [may, june, july]);
-  assert.deepEqual(service.contiguousCachedRows([null, null, may, null, july]), []);
-  assert.deepEqual(service.contiguousCachedRows([null, null, may, june, null]), []);
-  assert.deepEqual(service.contiguousCachedRows([null, null]), []);
+  assert.deepEqual(service.contiguousCachedRows([null, null, null, null, may, june, july], keys), [may, june, july]);
+  assert.deepEqual(service.contiguousCachedRows([null, null, may, null, july], keys.slice(0, 5)), []);
+  assert.deepEqual(service.contiguousCachedRows([null, null, may, june, null], keys.slice(0, 5)), []);
+  assert.deepEqual(service.contiguousCachedRows([null, null], keys.slice(0, 2)), []);
+  assert.deepEqual(service.contiguousCachedRows([null, null, null, null, june, july], keys.slice(0, 6)), []);
+  assert.deepEqual(service.contiguousCachedRows([null, null, null, null, { month: '2026-05' }, { month: '2026-06' }], keys.slice(0, 6)), []);
+});
+
+test('transaction range preserves limited and incomplete provenance from monthly bundles', () => {
+  const service = createFundRangeService();
+  const result = service.mergeTransactionBundles([
+    { transactions: [{ rowIndex: 1, date: '2026-05-10', amount: 1 }], totalRows: 500, limited: true },
+    { transactions: [{ rowIndex: 2, date: '2026-06-10', amount: 2 }], totalRows: 20 }
+  ], '2026-05-01', '2026-06-30');
+  assert.equal(result.displayedRows, 2);
+  assert.equal(result.totalRows, 2);
+  assert.equal(result.sourceTotalRows, 520);
+  assert.equal(result.limited, true);
+  assert.equal(result.incomplete, true);
 });
 
 test('Supabase loan range recomputes period totals and end-date outstanding from cached history', () => {

@@ -134,7 +134,7 @@ test('Transaction writes show immediate feedback and return to Supabase without 
   assert.match(submitTransactions, /setJobs\(\(old\) =>/);
   assert.match(submitTransactions, /setTransactions\(nextTransactions\)/);
   assert.doesNotMatch(submitTransactions, /refresh\('transactions', true\)/);
-  assert.match(flat(module), /readSurface<FundTransactions>\(year, ['"]transactions['"], { startDate, endDate }, force, bypassClientCache\)/);
+  assert.match(flat(module), /readSurface<FundTransactions>\(year, ['"]transactions['"], { \.\.\.transactionPeriod, search: query, page: String\(pageOverride\), pageSize: String\(PAGE_SIZE\) }, force, bypassClientCache\)/);
   assert.doesNotMatch(flat(module), /readSurface<FundTransactions>\(year, ['"]transactions['"], \{\}, true\)/);
 });
 
@@ -179,6 +179,22 @@ test('Cashflow paginates every long data table at 20 rows and removes technical 
   assert.doesNotMatch(module, /Số dư do backend reconciliation xác nhận/);
   assert.doesNotMatch(module, /Chỉ ghi\/xóa nội dung trong native range CAIDAT do backend xác định/);
   assert.doesNotMatch(module, />Giá trị danh mục</);
+});
+
+test('Cashflow transaction pagination is source-backed and collapses to a compact mobile status', () => {
+  const module = read('next-shell/components/cashflow/CashflowModule.tsx');
+  const server = read('next-shell/lib/cashflow-server.ts');
+  const css = read('next-shell/app/platform.css');
+
+  assert.match(module, /loadTransactionPageRef\.current\(tab, nextPage, query/);
+  assert.match(module, /transactions\.page \? shownTransactions/);
+  assert.match(module, /aria-current=\{slot === current \? 'page'/);
+  assert.match(module, /cashflow-mobile-page-status/);
+  assert.match(server, /loadDirectTransactionPage/);
+  assert.match(server, /pagination\?\.cachePageSize/);
+  assert.match(server, /findPages\(config,TABLES\.transactions/);
+  assert.match(css, /\.cashflow-desktop-page-slots/);
+  assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.cashflow-mobile-page-status/);
 });
 
 test('Cashflow drawer stays above its backdrop even with legacy ID selectors', () => {

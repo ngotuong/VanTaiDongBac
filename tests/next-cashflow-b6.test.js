@@ -36,6 +36,7 @@ test('B6 serves range filters and keeps ordinary Fund catalog reads on Supabase'
   assert.match(server,/surface==='range'/);
   assert.match(server,/contiguousCachedRows\(rows,requestedMonths\)/);
   assert.match(server,/displayedRows:transactions\.length/);
+  assert.match(server,/Cache trang Thu chi đang chuyển phiên bản/);
   assert.match(server,/catalogFromOptions/);
   assert.match(server,/fund_form_options:\$\{year\}/);
   assert.match(server,/Cache Quỹ theo khoảng ngày trên Supabase chưa đầy đủ/);

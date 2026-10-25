@@ -16,9 +16,14 @@ var SupabaseBundleRepository = (function () {
     return SupabaseHttpClient.updateRows(tableName, patch, filters);
   }
 
+  function deleteRows(tableName, filters) {
+    return SupabaseHttpClient.deleteRows(tableName, filters);
+  }
+
   return {
     upsertRows: upsertRows,
     readRows: readRows,
-    updateRows: updateRows
+    updateRows: updateRows,
+    deleteRows: deleteRows
   };
 })();

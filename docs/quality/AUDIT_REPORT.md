@@ -75,7 +75,7 @@ Ví dụ tháng 5 nguồn có thu 100 nhưng cache bị mất; tháng 6 cache c�
 
 Mô phỏng một bundle `limited:true`, `totalRows:1001` chỉ chứa một dòng đại diện: merge trả `limited:false`, `totalRows:1`. Đây là ví dụ tối giản chứng minh mất metadata, không phải số dòng thực tế trên Production.
 
-**Đã khắc phục local:** merge giữ `limited/incomplete`, `displayedRows` và `sourceTotalRows`; tìm kiếm không xóa provenance. Danh sách Thu chi/Công nợ hiển thị cảnh báo màu vàng và số dòng đã tải. Limit 1.000 và pagination nguồn vẫn là cải tiến riêng; UI không còn trình bày subset như dữ liệu chắc chắn đầy đủ.
+**Đã khắc phục local:** merge giữ `limited/incomplete`, `displayedRows` và `sourceTotalRows`; tìm kiếm không xóa provenance. Candidate checkpoint tiếp theo đã thêm snapshot tháng versioned/page 200, publish manifest cuối, server pagination và mixed-version fail closed; trạng thái deploy/gate hiện hành thuộc `PROJECT_CONTEXT.md`. UI không còn trình bày subset như dữ liệu chắc chắn đầy đủ.
 
 **Canary read-only:** bundle hiện hành có 282/282 giao dịch, `limited=false`, `incomplete=false`; candidate giữ đúng trạng thái này và chuyển cả hai cờ sang `true` khi fault fixture dùng `totalRows=1001, limited=true`. Dữ liệu hiện tại không chạm ngưỡng 1.000 nên chưa thể quan sát cảnh báo giới hạn bằng browser trên Production.
 
@@ -89,7 +89,7 @@ Mô phỏng một bundle `limited:true`, `totalRows:1001` chỉ chứa một dò
 
 - `npm audit` còn 1 High thuộc dev chain `eslint-config-next@16.3.8 → eslint-plugin-react-hooks → zod@4.4.3`; advisory yêu cầu `zod>=4.6.6`. `npm audit --omit=dev` = 0. Không tự đổi lockfile/toolchain ngoài checkpoint này.
 - Payroll lịch sử tháng 5–8 `needs_review`, natural edit→UI SLA và Safari/PWA/push trên iPhone vật lý vẫn mở theo context; không được đóng bằng bộ test local.
-- Cache/queue contract đã được cập nhật theo candidate Developer Metadata + intent hash; Production chưa deploy nên vẫn phải đối chiếu version runtime khi xử lý incident.
+- Cache/queue contract Developer Metadata + intent hash và pagination backend đang live trên Apps Script 427; khi xử lý incident vẫn phải đối chiếu deployment runtime và không suy diễn Vercel Production đã có UI Pager mới.
 - Các retry test cũ trả đầy đủ raw row dù query không SELECT payload. Mock không mô phỏng projection đã che A02; regression mới kiểm đúng query/result boundary.
 - Cần phân biệt invariant “browser không quyết định workbook bằng ID” với việc người dùng được mở liên kết Google Sheet. Không coi ID công khai là bằng chứng lộ service-role/proxy secret.
 
@@ -128,7 +128,6 @@ Không chạy trigger, financial reconciliation, đối soát số tiền nguồ
 | P1 — Tính đầy đủ của dữ liệu theo khoảng | Thiếu bundle/cắt dòng khó phát hiện | Hiển thị tháng đã phủ, tháng thiếu, số dòng và thời điểm sync; ngăn hiểu subset là tổng đủ | Trung bình–cao; đi cùng U02/U03 | Read-model metadata, server/UI; giữ Sheet source of truth | Tăng trạng thái chờ/chi phí đọc; cần tránh full refresh hàng loạt |
 | P2 — Màn hình truy vết job → Sheet → cache | Hiện cần ghép log từ nhiều nơi | Một mã liên kết và các mốc tiếp nhận/claim/ghi/đồng bộ; hỗ trợ kiểm SLA và xử lý sự cố | Trung bình | Metadata vận hành, không đổi nghiệp vụ | PII trong log; cần giới hạn quyền, retention và không log raw payload |
 | P2 — Bộ E2E trên bản sao có fault injection | Source/regex tests bỏ sót projection, crash và hành vi thật | Chạy representative roles, đổi năm, retry mất response, row shift, cache gap trên exact canary; tăng độ tin cậy release | Cao | Hạ tầng kiểm thử tách biệt; không dùng Production | Chi phí Google quota, cleanup và quản lý tài khoản test |
-| P2 — Phân trang giao dịch theo dữ liệu nguồn | Limit 1.000 gây thiếu khi volume tăng | Cursor ổn định/server pagination với total/coverage đúng; tìm kiếm trên toàn phạm vi | Trung bình–cao | API/read-model có thể cần schema migration, duyệt riêng | Dữ liệu đổi giữa các trang; phải khóa version hoặc báo cần tải lại |
 | P3 — Cảnh báo lệch tài liệu/source | Contract dễ mô tả cơ chế đã đổi | Contract tests ở ranh giới observable và kiểm trạng thái snapshot; ưu tiên behavior thay regex | Thấp–trung bình | Tests/docs, không đổi dữ liệu | Không biến test thành bản sao implementation |
 
-Review diff, canary journal, Fund coverage, commit/push, authenticated Preview QA và merge PR #3 vào `main` đã hoàn tất. Production chỉ được promote/rollback trong một yêu cầu phê duyệt riêng. Chưa QA đủ role/thiết bị. Không reset queue/journal hoặc phục hồi nguyên workbook để triển khai/rollback candidate này.
+Review diff, canary journal, Fund coverage, commit/push, authenticated Preview QA và merge PR #3 vào `main` đã hoàn tất. Pagination backend đã cutover Apps Script Production/Preview 427 và authenticated Preview Pager/search/Công nợ đã PASS; Vercel Production vẫn chỉ được deploy/promote/rollback trong một yêu cầu phê duyệt riêng. Chưa QA đủ role/thiết bị. Không reset queue/journal hoặc phục hồi nguyên workbook để triển khai/rollback candidate này.

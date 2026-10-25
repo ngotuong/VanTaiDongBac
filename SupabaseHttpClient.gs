@@ -63,6 +63,17 @@ var SupabaseHttpClient = (function () {
     if (options && options.returnRepresentation) return JSON.parse(response.getContentText() || '[]');
   }
 
+  function deleteRows(tableName, filters) {
+    var config = getConfig_();
+    var endpoint = appendQuery_(restTableEndpoint_(config.url, tableName), filters);
+    var response = fetchWithRetry_(endpoint, {
+      method: 'delete',
+      muteHttpExceptions: true,
+      headers: serviceHeaders_(config.serviceRoleKey, 'return=minimal')
+    }, true);
+    assertSuccess_(response, 'Supabase delete thất bại');
+  }
+
   function callRpc(functionName, payload) {
     var config = getConfig_();
     var endpoint = config.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + encodeURIComponent(functionName);
@@ -271,7 +282,7 @@ var SupabaseHttpClient = (function () {
     upsertRows: upsertRows,
     insertRows: insertRows,
     readRows: readRows,
-    updateRows: updateRows,
+    updateRows: updateRows, deleteRows: deleteRows,
     callRpc: callRpc, getCooldown: getCooldown, deferredResult: deferredResult
   };
 })();

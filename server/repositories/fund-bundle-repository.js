@@ -26,6 +26,21 @@ function createFundBundleRepository({ fetchImpl = fetch, httpError }) {
     if (!response.ok) throw httpError(502, 'Không cập nhật được cache Thu chi trong Supabase.');
     return row;
   }
-  return { find, upsert };
+  async function findPages(config, table, year, prefix) {
+    const query = new URLSearchParams({
+      select: 'filter_key,payload,synced_at',
+      year: `eq.${String(year || '').trim()}`,
+      filter_key: `like.${String(prefix || '').trim()}*`,
+      order: 'filter_key.asc',
+      limit: '1000'
+    });
+    const response = await fetchImpl(`${config.supabaseUrl}/rest/v1/${table}?${query.toString()}`, {
+      headers: { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, Accept: 'application/json' }
+    });
+    const rows = await response.json().catch(() => []);
+    if (!response.ok || !Array.isArray(rows)) throw httpError(502, 'Không đọc được trang cache Thu chi từ Supabase.');
+    return rows;
+  }
+  return { find, findPages, upsert };
 }
 module.exports = { createFundBundleRepository };

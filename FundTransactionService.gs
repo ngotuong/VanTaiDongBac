@@ -187,9 +187,11 @@ var FundTransactionService = (function () {
 
   function beginCapture(year, filter, context) {
     var options = filter || {};
+    var completeCapture = options.completeCapture === true;
     return { year: context.clean(year) || '', sheetName: context.sheetName, headers: context.headers,
       selectedMonth: context.normalizeMonth(options.month), empty: true, monthMap: {}, transactions: [], totalRows: 0,
-      limit: Math.max(1, Math.min(parseInt(options.limit, 10) || 300, 1000)) };
+      completeCapture: completeCapture,
+      limit: completeCapture ? Number.MAX_SAFE_INTEGER : Math.max(1, Math.min(parseInt(options.limit, 10) || 300, 1000)) };
   }
 
   function appendCapture(state, snapshot, filter, context) {
@@ -247,15 +249,24 @@ var FundTransactionService = (function () {
       state.transactions.push(transaction);
     });
     state.transactions.sort(function (a, b) { return a.date !== b.date ? (a.date < b.date ? 1 : -1) : b.rowIndex - a.rowIndex; });
-    state.transactions = state.transactions.slice(0, state.limit);
+    if (!state.completeCapture) state.transactions = state.transactions.slice(0, state.limit);
     return state;
   }
 
   function finishCapture(state) {
-    if (state.empty) return { ok: true, year: state.year, sheetName: state.sheetName, headers: state.headers, months: [], transactions: [] };
+    if (state.empty) {
+      var emptyResult = { ok: true, year: state.year, sheetName: state.sheetName, headers: state.headers, months: [], transactions: [] };
+      if (state.completeCapture) {
+        emptyResult.totalRows = 0;
+        emptyResult.limited = false;
+        emptyResult.completeCapture = true;
+      }
+      return emptyResult;
+    }
     return { ok: true, year: state.year, sheetName: state.sheetName, headers: state.headers,
       months: Object.keys(state.monthMap).sort().reverse().map(function (key) { return { key: key, label: state.monthMap[key] }; }),
-      selectedMonth: state.selectedMonth, transactions: state.transactions, totalRows: state.totalRows, limited: state.totalRows > state.limit };
+      selectedMonth: state.selectedMonth, transactions: state.transactions, totalRows: state.totalRows,
+      limited: !state.completeCapture && state.totalRows > state.limit, completeCapture: state.completeCapture === true };
   }
 
   return { assertIdentity: assertIdentity, buildRow: buildRow, buildDebtPayment: buildDebtPayment, validate: validate, addTransactions: addTransactions, updateTransaction: updateTransaction,

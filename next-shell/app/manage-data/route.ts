@@ -13,7 +13,7 @@ export async function GET(request: Request) {
       if (query.get('view') === 'catalog' && context.user.role === 'shareholder') {
         throw Object.assign(new Error('Tài khoản cổ đông không có quyền đọc Danh mục Quỹ.'), { status: 403 });
       }
-      const data = await loadCashflowSurface({ year: query.get('year'), surface: query.get('view'), month: query.get('month'), group: query.get('group'), startDate: query.get('startDate'), endDate: query.get('endDate'), search: query.get('search'), forceRefresh: query.get('forceRefresh') === 'true' });
+      const data = await loadCashflowSurface({ year: query.get('year'), surface: query.get('view'), month: query.get('month'), group: query.get('group'), startDate: query.get('startDate'), endDate: query.get('endDate'), search: query.get('search'), page: query.get('page'), pageSize: query.get('pageSize'), transactionMode: query.get('transactionMode'), partner: query.get('partner'), forceRefresh: query.get('forceRefresh') === 'true' });
       return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
     }
     if (query.get('surface') === 'catalog') {

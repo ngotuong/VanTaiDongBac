@@ -281,17 +281,32 @@ function IconButton({ label, onClick, disabled, kind = 'refresh' }: { label: str
 function Pager({ page, total, setPage }: { page: number; total: number; setPage: (page: number) => void }) {
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const current = Math.min(page, pages);
+  if (!total) return null;
+  const candidates = pages <= 7
+    ? Array.from({ length: pages }, (_, index) => index + 1)
+    : Array.from(new Set([1, pages, current - 2, current - 1, current, current + 1, current + 2].filter((value) => value >= 1 && value <= pages))).sort((left, right) => left - right);
+  const slots: Array<number | string> = [];
+  candidates.forEach((value, index) => {
+    if (index && value - candidates[index - 1] > 1) slots.push(`ellipsis-${value}`);
+    slots.push(value);
+  });
   return (
     <div className="manage-react-pagination cashflow-pagination">
-      <span>{total ? `Đang hiển thị ${(current - 1) * PAGE_SIZE + 1}-${Math.min(current * PAGE_SIZE, total)} trên ${total}` : 'Đang hiển thị 0-0 trên 0'}</span>
-      <div>
-        <button type="button" className="secondary" disabled={current <= 1} onClick={() => setPage(current - 1)}>
-          ← Trước
+      <span>{`Đang hiển thị ${(current - 1) * PAGE_SIZE + 1}-${Math.min(current * PAGE_SIZE, total)} trên ${total}`}</span>
+      {pages > 1 ? <div className="cashflow-page-controls" aria-label="Phân trang">
+        <button type="button" className="secondary cashflow-page-arrow" aria-label="Trang trước" disabled={current <= 1} onClick={() => setPage(current - 1)}>
+          <span aria-hidden="true">‹</span><span className="cashflow-page-button-label">Trước</span>
         </button>
-        <button type="button" className="secondary" disabled={current >= pages} onClick={() => setPage(current + 1)}>
-          Sau →
+        <span className="cashflow-mobile-page-status" aria-live="polite">{current} / {pages}</span>
+        <span className="cashflow-desktop-page-slots">
+          {slots.map((slot) => typeof slot === 'number' ? (
+            <button type="button" className={`secondary cashflow-page-number${slot === current ? ' active' : ''}`} aria-current={slot === current ? 'page' : undefined} onClick={() => setPage(slot)} key={slot}>{slot}</button>
+          ) : <span className="cashflow-page-ellipsis" aria-hidden="true" key={slot}>…</span>)}
+        </span>
+        <button type="button" className="secondary cashflow-page-arrow" aria-label="Trang sau" disabled={current >= pages} onClick={() => setPage(current + 1)}>
+          <span className="cashflow-page-button-label">Sau</span><span aria-hidden="true">›</span>
         </button>
-      </div>
+      </div> : null}
     </div>
   );
 }
@@ -361,6 +376,9 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   const refreshAfterJobRef = useRef<() => Promise<void>>(async () => {});
   const loadSharedRangeRef = useRef<(range: { start: string; end: string }, force?: boolean, cacheMonth?: string) => Promise<void>>(async () => {});
   const sharedRangeRequestRef = useRef(0);
+  const transactionPageRequestRef = useRef(0);
+  const transactionFilterMountedRef = useRef(false);
+  const loadTransactionPageRef = useRef<(view: 'transactions' | 'debts', page: number, search: string, partner: string) => Promise<void>>(async () => {});
   const appliedRangeRef = useRef(`${initialRange.start}|${initialRange.end}`);
   const intentIdsRef = useRef<Record<string, string>>({});
   const visibleQueryRef = useRef({ tab, startDate, endDate, group });
@@ -463,7 +481,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     return () => document.body.classList.remove('cashflow-modal-open');
   }, [drawer, deletingTransaction, deletingCatalogRow]);
 
-  const refresh = async (view: CashflowTab = tab, force = false, bypassClientCache = false) => {
+  const refresh = async (view: CashflowTab = tab, force = false, bypassClientCache = false, pageOverride = txPage) => {
     setBusy(true);
     setMessage('Đang tải dữ liệu Thu chi…');
     setError(false);
@@ -474,12 +492,15 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
         setOverview(next);
         setPageMetaPayload(next);
     } else if (view === 'transactions') {
-      const next = await readSurface<FundTransactions>(year, 'transactions', { startDate, endDate }, force, bypassClientCache);
+      const transactionPeriod: Record<string, string> = (period === 'thisMonth' || period === 'lastMonth') && transactions.selectedMonth ? { month: transactions.selectedMonth } : { startDate, endDate };
+      const next = await readSurface<FundTransactions>(year, 'transactions', { ...transactionPeriod, search: query, page: String(pageOverride), pageSize: String(PAGE_SIZE) }, force, bypassClientCache);
       setTransactions(next);
+      setTxPage(next.page || pageOverride);
       setPageMetaPayload(next);
     } else if (view === 'debts') {
-      const next = await readSurface<FundTransactions>(year, 'transactions', { startDate: `${year}-01-01`, endDate: year === today().slice(0, 4) ? today() : `${year}-12-31` }, force, bypassClientCache);
+      const next = await readSurface<FundTransactions>(year, 'transactions', { startDate: `${year}-01-01`, endDate: year === today().slice(0, 4) ? today() : `${year}-12-31`, search: query, page: String(pageOverride), pageSize: String(PAGE_SIZE), transactionMode: 'debt', partner: debtPartner }, force, bypassClientCache);
       setDebtTransactions(next);
+      setTxPage(next.page || pageOverride);
       setPageMetaPayload(next);
       } else if (view === 'loans') {
         const next = await readSurface<FundLoans>(year, 'loans', { startDate, endDate }, force, bypassClientCache);
@@ -511,12 +532,12 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
       setOverview(next);
       setPageMetaPayload(next);
     } else if (target.tab === 'transactions') {
-      const next = await readSurface<FundTransactions>(year, 'transactions', { startDate: target.startDate, endDate: target.endDate }, false, true);
+      const next = await readSurface<FundTransactions>(year, 'transactions', { startDate: target.startDate, endDate: target.endDate, search: query, page: String(txPage), pageSize: String(PAGE_SIZE) }, false, true);
       if (!isCurrent()) return;
       setTransactions(next);
       setPageMetaPayload(next);
     } else if (target.tab === 'debts') {
-      const next = await readSurface<FundTransactions>(year, 'transactions', { startDate: `${year}-01-01`, endDate: year === today().slice(0, 4) ? today() : `${year}-12-31` }, false, true);
+      const next = await readSurface<FundTransactions>(year, 'transactions', { startDate: `${year}-01-01`, endDate: year === today().slice(0, 4) ? today() : `${year}-12-31`, search: query, page: String(txPage), pageSize: String(PAGE_SIZE), transactionMode: 'debt', partner: debtPartner }, false, true);
       if (!isCurrent()) return;
       setDebtTransactions(next);
       setPageMetaPayload(next);
@@ -535,7 +556,6 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   const switchTab = (value: CashflowTab) => {
     setTab(value);
     setTxPage(1);
-    if (value === 'debts') void refresh(value);
     if (value === 'catalog' && canWrite && !(catalog.rows || []).length) void refresh(value);
   };
   const loadSharedRange = async (range: { start: string; end: string }, force = false, cacheMonth = '') => {
@@ -566,6 +586,50 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     }
   };
   useEffect(() => { loadSharedRangeRef.current = loadSharedRange; });
+  const loadTransactionPage = async (view: 'transactions' | 'debts', requestedPage: number, requestedSearch: string, requestedPartner: string) => {
+    const requestVersion = ++transactionPageRequestRef.current;
+    setBusy(true);
+    setError(false);
+    try {
+      const params: Record<string, string> = view === 'debts'
+        ? { startDate: `${year}-01-01`, endDate: year === today().slice(0, 4) ? today() : `${year}-12-31`, transactionMode: 'debt', partner: requestedPartner }
+        : (period === 'thisMonth' || period === 'lastMonth') && transactions.selectedMonth
+          ? { month: transactions.selectedMonth }
+          : { startDate, endDate };
+      params.search = requestedSearch;
+      params.page = String(requestedPage);
+      params.pageSize = String(PAGE_SIZE);
+      const next = await readSurface<FundTransactions>(year, 'transactions', params, false, true);
+      if (requestVersion !== transactionPageRequestRef.current) return;
+      const current = view === 'debts' ? debtTransactions : transactions;
+      if (requestedPage > 1 && current.cacheVersion && next.cacheVersion && current.cacheVersion !== next.cacheVersion) {
+        report('Dữ liệu Thu chi vừa được cập nhật; đã quay lại trang đầu để giữ thứ tự chính xác.');
+        void loadTransactionPageRef.current(view, 1, requestedSearch, requestedPartner);
+        return;
+      }
+      if (view === 'debts') setDebtTransactions(next);
+      else setTransactions(next);
+      setTxPage(next.page || requestedPage);
+      setPageMetaPayload(next);
+    } catch (loadError) {
+      if (requestVersion !== transactionPageRequestRef.current) return;
+      report(loadError instanceof Error ? loadError.message : String(loadError), true);
+    } finally {
+      if (requestVersion === transactionPageRequestRef.current) setBusy(false);
+    }
+  };
+  useEffect(() => { loadTransactionPageRef.current = loadTransactionPage; });
+  useEffect(() => {
+    if (!transactionFilterMountedRef.current) {
+      transactionFilterMountedRef.current = true;
+      return;
+    }
+    if (tab !== 'transactions' && tab !== 'debts') return;
+    const timer = window.setTimeout(() => {
+      void loadTransactionPageRef.current(tab, 1, query, tab === 'debts' ? debtPartner : '');
+    }, CUSTOM_RANGE_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [debtPartner, query, tab]);
   useEffect(() => {
     if (period !== 'custom') return;
     const rangeKey = `${startDate}|${endDate}`;
@@ -616,24 +680,40 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
         ),
     [jobs],
   );
-  const shownTransactions = useMemo(
-    () =>
-      [...queued.filter((item) => !(transactions.transactions || []).some((saved) => saved.jobId && saved.jobId === item.jobId)), ...(transactions.transactions || [])].filter((item) => {
+  const queuedTransactions = useMemo(
+    () => queued.filter((item) => {
         const date = dateKey(item);
         if (startDate && date < startDate) return false;
         if (endDate && date > endDate) return false;
         return matchesSearchQuery([item.voucher, item.dateText || item.date, item.type, item.category, item.actor, item.partner, item.content], query);
-      }),
-    [queued, transactions, query, startDate, endDate],
+      }), [queued, query, startDate, endDate]
   );
-  const txRows = shownTransactions.slice((txPage - 1) * PAGE_SIZE, txPage * PAGE_SIZE);
-  const debtPartners = useMemo(() => Array.from(new Set((debtTransactions.transactions || []).filter((item) => item.debt === true || item.debt === 'Có').map((item) => item.partner || '').filter(Boolean))).sort((left, right) => left.localeCompare(right, 'vi')), [debtTransactions]);
-  const shownDebts = useMemo(() => [...queued, ...(debtTransactions.transactions || [])].filter((item) => {
+  const shownTransactions = useMemo(() => [
+    ...(txPage === 1 ? queuedTransactions.filter((item) => !(transactions.transactions || []).some((saved) => saved.jobId && saved.jobId === item.jobId)) : []),
+    ...(transactions.transactions || []),
+  ], [queuedTransactions, transactions, txPage]);
+  const transactionTotal = transactions.page ? Number(transactions.totalRows || 0) + queuedTransactions.length : shownTransactions.length;
+  const txRows = transactions.page ? shownTransactions : shownTransactions.slice((txPage - 1) * PAGE_SIZE, txPage * PAGE_SIZE);
+  const debtPartners = useMemo(() => debtTransactions.partners || Array.from(new Set((debtTransactions.transactions || []).filter((item) => item.debt === true || item.debt === 'Có').map((item) => item.partner || '').filter(Boolean))).sort((left, right) => left.localeCompare(right, 'vi')), [debtTransactions]);
+  const queuedDebts = useMemo(() => queued.filter((item) => {
     if (!(item.debt === true || item.debt === 'Có')) return false;
     if (debtPartner && item.partner !== debtPartner) return false;
     return matchesSearchQuery([item.voucher, item.dateText || item.date, item.type, item.category, item.actor, item.partner, item.content], query);
-  }), [debtPartner, debtTransactions, query, queued]);
-  const debtRows = shownDebts.slice((txPage - 1) * PAGE_SIZE, txPage * PAGE_SIZE);
+  }), [debtPartner, query, queued]);
+  const shownDebts = useMemo(() => [...(txPage === 1 ? queuedDebts : []), ...(debtTransactions.transactions || [])], [debtTransactions, queuedDebts, txPage]);
+  const debtTotal = debtTransactions.page ? Number(debtTransactions.totalRows || 0) + queuedDebts.length : shownDebts.length;
+  const debtRows = debtTransactions.page ? shownDebts : shownDebts.slice((txPage - 1) * PAGE_SIZE, txPage * PAGE_SIZE);
+  const queuedDebtReceivable = queuedDebts.filter((item) => item.type === 'Thu').reduce((sum, item) => sum + Number(item.remainingDebt || 0), 0);
+  const queuedDebtPayable = queuedDebts.filter((item) => item.type === 'Chi').reduce((sum, item) => sum + Number(item.remainingDebt || 0), 0);
+  const debtSummary = debtTransactions.debtSummary ? {
+    receivable: debtTransactions.debtSummary.receivable + queuedDebtReceivable,
+    payable: debtTransactions.debtSummary.payable + queuedDebtPayable,
+    net: debtTransactions.debtSummary.net + queuedDebtReceivable - queuedDebtPayable,
+  } : undefined;
+  const changeTransactionPage = (nextPage: number) => {
+    setTxPage(nextPage);
+    if (tab === 'transactions' || tab === 'debts') void loadTransactionPageRef.current(tab, nextPage, query, tab === 'debts' ? debtPartner : '');
+  };
   const loanPartners = useMemo(() => Array.from(new Set((loans.loans || []).map((item) => item.partner).filter(Boolean))).sort(), [loans]);
   const filteredLoans = useMemo(() => (loans.loans || []).filter((item) => !loanPartner || item.partner === loanPartner).sort(compareLoans), [loans, loanPartner]);
   const filteredLoanMetrics = useMemo(() => {
@@ -1105,8 +1185,8 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
           }}
         />
       ) : null}
-      {tab === 'transactions' ? <Transactions rows={txRows} total={shownTransactions.length} page={txPage} setPage={setTxPage} canWrite={canWrite} edit={openTransactions} remove={deleteTransaction} retry={retry} /> : null}
-      {tab === 'debts' ? <Transactions rows={debtRows} summaryRows={shownDebts} total={shownDebts.length} page={txPage} setPage={setTxPage} canWrite={canWrite} edit={openTransactions} remove={deleteTransaction} retry={retry} settle={openDebtPayment} debtMode query={query} setQuery={(value)=>{setQuery(value);setTxPage(1);}} partner={debtPartner} partners={debtPartners} setPartner={(value)=>{setDebtPartner(value);setTxPage(1);}} /> : null}
+      {tab === 'transactions' ? <Transactions rows={txRows} total={transactionTotal} page={txPage} setPage={changeTransactionPage} canWrite={canWrite} edit={openTransactions} remove={deleteTransaction} retry={retry} /> : null}
+      {tab === 'debts' ? <Transactions rows={debtRows} total={debtTotal} page={txPage} setPage={changeTransactionPage} canWrite={canWrite} edit={openTransactions} remove={deleteTransaction} retry={retry} settle={openDebtPayment} debtMode debtSummary={debtSummary} query={query} setQuery={(value)=>{setQuery(value);setTxPage(1);}} partner={debtPartner} partners={debtPartners} setPartner={(value)=>{setDebtPartner(value);setTxPage(1);}} /> : null}
       {tab === 'loans' ? (
         <Loans
           metrics={filteredLoanMetrics}
@@ -1512,13 +1592,12 @@ function CategoryDrawer({ title, rows, allRows, partner, setPartner, closeReques
   );
 }
 
-function Transactions(props: { rows: FundTransaction[]; summaryRows?: FundTransaction[]; total: number; page: number; setPage: (value: number) => void; canWrite: boolean; edit: (row: FundTransaction) => void; remove: (row: FundTransaction) => void; retry: (jobId: string) => void; settle?: (row: FundTransaction) => void; debtMode?: boolean; query?: string; setQuery?: (value: string) => void; partner?: string; partners?: string[]; setPartner?: (value: string) => void }) {
+function Transactions(props: { rows: FundTransaction[]; debtSummary?: FundTransactions['debtSummary']; total: number; page: number; setPage: (value: number) => void; canWrite: boolean; edit: (row: FundTransaction) => void; remove: (row: FundTransaction) => void; retry: (jobId: string) => void; settle?: (row: FundTransaction) => void; debtMode?: boolean; query?: string; setQuery?: (value: string) => void; partner?: string; partners?: string[]; setPartner?: (value: string) => void }) {
   const pageTotalNet = props.rows.reduce((sum, r) => sum + (r.offset ? 0 : r.type === 'Thu' ? amount(r.amount) : -amount(r.amount)), 0);
   const pageRemainingDebt = props.rows.reduce((sum, row) => sum + Number(row.remainingDebt || 0), 0);
-  const debtSummaryRows = props.summaryRows || props.rows;
-  const receivable = debtSummaryRows.filter((row) => row.type === 'Thu').reduce((sum, row) => sum + Number(row.remainingDebt || 0), 0);
-  const payable = debtSummaryRows.filter((row) => row.type === 'Chi').reduce((sum, row) => sum + Number(row.remainingDebt || 0), 0);
-  const netDebt = receivable - payable;
+  const receivable = props.debtSummary?.receivable ?? props.rows.filter((row) => row.type === 'Thu').reduce((sum, row) => sum + Number(row.remainingDebt || 0), 0);
+  const payable = props.debtSummary?.payable ?? props.rows.filter((row) => row.type === 'Chi').reduce((sum, row) => sum + Number(row.remainingDebt || 0), 0);
+  const netDebt = props.debtSummary?.net ?? receivable - payable;
   const netDebtLabel = netDebt > 0 ? 'Tổng thu' : netDebt < 0 ? 'Tổng trả' : 'Cân bằng';
   return (
     <section className="table-card">

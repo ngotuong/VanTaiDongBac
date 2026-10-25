@@ -140,6 +140,9 @@ var FundTransactionSnapshotService = (function () {
     if (manifest.stamp !== measure('finalStamp', function () { return context.stamp(); })) return { result: { ok: true }, added: [start_(item, month, context)] };
     // Publication is idempotent; an ambiguous RPC or crash replays this stage.
     var payload = measure('finish', function () { return context.finish(state); });
+    payload.cacheVersion = measure('version', function () {
+      return context.hash(JSON.stringify([capture.id, manifest.stamp, manifest.signature, manifest.lastRow, payload.totalRows || 0]));
+    });
     return { result: measure('publish', function () { return context.publish(month, payload); }) };
   }
 

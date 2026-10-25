@@ -47,3 +47,11 @@ Trạng thái/phê duyệt và baseline rollback do context sở hữu. Prefligh
 ## Còn mở
 
 Độ trễ natural human-edit chưa có cặp timestamp edit thật→UI đạt chuẩn bằng chứng. Thiết bị thật iPhone/Safari/iOS push/Home Screen/reduced-motion chưa được nghiệm thu. Payroll nguồn tháng5–8 và lịch sử volume giữ trạng thái/giới hạn trong context. Không yêu cầu bịa giao dịch để nghiệm thu.
+
+### Phiếu ghi nhận hai nghiệm thu quan sát
+
+Không dùng owner pump, thao tác giả hoặc timestamp suy diễn. Mỗi lần đo ghi timezone ICT và giữ ảnh/log không chứa PII hay credential.
+
+**Natural human-edit:** người dùng sửa một dòng nghiệp vụ thật vốn đã cần sửa; ghi `T0` ngay khi Google Sheets xác nhận edit, workbook/module/sheet và loại thay đổi (edit/move month/delete). Không ghi giá trị tài chính vào evidence. Tải UI bằng luồng bình thường, ghi `T1` khi đúng dòng/số liệu xuất hiện; xác minh danh sách, tháng, dashboard hoặc Quỹ overview liên quan, cache `synced_at`, queue/lease/ACK và execution mới. PASS khi `T1-T0 ≤ 120s`, không có backlog bị mất và full-scope ACK hợp lệ; nếu Google platform error/hard timeout thì ghi UNKNOWN/FAIL đúng loại, không nới ngưỡng.
+
+**iPhone vật lý:** Safari iOS mở Production/Preview đã duyệt, kiểm 390px portrait và landscape, light/dark, Dynamic Type, bảng cuộn ngang không kéo toàn trang, Pager dạng `‹ current / total ›`, vùng chạm 44px, focus/keyboard khi có bàn phím ngoài và reduced motion. Thêm vào Home Screen, mở standalone, bật Web Push bằng thao tác người dùng, chạy self-test, xác nhận notification mở Notification Center và badge không tăng lặp. Ghi model/iOS/Safari, URL/deployment, role, thời gian, ảnh màn hình và từng PASS/FAIL/SKIPPED. Không dùng giả lập để đóng gate thiết bị thật.

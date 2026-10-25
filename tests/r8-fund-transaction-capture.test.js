@@ -24,7 +24,7 @@ function harness(empty = false) {
   const ctx = { stamp: () => stamp, uuid: () => String(++uuid), log: (message) => logs.push(message), hash: (v) => crypto.createHash('sha256').update(v).digest('hex'),
     cache: { putAll: (values) => { Object.entries(values).forEach(([k, v]) => { assert.ok(Buffer.byteLength(v) < 100000); scratch.set(k, v); }); if (failPut) { failPut = false; throw Error('crash after cache put'); } }, getAll: (keys) => Object.fromEntries(keys.filter((k) => scratch.has(k)).map((k) => [k, scratch.get(k)])), removeAll: (keys) => keys.forEach((k) => scratch.delete(k)) },
     readPage: (row) => { reads.push(row); return s.FundTransactionRepository.readSnapshot(mapContext.spreadsheet, { sheetName: mapContext.sheetName, headers, normalizeHeader: normalize, startRow: row, pageSize: 200 }); },
-    begin: (month) => s.FundTransactionService.beginCapture('2026', { month, limit: 3 }, mapContext),
+    begin: (month) => s.FundTransactionService.beginCapture('2026', { month, limit: 3, completeCapture: Boolean(month) }, mapContext),
     append: (state, page, month) => s.FundTransactionService.appendCapture(state, page, { month }, mapContext), finish: s.FundTransactionService.finishCapture,
     publish: (month, payload) => { published.push({ month, payload: plain(payload) }); return { ok: true }; } };
   let item = {};
@@ -37,17 +37,19 @@ test('paged list preserves row identity, Date sorting, money/debt/offset and fil
   const h = harness(); h.capture('2026-10');
   const p = h.published[0].payload;
   assert.deepEqual(h.reads, [2, 202, 402]);
-  assert.deepEqual(p.transactions.map((r) => r.rowIndex), [450, 448, 446]);
-  assert.equal(p.totalRows, 222); assert.equal(p.limited, true);
+  assert.equal(p.transactions.length, 222);
+  assert.deepEqual(p.transactions.slice(0, 3).map((r) => r.rowIndex), [450, 448, 446]);
+  assert.equal(p.totalRows, 222); assert.equal(p.limited, false); assert.equal(p.completeCapture, true);
   assert.deepEqual(p.months.map((m) => m.key), ['2026-10', '2026-09']);
   for (const r of p.transactions) { assert.equal(r.amount, 1234567.89); assert.equal(r.remainingDebt, 234567.89); assert.equal(r.offset, true); assert.equal(r.debt, 'Có'); assert.equal(r.type, 'Thu'); assert.equal(r.date, '2026-10-03'); }
   h.capture('2026-09'); h.capture('');
   assert.deepEqual(h.reads, [2, 202, 402]);
   assert.equal(h.published[1].payload.totalRows, 226); assert.equal(h.published[2].payload.totalRows, 449);
-  assert.deepEqual(h.published[1].payload.transactions.map((r) => r.rowIndex), [451, 449, 447]);
+  assert.deepEqual(h.published[1].payload.transactions.slice(0, 3).map((r) => r.rowIndex), [451, 449, 447]);
   assert.ok(JSON.stringify(h.getItem()).length < 1000, 'Script Property contains only immutable manifest pointer');
   const normal = plain(h.s.FundTransactionService.getTransactions('2026', { month: '2026-10', limit: 3 }, h.mapContext));
-  assert.deepEqual(p, normal);
+  assert.equal(normal.limited, true);
+  assert.deepEqual(p.transactions.slice(0, 3), normal.transactions);
 });
 
 test('evicted/corrupt cache and an edit between pages restart capture without partial publication', () => {

@@ -941,6 +941,14 @@ Response logic:
 
 Cache: `fund_transaction_bundles` theo `recent_500` hoặc `month:YYYY-MM`.
 
+Next read boundary hỗ trợ `page`/`pageSize` (mặc định `1`/`20`), `search`, `transactionMode=debt` và `partner`. Đây là phân trang read model Supabase, không thay đổi Apps Script public action hoặc schema Sheet. Response phân trang bổ sung:
+
+- `page`, `pageSize`, `totalPages`, `totalRows`, `displayedRows`;
+- `sourceTotalRows`, `cacheVersion` và `limited/incomplete`;
+- `partners`/`debtSummary` khi đọc công nợ.
+
+Với một tháng không có search/công nợ, server chỉ đọc page cache cần thiết. Search, công nợ và khoảng nhiều tháng phải lọc trên toàn snapshot versioned rồi mới cắt trang. Thiếu page, lẫn manifest legacy/versioned hoặc version đổi giữa hai lần bấm trang phải fail closed/quay lại trang đầu; không được trình bày subset như kết quả đầy đủ.
+
 ### 11.2. `getFundOverview`
 
 ```text

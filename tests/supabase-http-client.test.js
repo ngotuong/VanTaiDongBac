@@ -58,10 +58,11 @@ test('read request snapshot preserves URL encoding, omitted empty filters, and a
   }]);
 });
 
-test('insert, update, and upsert request snapshots preserve methods, payloads, and Prefer headers', () => {
+test('insert, update, delete, and upsert request snapshots preserve methods, payloads, and Prefer headers', () => {
   const { client, requests } = loadClient();
   client.insertRows('write_jobs', [{ id: 'job-1' }]);
   client.updateRows('write_jobs', { status: 'synced' }, { id: 'eq.job-1', ignored: undefined });
+  client.deleteRows('fund_transaction_bundles', { year: 'eq.2026', and: '(filter_key.like.month:2026-10:version:*,filter_key.not.like.month:2026-10:version:v2:*)' });
   client.upsertRows('sync_status', [{ sync_key: 'dashboard' }], 'sync_key');
   assert.deepEqual(requests, [
     {
@@ -78,6 +79,13 @@ test('insert, update, and upsert request snapshots preserve methods, payloads, a
         method: 'patch', muteHttpExceptions: true, contentType: 'application/json',
         headers: { apikey: 'test-service-key', Authorization: 'Bearer test-service-key', Prefer: 'return=minimal' },
         payload: '{"status":"synced"}'
+      }
+    },
+    {
+      url: 'https://project.test/rest/v1/fund_transaction_bundles?year=eq.2026&and=(filter_key.like.month%3A2026-10%3Aversion%3A*%2Cfilter_key.not.like.month%3A2026-10%3Aversion%3Av2%3A*)',
+      options: {
+        method: 'delete', muteHttpExceptions: true,
+        headers: { apikey: 'test-service-key', Authorization: 'Bearer test-service-key', Prefer: 'return=minimal' }
       }
     },
     {

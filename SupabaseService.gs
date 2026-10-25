@@ -848,7 +848,7 @@ var SupabaseService = (function () {
     var transactionCaptureContext = {
       uuid: captureContext.uuid, hash: sha256Hex_, cache: captureContext.cache, stamp: captureContext.stamp,
       readPage: function (row) { return FundService.readTransactionSourcePage(year, row); },
-      begin: function (month) { return FundService.beginTransactionCapture(year, { month: month, limit: month ? 1000 : 500 }); },
+      begin: function (month) { return FundService.beginTransactionCapture(year, { month: month, limit: month ? 1000 : 500, completeCapture: Boolean(month) }); },
       append: function (state, page, month) { return FundService.appendTransactionCapture(state, page, { month: month }); },
       finish: function (state) { return FundTransactionService.finishCapture(state); },
       publish: function (month, payload) { return FundSyncService.syncFundTransactions(year, { month: month, limit: month ? 1000 : 500 }, fundSyncContext_(null, payload)); },
@@ -1862,6 +1862,9 @@ var SupabaseService = (function () {
       formatDate: function (date, pattern) { return Utilities.formatDate(date, APP_CONFIG.timezone, pattern); },
       upsertRows: function (tableName, rows, onConflict) {
         return SupabaseBundleRepository.upsertRows(tableName, rows, onConflict);
+      },
+      deleteRows: function (tableName, filters) {
+        return SupabaseBundleRepository.deleteRows(tableName, filters);
       },
       writeSyncStatus: writeSyncStatus_,
       runSyncStep: runSyncStep_

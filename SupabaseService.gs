@@ -54,6 +54,9 @@ var SupabaseService = (function () {
   var TRANSPORT_REPORT_RETRY_DELAY_MS = 30000;
   var FUND_REFRESH_PROPERTY_KEY = 'SUPABASE_PENDING_FUND_SYNC';
   var TRANSPORT_REFRESH_PROPERTY_KEY = 'SUPABASE_PENDING_TRANSPORT_REPORT_SYNC';
+  var FUND_BACKGROUND_REFRESH_PROPERTY_KEY = 'SUPABASE_PENDING_FUND_BACKGROUND_SYNC';
+  var TRANSPORT_BACKGROUND_REFRESH_PROPERTY_KEY = 'SUPABASE_PENDING_TRANSPORT_BACKGROUND_SYNC';
+  var REALTIME_BACKGROUND_QUEUE_PREFERENCE_PROP = 'SUPABASE_REALTIME_BACKGROUND_QUEUE_PREFERENCE';
   var FUND_REFRESH_DEBOUNCE_MS = 15000;
   var FUND_REFRESH_RETRY_DELAY_MS = 30000;
   var FUND_TO_TRANSPORT_DELAY_MS = 30 * 1000;
@@ -300,12 +303,30 @@ var SupabaseService = (function () {
       }
       var pendingClaim = pendingWork.claims.transport || { due: false, pending: false };
       var pendingFundClaim = pendingWork.claims.fund || { due: false, pending: false };
-      writeRealtimeHeartbeatIfDue_(props, nowMillis, pendingClaim, pendingFundClaim);
+      var backgroundWork = { due: false, claims: {} };
+      if (!pendingWork.due && pendingClaim.pending !== true && pendingFundClaim.pending !== true) {
+        backgroundWork = ManualReportRefreshQueueService.claimNextDue([
+          { key: 'transport-background', context: backgroundReportRefreshQueueContext_() },
+          { key: 'fund-background', context: backgroundFundRefreshQueueContext_() }
+        ], props.getProperty(yearPropertyKey_(REALTIME_BACKGROUND_QUEUE_PREFERENCE_PROP)) || 'transport-background');
+        if (backgroundWork.due) {
+          props.setProperty(yearPropertyKey_(REALTIME_BACKGROUND_QUEUE_PREFERENCE_PROP), backgroundWork.nextPreferredKey);
+          pendingWork = backgroundWork;
+        }
+      }
+      var backgroundTransportClaim = backgroundWork.claims['transport-background'] || { due: false, pending: false };
+      var backgroundFundClaim = backgroundWork.claims['fund-background'] || { due: false, pending: false };
+      writeRealtimeHeartbeatIfDue_(props, nowMillis,
+        { pending: pendingClaim.pending === true || backgroundTransportClaim.pending === true },
+        { pending: pendingFundClaim.pending === true || backgroundFundClaim.pending === true });
       var primaryBudget = Math.min(45000, 60000 - (new Date().getTime() - tickStartedAt));
       if (primaryBudget < REALTIME_STAGE_START_MIN_BUDGET_MS && pendingWork.due) {
         // The coordinator already claimed the item: yield without executing it.
-        ManualReportRefreshQueueService.saveProgress(pendingWork.item,
-          pendingWork.key === 'fund' ? fundRefreshQueueContext_() : manualReportRefreshQueueContext_(), 0);
+        var yieldedContext = pendingWork.key === 'fund' ? fundRefreshQueueContext_()
+          : pendingWork.key === 'fund-background' ? backgroundFundRefreshQueueContext_()
+          : pendingWork.key === 'transport-background' ? backgroundReportRefreshQueueContext_()
+          : manualReportRefreshQueueContext_();
+        ManualReportRefreshQueueService.saveProgress(pendingWork.item, yieldedContext, 0);
         return { ok: true, mode: 'tick', skipped: true, reason: 'Tick yielded before refresh stage without safe runway.' };
       }
       if (pendingWork.key === 'transport') {
@@ -315,6 +336,14 @@ var SupabaseService = (function () {
       if (pendingWork.key === 'fund') {
         var fundResult = runPendingFundSync_(pendingWork.item, primaryBudget, tickStartedAt + 60000);
         return finishRealtimeRefresh_(runCompanionRefresh_(fundResult, 'transport', tickStartedAt), background);
+      }
+      if (pendingWork.key === 'transport-background') {
+        return finishRealtimeRefresh_(runPendingTransportReportSync_(pendingWork.item, primaryBudget,
+          tickStartedAt + 60000, backgroundReportRefreshQueueContext_()), background);
+      }
+      if (pendingWork.key === 'fund-background') {
+        return finishRealtimeRefresh_(runPendingFundSync_(pendingWork.item, primaryBudget,
+          tickStartedAt + 60000, backgroundFundRefreshQueueContext_()), background);
       }
 
       if (background && background.checked) return background;
@@ -557,11 +586,11 @@ var SupabaseService = (function () {
   function enqueueSafetySweepIfDue_(props, nowMillis) {
     var nextAt = Number(props.getProperty(yearPropertyKey_(REALTIME_SWEEP_NEXT_AT_PROP)) || 0);
     if (nextAt > nowMillis) return { queued: false };
-    var transport = enqueueManualReportRefresh_({ full: true, sheets: MANAGE_SHEET_NAMES,
+    var transport = enqueueRefreshWithFallback_({ full: true, sheets: MANAGE_SHEET_NAMES,
       catalogs: TRANSPORT_CATALOG_SHEET_NAMES.map(function (sheet) { return sheet === 'DM_ThamSo' ? 'DM_ThamSo_TS' : sheet; }),
-      verificationPasses: 1, source: 'safety:transport' });
+      verificationPasses: 1, source: 'safety:transport' }, backgroundReportRefreshQueueContext_(), 'transport-background');
     if (transport.deferred) throw new Error(transport.error || 'Safety transport enqueue failed.');
-    var fund = enqueueRefreshWithFallback_({ full: true, source: 'safety:fund' }, fundRefreshQueueContext_(), 'fund');
+    var fund = enqueueRefreshWithFallback_({ full: true, source: 'safety:fund' }, backgroundFundRefreshQueueContext_(), 'fund-background');
     if (fund.deferred) throw new Error(fund.error || 'Safety fund enqueue failed.');
     // A completed enqueue covers every scope; there is no 14-hour index cycle.
     props.setProperty(yearPropertyKey_(REALTIME_SWEEP_NEXT_AT_PROP), String(nowMillis + REALTIME_SWEEP_INTERVAL_MS));
@@ -584,9 +613,12 @@ var SupabaseService = (function () {
           var transportResult;
           var transportSpreadsheet = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
           var transportSheetNames = buildSignalSheetNameMap_(transportSpreadsheet);
-          scopes.forEach(function (scope) {
+          coalesceSignalScopes_(scopes, transportSheetNames).forEach(function (scope) {
             var sheetName = resolveSignalScopeSheetName_(transportSheetNames, scope);
-            transportResult = syncTransportSheetChange(signal.eventType, sheetName, null);
+            var sheet = sheetName ? transportSpreadsheet.getSheetByName(sheetName) : null;
+            var range = sheet && Number(scope.startRow || 0) > 0 && Number(scope.numRows || 0) > 0
+              ? sheet.getRange(Number(scope.startRow), 1, Number(scope.numRows), 1) : null;
+            transportResult = syncTransportSheetChange(signal.eventType, sheetName, range);
             if (transportResult && transportResult.skipped) transportResult = syncUnknownTransportSheetChange_(signal.eventType);
           });
           return transportResult || { queued: false };
@@ -599,7 +631,7 @@ var SupabaseService = (function () {
           var fundSheetNames = buildSignalSheetNameMap_(fundSpreadsheet);
           var fundResult;
           var fundDeferred = null;
-          scopes.forEach(function (scope) {
+          coalesceSignalScopes_(scopes, fundSheetNames).forEach(function (scope) {
             var sheetName = resolveSignalScopeSheetName_(fundSheetNames, scope);
             var sheet = sheetName ? fundSpreadsheet.getSheetByName(sheetName) : null;
             var range = sheet && Number(scope.startRow || 0) > 0 && Number(scope.numRows || 0) > 0
@@ -618,7 +650,31 @@ var SupabaseService = (function () {
           verificationPasses: 1, source: 'signal:fund-downstream' });
         return downstream.deferred ? downstream : fund;
       };
-      SheetChangeSignalService.drain(module, context);
+      try {
+        SheetChangeSignalService.drain(module, context);
+      } catch (error) {
+        if (!error || !error.refreshDeferred) throw error;
+        console.log('sheet_signal_drain_deferred:' + module);
+      }
+    });
+  }
+
+  function coalesceSignalScopes_(scopes, sheetNames) {
+    var grouped = {};
+    (scopes || []).forEach(function (scope) {
+      var sheetName = resolveSignalScopeSheetName_(sheetNames, scope);
+      var key = sheetName || 'unknown:' + String(scope && scope.gridId || '');
+      var startRow = Math.max(1, Number(scope && scope.startRow || 1));
+      var endRow = startRow + Math.max(1, Number(scope && scope.numRows || 1)) - 1;
+      if (!grouped[key]) grouped[key] = { gridId: Number(scope && scope.gridId), startRow: startRow, endRow: endRow };
+      else {
+        grouped[key].startRow = Math.min(grouped[key].startRow, startRow);
+        grouped[key].endRow = Math.max(grouped[key].endRow, endRow);
+      }
+    });
+    return Object.keys(grouped).map(function (key) {
+      var scope = grouped[key];
+      return { gridId: scope.gridId, startRow: scope.startRow, numRows: scope.endRow - scope.startRow + 1 };
     });
   }
 
@@ -712,14 +768,16 @@ var SupabaseService = (function () {
   function getPendingTransportReportRefresh() {
     return {
       ok: true,
-      pending: ManualReportRefreshQueueService.getPending(manualReportRefreshQueueContext_())
+      pending: ManualReportRefreshQueueService.getPending(manualReportRefreshQueueContext_()),
+      background: ManualReportRefreshQueueService.getPending(backgroundReportRefreshQueueContext_())
     };
   }
 
   function getPendingFundRefresh() {
     return {
       ok: true,
-      pending: ManualReportRefreshQueueService.getPending(fundRefreshQueueContext_())
+      pending: ManualReportRefreshQueueService.getPending(fundRefreshQueueContext_()),
+      background: ManualReportRefreshQueueService.getPending(backgroundFundRefreshQueueContext_())
     };
   }
 
@@ -737,14 +795,14 @@ var SupabaseService = (function () {
     return result;
   }
 
-  function runPendingTransportReportSync_(pending, budgetMs, deadlineMillis) {
+  function runPendingTransportReportSync_(pending, budgetMs, deadlineMillis, queueContext) {
     return withInternalReportRefreshGuard_(function () {
-      return runPendingTransportReportSyncUnguarded_(pending, budgetMs, deadlineMillis);
+      return runPendingTransportReportSyncUnguarded_(pending, budgetMs, deadlineMillis, queueContext);
     });
   }
 
-  function runPendingTransportReportSyncUnguarded_(pending, budgetMs, deadlineMillis) {
-    var context = manualReportRefreshQueueContext_();
+  function runPendingTransportReportSyncUnguarded_(pending, budgetMs, deadlineMillis, queueContext) {
+    var context = queueContext || manualReportRefreshQueueContext_();
     var polledTransport = (pending.sources || []).some(function (source) { return source === 'poll:transport'; });
     if (polledTransport && !Array.isArray(pending.tasks)) {
       pending.sheets = (pending.sheets || []).concat(['NL_VanChuyen']);
@@ -753,7 +811,7 @@ var SupabaseService = (function () {
       nowMillis: context.nowMillis,
       planVersion: 3,
       currentMonth: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'yyyy-MM'),
-      maxStages: 30,
+      maxStages: 8,
       minStageStartBudgetMs: REALTIME_STAGE_START_MIN_BUDGET_MS,
       turnBudgetMs: budgetMs || 45000,
       deadlineMillis: deadlineMillis,
@@ -762,12 +820,12 @@ var SupabaseService = (function () {
       acknowledge: function (item) { return ManualReportRefreshQueueService.acknowledge(item, context); },
       requeue: function (item) { return ManualReportRefreshQueueService.requeue(item, context); },
       enqueueVerification: function (item) {
-        var queued = enqueueManualReportRefresh_({
+        var queued = enqueueRefreshWithFallback_({
           full: item.full === true, includeAll: item.includeAll !== false,
           months: item.months || [], delayMs: TRANSPORT_REPORT_VERIFICATION_DELAY_MS,
           verificationPasses: Number(item.verificationPasses || 0) - 1,
           source: 'verification:report-formulas'
-        });
+        }, context, context.propertyKey === backgroundReportRefreshQueueContext_().propertyKey ? 'transport-background' : 'transport');
         if (queued.deferred) throw new Error(queued.error || 'Verification refresh was deferred.');
       },
       manageMonths: function (sheet) { return ManageSyncService.getManageRefreshMonthKeys(sheet, manageSyncContext_()); },
@@ -836,8 +894,8 @@ var SupabaseService = (function () {
     return TransportRefreshWorker.run(pending, workerContext);
   }
 
-  function runPendingFundSync_(pending, budgetMs, deadlineMillis) {
-    var context = fundRefreshQueueContext_();
+  function runPendingFundSync_(pending, budgetMs, deadlineMillis, queueContext) {
+    var context = queueContext || fundRefreshQueueContext_();
     var year = activeWorkbookYear_();
     var props = PropertiesService.getScriptProperties();
     var captureContext = {
@@ -862,7 +920,7 @@ var SupabaseService = (function () {
       return tasks;
     }
     return TransportRefreshWorker.run(pending, {
-      step: 'fundPending', planVersion: 3, nowMillis: context.nowMillis, maxStages: 30,
+      step: 'fundPending', planVersion: 3, nowMillis: context.nowMillis, maxStages: 8,
       minStageStartBudgetMs: REALTIME_STAGE_START_MIN_BUDGET_MS,
       turnBudgetMs: budgetMs || 45000, deadlineMillis: deadlineMillis,
       shouldYieldAfterStage: function (result) {
@@ -982,18 +1040,34 @@ var SupabaseService = (function () {
 
   function syncTransportSheetChange(eventType, sheetName, editedRange) {
     var safeSheetName = clean_(sheetName);
+    var safeEventType = clean_(eventType) || 'UNKNOWN';
     var catalog = TRANSPORT_CATALOG_SHEET_NAMES.indexOf(safeSheetName) !== -1;
     var manage = isManageSheetName_(safeSheetName);
     if (!catalog && !manage) return { ok: true, skipped: true, reason: 'Sheet is not a transport input sheet.' };
-    // No Sheet reads, cache rebuilds or network calls on the edit trigger.
-    var queued = ManualReportRefreshQueueService.enqueue({
+    var structural = isStructuralSheetChange_(safeEventType);
+    var months = manage && !structural && editedRange ? getEditedManageMonthKeys_(safeSheetName, editedRange) : [];
+    if (!structural && !months.length) {
+      months = [Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'yyyy-MM')];
+    }
+    var queued = enqueueRefreshWithFallback_({
       sheets: manage ? [safeSheetName] : [],
       catalogs: catalog ? [safeSheetName === 'DM_ThamSo' ? 'DM_ThamSo_TS' : safeSheetName] : [],
-      full: true,
-      includeAll: true, verificationPasses: 1,
-      source: 'sheet:' + safeSheetName + ':' + (clean_(eventType) || 'UNKNOWN')
-    }, manualReportRefreshQueueContext_());
-    return { ok: true, queued: true, sheetName: safeSheetName, reportRefresh: queued };
+      months: months,
+      full: structural,
+      includeAll: structural,
+      refreshDashboard: true,
+      verificationPasses: structural ? 1 : 0,
+      source: 'sheet:' + safeSheetName + ':' + safeEventType
+    }, manualReportRefreshQueueContext_(), 'transport');
+    return {
+      ok: !queued.deferred,
+      queued: !queued.deferred && queued.queued !== false,
+      deferred: queued.deferred === true,
+      sheetName: safeSheetName,
+      months: months,
+      full: structural,
+      reportRefresh: queued
+    };
   }
 
   function handleTransportSheetEdit(e) {
@@ -1087,12 +1161,13 @@ var SupabaseService = (function () {
         reason: 'Ignored internal report refresh sheet change.'
       };
     }
-    var queued = ManualReportRefreshQueueService.enqueue({
+    var queued = enqueueRefreshWithFallback_({
       full: true, sheets: MANAGE_SHEET_NAMES, catalogs: TRANSPORT_CATALOG_SHEET_NAMES.map(function (sheet) { return sheet === 'DM_ThamSo' ? 'DM_ThamSo_TS' : sheet; }),
       includeAll: true, verificationPasses: 1,
       source: 'sheet:unknown:' + (clean_(eventType) || 'CHANGE')
-    }, manualReportRefreshQueueContext_());
-    return { ok: true, queued: true, reportRefresh: queued };
+    }, manualReportRefreshQueueContext_(), 'transport');
+    return { ok: !queued.deferred, queued: !queued.deferred && queued.queued !== false,
+      deferred: queued.deferred === true, reportRefresh: queued };
   }
 
   function isStructuralSheetChange_(eventType) {
@@ -1786,8 +1861,14 @@ var SupabaseService = (function () {
     };
   }
 
+  function backgroundReportRefreshQueueContext_() {
+    var context = manualReportRefreshQueueContext_();
+    context.propertyKey = yearPropertyKey_(TRANSPORT_BACKGROUND_REFRESH_PROPERTY_KEY);
+    return context;
+  }
+
   function isTransientGoogleError_(error) {
-    return /server error occurred|error code INTERNAL|DEADLINE_EXCEEDED|reading from storage/i.test(String(error && error.message || error));
+    return /server error occurred|error code INTERNAL|DEADLINE_EXCEEDED|reading from storage|too many LockService operations/i.test(String(error && error.message || error));
   }
 
   function withRefreshQueueLock_(fn) {
@@ -1810,6 +1891,12 @@ var SupabaseService = (function () {
     context.propertyKey = yearPropertyKey_(FUND_REFRESH_PROPERTY_KEY);
     context.debounceMs = FUND_REFRESH_DEBOUNCE_MS;
     context.retryDelayMs = FUND_REFRESH_RETRY_DELAY_MS;
+    return context;
+  }
+
+  function backgroundFundRefreshQueueContext_() {
+    var context = fundRefreshQueueContext_();
+    context.propertyKey = yearPropertyKey_(FUND_BACKGROUND_REFRESH_PROPERTY_KEY);
     return context;
   }
 

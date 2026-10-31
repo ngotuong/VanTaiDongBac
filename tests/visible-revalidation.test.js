@@ -8,7 +8,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('visible revalidation stays lightweight and retries when the app becomes visible', () => {
   const hook = read('next-shell/components/platform/useVisibleRevalidation.ts');
-  assert.match(hook, /DEFAULT_INTERVAL_MS = 60_000/);
+  assert.match(hook, /DEFAULT_INTERVAL_MS = 30_000/);
   assert.match(hook, /document\.visibilityState !== 'visible'/);
   assert.match(hook, /runningRef\.current/);
   assert.match(hook, /visibilitychange/);

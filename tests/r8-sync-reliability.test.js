@@ -173,7 +173,7 @@ function timerHarness() {
     LockService: { getScriptLock: () => ({ tryLock: () => true, waitLock() {}, releaseLock() {} }) }, Utilities: { getUuid: () => crypto.randomUUID() },
     SupabaseSyncStatusRepository: { upsert() {} },
     // Preserve a sustained backlog without executing its native work in this scheduler test.
-    ManualReportRefreshQueueService: { enqueue: (scope) => { queued.push(plain(scope)); return { queued: true }; }, getPending: () => ({}), claimNextDue: () => ({ claims: { transport: { pending: true }, fund: { pending: true } } }) },
+    ManualReportRefreshQueueService: { enqueue: (scope, context) => { queued.push({ ...plain(scope), propertyKey: context.propertyKey }); return { queued: true }; }, getPending: () => ({}), claimNextDue: () => ({ claims: { transport: { pending: true }, fund: { pending: true } } }) },
     NotificationPipelineService: { run: (ctx) => { if (Number(ctx.getProperty(ctx.nextAtKey) || 0) > now) return { checked: false };
       notifications.push(now); ctx.setProperty(ctx.nextAtKey, String(now + ctx.intervalMs)); return { checked: true, ok: true }; } },
     SpreadsheetApp: { openById: () => { throw Error('Unbounded legacy sweep must never run'); } }
@@ -187,7 +187,9 @@ test('hourly safety enqueues all Transport and Fund scopes in durable queues, in
   const h = timerHarness(); h.tick(); assert.equal(h.queued.length, 2);
   const transport = h.queued.find((s) => s.source === 'safety:transport');
   assert.equal(transport.sheets.length, 8); assert.ok(transport.sheets.includes('NL_Dau')); assert.equal(transport.catalogs.length, 13);
-  assert.ok(h.queued.find((s) => s.source === 'safety:fund').full);
+  assert.match(transport.propertyKey, /SUPABASE_PENDING_TRANSPORT_BACKGROUND_SYNC_2026/);
+  const fund = h.queued.find((s) => s.source === 'safety:fund');
+  assert.ok(fund.full); assert.match(fund.propertyKey, /SUPABASE_PENDING_FUND_BACKGROUND_SYNC_2026/);
   h.advance(3599999); h.tick(); assert.equal(h.queued.length, 2);
   h.advance(1); h.tick(); assert.equal(h.queued.length, 4);
 });

@@ -115,8 +115,8 @@ test('SupabaseService retains manage facades while ManageSyncService owns manage
   const facade = read('SupabaseService.gs');
   const implementation = read('ManageSyncService.gs');
   assert.match(facade, /ManageSyncService\.syncManageDataBundle\(sheetName, manageSyncContext_\(\)\)/);
-  assert.match(facade, /function syncTransportSheetChange[\s\S]*ManualReportRefreshQueueService\.enqueue/);
-  assert.match(facade, /function syncUnknownTransportSheetChange_[\s\S]*ManualReportRefreshQueueService\.enqueue/);
+  assert.match(facade, /function syncTransportSheetChange[\s\S]*enqueueRefreshWithFallback_/);
+  assert.match(facade, /function syncUnknownTransportSheetChange_[\s\S]*enqueueRefreshWithFallback_/);
   assert.doesNotMatch(facade, /filter_key: DEFAULT_MANAGE_FILTER_KEY/);
   assert.match(implementation, /var DEFAULT_MANAGE_FILTER_KEY = 'recent_500'/);
 });

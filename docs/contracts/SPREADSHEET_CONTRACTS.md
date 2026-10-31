@@ -572,6 +572,8 @@ Contract bắt buộc:
 
 - request web không được đổi `BC_TongQuan!B1` trên sheet gốc để đọc tháng;
 - backend dùng sheet tạm copy từ `BC_TongQuan` khi cần tính tháng khác;
+- `Chi Quỹ` dùng để tính `Lợi Nhuận Thực` chỉ gồm chi phí thuộc kết quả kinh doanh của tháng. Thanh toán gốc công nợ và phân phối/chi trả lợi nhuận cổ đông vẫn là dòng tiền Quỹ nhưng không được trừ lần nữa khỏi lợi nhuận tháng thanh toán;
+- `Lợi Nhuận Thực = Lợi Nhuận Gộp − Dầu ngoài − Chi phí lương − BHXH − Chi Quỹ` theo các nhóm đã loại trừ ở trên; không đổi ngày dòng tiền để ép khoản phân phối lợi nhuận về kỳ đã tạo ra lợi nhuận;
 - matrix chi tiết `A:E` có số dòng động; phải đọc tới hàng dữ liệu cuối thay vì cap theo số thứ tự. Dòng `BHXH` mới nằm trước `Lợi nhuận thực` và cả hai phải được giữ trong bundle;
 - frontend render bảng backend trả về, không tự thay tên danh mục/cột;
 - cleanup sheet tạm phải chạy trong `finally` và có cleanup thủ công.
@@ -836,6 +838,9 @@ Contract:
 
 - dữ liệu đến qua `IMPORTRANGE`/công thức;
 - web app không append trực tiếp vào `IMP_ThuChi`;
+- cột `Loại tính` phải phân biệt tối thiểu `Thanh toán công nợ` và `Phân phối lợi nhuận` với chi phí vận hành thông thường. Hai loại này giữ nguyên ngày/số tiền để đối soát dòng tiền nhưng bị loại khỏi `Chi Quỹ` dùng tính lợi nhuận;
+- dòng thanh toán công nợ được phép dùng lại số phiếu của dòng công nợ gốc theo contract `NHAP_THUCHI`. Đối soát import phải dùng định danh giao dịch đủ `số phiếu + ngày + hạng mục + số tiền + nội dung`, không được kết luận lỗi chỉ vì số phiếu lặp;
+- giao dịch trùng toàn bộ định danh vẫn là lỗi và phải được QA báo riêng; việc chấp nhận số phiếu công nợ lặp không được che duplicate retry;
 - không thay công thức import bằng copy/paste values;
 - không đổi source file ID nếu chưa có kế hoạch chuyển năm;
 - khi file Thu chi mới theo năm được tạo, thay đổi liên kết phải qua migration/config được duyệt;

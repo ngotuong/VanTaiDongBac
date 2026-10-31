@@ -133,11 +133,12 @@ test('refresh clears an old cached month after its last source row moves or is d
     saveProgress: (item, delay) => h.queue.saveProgress(item, h.context, delay),
     acknowledge: (item) => h.queue.acknowledge(item, h.context), requeue: (item) => h.queue.requeue(item, h.context),
     manageMonths: (sheet) => manage.getManageRefreshMonthKeys(sheet, mc),
+    reportMonths: () => ['2026-10'],
     syncManage: (sheet) => manage.syncManageDataBundle(sheet, mc),
     syncManageMonth: (sheet, month) => manage.syncManageMonthBundle(sheet, month, mc),
     syncDashboard: () => ({ ok: true }), syncReport: () => ({ ok: true })
   };
-  h.queue.enqueue({ sheets: ['NL_VanChuyen'], includeAll: false }, h.context); h.advance(15001);
+  h.queue.enqueue({ full: true, sheets: ['NL_VanChuyen'], includeAll: false }, h.context); h.advance(15001);
   fail = true; let failed;
   for (let i = 0; i < 8; i++) { failed = h.worker.run(h.queue.claimDue(h.context).item, wc); if (!failed.ok) break; }
   assert.equal(failed.ok, false); assert.equal(failed.acknowledgement.acknowledged, false); assert.equal(h.queue.claimDue(h.context).due, false);
@@ -151,7 +152,7 @@ test('refresh clears an old cached month after its last source row moves or is d
   assert.deepEqual(plain(published.find((row) => row.filter_key === 'month:2026-09').payload.rows), []);
   assert.deepEqual(plain(published.find((row) => row.filter_key === 'month:2026-10').payload.rows), [{ volume: '' }]);
   sourceHasRows = false; published.length = 0;
-  h.queue.enqueue({ sheets: ['NL_VanChuyen'], includeAll: false }, h.context); h.advance(15001);
+  h.queue.enqueue({ full: true, sheets: ['NL_VanChuyen'], includeAll: false }, h.context); h.advance(15001);
   for (let i = 0; i < 12; i++) {
     const claim = h.queue.claimDue(h.context); if (!claim.due) break;
     if (h.worker.run(claim.item, wc).acknowledgement.acknowledged) break;

@@ -173,7 +173,7 @@ test('Apps Script recovery and worker heartbeat fail closed', () => {
   const supabase = fs.readFileSync('SupabaseService.gs', 'utf8');
   const recovery = publicApi.slice(publicApi.indexOf('function recoverSyncInfrastructure()'), publicApi.indexOf('function handleTransportSheetEdit'));
   assert.match(recovery, /ok: Boolean\(triggers && triggers\.ok !== false && sync && sync\.ok !== false\)/);
-  const heartbeat = supabase.indexOf('writeRealtimeHeartbeatIfDue_(props, nowMillis, pendingClaim, pendingFundClaim)');
+  const heartbeat = supabase.indexOf('writeRealtimeHeartbeatIfDue_(props, nowMillis,');
   const pendingReturn = supabase.indexOf("if (pendingWork.key === 'transport')", heartbeat);
   assert.ok(heartbeat > 0 && heartbeat < pendingReturn);
 });

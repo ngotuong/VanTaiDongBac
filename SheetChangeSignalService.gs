@@ -85,7 +85,11 @@ var SheetChangeSignalService = (function () {
     if (!signal.token) throw new Error('Malformed Sheet change signal.');
     if (context.getProperty(key + '_CONSUMED') === signal.token) return { pending: false };
     var result = context.enqueue(signal);
-    if (!result || result.deferred || result.queued === false) throw new Error('Sheet signal refresh enqueue failed.');
+    if (!result || result.deferred || result.queued === false) {
+      var error = new Error('Sheet signal refresh enqueue failed.');
+      if (result && result.deferred) error.refreshDeferred = true;
+      throw error;
+    }
     // Never delete the signal. A later event racing enqueue/ACK has a different
     // token and is drained on the next tick; interrupted drains safely replay.
     context.setProperty(key + '_CONSUMED', signal.token);

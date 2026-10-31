@@ -33,7 +33,7 @@ var TransportRefreshWorker = (function () {
       return reports.length > 1 ? [reports[0], ['background']].concat(reports.slice(1)) : reports;
     }
     tasks.push(['background']);
-    sheets.forEach(function (sheet) { tasks.push(['discoverManage', sheet]); });
+    if (item.full) sheets.forEach(function (sheet) { tasks.push(['discoverManage', sheet]); });
     tasks.push(['prepareReports']);
     if ((item.catalogs || []).length) {
       (context.catalogForms || []).forEach(function (form) { tasks.push(['catalogOptions', form]); });

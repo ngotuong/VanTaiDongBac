@@ -12,13 +12,23 @@ function harness({ sourceCost = 30000, failSource = '', failLock = false } = {})
     PropertiesService: { getScriptProperties: () => props }, LockService: { getScriptLock: () => ({ tryLock: () => { if (failLock) throw Error('A server error occurred while reading from storage. Error code INTERNAL.'); return true; }, releaseLock() {}, waitLock() {} }) },
     Utilities: { formatDate: () => '2026-10', getUuid: () => crypto.randomUUID(), DigestAlgorithm: { SHA_256: 'sha256' }, computeDigest: (_algo, text) => [...crypto.createHash('sha256').update(text).digest()] },
     CacheService: { getScriptCache: () => ({}) },
-    ManageSyncService: { isManageSheetName: (name) => name.startsWith('NL_'), syncManageDataBundle: () => ({ ok: true }) },
+    ManageSyncService: {
+      isManageSheetName: (name) => name.startsWith('NL_'),
+      getEditedManageMonthKeys: () => ['2026-10'],
+      syncManageDataBundle: () => ({ ok: true })
+    },
     SupabaseSyncStatusRepository: { upsert() {} }, NotificationPipelineService: { run: () => ({ checked: false }) },
     FundService: { resolveFundSpreadsheetId: () => 'fund' },
     ManualReportRefreshQueueService: { getPending: () => null, claimNextDue: () => ({ claims: {} }), enqueue: (scope) => { enqueues.push(scope.source); if (scope.source === failSource) throw Error('queue unavailable'); return { queued: true }; } },
     SpreadsheetApp: { openById: () => ({
       getSheets: () => [{ getSheetId: () => 731, getName: () => 'NL_Dau' }],
-      getSheetByName: (name) => { sources.push(name); now += sourceCost; return { getLastRow: () => 1, getLastColumn: () => 14 }; }
+      getSheetByName: (name) => { sources.push(name); now += sourceCost; return {
+        getLastRow: () => 30, getLastColumn: () => 14,
+        getRange: (row, _column, numRows) => ({
+          getDisplayValues: () => row === 1 ? [['Ngày']] : [],
+          getValues: () => Array.from({ length: numRows || 1 }, () => [new Date(2026, 9, 1)])
+        })
+      }; }
     }) } });
   for (const f of ['SheetChangeSignalService.gs', 'SourceFingerprintService.gs', 'TransportSourceProbeService.gs', 'TransportRefreshWorker.gs', 'SupabaseService.gs']) vm.runInContext(fs.readFileSync(f, 'utf8'), s);
   for (const key of ['SUPABASE_REALTIME_HEARTBEAT_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) p.set(key + '_2026', '999999999');

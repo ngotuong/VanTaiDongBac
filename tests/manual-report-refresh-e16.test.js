@@ -165,7 +165,7 @@ test('E1.6 Supabase facade processes refreshes through durable queues and refres
   assert.match(source, /Ignored internal report refresh sheet change\./);
   assert.match(source, /safeEventType === 'INSERT_GRID' \|\| safeEventType === 'REMOVE_GRID'/);
   assert.match(source, /INTERNAL_REPORT_REFRESH_TOKENS_PROP/);
-  assert.match(source, /return withInternalReportRefreshGuard_\(function \(\) \{[\s\S]*runPendingTransportReportSyncUnguarded_\(pending, budgetMs, deadlineMillis\)/);
+  assert.match(source, /return withInternalReportRefreshGuard_\(function \(\) \{[\s\S]*runPendingTransportReportSyncUnguarded_\(pending, budgetMs, deadlineMillis, queueContext\)/);
   assert.match(read('PublicApi.gs'), /function getPendingTransportReportRefresh\(\)/);
   assert.match(read('PublicApi.gs'), /function auditManualReportFreshnessQueue\(\)/);
   assert.match(source, /E1\.6 audit:/);

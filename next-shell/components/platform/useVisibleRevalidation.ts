@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
-const DEFAULT_INTERVAL_MS = 60_000;
+const DEFAULT_INTERVAL_MS = 30_000;
 const MIN_VISIBLE_RETRY_MS = 15_000;
 
 export function useVisibleRevalidation(revalidate: () => void | Promise<void>, enabled = true, intervalMs = DEFAULT_INTERVAL_MS) {

@@ -608,9 +608,12 @@ var SupabaseService = (function () {
       if (!props.getProperty('SUPABASE_SHEET_SIGNAL_' + module.toUpperCase() + '_' + activeWorkbookYear_())) return;
       var context = sheetSignalContext_(props);
       context.enqueue = function (signal) {
-        var scopes = signal && signal.eventType === 'EDIT' && Array.isArray(signal.scopes) ? signal.scopes : [];
+        var eventTypes = getSheetSignalEventTypes_(signal);
+        var scopes = eventTypes.indexOf('EDIT') !== -1 && Array.isArray(signal && signal.scopes) ? signal.scopes : [];
         if (module === 'transport' && scopes.length) {
           var transportResult;
+          var transportDeferred = null;
+          var backgroundTypes = eventTypes.filter(isStructuralSheetChange_);
           var transportSpreadsheet = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
           var transportSheetNames = buildSignalSheetNameMap_(transportSpreadsheet);
           coalesceSignalScopes_(scopes, transportSheetNames).forEach(function (scope) {
@@ -618,10 +621,19 @@ var SupabaseService = (function () {
             var sheet = sheetName ? transportSpreadsheet.getSheetByName(sheetName) : null;
             var range = sheet && Number(scope.startRow || 0) > 0 && Number(scope.numRows || 0) > 0
               ? sheet.getRange(Number(scope.startRow), 1, Number(scope.numRows), 1) : null;
-            transportResult = syncTransportSheetChange(signal.eventType, sheetName, range);
-            if (transportResult && transportResult.skipped) transportResult = syncUnknownTransportSheetChange_(signal.eventType);
+            transportResult = syncTransportSheetChange('EDIT', sheetName, range);
+            if (transportResult && transportResult.deferred) transportDeferred = transportResult;
+            if (transportResult && transportResult.skipped && backgroundTypes.indexOf('UNKNOWN_SCOPE') === -1) {
+              backgroundTypes.push('UNKNOWN_SCOPE');
+            }
           });
-          return transportResult || { queued: false };
+          var backgroundResult = backgroundTypes.length
+            ? enqueueBackgroundTransportVerification_(backgroundTypes) : null;
+          if (transportDeferred) return transportDeferred;
+          if (backgroundResult && backgroundResult.deferred) return backgroundResult;
+          return transportResult && transportResult.queued !== false
+            ? { queued: true, result: transportResult, background: backgroundResult }
+            : { queued: false };
         }
         if (module === 'transport') return enqueueManualReportRefresh_({ full: true, sheets: MANAGE_SHEET_NAMES,
           catalogs: TRANSPORT_CATALOG_SHEET_NAMES.map(function (sheet) { return sheet === 'DM_ThamSo' ? 'DM_ThamSo_TS' : sheet; }),
@@ -657,6 +669,35 @@ var SupabaseService = (function () {
         console.log('sheet_signal_drain_deferred:' + module);
       }
     });
+  }
+
+  function getSheetSignalEventTypes_(signal) {
+    var values = Array.isArray(signal && signal.eventTypes) && signal.eventTypes.length
+      ? signal.eventTypes : [signal && signal.eventType];
+    var seen = {};
+    return values.map(function (value) {
+      return (clean_(value) || 'CHANGE').toUpperCase();
+    }).filter(function (value) {
+      if (seen[value]) return false;
+      seen[value] = true;
+      return true;
+    });
+  }
+
+  function enqueueBackgroundTransportVerification_(eventTypes) {
+    var sourceTypes = (eventTypes || []).map(function (value) {
+      return (clean_(value) || 'CHANGE').toUpperCase();
+    }).join('+');
+    return enqueueRefreshWithFallback_({
+      full: true,
+      includeAll: true,
+      sheets: MANAGE_SHEET_NAMES,
+      catalogs: TRANSPORT_CATALOG_SHEET_NAMES.map(function (sheet) {
+        return sheet === 'DM_ThamSo' ? 'DM_ThamSo_TS' : sheet;
+      }),
+      verificationPasses: 1,
+      source: 'signal:transport:BACKGROUND:' + sourceTypes
+    }, backgroundReportRefreshQueueContext_(), 'transport-background');
   }
 
   function coalesceSignalScopes_(scopes, sheetNames) {

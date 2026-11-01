@@ -40,14 +40,21 @@ var SheetChangeSignalService = (function () {
     var previous = parse_(context.getProperty(key_(module, context)));
     var consumed = context.getProperty(key_(module, context) + '_CONSUMED');
     var pendingPrevious = previous.token && String(previous.token) !== String(consumed || '');
-    var scopes = pendingPrevious && previous.eventType === 'EDIT' && type === 'EDIT'
-      ? (previous.scopes || []).slice() : [];
-    if (scope) scopes.push(scope);
+    var eventTypes = pendingPrevious ? normalizeEventTypes_(previous) : [];
+    if (eventTypes.indexOf(type) === -1) eventTypes.push(type);
+    if (eventTypes.length > 12) eventTypes = eventTypes.slice(eventTypes.length - 12);
+    // A structural onChange may arrive before the edit signal is durably ACKed.
+    // Keep the exact edit rows so the foreground queue can still meet its SLA;
+    // the structural verification is planned separately by the drain.
+    var scopes = pendingPrevious && Array.isArray(previous.scopes)
+      ? previous.scopes.slice() : [];
+    if (type === 'EDIT' && scope) scopes.push(scope);
     if (scopes.length > 50) scopes = scopes.slice(scopes.length - 50);
     var token = context.createUuid();
     context.setProperty(key_(module, context), JSON.stringify({
       token: token,
-      eventType: pendingPrevious && previous.eventType !== type ? 'CHANGE' : type,
+      eventType: eventTypes.length === 1 ? eventTypes[0] : 'CHANGE',
+      eventTypes: eventTypes,
       scopes: scopes,
       at: context.nowMillis()
     }));
@@ -75,6 +82,19 @@ var SheetChangeSignalService = (function () {
     } catch (ignored) {
       return {};
     }
+  }
+
+  function normalizeEventTypes_(signal) {
+    var values = Array.isArray(signal && signal.eventTypes) && signal.eventTypes.length
+      ? signal.eventTypes : [signal && signal.eventType];
+    var seen = {};
+    return values.map(function (value) {
+      return String(value || '').trim().toUpperCase();
+    }).filter(function (value) {
+      if (!value || seen[value]) return false;
+      seen[value] = true;
+      return true;
+    });
   }
 
   function drain(module, context) {

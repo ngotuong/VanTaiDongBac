@@ -80,11 +80,16 @@ var FundTransactionService = (function () {
     if (!items.length) throw new Error('Chưa có giao dịch thu chi nào để ghi.');
     var seed = context.buildVoucherSeed();
     var rows = items.map(function (payload, index) { return buildRow(payload, seed, index, context); });
+    assertNewVoucherRows(rows, context);
     var existing = context.repository.findVoucherRows(context.sheet, rows.map(function (row) { return context.clean(row[0]); }), context.clean);
     var existingCount = Object.keys(existing).length;
     var spreadsheetId = context.spreadsheet.getId();
     var spreadsheetName = context.spreadsheet.getName();
     if (existingCount === rows.length) {
+      if (!context.repository || typeof context.repository.assertUniqueVoucherOccurrences !== 'function') {
+        throw new Error('Thiếu cơ chế hậu kiểm Số phiếu khi replay.');
+      }
+      context.repository.assertUniqueVoucherOccurrences(context.sheet, rows.map(function (row) { return row[0]; }), context.clean);
       var replayRows = rows.map(function (row) { return { ok: true, rowIndex: existing[context.clean(row[0])], voucher: context.clean(row[0]), spreadsheetId: spreadsheetId, spreadsheetName: spreadsheetName, sheetName: context.sheetName }; });
       return { ok: true, inserted: rows.length, spreadsheetId: spreadsheetId, spreadsheetName: spreadsheetName,
         firstRow: Math.min.apply(null, replayRows.map(function (row) { return row.rowIndex; })),
@@ -93,10 +98,30 @@ var FundTransactionService = (function () {
     }
     if (existingCount > 0) throw new Error('Batch Thu chi đã tồn tại một phần voucher; dừng ghi để tránh nhân đôi dữ liệu.');
     var range = context.repository.appendRows(context.sheet, rows, context.appendOptions);
+    verifyNewVoucherWrite(rows, range.firstRow, context);
     return { ok: true, inserted: rows.length, spreadsheetId: spreadsheetId, spreadsheetName: spreadsheetName,
       firstRow: range.firstRow, lastRow: range.lastRow,
       rows: rows.map(function (row, index) { return { ok: true, rowIndex: range.firstRow + index, voucher: row[0], spreadsheetId: spreadsheetId, spreadsheetName: spreadsheetName, sheetName: context.sheetName }; }),
       sheetName: context.sheetName };
+  }
+
+  function assertNewVoucherRows(rows, context) {
+    var seen = {};
+    (rows || []).forEach(function (row, index) {
+      var voucher = context.clean(row && row[0]);
+      if (!/^\d{12}$/.test(voucher)) throw new Error('Dòng ' + (index + 1) + ': Số phiếu phải đủ 12 chữ số.');
+      if (seen[voucher]) throw new Error('Batch Thu chi có Số phiếu trùng: ' + voucher + '.');
+      seen[voucher] = true;
+    });
+    return true;
+  }
+
+  function verifyNewVoucherWrite(rows, firstRow, context) {
+    assertNewVoucherRows(rows, context);
+    if (!context.repository || typeof context.repository.assertUniqueVoucherRows !== 'function') {
+      throw new Error('Thiếu cơ chế hậu kiểm Số phiếu sau khi ghi.');
+    }
+    return context.repository.assertUniqueVoucherRows(context.sheet, rows, firstRow, context.clean);
   }
 
   function updateTransaction(rowIndex, payload, context) {
@@ -269,6 +294,7 @@ var FundTransactionService = (function () {
       limited: !state.completeCapture && state.totalRows > state.limit, completeCapture: state.completeCapture === true };
   }
 
-  return { assertIdentity: assertIdentity, buildRow: buildRow, buildDebtPayment: buildDebtPayment, validate: validate, addTransactions: addTransactions, updateTransaction: updateTransaction,
+  return { assertIdentity: assertIdentity, assertNewVoucherRows: assertNewVoucherRows, verifyNewVoucherWrite: verifyNewVoucherWrite,
+    buildRow: buildRow, buildDebtPayment: buildDebtPayment, validate: validate, addTransactions: addTransactions, updateTransaction: updateTransaction,
     deleteTransaction: deleteTransaction, getTransactions: getTransactions, beginCapture: beginCapture, appendCapture: appendCapture, finishCapture: finishCapture };
 })();

@@ -417,11 +417,13 @@ Khi queue Thu chi không bật:
 2. gửi `addFundTransactions`;
 3. Apps Script mở file Thu chi theo năm;
 4. tạo voucher cho từng dòng;
-5. append batch vào `NHAP_THUCHI`;
-6. copy/bảo toàn công thức cần thiết;
-7. nếu lỗi giữa batch, rollback vùng vừa ghi;
-8. sync fund overview và transaction bundles;
-9. trả spreadsheet/sheet/khoảng dòng để truy vết.
+5. validate voucher 12 chữ số và không trùng trong batch;
+6. prepare durable intent (V2 dùng hidden journal + row metadata; legacy note chỉ là compatibility trước migration);
+7. append batch vào `NHAP_THUCHI` và bảo toàn công thức cần thiết;
+8. hậu kiểm exact voucher tại vùng vừa ghi và đúng một lần trong cột A rồi mới complete intent;
+9. nếu lỗi giữa batch, rollback khi trạng thái còn xác định; drift/partial chuyển `REQUIRES_RECONCILIATION`;
+10. sync fund overview và transaction bundles;
+11. trả spreadsheet/sheet/khoảng dòng để truy vết.
 
 ### 10.2. Ghi qua queue pilot
 

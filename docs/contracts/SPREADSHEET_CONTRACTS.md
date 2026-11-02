@@ -898,14 +898,17 @@ Snapshot có max 15 cột nhưng lastColumn 14. Không ghi vào cột O hoặc m
 
 - Một row chỉ có một trong `MỤC THU` hoặc `MỤC CHI` theo loại giao dịch.
 - `Số phiếu` phải duy nhất và ổn định khi tạo giao dịch mới. Riêng dòng thanh toán công nợ phải dùng lại `Số phiếu` của dòng công nợ gốc để công thức M đối trừ đúng.
+- Giao dịch mới do webapp tạo dùng đúng 12 chữ số `yyMMdd` + sequence 6 chữ số trong ngày. Writer phải kiểm tra format/batch duplicate trước append và hậu kiểm exact row + đúng một lần xuất hiện trong toàn cột A trước khi complete journal.
 - `Ngày` phải là date hợp lệ.
 - `Số tiền` phải là số dương theo validation nghiệp vụ hiện tại.
 - Cột J là flag công nợ; cột L là flag `Không qua Quỹ`; K và M phải được giữ theo template/công thức. N2 là công thức mảng của workbook, writer tuyệt đối không ghi công thức từng dòng vào N3:N.
 - `Không qua Quỹ` hợp lệ với cả giao dịch `Thu` và `Chi`; tổng Quỹ và số dư kỳ loại trừ các dòng này.
 - Batch append phải rollback vùng vừa ghi nếu lỗi giữa chừng.
 - Nếu voucher đã tồn tại đủ số dòng, queued retry trả idempotent replay thay vì ghi lại.
+- Journal queued append V2 không dùng ghi chú ô A: payload ở sheet ẩn `SYS_FUND_WRITE_INTENTS`, row marker là Developer Metadata `FUND_WRITE_INTENT_V2`. Khi sheet hệ thống chưa được migration, runtime vẫn tương thích journal note `VTDB_INTENT_V1`; không tự xóa note bị drift.
 - Thanh toán công nợ đi qua action riêng `addFundDebtPayment`: khóa theo `rowIndex` dòng gốc, chỉ nhận dòng J=`Có` còn dư, không cho thanh toán vượt M, ghi một dòng J rỗng cùng voucher và hậu kiểm M giảm đúng số tiền. Nếu hậu kiểm sai, writer clear-only dòng vừa append và báo lỗi. `clientRequestId` được lưu dưới fingerprint trong Script Properties để retry không ghi trùng.
 - Không xóa công thức công nợ ở M hoặc công thức mảng lọc tại N2. Dữ liệu/công thức legacy đang chặn spill N3:N chỉ được dọn qua `FundTransactionFilterMigration` có snapshot, fingerprint và one-shot approval.
+- Chuyển journal note legacy sang V2 chỉ qua `FundWriteIntentMigration` có dry-run, fingerprint và one-shot approval. Migration được phép tạo đúng một sheet hệ thống ẩn, chỉ clear note sau khi journal + metadata V2 được xác minh; không sửa số phiếu/dữ liệu của row drift.
 
 ### 14.3. API mapping logic
 

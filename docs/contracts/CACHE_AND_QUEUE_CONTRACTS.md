@@ -3,7 +3,7 @@
 ## Invariant ghi/queue (trạng thái triển khai tại PROJECT_CONTEXT)
 
 - Enqueue so canonical payload/action/module/actor; cùng key đổi intent → 409, kể cả insert race.
-- Fund append lưu note journal ở voucher cell trước values; chỉ complete sau verify/flush. Partial/drift/legacy markers → REQUIRES_RECONCILIATION, không replay append.
+- Fund append dùng journal V2 sau migration: payload nằm trong sheet ẩn `SYS_FUND_WRITE_INTENTS`, marker Developer Metadata `FUND_WRITE_INTENT_V2` gắn vào row dimension để đi theo thao tác chèn/di chuyển dòng; chỉ complete sau verify/flush và hậu kiểm voucher. Trước migration, writer vẫn đọc/ghi tương thích note `VTDB_INTENT_V1` ở voucher cell. Migration chỉ chuyển journal có exact row, giữ nguyên note bị drift để đối soát; partial/drift/mất marker → `REQUIRES_RECONCILIATION`, không replay append.
 - Migration 016 service-role RPC reap exhausted leases thành failed + log; min stale 900s; không claim active leases. Worker persistence error cô lập từng job.
 - Mọi mutation Thu chi theo dõi job; terminal invalidate/refetch. Pending không coi là số tài chính chính thức.
 - Push ledger theo endpoint/event hạn chế duplicate retry partial; vẫn at-least-once khi provider nhận/ledger lỗi hoặc concurrency.

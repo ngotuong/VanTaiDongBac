@@ -19,20 +19,26 @@ var TransportRefreshWorker = (function () {
     // A catalog edit must reach its read model before unrelated historical work.
     var tasks = unique_(item.catalogs).map(function (sheet) { return ['catalog', sheet]; });
     var sheets = unique_(item.sheets);
+    var fastLane = item.priority === true && item.full !== true && item.refreshDashboard === true && sheets.length > 0;
+    // A scoped human-edit burst has already observed the 15-second quiet
+    // window. Publish its final user-facing snapshot before manage caches.
+    if (fastLane) tasks.push(['dashboard'], ['preparePriorityReport'], ['background']);
     sheets.forEach(function (sheet) {
       if ((item.fastManagedSheets || []).indexOf(sheet) >= 0) return;
       tasks.push(['manage', sheet]);
       unique_((item.priorityMonths || []).concat(context.currentMonth ? [context.currentMonth] : []))
         .sort().reverse().forEach(function (month) { tasks.push(['manageMonth', sheet, month]); });
     });
-    if (!item.fastDashboard && (item.refreshDashboard || item.full || (item.sheets || []).length)) tasks.push(['dashboard']);
+    if (!fastLane && !item.fastDashboard && (item.refreshDashboard || item.full || (item.sheets || []).length)) tasks.push(['dashboard']);
     if (item.full) tasks.push(['discoverReports']);
-    if (tasks.length || (item.catalogs || []).length) tasks.push(['preparePriorityReport']);
-    else {
-      var reports = reportTasks_(item, context);
-      return reports.length > 1 ? [reports[0], ['background']].concat(reports.slice(1)) : reports;
+    if (!fastLane) {
+      if (tasks.length || (item.catalogs || []).length) tasks.push(['preparePriorityReport']);
+      else {
+        var reports = reportTasks_(item, context);
+        return reports.length > 1 ? [reports[0], ['background']].concat(reports.slice(1)) : reports;
+      }
     }
-    tasks.push(['background']);
+    if (!fastLane) tasks.push(['background']);
     if (item.full) sheets.forEach(function (sheet) { tasks.push(['discoverManage', sheet]); });
     tasks.push(['prepareReports']);
     if ((item.catalogs || []).length) {

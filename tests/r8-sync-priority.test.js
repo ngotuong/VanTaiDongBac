@@ -12,7 +12,8 @@ function harness() {
   for (const file of ['ManualReportRefreshQueueService.gs', 'TransportRefreshWorker.gs', 'TransportSourceProbeService.gs']) vm.runInContext(read(file), sandbox);
   const queue = sandbox.ManualReportRefreshQueueService;
   const context = { withLock: (fn) => fn(), nowMillis: () => now, nowISOString: () => new Date(now).toISOString(),
-    normalizeYearMonthKey: String, getProperty: (k) => props.get(k), setProperty: (k, v) => props.set(k, v), deleteProperty: (k) => props.delete(k) };
+    normalizeYearMonthKey: String, allowCheckpointPriorityReplan: true,
+    getProperty: (k) => props.get(k), setProperty: (k, v) => props.set(k, v), deleteProperty: (k) => props.delete(k) };
   const publish = (key) => { now += 2000; published.push({ key, at: now }); return { ok: true }; };
   const worker = { currentMonth: '2026-10', planVersion: 3, maxStages: 30, turnBudgetMs: 45000,
     nowMillis: context.nowMillis, log: (s) => logs.push(s), writeStatus() {},
@@ -105,6 +106,43 @@ test('an active or crashed lease cannot be preempted by a later edit', () => {
   h.advance(420001); const resumed = h.queue.claimDue(h.context).item;
   assert.deepEqual(plain(resumed.tasks), [['manageMonth', 'NL_Dau', '2026-05']]);
   assert.ok(h.props.has('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC'));
+});
+
+test('Transport, fuel and driver edits coalesce after quiet time and publish only the latest user-facing snapshot first', () => {
+  const h = harness(); const q = h.queue; const c = h.context;
+  q.enqueue({ sheets: ['NL_VanChuyen'], months: ['2026-10'], refreshDashboard: true,
+    includeAll: false, source: 'sheet:NL_VanChuyen:EDIT' }, c);
+  h.advance(15001);
+  const old = q.claimDue(c).item;
+  q.saveProgress({ ...old, planVersion: 3, tasks: [['manage', 'NL_VanChuyen'], ['dashboard']] }, c, 0);
+
+  q.enqueue({ sheets: ['NL_Dau'], months: ['2026-10'], refreshDashboard: true,
+    includeAll: false, source: 'sheet:NL_Dau:EDIT' }, c);
+  h.advance(8000);
+  q.enqueue({ sheets: ['NL_TaiXe'], months: ['2026-10'], refreshDashboard: true,
+    includeAll: false, source: 'sheet:NL_TaiXe:EDIT' }, c);
+  h.advance(14999);
+  const quiet = q.claimDue(c);
+  assert.equal(quiet.due, false, 'the obsolete cursor stays paused until the latest edit is quiet');
+  assert.equal(h.published.length, 0);
+
+  h.advance(2);
+  const latest = q.claimDue(c);
+  assert.equal(latest.due, true);
+  assert.equal(latest.item.tasks, undefined, 'the obsolete foreground plan is rebuilt');
+  assert.deepEqual(plain(latest.item.sheets), ['NL_VanChuyen', 'NL_Dau', 'NL_TaiXe']);
+  const first = h.TransportRefreshWorker.run(latest.item, h.worker);
+  assert.deepEqual(plain(first.stages), ['dashboard', 'preparePriorityReport', 'report:2026-10']);
+  assert.deepEqual(h.published.map((row) => row.key), ['dashboard', 'report:2026-10']);
+  assert.equal(first.acknowledgement.acknowledged, false, 'manage cache scope remains durable after fast publication');
+  const lease = JSON.parse(h.props.get('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_LEASE'));
+  assert.deepEqual(lease.item.tasks[0], ['background'], 'remaining manage caches yield to any newer foreground generation');
+  h.finish();
+  for (const sheet of ['NL_VanChuyen', 'NL_Dau', 'NL_TaiXe']) {
+    assert.ok(h.published.some((row) => row.key === sheet + ':recent'));
+    assert.ok(h.published.some((row) => row.key === sheet + ':2026-10'));
+  }
+  assert.equal(q.getPending(c), null);
 });
 
 test('verification/safety do not turn historical months back into foreground work', () => {

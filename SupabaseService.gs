@@ -1899,6 +1899,7 @@ var SupabaseService = (function () {
       getProperty: function (key) { return props.getProperty(key); },
       setProperty: function (key, value) { props.setProperty(key, value); },
       deleteProperty: function (key) { props.deleteProperty(key); },
+      allowCheckpointPriorityReplan: true,
       withLock: withRefreshQueueLock_
     };
   }
@@ -1906,6 +1907,7 @@ var SupabaseService = (function () {
   function backgroundReportRefreshQueueContext_() {
     var context = manualReportRefreshQueueContext_();
     context.propertyKey = yearPropertyKey_(TRANSPORT_BACKGROUND_REFRESH_PROPERTY_KEY);
+    context.allowCheckpointPriorityReplan = false;
     return context;
   }
 
@@ -1933,6 +1935,7 @@ var SupabaseService = (function () {
     context.propertyKey = yearPropertyKey_(FUND_REFRESH_PROPERTY_KEY);
     context.debounceMs = FUND_REFRESH_DEBOUNCE_MS;
     context.retryDelayMs = FUND_REFRESH_RETRY_DELAY_MS;
+    context.allowCheckpointPriorityReplan = false;
     return context;
   }
 

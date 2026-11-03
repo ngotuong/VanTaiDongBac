@@ -53,10 +53,21 @@ var ManualReportRefreshQueueService = (function () {
         };
       }
       if (hasWork_(lease.item)) {
-        var interruptible = lease.item.background === true || (Array.isArray(lease.item.tasks) &&
+        var interruptible = context.allowCheckpointPriorityReplan === true || lease.item.background === true || (Array.isArray(lease.item.tasks) &&
           lease.item.tasks[0] && /^(fundCapture|fundTransactionsScan|fundTransactionsPublish)$/.test(lease.item.tasks[0][0]));
-        if (lease.checkpoint && interruptible && pending.priority === true &&
-            hasWork_(pending) && Number(pending.notBefore || 0) <= now && Number(lease.item.priorityRestarts || 0) < 3) {
+        var canPriorityReplan = lease.checkpoint && interruptible && pending.priority === true &&
+          hasWork_(pending) && Number(lease.item.priorityRestarts || 0) < 3;
+        if (canPriorityReplan && Number(pending.notBefore || 0) > now) {
+          // A yielded foreground cursor must not publish an obsolete snapshot
+          // while the latest edit burst is still inside its quiet window.
+          return {
+            due: false,
+            pending: true,
+            waitMs: Number(pending.notBefore) - now,
+            item: withLease_(lease.item, lease.id)
+          };
+        }
+        if (canPriorityReplan && Number(pending.notBefore || 0) <= now) {
           // Only a yielded cursor may be replanned. A Fund capture would also
           // restart on the new signal stamp; republish its lists before that.
           // Merge complete scope so history is never ACKed or lost here.

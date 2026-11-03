@@ -57,6 +57,7 @@ var TransportRefreshWorker = (function () {
       delete item.fastDashboard;
       delete item.priorityReport;
       delete item.priorityReports;
+      delete item.reportDataVersion;
       delete item.fundTransactionsCapture;
       item.background = false;
       item.planVersion = context.planVersion;
@@ -105,16 +106,33 @@ var TransportRefreshWorker = (function () {
           if (priorityMonths.length) item.priorityReport = priorityMonths[0];
         } else if (task[0] === 'background') item.background = true;
         else if (task[0] === 'prepareReports') added = reportTasks_(item, context);
-        else if (task[0] === 'dashboard') result = context.syncDashboard();
+        else if (task[0] === 'dashboard') {
+          result = context.syncDashboard();
+          item.reportDataVersion = String((result && result.dataVersion) || '');
+        }
         else if (task[0] === 'manage') result = context.syncManage(task[1]);
         else if (task[0] === 'manageMonth') result = context.syncManageMonth(task[1], task[2]);
-        else if (task[0] === 'report') result = context.syncReport(task[1]);
+        else if (task[0] === 'report') result = context.syncReport(task[1], item);
         else throw new Error('Unknown refresh stage: ' + stage);
       }
       if (!result || result.ok === false) throw new Error(JSON.stringify(result || 'Refresh returned no result.'));
       if (item.background && task && /^(manageMonth|report|fundOverview|fundTransactionsPublish|fundLoans|fundCatalog|catalog)$/.test(task[0])) item.priorityRestarts = 0;
       // Record publication only after syncReport succeeds, never while planning.
       if (task && task[0] === 'report') item.priorityReports = unique_((item.priorityReports || []).concat([task[1]]));
+      if (task && (task[0] === 'dashboard' || task[0] === 'report')) {
+        var cacheKey = task[0] === 'dashboard' ? '__dashboard_latest__' : String(result.reportMonth || task[1]);
+        var publication = {
+          cacheKey: cacheKey,
+          generationAt: Number(item.generationAt || 0),
+          generationId: String(item.generationId || ''),
+          publishedAt: String(result.syncedAt || '')
+        };
+        item.publicationAcks = uniquePublicationAcks_((item.publicationAcks || []).concat([publication]));
+        if (context.recordPublication) {
+          try { context.recordPublication(publication); }
+          catch (publicationError) { context.log('refresh_publication_status_failed:' + cacheKey); }
+        }
+      }
       item.tasks = added.concat(item.tasks.slice(1));
       // Persist the completed cursor and yield in one atomic lock operation.
       context.saveProgress(item, item.tasks.length ? 0 : undefined);
@@ -173,7 +191,7 @@ var TransportRefreshWorker = (function () {
           context.nowMillis() >= deadline ||
           !context.claimNext || index + 1 >= maxStages) break;
       var next;
-      try { next = context.claimNext(); }
+      try { next = context.claimNext(item); }
       catch (error) {
         if (!error || !(error.refreshDeferred || error.transportDeferred)) throw error;
         result.ok = false; result.deferred = true; result.phase = 'claim';
@@ -187,11 +205,27 @@ var TransportRefreshWorker = (function () {
     result.stages = stages;
     // One status publication per bounded turn, instead of one extra RPC per page.
     try {
+      var latestPublication = (item.publicationAcks || []).slice(-1)[0];
       context.writeStatus(result.ok ? 'ok' : 'error', result.ok
-        ? 'Stage ' + result.stage + ' completed in ' + Number(result.elapsedMs || 0) + 'ms; remaining=' + Number(result.remainingStages || 0) + '.'
+        ? 'Stage ' + result.stage + ' completed in ' + Number(result.elapsedMs || 0) + 'ms; remaining=' + Number(result.remainingStages || 0) +
+          '; generationAt=' + Number(item.generationAt || 0) + (latestPublication
+            ? '; published=' + latestPublication.cacheKey + '@' + latestPublication.publishedAt : '') + '.'
         : 'Stage ' + result.stage + ': ' + (result.error || result.reason || 'Deferred'));
     } catch (statusError) { context.log('refresh_stage_status_failed:' + result.stage); }
     return result;
+  }
+
+  function uniquePublicationAcks_(acks) {
+    var byKey = {};
+    (acks || []).forEach(function (ack) {
+      if (!ack || !ack.cacheKey) return;
+      var current = byKey[String(ack.cacheKey)];
+      if (!current || String(ack.publishedAt || '') >= String(current.publishedAt || '')) byKey[String(ack.cacheKey)] = ack;
+    });
+    return Object.keys(byKey).map(function (key) { return byKey[key]; }).sort(function (left, right) {
+      var byTime = String(left.publishedAt || '').localeCompare(String(right.publishedAt || ''));
+      return byTime || String(left.cacheKey).localeCompare(String(right.cacheKey));
+    }).slice(-12);
   }
 
   return { run: run, buildCacheTasks: buildCacheTasks };

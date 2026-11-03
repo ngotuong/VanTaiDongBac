@@ -18,7 +18,7 @@ function harness() {
   const worker = { currentMonth: '2026-10', planVersion: 3, maxStages: 30, turnBudgetMs: 45000,
     nowMillis: context.nowMillis, log: (s) => logs.push(s), writeStatus() {},
     saveProgress: (item, delay) => queue.saveProgress(item, context, delay), requeue: (item) => queue.requeue(item, context),
-    acknowledge: (item) => queue.acknowledge(item, context), claimNext: () => queue.claimDue(context),
+    acknowledge: (item) => queue.acknowledge(item, context), claimNext: (item) => queue.claimOwnedCheckpoint(item, context),
     manageMonths: () => ['2026-10', '2026-09', '2026-08', '2026-07', '2026-06', '2026-05'],
     reportMonths: () => ['2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10'],
     syncManage: (sheet) => publish(sheet + ':recent'), syncManageMonth: (sheet, month) => publish(sheet + ':' + month),
@@ -145,6 +145,73 @@ test('Transport, fuel and driver edits coalesce after quiet time and publish onl
   assert.equal(q.getPending(c), null);
 });
 
+test('a signal drained one minute late keeps the edit-time quiet window and replans inside its current owner checkpoint', () => {
+  const h = harness(); const q = h.queue; const c = h.context;
+  q.enqueue({ sheets: ['NL_VanChuyen'], months: ['2026-10'], refreshDashboard: true,
+    source: 'sheet:NL_VanChuyen:EDIT' }, c);
+  h.advance(15001);
+  const owner = q.claimDue(c).item;
+  q.saveProgress({ ...owner, planVersion: 4, tasks: [['manage', 'NL_VanChuyen'], ['dashboard']] }, c, 0);
+
+  const editAt = h.now() - 60000;
+  q.enqueue({ sheets: ['NL_Dau'], months: ['2026-10'], refreshDashboard: true,
+    source: 'sheet:NL_Dau:EDIT', eventAtMillis: editAt, generationId: 'late-signal' }, c);
+  const pending = q.getPending(c);
+  assert.equal(pending.waitMs, 0, 'drain latency must not restart the quiet window');
+  assert.equal(pending.generationAt, editAt);
+  assert.equal(pending.generationId, 'late-signal');
+
+  const next = q.claimOwnedCheckpoint(owner, c);
+  assert.equal(next.due, true);
+  assert.equal(next.item.tasks, undefined, 'the owner rebuilds the latest generation in the same invocation');
+  assert.ok(next.item.sheets.includes('NL_Dau'));
+  assert.equal(q.claimOwnedCheckpoint(owner, c).ownershipChanged, true, 'the rotated token rejects the stale owner');
+});
+
+test('an owner checkpoint cannot claim or mutate a different active lease', () => {
+  const h = harness(); const q = h.queue; const c = h.context;
+  q.enqueue({ sheets: ['NL_Dau'], source: 'sheet:NL_Dau:EDIT' }, c); h.advance(15001);
+  const owner = q.claimDue(c).item;
+  const foreign = { ...owner, leaseId: 'foreign-owner' };
+  const result = q.claimOwnedCheckpoint(foreign, c);
+  assert.equal(result.due, false); assert.equal(result.ownershipChanged, true);
+  assert.equal(q.getPending(c).leased, true);
+});
+
+test('dashboard shares its data version with report publication and persists a generation ACK', () => {
+  const h = harness(); const q = h.queue; const c = h.context; const publications = [];
+  q.enqueue({ months: ['2026-10'], refreshDashboard: true, source: 'sheet:NL_Dau:EDIT',
+    eventAtMillis: h.now(), generationId: 'generation-10' }, c);
+  h.advance(15001);
+  const claimed = q.claimDue(c).item;
+  q.saveProgress({ ...claimed, planVersion: 4, tasks: [['dashboard'], ['report', '2026-10'], ['background']] }, c, 0);
+  const item = q.claimDue(c).item;
+  h.worker.planVersion = 4;
+  h.worker.recordPublication = (publication) => {
+    publications.push(publication);
+    if (publication.cacheKey === '10/2026') throw new Error('telemetry unavailable');
+  };
+  h.worker.syncDashboard = () => ({ ok: true, reportMonth: '__dashboard_latest__',
+    syncedAt: '2026-11-03T15:19:59.000Z', dataVersion: 'version-10' });
+  h.worker.syncReport = (_month, item) => {
+    assert.equal(item.reportDataVersion, 'version-10');
+    return { ok: true, reportMonth: '10/2026', syncedAt: '2026-11-03T15:20:00.000Z', dataVersion: 'version-10' };
+  };
+  const result = h.TransportRefreshWorker.run(item, h.worker);
+  assert.deepEqual(plain(result.stages), ['dashboard', 'report:2026-10']);
+  assert.deepEqual(plain(publications), [
+    { cacheKey: '__dashboard_latest__', generationAt: 1000000,
+      generationId: 'generation-10', publishedAt: '2026-11-03T15:19:59.000Z' },
+    { cacheKey: '10/2026', generationAt: 1000000,
+      generationId: 'generation-10', publishedAt: '2026-11-03T15:20:00.000Z' }
+  ]);
+  const lease = JSON.parse(h.props.get('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_LEASE'));
+  assert.deepEqual(plain(lease.item.publicationAcks), plain(publications));
+  assert.equal(lease.item.reportDataVersion, 'version-10');
+  assert.deepEqual(plain(lease.item.tasks), [['background']]);
+  assert.ok(h.logs.includes('refresh_publication_status_failed:10/2026'));
+});
+
 test('verification/safety do not turn historical months back into foreground work', () => {
   const h = harness(); h.queue.enqueue({ full: true, months: ['2026-05', '2026-06'], source: 'verification:report-formulas' }, h.context);
   h.queue.enqueue({ full: true, source: 'safety:transport' }, h.context);
@@ -192,7 +259,8 @@ function timer(primaryCost = 4000) {
     if (!item.due) {
       now += 15001;
       const claimed = s.ManualReportRefreshQueueService.claimDue({ ...ctx, propertyKey: key });
-      s.ManualReportRefreshQueueService.saveProgress({ ...claimed.item, planVersion: 3, tasks: Array.from({ length: 40 }, () => task) }, { ...ctx, propertyKey: key }, 0);
+      s.ManualReportRefreshQueueService.saveProgress({ ...claimed.item, planVersion: module === 'transport' ? 4 : 3,
+        tasks: Array.from({ length: 40 }, () => task) }, { ...ctx, propertyKey: key }, 0);
     }
   }
   for (const key of ['SUPABASE_REALTIME_HEARTBEAT_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_TRIP_NOTIFICATION_NEXT_AT', 'SUPABASE_SOURCE_POLL_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) props.set(key + '_2026', String(now + 3600000));

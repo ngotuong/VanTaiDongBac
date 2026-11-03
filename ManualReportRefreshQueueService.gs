@@ -10,8 +10,14 @@ var ManualReportRefreshQueueService = (function () {
     return context.withLock(function () {
       var now = context.nowMillis();
       var current = read_(context);
+      var eventAt = normalizeEventAt_(input.eventAtMillis, now);
+      var delayMs = Number(input.delayMs === undefined ? context.debounceMs || DEFAULT_DEBOUNCE_MS : input.delayMs);
+      // Human-edit quiet time starts at the last event, not when a minute worker
+      // eventually drains that signal. Explicit operational delays still start now.
+      var quietWindowBase = input.delayMs === undefined && eventAt ? eventAt : now;
       var incomingMonths = normalizeMonths_(input.months, context.normalizeYearMonthKey);
       var full = Boolean(input.full || current.full);
+      var latestGenerationAt = Math.max(Number(current.generationAt || 0), eventAt);
       var pending = {
         full: full,
         includeAll: input.includeAll !== false || current.includeAll === true,
@@ -27,8 +33,12 @@ var ManualReportRefreshQueueService = (function () {
         ),
         notBefore: Math.max(
           Number(current.notBefore || 0),
-          now + Number(input.delayMs === undefined ? context.debounceMs || DEFAULT_DEBOUNCE_MS : input.delayMs)
+          quietWindowBase + delayMs
         ),
+        generationAt: latestGenerationAt,
+        generationId: eventAt >= Number(current.generationAt || 0) && input.generationId
+          ? String(input.generationId) : String(current.generationId || ''),
+        publicationAcks: mergePublicationAcks_(current.publicationAcks, input.publicationAcks),
         updatedAt: context.nowISOString(),
         sources: mergeUnique_(current.sources, input.source ? [String(input.source)] : []),
         attempts: Math.max(Number(current.attempts || 0), Number(input.attempts || 0))
@@ -52,39 +62,7 @@ var ManualReportRefreshQueueService = (function () {
           item: withLease_(lease.item, lease.id)
         };
       }
-      if (hasWork_(lease.item)) {
-        var interruptible = context.allowCheckpointPriorityReplan === true || lease.item.background === true || (Array.isArray(lease.item.tasks) &&
-          lease.item.tasks[0] && /^(fundCapture|fundTransactionsScan|fundTransactionsPublish)$/.test(lease.item.tasks[0][0]));
-        var canPriorityReplan = lease.checkpoint && interruptible && pending.priority === true &&
-          hasWork_(pending) && Number(lease.item.priorityRestarts || 0) < 3;
-        if (canPriorityReplan && Number(pending.notBefore || 0) > now) {
-          // A yielded foreground cursor must not publish an obsolete snapshot
-          // while the latest edit burst is still inside its quiet window.
-          return {
-            due: false,
-            pending: true,
-            waitMs: Number(pending.notBefore) - now,
-            item: withLease_(lease.item, lease.id)
-          };
-        }
-        if (canPriorityReplan && Number(pending.notBefore || 0) <= now) {
-          // Only a yielded cursor may be replanned. A Fund capture would also
-          // restart on the new signal stamp; republish its lists before that.
-          // Merge complete scope so history is never ACKed or lost here.
-          var refreshed = mergePending_(lease.item, pending, now, context, false);
-          refreshed.months = mergeUnique_(lease.item.months, pending.months).sort();
-          refreshed.priorityRestarts = Number(lease.item.priorityRestarts || 0) + 1;
-          refreshed.planVersion = lease.item.planVersion;
-          var prioritized = createLease_(refreshed, now, context);
-          context.deleteProperty(propertyKey_(context));
-          return prioritized;
-        }
-        // Resume the interrupted read-only stage before new events. New pending
-        // work stays separate, so an edit arriving during a stage is never ACKed.
-        var resumed = lease.item;
-        resumed.attempts = Number(resumed.attempts || 0) + (lease.checkpoint ? 0 : 1);
-        return createLease_(resumed, now, context);
-      }
+      if (hasWork_(lease.item)) return claimCheckpoint_(pending, lease, now, context);
       if (!hasWork_(pending)) {
         if (lease.id) context.deleteProperty(leasePropertyKey_(context));
         return { due: false, pending: false };
@@ -96,6 +74,49 @@ var ManualReportRefreshQueueService = (function () {
       context.deleteProperty(propertyKey_(context));
       return claimed;
     });
+  }
+
+  // The current worker may rotate only its own yielded checkpoint. This lets a
+  // late signal join the same invocation without preempting another live/crashed
+  // owner. A changed token fails closed and the caller yields.
+  function claimOwnedCheckpoint(item, context) {
+    return context.withLock(function () {
+      var now = context.nowMillis();
+      var pending = read_(context);
+      var lease = readLease_(context);
+      if (!lease.id || !item || String(item.leaseId || '') !== String(lease.id)) {
+        return { due: false, pending: hasWork_(pending) || hasWork_(lease.item), ownershipChanged: true };
+      }
+      if (!lease.checkpoint || Number(lease.expiresAt || 0) > now) {
+        return { due: false, pending: hasWork_(pending) || hasWork_(lease.item), leased: true,
+          waitMs: Math.max(0, Number(lease.expiresAt || 0) - now), item: withLease_(lease.item, lease.id) };
+      }
+      return claimCheckpoint_(pending, lease, now, context);
+    });
+  }
+
+  function claimCheckpoint_(pending, lease, now, context) {
+    var interruptible = context.allowCheckpointPriorityReplan === true || lease.item.background === true || (Array.isArray(lease.item.tasks) &&
+      lease.item.tasks[0] && /^(fundCapture|fundTransactionsScan|fundTransactionsPublish)$/.test(lease.item.tasks[0][0]));
+    var canPriorityReplan = lease.checkpoint && interruptible && pending.priority === true &&
+      hasWork_(pending) && Number(lease.item.priorityRestarts || 0) < 3;
+    if (canPriorityReplan && Number(pending.notBefore || 0) > now) {
+      return { due: false, pending: true, waitMs: Number(pending.notBefore) - now, item: withLease_(lease.item, lease.id) };
+    }
+    if (canPriorityReplan && Number(pending.notBefore || 0) <= now) {
+      var refreshed = mergePending_(lease.item, pending, now, context, false);
+      refreshed.months = mergeUnique_(lease.item.months, pending.months).sort();
+      refreshed.priorityRestarts = Number(lease.item.priorityRestarts || 0) + 1;
+      refreshed.planVersion = lease.item.planVersion;
+      var prioritized = createLease_(refreshed, now, context);
+      context.deleteProperty(propertyKey_(context));
+      return prioritized;
+    }
+    // Resume the interrupted read-only stage before new events. New pending
+    // work stays separate, so an edit arriving during a stage is never ACKed.
+    var resumed = lease.item;
+    resumed.attempts = Number(resumed.attempts || 0) + (lease.checkpoint ? 0 : 1);
+    return createLease_(resumed, now, context);
   }
 
   function claimNextDue(candidates, preferredKey) {
@@ -332,6 +353,9 @@ var ManualReportRefreshQueueService = (function () {
       catalogs: mergeUnique_(first.catalogs, second.catalogs),
       verificationPasses: Math.max(Number(first.verificationPasses || 0), Number(second.verificationPasses || 0)),
       notBefore: reclaimingExpiredLease ? now : Math.max(Number(first.notBefore || 0), Number(second.notBefore || 0)),
+      generationAt: Math.max(Number(first.generationAt || 0), Number(second.generationAt || 0)),
+      generationId: latestGenerationId_(first, second),
+      publicationAcks: mergePublicationAcks_(first.publicationAcks, second.publicationAcks),
       updatedAt: context.nowISOString(),
       sources: mergeUnique_(first.sources, second.sources),
       attempts: Math.max(Number(first.attempts || 0), Number(second.attempts || 0)) + (reclaimingExpiredLease ? 1 : 0)
@@ -366,6 +390,32 @@ var ManualReportRefreshQueueService = (function () {
     return values;
   }
 
+  function normalizeEventAt_(value, now) {
+    var eventAt = Number(value || 0);
+    if (!(eventAt > 0) || !isFinite(eventAt)) return 0;
+    return Math.min(eventAt, now);
+  }
+
+  function latestGenerationId_(first, second) {
+    var firstAt = Number(first && first.generationAt || 0);
+    var secondAt = Number(second && second.generationAt || 0);
+    return String(secondAt >= firstAt && second && second.generationId
+      ? second.generationId : first && first.generationId || '');
+  }
+
+  function mergePublicationAcks_(left, right) {
+    var byKey = {};
+    (Array.isArray(left) ? left : []).concat(Array.isArray(right) ? right : []).forEach(function (ack) {
+      if (!ack || !ack.cacheKey) return;
+      var current = byKey[String(ack.cacheKey)];
+      if (!current || String(ack.publishedAt || '') >= String(current.publishedAt || '')) byKey[String(ack.cacheKey)] = ack;
+    });
+    return Object.keys(byKey).map(function (key) { return byKey[key]; }).sort(function (leftAck, rightAck) {
+      var byTime = String(leftAck.publishedAt || '').localeCompare(String(rightAck.publishedAt || ''));
+      return byTime || String(leftAck.cacheKey).localeCompare(String(rightAck.cacheKey));
+    }).slice(-12);
+  }
+
   function hasWork_(pending) {
     return Boolean(pending && (pending.full === true || (pending.months && pending.months.length) ||
       pending.refreshDashboard === true || (pending.sheets && pending.sheets.length) ||
@@ -389,6 +439,9 @@ var ManualReportRefreshQueueService = (function () {
       remainingStages: Array.isArray(pending.tasks) ? pending.tasks.length : null,
       notBefore: Number(pending.notBefore || 0),
       waitMs: Math.max(0, Number(pending.notBefore || 0) - now),
+      generationAt: Number(pending.generationAt || 0),
+      generationId: pending.generationId || '',
+      publicationAcks: mergePublicationAcks_(pending.publicationAcks, []),
       updatedAt: pending.updatedAt || '',
       sources: (pending.sources || []).slice(),
       attempts: Number(pending.attempts || 0),
@@ -399,6 +452,7 @@ var ManualReportRefreshQueueService = (function () {
   return {
     enqueue: enqueue,
     claimDue: claimDue,
+    claimOwnedCheckpoint: claimOwnedCheckpoint,
     claimNextDue: claimNextDue,
     requeue: requeue,
     saveProgress: saveProgress,

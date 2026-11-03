@@ -98,6 +98,7 @@ var ReportSyncService = (function () {
 
   function syncDashboard(context) {
     var dashboard = context.getDashboard('', true);
+    var dataVersion = String(context.getReportDataVersion());
     var syncedAt = context.nowISOString();
     context.upsertRows(TABLE_REPORT_BUNDLES, [{
       spreadsheet_id: context.spreadsheetId,
@@ -107,7 +108,8 @@ var ReportSyncService = (function () {
       synced_at: syncedAt
     }], 'spreadsheet_id,report_month');
     context.writeSyncStatus('dashboard', 'transport', 'ok', 'Dashboard cache synced.', syncedAt);
-    return { ok: true, table: TABLE_REPORT_BUNDLES, reportMonth: DASHBOARD_REPORT_MONTH, syncedAt: syncedAt };
+    return { ok: true, table: TABLE_REPORT_BUNDLES, reportMonth: DASHBOARD_REPORT_MONTH,
+      dataVersion: dataVersion, syncedAt: syncedAt };
   }
 
   function syncAllReportBundles(context) {

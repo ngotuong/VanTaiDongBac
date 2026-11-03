@@ -75,7 +75,7 @@ test('report bundle and dashboard sync preserve rows, conflict key, status, and 
   });
   assert.deepEqual(calls.payrollExplanations, [{ month: '07/2026', version: dataVersion }]);
   assert.deepEqual(JSON.parse(JSON.stringify(dashboard)), {
-    ok: true, table: 'report_bundles', reportMonth: '__dashboard_latest__', syncedAt: syncTime
+    ok: true, table: 'report_bundles', reportMonth: '__dashboard_latest__', dataVersion, syncedAt: syncTime
   });
   assert.deepEqual(JSON.parse(JSON.stringify(calls.upserts)), [
     {
@@ -172,4 +172,17 @@ test('report bundle fails closed and is not published when payroll explanations 
   });
   assert.throws(() => failed.service.syncReportBundle('07/2026', failed.context), /synthetic payroll failure/);
   assert.equal(failed.calls.upserts.length, 0);
+});
+
+test('dashboard data version can be reused by the following report without a second invalidation', () => {
+  const shared = loadService();
+  const dashboard = shared.service.syncDashboard(shared.context);
+  const result = shared.service.syncReportBundle('07/2026', shared.context, {
+    skipInvalidation: true,
+    dataVersion: dashboard.dataVersion
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.dataVersion, dashboard.dataVersion);
+  assert.equal(shared.calls.batchStarts, 0);
+  assert.deepEqual(shared.calls.payrollExplanations, [{ month: '07/2026', version: shared.dataVersion }]);
 });

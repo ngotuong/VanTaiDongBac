@@ -532,6 +532,7 @@ var SupabaseService = (function () {
       months: changedMonths,
       full: false,
       includeAll: true,
+      refreshDashboard: true,
       source: 'poll:report-outputs'
     });
     if (queued && queued.deferred) throw new Error(queued.error || 'Report output refresh queue was deferred.');

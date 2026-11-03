@@ -259,12 +259,19 @@ test('E1.6R fingerprints complete source sheets by month every five minutes as a
 
 test('E1.6R polls computed report outputs by month and schedules one delayed verification pass', () => {
   const source = read('SupabaseService.gs');
+  const reportOutputBlock = source.slice(
+    source.indexOf('  function enqueueDetectedReportOutputChanges_(props)'),
+    source.indexOf('  function readReportOutputState_()')
+  );
   assert.match(source, /REPORT_OUTPUT_FINGERPRINT_PROP/);
   assert.match(source, /REPORT_OUTPUT_POLL_INTERVAL_MS = 60 \* 1000/);
   assert.match(source, /enqueueDetectedReportOutputChangesIfDue_\(props, nowMillis\)/);
   assert.match(source, /ReportTableService\.readFreshnessTables\(ss\)/);
   assert.match(source, /ReportOutputFreshnessService\.changedMonths/);
-  assert.match(source, /source: 'poll:report-outputs'/);
+  assert.match(reportOutputBlock, /months: changedMonths/);
+  assert.match(reportOutputBlock, /includeAll: true/);
+  assert.match(reportOutputBlock, /refreshDashboard: true/);
+  assert.match(reportOutputBlock, /source: 'poll:report-outputs'/);
   assert.match(source, /verificationPasses: 1/);
   assert.match(source, /TRANSPORT_REPORT_VERIFICATION_DELAY_MS = 120000/);
   assert.match(source, /source: 'verification:report-formulas'/);

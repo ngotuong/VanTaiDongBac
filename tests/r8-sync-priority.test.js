@@ -23,6 +23,15 @@ function harness() {
     reportMonths: () => ['2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10'],
     syncManage: (sheet) => publish(sheet + ':recent'), syncManageMonth: (sheet, month) => publish(sheet + ':' + month),
     syncDashboard: () => publish('dashboard'), syncReport: (month) => publish('report:' + month),
+    syncPublicationPair: (month) => {
+      now += 2000;
+      published.push({ key: 'dashboard', at: now }, { key: 'report:' + month, at: now });
+      return { ok: true, reportMonth: month.slice(5) + '/' + month.slice(0, 4), dataVersion: 'pair-' + month,
+        syncedAt: new Date(now).toISOString(), publications: [
+          { cacheKey: month.slice(5) + '/' + month.slice(0, 4), publishedAt: new Date(now).toISOString() },
+          { cacheKey: '__dashboard_latest__', publishedAt: new Date(now).toISOString() }
+        ] };
+    },
     syncCatalog: (sheet) => publish(sheet), syncStartup: () => publish('startup'), catalogForms: [] };
   return { ...sandbox, props, context, queue, worker, published, logs, advance: (ms) => { now += ms; }, now: () => now,
     tick: () => { const c = queue.claimDue(context); return c.due ? sandbox.TransportRefreshWorker.run(c.item, worker) : null; },
@@ -132,7 +141,7 @@ test('Transport, fuel and driver edits coalesce after quiet time and publish onl
   assert.equal(latest.item.tasks, undefined, 'the obsolete foreground plan is rebuilt');
   assert.deepEqual(plain(latest.item.sheets), ['NL_VanChuyen', 'NL_Dau', 'NL_TaiXe']);
   const first = h.TransportRefreshWorker.run(latest.item, h.worker);
-  assert.deepEqual(plain(first.stages), ['dashboard', 'preparePriorityReport', 'report:2026-10']);
+  assert.deepEqual(plain(first.stages), ['publishGeneration:2026-10']);
   assert.deepEqual(h.published.map((row) => row.key), ['dashboard', 'report:2026-10']);
   assert.equal(first.acknowledgement.acknowledged, false, 'manage cache scope remains durable after fast publication');
   const lease = JSON.parse(h.props.get('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_LEASE'));
@@ -178,35 +187,34 @@ test('an owner checkpoint cannot claim or mutate a different active lease', () =
   assert.equal(q.getPending(c).leased, true);
 });
 
-test('dashboard shares its data version with report publication and persists a generation ACK', () => {
+test('atomic publication pair persists both generation ACKs with one data version', () => {
   const h = harness(); const q = h.queue; const c = h.context; const publications = [];
   q.enqueue({ months: ['2026-10'], refreshDashboard: true, source: 'sheet:NL_Dau:EDIT',
     eventAtMillis: h.now(), generationId: 'generation-10' }, c);
   h.advance(15001);
   const claimed = q.claimDue(c).item;
-  q.saveProgress({ ...claimed, planVersion: 4, tasks: [['dashboard'], ['report', '2026-10'], ['background']] }, c, 0);
+  q.saveProgress({ ...claimed, planVersion: 4, tasks: [['publishGeneration', '2026-10'], ['background']] }, c, 0);
   const item = q.claimDue(c).item;
   h.worker.planVersion = 4;
   h.worker.recordPublication = (publication) => {
     publications.push(publication);
     if (publication.cacheKey === '10/2026') throw new Error('telemetry unavailable');
   };
-  h.worker.syncDashboard = () => ({ ok: true, reportMonth: '__dashboard_latest__',
-    syncedAt: '2026-11-03T15:19:59.000Z', dataVersion: 'version-10' });
-  h.worker.syncReport = (_month, item) => {
-    assert.equal(item.reportDataVersion, 'version-10');
-    return { ok: true, reportMonth: '10/2026', syncedAt: '2026-11-03T15:20:00.000Z', dataVersion: 'version-10' };
-  };
+  h.worker.syncPublicationPair = () => ({ ok: true, reportMonth: '10/2026',
+    syncedAt: '2026-11-03T15:20:00.000Z', dataVersion: 'version-10', publications: [
+      { cacheKey: '10/2026', publishedAt: '2026-11-03T15:20:00.000Z' },
+      { cacheKey: '__dashboard_latest__', publishedAt: '2026-11-03T15:20:00.000Z' }
+    ] });
   const result = h.TransportRefreshWorker.run(item, h.worker);
-  assert.deepEqual(plain(result.stages), ['dashboard', 'report:2026-10']);
+  assert.deepEqual(plain(result.stages), ['publishGeneration:2026-10']);
   assert.deepEqual(plain(publications), [
-    { cacheKey: '__dashboard_latest__', generationAt: 1000000,
-      generationId: 'generation-10', publishedAt: '2026-11-03T15:19:59.000Z' },
     { cacheKey: '10/2026', generationAt: 1000000,
+      generationId: 'generation-10', publishedAt: '2026-11-03T15:20:00.000Z' },
+    { cacheKey: '__dashboard_latest__', generationAt: 1000000,
       generationId: 'generation-10', publishedAt: '2026-11-03T15:20:00.000Z' }
   ]);
   const lease = JSON.parse(h.props.get('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_LEASE'));
-  assert.deepEqual(plain(lease.item.publicationAcks), plain(publications));
+  assert.deepEqual(plain(lease.item.publicationAcks), plain(publications.slice().sort((left, right) => left.cacheKey.localeCompare(right.cacheKey))));
   assert.equal(lease.item.reportDataVersion, 'version-10');
   assert.deepEqual(plain(lease.item.tasks), [['background']]);
   assert.ok(h.logs.includes('refresh_publication_status_failed:10/2026'));
@@ -217,6 +225,47 @@ test('verification/safety do not turn historical months back into foreground wor
   h.queue.enqueue({ full: true, source: 'safety:transport' }, h.context);
   assert.deepEqual(plain(h.queue.getPending(h.context).priorityMonths), []);
   assert.equal(h.queue.getPending(h.context).priority, false);
+});
+
+test('a 90-second publication stage commits both read models before yielding and keeps background work durable', () => {
+  const h = harness(); const q = h.queue; const c = h.context;
+  q.enqueue({ months: ['2026-10'], sheets: ['NL_Dau'], refreshDashboard: true,
+    includeAll: false, source: 'sheet:NL_Dau:EDIT', eventAtMillis: h.now(), generationId: 'slow-pair' }, c);
+  h.advance(15001);
+  h.worker.turnBudgetMs = 45000;
+  h.worker.syncPublicationPair = (month) => {
+    h.advance(90000);
+    const publishedAt = new Date(h.now()).toISOString();
+    h.published.push({ key: 'dashboard', at: h.now() }, { key: 'report:' + month, at: h.now() });
+    return { ok: true, reportMonth: '10/2026', dataVersion: 'slow-version', syncedAt: publishedAt,
+      publications: [{ cacheKey: '10/2026', publishedAt }, { cacheKey: '__dashboard_latest__', publishedAt }] };
+  };
+  const result = h.tick();
+  assert.deepEqual(plain(result.stages), ['publishGeneration:2026-10']);
+  assert.deepEqual(h.published.map((row) => row.key), ['dashboard', 'report:2026-10']);
+  assert.equal(result.acknowledgement.acknowledged, false);
+  const lease = JSON.parse(h.props.get('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_LEASE'));
+  assert.deepEqual(lease.item.tasks[0], ['background']);
+});
+
+test('a cleanup edit replaces both publication ACKs with the newer generation', () => {
+  const h = harness(); const q = h.queue; const c = h.context;
+  q.enqueue({ months: ['2026-10'], sheets: ['NL_Dau'], refreshDashboard: true,
+    includeAll: false, source: 'sheet:NL_Dau:EDIT', eventAtMillis: h.now(), generationId: 'canary' }, c);
+  h.advance(15001); h.tick();
+  const firstLease = JSON.parse(h.props.get('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_LEASE'));
+  assert.ok(firstLease.item.publicationAcks.every((ack) => ack.generationId === 'canary'));
+  q.enqueue({ months: ['2026-10'], sheets: ['NL_Dau'], refreshDashboard: true,
+    includeAll: false, source: 'sheet:NL_Dau:EDIT', eventAtMillis: h.now(), generationId: 'cleanup' }, c);
+  h.advance(15001);
+  const newer = q.claimDue(c);
+  assert.equal(newer.due, true);
+  const result = h.TransportRefreshWorker.run(newer.item, h.worker);
+  assert.deepEqual(plain(result.stages), ['publishGeneration:2026-10']);
+  const cleanupLease = JSON.parse(h.props.get('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_LEASE'));
+  const pair = cleanupLease.item.publicationAcks.filter((ack) => ['10/2026', '__dashboard_latest__'].includes(ack.cacheKey));
+  assert.equal(pair.length, 2);
+  assert.ok(pair.every((ack) => ack.generationId === 'cleanup'));
 });
 
 test('a sustained edit burst leaves a historical cache stage after at most three priority replans', () => {
@@ -325,7 +374,7 @@ test('a Fund month edit publishes dashboard and that report before the all-perio
   h.advance(15001);
   const first = h.tick();
   assert.deepEqual(h.published.map((row) => row.key), ['dashboard', 'report:2026-09']);
-  assert.deepEqual(plain(first.stages), ['dashboard', 'preparePriorityReport', 'report:2026-09']);
+  assert.deepEqual(plain(first.stages), ['publishGeneration:2026-09']);
   assert.equal(first.acknowledgement.acknowledged, false);
   h.finish();
   assert.ok(h.published.some((row) => row.key === 'report:Tất cả'));

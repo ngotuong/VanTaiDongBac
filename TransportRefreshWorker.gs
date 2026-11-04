@@ -19,10 +19,13 @@ var TransportRefreshWorker = (function () {
     // A catalog edit must reach its read model before unrelated historical work.
     var tasks = unique_(item.catalogs).map(function (sheet) { return ['catalog', sheet]; });
     var sheets = unique_(item.sheets);
-    var fastLane = item.priority === true && item.full !== true && item.refreshDashboard === true && sheets.length > 0;
+    var pairMonth = unique_(item.priorityMonths).filter(function (month) {
+      return (item.months || []).indexOf(month) >= 0;
+    }).sort().reverse()[0] || unique_(item.months).sort().reverse()[0] || context.currentMonth || '';
+    var fastLane = item.priority === true && item.full !== true && item.refreshDashboard === true && !!pairMonth;
     // A scoped human-edit burst has already observed the 15-second quiet
-    // window. Publish its final user-facing snapshot before manage caches.
-    if (fastLane) tasks.push(['dashboard'], ['preparePriorityReport'], ['background']);
+    // window. Publish Dashboard + Report atomically before manage caches.
+    if (fastLane) tasks.push(['publishGeneration', pairMonth], ['background']);
     sheets.forEach(function (sheet) {
       if ((item.fastManagedSheets || []).indexOf(sheet) >= 0) return;
       tasks.push(['manage', sheet]);
@@ -106,6 +109,12 @@ var TransportRefreshWorker = (function () {
           if (priorityMonths.length) item.priorityReport = priorityMonths[0];
         } else if (task[0] === 'background') item.background = true;
         else if (task[0] === 'prepareReports') added = reportTasks_(item, context);
+        else if (task[0] === 'publishGeneration') {
+          result = context.syncPublicationPair(task[1], item);
+          item.reportDataVersion = String((result && result.dataVersion) || '');
+          item.priorityReport = task[1];
+          item.priorityReports = unique_((item.priorityReports || []).concat([task[1]]));
+        }
         else if (task[0] === 'dashboard') {
           result = context.syncDashboard();
           item.reportDataVersion = String((result && result.dataVersion) || '');
@@ -119,7 +128,21 @@ var TransportRefreshWorker = (function () {
       if (item.background && task && /^(manageMonth|report|fundOverview|fundTransactionsPublish|fundLoans|fundCatalog|catalog)$/.test(task[0])) item.priorityRestarts = 0;
       // Record publication only after syncReport succeeds, never while planning.
       if (task && task[0] === 'report') item.priorityReports = unique_((item.priorityReports || []).concat([task[1]]));
-      if (task && (task[0] === 'dashboard' || task[0] === 'report')) {
+      if (task && task[0] === 'publishGeneration') {
+        (result.publications || []).forEach(function (published) {
+          var pairPublication = {
+            cacheKey: String(published.cacheKey || ''),
+            generationAt: Number(item.generationAt || 0),
+            generationId: String(item.generationId || ''),
+            publishedAt: String(published.publishedAt || result.syncedAt || '')
+          };
+          item.publicationAcks = uniquePublicationAcks_((item.publicationAcks || []).concat([pairPublication]));
+          if (context.recordPublication) {
+            try { context.recordPublication(pairPublication); }
+            catch (pairPublicationError) { context.log('refresh_publication_status_failed:' + pairPublication.cacheKey); }
+          }
+        });
+      } else if (task && (task[0] === 'dashboard' || task[0] === 'report')) {
         var cacheKey = task[0] === 'dashboard' ? '__dashboard_latest__' : String(result.reportMonth || task[1]);
         var publication = {
           cacheKey: cacheKey,
@@ -186,7 +209,7 @@ var TransportRefreshWorker = (function () {
       result = runStage_(item, context);
       stages.push(result.stage);
       if (!result.ok || result.acknowledgement.acknowledged ||
-          result.stage.indexOf('report:') === 0 ||
+          result.stage.indexOf('report:') === 0 || result.stage.indexOf('publishGeneration:') === 0 ||
           (context.shouldYieldAfterStage && context.shouldYieldAfterStage(result, item)) ||
           context.nowMillis() >= deadline ||
           !context.claimNext || index + 1 >= maxStages) break;

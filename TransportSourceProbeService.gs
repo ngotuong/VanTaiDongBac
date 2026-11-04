@@ -59,7 +59,13 @@ var TransportSourceProbeService = (function () {
     item.changedReports = false;
     item.fastManagedSheets = [];
     function probe(source) { return ['probeInput', source.sheet, source.kind, source.display || source.sheet]; }
-    return sources.filter(function (source) { return source.kind === 'manage'; }).map(probe)
+    var priorityMonths = (item.priorityMonths || []).filter(function (month) {
+      return (item.months || []).indexOf(month) >= 0;
+    }).sort().reverse();
+    var fastPair = item.priority === true && item.full !== true && item.refreshDashboard === true &&
+      (item.sheets || []).length > 0 && priorityMonths.length > 0
+      ? [['publishGeneration', priorityMonths[0]]] : [];
+    return fastPair.concat(sources.filter(function (source) { return source.kind === 'manage'; }).map(probe))
       .concat([['publishPriorityTransport']])
       .concat(sources.filter(function (source) { return source.kind !== 'manage'; }).map(probe))
       .concat([['planInputs']]);
@@ -103,7 +109,8 @@ var TransportSourceProbeService = (function () {
       var externalScope = (item.sources || []).some(function (source) { return !/^signal:transport:|^safety:transport$/.test(source); });
       var plan = { sheets: item.changedSheets, catalogs: item.changedCatalogs, full: !!changed || safety || (externalScope && item.full), months: externalScope ? item.months || [] : [],
         priorityMonths: item.priorityMonths || [], fastManagedSheets: item.fastManagedSheets,
-        fastDashboard: item.fastDashboard, priorityReport: item.priorityReport };
+        fastDashboard: item.fastDashboard, priorityReport: item.priorityReport,
+        priorityReports: item.priorityReports || [] };
       var added = changed || safety || externalScope ? context.buildCacheTasks(plan) : [];
       // Reports/dashboard can change with time/formulas even if input hashes
       // match. Safety also repairs startup/options without rereading every catalog.

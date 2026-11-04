@@ -84,6 +84,12 @@ var SupabaseService = (function () {
     return ReportSyncService.syncDashboard(reportSyncContext_());
   }
 
+  function syncRealtimePublicationPair_(month) {
+    return withInternalReportRefreshGuard_(function () {
+      return ReportSyncService.syncReportDashboardPair(month, reportSyncContext_());
+    });
+  }
+
   function syncAllReportBundles() {
     return withInternalReportRefreshGuard_(function () {
       return ReportSyncService.syncAllReportBundles(reportSyncContext_());
@@ -905,6 +911,9 @@ var SupabaseService = (function () {
       syncCatalogOptions: syncCatalogsBundle,
       syncStartup: function () { return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE); },
       syncDashboard: syncDashboard,
+      syncPublicationPair: function (month) {
+        return syncRealtimePublicationPair_(month === 'Tất cả' ? 'Tất cả' : formatMonthKeyForReport_(month));
+      },
       syncReport: function (month, item) { return syncRealtimeReportBundle_(
         month === 'Tất cả' ? 'Tất cả' : formatMonthKeyForReport_(month),
         item && item.reportDataVersion
@@ -1896,6 +1905,7 @@ var SupabaseService = (function () {
       getReportDataVersion: function () { return ReportService.getReportDataVersion(); },
       getReportCacheVersion: function () { return ReportService.getReportCacheVersion(); },
       upsertReportBundle: function (options) { return SupabaseReportCacheRepository.upsertBundle(options); },
+      buildReportBundleRow: function (options) { return SupabaseReportCacheRepository.buildBundleRow(options); },
       syncPayrollExplanations: syncPayrollExplanationMonth,
       getDashboard: function (month, forceRefresh) {
         return ReportService.getDashboard(month, forceRefresh);

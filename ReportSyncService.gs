@@ -100,16 +100,82 @@ var ReportSyncService = (function () {
     var dashboard = context.getDashboard('', true);
     var dataVersion = String(context.getReportDataVersion());
     var syncedAt = context.nowISOString();
-    context.upsertRows(TABLE_REPORT_BUNDLES, [{
-      spreadsheet_id: context.spreadsheetId,
-      report_month: DASHBOARD_REPORT_MONTH,
-      source_sheet_names: ['BC_TongQuan', 'NL_VanChuyen'],
-      payload: dashboard,
-      synced_at: syncedAt
-    }], 'spreadsheet_id,report_month');
+    context.upsertRows(TABLE_REPORT_BUNDLES, [context.buildReportBundleRow({
+      spreadsheetId: context.spreadsheetId,
+      reportMonth: DASHBOARD_REPORT_MONTH,
+      sourceSheetNames: ['BC_TongQuan', 'NL_VanChuyen'],
+      bundle: dashboard,
+      cacheVersion: context.getReportCacheVersion(),
+      dataVersion: dataVersion,
+      syncedAt: syncedAt
+    })], 'spreadsheet_id,report_month');
     context.writeSyncStatus('dashboard', 'transport', 'ok', 'Dashboard cache synced.', syncedAt);
     return { ok: true, table: TABLE_REPORT_BUNDLES, reportMonth: DASHBOARD_REPORT_MONTH,
       dataVersion: dataVersion, syncedAt: syncedAt };
+  }
+
+  // Publish the two user-facing read models as one Supabase statement. Payroll
+  // explanations are intentionally not rebuilt here: their API hides a stale
+  // source_data_version and the UI queues the dedicated refresh on demand.
+  function syncReportDashboardPair(month, context) {
+    var targetMonth = context.clean(month) || 'latest';
+    var dashboard = context.getDashboard('', true);
+    var dataVersion = String(context.getReportDataVersion());
+    if (targetMonth === 'latest') {
+      var recentMonths = getRecentReportMonths(1, context);
+      if (recentMonths.length) targetMonth = recentMonths[0];
+    }
+    assertSourceVersion_(context, dataVersion);
+    var bundle = context.getReportBundle(targetMonth, true, {
+      skipInvalidation: true,
+      dataVersion: dataVersion,
+      suppressSupabaseWrite: true
+    });
+    assertSourceVersion_(context, dataVersion);
+    var resolvedMonth = resolveBundleMonth(targetMonth, bundle, context.clean);
+    if (!/^(0[1-9]|1[0-2])\/20\d{2}$/.test(resolvedMonth)) {
+      throw new Error('Publication pair requires one exact report month.');
+    }
+    var syncedAt = context.nowISOString();
+    var cacheVersion = context.getReportCacheVersion();
+    var rows = [
+      context.buildReportBundleRow({
+        spreadsheetId: context.spreadsheetId,
+        reportMonth: resolvedMonth,
+        sourceSheetNames: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe', 'BC_TongHopDuAn'],
+        bundle: bundle,
+        cacheVersion: cacheVersion,
+        dataVersion: dataVersion,
+        syncedAt: syncedAt
+      }),
+      context.buildReportBundleRow({
+        spreadsheetId: context.spreadsheetId,
+        reportMonth: DASHBOARD_REPORT_MONTH,
+        sourceSheetNames: ['BC_TongQuan', 'NL_VanChuyen'],
+        bundle: dashboard,
+        cacheVersion: cacheVersion,
+        dataVersion: dataVersion,
+        syncedAt: syncedAt
+      })
+    ];
+    assertSourceVersion_(context, dataVersion);
+    context.upsertRows(TABLE_REPORT_BUNDLES, rows, 'spreadsheet_id,report_month');
+    try {
+      context.writeSyncStatus('dashboard', 'transport', 'ok', 'Dashboard/report publication pair synced.', syncedAt);
+    } catch (ignored) {}
+    return {
+      ok: true,
+      table: TABLE_REPORT_BUNDLES,
+      spreadsheetId: context.spreadsheetId,
+      reportMonth: resolvedMonth,
+      dataVersion: dataVersion,
+      syncedAt: syncedAt,
+      payrollExplanationDeferred: true,
+      publications: [
+        { cacheKey: resolvedMonth, publishedAt: syncedAt },
+        { cacheKey: DASHBOARD_REPORT_MONTH, publishedAt: syncedAt }
+      ]
+    };
   }
 
   function syncAllReportBundles(context) {
@@ -193,6 +259,7 @@ var ReportSyncService = (function () {
   return {
     syncReportBundle: syncReportBundle,
     syncDashboard: syncDashboard,
+    syncReportDashboardPair: syncReportDashboardPair,
     syncAllReportBundles: syncAllReportBundles,
     syncTransportReportsAfterWrite: syncTransportReportsAfterWrite,
     getReportMonths: getReportMonths,

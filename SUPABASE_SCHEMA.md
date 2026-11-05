@@ -112,7 +112,7 @@ RLS của các bảng giai đoạn 2:
 - Quyền hiện hành theo migration `008`/`015` và mục allowlist dưới đây; `anon` không được đọc. Read model còn policy active-user SELECT; `catalog_bundles`/`sync_status` là service-only.
 - Runtime browser dùng API có session/RBAC; Apps Script/Next server dùng service role.
 
-### `public.sync_timeline_events` (migration `021`, candidate local)
+### `public.sync_timeline_events` (migration `021`, live)
 
 Timeline bền vững theo generation để đo SLA `signal → queued → claimed → stage_started → published/failed`. Khóa chính `event_key` idempotent; row chỉ chứa `workbook_year`, module, `generation_id`, event/stage/cache key, `event_at`, semantic `build_stamp` và `created_at`. Không lưu payload nghiệp vụ, giá trị Sheet, người dùng hoặc credential.
 
@@ -341,7 +341,7 @@ Bảng là server-only: bật RLS, không tạo policy đọc, revoke `public`/`
 
 `payroll_explanation_bundles_v6` giữ cùng schema/key với cache legacy nhưng có bảng/RPC riêng `replace_payroll_explanation_month_v6`. RLS bật, không policy browser, chỉ service_role. RPC kiểm tra workbook/tháng và payload `payroll-explanation-v6`, thay tháng atomically. Không sửa/invalidate bảng/RPC v5; hai runtime có thể refresh riêng trong cửa sổ Preview/Production. Source of truth vẫn là Sheets. Trạng thái apply do context sở hữu.
 
-## Registry workbook và self-service chuyển năm (`020`, candidate local)
+## Registry workbook và self-service chuyển năm (`020`, live)
 
 - `workbook_contexts` lưu exact pair Spreadsheet ID Vận tải/Thu chi theo năm cùng lifecycle `draft | ready | active | archived | failed`. Partial unique index chỉ cho một row `active`.
 - `workbook_rollover_runs` lưu trạng thái lượt tạo, version/kế hoạch manifest, audit và lỗi vận hành. ID workbook đích chỉ tồn tại server-side.

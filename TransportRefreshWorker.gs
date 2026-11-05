@@ -78,6 +78,10 @@ var TransportRefreshWorker = (function () {
     var startedAt = context.nowMillis();
     var stage = task ? task.join(':') : 'complete';
     context.log('refresh_stage_start:' + stage);
+    if (context.recordTimeline) {
+      try { context.recordTimeline('stage_started', item, { stage: stage }, new Date(startedAt).toISOString()); }
+      catch (timelineStartError) { context.log('refresh_timeline_failed:stage_started'); }
+    }
     try {
       var added = [];
       var result = { ok: true };
@@ -137,6 +141,10 @@ var TransportRefreshWorker = (function () {
             publishedAt: String(published.publishedAt || result.syncedAt || '')
           };
           item.publicationAcks = uniquePublicationAcks_((item.publicationAcks || []).concat([pairPublication]));
+          if (context.recordTimeline) {
+            try { context.recordTimeline('published', item, { stage: stage, cacheKey: pairPublication.cacheKey }, pairPublication.publishedAt); }
+            catch (timelinePublishError) { context.log('refresh_timeline_failed:published'); }
+          }
           if (context.recordPublication) {
             try { context.recordPublication(pairPublication); }
             catch (pairPublicationError) { context.log('refresh_publication_status_failed:' + pairPublication.cacheKey); }
@@ -151,6 +159,10 @@ var TransportRefreshWorker = (function () {
           publishedAt: String(result.syncedAt || '')
         };
         item.publicationAcks = uniquePublicationAcks_((item.publicationAcks || []).concat([publication]));
+        if (context.recordTimeline) {
+          try { context.recordTimeline('published', item, { stage: stage, cacheKey: publication.cacheKey }, publication.publishedAt); }
+          catch (singleTimelinePublishError) { context.log('refresh_timeline_failed:published'); }
+        }
         if (context.recordPublication) {
           try { context.recordPublication(publication); }
           catch (publicationError) { context.log('refresh_publication_status_failed:' + cacheKey); }
@@ -180,6 +192,10 @@ var TransportRefreshWorker = (function () {
           acknowledgement: { acknowledged: false, continuing: true } };
       }
       var error = err && err.message ? err.message : String(err);
+      if (context.recordTimeline) {
+        try { context.recordTimeline('failed', item, { stage: stage }, new Date(context.nowMillis()).toISOString()); }
+        catch (timelineFailureError) { context.log('refresh_timeline_failed:failed'); }
+      }
       // A hard timeout bypasses catch; the saved lease replays only this read-only
       // stage after expiry. Catchable errors keep this same cursor with backoff.
       var retry = context.requeue(item);

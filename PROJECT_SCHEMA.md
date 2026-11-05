@@ -1,6 +1,6 @@
 # PROJECT_SCHEMA
 
-Schema index; không sao chép header/mapping đầy đủ. Current state thuộc [context](PROJECT_CONTEXT.md). Source/live được xác minh có ưu tiên hơn snapshot cũ. Cập nhật 2026-10-22.
+Schema index; không sao chép header/mapping đầy đủ. Current state thuộc [context](PROJECT_CONTEXT.md). Source/live được xác minh có ưu tiên hơn snapshot cũ. Cập nhật 2026-11-05.
 
 ## Nguồn và invariant
 
@@ -8,6 +8,7 @@ Schema index; không sao chép header/mapping đầy đủ. Current state thuộ
 - Vận tải và Thu chi là hai workbook độc lập theo năm; không gộp, rename sheet, reorder column hoặc xóa công thức/named range.
 - Thay schema phải migration riêng với backup/dry-run/fingerprint/approval, snapshot mới; migration/snapshot lịch sử bất biến.
 - Candidate nhiều năm dùng migration019 để namespace cache/queue và migration020 cho `workbook_contexts`/`workbook_rollover_runs`; registry chỉ giữ exact ID/lifecycle/audit server-side, không chứa hoặc thay thế dữ liệu nghiệp vụ Sheet. [Runbook chuyển năm](docs/operations/YEAR_ROLLOVER.md).
+- Candidate migration021 thêm `sync_timeline_events` server-only để giữ evidence generation metadata; không chứa payload nghiệp vụ và chưa live cho tới checkpoint migration riêng.
 
 ## Vận tải
 

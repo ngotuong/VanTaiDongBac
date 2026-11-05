@@ -36,6 +36,7 @@ var SupabaseService = (function () {
   var TRANSPORT_SHEET_SYNC_RUNNING_CACHE_KEY = 'SUPABASE_TRANSPORT_SHEET_SYNC_RUNNING';
   var REALTIME_TICK_INTERVAL_MINUTES = 1;
   var REALTIME_STAGE_START_MIN_BUDGET_MS = 20000;
+  var REALTIME_PRIORITY_HOUSEKEEPING_GUARD_MS = 60 * 1000;
   var REALTIME_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
   var REALTIME_HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
   var SOURCE_POLL_INTERVAL_MS = 5 * 60 * 1000;
@@ -267,9 +268,13 @@ var SupabaseService = (function () {
 
     var tickResult;
     try {
+      var runTick = function () { return runRealtimeTick_(props, fairness, tickStartedAt); };
+      var runWithTimeline = function () {
+        return typeof SupabaseSyncTimelineRepository !== 'undefined' && SupabaseSyncTimelineRepository.withBatch
+          ? SupabaseSyncTimelineRepository.withBatch(runTick) : runTick();
+      };
       tickResult = SupabaseSyncStatusRepository.withBatch
-        ? SupabaseSyncStatusRepository.withBatch(function () { return runRealtimeTick_(props, fairness, tickStartedAt); })
-        : runRealtimeTick_(props, fairness, tickStartedAt);
+        ? SupabaseSyncStatusRepository.withBatch(runWithTimeline) : runWithTimeline();
       return tickResult;
     } catch (error) {
       if (!error || !(error.refreshDeferred || error.transportDeferred || isTransientGoogleError_(error))) throw error;
@@ -297,25 +302,53 @@ var SupabaseService = (function () {
       var nowMillis = new Date().getTime();
       drainSheetChangeSignals_(props);
       enqueueSafetySweepIfDue_(props, nowMillis);
+      var transportQueueContext = manualReportRefreshQueueContext_();
+      var fundQueueContext = fundRefreshQueueContext_();
+      var transportSnapshot = ManualReportRefreshQueueService.getPending(transportQueueContext);
+      var fundSnapshot = ManualReportRefreshQueueService.getPending(fundQueueContext);
+      var configuredPreference = props.getProperty(yearPropertyKey_(REALTIME_QUEUE_PREFERENCE_PROP)) || 'transport';
+      var priorityPreference = foregroundPriorityPreference_(transportSnapshot, fundSnapshot, configuredPreference);
+      var priorityPending = !!priorityPreference;
       if (Number(props.getProperty(yearPropertyKey_(REALTIME_HEARTBEAT_NEXT_AT_PROP)) || 0) <= nowMillis) {
         writeRealtimeHeartbeatIfDue_(props, nowMillis,
-          { pending: !!ManualReportRefreshQueueService.getPending(manualReportRefreshQueueContext_()) },
-          { pending: !!ManualReportRefreshQueueService.getPending(fundRefreshQueueContext_()) });
+          { pending: !!transportSnapshot }, { pending: !!fundSnapshot });
       }
-      // Even a sustained edit burst must leave turns for polling/notifications.
-      if (fairness % 4 === 0 || props.getProperty(yearPropertyKey_('SUPABASE_NOTIFICATION_PIPELINE_CURSOR_V1')) || props.getProperty(yearPropertyKey_(SOURCE_POLL_CURSOR_PROP))) {
+      // A priority generation must be claimed before any unbounded native
+      // housekeeping call. Ordinary queues keep the existing fairness turn.
+      if (!priorityPending && (fairness % 4 === 0 || props.getProperty(yearPropertyKey_('SUPABASE_NOTIFICATION_PIPELINE_CURSOR_V1')) || props.getProperty(yearPropertyKey_(SOURCE_POLL_CURSOR_PROP)))) {
         var background = runRealtimeHousekeeping_(props, nowMillis, tickStartedAt + 60000);
         if (background.checked && new Date().getTime() - tickStartedAt >= 60000) return background;
       }
-      var pendingWork = ManualReportRefreshQueueService.claimNextDue([
-        { key: 'transport', context: manualReportRefreshQueueContext_() },
-        { key: 'fund', context: fundRefreshQueueContext_() }
-      ], props.getProperty(yearPropertyKey_(REALTIME_QUEUE_PREFERENCE_PROP)) || 'transport');
+      var foregroundCandidates = priorityPending ? [] : [
+        { key: 'transport', context: transportQueueContext },
+        { key: 'fund', context: fundQueueContext }
+      ];
+      if (priorityPending && transportSnapshot && transportSnapshot.priority === true) {
+        foregroundCandidates.push({ key: 'transport', context: transportQueueContext });
+      }
+      if (priorityPending && fundSnapshot && fundSnapshot.priority === true) {
+        foregroundCandidates.push({ key: 'fund', context: fundQueueContext });
+      }
+      var pendingWork = ManualReportRefreshQueueService.claimNextDue(
+        foregroundCandidates, priorityPreference || configuredPreference
+      );
       if (pendingWork.due) {
         props.setProperty(yearPropertyKey_(REALTIME_QUEUE_PREFERENCE_PROP), pendingWork.nextPreferredKey);
+        recordSyncTimeline_('claimed', pendingWork.key.indexOf('fund') === 0 ? 'fund' : 'transport', pendingWork.item,
+          { stage: 'queue:' + pendingWork.key }, new Date().toISOString());
       }
-      var pendingClaim = pendingWork.claims.transport || { due: false, pending: false };
-      var pendingFundClaim = pendingWork.claims.fund || { due: false, pending: false };
+      var pendingClaim = pendingWork.claims.transport || pendingSnapshotClaim_(transportSnapshot);
+      var pendingFundClaim = pendingWork.claims.fund || pendingSnapshotClaim_(fundSnapshot);
+      var priorityWaitMs = priorityPendingWaitMs_(pendingWork.claims, transportSnapshot, fundSnapshot);
+      if (!pendingWork.due && priorityPending && priorityWaitMs <= REALTIME_PRIORITY_HOUSEKEEPING_GUARD_MS) {
+        return {
+          ok: true, mode: 'tick', skipped: true,
+          reason: 'Priority generation is inside its quiet window; housekeeping deferred.',
+          pendingTransport: pendingClaim.pending === true,
+          pendingFund: pendingFundClaim.pending === true,
+          waitMs: priorityWaitMs
+        };
+      }
       var backgroundWork = { due: false, claims: {} };
       if (!pendingWork.due && pendingClaim.pending !== true && pendingFundClaim.pending !== true) {
         backgroundWork = ManualReportRefreshQueueService.claimNextDue([
@@ -369,6 +402,32 @@ var SupabaseService = (function () {
         pendingTransport: pendingClaim.pending === true,
         pendingFund: pendingFundClaim.pending === true
       };
+  }
+
+  function foregroundPriorityPreference_(transportPending, fundPending, configuredPreference) {
+    var transportPriority = !!(transportPending && transportPending.priority === true);
+    var fundPriority = !!(fundPending && fundPending.priority === true);
+    if (transportPriority && !fundPriority) return 'transport';
+    if (fundPriority && !transportPriority) return 'fund';
+    if (transportPriority && fundPriority) return configuredPreference === 'fund' ? 'fund' : 'transport';
+    return '';
+  }
+
+  function pendingSnapshotClaim_(snapshot) {
+    if (!snapshot) return { due: false, pending: false };
+    return { due: false, pending: true, waitMs: Number(snapshot.waitMs || 0), item: snapshot };
+  }
+
+  function priorityPendingWaitMs_(claims, transportSnapshot, fundSnapshot) {
+    var waits = [];
+    var transportClaim = claims.transport || pendingSnapshotClaim_(transportSnapshot);
+    var fundClaim = claims.fund || pendingSnapshotClaim_(fundSnapshot);
+    [transportClaim, fundClaim].forEach(function (claim) {
+      if (claim && claim.pending === true && claim.item && claim.item.priority === true) {
+        waits.push(Math.max(0, Number(claim.waitMs || 0)));
+      }
+    });
+    return waits.length ? Math.min.apply(null, waits) : Infinity;
   }
 
   function finishRealtimeRefresh_(result, background) {
@@ -822,6 +881,7 @@ var SupabaseService = (function () {
         'Refresh request queued successfully.',
         new Date().toISOString()
       );
+      recordRefreshQueueTimeline_(options || {}, queued, queueName);
       return queued;
     } catch (err) {
       var message = err && err.message ? err.message : String(err);
@@ -923,6 +983,9 @@ var SupabaseService = (function () {
         writeSyncStatus_('transport_publication_' + cacheType, 'transport', 'ok',
           'generationAt=' + Number(publication.generationAt || 0) + '; cacheKey=' + publication.cacheKey +
           '; publishedAt=' + String(publication.publishedAt || ''), publication.publishedAt || new Date().toISOString());
+      },
+      recordTimeline: function (eventName, item, metadata, eventAt) {
+        recordSyncTimeline_(eventName, 'transport', item, metadata, eventAt);
       },
       writeStatus: function (status, message) { writeSyncStatus_('transport_reports_manual_sheet', 'transport', status, message, new Date().toISOString()); },
       log: function (message) { console.log(message); }
@@ -1080,6 +1143,9 @@ var SupabaseService = (function () {
           source: 'verification:fund-cache' }, context);
       },
       writeStatus: function (status, message) { writeSyncStatus_('fund_manual_sheet', 'fund', status, message, new Date().toISOString()); },
+      recordTimeline: function (eventName, item, metadata, eventAt) {
+        recordSyncTimeline_(eventName, 'fund', item, metadata, eventAt);
+      },
       log: function (message) { console.log(message); }
     });
   }
@@ -1860,6 +1926,51 @@ var SupabaseService = (function () {
       });
     } catch (err) {
       console.log('sync_status_failed: ' + (err && err.message ? err.message : err));
+    }
+  }
+
+  function recordRefreshQueueTimeline_(options, queued, queueName) {
+    var generationId = clean_(options && options.generationId || queued && queued.generationId);
+    if (!generationId) return;
+    var moduleName = String(queueName || '').indexOf('fund') === 0 ? 'fund' : 'transport';
+    var item = {
+      generationId: generationId,
+      generationAt: Number(options && options.eventAtMillis || queued && queued.generationAt || 0)
+    };
+    if (item.generationAt > 0) {
+      recordSyncTimeline_('signal', moduleName, item, { stage: 'signal' }, new Date(item.generationAt).toISOString());
+    }
+    recordSyncTimeline_('queued', moduleName, item, { stage: 'queue:' + clean_(queueName) }, new Date().toISOString());
+  }
+
+  function recordSyncTimeline_(eventName, moduleName, item, metadata, eventAt) {
+    try {
+      if (typeof SupabaseSyncTimelineRepository === 'undefined' || !SupabaseSyncTimelineRepository.upsert) return;
+      var allowedEvents = ['signal', 'queued', 'claimed', 'stage_started', 'published', 'failed'];
+      var safeEvent = clean_(eventName);
+      var safeModule = /^(transport|fund|system)$/.test(String(moduleName || '')) ? String(moduleName) : 'system';
+      var generationId = clean_(item && item.generationId).slice(0, 180);
+      if (!generationId || allowedEvents.indexOf(safeEvent) < 0) return;
+      var occurred = new Date(eventAt || new Date().toISOString());
+      if (!isFinite(occurred.getTime())) occurred = new Date();
+      var occurredAt = occurred.toISOString();
+      var stage = clean_(metadata && metadata.stage).slice(0, 180);
+      var cacheKey = clean_(metadata && metadata.cacheKey).slice(0, 180);
+      var buildStamp = clean_(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local').slice(0, 120);
+      var eventKey = [activeWorkbookYear_(), safeModule, generationId, safeEvent, occurredAt, stage, cacheKey].join(':');
+      SupabaseSyncTimelineRepository.upsert({
+        event_key: eventKey,
+        workbook_year: activeWorkbookYear_(),
+        module: safeModule,
+        generation_id: generationId,
+        event_name: safeEvent,
+        stage: stage || null,
+        cache_key: cacheKey || null,
+        event_at: occurredAt,
+        build_stamp: buildStamp
+      });
+    } catch (error) {
+      console.log('sync_timeline_failed: telemetry event deferred.');
     }
   }
 

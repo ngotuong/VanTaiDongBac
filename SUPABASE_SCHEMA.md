@@ -112,6 +112,12 @@ RLS của các bảng giai đoạn 2:
 - Quyền hiện hành theo migration `008`/`015` và mục allowlist dưới đây; `anon` không được đọc. Read model còn policy active-user SELECT; `catalog_bundles`/`sync_status` là service-only.
 - Runtime browser dùng API có session/RBAC; Apps Script/Next server dùng service role.
 
+### `public.sync_timeline_events` (migration `021`, candidate local)
+
+Timeline bền vững theo generation để đo SLA `signal → queued → claimed → stage_started → published/failed`. Khóa chính `event_key` idempotent; row chỉ chứa `workbook_year`, module, `generation_id`, event/stage/cache key, `event_at`, semantic `build_stamp` và `created_at`. Không lưu payload nghiệp vụ, giá trị Sheet, người dùng hoặc credential.
+
+Bảng bật RLS, không có browser policy, revoke toàn bộ quyền `public`/`anon`/`authenticated` và chỉ cấp `service_role`. Runtime batch event trong invocation và flush best-effort một lần; lỗi telemetry không được làm fail hoặc replay business publication. Trạng thái apply/live thuộc `PROJECT_CONTEXT.md`.
+
 ## Bảng cache giai đoạn 3
 
 ### `public.startup_bundles`

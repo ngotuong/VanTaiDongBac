@@ -38,7 +38,11 @@ try {
   for (const role of ['anon', 'authenticated']) {
     assert.throws(() => sql(`set role ${role}; select * from workbook_contexts;`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select activate_workbook_context('2026','2027',now());`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from sync_timeline_events;`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; insert into sync_timeline_events(event_key,workbook_year,module,generation_id,event_name,event_at,build_stamp) values ('denied','2026','transport','g','signal',now(),'test');`), /permission denied/);
   }
+  sql("set role service_role; insert into sync_timeline_events(event_key,workbook_year,module,generation_id,event_name,event_at,build_stamp) values ('sql-test','2026','transport','generation-sql','signal',now(),'sql-test') on conflict (event_key) do update set event_at=excluded.event_at;");
+  assert.equal(sql("select count(*) from sync_timeline_events where event_key='sql-test';").trim(), '1');
   sql("set role service_role; select activate_workbook_context('2026','2027',now());");
   sql("set role service_role; select activate_workbook_context('2026','2027',now());");
   assert.equal(sql("select string_agg(year||':'||lifecycle_status,',' order by year) from workbook_contexts;").trim(), '2026:archived,2027:active');
@@ -138,5 +142,5 @@ try {
   assert.equal(sql("select count(*) from write_job_logs where job_id='sql-manual-retry' and message='Write job manually retried.';").trim(), '1');
   console.log('Audit SQL retry PASS: persisted year, exact failed snapshot, worker ownership and reconciliation ABA guard.');
   console.log('R8 SQL worker/repository PASS: real claims, owned updates, terminal logs, fault isolation and exhausted lease recovery; Sheet boundary synthetic.');
-  console.log('R8 SQL PASS: migrations 001–020, multi-year cache copy/idempotency, server-only workbook registry/transactional activation, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
+  console.log('R8 SQL PASS: migrations 001–021, multi-year cache copy/idempotency, server-only workbook registry/transactional activation, sync timeline isolation, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
 } finally { try { docker(['rm', '--force', name]); } catch {} }

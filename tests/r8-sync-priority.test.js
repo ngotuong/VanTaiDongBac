@@ -188,7 +188,7 @@ test('an owner checkpoint cannot claim or mutate a different active lease', () =
 });
 
 test('atomic publication pair persists both generation ACKs with one data version', () => {
-  const h = harness(); const q = h.queue; const c = h.context; const publications = [];
+  const h = harness(); const q = h.queue; const c = h.context; const publications = []; const timeline = [];
   q.enqueue({ months: ['2026-10'], refreshDashboard: true, source: 'sheet:NL_Dau:EDIT',
     eventAtMillis: h.now(), generationId: 'generation-10' }, c);
   h.advance(15001);
@@ -196,6 +196,7 @@ test('atomic publication pair persists both generation ACKs with one data versio
   q.saveProgress({ ...claimed, planVersion: 4, tasks: [['publishGeneration', '2026-10'], ['background']] }, c, 0);
   const item = q.claimDue(c).item;
   h.worker.planVersion = 4;
+  h.worker.recordTimeline = (eventName, item, metadata, eventAt) => timeline.push({ eventName, generationId: item.generationId, metadata, eventAt });
   h.worker.recordPublication = (publication) => {
     publications.push(publication);
     if (publication.cacheKey === '10/2026') throw new Error('telemetry unavailable');
@@ -218,6 +219,12 @@ test('atomic publication pair persists both generation ACKs with one data versio
   assert.equal(lease.item.reportDataVersion, 'version-10');
   assert.deepEqual(plain(lease.item.tasks), [['background']]);
   assert.ok(h.logs.includes('refresh_publication_status_failed:10/2026'));
+  assert.deepEqual(plain(timeline.map((event) => [event.eventName, event.metadata.stage, event.metadata.cacheKey || ''])), [
+    ['stage_started', 'publishGeneration:2026-10', ''],
+    ['published', 'publishGeneration:2026-10', '10/2026'],
+    ['published', 'publishGeneration:2026-10', '__dashboard_latest__']
+  ]);
+  assert.ok(timeline.every((event) => event.generationId === 'generation-10'));
 });
 
 test('verification/safety do not turn historical months back into foreground work', () => {

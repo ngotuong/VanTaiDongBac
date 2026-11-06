@@ -70,7 +70,7 @@ Layer này không được:
 
 ## 5. Application and Integration Layer
 
-Apps Script là application/API integration backend chính của hệ thống. Với luồng freshness có SLO, một lớp sync orchestration bên ngoài Apps Script được phép dispatch foreground work theo durable event; Apps Script vẫn giữ Sheet/domain integration cho đến khi có migration riêng.
+Apps Script là application/API integration backend chính của hệ thống. Với luồng freshness có SLO, foreground orchestration được phép dispatch work theo durable event bằng trusted producer trực tiếp hoặc external provider đã qua gate; Apps Script vẫn giữ Sheet/domain integration cho đến khi có migration riêng.
 
 Apps Script chịu trách nhiệm:
 
@@ -85,7 +85,7 @@ Apps Script chịu trách nhiệm:
 
 Apps Script không render HTML sau khi migration frontend hoàn tất; `doGet`/`doPost` chỉ giữ API/integration boundary.
 
-Luồng đồng bộ mục tiêu tách foreground publication khỏi scheduler/housekeeping. Durable generation, dedicated dispatcher, atomic Dashboard/report publication và gate chuyển đổi được định nghĩa tại [SYNC_SLO_TARGET](docs/architecture/SYNC_SLO_TARGET.md). Tài liệu đó không tự cấp quyền tạo cloud resource, migration hoặc deploy.
+Luồng đồng bộ mục tiêu tách foreground publication khỏi scheduler/housekeeping. Durable generation, foreground dispatch, atomic Dashboard/report publication và gate chuyển đổi được định nghĩa tại [SYNC_SLO_TARGET](docs/architecture/SYNC_SLO_TARGET.md). Tài liệu đó không tự cấp quyền tạo cloud resource, migration hoặc deploy.
 
 ## 6. Domain Layer
 
@@ -168,9 +168,9 @@ Trusted event producer
         ↓
 Supabase durable generation/outbox
         ↓
-Dedicated dispatcher/task worker
+Foreground dispatch: trusted producer hoặc external task worker
         ↓
-Apps Script foreground integration endpoint
+Apps Script foreground handler/integration endpoint
         ↓
 Google Sheets adapters / Supabase read-model repository
 ```

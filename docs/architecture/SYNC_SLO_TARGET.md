@@ -54,10 +54,10 @@ Webapp write hoàn tất ─┐
                       ├─> durable sync generation/outbox ─> event ingress
 Google onEdit/onChange ┘                                  │
                                                           v
-                                                  dedicated dispatcher
+                                          foreground dispatch / immediate invoke
                                                           │
                                                           v
-                                             Apps Script foreground endpoint
+                                             Apps Script foreground handler
                                                           │
                                       exact Sheets read + readiness/version check
                                                           │
@@ -88,26 +88,26 @@ Migration phải additive, RLS bật, browser không có quyền select/insert/u
 ### 3.2. Event producer
 
 - Sau write từ webapp, producer phát generation ngay sau exact Sheet commit; không chờ installable trigger.
-- Installable `onEdit`/`onChange` chỉ xác thực owner/workbook, xác định scope, ghi durable event và đánh thức ingress. Không tính report, không chạy housekeeping và không giữ execution lâu.
+- Installable `onEdit`/`onChange` phải xác thực owner/workbook, xác định scope và ghi durable event trước. Producer có thể gọi ngay foreground handler hẹp trong cùng trusted execution nếu provider strategy đã qua gate; không chạy housekeeping hoặc full refresh.
 - Thay đổi Thu chi liên quan báo cáo Vận tải tạo scope dẫn xuất riêng. Worker chỉ publish khi readiness probe chứng minh công thức liên workbook đã phản ánh source version; chưa sẵn sàng thì retry có backoff, không publish snapshot cũ.
-- Nếu đánh thức ingress thất bại nhưng event đã bền, reconciler sẽ dispatch lại. Nếu event chưa ghi bền thì trigger báo lỗi; không được ACK giả.
+- Nếu fast path/đánh thức ingress thất bại nhưng event đã bền, reconciler sẽ dispatch lại. Nếu event chưa ghi bền thì trigger báo lỗi; không được ACK giả.
 
-### 3.3. Dedicated dispatcher
+### 3.3. Foreground dispatch strategy
 
-Dispatcher chạy ngoài tick Apps Script một phút và chỉ làm orchestration:
+Dispatcher không phụ thuộc tick housekeeping một phút và chỉ làm orchestration:
 
 1. nhận `generation_id` đã bền;
 2. coalesce quiet window ngắn theo `last_signal_at`;
-3. tạo một task idempotent cho generation;
-4. retry theo lease và error class;
-5. gọi foreground endpoint bằng danh tính máy chủ;
+3. claim task idempotent theo generation;
+4. gọi foreground handler ngay từ trusted producer hoặc qua external task provider;
+5. retry theo lease và error class qua durable reconciler;
 6. không đọc hoặc ghi dữ liệu nghiệp vụ trong Google Sheets.
 
-Target triển khai là hàng đợi task có durable retry và worker HTTP riêng; phương án ưu tiên để validation là Google Cloud Tasks + Cloud Run dispatcher. Apps Script foreground endpoint được giữ ở giai đoạn đầu để tái sử dụng toàn bộ logic công thức/Sheet hiện hành. Nếu spike chứng minh điều kiện GCP, auth, quota hoặc chi phí không phù hợp, có thể thay provider nhưng không đổi contract generation/lease/publication.
+Contract generation/lease/publication không phụ thuộc provider. Google Cloud Tasks + Cloud Run chỉ là lựa chọn khi tài khoản có billing và machine identity phù hợp; không phải điều kiện bắt buộc của kiến trúc. Với môi trường không billing, candidate ưu tiên tiếp theo là **producer-driven direct foreground**: webapp write và installable trigger persist event rồi gọi cùng một Apps Script foreground handler hẹp; Supabase outbox + minute reconciler chỉ retry event bị bỏ lỡ. Candidate này phải qua D1B cô lập trước khi trở thành target runtime; không được gọi HTTP self-endpoint công khai hoặc dùng body secret như đường Production.
 
-### 3.4. Foreground worker
+### 3.4. Foreground worker/handler
 
-Foreground endpoint chỉ được phép:
+Foreground handler chỉ được phép:
 
 - claim đúng một generation/lease;
 - mở workbook bằng ID từ registry, không dùng active spreadsheet;
@@ -119,7 +119,7 @@ Foreground endpoint chỉ được phép:
 - ACK generation chỉ sau khi cả hai cache key đã publish;
 - ghi timeline metadata best-effort mà không thay ACK nghiệp vụ.
 
-Endpoint không chạy catalog, manage history, notification, audit, payroll backfill hoặc full refresh. Nó phải trả kết quả phân loại `published`, `not_ready`, `retryable`, `terminal` để dispatcher quyết định retry; response transport mơ hồ không được coi là chưa publish nếu ACK đã tồn tại.
+Handler không chạy catalog, manage history, notification, audit, payroll backfill hoặc full refresh. Nó phải trả kết quả phân loại `published`, `not_ready`, `retryable`, `terminal` để dispatcher/reconciler quyết định retry; response transport mơ hồ không được coi là chưa publish nếu ACK đã tồn tại.
 
 ### 3.5. Background lane
 
@@ -147,7 +147,7 @@ Publication metadata mới được phát qua kênh invalidation không chứa p
 
 - Event ingress chỉ nhận request có chữ ký ngắn hạn/HMAC hoặc machine identity; chống replay bằng timestamp, nonce và `event_key`.
 - Cloud worker không nhận Spreadsheet ID từ browser. Nó resolve context từ server registry.
-- Apps Script foreground endpoint dùng secret riêng với public API người dùng, allowlist action cố định và kiểm tra generation trong durable store trước khi chạy.
+- Nếu dùng external Apps Script foreground endpoint, endpoint phải có secret riêng với public API người dùng, allowlist action cố định và kiểm tra generation trong durable store trước khi chạy. Producer-driven direct foreground không mở endpoint công khai.
 - Logs/timeline chỉ ghi ID kỹ thuật, scope, timestamp, duration, version, status/error class; không ghi số tiền, nội dung giao dịch, giá trị ô, user ID, credential hoặc URL có token.
 - Supabase operational tables tiếp tục server-only; migration mới phải test `anon`, `authenticated` và `service_role` trên database cô lập.
 
@@ -184,14 +184,26 @@ Chốt tài liệu này, SLO, boundary, acceptance và rollback. Không migratio
 
 ### D1 — Validation spike cô lập
 
-Xác minh bằng project/workbook/database thử nghiệm:
+Xác minh provider candidate bằng project/workbook/database thử nghiệm:
 
-- Cloud Tasks/Cloud Run có thể enqueue, authenticate và gọi endpoint test;
-- task retry/idempotency/timeout phù hợp;
+- provider có thể dispatch, authenticate và retry task;
+- idempotency/timeout/cost/quota phù hợp;
 - Apps Script foreground endpoint tối thiểu có thể trả timeline trong budget;
-- chi phí/quota/ownership GCP được ghi rõ.
+- ownership và cleanup được ghi rõ.
 
 D1 không dùng workbook hoặc deployment Production, không chứa số liệu thật và phải dọn tài nguyên thử nghiệm sau khi kết thúc. Kết quả là quyết định `GO`, `CHANGE_PROVIDER` hoặc `STOP`; chưa được phép làm migration live.
+
+### D1B — Validation producer-driven direct foreground
+
+Khi external task provider không đạt gate, kiểm chứng bằng Apps Script project + spreadsheet thử nghiệm:
+
+- installable edit trigger persist generation rồi gọi foreground handler hẹp trong cùng execution;
+- nhiều edit gần nhau dùng claim/lease để không chạy trùng và generation cuối không bị ACK thay;
+- failure sau durable event được reconciler giả lập claim lại;
+- không public HTTP endpoint, không static/body secret và không billing;
+- ghi timeline edit/claim/publish, cleanup toàn bộ project/spreadsheet/trigger sau phép thử.
+
+D1B chỉ kết luận khả thi và budget của fast path. Nó không dùng source Production, không tạo migration live và không thay trigger/deployment hiện hành.
 
 ### D2 — Schema và producer shadow
 
@@ -209,7 +221,7 @@ Bật publish cho Preview/copy-canary, xác minh pair, security, cache invalidat
 
 Bật theo feature flag cho một scope/thời gian đã duyệt. Giữ background fallback; theo dõi error budget rồi mới mở rộng. Rollback chỉ tắt ingress/dispatcher/foreground publication; migration additive và event history được giữ, không restore workbook hoặc rollback schema ngược.
 
-Mỗi D1–D5 là checkpoint phê duyệt riêng. Hoàn thành tài liệu D0 không cấp quyền tự động tạo GCP resource, migration, deploy hoặc ghi Production.
+Mỗi D1B–D5 là checkpoint phê duyệt riêng sau khi D1 đã đóng `CHANGE_PROVIDER`. Hoàn thành tài liệu D0/D1 không cấp quyền tự động tạo migration, deploy hoặc ghi Production.
 
 ## 9. Tiêu chí dừng
 

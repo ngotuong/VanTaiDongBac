@@ -70,7 +70,7 @@ Layer này không được:
 
 ## 5. Application and Integration Layer
 
-Apps Script là application/API integration backend của hệ thống.
+Apps Script là application/API integration backend chính của hệ thống. Với luồng freshness có SLO, một lớp sync orchestration bên ngoài Apps Script được phép dispatch foreground work theo durable event; Apps Script vẫn giữ Sheet/domain integration cho đến khi có migration riêng.
 
 Apps Script chịu trách nhiệm:
 
@@ -84,6 +84,8 @@ Apps Script chịu trách nhiệm:
 - bảo toàn idempotency và rollback semantics.
 
 Apps Script không render HTML sau khi migration frontend hoàn tất; `doGet`/`doPost` chỉ giữ API/integration boundary.
+
+Luồng đồng bộ mục tiêu tách foreground publication khỏi scheduler/housekeeping. Durable generation, dedicated dispatcher, atomic Dashboard/report publication và gate chuyển đổi được định nghĩa tại [SYNC_SLO_TARGET](docs/architecture/SYNC_SLO_TARGET.md). Tài liệu đó không tự cấp quyền tạo cloud resource, migration hoặc deploy.
 
 ## 6. Domain Layer
 
@@ -159,6 +161,22 @@ Google Sheet adapters / Supabase repositories
 Google Sheets source of truth / Supabase read model, cache, queue
 ```
 
+Đường sync foreground là dependency direction bổ sung, không thay đường API người dùng:
+
+```text
+Trusted event producer
+        ↓
+Supabase durable generation/outbox
+        ↓
+Dedicated dispatcher/task worker
+        ↓
+Apps Script foreground integration endpoint
+        ↓
+Google Sheets adapters / Supabase read-model repository
+```
+
+Dispatcher không được nhận target workbook từ browser, chứa business rule hoặc biến Supabase thành nguồn nghiệp vụ.
+
 Không layer nào được đi ngược dependency direction chỉ để thuận tiện cho một thay đổi cục bộ.
 
 ## 9. Refactor principles
@@ -211,6 +229,7 @@ Chỉ báo cáo trạng thái và dừng chờ phê duyệt.
 - Roadmap/checkpoint đang hoạt động: `PROJECT_CONTEXT.md` và plan đã được người dùng phê duyệt trong task hiện tại.
 - Lịch sử migration/refactor đã hoàn tất: Git history; baseline local chưa commit được bảo tồn trong artifact.
 - Kiến trúc hiện tại: `docs/architecture/SYSTEM_ARCHITECTURE.md`.
+- Kiến trúc đồng bộ SLO mục tiêu: `docs/architecture/SYNC_SLO_TARGET.md`.
 - Module ownership: `docs/architecture/MODULE_MAP.md`.
 - Contract: `docs/contracts/`.
 - Quy tắc khởi động Agent: `AGENTS.md`; router theo tác vụ: `docs/ai/AI_START_HERE.md`.

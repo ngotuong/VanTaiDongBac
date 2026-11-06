@@ -21,6 +21,7 @@ Critical: hệ thống/secret/tài chính có tác động nghiêm trọng tức
 | Queue | Stale/exhausted lease treo, claim race, log error bỏ batch | Atomic service-role RPC/min lease; reaper/log; persistence isolation; SQL concurrent tests |
 | Payroll/report | Sai tháng/nguồn/rule/rounding/Thực nhận, thiếu daily split hoặc formula error biến 0 | Authoritative parity/version/hash; needs_review/fail-closed; monthly/daily golden fixture |
 | Cache/sync | Manual edit/IMPORTRANGE trễ, marker/version cache stale | Direct triggers + polling/fingerprint/delayed verification; eventual consistency phải hiển thị |
+| Sync SLO target | Minute tick/housekeeping và native Google call không thể bảo đảm tuyệt đối 120 giây; external dispatcher thêm credential/quota/cost boundary | Target hai lane tại [SYNC_SLO_TARGET](../architecture/SYNC_SLO_TARGET.md); D1 spike cô lập phải chốt provider/auth/retry/budget trước migration, không retry candidate 436/437 nguyên trạng |
 | Optimistic UI | Pending coi là saved, failed giữ số tạm, terminal resurrect row | Track mọi mutation, invalidate/refetch, error/actionable retry; browser regression |
 | Loans | Orphan reconciliation read/write khác nhau → trả quá dư | Cùng reconcile logic; ambiguous không tự gộp; principal/interest/nonFund test |
 | Bound/direct edits | Bypass RBAC/mapping, xóa marker hoặc tái tạo collision | Phân biệt execution context, xác minh live source/permissions, maintenance coordination |

@@ -103,7 +103,7 @@ Dispatcher không phụ thuộc tick housekeeping một phút và chỉ làm orc
 5. retry theo lease và error class qua durable reconciler;
 6. không đọc hoặc ghi dữ liệu nghiệp vụ trong Google Sheets.
 
-Contract generation/lease/publication không phụ thuộc provider. Google Cloud Tasks + Cloud Run chỉ là lựa chọn khi tài khoản có billing và machine identity phù hợp; không phải điều kiện bắt buộc của kiến trúc. Với môi trường không billing, candidate ưu tiên tiếp theo là **producer-driven direct foreground**: webapp write và installable trigger persist event rồi gọi cùng một Apps Script foreground handler hẹp; Supabase outbox + minute reconciler chỉ retry event bị bỏ lỡ. Candidate này phải qua D1B cô lập trước khi trở thành target runtime; không được gọi HTTP self-endpoint công khai hoặc dùng body secret như đường Production.
+Contract generation/lease/publication không phụ thuộc provider. Google Cloud Tasks + Cloud Run chỉ là lựa chọn khi tài khoản có billing và machine identity phù hợp; không phải điều kiện bắt buộc của kiến trúc. D1B đã xác minh **producer-driven direct foreground** khả thi trong môi trường không billing: webapp write và installable trigger persist event rồi gọi cùng một Apps Script foreground handler hẹp; Supabase outbox + minute reconciler chỉ retry event bị bỏ lỡ. Đây là provider strategy cho D2–D5, nhưng kết quả cô lập chưa phải nghiệm thu SLO end-to-end; không được gọi HTTP self-endpoint công khai hoặc dùng body secret như đường Production.
 
 ### 3.4. Foreground worker/handler
 
@@ -205,6 +205,17 @@ Khi external task provider không đạt gate, kiểm chứng bằng Apps Script
 
 D1B chỉ kết luận khả thi và budget của fast path. Nó không dùng source Production, không tạo migration live và không thay trigger/deployment hiện hành.
 
+**Kết quả D1B ngày 06/11/2026: `GO` cho feasibility/budget cô lập.** Installable edit trigger đã persist generation trước, claim bằng lock/lease và chạy direct foreground trong cùng execution; reconciler phút reclaim failure chưa ACK. Mười mẫu direct-path đạt min `0,801 giây`, p50 `1,738 giây`, p95 `2,305 giây`, p99 `2,341 giây`, max `2,350 giây`; burst 6 edit publish đúng generation cuối sau `6,658 giây` dù có stale discard; failure injection được reconciler publish đúng sau `17,985 giây`. Không có public endpoint, static/body secret, billing, Supabase hoặc tài nguyên Production.
+
+Boundary chuyển sang D2:
+
+- `signalAt` của spike được ghi sau khi installable trigger đã bắt đầu, nên chưa chứng minh độ trễ từ source commit đến trigger start và chưa được dùng để tuyên bố SLO Production;
+- burst chứng minh intermediate `e.value` có thể coalesce hoặc không khớp generation quan sát; producer chỉ persist scope, source version và generation, còn worker phải đọc canonical current source;
+- account tạo trigger phải có quyền mở workbook bằng ID; D1B từng fail `openById` trước khi workbook thử được share đúng owner;
+- D2 chỉ dual-write event shadow, chưa foreground publish, để kiểm RLS/RPC, scope/version, duplicate delivery và lease/reclaim trước Preview.
+
+Cleanup D1B đã hoàn tất: trigger về 0, deployment versioned undeploy, Sheet/folder thử xóa, Apps Script project vào Thùng rác, quyền OAuth thu hồi và temp source local dọn sạch. Local gate PASS 971/971 tests, SQL migrations 001–021, lint, typecheck, build/Environment Identity Guard, production dependency audit 0 và diff-check.
+
 ### D2 — Schema và producer shadow
 
 Thêm migration additive cho generation/outbox/RPC; producer dual-write event nhưng foreground publish vẫn tắt. So sánh event scope với queue hiện hành.
@@ -221,7 +232,7 @@ Bật publish cho Preview/copy-canary, xác minh pair, security, cache invalidat
 
 Bật theo feature flag cho một scope/thời gian đã duyệt. Giữ background fallback; theo dõi error budget rồi mới mở rộng. Rollback chỉ tắt ingress/dispatcher/foreground publication; migration additive và event history được giữ, không restore workbook hoặc rollback schema ngược.
 
-Mỗi D1B–D5 là checkpoint phê duyệt riêng sau khi D1 đã đóng `CHANGE_PROVIDER`. Hoàn thành tài liệu D0/D1 không cấp quyền tự động tạo migration, deploy hoặc ghi Production.
+Mỗi D2–D5 là checkpoint phê duyệt riêng sau khi D1B đã đóng `GO` cô lập. Hoàn thành D1B không cấp quyền tự động tạo migration, deploy hoặc ghi Production.
 
 ## 9. Tiêu chí dừng
 

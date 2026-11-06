@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const crypto = require('node:crypto');
 
 function harness({ sourceCost = 30000, failSource = '', failLock = false } = {}) {
-  let now = 1000000; const p = new Map(); const sources = [], enqueues = [], enqueueScopes = [], logs = [], timeline = [];
+  let now = 1000000; const p = new Map(); const sources = [], enqueues = [], enqueueScopes = [], logs = [], timeline = [], generationShadow = [];
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } }
   const props = { getProperty: (k) => p.get(k), setProperty: (k, v) => p.set(k, v), deleteProperty: (k) => p.delete(k) };
   const s = vm.createContext({ Date: Clock, console: { log: (x) => logs.push(x) }, normalizeCleanValue_: (x) => String(x ?? '').trim(), APP_CONFIG: { spreadsheetId: 'isolated', year: '2026', timezone: 'Asia/Ho_Chi_Minh' },
@@ -19,6 +19,7 @@ function harness({ sourceCost = 30000, failSource = '', failLock = false } = {})
     },
     SupabaseSyncStatusRepository: { upsert() {} },
     SupabaseSyncTimelineRepository: { upsert: (row) => timeline.push(row), withBatch: (work) => work() },
+    SyncGenerationShadowService: { record: (row) => generationShadow.push(row) },
     NotificationPipelineService: { run: () => ({ checked: false }) },
     FundService: { resolveFundSpreadsheetId: () => 'fund' },
     ManualReportRefreshQueueService: { getPending: () => null, claimNextDue: () => ({ claims: {} }), enqueue: (scope) => { enqueues.push(scope.source); enqueueScopes.push(scope); if (scope.source === failSource) throw Error('queue unavailable'); return { queued: true }; } },
@@ -35,7 +36,8 @@ function harness({ sourceCost = 30000, failSource = '', failLock = false } = {})
   for (const f of ['SheetChangeSignalService.gs', 'SourceFingerprintService.gs', 'TransportSourceProbeService.gs', 'TransportRefreshWorker.gs', 'SupabaseService.gs']) vm.runInContext(fs.readFileSync(f, 'utf8'), s);
   for (const key of ['SUPABASE_REALTIME_HEARTBEAT_NEXT_AT', 'SUPABASE_REALTIME_SWEEP_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) p.set(key + '_2026', '999999999');
   p.set('SUPABASE_REALTIME_FAIRNESS_2026', '3'); p.set('SUPABASE_REALTIME_HOUSEKEEPING_INDEX_2026', '1');
-  return { s, props, p, sources, enqueues, enqueueScopes, logs, timeline, tick: () => s.SupabaseService.syncRealtimeCache(), advance: (ms) => { now += ms; } };
+  return { s, props, p, sources, enqueues, enqueueScopes, logs, timeline, generationShadow,
+    tick: () => s.SupabaseService.syncRealtimeCache(), advance: (ms) => { now += ms; } };
 }
 
 test('source polling saves its cursor between expensive sources and completes interval only after all six', () => {
@@ -67,6 +69,12 @@ test('timer resolves trigger grid id to the exact sheet before durable enqueue',
   assert.equal(h.p.get('SUPABASE_SHEET_SIGNAL_TRANSPORT_2026_CONSUMED'), 'signal-1');
   assert.deepEqual(h.timeline.map((row) => row.event_name), ['signal', 'queued']);
   assert.ok(h.timeline.every((row) => row.generation_id === 'signal-1' && row.workbook_year === '2026'));
+  assert.equal(h.generationShadow.length, 1);
+  assert.equal(h.generationShadow[0].generationId, 'signal-1');
+  assert.deepEqual(JSON.parse(JSON.stringify(h.generationShadow[0].sheetNames)), ['NL_Dau']);
+  assert.deepEqual(JSON.parse(JSON.stringify(h.generationShadow[0].gridIds)), [731]);
+  assert.equal(h.generationShadow[0].startRow, 25);
+  assert.equal(h.generationShadow[0].numRows, 1);
 });
 
 test('a near-due priority generation yields before 87-second housekeeping and overrides Fund fairness', () => {

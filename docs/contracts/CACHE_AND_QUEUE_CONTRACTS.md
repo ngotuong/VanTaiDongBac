@@ -71,6 +71,7 @@ Tài liệu không chuyển source of truth sang Supabase. Google Sheets vẫn l
 | Bảng | Vai trò |
 | --- | --- |
 | `sync_status` | Trạng thái lần sync gần nhất theo `sync_key` |
+| `sync_generations` | Generation/outbox metadata server-only cho foreground lane tương lai; không phải cache hoặc ACK nghiệp vụ |
 | `write_jobs` | Write intent, lifecycle, result và retry metadata |
 | `write_job_logs` | Nhật ký chuyển trạng thái/thực thi của job |
 
@@ -249,6 +250,8 @@ Candidate queue dùng tryLock1s; transient Google lỗi được defer, không f
 **Status batching (runtime live/gate thuộc context):**Trong `syncRealtimeCache`, các trạng thái cache/worker được gom theo `sync_key` và upsert một lần ở cuối lượt, giữ nguyên row/message/`synced_at`; cùng key giữ bản ghi cuối như upsert tuần tự. `realtime_cache_worker` vẫn gửi ngay trước stage để không trì hoãn watchdog heartbeat. Lệnh sync trực tiếp ngoài tick vẫn ghi ngay. Flush xảy ra cả khi nghiệp vụ throw; lỗi telemetry không che lỗi nghiệp vụ, không replay/rollback ACK và không giữ buffer sang lượt sau. Queue/journal/notification delivery/RBAC không đổi. Buffer chỉ trong invocation:hard timeout có thể mất telemetry chưa flush; cache timestamps/queue vẫn là bằng chứng, không ACK theo telemetry. Trạng thái triển khai do context sở hữu; giảm request không bảo đảm latency của một native RPC. Regression:`tests/r8-status-batching.test.js`.
 
 **Generation timeline (migration021/live):**`sync_timeline_events` giữ lịch sử metadata server-only theo `event_key`, không thay `sync_status`, queue hoặc publication ACK. Runtime ghi semantic build stamp cùng các event `signal`, `queued`, `claimed`, `stage_started`, `published`, `failed`; một publication pair phải có hai event `published` theo hai cache key. Event được batch một lần cuối tick để không thêm nhiều RPC vào critical path; hard timeout vẫn có thể làm mất batch chưa flush, nên bundle timestamp và queue/lease tiếp tục là bằng chứng chính. Không ghi payload, Sheet value, user ID hoặc credential. Regression:`tests/supabase-repositories.test.js`, `tests/r8-sync-priority.test.js`; trạng thái rollout runtime thuộc `PROJECT_CONTEXT.md`.
+
+**Generation outbox shadow (migration022; rollout thuộc context):** installable trigger giữ legacy Script Property signal trước, rồi có thể dual-write metadata cùng generation vào `sync_generations`; khi legacy queue nhận scope, một row phase queue riêng cùng generation được ghi để so sánh grid/row/month/source version. Cờ `SYNC_GENERATION_SHADOW_ENABLED` mặc định false. Shadow không claim/publish Dashboard hoặc report, không đọc `e.value`, không lưu business payload/Sheet value/user/credential và lỗi RPC không được làm mất signal hoặc queue hiện hành. RPC enqueue idempotent fail-closed khi cùng key khác immutable scope; RPC claim dùng lease token/owner/expiry và `FOR UPDATE SKIP LOCKED`, reclaim lease hết hạn. Browser không có table/RPC privilege; service role không được direct insert/update/delete table. Regression:`tests/sync-generation-shadow.test.js`, `tests/r8-sync-reliability.test.js`, `scripts/test-r8-sql.mjs`.
 
 ### 5.5. Audit
 
@@ -1162,7 +1165,8 @@ Migration hiện theo thứ tự:
 8. `008_authenticated_read_cutover.sql`;
 9. `009_shareholder_role.sql`;
 10. `010–014` cho cache/auth notification và payroll explanation;
-11. `015` server-only operational tables/atomic payroll replacement; `016` exhausted lease RPC; `017` payroll-v6 isolation; `018` service-role log sequence permissions.
+11. `015` server-only operational tables/atomic payroll replacement; `016` exhausted lease RPC; `017` payroll-v6 isolation; `018` service-role log sequence permissions;
+12. `019` cache namespace; `020` workbook registry; `021` sync timeline; `022` generation outbox/RPC server-only.
 
 Rules:
 

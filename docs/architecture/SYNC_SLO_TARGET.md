@@ -220,6 +220,8 @@ Cleanup D1B đã hoàn tất: trigger về 0, deployment versioned undeploy, She
 
 Thêm migration additive cho generation/outbox/RPC; producer dual-write event nhưng foreground publish vẫn tắt. So sánh event scope với queue hiện hành.
 
+Contract triển khai D2: producer ghi legacy durable signal trước rồi best-effort dual-write row phase `signal`; legacy queue acceptance ghi row phase queue riêng cùng generation để đối chiếu grid/row/month/source version. Feature flag mặc định false, chưa có dispatcher/claim runtime hoặc publication. Metadata không chứa business payload/Sheet value/user/credential và không dùng `e.value`; lỗi shadow không được làm fail signal/queue. Trạng thái apply/gate thực tế thuộc `PROJECT_CONTEXT.md`.
+
 ### D3 — Dispatcher + foreground worker Preview
 
 Chạy end-to-end trên copy-canary, sau đó shadow read-only với Preview. Đường hiện hành vẫn publish; candidate chỉ đo và so sánh.

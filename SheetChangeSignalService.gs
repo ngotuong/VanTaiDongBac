@@ -51,14 +51,22 @@ var SheetChangeSignalService = (function () {
     if (type === 'EDIT' && scope) scopes.push(scope);
     if (scopes.length > 50) scopes = scopes.slice(scopes.length - 50);
     var token = context.createUuid();
-    context.setProperty(key_(module, context), JSON.stringify({
+    var signal = {
       token: token,
       eventType: eventTypes.length === 1 ? eventTypes[0] : 'CHANGE',
       eventTypes: eventTypes,
       scopes: scopes,
       at: context.nowMillis()
-    }));
-    return { ok: true, queued: true, signaled: true };
+    };
+    context.setProperty(key_(module, context), JSON.stringify(signal));
+    if (context.recordGeneration) {
+      try {
+        context.recordGeneration(signal);
+      } catch (shadowError) {
+        if (context.log) context.log('sync_generation_producer_shadow_failed');
+      }
+    }
+    return { ok: true, queued: true, signaled: true, generationId: token, signalAt: signal.at };
   }
 
   function editScope_(range) {

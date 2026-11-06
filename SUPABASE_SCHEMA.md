@@ -118,6 +118,22 @@ Timeline bền vững theo generation để đo SLA `signal → queued → claim
 
 Bảng bật RLS, không có browser policy, revoke toàn bộ quyền `public`/`anon`/`authenticated` và chỉ cấp `service_role`. Runtime batch event trong invocation và flush best-effort một lần; lỗi telemetry không được làm fail hoặc replay business publication. Trạng thái apply/live thuộc `PROJECT_CONTEXT.md`.
 
+### `public.sync_generations` (migration `022`)
+
+Outbox metadata bền vững cho đường foreground tương lai. Một generation có thể có row phase `signal` từ installable trigger và row phase legacy queue cùng `generation_id`, nhờ đó D2 đối chiếu được scope producer với scope queue mà không bật publication.
+
+Metadata gồm năm/module, `generation_id`, queue/source type, sheet/grid/row-range/month scope, cờ structural/full, mốc source/signal/not-before, source version khi đã biết, build stamp và lifecycle lease/retry. Bảng chỉ có hai cache-key/timestamp ACK định kiểu cho publication pair tương lai; D2 không ghi các ACK này.
+
+Invariant bảo mật:
+
+- không lưu payload nghiệp vụ, giá trị Sheet, user ID, Spreadsheet ID hoặc credential;
+- RLS bật, không có browser policy; `public`/`anon`/`authenticated` không có quyền table/RPC;
+- `service_role` chỉ SELECT table; insert/coalesce qua RPC idempotent `enqueue_sync_generation` và claim/reclaim atomic qua `claim_sync_generations` dùng `FOR UPDATE SKIP LOCKED`;
+- producer shadow chỉ chạy khi `SYNC_GENERATION_SHADOW_ENABLED=true`, mặc định false; lỗi shadow không làm mất legacy durable signal/queue;
+- producer không đọc `e.value`; worker tương lai phải đọc canonical current source bằng exact workbook resolution/`openById`.
+
+Trạng thái apply/live và rollout thuộc `PROJECT_CONTEXT.md`. Migration additive được giữ khi rollback runtime; correction schema dùng migration mới.
+
 ## Bảng cache giai đoạn 3
 
 ### `public.startup_bundles`

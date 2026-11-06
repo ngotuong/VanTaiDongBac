@@ -679,7 +679,8 @@ var SupabaseService = (function () {
   function sheetSignalContext_(props) {
     return { year: activeWorkbookYear_(), getProperty: function (key) { return props.getProperty(key); },
       setProperty: function (key, value) { props.setProperty(key, value); },
-      nowMillis: function () { return new Date().getTime(); }, createUuid: function () { return Utilities.getUuid(); } };
+      nowMillis: function () { return new Date().getTime(); }, createUuid: function () { return Utilities.getUuid(); },
+      log: function (message) { console.log(message); } };
   }
 
   function drainSheetChangeSignals_(props, selectedModules) {
@@ -703,7 +704,10 @@ var SupabaseService = (function () {
               ? sheet.getRange(Number(scope.startRow), 1, Number(scope.numRows), 1) : null;
             transportResult = syncTransportSheetChange('EDIT', sheetName, range, {
               eventAtMillis: signal.at,
-              generationId: signal.token
+              generationId: signal.token,
+              gridId: scope.gridId,
+              startRow: scope.startRow,
+              numRows: scope.numRows
             });
             if (transportResult && transportResult.deferred) transportDeferred = transportResult;
             if (transportResult && transportResult.skipped && backgroundTypes.indexOf('UNKNOWN_SCOPE') === -1) {
@@ -734,7 +738,10 @@ var SupabaseService = (function () {
               ? sheet.getRange(Number(scope.startRow), 1, Number(scope.numRows), 1) : null;
             fundResult = syncFundSheetChange(signal.eventType, sheetName, range, {
               eventAtMillis: signal.at,
-              generationId: signal.token
+              generationId: signal.token,
+              gridId: scope.gridId,
+              startRow: scope.startRow,
+              numRows: scope.numRows
             });
             if (fundResult && fundResult.fundRefresh && fundResult.fundRefresh.deferred) fundDeferred = fundResult.fundRefresh;
             if (fundResult && fundResult.reportRefresh && fundResult.reportRefresh.deferred) fundDeferred = fundResult.reportRefresh;
@@ -882,6 +889,7 @@ var SupabaseService = (function () {
         new Date().toISOString()
       );
       recordRefreshQueueTimeline_(options || {}, queued, queueName);
+      recordSyncGenerationShadow_(options || {}, queued, queueName);
       return queued;
     } catch (err) {
       var message = err && err.message ? err.message : String(err);
@@ -1215,7 +1223,10 @@ var SupabaseService = (function () {
       verificationPasses: structural ? 1 : 0,
       source: 'sheet:' + safeSheetName + ':' + safeEventType,
       eventAtMillis: generationOptions.eventAtMillis,
-      generationId: generationOptions.generationId
+      generationId: generationOptions.generationId,
+      gridIds: generationOptions.gridId === undefined ? [] : [generationOptions.gridId],
+      startRow: generationOptions.startRow,
+      numRows: generationOptions.numRows
     }, manualReportRefreshQueueContext_(), 'transport');
     return {
       ok: !queued.deferred,
@@ -1252,7 +1263,11 @@ var SupabaseService = (function () {
       full: full,
       source: 'fund-sheet:' + safeSheetName + ':' + safeEventType,
       eventAtMillis: generationOptions.eventAtMillis,
-      generationId: generationOptions.generationId
+      generationId: generationOptions.generationId,
+      sheets: safeSheetName ? [safeSheetName] : [],
+      gridIds: generationOptions.gridId === undefined ? [] : [generationOptions.gridId],
+      startRow: generationOptions.startRow,
+      numRows: generationOptions.numRows
     }, fundRefreshQueueContext_(), 'fund');
     var reportRefresh = null;
     if (safeSheetName === 'NHAP_THUCHI' || !safeSheetName) {
@@ -1288,8 +1303,11 @@ var SupabaseService = (function () {
 
   function recordSheetChangeSignal_(event, moduleName, handlerName, spreadsheetId) {
     try {
-      return SheetChangeSignalService.record(event, moduleName, handlerName, spreadsheetId,
-        sheetSignalContext_(PropertiesService.getScriptProperties()));
+      var context = sheetSignalContext_(PropertiesService.getScriptProperties());
+      context.recordGeneration = function (signal) {
+        recordProducerGenerationShadow_(moduleName, signal);
+      };
+      return SheetChangeSignalService.record(event, moduleName, handlerName, spreadsheetId, context);
     } catch (error) {
       if (!isTransientGoogleError_(error)) throw error;
       console.log('sheet_signal_deferred:' + moduleName + ':google_platform');
@@ -1941,6 +1959,78 @@ var SupabaseService = (function () {
       recordSyncTimeline_('signal', moduleName, item, { stage: 'signal' }, new Date(item.generationAt).toISOString());
     }
     recordSyncTimeline_('queued', moduleName, item, { stage: 'queue:' + clean_(queueName) }, new Date().toISOString());
+  }
+
+  function recordSyncGenerationShadow_(options, queued, queueName) {
+    try {
+      if (typeof SyncGenerationShadowService === 'undefined' || !SyncGenerationShadowService.record) return;
+      var generationId = clean_(options && options.generationId || queued && queued.generationId);
+      if (!generationId) return;
+      var eventAtMillis = Number(options && options.eventAtMillis || queued && queued.generationAt || 0);
+      var moduleName = String(queueName || '').indexOf('fund') === 0 ? 'fund' : 'transport';
+      SyncGenerationShadowService.record({
+        generationId: generationId,
+        legacyQueueGenerationId: clean_(queued && queued.generationId || generationId),
+        workbookYear: activeWorkbookYear_(),
+        module: moduleName,
+        queueName: clean_(queueName) || moduleName,
+        sourceType: clean_(options && options.source) || 'unknown',
+        sheetNames: (options && options.sheets || []).concat(options && options.catalogs || []),
+        gridIds: options && options.gridIds || [],
+        rowRanges: buildGenerationRowRanges_(options && options.gridIds || [], options && options.startRow, options && options.numRows),
+        months: options && options.months || queued && queued.months || [],
+        startRow: options && options.startRow,
+        numRows: options && options.numRows,
+        structural: Boolean(options && options.full),
+        fullRefresh: Boolean(options && options.full),
+        sourceCommittedAt: eventAtMillis > 0 ? new Date(eventAtMillis).toISOString() : null,
+        lastSignalAt: eventAtMillis > 0 ? new Date(eventAtMillis).toISOString() : new Date().toISOString(),
+        notBefore: Number(queued && queued.notBefore || 0) > 0
+          ? new Date(Number(queued.notBefore)).toISOString() : new Date().toISOString(),
+        sourceDataVersion: clean_(options && options.sourceDataVersion || queued && queued.reportDataVersion),
+        semanticBuildStamp: clean_(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local')
+      });
+    } catch (error) {
+      console.log('sync_generation_shadow_failed: metadata publication deferred.');
+    }
+  }
+
+  function recordProducerGenerationShadow_(moduleName, signal) {
+    try {
+      if (typeof SyncGenerationShadowService === 'undefined' || !SyncGenerationShadowService.record) return;
+      var scopes = Array.isArray(signal && signal.scopes) ? signal.scopes : [];
+      var eventTypes = getSheetSignalEventTypes_(signal);
+      var structural = eventTypes.some(isStructuralSheetChange_);
+      SyncGenerationShadowService.record({
+        generationId: clean_(signal && signal.token),
+        legacyQueueGenerationId: clean_(signal && signal.token),
+        workbookYear: activeWorkbookYear_(),
+        module: moduleName,
+        queueName: 'signal',
+        sourceType: 'sheet-trigger:' + eventTypes.join('+'),
+        sheetNames: scopes.map(function (scope) { return scope && scope.sheetName; }),
+        gridIds: scopes.map(function (scope) { return scope && scope.gridId; }),
+        rowRanges: scopes.map(function (scope) {
+          return [Number(scope && scope.gridId), Number(scope && scope.startRow), Number(scope && scope.numRows)].join(':');
+        }),
+        startRow: scopes.length === 1 ? scopes[0].startRow : null,
+        numRows: scopes.length === 1 ? scopes[0].numRows : null,
+        structural: structural,
+        fullRefresh: structural && scopes.length === 0,
+        sourceCommittedAt: Number(signal && signal.at || 0) > 0 ? new Date(Number(signal.at)).toISOString() : null,
+        lastSignalAt: Number(signal && signal.at || 0) > 0 ? new Date(Number(signal.at)).toISOString() : new Date().toISOString(),
+        notBefore: Number(signal && signal.at || 0) > 0 ? new Date(Number(signal.at)).toISOString() : new Date().toISOString(),
+        sourceDataVersion: '',
+        semanticBuildStamp: clean_(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local')
+      });
+    } catch (error) {
+      console.log('sync_generation_producer_shadow_failed');
+    }
+  }
+
+  function buildGenerationRowRanges_(gridIds, startRow, numRows) {
+    if (!Array.isArray(gridIds) || gridIds.length !== 1 || !Number(startRow) || !Number(numRows)) return [];
+    return [Number(gridIds[0]) + ':' + Number(startRow) + ':' + Number(numRows)];
   }
 
   function recordSyncTimeline_(eventName, moduleName, item, metadata, eventAt) {

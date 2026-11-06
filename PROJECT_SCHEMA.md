@@ -9,6 +9,7 @@ Schema index; không sao chép header/mapping đầy đủ. Current state thuộ
 - Thay schema phải migration riêng với backup/dry-run/fingerprint/approval, snapshot mới; migration/snapshot lịch sử bất biến.
 - Migrations019–020 đã live để namespace cache/queue và tạo `workbook_contexts`/`workbook_rollover_runs`; registry chỉ giữ exact ID/lifecycle/audit server-side, không chứa hoặc thay thế dữ liệu nghiệp vụ Sheet. [Runbook chuyển năm](docs/operations/YEAR_ROLLOVER.md).
 - Migration021 đã live ngày 05/11/2026, thêm `sync_timeline_events` server-only để giữ evidence generation metadata; không chứa payload nghiệp vụ và browser không có quyền đọc/ghi trực tiếp.
+- Migration022 định nghĩa `sync_generations` server-only cho generation/outbox metadata và RPC enqueue/claim; trạng thái apply/live thuộc `PROJECT_CONTEXT.md`. Bảng không chứa payload nghiệp vụ, giá trị ô, người dùng hoặc credential.
 
 ## Vận tải
 

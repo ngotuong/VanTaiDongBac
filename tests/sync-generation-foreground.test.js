@@ -40,7 +40,8 @@ function workbook(rows = [[new Date('2026-10-31T00:00:00Z'), '10/2026', '51A']])
 function generation(overrides = {}) {
   return {
     event_key: 'sg_test_foreground_01', lease_token: 'lease-1', workbook_year: '2026', module: 'transport',
-    structural: false, full_refresh: false, scope_row_ranges: ['731:25:1'], scope_grid_ids: [731],
+    structural: false, full_refresh: false, source_committed_at: '2026-11-08T00:59:00.000Z',
+    last_signal_at: '2026-11-08T00:59:00.000Z', scope_row_ranges: ['731:25:1'], scope_grid_ids: [731],
     scope_start_row: 25, scope_num_rows: 1, scope_months: ['2026-10'], ...overrides
   };
 }
@@ -58,8 +59,8 @@ test('D3 worker hashes a narrow live scope and matches legacy read models withou
     readLegacyRows: (_id, months) => {
       calls.push(['legacy', months]);
       return [
-        { report_month: '10/2026', source_data_version: 'report-v42', payload: { ...report, updatedAt: 'legacy' } },
-        { report_month: '__dashboard_latest__', source_data_version: 'report-v42', payload: { ...dashboard, updatedAt: 'legacy' } }
+        { report_month: '10/2026', source_data_version: 'report-v42', synced_at: '2026-11-08T01:00:00.000Z', payload: { ...report, updatedAt: 'legacy' } },
+        { report_month: '__dashboard_latest__', source_data_version: 'report-v42', synced_at: '2026-11-08T01:00:00.000Z', payload: { ...dashboard, updatedAt: 'legacy' } }
       ];
     },
     hashPayload: hash, stableStringify: stable, sha256Hex: hex,
@@ -75,6 +76,25 @@ test('D3 worker hashes a narrow live scope and matches legacy read models withou
   assert.equal(calls.find((call) => call[0] === 'report')[3].suppressRuntimeCacheWrite, true);
   assert.equal(calls.find((call) => call[0] === 'report')[3].forceLiveDetails, true);
   assert.equal(calls.some((call) => /upsert|publish|write/.test(call[0])), false);
+});
+
+test('D3 worker retries while both legacy bundles still predate the source commit', () => {
+  const sandbox = load('SyncGenerationForegroundWorker.gs');
+  const payload = { overview: {}, payroll: [], vehicles: [], projectGroups: [], projects: [], links: {} };
+  const context = {
+    openWorkbook: () => ({ spreadsheet: workbook(), spreadsheetId: 'transport-2026' }),
+    getReportDataVersion: () => 'report-v42', getDashboard: () => payload, getReportBundle: () => payload,
+    readLegacyRows: () => [
+      { report_month: '10/2026', source_data_version: 'report-v42', synced_at: '2026-11-08T00:58:59.000Z', payload },
+      { report_month: '__dashboard_latest__', source_data_version: 'report-v42', synced_at: '2026-11-08T00:58:59.000Z', payload }
+    ],
+    hashPayload: hash, stableStringify: stable, sha256Hex: hex,
+    formatMonth: () => '2026-10', nowISOString: () => '2026-11-08T01:00:00.000Z'
+  };
+  const result = sandbox.SyncGenerationForegroundWorker.run(generation(), context);
+  assert.equal(result.action, 'retry');
+  assert.equal(result.errorClass, 'legacy_bundle_not_ready');
+  assert.equal(result.shadowResult, 'not_ready');
 });
 
 test('D3 worker fails closed for structural or multi-month scope', () => {

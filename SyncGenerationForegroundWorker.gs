@@ -63,6 +63,9 @@ var SyncGenerationForegroundWorker = (function () {
     if (!legacy[reportMonth] || !legacy[DASHBOARD_KEY]) {
       return retryWithMetadata_('legacy_bundle_missing', 30, source, reportMonth, versionAfterRead);
     }
+    if (!legacyReadyForGeneration_(legacy[reportMonth], legacy[DASHBOARD_KEY], row)) {
+      return retryWithMetadata_('legacy_bundle_not_ready', 30, source, reportMonth, versionAfterRead);
+    }
     var reportVersion = String(legacy[reportMonth].source_data_version || '');
     var dashboardVersion = String(legacy[DASHBOARD_KEY].source_data_version || '');
     if (!reportVersion || reportVersion !== dashboardVersion || reportVersion !== versionAfterRead) {
@@ -204,6 +207,15 @@ var SyncGenerationForegroundWorker = (function () {
       if (row && row.report_month) result[String(row.report_month)] = row;
     });
     return result;
+  }
+
+  function legacyReadyForGeneration_(reportRow, dashboardRow, generation) {
+    var committedAt = new Date(generation.source_committed_at || generation.last_signal_at || 0).getTime();
+    if (!isFinite(committedAt) || committedAt <= 0) return false;
+    return [reportRow, dashboardRow].every(function (row) {
+      var syncedAt = new Date(row && row.synced_at || 0).getTime();
+      return isFinite(syncedAt) && syncedAt >= committedAt;
+    });
   }
 
   function sanitizeDashboard_(payload) {

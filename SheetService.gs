@@ -62,10 +62,11 @@ var SheetService = (function () {
     return catalogs;
   }
 
-  function getDashboard(month, forceRefresh) {
+  function getDashboard(month, forceRefresh, options) {
+    var requestOptions = options || {};
     var monthKey = normalizeMonthKey_(month) || 'latest';
     var key = cacheKey_('dashboard', monthKey);
-    if (forceRefresh) invalidateRuntimeCaches_();
+    if (forceRefresh && !requestOptions.skipInvalidation) invalidateRuntimeCaches_();
     if (!forceRefresh) {
       var cached = getChunkedCache_(key);
       if (cached) return cached;
@@ -78,7 +79,7 @@ var SheetService = (function () {
       latestTrips: readLatestTrips_(ss),
       links: reportLinks_(ss)
     });
-    putChunkedCache_(key, dashboard, REPORT_TTL_SECONDS);
+    if (!requestOptions.suppressRuntimeCacheWrite) putChunkedCache_(key, dashboard, REPORT_TTL_SECONDS);
     return dashboard;
   }
 
@@ -168,18 +169,18 @@ var SheetService = (function () {
     var ss = getSpreadsheet_();
     // skipInvalidation prevents repeated global cache eviction inside a batch; it must
     // never turn a force refresh back into a cached report-table read.
-    var reportTables = readReportTables_(ss, forceRefresh);
+    var reportTables = readReportTables_(ss, forceRefresh, requestOptions);
     var dataVersion = clean_(requestOptions.dataVersion) || getReportDataVersion_();
     var bundle = {
       updatedAt: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'dd/MM/yyyy HH:mm'),
-      overview: readOverviewReport_(ss, month, dataVersion),
+      overview: readOverviewReport_(ss, month, dataVersion, requestOptions),
       payroll: filterDisplayTableByMonth_(reportTables.payroll, month),
       vehicles: filterDisplayTableByMonth_(reportTables.vehicles, month),
       projectGroups: filterDisplayTableByMonth_(reportTables.projectGroups, month),
       projects: filterDisplayTableByMonth_(reportTables.projects, month),
       links: reportLinks_(ss)
     };
-    putChunkedCache_(cacheKey, bundle, REPORT_TTL_SECONDS);
+    if (!requestOptions.suppressRuntimeCacheWrite) putChunkedCache_(cacheKey, bundle, REPORT_TTL_SECONDS);
     if (!requestOptions.suppressSupabaseWrite) writeReportBundleToSupabase_(month, bundle, dataVersion);
     return bundle;
   }
@@ -237,12 +238,12 @@ var SheetService = (function () {
     return SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
   }
 
-  function readOverviewReport_(ss, month, dataVersion) {
+  function readOverviewReport_(ss, month, dataVersion, options) {
     var sheet = ss.getSheetByName('BC_TongQuan');
     if (!sheet) return { months: [], details: [] };
 
     var months = readOverviewMonths_(sheet);
-    var details = readOverviewDetailsWithCache_(ss, sheet, months, month, dataVersion);
+    var details = readOverviewDetailsWithCache_(ss, sheet, months, month, dataVersion, options);
     return { months: months, details: details, kpis: readOverviewKpis_(ss, sheet, months) };
   }
 
@@ -308,8 +309,18 @@ var SheetService = (function () {
     return DashboardService.resolveReportMonth(months, month);
   }
 
-  function readOverviewDetailsWithCache_(ss, sheet, months, month, dataVersion) {
+  function readOverviewDetailsWithCache_(ss, sheet, months, month, dataVersion, options) {
+    var requestOptions = options || {};
     var activeMonths = getActiveReportMonths_(months);
+    if (requestOptions.forceLiveDetails === true) {
+      if (month === 'Tất cả') throw new Error('D3 shadow không hỗ trợ báo cáo tổng hợp nhiều tháng.');
+      var requestedMonth = resolveReportMonth_(months, month);
+      var selectedMonth = sheet.getRange('B1').getDisplayValue();
+      if (!requestedMonth || normalizeDisplayMonth_(selectedMonth) !== normalizeDisplayMonth_(requestedMonth)) {
+        throw new Error('D3 shadow đang chờ BC_TongQuan hiển thị đúng tháng nguồn.');
+      }
+      return readCurrentOverviewDetails_(sheet);
+    }
     if (month === 'Tất cả') {
       if (!activeMonths.length) return readCurrentOverviewDetails_(sheet);
       return readAggregatedOverviewDetails_(ss, sheet, activeMonths, dataVersion);
@@ -541,14 +552,15 @@ var SheetService = (function () {
     });
   }
 
-  function readReportTables_(ss, forceRefresh) {
+  function readReportTables_(ss, forceRefresh, options) {
+    var requestOptions = options || {};
     var cacheKey = cacheKey_('report_tables', 'all');
     if (!forceRefresh) {
       var cached = getChunkedCache_(cacheKey);
       if (cached) return cached;
     }
     var tables = ReportTableService.readTables(ss);
-    putChunkedCache_(cacheKey, tables, REPORT_TTL_SECONDS);
+    if (!requestOptions.suppressRuntimeCacheWrite) putChunkedCache_(cacheKey, tables, REPORT_TTL_SECONDS);
     return tables;
   }
 

@@ -42,7 +42,9 @@ try {
     assert.throws(() => sql(`set role ${role}; insert into sync_timeline_events(event_key,workbook_year,module,generation_id,event_name,event_at,build_stamp) values ('denied','2026','transport','g','signal',now(),'test');`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select * from sync_generations;`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select enqueue_sync_generation('sg_denied_000000','g','2026','transport','transport','sheet:test',array[]::text[],array[]::bigint[],array[]::text[],array[]::text[],null,null,false,false,now(),now(),now(),'','g','test');`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select request_sync_generation_dispatch('sg_denied_000000','denied');`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select * from claim_sync_generations(1,'denied',30,30);`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from claim_sync_generation('sg_denied_000000','denied',30,30);`), /permission denied/);
   }
   sql("set role service_role; insert into sync_timeline_events(event_key,workbook_year,module,generation_id,event_name,event_at,build_stamp) values ('sql-test','2026','transport','generation-sql','signal',now(),'sql-test') on conflict (event_key) do update set event_at=excluded.event_at;");
   assert.equal(sql("select count(*) from sync_timeline_events where event_key='sql-test';").trim(), '1');
@@ -55,16 +57,19 @@ try {
   assert.equal(sql("select count(*) from sync_generations signal join sync_generations queued using (workbook_year,module,generation_id) where signal.queue_name='signal' and queued.queue_name='transport' and signal.scope_grid_ids && queued.scope_grid_ids and signal.scope_row_ranges && queued.scope_row_ranges;").trim(), '1');
   assert.throws(() => sql("set role service_role; select enqueue_sync_generation('sg_sql_test_00001','generation-sql','2026','transport','transport','sheet:NL_Dau:EDIT',array['NL_TaiXe'],array[731]::bigint[],array['731:25:1'],array['2026-10'],25,1,false,false,now(),now(),now(),'report-v1','generation-sql','sql-test');"), /collision/);
   sql("set role service_role; select enqueue_sync_generation('sg_sql_test_00002','generation-sql-2','2026','transport','transport','sheet:NL_TaiXe:EDIT',array['NL_TaiXe'],array[732]::bigint[],array['732:26:1'],array['2026-10'],26,1,false,false,now(),now(),now(),'','generation-sql-2','sql-test');");
-  const firstGenerationClaim = sql("set role service_role; select event_key from claim_sync_generations(1,'generation-worker-a',30,30);").trim();
-  assert.match(firstGenerationClaim, /^sg_sql_test_0000[12]$/);
+  sql("set role service_role; select (request_sync_generation_dispatch('sg_sql_test_00001','sql-d3')).event_key;");
+  const firstGenerationClaim = sql("set role service_role; select event_key from claim_sync_generation('sg_sql_test_00001','generation-worker-a',30,30);").trim();
+  assert.equal(firstGenerationClaim, 'sg_sql_test_00001');
   assert.equal(sql(`select attempts||':'||lease_owner from sync_generations where event_key='${firstGenerationClaim}';`).trim(), '1:generation-worker-a');
+  assert.equal(sql(`set role service_role; select (complete_sync_generation_shadow('${firstGenerationClaim}',(select lease_token from sync_generations where event_key='${firstGenerationClaim}'),'matched',true,'10/2026',now(),'report-v1','report-v1',repeat('a',64),'dash','report','dash','report')).status;`).trim(), 'shadowed');
+  sql("set role service_role; select (request_sync_generation_dispatch('sg_sql_test_00002','sql-d3')).event_key;");
   const secondGenerationClaim = sql("set role service_role; select event_key from claim_sync_generations(1,'generation-worker-b',30,30);").trim();
-  assert.match(secondGenerationClaim, /^sg_sql_test_0000[12]$/);
-  assert.notEqual(secondGenerationClaim, firstGenerationClaim);
-  assert.equal(sql(`select lease_owner from sync_generations where event_key='${firstGenerationClaim}';`).trim(), 'generation-worker-a');
-  sql(`update sync_generations set lease_expires_at=now()-interval '1 second' where event_key='${firstGenerationClaim}';`);
-  assert.equal(sql("set role service_role; select event_key from claim_sync_generations(1,'generation-worker-reclaim',30,30);").trim(), firstGenerationClaim);
-  assert.equal(sql(`select attempts||':'||lease_owner from sync_generations where event_key='${firstGenerationClaim}';`).trim(), '2:generation-worker-reclaim');
+  assert.equal(secondGenerationClaim, 'sg_sql_test_00002');
+  sql(`update sync_generations set lease_expires_at=now()-interval '1 second' where event_key='${secondGenerationClaim}';`);
+  assert.equal(sql("set role service_role; select event_key from claim_sync_generations(1,'generation-worker-reclaim',30,30);").trim(), secondGenerationClaim);
+  assert.equal(sql(`select attempts||':'||lease_owner from sync_generations where event_key='${secondGenerationClaim}';`).trim(), '2:generation-worker-reclaim');
+  assert.equal(sql(`set role service_role; select (retry_sync_generation_shadow('${secondGenerationClaim}',(select lease_token from sync_generations where event_key='${secondGenerationClaim}'),'legacy_version_not_ready',now(),false,'not_ready','10/2026','','',repeat('b',64),'','','','')).status;`).trim(), 'retryable');
+  assert.equal(sql("set role service_role; select event_key from claim_sync_generation('sg_sql_test_00002','generation-worker-final',30,30);").trim(), secondGenerationClaim);
   sql("set role service_role; select activate_workbook_context('2026','2027',now());");
   sql("set role service_role; select activate_workbook_context('2026','2027',now());");
   assert.equal(sql("select string_agg(year||':'||lifecycle_status,',' order by year) from workbook_contexts;").trim(), '2026:archived,2027:active');
@@ -164,5 +169,5 @@ try {
   assert.equal(sql("select count(*) from write_job_logs where job_id='sql-manual-retry' and message='Write job manually retried.';").trim(), '1');
   console.log('Audit SQL retry PASS: persisted year, exact failed snapshot, worker ownership and reconciliation ABA guard.');
   console.log('R8 SQL worker/repository PASS: real claims, owned updates, terminal logs, fault isolation and exhausted lease recovery; Sheet boundary synthetic.');
-  console.log('R8 SQL PASS: migrations 001–022, multi-year cache copy/idempotency, server-only workbook registry/transactional activation, sync timeline isolation, generation outbox duplicate/lease/reclaim/RLS, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
+  console.log('R8 SQL PASS: migrations 001–023, multi-year cache copy/idempotency, server-only workbook registry/transactional activation, sync timeline isolation, generation outbox dispatch/lease/retry/shadow/RLS, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
 } finally { try { docker(['rm', '--force', name]); } catch {} }

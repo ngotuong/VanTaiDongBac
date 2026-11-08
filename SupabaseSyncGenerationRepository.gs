@@ -1,4 +1,4 @@
-/** Server-only RPC adapter for the D2 generation shadow outbox. */
+/** Server-only RPC adapter for the generation outbox and D3 shadow lifecycle. */
 var SupabaseSyncGenerationRepository = (function () {
   function enqueue(row) {
     return SupabaseHttpClient.callRpc('enqueue_sync_generation', {
@@ -25,5 +25,76 @@ var SupabaseSyncGenerationRepository = (function () {
     });
   }
 
-  return { enqueue: enqueue };
+  function requestDispatch(eventKey, semanticBuildStamp) {
+    return first_(SupabaseHttpClient.callRpc('request_sync_generation_dispatch', {
+      p_event_key: eventKey,
+      p_semantic_build_stamp: semanticBuildStamp || 'unversioned'
+    }));
+  }
+
+  function claimOne(eventKey, workerId, staleSeconds, leaseSeconds) {
+    return first_(SupabaseHttpClient.callRpc('claim_sync_generation', {
+      p_event_key: eventKey,
+      p_worker_id: workerId,
+      p_stale_seconds: staleSeconds || 120,
+      p_lease_seconds: leaseSeconds || 120
+    }));
+  }
+
+  function claimBatch(limit, workerId, staleSeconds, leaseSeconds) {
+    var rows = SupabaseHttpClient.callRpc('claim_sync_generations', {
+      p_limit: limit || 1,
+      p_worker_id: workerId,
+      p_stale_seconds: staleSeconds || 120,
+      p_lease_seconds: leaseSeconds || 120
+    });
+    return Array.isArray(rows) ? rows : (rows ? [rows] : []);
+  }
+
+  function completeShadow(input) {
+    return first_(SupabaseHttpClient.callRpc('complete_sync_generation_shadow', metadataPayload_(input, {
+      p_event_key: input.eventKey,
+      p_lease_token: input.leaseToken,
+      p_shadow_match: input.shadowMatch === true,
+      p_source_ready_at: input.sourceReadyAt || null
+    })));
+  }
+
+  function retryShadow(input) {
+    return first_(SupabaseHttpClient.callRpc('retry_sync_generation_shadow', metadataPayload_(input, {
+      p_event_key: input.eventKey,
+      p_lease_token: input.leaseToken,
+      p_error_class: input.errorClass || 'retryable',
+      p_next_attempt_at: input.nextAttemptAt || new Date().toISOString(),
+      p_terminal: input.terminal === true
+    })));
+  }
+
+  function metadataPayload_(input, base) {
+    var payload = base || {};
+    payload.p_shadow_result = input.shadowResult || '';
+    payload.p_shadow_month = input.shadowMonth || '';
+    payload.p_shadow_source_data_version = input.shadowSourceDataVersion || '';
+    payload.p_shadow_legacy_source_data_version = input.shadowLegacySourceDataVersion || '';
+    payload.p_shadow_source_hash = input.shadowSourceHash || '';
+    payload.p_shadow_dashboard_hash = input.shadowDashboardHash || '';
+    payload.p_shadow_report_hash = input.shadowReportHash || '';
+    payload.p_shadow_legacy_dashboard_hash = input.shadowLegacyDashboardHash || '';
+    payload.p_shadow_legacy_report_hash = input.shadowLegacyReportHash || '';
+    return payload;
+  }
+
+  function first_(value) {
+    if (Array.isArray(value)) return value.length ? value[0] : null;
+    return value || null;
+  }
+
+  return {
+    enqueue: enqueue,
+    requestDispatch: requestDispatch,
+    claimOne: claimOne,
+    claimBatch: claimBatch,
+    completeShadow: completeShadow,
+    retryShadow: retryShadow
+  };
 })();

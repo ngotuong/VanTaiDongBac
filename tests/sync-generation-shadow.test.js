@@ -82,6 +82,30 @@ test('generation repository uses only the idempotent enqueue RPC', () => {
   assert.equal(calls[0].payload.p_scope_row_ranges[0], '731:25:1');
 });
 
+test('generation repository maps the D3 dispatch lifecycle to lease-owned RPCs', () => {
+  const calls = [];
+  const context = vm.createContext({ SupabaseHttpClient: { callRpc: (name, payload) => {
+    calls.push({ name, payload });
+    return [{ event_key: payload.p_event_key || 'sg', status: 'ok' }];
+  } } });
+  new vm.Script(read('SupabaseSyncGenerationRepository.gs'), { filename: 'SupabaseSyncGenerationRepository.gs#d3-test' }).runInContext(context);
+  const repository = context.SupabaseSyncGenerationRepository;
+  repository.requestDispatch('sg', 'candidate-d3');
+  repository.claimOne('sg', 'worker', 120, 180);
+  repository.completeShadow({
+    eventKey: 'sg', leaseToken: 'lease', shadowResult: 'matched', shadowMatch: true,
+    shadowMonth: '10/2026', shadowSourceHash: 'a'.repeat(64)
+  });
+  repository.retryShadow({ eventKey: 'sg', leaseToken: 'lease-2', errorClass: 'not_ready', nextAttemptAt: '2026-11-08T01:00:30.000Z' });
+  assert.deepEqual(calls.map((call) => call.name), [
+    'request_sync_generation_dispatch', 'claim_sync_generation',
+    'complete_sync_generation_shadow', 'retry_sync_generation_shadow'
+  ]);
+  assert.equal(calls[2].payload.p_shadow_match, true);
+  assert.equal(calls[2].payload.p_shadow_source_hash, 'a'.repeat(64));
+  assert.equal(calls[3].payload.p_error_class, 'not_ready');
+});
+
 test('Supabase service mirrors only an accepted legacy queue and never adds a publisher', () => {
   const source = read('SupabaseService.gs');
   const enqueueStart = source.indexOf('  function enqueueRefreshWithFallback_');

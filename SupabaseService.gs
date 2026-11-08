@@ -1929,6 +1929,23 @@ var SupabaseService = (function () {
     };
   }
 
+  function reconcileSyncGenerationShadow() {
+    return SyncGenerationForegroundDispatcher.reconcile();
+  }
+
+  function installSyncGenerationShadowReconciler() {
+    var handler = 'reconcileSyncGenerationShadow';
+    var removed = 0;
+    ScriptApp.getProjectTriggers().forEach(function (trigger) {
+      if (trigger.getHandlerFunction && trigger.getHandlerFunction() === handler) {
+        ScriptApp.deleteTrigger(trigger);
+        removed++;
+      }
+    });
+    ScriptApp.newTrigger(handler).timeBased().everyMinutes(1).create();
+    return { ok: true, installed: true, removed: removed, handler: handler, intervalMinutes: 1, mode: 'd3-shadow-only' };
+  }
+
   function callRpc_(functionName, payload) {
     return SupabaseHttpClient.callRpc(functionName, payload);
   }
@@ -1968,7 +1985,7 @@ var SupabaseService = (function () {
       if (!generationId) return;
       var eventAtMillis = Number(options && options.eventAtMillis || queued && queued.generationAt || 0);
       var moduleName = String(queueName || '').indexOf('fund') === 0 ? 'fund' : 'transport';
-      SyncGenerationShadowService.record({
+      var recorded = SyncGenerationShadowService.record({
         generationId: generationId,
         legacyQueueGenerationId: clean_(queued && queued.generationId || generationId),
         workbookYear: activeWorkbookYear_(),
@@ -1990,8 +2007,11 @@ var SupabaseService = (function () {
         sourceDataVersion: clean_(options && options.sourceDataVersion || queued && queued.reportDataVersion),
         semanticBuildStamp: clean_(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local')
       });
+      dispatchSyncGenerationShadow_(recorded);
+      return recorded;
     } catch (error) {
       console.log('sync_generation_shadow_failed: metadata publication deferred.');
+      return null;
     }
   }
 
@@ -2001,7 +2021,8 @@ var SupabaseService = (function () {
       var scopes = Array.isArray(signal && signal.scopes) ? signal.scopes : [];
       var eventTypes = getSheetSignalEventTypes_(signal);
       var structural = eventTypes.some(isStructuralSheetChange_);
-      SyncGenerationShadowService.record({
+      var signalAtMillis = Number(signal && signal.at || 0);
+      var recorded = SyncGenerationShadowService.record({
         generationId: clean_(signal && signal.token),
         legacyQueueGenerationId: clean_(signal && signal.token),
         workbookYear: activeWorkbookYear_(),
@@ -2017,14 +2038,27 @@ var SupabaseService = (function () {
         numRows: scopes.length === 1 ? scopes[0].numRows : null,
         structural: structural,
         fullRefresh: structural && scopes.length === 0,
-        sourceCommittedAt: Number(signal && signal.at || 0) > 0 ? new Date(Number(signal.at)).toISOString() : null,
-        lastSignalAt: Number(signal && signal.at || 0) > 0 ? new Date(Number(signal.at)).toISOString() : new Date().toISOString(),
-        notBefore: Number(signal && signal.at || 0) > 0 ? new Date(Number(signal.at)).toISOString() : new Date().toISOString(),
+        sourceCommittedAt: signalAtMillis > 0 ? new Date(signalAtMillis).toISOString() : null,
+        lastSignalAt: signalAtMillis > 0 ? new Date(signalAtMillis).toISOString() : new Date().toISOString(),
+        notBefore: new Date((signalAtMillis > 0 ? signalAtMillis : new Date().getTime()) + TRANSPORT_REPORT_DEBOUNCE_MS).toISOString(),
         sourceDataVersion: '',
         semanticBuildStamp: clean_(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local')
       });
+      dispatchSyncGenerationShadow_(recorded);
+      return recorded;
     } catch (error) {
       console.log('sync_generation_producer_shadow_failed');
+      return null;
+    }
+  }
+
+  function dispatchSyncGenerationShadow_(recorded) {
+    try {
+      if (typeof SyncGenerationForegroundDispatcher === 'undefined' || !SyncGenerationForegroundDispatcher.dispatchRecorded) return;
+      return SyncGenerationForegroundDispatcher.dispatchRecorded(recorded);
+    } catch (error) {
+      console.log('sync_generation_foreground_shadow_deferred');
+      return null;
     }
   }
 
@@ -2108,8 +2142,8 @@ var SupabaseService = (function () {
       upsertReportBundle: function (options) { return SupabaseReportCacheRepository.upsertBundle(options); },
       buildReportBundleRow: function (options) { return SupabaseReportCacheRepository.buildBundleRow(options); },
       syncPayrollExplanations: syncPayrollExplanationMonth,
-      getDashboard: function (month, forceRefresh) {
-        return ReportService.getDashboard(month, forceRefresh);
+      getDashboard: function (month, forceRefresh, options) {
+        return ReportService.getDashboard(month, forceRefresh, options);
       },
       getReportSheet: function () {
         return SpreadsheetApp.openById(APP_CONFIG.spreadsheetId).getSheetByName('BC_TongQuan');
@@ -2573,6 +2607,8 @@ var SupabaseService = (function () {
     syncAllManageDataBundles: syncAllManageDataBundles,
     syncFullRealtimeCache: syncFullRealtimeCache,
     syncRealtimeCache: syncRealtimeCache,
+    reconcileSyncGenerationShadow: reconcileSyncGenerationShadow,
+    installSyncGenerationShadowReconciler: installSyncGenerationShadowReconciler,
     syncTripNotifications: syncTripNotifications,
     syncOperationalNotifications: syncOperationalNotifications,
     syncDailyBusinessSummary: syncDailyBusinessSummary,

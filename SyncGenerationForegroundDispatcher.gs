@@ -1,6 +1,7 @@
-/** D3 dispatcher/reconciler for the metadata-only foreground shadow lane. */
+/** D3/D4 dispatcher for the shadow lane and allowlisted Preview publication. */
 var SyncGenerationForegroundDispatcher = (function () {
   var ENABLED_PROPERTY = 'SYNC_FOREGROUND_SHADOW_ENABLED';
+  var PUBLISH_ENABLED_PROPERTY = 'SYNC_FOREGROUND_PUBLISH_ENABLED';
   var MAX_FOREGROUND_WAIT_MS = 15000;
   var RETRY_DELAY_SECONDS = 30;
 
@@ -37,11 +38,25 @@ var SyncGenerationForegroundDispatcher = (function () {
     try {
       outcome = context.worker.run(claimed, context.workerContext);
     } catch (error) {
+      try {
+        var recovered = context.repository.findByEventKey(claimed.event_key);
+        if (recovered && recovered.status === 'published') {
+          return { ok: true, eventKey: claimed.event_key, status: 'published', recovered: true, row: recovered };
+        }
+      } catch (ignored) {}
       outcome = {
         action: 'retry',
         errorClass: 'shadow_runtime_error',
         retryAfterSeconds: RETRY_DELAY_SECONDS,
         shadowResult: 'runtime_error'
+      };
+    }
+    if (outcome.action === 'published') {
+      return {
+        ok: true,
+        eventKey: claimed.event_key,
+        status: 'published',
+        publication: outcome.publication || null
       };
     }
     var metadata = metadata_(claimed, outcome);
@@ -90,7 +105,9 @@ var SyncGenerationForegroundDispatcher = (function () {
     var props = PropertiesService.getScriptProperties();
     return {
       isEnabled: function () {
-        return ['1', 'true', 'yes', 'on'].indexOf(String(props.getProperty(ENABLED_PROPERTY) || '').trim().toLowerCase()) !== -1;
+        return [ENABLED_PROPERTY, PUBLISH_ENABLED_PROPERTY].some(function (propertyName) {
+          return ['1', 'true', 'yes', 'on'].indexOf(String(props.getProperty(propertyName) || '').trim().toLowerCase()) !== -1;
+        });
       },
       repository: SupabaseSyncGenerationRepository,
       worker: SyncGenerationForegroundWorker,
@@ -98,7 +115,7 @@ var SyncGenerationForegroundDispatcher = (function () {
       buildStamp: String(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local'),
       nowMillis: function () { return new Date().getTime(); },
       sleep: function (milliseconds) { Utilities.sleep(milliseconds); },
-      workerId: function () { return 'd3-shadow-' + Utilities.getUuid(); }
+      workerId: function () { return 'd4-foreground-' + Utilities.getUuid(); }
     };
   }
 

@@ -145,12 +145,12 @@ test('D3 SQL is server-only, lease-owned, metadata-only, and does not publish re
   assert.doesNotMatch(sql.replace(/--.*$/gm, ''), /jsonb|payload/i);
 });
 
-test('D3 reconciler remains separate from the legacy minute publisher', () => {
+test('foreground reconciler remains separate from the legacy minute publisher', () => {
   const source = read('SupabaseService.gs');
   const tickStart = source.indexOf('  function syncRealtimeCache()');
   const tickEnd = source.indexOf('\n  function ', tickStart + 20);
   const tick = source.slice(tickStart, tickEnd);
   assert.doesNotMatch(tick, /ForegroundDispatcher|reconcileSyncGenerationShadow/);
   assert.match(source, /function reconcileSyncGenerationShadow\(\)[\s\S]*SyncGenerationForegroundDispatcher\.reconcile/);
-  assert.match(read('RuntimeBuild.gs'), /sync-generation-foreground-shadow-20261108-v1/);
+  assert.match(read('RuntimeBuild.gs'), /sync-generation-atomic-preview-20261109-v1/);
 });

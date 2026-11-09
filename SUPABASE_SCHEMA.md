@@ -25,6 +25,9 @@ Next Report đọc qua server boundary trong `next-shell/lib/report-server.ts`. 
 | `cache_version` | `text` | Không | Version schema cache chi tiết do Apps Script ghi, ví dụ `v13`. Được thêm ở migration `010`. |
 | `source_data_version` | `text` | Không | Version dữ liệu Google Sheet dùng để tạo bundle. Được thêm ở migration `010`. |
 | `details_hash` | `text` | Không | SHA-256 chữ thường của `overview.details` đã chuẩn hóa để đối soát. Được thêm ở migration `010`. |
+| `generation_id` | `text` | Không với row legacy | Generation foreground đã publish cặp Dashboard/report. Được thêm ở migration `024`. |
+| `published_at` | `timestamptz` | Không với row legacy | Mốc publish nguyên tử của cặp. Được thêm ở migration `024`. |
+| `publication_id` | `bigint` | Không với row legacy | Con trỏ metadata invalidation server-only. Được thêm ở migration `024`. |
 | `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
 | `created_at` | `timestamptz` | Có | Thời điểm tạo row. |
 | `updated_at` | `timestamptz` | Có | Thời điểm cập nhật row gần nhất. |
@@ -133,6 +136,12 @@ Invariant bảo mật:
 - producer không đọc `e.value`; worker tương lai phải đọc canonical current source bằng exact workbook resolution/`openById`.
 
 Trạng thái apply/live và rollout thuộc `PROJECT_CONTEXT.md`. Migration additive được giữ khi rollback runtime; correction schema dùng migration mới.
+
+### `public.publication_invalidations` (migration `024`)
+
+Kênh metadata server-only cho publication nguyên tử D4. Mỗi row chỉ có audience, năm, Spreadsheet ID server-only, tháng, generation/version/cache version và timestamp; không chứa payload nghiệp vụ, giá trị Sheet, user hoặc credential. RPC `publish_sync_generation_pair` giữ row generation bằng lease token rồi trong cùng transaction: tạo invalidation, upsert đúng hai `report_bundles` (tháng + `__dashboard_latest__`) với cùng generation/version/timestamp/publication ID và ACK generation `published`.
+
+`anon`/`authenticated` không có quyền bảng/RPC; `report_bundles` cũng được chuyển sang server-only. Next route đã xác thực chỉ phát metadata đã lọc qua SSE, sau đó UI gọi lại loader same-origin để lấy bundle. D4 RPC chỉ nhận audience `preview`; Production cần checkpoint/migration riêng.
 
 ## Bảng cache giai đoạn 3
 

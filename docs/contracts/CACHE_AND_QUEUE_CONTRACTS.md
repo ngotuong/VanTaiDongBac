@@ -198,9 +198,10 @@ Columns:
 - `cache_version text`, nullable cho row legacy;
 - `source_data_version text`, nullable cho row legacy;
 - `details_hash text`, nullable hoặc SHA-256 chữ thường 64 ký tự;
+- `generation_id text`, `published_at timestamptz`, `publication_id bigint`, nullable/empty cho row legacy;
 - `synced_at`, `created_at`, `updated_at`.
 
-Ba cột metadata được thêm bằng migration `010`. Chúng phục vụ cutover khỏi `SYS_ReportCache`; không thay primary key và không biến Supabase thành source of truth.
+Ba cột metadata cutover được thêm bằng migration `010`; ba cột publication được thêm bằng migration `024`. Chúng không thay primary key và không biến Supabase thành source of truth.
 
 ### 5.2. Key convention
 
@@ -240,6 +241,8 @@ Transport refresh dùng `SUPABASE_PENDING_TRANSPORT_REPORT_SYNC` và lease prope
 - Refresh nội bộ dùng token guard; `INSERT_GRID`/`REMOVE_GRID` do temp report skip để tránh vòng lặp; row-level structural changes vẫn queue.
 
 Frontend revalidate mỗi 30 giây. Poll interval là thời điểm đến hạn, không phải SLA: full scope, quota/contention và native Google call có thể làm cache chậm. `synced_at`, stage cursor và report–v6 exact version là bằng chứng freshness; status OK cũ không chứng minh hàng đợi hiện tại đã ACK. Deployment và gate thực tế thuộc [context](../../PROJECT_CONTEXT.md).
+
+**D4 atomic publication/invalidation (migration024; rollout thuộc context):** foreground worker chỉ publish khi producer outbox `SYNC_GENERATION_SHADOW_ENABLED`, cờ `SYNC_FOREGROUND_PUBLISH_ENABLED` và allowlist `SYNC_FOREGROUND_PUBLISH_SPREADSHEET_IDS` cùng cho phép exact workbook. RPC service-role `publish_sync_generation_pair` kiểm lease/generation/version rồi atomically upsert Dashboard + tháng, ACK generation và tạo một metadata invalidation `preview`; retry mơ hồ trả lại publication đã commit, không tạo event/bundle thứ hai. Browser không đọc `report_bundles`, `sync_generations` hoặc invalidation table trực tiếp. Route SSE same-origin đã xác thực chỉ trả ID/tháng/generation/version/timestamp, client xóa/bỏ qua cache trình duyệt và gọi loader same-origin; revalidation 30 giây còn là safety net.
 
 **Contract R8 paging/deferral (trạng thái triển khai thuộc context):**Fund planner3 thêm `fundTransactionsScan/Publish`, đọc200rows/page một lần cho các filter tháng trong lease, cache manifest bất biến/chunk hash; durable queue chỉ giữ pointer nhỏ. Missing/corrupt chunks, headers/lastRow hoặc signal/data-version stamp đổi → restart trước publish; totalRows/months/rowIndex/date/money/debt/offset/limit giữ contract. Plan cũ được lập lại theo version3, giữ full/month scope; API edit không phát signal vẫn phụ thuộc polling/safety, không coi capture là snapshot giao dịch của Sheets.
 
@@ -1107,6 +1110,8 @@ Sau write/refresh:
 - bỏ cached payload có `ok:false`;
 - reload nguồn thật sau job synced.
 
+Dashboard/Báo cáo đang mở còn nghe metadata SSE `/publication-events/`. Event không mang payload nghiệp vụ; client chỉ dùng publication ID làm con trỏ và gọi lại `/dashboard-data/` hoặc `/report-data/` bằng same-origin session. SSE lỗi/đứt kết nối không xóa dữ liệu đang hiển thị; poll visible 30 giây tiếp tục làm safety net.
+
 ### 24.3. Supabase cache
 
 Supabase bundle không bị invalidated chỉ bằng cách tăng Apps Script cache version. Phải upsert bundle mới hoặc xóa bundle để frontend fallback.
@@ -1166,7 +1171,7 @@ Migration hiện theo thứ tự:
 9. `009_shareholder_role.sql`;
 10. `010–014` cho cache/auth notification và payroll explanation;
 11. `015` server-only operational tables/atomic payroll replacement; `016` exhausted lease RPC; `017` payroll-v6 isolation; `018` service-role log sequence permissions;
-12. `019` cache namespace; `020` workbook registry; `021` sync timeline; `022` generation outbox/RPC server-only.
+12. `019` cache namespace; `020` workbook registry; `021` sync timeline; `022` generation outbox/RPC server-only; `023` foreground shadow lifecycle; `024` atomic Preview publication/invalidation.
 
 Rules:
 

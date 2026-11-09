@@ -1,7 +1,7 @@
 /**
- * D3 read-only foreground candidate. It reads one narrow Transport scope and
- * compares freshly built read models with the legacy publisher. It never
- * writes report_bundles, changes a report selector, or stores Sheet values.
+ * D3/D4 narrow Transport foreground worker. D3 compares freshly built read
+ * models with the legacy publisher. D4 may atomically publish the same pair,
+ * but only when the explicit Preview flag and Spreadsheet allowlist agree.
  */
 var SyncGenerationForegroundWorker = (function () {
   var TRANSPORT_INPUT_SHEETS = {
@@ -57,6 +57,61 @@ var SyncGenerationForegroundWorker = (function () {
     if (versionAfterRead !== versionBefore) {
       return retryWithMetadata_('source_version_changed', 30, source, reportMonth, versionAfterRead);
     }
+    if (String(ctx.getReportDataVersion() || '') !== versionAfterRead) {
+      return retryWithMetadata_('source_version_changed', 30, source, reportMonth, versionAfterRead);
+    }
+
+    if (typeof ctx.isPublishEnabled === 'function' && ctx.isPublishEnabled(workbook.spreadsheetId)) {
+      var publishedAt = ctx.nowISOString();
+      var cacheVersion = String(ctx.getReportCacheVersion() || '');
+      if (!cacheVersion || !versionAfterRead) {
+        return retryWithMetadata_('publication_version_missing', 30, source, reportMonth, versionAfterRead);
+      }
+      var reportRow = ctx.buildReportBundleRow({
+        spreadsheetId: workbook.spreadsheetId,
+        reportMonth: reportMonth,
+        sourceSheetNames: ['BC_TongQuan', 'BC_BangLuong', 'BC_TongHopXe', 'BC_TongHopDuAn'],
+        bundle: report,
+        cacheVersion: cacheVersion,
+        dataVersion: versionAfterRead,
+        syncedAt: publishedAt
+      });
+      var dashboardRow = ctx.buildReportBundleRow({
+        spreadsheetId: workbook.spreadsheetId,
+        reportMonth: DASHBOARD_KEY,
+        sourceSheetNames: ['BC_TongQuan', 'NL_VanChuyen'],
+        bundle: dashboard,
+        cacheVersion: cacheVersion,
+        dataVersion: versionAfterRead,
+        syncedAt: publishedAt
+      });
+      if (String(ctx.getReportDataVersion() || '') !== versionAfterRead) {
+        return retryWithMetadata_('source_version_changed', 30, source, reportMonth, versionAfterRead);
+      }
+      var publication = ctx.publishPair({
+        eventKey: row.event_key,
+        leaseToken: row.lease_token,
+        workbookYear: String(row.workbook_year || ''),
+        spreadsheetId: workbook.spreadsheetId,
+        reportMonth: reportMonth,
+        generationId: String(row.generation_id || ''),
+        sourceDataVersion: versionAfterRead,
+        cacheVersion: cacheVersion,
+        publishedAt: publishedAt,
+        reportRow: reportRow,
+        dashboardRow: dashboardRow,
+        semanticBuildStamp: String(row.semantic_build_stamp || ctx.buildStamp || 'unversioned')
+      });
+      return {
+        action: 'published',
+        publication: publication,
+        shadowResult: 'published_preview',
+        shadowMonth: reportMonth,
+        sourceReadyAt: publishedAt,
+        shadowSourceDataVersion: versionAfterRead,
+        shadowSourceHash: source.hash
+      };
+    }
 
     var legacyRows = ctx.readLegacyRows(workbook.spreadsheetId, [reportMonth, DASHBOARD_KEY]);
     var legacy = indexLegacyRows_(legacyRows);
@@ -71,10 +126,6 @@ var SyncGenerationForegroundWorker = (function () {
     if (!reportVersion || reportVersion !== dashboardVersion || reportVersion !== versionAfterRead) {
       return retryWithMetadata_('legacy_version_not_ready', 30, source, reportMonth, versionAfterRead, reportVersion || dashboardVersion);
     }
-    if (String(ctx.getReportDataVersion() || '') !== versionAfterRead) {
-      return retryWithMetadata_('source_version_changed', 30, source, reportMonth, versionAfterRead, reportVersion);
-    }
-
     var dashboardHash = ctx.hashPayload(sanitizeDashboard_(dashboard));
     var reportHash = ctx.hashPayload(sanitizeReport_(report));
     var legacyDashboardHash = ctx.hashPayload(sanitizeDashboard_(legacy[DASHBOARD_KEY].payload));
@@ -259,6 +310,7 @@ var SyncGenerationForegroundWorker = (function () {
   }
 
   function defaultContext_() {
+    var properties = PropertiesService.getScriptProperties();
     return {
       openWorkbook: function (year) {
         AppConfig.activate({ year: year });
@@ -270,6 +322,7 @@ var SyncGenerationForegroundWorker = (function () {
         return { spreadsheet: spreadsheet, spreadsheetId: spreadsheetId };
       },
       getReportDataVersion: function () { return ReportService.getReportDataVersion(); },
+      getReportCacheVersion: function () { return ReportService.getReportCacheVersion(); },
       getDashboard: function (month, forceRefresh, options) {
         return ReportService.getDashboard(month, forceRefresh, options);
       },
@@ -284,6 +337,20 @@ var SyncGenerationForegroundWorker = (function () {
           limit: String(months.length)
         });
       },
+      isPublishEnabled: function (spreadsheetId) {
+        var enabled = ['1', 'true', 'yes', 'on'].indexOf(String(
+          properties.getProperty('SYNC_FOREGROUND_PUBLISH_ENABLED') || ''
+        ).trim().toLowerCase()) !== -1;
+        if (!enabled) return false;
+        var allowed = String(properties.getProperty('SYNC_FOREGROUND_PUBLISH_SPREADSHEET_IDS') || '')
+          .split(',').map(function (value) { return value.trim(); }).filter(function (value) { return value; });
+        return allowed.indexOf(String(spreadsheetId || '')) !== -1;
+      },
+      buildReportBundleRow: function (options) {
+        return SupabaseReportCacheRepository.buildBundleRow(options);
+      },
+      publishPair: function (input) { return SupabaseSyncGenerationRepository.publishPair(input); },
+      buildStamp: String(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local'),
       hashPayload: CacheAuditService.hashPayload,
       stableStringify: CacheAuditService.stableStringify,
       sha256Hex: sha256Hex_,

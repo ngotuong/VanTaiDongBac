@@ -45,7 +45,17 @@ export async function loadReportData(monthInput: unknown = 'latest', forceRefres
             row = await repository.findLatest(config, resolvedMonth, workbook.spreadsheetId);
           }
         }
-        if (row?.payload) return { bundle: publicBundle({ ...(row.payload as ReportBundle), apiCached: true, supabaseCached: true, supabaseSyncedAt: row.synced_at }), requestedMonth, vehicleOwners: await vehicleOwnersPromise };
+        if (row?.payload) return { bundle: publicBundle({
+          ...(row.payload as ReportBundle),
+          apiCached: true,
+          supabaseCached: true,
+          supabaseSyncedAt: row.synced_at,
+          supabaseGenerationId: row.generation_id || undefined,
+          supabaseSourceDataVersion: row.source_data_version || undefined,
+          supabaseCacheVersion: row.cache_version || undefined,
+          supabasePublishedAt: row.published_at || undefined,
+          supabasePublicationId: Number(row.publication_id) || undefined
+        }), requestedMonth, vehicleOwners: await vehicleOwnersPromise };
       }
     } catch (error) {
       throw httpError(503, error instanceof Error ? error.message : 'Không đọc được Báo cáo từ Supabase.');
@@ -93,8 +103,19 @@ export async function loadReportRangeData(fromInput: unknown, toInput: unknown, 
     const orderedRows = includedMonths.map((month) => rowsByMonth.get(month)!);
     const bundle = aggregateReportBundles(orderedRows.map((row) => row.payload as ReportBundle), includedMonths);
     const syncedAt = orderedRows.map((row) => row.synced_at).filter(Boolean).sort().at(-1);
+    const latestPublication = orderedRows.slice().sort((left, right) => Number(right.publication_id || 0) - Number(left.publication_id || 0))[0];
     return {
-      bundle: publicBundle({ ...bundle, apiCached: true, supabaseCached: true, supabaseSyncedAt: syncedAt }),
+      bundle: publicBundle({
+        ...bundle,
+        apiCached: true,
+        supabaseCached: true,
+        supabaseSyncedAt: syncedAt,
+        supabaseGenerationId: latestPublication?.generation_id || undefined,
+        supabaseSourceDataVersion: latestPublication?.source_data_version || undefined,
+        supabaseCacheVersion: latestPublication?.cache_version || undefined,
+        supabasePublishedAt: latestPublication?.published_at || undefined,
+        supabasePublicationId: Number(latestPublication?.publication_id) || undefined
+      }),
       requestedMonth: `${fromMonth}–${toMonth}`,
       fromMonth,
       toMonth,

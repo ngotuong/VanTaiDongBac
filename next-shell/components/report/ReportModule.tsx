@@ -7,6 +7,7 @@ import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { exportCardAsImage, exportTableAsCsv } from '../../lib/platform/export-card';
 import { showToast } from '../../lib/platform/toast';
 import { useLatestAsyncRequest } from '../platform/useLatestAsyncRequest';
+import { usePublicationInvalidation } from '../platform/usePublicationInvalidation';
 import { useVisibleRevalidation } from '../platform/useVisibleRevalidation';
 import { PayrollExplanationDialog } from './PayrollExplanationDialog';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
@@ -337,6 +338,24 @@ export function ReportModule({ initialBundle, initialVehicleOwners = {}, initial
       const message = loadError instanceof Error ? loadError.message : String(loadError); setError(message); setStatus(''); showToast(message, 'error');
     } finally { if (requestState.isCurrent()) setLoading(false); }
   };
+
+  usePublicationInvalidation(workbook.year, bundle?.supabasePublicationId, async (event) => {
+    if (loading) return;
+    const target = visiblePeriodRef.current;
+    if (target.mode === 'range' && (
+      compareReportMonths(event.reportMonth, target.fromMonth) < 0 ||
+      compareReportMonths(event.reportMonth, target.toMonth) > 0
+    )) return;
+    const targetKey = reportPeriodKey(target.mode, target.fromMonth, target.toMonth, workbook.year);
+    const data = await requestReport(workbook.year, target.mode, target.fromMonth, target.toMonth, false, true);
+    if (reportPeriodKey(visiblePeriodRef.current.mode, visiblePeriodRef.current.fromMonth, visiblePeriodRef.current.toMonth, workbook.year) !== targetKey) return;
+    setBundle(data.bundle);
+    setVehicleOwners(data.vehicleOwners || {});
+    setAvailableMonths(reportDataMonths(data.bundle.overview?.months));
+    setRenderedPeriod(targetKey);
+    setError('');
+    setStatus(data.bundle.apiCached ? 'Dữ liệu từ API cache.' : 'Dữ liệu từ API.');
+  }, !loading);
 
   useVisibleRevalidation(async () => {
     if (loading) return;

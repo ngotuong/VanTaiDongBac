@@ -187,6 +187,7 @@ Frontend phải reject bundle có payload nghiệp vụ `ok: false`; không đư
 | Form/danh mục Thu chi | `catalog_bundles` | key riêng theo year/group |
 | Trạng thái sync | `sync_status` | `sync_key`/module |
 | Trạng thái ghi | `write_jobs` | `id`, module/action, `payload.year` và server-resolved `payload.spreadsheetId` |
+| Metadata publication | `publication_invalidations` | server-only `audience + workbook_year + id`; browser chỉ nhận metadata qua SSE same-origin |
 
 ### 6.3. Đọc khoảng thời gian nhiều tháng
 
@@ -664,7 +665,7 @@ Liên kết được thực hiện bằng công thức Google Sheets như `IMPOR
 - ghi Thu chi có thể gián tiếp thay đổi báo cáo Vận tải;
 - thay đổi này không nhất thiết đi qua API Vận tải;
 - cache báo cáo Vận tải có thể cần sync sau khi công thức đã cập nhật;
-- installable trigger Thu chi queue refresh báo cáo sau 30 giây với một lượt xác minh sau 2 phút; lượt đầu thường tới Supabase trong 1–2 phút, frontend revalidate mỗi 60 giây và poll 5 phút là safety net khi trigger/công thức bị trễ;
+- installable trigger Thu chi queue refresh báo cáo sau 30 giây với một lượt xác minh sau 2 phút; đường foreground đủ điều kiện phát metadata SSE sau atomic publication để UI gọi lại bundle, còn visible poll là safety net khi trigger/công thức hoặc kết nối bị trễ;
 - không được gộp hai file hoặc thay liên kết bằng copy dữ liệu nếu chưa có yêu cầu kiến trúc riêng.
 
 ## 17. Luồng bound script Thu chi

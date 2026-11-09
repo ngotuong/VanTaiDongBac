@@ -667,6 +667,14 @@ Handler Phase 5:
 
 Frontend Report luôn gọi public API cho action này; không còn đọc `report_bundles` trực tiếp từ browser. Dashboard không thuộc cutover này và vẫn giữ loader/cache path cũ.
 
+### 8.5. Publication metadata SSE
+
+```text
+GET /publication-events/?year=<YYYY>&after=<PUBLICATION_ID>
+```
+
+Route Next same-origin yêu cầu HttpOnly session hợp lệ, resolve năm qua workbook registry và đọc `publication_invalidations` bằng service role. Response `text/event-stream` chỉ chứa `id`, năm, tháng, generation/version/cache version và `publishedAt`; không chứa Spreadsheet ID, payload báo cáo, giá trị Sheet, user hoặc credential. Dashboard/Báo cáo nhận event rồi gọi lại loader same-origin tương ứng với `cache: no-store`. Trình duyệt không có quyền trực tiếp trên `publication_invalidations`, `sync_generations` hoặc `report_bundles`; poll visible hiện hành giữ vai trò safety net.
+
 Response logic:
 
 ```json

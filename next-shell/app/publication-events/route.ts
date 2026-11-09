@@ -46,7 +46,11 @@ export async function GET(request: Request) {
         const poll = async () => {
           if (closed || request.signal.aborted) return close();
           try {
-            const row = await repository.findNext(config, { year: context.workbook.year, afterId });
+            const row = await repository.findNext(config, {
+              year: context.workbook.year,
+              afterId,
+              audience: config.publicationInvalidationAudience
+            });
             if (row) {
               const event = {
                 id: Number(row.id),

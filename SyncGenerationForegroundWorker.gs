@@ -1,7 +1,7 @@
 /**
- * D3/D4 narrow Transport foreground worker. D3 compares freshly built read
- * models with the legacy publisher. D4 may atomically publish the same pair,
- * but only when the explicit Preview flag and Spreadsheet allowlist agree.
+ * D3-D5 narrow Transport foreground worker. D3 compares freshly built read
+ * models with the legacy publisher. D4/D5 may atomically publish the same pair,
+ * but only when the explicit flag and Spreadsheet allowlist agree.
  */
 var SyncGenerationForegroundWorker = (function () {
   var TRANSPORT_INPUT_SHEETS = {
@@ -62,6 +62,11 @@ var SyncGenerationForegroundWorker = (function () {
     }
 
     if (typeof ctx.isPublishEnabled === 'function' && ctx.isPublishEnabled(workbook.spreadsheetId)) {
+      var audience = typeof ctx.getPublicationAudience === 'function'
+        ? String(ctx.getPublicationAudience() || '').trim().toLowerCase() : 'preview';
+      if (['preview', 'production'].indexOf(audience) === -1) {
+        return retryWithMetadata_('publication_audience_invalid', 30, source, reportMonth, versionAfterRead);
+      }
       var publishedAt = ctx.nowISOString();
       var cacheVersion = String(ctx.getReportCacheVersion() || '');
       if (!cacheVersion || !versionAfterRead) {
@@ -100,12 +105,13 @@ var SyncGenerationForegroundWorker = (function () {
         publishedAt: publishedAt,
         reportRow: reportRow,
         dashboardRow: dashboardRow,
+        audience: audience,
         semanticBuildStamp: String(row.semantic_build_stamp || ctx.buildStamp || 'unversioned')
       });
       return {
         action: 'published',
         publication: publication,
-        shadowResult: 'published_preview',
+        shadowResult: 'published_' + audience,
         shadowMonth: reportMonth,
         sourceReadyAt: publishedAt,
         shadowSourceDataVersion: versionAfterRead,
@@ -342,9 +348,15 @@ var SyncGenerationForegroundWorker = (function () {
           properties.getProperty('SYNC_FOREGROUND_PUBLISH_ENABLED') || ''
         ).trim().toLowerCase()) !== -1;
         if (!enabled) return false;
+        var expiresAt = new Date(String(properties.getProperty('SYNC_FOREGROUND_PUBLISH_EXPIRES_AT') || '')).getTime();
+        if (!isFinite(expiresAt) || expiresAt <= new Date().getTime()) return false;
         var allowed = String(properties.getProperty('SYNC_FOREGROUND_PUBLISH_SPREADSHEET_IDS') || '')
           .split(',').map(function (value) { return value.trim(); }).filter(function (value) { return value; });
         return allowed.indexOf(String(spreadsheetId || '')) !== -1;
+      },
+      getPublicationAudience: function () {
+        return String(properties.getProperty('SYNC_FOREGROUND_PUBLICATION_AUDIENCE') || 'preview')
+          .trim().toLowerCase();
       },
       buildReportBundleRow: function (options) {
         return SupabaseReportCacheRepository.buildBundleRow(options);

@@ -23,6 +23,7 @@ test("preview deploy is pinned to the guarded project and stable alias", () => {
   assert.match(script, /\/api\/app\?action=health/);
   assert.match(script, /healthPayload\.ok !== true/);
   assert.match(script, /API health HTTP/);
+  assert.match(script, /PUBLICATION_INVALIDATION_AUDIENCE=preview/);
 });
 
 test("agent instructions retire the mutable C3 preview workflow", () => {

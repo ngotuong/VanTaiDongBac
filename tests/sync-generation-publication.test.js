@@ -78,7 +78,26 @@ test('D4 worker publishes the Dashboard/report pair through one owned RPC withou
   assert.equal(input.sourceDataVersion, 'source-v1');
   assert.equal(input.reportRow.source_data_version, input.dashboardRow.source_data_version);
   assert.equal(input.reportRow.synced_at, input.dashboardRow.synced_at);
+  assert.equal(input.audience, 'preview');
   assert.match(input.reportRow.details_hash, /^[a-f0-9]{64}$/);
+});
+
+test('D5 worker passes the configured Production audience to the atomic RPC', () => {
+  const sandbox = load('SyncGenerationForegroundWorker.gs');
+  const harness = publicationContext({ getPublicationAudience: () => 'production' });
+  const result = sandbox.SyncGenerationForegroundWorker.run(generation(), harness.context);
+  assert.equal(result.action, 'published');
+  assert.equal(result.shadowResult, 'published_production');
+  assert.equal(harness.calls.published[0].audience, 'production');
+});
+
+test('D5 worker fails closed when the publication audience is invalid', () => {
+  const sandbox = load('SyncGenerationForegroundWorker.gs');
+  const harness = publicationContext({ getPublicationAudience: () => 'other' });
+  const result = sandbox.SyncGenerationForegroundWorker.run(generation(), harness.context);
+  assert.equal(result.action, 'retry');
+  assert.equal(result.errorClass, 'publication_audience_invalid');
+  assert.equal(harness.calls.published.length, 0);
 });
 
 test('D4 worker publishes neither row when source version changes after pair preparation', () => {
@@ -139,13 +158,13 @@ test('D4 repository sends both payloads only to the server-only atomic publicati
   sandbox.SupabaseSyncGenerationRepository.publishPair({
     eventKey: 'event', leaseToken: 'lease', workbookYear: '2026', spreadsheetId: 'copy-id',
     reportMonth: '10/2026', generationId: 'generation', sourceDataVersion: 'source', cacheVersion: 'v13',
-    publishedAt: '2026-11-09T01:00:02.000Z', reportRow, dashboardRow, semanticBuildStamp: 'd4'
+    publishedAt: '2026-11-09T01:00:02.000Z', reportRow, dashboardRow, audience: 'production', semanticBuildStamp: 'd5'
   });
   assert.equal(calls.length, 1);
   assert.equal(calls[0].name, 'publish_sync_generation_pair');
   assert.deepEqual(plain(calls[0].payload.p_report_payload), { report: true });
   assert.deepEqual(plain(calls[0].payload.p_dashboard_payload), { dashboard: true });
-  assert.equal(calls[0].payload.p_audience, 'preview');
+  assert.equal(calls[0].payload.p_audience, 'production');
 });
 
 test('D4 migration keeps invalidation metadata server-only and transactionally owns pair plus ACK', () => {
@@ -159,6 +178,18 @@ test('D4 migration keeps invalidation metadata server-only and transactionally o
   assert.doesNotMatch(sql.match(/create table if not exists public\.publication_invalidations[\s\S]*?\);/i)[0], /payload|sheet_value|user_id/i);
 });
 
+test('D5 migration opens only the explicit Production audience and preserves RPC isolation', () => {
+  const sql = read('supabase/migrations/025_sync_generation_production_publication.sql');
+  assert.match(sql, /not in \('preview', 'production'\)/i);
+  assert.match(sql, /shadow_result = 'published_' \|\| p_audience/i);
+  assert.match(sql, /two event keys for the same generation/i);
+  assert.match(sql, /if invalidation\.id is not null then[\s\S]*status = 'published'/i);
+  assert.match(sql, /on conflict do nothing[\s\S]*publication conflict is missing invalidation metadata/i);
+  assert.match(sql, /revoke all on function public\.publish_sync_generation_pair[\s\S]*from public, anon, authenticated/i);
+  assert.match(sql, /grant execute on function public\.publish_sync_generation_pair[\s\S]*to service_role/i);
+  assert.doesNotMatch(sql, /grant .*publication_invalidations.*anon|grant .*publication_invalidations.*authenticated/i);
+});
+
 test('D4 invalidation channel is authenticated, metadata-only, and revalidates through same-origin loaders', () => {
   const route = read('next-shell/app/publication-events/route.ts');
   const repository = read('server/repositories/publication-invalidation-repository.js');
@@ -170,7 +201,8 @@ test('D4 invalidation channel is authenticated, metadata-only, and revalidates t
   assert.match(route, /event: publication/);
   assert.doesNotMatch(route, /spreadsheetId|spreadsheet_id|payload/);
   assert.match(repository, /Authorization: `Bearer \$\{config\.serviceRoleKey\}`/);
-  assert.match(repository, /audience: 'eq\.preview'/);
+  assert.match(repository, /publicationInvalidationAudience/);
+  assert.match(repository, /'preview', 'production'/);
   assert.match(hook, /new EventSource/);
   assert.match(hook, /\/publication-events\//);
   assert.match(dashboard, /usePublicationInvalidation/);
@@ -179,7 +211,7 @@ test('D4 invalidation channel is authenticated, metadata-only, and revalidates t
   assert.match(report, /requestReport\(workbook\.year[\s\S]*false, true\)/);
 });
 
-test('D4 invalidation repository scopes the service-role read to Preview, year, and cursor', async () => {
+test('D5 invalidation repository scopes the service-role read to configured audience, year, and cursor', async () => {
   const { createPublicationInvalidationRepository } = require('../server/repositories/publication-invalidation-repository');
   const requests = [];
   const repository = createPublicationInvalidationRepository({
@@ -189,13 +221,55 @@ test('D4 invalidation repository scopes the service-role read to Preview, year, 
       return { ok: true, json: async () => [{ id: 42, workbook_year: '2026' }] };
     }
   });
-  const row = await repository.findNext({ supabaseUrl: 'https://example.supabase.co', serviceRoleKey: 'server-only' }, { year: '2026', afterId: 41 });
+  const row = await repository.findNext({ supabaseUrl: 'https://example.supabase.co', serviceRoleKey: 'server-only', publicationInvalidationAudience: 'production' }, { year: '2026', afterId: 41 });
   assert.equal(row.id, 42);
   const request = requests[0];
   const url = new URL(request.url);
   assert.equal(url.pathname, '/rest/v1/publication_invalidations');
-  assert.equal(url.searchParams.get('audience'), 'eq.preview');
+  assert.equal(url.searchParams.get('audience'), 'eq.production');
   assert.equal(url.searchParams.get('workbook_year'), 'eq.2026');
   assert.equal(url.searchParams.get('id'), 'gt.41');
   assert.equal(request.init.headers.Authorization, 'Bearer server-only');
+});
+
+test('D5 deployment scripts pin Preview and Production invalidation audiences', () => {
+  assert.match(read('scripts/deploy-preview.mjs'), /PUBLICATION_INVALIDATION_AUDIENCE=preview/);
+  assert.match(read('scripts/deploy-production.mjs'), /PUBLICATION_INVALIDATION_AUDIENCE=production/);
+});
+
+test('D5 rollout activation is exact-workbook, Production-only, expiring, and atomically reversible', () => {
+  const sandbox = load('SyncGenerationRolloutService.gs');
+  const values = {};
+  const now = Date.parse('2026-11-09T02:00:00.000Z');
+  const context = {
+    resolveWorkbook: () => ({ spreadsheetId: 'canonical-transport-2026', year: '2026' }),
+    nowMillis: () => now,
+    setProperties: (patch) => Object.assign(values, plain(patch)),
+    getProperties: () => ({ ...values }),
+    deleteProperty: (key) => { delete values[key]; }
+  };
+  const active = plain(sandbox.SyncGenerationRolloutService.activateProductionCanary(context));
+  assert.equal(active.generationEnabled, true);
+  assert.equal(active.dispatcherEnabled, true);
+  assert.equal(active.publicationEnabled, true);
+  assert.deepEqual(active.allowlistedSpreadsheetIds, ['canonical-transport-2026']);
+  assert.equal(active.audience, 'production');
+  assert.equal(active.windowActive, true);
+  assert.equal(Date.parse(active.expiresAt) - now, 30 * 60 * 1000);
+
+  const rolledBack = plain(sandbox.SyncGenerationRolloutService.rollback(context));
+  assert.equal(rolledBack.generationEnabled, false);
+  assert.equal(rolledBack.dispatcherEnabled, false);
+  assert.equal(rolledBack.publicationEnabled, false);
+  assert.deepEqual(rolledBack.allowlistedSpreadsheetIds, []);
+  assert.equal(rolledBack.audience, 'preview');
+  assert.equal(rolledBack.windowActive, false);
+  assert.equal(values.SYNC_FOREGROUND_PUBLISH_EXPIRES_AT, undefined);
+});
+
+test('D5 default worker refuses publication without a live rollout expiry', () => {
+  const worker = read('SyncGenerationForegroundWorker.gs');
+  assert.match(worker, /SYNC_FOREGROUND_PUBLISH_EXPIRES_AT/);
+  assert.match(worker, /!isFinite\(expiresAt\) \|\| expiresAt <= new Date\(\)\.getTime\(\)/);
+  assert.match(worker, /SYNC_FOREGROUND_PUBLISH_SPREADSHEET_IDS/);
 });

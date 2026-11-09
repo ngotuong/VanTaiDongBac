@@ -15,5 +15,9 @@ export function createPublicationInvalidationRepository(input: {
   fetchImpl?: typeof fetch;
   httpError: (status: number, message: string) => Error;
 }): {
-  findNext(config: RuntimeConfig, input: { year: string; afterId?: number }): Promise<PublicationInvalidationRow | null>;
+  findNext(config: RuntimeConfig, input: {
+    year: string;
+    afterId?: number;
+    audience?: string;
+  }): Promise<PublicationInvalidationRow | null>;
 };

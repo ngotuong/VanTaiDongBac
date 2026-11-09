@@ -88,8 +88,16 @@ var SupabaseSyncGenerationRepository = (function () {
       p_dashboard_payload: input.dashboardRow.payload,
       p_dashboard_details_hash: input.dashboardRow.details_hash,
       p_semantic_build_stamp: input.semanticBuildStamp || 'unversioned',
-      p_audience: 'preview'
+      p_audience: publicationAudience_(input && input.audience)
     }));
+  }
+
+  function publicationAudience_(value) {
+    var audience = String(value || 'preview').trim().toLowerCase();
+    if (['preview', 'production'].indexOf(audience) === -1) {
+      throw new Error('Sync publication audience không hợp lệ.');
+    }
+    return audience;
   }
 
   function findByEventKey(eventKey) {

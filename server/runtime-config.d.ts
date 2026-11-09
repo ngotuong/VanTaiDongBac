@@ -11,6 +11,7 @@ export type RuntimeConfig = {
   syncWatchdogSecret: string;
   fundLowBalanceAlertEnabled: boolean;
   businessWritesPaused: boolean;
+  publicationInvalidationAudience: string;
   defaultWorkbookYear: string;
 };
 export function runtimeConfig(env?: Record<string, string | undefined>): RuntimeConfig;

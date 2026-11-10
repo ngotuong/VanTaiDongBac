@@ -1,6 +1,7 @@
 var ReportTempSheetService = (function () {
   function computeDetails(ss, sourceSheet, months, options) {
     var detailsByMonth = {};
+    var failure = null;
     var lock = LockService.getScriptLock();
     var locked = false;
     var tempSheet = null;
@@ -15,12 +16,15 @@ var ReportTempSheetService = (function () {
       (months || []).forEach(function (month) {
         var monthLabel = options.clean(month);
         if (!monthLabel) return;
-        tempSheet.getRange('B1').setValue(options.parseMonth(monthLabel));
-        SpreadsheetApp.flush();
+        var parsedMonth = options.parseMonth(monthLabel);
         var monthKey = options.normalizeMonth(monthLabel);
+        if (!parsedMonth || !monthKey) throw new Error('Không xác định được tháng báo cáo tạm: ' + monthLabel);
+        tempSheet.getRange('B1').setValue(parsedMonth);
+        SpreadsheetApp.flush();
         detailsByMonth[monthKey] = options.readDetails(tempSheet);
       });
     } catch (e) {
+      failure = e;
       console.error('Lỗi tính toán/cache báo cáo chi tiết trên sheet tạm:', e);
     } finally {
       if (tempSheet) {
@@ -32,6 +36,7 @@ var ReportTempSheetService = (function () {
       }
       if (locked) lock.releaseLock();
     }
+    if (failure && options.requireAllMonths === true) throw failure;
     return detailsByMonth;
   }
 

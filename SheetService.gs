@@ -316,10 +316,18 @@ var SheetService = (function () {
       if (month === 'Tất cả') throw new Error('D3 shadow không hỗ trợ báo cáo tổng hợp nhiều tháng.');
       var requestedMonth = resolveReportMonth_(months, month);
       var selectedMonth = sheet.getRange('B1').getDisplayValue();
-      if (!requestedMonth || normalizeDisplayMonth_(selectedMonth) !== normalizeDisplayMonth_(requestedMonth)) {
+      if (!requestedMonth) {
         throw new Error('D3 shadow đang chờ BC_TongQuan hiển thị đúng tháng nguồn.');
       }
-      return readCurrentOverviewDetails_(sheet);
+      var requestedMonthKey = normalizeDisplayMonth_(requestedMonth) || normalizeMonthKey_(requestedMonth);
+      if (normalizeDisplayMonth_(selectedMonth) === requestedMonthKey) return readCurrentOverviewDetails_(sheet);
+      var exactDetails = computeAndCacheOverviewDetails_(ss, sheet, [requestedMonth], dataVersion, {
+        requireAllMonths: true
+      });
+      if (!Object.prototype.hasOwnProperty.call(exactDetails, requestedMonthKey)) {
+        throw new Error('D3 shadow đang chờ BC_TongQuan tính đúng tháng nguồn.');
+      }
+      return exactDetails[requestedMonthKey];
     }
     if (month === 'Tất cả') {
       if (!activeMonths.length) return readCurrentOverviewDetails_(sheet);
@@ -390,14 +398,16 @@ var SheetService = (function () {
     return DashboardService.aggregateDetailMatrices(matrices);
   }
 
-  function computeAndCacheOverviewDetails_(ss, sheet, months, dataVersion) {
+  function computeAndCacheOverviewDetails_(ss, sheet, months, dataVersion, options) {
+    var computeOptions = options || {};
     var detailsByMonth = ReportTempSheetService.computeDetails(ss, sheet, months, {
       clean: clean_,
       parseMonth: parseMonthLabelToDate_,
       normalizeMonth: function (monthLabel) {
         return normalizeDisplayMonth_(monthLabel) || normalizeMonthKey_(monthLabel);
       },
-      readDetails: readCurrentOverviewDetails_
+      readDetails: readCurrentOverviewDetails_,
+      requireAllMonths: computeOptions.requireAllMonths === true
     });
     mergeReportDetailsMemoryCache_(dataVersion, detailsByMonth);
     return detailsByMonth;

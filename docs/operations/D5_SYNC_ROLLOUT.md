@@ -1,8 +1,10 @@
 # D5 Sync rollout
 
-> D5 ngày 09/11 đã fail và rollback. Runbook này chỉ được tái sử dụng cho D5C
-> sau khi D5B source/migration được review, apply/deploy Preview trong checkpoint
-> riêng và `PROJECT_CONTEXT.md` cho phép cửa sổ mới.
+> D5 ngày 09/11 và D5D ngày 10/11 đều đã fail và rollback. D5D dừng đúng
+> stop condition với `report_month_not_active`, không có bundle/invalidation.
+> Không tái sử dụng runbook này cho một Production canary mới cho đến khi D5E
+> chẩn đoán/fix month selection, có regression + copy-canary và
+> `PROJECT_CONTEXT.md` cho phép cửa sổ mới.
 
 ## Boundary
 

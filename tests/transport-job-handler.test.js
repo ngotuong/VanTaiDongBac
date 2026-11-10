@@ -10,15 +10,18 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 function loadHandler(overrides = {}) {
   const vmContext = vm.createContext({});
   new vm.Script(read('TransportJobHandler.gs'), { filename: 'TransportJobHandler.gs#test' }).runInContext(vmContext);
-  const calls = { submit: [], save: [], delete: [], manage: [], dashboard: 0, reports: [], catalogs: [], allReports: 0 };
+  const calls = { submit: [], save: [], delete: [], manage: [], dashboard: 0, reports: [], catalogs: [], allReports: 0,
+    generations: [], dispatches: [], order: [] };
   const context = {
     clean: (value) => String(value || '').trim(),
-    submitRows(...args) { calls.submit.push(args); return { ok: true, inserted: 2, sheetName: 'NL_VanChuyen' }; },
+    submitRows(...args) { calls.submit.push(args); return { ok: true, inserted: 2, sheetName: 'NL_VanChuyen', gridId: 731, startRow: 25 }; },
     saveSheetRow(...args) { calls.save.push(args); return { ok: true, saved: true }; },
     deleteSheetRow(...args) { calls.delete.push(args); return { ok: true, deleted: true }; },
-    syncTransportAfterWrite(...args) { calls.manage.push(args); return { ok: true, kind: 'manage' }; },
-    syncDashboard() { calls.dashboard += 1; return { ok: true, kind: 'dashboard' }; },
-    syncTransportReportsAfterWrite(...args) { calls.reports.push(args); return { ok: true, kind: 'report' }; },
+    recordTransportWriteGeneration(...args) { calls.generations.push(JSON.parse(JSON.stringify(args))); calls.order.push('record'); return { recorded: true, eventKey: 'sg-webapp' }; },
+    dispatchTransportWriteGeneration(recorded) { calls.dispatches.push(recorded); calls.order.push('dispatch'); return { dispatched: true }; },
+    syncTransportAfterWrite(...args) { calls.manage.push(args); calls.order.push('manage'); return { ok: true, kind: 'manage' }; },
+    syncDashboard() { calls.dashboard += 1; calls.order.push('dashboard'); return { ok: true, kind: 'dashboard' }; },
+    syncTransportReportsAfterWrite(...args) { calls.reports.push(args); calls.order.push('report'); return { ok: true, kind: 'report' }; },
     syncCatalogAfterWrite(...args) { calls.catalogs.push(args); return { ok: true, kind: 'catalog' }; },
     syncAllReportBundles() { calls.allReports += 1; return { ok: true, kind: 'allReports' }; },
     ...overrides
@@ -34,9 +37,17 @@ test('submitRows preserves replay metadata and all three sync scopes', () => {
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.manage)), [['NL_VanChuyen', [{ synthetic: true }], { fast: true }]]);
   assert.equal(loaded.calls.dashboard, 1);
   assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.reports)), [['NL_VanChuyen', [{ synthetic: true }], { includeAll: true }]]);
+  assert.deepEqual(JSON.parse(JSON.stringify(loaded.calls.generations)), [[
+    { ok: true, inserted: 2, sheetName: 'NL_VanChuyen', gridId: 731, startRow: 25 },
+    job.payload,
+    job
+  ]]);
+  assert.deepEqual(loaded.calls.order, ['record', 'manage', 'dashboard', 'report', 'dispatch']);
+  assert.equal(loaded.calls.dispatches[0].eventKey, 'sg-webapp');
   assert.equal(result.supabaseSync.kind, 'manage');
   assert.equal(result.dashboardSync.kind, 'dashboard');
   assert.equal(result.reportSync.kind, 'report');
+  assert.equal(result.generationDispatch.dispatched, true);
 });
 
 test('saveSheetRow preserves previous/current report scope and dashboard only for trips', () => {
@@ -79,6 +90,14 @@ test('sync failures remain isolated while write failures propagate to lifecycle 
 
   const writeFailure = loadHandler({ submitRows() { return { ok: false, errors: ['synthetic validation'] }; } });
   assert.throws(() => writeFailure.handler.execute({ action: 'submitRows', payload: {} }, writeFailure.context), /synthetic validation/);
+});
+
+test('submitRows refuses to acknowledge an enabled generation without exact committed row scope', () => {
+  const loaded = loadHandler({ submitRows() { return { ok: true, inserted: 1, sheetName: 'NL_VanChuyen' }; },
+    recordTransportWriteGeneration() { throw new Error('Transport generation thiếu exact Sheet row scope sau khi ghi.'); } });
+  assert.throws(() => loaded.handler.execute({ id: 'job-scope', action: 'submitRows', payload: { rows: [{}] } }, loaded.context), /exact Sheet row scope/);
+  assert.deepEqual(loaded.calls.manage, []);
+  assert.deepEqual(loaded.calls.dispatches, []);
 });
 
 test('SupabaseService delegates transport actions separately from Fund actions', () => {

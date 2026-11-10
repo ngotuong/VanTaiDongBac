@@ -244,6 +244,8 @@ test('D5 rollout activation is exact-workbook, Production-only, expiring, and at
   const context = {
     resolveWorkbook: () => ({ spreadsheetId: 'canonical-transport-2026', year: '2026' }),
     nowMillis: () => now,
+    reconcilerTriggerCount: () => 1,
+    assertReconciler() { if (this.reconcilerTriggerCount() !== 1) throw new Error('missing reconciler'); },
     setProperties: (patch) => Object.assign(values, plain(patch)),
     getProperties: () => ({ ...values }),
     deleteProperty: (key) => { delete values[key]; }
@@ -265,6 +267,35 @@ test('D5 rollout activation is exact-workbook, Production-only, expiring, and at
   assert.equal(rolledBack.audience, 'preview');
   assert.equal(rolledBack.windowActive, false);
   assert.equal(values.SYNC_FOREGROUND_PUBLISH_EXPIRES_AT, undefined);
+});
+
+test('D5B rollout fails closed before setting flags unless exactly one reconciler exists', () => {
+  const sandbox = load('SyncGenerationRolloutService.gs');
+  for (const count of [0, 2]) {
+    let writes = 0;
+    const context = {
+      assertReconciler() { if (count !== 1) throw new Error('reconciler count=' + count); },
+      reconcilerTriggerCount: () => count,
+      resolveWorkbook: () => ({ spreadsheetId: 'canonical-transport-2026', year: '2026' }),
+      nowMillis: () => Date.parse('2026-11-10T01:00:00.000Z'),
+      setProperties: () => { writes += 1; }, getProperties: () => ({}), deleteProperty: () => {}
+    };
+    assert.throws(() => sandbox.SyncGenerationRolloutService.activateProductionCanary(context), /reconciler/);
+    assert.equal(writes, 0);
+  }
+});
+
+test('D5B quarantine migration is exact-key, audit-preserving, server-only, and never deletes', () => {
+  const sql = read('supabase/migrations/026_sync_generation_quarantine.sql');
+  assert.match(sql, /status in[\s\S]*'quarantined'/i);
+  assert.match(sql, /create or replace function public\.quarantine_sync_generations/i);
+  assert.match(sql, /event_key = any\(p_event_keys\)/i);
+  assert.match(sql, /status = 'pending'[\s\S]*dispatch_requested = false[\s\S]*attempts = 0/i);
+  assert.match(sql, /get diagnostics updated_count = row_count[\s\S]*target changed concurrently/i);
+  assert.match(sql, /quarantine_reason = btrim\(p_reason\)/i);
+  assert.match(sql, /revoke all on function public\.quarantine_sync_generations[\s\S]*from public, anon, authenticated/i);
+  assert.match(sql, /grant execute on function public\.quarantine_sync_generations[\s\S]*to service_role/i);
+  assert.doesNotMatch(sql.replace(/--.*$/gm, ''), /delete\s+from\s+public\.sync_generations/i);
 });
 
 test('D5 default worker refuses publication without a live rollout expiry', () => {

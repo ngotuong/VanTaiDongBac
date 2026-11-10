@@ -67,6 +67,19 @@ test('generation shadow rejects invalid routing metadata before repository write
   assert.equal(h.rows.length, 0);
 });
 
+test('D5B admission records only narrow Transport row scopes supported by the worker', () => {
+  const h = harness(true);
+  assert.equal(h.service.record({ ...input(), module: 'fund' }, h.serviceContext).reason, 'unsupported_module');
+  assert.equal(h.service.record({ ...input(), structural: true }, h.serviceContext).reason, 'unsupported_full_or_structural');
+  assert.equal(h.service.record({ ...input(), sourceType: 'fund-sheet-downstream:NHAP_THUCHI:EDIT' }, h.serviceContext).reason, 'unsupported_source_type');
+  assert.equal(h.service.record({ ...input(), sourceType: 'sheet:DM_DuAn:EDIT', sheetNames: ['DM_DuAn'] }, h.serviceContext).reason, 'unsupported_sheet_scope');
+  assert.equal(h.service.record({ ...input(), rowRanges: [], gridIds: [] }, h.serviceContext).reason, 'unsupported_scope');
+  const webapp = h.service.record({ ...input(), generationId: 'web-job-1', legacyQueueGenerationId: 'web-job-1',
+    queueName: 'webapp-write', sourceType: 'webapp:submitRows:NL_VanChuyen', sheetNames: ['NL_VanChuyen'] }, h.serviceContext);
+  assert.equal(webapp.recorded, true);
+  assert.equal(h.rows.length, 1);
+});
+
 test('generation repository uses only the idempotent enqueue RPC', () => {
   const calls = [];
   const context = vm.createContext({ SupabaseHttpClient: { callRpc: (name, payload) => calls.push({ name, payload }) } });
@@ -104,6 +117,16 @@ test('generation repository maps the D3 dispatch lifecycle to lease-owned RPCs',
   assert.equal(calls[2].payload.p_shadow_match, true);
   assert.equal(calls[2].payload.p_shadow_source_hash, 'a'.repeat(64));
   assert.equal(calls[3].payload.p_error_class, 'not_ready');
+});
+
+test('generation repository quarantines only through the forward-only RPC', () => {
+  const calls = [];
+  const context = vm.createContext({ SupabaseHttpClient: { callRpc: (name, payload) => { calls.push({ name, payload }); return []; } }, SupabaseBundleRepository: { readRows: () => [] } });
+  new vm.Script(read('SupabaseSyncGenerationRepository.gs'), { filename: 'SupabaseSyncGenerationRepository.gs#quarantine-test' }).runInContext(context);
+  context.SupabaseSyncGenerationRepository.quarantine(['sg-a', 'sg-b'], 'D5A orphan contract mismatch', 'd5a-fund-orphans');
+  assert.equal(calls[0].name, 'quarantine_sync_generations');
+  assert.deepEqual(Array.from(calls[0].payload.p_event_keys), ['sg-a', 'sg-b']);
+  assert.equal(calls[0].payload.p_batch_key, 'd5a-fund-orphans');
 });
 
 test('Supabase service mirrors only an accepted legacy queue and never adds a publisher', () => {

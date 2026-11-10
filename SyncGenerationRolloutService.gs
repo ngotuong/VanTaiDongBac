@@ -12,6 +12,7 @@ var SyncGenerationRolloutService = (function () {
 
   function activateProductionCanary(context) {
     var ctx = context || defaultContext_();
+    ctx.assertReconciler();
     var workbook = ctx.resolveWorkbook();
     if (!workbook.spreadsheetId || !/^20\d{2}$/.test(workbook.year)) {
       throw new Error('D5 rollout workbook identity không hợp lệ.');
@@ -57,7 +58,8 @@ var SyncGenerationRolloutService = (function () {
       }).filter(function (value) { return value; }),
       audience: String(values[KEYS.audience] || 'preview').trim().toLowerCase(),
       expiresAt: expiresAt,
-      windowActive: isFinite(expiresMillis) && expiresMillis > ctx.nowMillis()
+      windowActive: isFinite(expiresMillis) && expiresMillis > ctx.nowMillis(),
+      reconcilerTriggerCount: ctx.reconcilerTriggerCount()
     };
   }
 
@@ -75,7 +77,16 @@ var SyncGenerationRolloutService = (function () {
       nowMillis: function () { return new Date().getTime(); },
       setProperties: function (values) { properties.setProperties(values, false); },
       getProperties: function () { return properties.getProperties(); },
-      deleteProperty: function (key) { properties.deleteProperty(key); }
+      deleteProperty: function (key) { properties.deleteProperty(key); },
+      reconcilerTriggerCount: function () {
+        return ScriptApp.getProjectTriggers().filter(function (trigger) {
+          return trigger.getHandlerFunction && trigger.getHandlerFunction() === 'reconcileSyncGenerationShadow';
+        }).length;
+      },
+      assertReconciler: function () {
+        var count = this.reconcilerTriggerCount();
+        if (count !== 1) throw new Error('D5 rollout yêu cầu đúng một trigger reconcileSyncGenerationShadow; hiện có ' + count + '.');
+      }
     };
   }
 

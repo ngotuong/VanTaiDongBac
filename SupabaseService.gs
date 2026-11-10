@@ -1946,6 +1946,35 @@ var SupabaseService = (function () {
     return { ok: true, installed: true, removed: removed, handler: handler, intervalMinutes: 1, mode: 'd3-shadow-only' };
   }
 
+  function recordTransportWriteGeneration_(result, payload, job) {
+    if (!result || !result.inserted) return { ok: true, recorded: false, reason: 'no_insert' };
+    if (!job || !clean_(job.id)) throw new Error('Transport generation thiếu write job id.');
+    if (!(Number(result.gridId) >= 0) || !(Number(result.startRow) > 0) || !(Number(result.inserted) > 0)) {
+      throw new Error('Transport generation thiếu exact Sheet row scope sau khi ghi.');
+    }
+    var committedAt = new Date().toISOString();
+    return SyncGenerationShadowService.record({
+      generationId: clean_(job.id),
+      legacyQueueGenerationId: clean_(job.id),
+      workbookYear: activeWorkbookYear_(),
+      module: 'transport',
+      queueName: 'webapp-write',
+      sourceType: 'webapp:submitRows:' + clean_(result.sheetName),
+      sheetNames: [clean_(result.sheetName)],
+      gridIds: [Number(result.gridId)],
+      rowRanges: buildGenerationRowRanges_([Number(result.gridId)], Number(result.startRow), Number(result.inserted)),
+      startRow: Number(result.startRow),
+      numRows: Number(result.inserted),
+      structural: false,
+      fullRefresh: false,
+      sourceCommittedAt: committedAt,
+      lastSignalAt: committedAt,
+      notBefore: committedAt,
+      sourceDataVersion: '',
+      semanticBuildStamp: clean_(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local')
+    });
+  }
+
   function callRpc_(functionName, payload) {
     return SupabaseHttpClient.callRpc(functionName, payload);
   }
@@ -2342,6 +2371,8 @@ var SupabaseService = (function () {
       deleteSheetRow: function (sheetName, rowIndex, columnsToClear, rowData) {
         return EntryService.deleteSheetRow(sheetName, rowIndex, columnsToClear, rowData);
       },
+      recordTransportWriteGeneration: recordTransportWriteGeneration_,
+      dispatchTransportWriteGeneration: dispatchSyncGenerationShadow_,
       syncTransportAfterWrite: syncTransportAfterWrite,
       syncDashboard: syncDashboard,
       syncTransportReportsAfterWrite: syncTransportReportsAfterWrite,

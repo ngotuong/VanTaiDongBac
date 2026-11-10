@@ -121,7 +121,7 @@ Timeline bền vững theo generation để đo SLA `signal → queued → claim
 
 Bảng bật RLS, không có browser policy, revoke toàn bộ quyền `public`/`anon`/`authenticated` và chỉ cấp `service_role`. Runtime batch event trong invocation và flush best-effort một lần; lỗi telemetry không được làm fail hoặc replay business publication. Trạng thái apply/live thuộc `PROJECT_CONTEXT.md`.
 
-### `public.sync_generations` (migration `022`)
+### `public.sync_generations` (migrations `022`–`026`; `026` hiện là candidate local)
 
 Outbox metadata bền vững cho đường foreground tương lai. Một generation có thể có row phase `signal` từ installable trigger và row phase legacy queue cùng `generation_id`, nhờ đó D2 đối chiếu được scope producer với scope queue mà không bật publication.
 
@@ -134,6 +134,8 @@ Invariant bảo mật:
 - `service_role` chỉ SELECT table; insert/coalesce qua RPC idempotent `enqueue_sync_generation` và claim/reclaim atomic qua `claim_sync_generations` dùng `FOR UPDATE SKIP LOCKED`;
 - producer shadow chỉ chạy khi `SYNC_GENERATION_SHADOW_ENABLED=true`, mặc định false; lỗi shadow không làm mất legacy durable signal/queue;
 - producer không đọc `e.value`; worker tương lai phải đọc canonical current source bằng exact workbook resolution/`openById`.
+
+D5B bổ sung admission ở Apps Script trước RPC: chỉ Vận tải, non-structural và exact row scope mà foreground worker hỗ trợ mới được ghi. Migration `026` candidate thêm terminal status `quarantined`, `quarantined_at`, audit reason/batch key và RPC `quarantine_sync_generations`. RPC bắt buộc exact unique event keys, chỉ terminalize row `pending` chưa dispatch/attempt/lease, giữ nguyên metadata và không delete hoặc retry. Browser không có quyền RPC; service role vẫn không có direct update/delete table. Migration chưa live cho tới checkpoint apply riêng.
 
 Trạng thái apply/live và rollout thuộc `PROJECT_CONTEXT.md`. Migration additive được giữ khi rollback runtime; correction schema dùng migration mới.
 

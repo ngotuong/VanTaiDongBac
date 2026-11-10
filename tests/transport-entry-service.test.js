@@ -15,6 +15,7 @@ function loadEntry(buildResult, reservedRange = null, options = {}) {
   };
   function makeSheet(sheetName) { return {
     getName: () => sheetName,
+    getSheetId: () => sheetName === 'NL_VanChuyen' ? 731 : 732,
     getLastColumn: () => liveHeaders[sheetName].length,
     getMaxColumns: () => 12,
     getRange(row, column, rowCount, columnCount) {
@@ -75,6 +76,7 @@ test('transport submit preserves validation result, append range, cache callback
   const response = service.submitRowsWithContext('vanChuyen', [{}], null, submitContext);
   assert.deepEqual(JSON.parse(JSON.stringify(response)), {
     ok: true, inserted: 1, startRow: 10, sheetName: 'NL_VanChuyen',
+    gridId: 731,
     idempotentReplay: false, errors: [], warnings: ['synthetic warning']
   });
   assert.equal(events.find((event) => event.type === 'ensure').lastRow, 10);

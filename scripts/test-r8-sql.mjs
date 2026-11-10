@@ -47,6 +47,7 @@ try {
     assert.throws(() => sql(`set role ${role}; select enqueue_sync_generation('sg_denied_000000','g','2026','transport','transport','sheet:test',array[]::text[],array[]::bigint[],array[]::text[],array[]::text[],null,null,false,false,now(),now(),now(),'','g','test');`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select request_sync_generation_dispatch('sg_denied_000000','denied');`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select * from claim_sync_generations(1,'denied',30,30);`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from quarantine_sync_generations(array['sg-denied'],'not allowed by browser','denied-batch');`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select * from claim_sync_generation('sg_denied_000000','denied',30,30);`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select * from publish_sync_generation_pair(
       'sg_denied_000000','lease','2026','copy-canary-sheet','10/2026','generation','source-v1','v13',now(),
@@ -136,6 +137,10 @@ try {
   await raceCompleted;
   assert.equal(sql("select count(*)||':'||min(source_data_version)||':'||max(source_data_version) from publication_invalidations where spreadsheet_id='production-race-sheet';").trim(), '1:race-v1:race-v1');
   assert.equal(sql("select count(*) from sync_generations where event_key in ('sg_sql_race_a00001','sg_sql_race_b00001') and status='published' and source_data_version='race-v1';").trim(), '2');
+  sql("set role service_role; select enqueue_sync_generation('sg_sql_quarantine01','generation-orphan','2026','fund','fund','fund-sheet:NHAP_THUCHI:EDIT',array['NHAP_THUCHI'],array[901]::bigint[],array['901:40:1'],array['2026-11'],40,1,false,false,now(),now(),now(),'','generation-orphan','sql-d5b');");
+  assert.equal(sql("set role service_role; select status||':'||quarantine_batch_key from quarantine_sync_generations(array['sg_sql_quarantine01'],'D5A undispatched Fund orphan','d5a-fund-orphan-test');").trim(), 'quarantined:d5a-fund-orphan-test');
+  assert.equal(sql("select error_class||':'||(quarantined_at is not null)::text from sync_generations where event_key='sg_sql_quarantine01';").trim(), 'quarantined_orphan:true');
+  assert.throws(() => sql("set role service_role; select * from quarantine_sync_generations(array['sg_sql_prod_00001'],'must reject a published row','d5b-reject-published');"), /no longer an undispatched pending orphan/);
   sql("set role service_role; select activate_workbook_context('2026','2027',now());");
   sql("set role service_role; select activate_workbook_context('2026','2027',now());");
   assert.equal(sql("select string_agg(year||':'||lifecycle_status,',' order by year) from workbook_contexts;").trim(), '2026:archived,2027:active');
@@ -235,5 +240,5 @@ try {
   assert.equal(sql("select count(*) from write_job_logs where job_id='sql-manual-retry' and message='Write job manually retried.';").trim(), '1');
   console.log('Audit SQL retry PASS: persisted year, exact failed snapshot, worker ownership and reconciliation ABA guard.');
   console.log('R8 SQL worker/repository PASS: real claims, owned updates, terminal logs, fault isolation and exhausted lease recovery; Sheet boundary synthetic.');
-  console.log('R8 SQL PASS: migrations 001–025, multi-year cache copy/idempotency, server-only workbook registry/transactional activation, sync timeline isolation, generation outbox dispatch/lease/retry/shadow, audience-scoped atomic publication/invalidation/RLS, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
+  console.log('R8 SQL PASS: migrations 001–026, multi-year cache copy/idempotency, server-only workbook registry/transactional activation, sync timeline isolation, generation outbox dispatch/lease/retry/shadow/quarantine, audience-scoped atomic publication/invalidation/RLS, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
 } finally { try { docker(['rm', '--force', name]); } catch {} }

@@ -67,6 +67,7 @@ var EntryService = (function () {
         inserted: result.values.length,
         startRow: appendRow,
         sheetName: cfg.name,
+        gridId: sheet.getSheetId(),
         idempotentReplay: intent.idempotentReplay,
         errors: result.errors,
         warnings: result.warnings

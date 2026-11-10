@@ -340,9 +340,14 @@ sequenceDiagram
     S-->>B: accepted, jobId, status
     B-->>B: Hiển thị pending/optimistic row
     B->>S: Kick worker không chờ kết quả
+    S->>S: Worker commit exact Sheet row scope
+    S->>Q: Persist Transport generation bằng write job id
+    S->>S: Legacy cache/report sync
+    S->>Q: Request foreground dispatch; reconciler là fallback
 ```
 
 Điều kiện queue Vận tải hiện tập trung cho sheet `NL_*` và action được allowlist.
+Generation lane hiện chỉ nhận `submitRows` và các edit hẹp có exact row scope; Fund, structural, catalog, polling và internal/downstream refresh không được admission vào foreground Transport lane.
 
 ### 9.2. Pending state ở frontend
 

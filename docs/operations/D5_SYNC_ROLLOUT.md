@@ -1,5 +1,9 @@
 # D5 Sync rollout
 
+> D5 ngày 09/11 đã fail và rollback. Runbook này chỉ được tái sử dụng cho D5C
+> sau khi D5B source/migration được review, apply/deploy Preview trong checkpoint
+> riêng và `PROJECT_CONTEXT.md` cho phép cửa sổ mới.
+
 ## Boundary
 
 D5 mở foreground publication cho đúng workbook Vận tải hiện hành trong cửa sổ
@@ -8,7 +12,9 @@ sheet, thứ tự cột hoặc công thức.
 
 ## Preconditions
 
-- migrations 001–025 PASS và migration 025 đã apply vào project canonical;
+- migrations 001–026 PASS và migration 026 đã apply vào project canonical;
+- có đúng một time-driven trigger `reconcileSyncGenerationShadow`; activation
+  fail-closed trước khi ghi flag nếu thiếu hoặc trùng trigger;
 - tối thiểu 30 copy-canary hợp lệ đạt `p95 <= 90 giây`, `p99 <= 120 giây`;
 - full gate test/SQL/lint/typecheck/build/audit/diff-check PASS;
 - Apps Script/Vercel rollback identities đã ghi nhận;
@@ -23,13 +29,15 @@ sheet, thứ tự cột hoặc công thức.
    Vận tải đang active, đặt audience `production` và expiry sau 30 phút.
 4. Chạy đúng một canary; xác minh generation `published`, đúng một invalidation
    Production và đúng hai bundle cùng generation/publication/timestamp.
-5. Cleanup đúng ô test và row metadata của canary; không xóa dòng hoặc công thức.
+5. Cleanup đúng ô test; giữ generation metadata làm audit. Nếu có orphan phải
+   dùng RPC quarantine với exact `event_key` trong checkpoint riêng, không xóa
+   dòng metadata, dòng Sheet hoặc công thức.
 
 ## Rollback
 
 Chạy `rollbackSyncGenerationForeground` trước mọi rollback deployment. Hàm tắt
 ingress generation, dispatcher và publication; xóa allowlist/expiry và đưa
-audience về `preview`. Migration 025 và event history được giữ. Background
+audience về `preview`. Migrations 025–026 và event history được giữ. Background
 publisher tiếp tục chạy. Chỉ rollback Apps Script/Vercel theo identity đã ghi
 nhận sau khi flags đã tắt.
 

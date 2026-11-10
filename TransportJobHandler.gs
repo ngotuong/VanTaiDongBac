@@ -50,6 +50,7 @@ var TransportJobHandler = (function () {
       });
       assertResult_(result, 'Không thể ghi dữ liệu Vận hành.');
       if (result && result.inserted) {
+        var recordedGeneration = context.recordTransportWriteGeneration(result, payload, job);
         captureSync_(result, 'supabaseSync', function () {
           return context.syncTransportAfterWrite(result.sheetName, payload.rows || [], { fast: true });
         });
@@ -57,6 +58,7 @@ var TransportJobHandler = (function () {
         captureSync_(result, 'reportSync', function () {
           return context.syncTransportReportsAfterWrite(result.sheetName, payload.rows || [], { includeAll: true });
         });
+        result.generationDispatch = context.dispatchTransportWriteGeneration(recordedGeneration);
       }
       return result;
     }

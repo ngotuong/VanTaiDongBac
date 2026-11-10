@@ -4,6 +4,16 @@
  */
 var SyncGenerationShadowService = (function () {
   var ENABLED_PROPERTY = 'SYNC_GENERATION_SHADOW_ENABLED';
+  var TRANSPORT_INPUT_SHEETS = {
+    NL_VanChuyen: true,
+    NL_TaiXe: true,
+    NL_Dau: true,
+    NL_ChamCong: true,
+    NL_Phat: true,
+    NL_NghiVanHanh: true,
+    NL_PhanCongLai: true,
+    NL_SoDuLuong: true
+  };
 
   function record(input, context) {
     var options = input || {};
@@ -31,6 +41,20 @@ var SyncGenerationShadowService = (function () {
     var startRow = positiveInteger_(options.startRow);
     var numRows = positiveInteger_(options.numRows);
     if (!startRow || !numRows) { startRow = null; numRows = null; }
+
+    var admission = admit_({
+      module: moduleName,
+      sourceType: sourceType,
+      sheetNames: sheets,
+      rowRanges: rowRanges,
+      startRow: startRow,
+      numRows: numRows,
+      structural: options.structural === true,
+      fullRefresh: options.fullRefresh === true
+    });
+    if (!admission.allowed) {
+      return { ok: true, enabled: true, recorded: false, reason: admission.reason };
+    }
 
     var canonical = {
       generationId: generationId,
@@ -71,6 +95,38 @@ var SyncGenerationShadowService = (function () {
     };
     ctx.repository.enqueue(row);
     return { ok: true, enabled: true, recorded: true, eventKey: row.event_key, row: row };
+  }
+
+  function admit_(input) {
+    if (input.module !== 'transport') return { allowed: false, reason: 'unsupported_module' };
+    if (input.structural || input.fullRefresh) return { allowed: false, reason: 'unsupported_full_or_structural' };
+    if (!input.rowRanges.length || input.rowRanges.length > 8) {
+      return { allowed: false, reason: 'unsupported_scope' };
+    }
+    var totalRows = 0;
+    for (var index = 0; index < input.rowRanges.length; index++) {
+      var match = String(input.rowRanges[index] || '').match(/^\d+:(\d+):(\d+)$/);
+      if (!match || Number(match[1]) < 1 || Number(match[2]) < 1 || Number(match[2]) > 100) {
+        return { allowed: false, reason: 'unsupported_row_scope' };
+      }
+      totalRows += Number(match[2]);
+    }
+    if (totalRows > 100 || (input.numRows && input.numRows > 100)) {
+      return { allowed: false, reason: 'unsupported_row_scope' };
+    }
+    for (var sheetIndex = 0; sheetIndex < input.sheetNames.length; sheetIndex++) {
+      if (!TRANSPORT_INPUT_SHEETS[input.sheetNames[sheetIndex]]) {
+        return { allowed: false, reason: 'unsupported_sheet_scope' };
+      }
+    }
+    if (input.sourceType === 'sheet-trigger:EDIT') return { allowed: true };
+    var sheetSource = input.sourceType.match(/^sheet:(NL_[A-Za-z0-9_]+):EDIT$/);
+    if (sheetSource && TRANSPORT_INPUT_SHEETS[sheetSource[1]] &&
+        (!input.sheetNames.length || input.sheetNames.indexOf(sheetSource[1]) !== -1)) return { allowed: true };
+    var webappSource = input.sourceType.match(/^webapp:submitRows:(NL_[A-Za-z0-9_]+)$/);
+    if (webappSource && TRANSPORT_INPUT_SHEETS[webappSource[1]] &&
+        input.sheetNames.length === 1 && input.sheetNames[0] === webappSource[1]) return { allowed: true };
+    return { allowed: false, reason: 'unsupported_source_type' };
   }
 
   function defaultContext_() {

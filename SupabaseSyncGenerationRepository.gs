@@ -108,6 +108,15 @@ var SupabaseSyncGenerationRepository = (function () {
     }));
   }
 
+  function quarantine(eventKeys, reason, batchKey) {
+    var rows = SupabaseHttpClient.callRpc('quarantine_sync_generations', {
+      p_event_keys: eventKeys || [],
+      p_reason: reason || '',
+      p_batch_key: batchKey || ''
+    });
+    return Array.isArray(rows) ? rows : (rows ? [rows] : []);
+  }
+
   function metadataPayload_(input, base) {
     var payload = base || {};
     payload.p_shadow_result = input.shadowResult || '';
@@ -135,6 +144,7 @@ var SupabaseSyncGenerationRepository = (function () {
     completeShadow: completeShadow,
     retryShadow: retryShadow,
     publishPair: publishPair,
-    findByEventKey: findByEventKey
+    findByEventKey: findByEventKey,
+    quarantine: quarantine
   };
 })();

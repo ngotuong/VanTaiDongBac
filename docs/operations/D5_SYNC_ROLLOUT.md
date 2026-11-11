@@ -1,10 +1,10 @@
 # D5 Sync rollout
 
-> D5 ngày 09/11 và D5D ngày 10/11 đều đã fail và rollback. D5E ngày 11/11 đã
-> sửa exact-month, qua regression/full gate và copy-canary cô lập nhưng chưa
-> đổi Production. Không tái sử dụng runbook này cho một Production canary mới
-> cho đến khi D5F được phê duyệt, generation D5D `retryable` đã được xử lý exact
-> có audit và `PROJECT_CONTEXT.md` cho phép cửa sổ mới.
+> D5 ngày 09/11 và D5D ngày 10/11 đều đã fail và rollback. D5E sửa exact-month.
+> D5F ngày 11/11 đã terminalize exact generation D5D bằng migration 027, đưa
+> Apps Script Production 434→443 và chạy đúng một canary PASS trong 66,832 giây.
+> Dữ liệu thử/helper đã dọn sạch và ba flag đã tắt lại. Không mở cửa sổ tiếp
+> theo cho đến khi D5G được phê duyệt riêng.
 
 ## Boundary
 
@@ -14,7 +14,7 @@ sheet, thứ tự cột hoặc công thức.
 
 ## Preconditions
 
-- migrations 001–026 PASS và migration 026 đã apply vào project canonical;
+- migrations 001–027 PASS và migrations 026–027 đã apply vào project canonical;
 - có đúng một time-driven trigger `reconcileSyncGenerationShadow`; activation
   fail-closed trước khi ghi flag nếu thiếu hoặc trùng trigger;
 - tối thiểu 30 copy-canary hợp lệ đạt `p95 <= 90 giây`, `p99 <= 120 giây`;
@@ -34,6 +34,16 @@ sheet, thứ tự cột hoặc công thức.
 5. Cleanup đúng ô test; giữ generation metadata làm audit. Nếu có orphan phải
    dùng RPC quarantine với exact `event_key` trong checkpoint riêng, không xóa
    dòng metadata, dòng Sheet hoặc công thức.
+
+## D5F result
+
+- window: 14:51:33–14:54:07 ICT ngày 11/11/2026;
+- canary: `D5F-PROD-20261111-1450`, job `web-18b9040c09a08fb92682f7b93e97f86bd564cf0b`;
+- source commit: `2026-11-11T07:52:31.002148Z`;
+- atomic publish: `2026-11-11T07:53:37.834Z`, latency 66,832 giây;
+- pair: `11/2026` + `__dashboard_latest__`, publication ID 32, một Production invalidation;
+- cleanup: clear exact `NL_VanChuyen!A1445,C1445:F1445,H1445`, giữ công thức B/G; read model sạch;
+- final state: Apps Script Production 443, Vercel Production không đổi, ba flag false, audience `preview`.
 
 ## Rollback
 

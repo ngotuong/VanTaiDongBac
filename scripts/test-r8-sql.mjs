@@ -48,6 +48,7 @@ try {
     assert.throws(() => sql(`set role ${role}; select request_sync_generation_dispatch('sg_denied_000000','denied');`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select * from claim_sync_generations(1,'denied',30,30);`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select * from quarantine_sync_generations(array['sg-denied'],'not allowed by browser','denied-batch');`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from quarantine_retryable_sync_generation('sg_denied_000000','g',1,'retryable','not allowed by browser','denied-batch');`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select * from claim_sync_generation('sg_denied_000000','denied',30,30);`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select * from publish_sync_generation_pair(
       'sg_denied_000000','lease','2026','copy-canary-sheet','10/2026','generation','source-v1','v13',now(),
@@ -141,6 +142,11 @@ try {
   assert.equal(sql("set role service_role; select status||':'||quarantine_batch_key from quarantine_sync_generations(array['sg_sql_quarantine01'],'D5A undispatched Fund orphan','d5a-fund-orphan-test');").trim(), 'quarantined:d5a-fund-orphan-test');
   assert.equal(sql("select error_class||':'||(quarantined_at is not null)::text from sync_generations where event_key='sg_sql_quarantine01';").trim(), 'quarantined_orphan:true');
   assert.throws(() => sql("set role service_role; select * from quarantine_sync_generations(array['sg_sql_prod_00001'],'must reject a published row','d5b-reject-published');"), /no longer an undispatched pending orphan/);
+  sql("set role service_role; select enqueue_sync_generation('sg_sql_retry_quar01','generation-retry-quarantine','2026','transport','webapp-write','webapp:submitRows:NL_VanChuyen',array['NL_VanChuyen'],array[0]::bigint[],array['0:1445:1'],array[]::text[],1445,1,false,false,now(),now(),now(),'','generation-retry-quarantine','sql-d5f'); select request_sync_generation_dispatch('sg_sql_retry_quar01','sql-d5f'); select event_key from claim_sync_generation('sg_sql_retry_quar01','generation-worker-d5f',30,30);");
+  sql("set role service_role; select status from retry_sync_generation_shadow('sg_sql_retry_quar01',(select lease_token from sync_generations where event_key='sg_sql_retry_quar01'),'report_month_not_active',now(),false,'not_ready','11/2026','','','','','','','');");
+  assert.throws(() => sql("set role service_role; select * from quarantine_retryable_sync_generation('sg_sql_retry_quar01','generation-retry-quarantine',2,'report_month_not_active','D5F exact investigated retryable','d5f-retryable-audit');"), /target state mismatch/);
+  assert.equal(sql("set role service_role; select status||':'||quarantine_batch_key||':'||error_class from quarantine_retryable_sync_generation('sg_sql_retry_quar01','generation-retry-quarantine',1,'report_month_not_active','D5F exact investigated retryable','d5f-retryable-audit');").trim(), 'quarantined:d5f-retryable-audit:report_month_not_active');
+  assert.throws(() => sql("set role service_role; select * from quarantine_retryable_sync_generation('sg_sql_retry_quar01','generation-retry-quarantine',1,'report_month_not_active','D5F exact investigated retryable','d5f-retryable-audit');"), /target state mismatch/);
   sql("set role service_role; select activate_workbook_context('2026','2027',now());");
   sql("set role service_role; select activate_workbook_context('2026','2027',now());");
   assert.equal(sql("select string_agg(year||':'||lifecycle_status,',' order by year) from workbook_contexts;").trim(), '2026:archived,2027:active');
@@ -240,5 +246,5 @@ try {
   assert.equal(sql("select count(*) from write_job_logs where job_id='sql-manual-retry' and message='Write job manually retried.';").trim(), '1');
   console.log('Audit SQL retry PASS: persisted year, exact failed snapshot, worker ownership and reconciliation ABA guard.');
   console.log('R8 SQL worker/repository PASS: real claims, owned updates, terminal logs, fault isolation and exhausted lease recovery; Sheet boundary synthetic.');
-  console.log('R8 SQL PASS: migrations 001–026, multi-year cache copy/idempotency, server-only workbook registry/transactional activation, sync timeline isolation, generation outbox dispatch/lease/retry/shadow/quarantine, audience-scoped atomic publication/invalidation/RLS, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
+  console.log('R8 SQL PASS: migrations 001–027, multi-year cache copy/idempotency, server-only workbook registry/transactional activation, sync timeline isolation, generation outbox dispatch/lease/retry/shadow/exact quarantine, audience-scoped atomic publication/invalidation/RLS, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
 } finally { try { docker(['rm', '--force', name]); } catch {} }

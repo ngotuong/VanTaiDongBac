@@ -298,6 +298,19 @@ test('D5B quarantine migration is exact-key, audit-preserving, server-only, and 
   assert.doesNotMatch(sql.replace(/--.*$/gm, ''), /delete\s+from\s+public\.sync_generations/i);
 });
 
+test('D5F retryable quarantine is single-row exact-state, publication-safe, and server-only', () => {
+  const sql = read('supabase/migrations/027_sync_generation_retryable_quarantine.sql');
+  assert.match(sql, /create or replace function public\.quarantine_retryable_sync_generation/i);
+  assert.match(sql, /event_key = btrim\(p_event_key\)[\s\S]*for update/i);
+  assert.match(sql, /generation_id <> btrim\(p_generation_id\)[\s\S]*status <> 'retryable'[\s\S]*attempts <> p_expected_attempts[\s\S]*error_class <> btrim\(p_expected_error_class\)/i);
+  assert.match(sql, /source_ready_at is not null[\s\S]*dashboard_published_at is not null[\s\S]*report_published_at is not null/i);
+  assert.match(sql, /report_bundles[\s\S]*publication_invalidations[\s\S]*refuses published evidence/i);
+  assert.match(sql, /status = 'quarantined'[\s\S]*quarantine_reason = btrim\(p_reason\)[\s\S]*quarantine_batch_key = btrim\(p_batch_key\)/i);
+  assert.match(sql, /revoke all on function public\.quarantine_retryable_sync_generation[\s\S]*from public, anon, authenticated/i);
+  assert.match(sql, /grant execute on function public\.quarantine_retryable_sync_generation[\s\S]*to service_role/i);
+  assert.doesNotMatch(sql.replace(/--.*$/gm, ''), /delete\s+from\s+public\.sync_generations/i);
+});
+
 test('D5 default worker refuses publication without a live rollout expiry', () => {
   const worker = read('SyncGenerationForegroundWorker.gs');
   assert.match(worker, /SYNC_FOREGROUND_PUBLISH_EXPIRES_AT/);

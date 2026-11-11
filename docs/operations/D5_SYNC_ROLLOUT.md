@@ -1,10 +1,10 @@
 # D5 Sync rollout
 
-> D5 ngày 09/11 và D5D ngày 10/11 đều đã fail và rollback. D5D dừng đúng
-> stop condition với `report_month_not_active`, không có bundle/invalidation.
-> Không tái sử dụng runbook này cho một Production canary mới cho đến khi D5E
-> chẩn đoán/fix month selection, có regression + copy-canary và
-> `PROJECT_CONTEXT.md` cho phép cửa sổ mới.
+> D5 ngày 09/11 và D5D ngày 10/11 đều đã fail và rollback. D5E ngày 11/11 đã
+> sửa exact-month, qua regression/full gate và copy-canary cô lập nhưng chưa
+> đổi Production. Không tái sử dụng runbook này cho một Production canary mới
+> cho đến khi D5F được phê duyệt, generation D5D `retryable` đã được xử lý exact
+> có audit và `PROJECT_CONTEXT.md` cho phép cửa sổ mới.
 
 ## Boundary
 

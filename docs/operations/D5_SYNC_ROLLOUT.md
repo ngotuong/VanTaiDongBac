@@ -3,8 +3,10 @@
 > D5 ngày 09/11 và D5D ngày 10/11 đều đã fail và rollback. D5E sửa exact-month.
 > D5F ngày 11/11 đã terminalize exact generation D5D bằng migration 027, đưa
 > Apps Script Production 434→443 và chạy đúng một canary PASS trong 66,832 giây.
-> Dữ liệu thử/helper đã dọn sạch và ba flag đã tắt lại. Không mở cửa sổ tiếp
-> theo cho đến khi D5G được phê duyệt riêng.
+> D5G cùng ngày đã mở một safety window gần 10 phút không tạo dữ liệu giả;
+> không có job/generation/invalidation mới và không kéo backlog cũ. Helper đã
+> dọn sạch, ba flag đã tắt lại. Đây không phải mẫu SLO. Không mở cửa sổ tiếp
+> theo cho đến khi D5H có edit nghiệp vụ thật được phê duyệt riêng.
 
 ## Boundary
 
@@ -44,6 +46,15 @@ sheet, thứ tự cột hoặc công thức.
 - pair: `11/2026` + `__dashboard_latest__`, publication ID 32, một Production invalidation;
 - cleanup: clear exact `NL_VanChuyen!A1445,C1445:F1445,H1445`, giữ công thức B/G; read model sạch;
 - final state: Apps Script Production 443, Vercel Production không đổi, ba flag false, audience `preview`.
+
+## D5G result
+
+- window: 18:52:08–19:03:03 ICT ngày 11/11/2026; lần audit cuối lúc 19:02:02;
+- scope: chỉ workbook Vận tải 2026, audience `production`, expiry 30 phút; đóng chủ động sau gần 10 phút;
+- workload: không tạo dữ liệu giả và không có edit nghiệp vụ tự nhiên trong cửa sổ;
+- result: `activeJobs=[]`, `generations=[]`, `productionInvalidations=[]`; không claim backlog cũ, không có lỗi hoặc stop condition;
+- final state: Apps Script Production/Preview 443, Vercel Production không đổi, ba flag false, allowlist/expiry rỗng, audience `preview`, đúng một reconciler;
+- interpretation: PASS safety window không tải; không dùng kết quả này để tuyên bố đạt SLO hoặc bật foreground thường trực. Gate kế tiếp là một cửa sổ D5H ngắn có edit nghiệp vụ thật, không synthetic Production write.
 
 ## Rollback
 

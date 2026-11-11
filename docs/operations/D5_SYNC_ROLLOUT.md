@@ -5,8 +5,9 @@
 > Apps Script Production 434→443 và chạy đúng một canary PASS trong 66,832 giây.
 > D5G cùng ngày đã mở một safety window gần 10 phút không tạo dữ liệu giả;
 > không có job/generation/invalidation mới và không kéo backlog cũ. Helper đã
-> dọn sạch, ba flag đã tắt lại. Đây không phải mẫu SLO. Không mở cửa sổ tiếp
-> theo cho đến khi D5H có edit nghiệp vụ thật được phê duyệt riêng.
+> dọn sạch, ba flag đã tắt lại. D5H sau đó chạy một controlled UI canary qua
+> Google Sheets, PASS trong 46,574–53,684 giây và đã dọn sạch. Chỉ còn D5I
+> bật foreground thường trực có giám sát, cần phê duyệt riêng.
 
 ## Boundary
 
@@ -54,7 +55,18 @@ sheet, thứ tự cột hoặc công thức.
 - workload: không tạo dữ liệu giả và không có edit nghiệp vụ tự nhiên trong cửa sổ;
 - result: `activeJobs=[]`, `generations=[]`, `productionInvalidations=[]`; không claim backlog cũ, không có lỗi hoặc stop condition;
 - final state: Apps Script Production/Preview 443, Vercel Production không đổi, ba flag false, allowlist/expiry rỗng, audience `preview`, đúng một reconciler;
-- interpretation: PASS safety window không tải; không dùng kết quả này để tuyên bố đạt SLO hoặc bật foreground thường trực. Gate kế tiếp là một cửa sổ D5H ngắn có edit nghiệp vụ thật, không synthetic Production write.
+- interpretation: PASS safety window không tải; không dùng riêng kết quả này để tuyên bố đạt SLO hoặc bật foreground thường trực.
+
+## D5H result
+
+- window: 19:50:36–19:53:30 ICT ngày 11/11/2026;
+- workload: một dòng giả nhập trực tiếp qua giao diện Google Sheets tại `NL_VanChuyen` row 1445 bằng ba thao tác edit, token `D5H-CANARY-20261111-1951`;
+- exact row generation: source commit 19:51:03.809, atomic publish 19:51:57.493, latency **53,684 giây**, attempts 1;
+- latest aggregate generation: source commit 19:51:13.845, atomic publish 19:52:00.419, latency **46,574 giây**, attempts 1;
+- result: hai publication hợp lệ nối tiếp và hai Production invalidation cho `11/2026`; không lỗi, không active job sau hội tụ. Ba thao tác UI tạo hai generation, không phải duplicate delivery của cùng event;
+- cleanup: đóng flags trước, clear đúng `NL_VanChuyen!A1445,C1445:F1445,H1445`, giữ công thức/format/metadata; đọc ngược `A1445:I1445` không còn CellData; Dashboard và report `11/2026` resync thành công lúc 19:54:30–19:54:41; helper tạm đã gỡ;
+- final state: Apps Script Production/Preview 443, Vercel Production không đổi, ba flag false, allowlist/expiry rỗng, audience `preview`, đúng một reconciler;
+- interpretation: PASS đường trigger UI end-to-end dưới 120 giây. Đây là tải tổng hợp có kiểm soát, không thay thế mẫu nhập nghiệp vụ tự nhiên hoặc quan sát dài hạn. Gate còn lại là D5I bật thường trực có giám sát và rollback tức thời.
 
 ## Rollback
 

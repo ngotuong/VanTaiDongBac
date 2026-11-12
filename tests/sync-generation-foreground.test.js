@@ -152,5 +152,5 @@ test('foreground reconciler remains separate from the legacy minute publisher', 
   const tick = source.slice(tickStart, tickEnd);
   assert.doesNotMatch(tick, /ForegroundDispatcher|reconcileSyncGenerationShadow/);
   assert.match(source, /function reconcileSyncGenerationShadow\(\)[\s\S]*SyncGenerationForegroundDispatcher\.reconcile/);
-  assert.match(read('RuntimeBuild.gs'), /sync-generation-exact-month-20261110-v1/);
+  assert.match(read('RuntimeBuild.gs'), /sync-generation-steady-state-20261112-v1/);
 });

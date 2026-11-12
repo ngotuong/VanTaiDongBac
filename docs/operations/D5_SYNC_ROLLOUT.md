@@ -7,7 +7,8 @@
 > không có job/generation/invalidation mới và không kéo backlog cũ. Helper đã
 > dọn sạch, ba flag đã tắt lại. D5H sau đó chạy một controlled UI canary qua
 > Google Sheets, PASS trong 46,574–53,684 giây và đã dọn sạch. Chỉ còn D5I
-> bật foreground thường trực có giám sát, cần phê duyệt riêng.
+> bật foreground thường trực có giám sát. D5I đã PASS ngày 12/11 trên Apps
+> Script 444; steady-state hiện active cho đúng workbook Vận tải 2026.
 
 ## Boundary
 
@@ -37,6 +38,10 @@ sheet, thứ tự cột hoặc công thức.
 5. Cleanup đúng ô test; giữ generation metadata làm audit. Nếu có orphan phải
    dùng RPC quarantine với exact `event_key` trong checkpoint riêng, không xóa
    dòng metadata, dòng Sheet hoặc công thức.
+6. Sau khi D5F–D5H PASS và D5I được phê duyệt, deploy version mới khi flags còn
+   tắt rồi chạy `activateSyncGenerationProductionSteadyState`. Steady mode chỉ
+   hợp lệ khi audience `production`, exact allowlist có một workbook và expiry
+   rỗng. Rollback flag vẫn dùng `rollbackSyncGenerationForeground`.
 
 ## D5F result
 
@@ -67,6 +72,16 @@ sheet, thứ tự cột hoặc công thức.
 - cleanup: đóng flags trước, clear đúng `NL_VanChuyen!A1445,C1445:F1445,H1445`, giữ công thức/format/metadata; đọc ngược `A1445:I1445` không còn CellData; Dashboard và report `11/2026` resync thành công lúc 19:54:30–19:54:41; helper tạm đã gỡ;
 - final state: Apps Script Production/Preview 443, Vercel Production không đổi, ba flag false, allowlist/expiry rỗng, audience `preview`, đúng một reconciler;
 - interpretation: PASS đường trigger UI end-to-end dưới 120 giây. Đây là tải tổng hợp có kiểm soát, không thay thế mẫu nhập nghiệp vụ tự nhiên hoặc quan sát dài hạn. Gate còn lại là D5I bật thường trực có giám sát và rollback tức thời.
+
+## D5I result
+
+- source/runtime: commit `8784f2d`, build `sync-generation-steady-state-20261112-v1`, Apps Script Preview/Production 443→444; Vercel Production không đổi;
+- gates: targeted 18/18, full 1006/1006 tests, lint, typecheck, build/Environment Identity Guard, production dependency audit 0 và diff-check PASS;
+- pre-activation 07:47:55 ICT: flags off, allowlist rỗng, audience `preview`, mode `off`, đúng một reconciler, active jobs/generations và recent Production invalidations đều rỗng;
+- activation 07:48:33 ICT ngày 12/11/2026: ba flags true, exact allowlist workbook Vận tải 2026, audience `production`, mode `steady`, expiry rỗng, `steadyStateActive=true`;
+- monitoring: audit 07:48:52, 07:49:56, 07:52:03 và 07:54:03 đều có một reconciler, `activeJobs=[]`, `activeGenerations=[]`, không generation/invalidation mới, không stop condition;
+- cleanup: xóa property marker và helper tạm, clone shared HEAD xác nhận 78 source `.js` + manifest; không sửa Google Sheet;
+- final state: foreground steady-state active thường trực cho Vận tải 2026; background publisher giữ fallback. Rollback đầu tiên là `rollbackSyncGenerationForeground`; rollback deployment khi cần là Apps Script 444→443.
 
 ## Rollback
 

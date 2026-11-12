@@ -348,8 +348,13 @@ var SyncGenerationForegroundWorker = (function () {
           properties.getProperty('SYNC_FOREGROUND_PUBLISH_ENABLED') || ''
         ).trim().toLowerCase()) !== -1;
         if (!enabled) return false;
+        var mode = String(properties.getProperty('SYNC_FOREGROUND_PUBLISH_MODE') || '').trim().toLowerCase();
         var expiresAt = new Date(String(properties.getProperty('SYNC_FOREGROUND_PUBLISH_EXPIRES_AT') || '')).getTime();
-        if (!isFinite(expiresAt) || expiresAt <= new Date().getTime()) return false;
+        var canaryActive = mode === 'canary' && isFinite(expiresAt) && expiresAt > new Date().getTime();
+        var steadyActive = mode === 'steady' &&
+          String(properties.getProperty('SYNC_FOREGROUND_PUBLICATION_AUDIENCE') || '').trim().toLowerCase() === 'production' &&
+          !String(properties.getProperty('SYNC_FOREGROUND_PUBLISH_EXPIRES_AT') || '').trim();
+        if (!canaryActive && !steadyActive) return false;
         var allowed = String(properties.getProperty('SYNC_FOREGROUND_PUBLISH_SPREADSHEET_IDS') || '')
           .split(',').map(function (value) { return value.trim(); }).filter(function (value) { return value; });
         return allowed.indexOf(String(spreadsheetId || '')) !== -1;

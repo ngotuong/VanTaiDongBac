@@ -256,7 +256,9 @@ test('D5 rollout activation is exact-workbook, Production-only, expiring, and at
   assert.equal(active.publicationEnabled, true);
   assert.deepEqual(active.allowlistedSpreadsheetIds, ['canonical-transport-2026']);
   assert.equal(active.audience, 'production');
+  assert.equal(active.rolloutMode, 'canary');
   assert.equal(active.windowActive, true);
+  assert.equal(active.steadyStateActive, false);
   assert.equal(Date.parse(active.expiresAt) - now, 30 * 60 * 1000);
 
   const rolledBack = plain(sandbox.SyncGenerationRolloutService.rollback(context));
@@ -265,7 +267,40 @@ test('D5 rollout activation is exact-workbook, Production-only, expiring, and at
   assert.equal(rolledBack.publicationEnabled, false);
   assert.deepEqual(rolledBack.allowlistedSpreadsheetIds, []);
   assert.equal(rolledBack.audience, 'preview');
+  assert.equal(rolledBack.rolloutMode, 'off');
   assert.equal(rolledBack.windowActive, false);
+  assert.equal(rolledBack.steadyStateActive, false);
+  assert.equal(values.SYNC_FOREGROUND_PUBLISH_EXPIRES_AT, undefined);
+});
+
+test('D5I steady-state activation is exact-workbook, Production-only, non-expiring, and reversible', () => {
+  const sandbox = load('SyncGenerationRolloutService.gs');
+  const values = {};
+  const now = Date.parse('2026-11-12T02:00:00.000Z');
+  const context = {
+    resolveWorkbook: () => ({ spreadsheetId: 'canonical-transport-2026', year: '2026' }),
+    nowMillis: () => now,
+    reconcilerTriggerCount: () => 1,
+    assertReconciler() { if (this.reconcilerTriggerCount() !== 1) throw new Error('missing reconciler'); },
+    setProperties: (patch) => Object.assign(values, plain(patch)),
+    getProperties: () => ({ ...values }),
+    deleteProperty: (key) => { delete values[key]; }
+  };
+  const active = plain(sandbox.SyncGenerationRolloutService.activateProductionSteadyState(context));
+  assert.equal(active.generationEnabled, true);
+  assert.equal(active.dispatcherEnabled, true);
+  assert.equal(active.publicationEnabled, true);
+  assert.deepEqual(active.allowlistedSpreadsheetIds, ['canonical-transport-2026']);
+  assert.equal(active.audience, 'production');
+  assert.equal(active.rolloutMode, 'steady');
+  assert.equal(active.activatedAt, new Date(now).toISOString());
+  assert.equal(active.expiresAt, '');
+  assert.equal(active.windowActive, false);
+  assert.equal(active.steadyStateActive, true);
+
+  const rolledBack = plain(sandbox.SyncGenerationRolloutService.rollback(context));
+  assert.equal(rolledBack.steadyStateActive, false);
+  assert.equal(rolledBack.rolloutMode, 'off');
   assert.equal(values.SYNC_FOREGROUND_PUBLISH_EXPIRES_AT, undefined);
 });
 
@@ -311,9 +346,11 @@ test('D5F retryable quarantine is single-row exact-state, publication-safe, and 
   assert.doesNotMatch(sql.replace(/--.*$/gm, ''), /delete\s+from\s+public\.sync_generations/i);
 });
 
-test('D5 default worker refuses publication without a live rollout expiry', () => {
+test('D5I worker accepts only a live canary or explicit non-expiring steady Production mode', () => {
   const worker = read('SyncGenerationForegroundWorker.gs');
   assert.match(worker, /SYNC_FOREGROUND_PUBLISH_EXPIRES_AT/);
-  assert.match(worker, /!isFinite\(expiresAt\) \|\| expiresAt <= new Date\(\)\.getTime\(\)/);
+  assert.match(worker, /mode === 'canary'[\s\S]*expiresAt > new Date\(\)\.getTime\(\)/);
+  assert.match(worker, /mode === 'steady'[\s\S]*SYNC_FOREGROUND_PUBLICATION_AUDIENCE[\s\S]*production/);
+  assert.match(worker, /!canaryActive && !steadyActive/);
   assert.match(worker, /SYNC_FOREGROUND_PUBLISH_SPREADSHEET_IDS/);
 });

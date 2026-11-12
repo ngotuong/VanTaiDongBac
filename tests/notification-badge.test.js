@@ -5,6 +5,7 @@ const test = require('node:test');
 
 function worker({ cache = new Map(), appBadgeAvailable = true } = {}) {
   const handlers = {};
+  const messages = [];
   let badge = 0;
   const navigator = appBadgeAvailable ? { setAppBadge: async count => { badge = count; }, clearAppBadge: async () => { badge = 0; } } : {};
   vm.runInNewContext(fs.readFileSync('public/sw.js', 'utf8'), {
@@ -14,10 +15,10 @@ function worker({ cache = new Map(), appBadgeAvailable = true } = {}) {
   });
   function fire(type, data) {
     let completion;
-    handlers[type]({ data: type === 'push' ? { json: () => data } : data, waitUntil: promise => { completion = promise; } });
+    handlers[type]({ data: type === 'push' ? { json: () => data } : data, source: { postMessage: message => messages.push(message) }, waitUntil: promise => { completion = promise; } });
     return completion;
   }
-  return { cache, push: data => fire('push', data), sync: (count, notificationIds) => fire('message', { type: 'SET_APP_BADGE', count, notificationIds }), badge: () => badge };
+  return { cache, messages, push: data => fire('push', data), sync: (count, notificationIds, requestId = '') => fire('message', { type: 'SET_APP_BADGE', count, notificationIds, requestId }), badge: () => badge };
 }
 
 test('15 repeated pushes of the same alert leave one unread badge across worker restarts', async () => {
@@ -57,6 +58,15 @@ test('legacy cached counts are corrected by app recount; digest and subsequent r
   await f.push({ badgeIds: ['fund'], unreadDelta: 1 });
   await f.push({ preserveBadge: true, unreadDelta: 0 });
   assert.equal(f.badge(), 1);
+});
+
+test('app recount replaces stale identities and acknowledges the exact badge value', async () => {
+  const cache = new Map([['/__vtdb_badge_state__', new Response(JSON.stringify({ count: 20, seenIds: ['old-a', 'old-b'] }))]]);
+  const f = worker({ cache });
+  await f.sync(1, ['current'], 'request-1');
+  const payload = await f.cache.get('/__vtdb_badge_state__').clone().json();
+  assert.deepEqual(payload, { count: 1, seenIds: ['current'] });
+  assert.deepEqual(JSON.parse(JSON.stringify(f.messages)), [{ type: 'APP_BADGE_SET', requestId: 'request-1', count: 1 }]);
 });
 
 test('badge ledger stays usable on browsers without OS badging and stores only bounded IDs/count', async () => {

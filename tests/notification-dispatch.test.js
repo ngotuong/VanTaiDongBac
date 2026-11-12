@@ -65,6 +65,43 @@ test('stable notification id migration does not push an already delivered legacy
   assert.equal(states.get('notification-event:stable-id').last_result, 'migrated-stable-id');
 });
 
+test('one active failure pushes once, then rearms only after a confirmed recovery', async () => {
+  const states = new Map([
+    ['notification-dispatch-baseline-v1', { rule_key: 'notification-dispatch-baseline-v1', condition_active: true }]
+  ]);
+  const sent = [];
+  let items = [{ id: 'sync-transport', notificationKey: 'system-health', message: 'Đồng bộ lỗi', url: '/observability/' }];
+  let currentTime = new Date('2026-11-12T04:00:00.000Z');
+  const service = createNotificationDispatchService({
+    centerService: { async list() { return { items }; } },
+    deliveryRepository: {
+      async list(_config, keys) { return keys.filter((key) => states.has(key)).map((key) => states.get(key)); },
+      async listByPrefix(_config, prefix) { return [...states.values()].filter((row) => row.rule_key.startsWith(prefix)); },
+      async upsert(_config, rows) { for (const row of rows) states.set(row.rule_key, row); return rows; }
+    },
+    preferenceRepository: { async listByUserIds() { return []; } },
+    appUserRepository: { async list() { return [{ user_id: 'admin-1', role: 'admin', active: true }]; } },
+    subscriptionRepository: { async listByUserIds() { return [{ id: 'device-1', endpoint: 'https://fcm.googleapis.com/1', p256dh: 'key', auth_secret: 'secret' }]; }, async removeById() {} },
+    webPush: { setVapidDetails() {}, async sendNotification(_subscription, payload) { sent.push(JSON.parse(payload)); } },
+    httpError,
+    now: () => currentTime
+  });
+  const config = { supabaseUrl: 'https://db.test', serviceRoleKey: 'service', vapidPublicKey: 'public', vapidPrivateKey: 'private', vapidSubject: 'mailto:test@example.com' };
+  await service.run(config);
+  currentTime = new Date('2026-11-12T04:01:00.000Z');
+  await service.run(config);
+  assert.equal(sent.length, 1);
+  items = [];
+  currentTime = new Date('2026-11-12T04:02:00.000Z');
+  await service.run(config);
+  assert.equal(states.get('notification-event:sync-transport').condition_active, false);
+  items = [{ id: 'sync-transport', notificationKey: 'system-health', message: 'Đồng bộ lỗi trở lại', url: '/observability/' }];
+  currentTime = new Date('2026-11-12T04:03:00.000Z');
+  await service.run(config);
+  assert.equal(sent.length, 2);
+  assert.notEqual(sent[1].badgeIds[0], sent[0].badgeIds[0]);
+});
+
 test('daily digest reports exact transport activity and preserves the unread badge', async () => {
   const states = new Map();
   const sent = [];

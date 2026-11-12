@@ -80,8 +80,8 @@ self.addEventListener('message', (event) => {
   const count = Number(event.data.count);
   if (!Number.isFinite(count) || count < 0) return;
   event.waitUntil(queueBadgeUpdate(async () => {
-    const state = await readBadgeState();
-    await setBadgeCount(count, [...state.seenIds, ...badgeIds(event.data.notificationIds)]);
+    await setBadgeCount(count, badgeIds(event.data.notificationIds));
+    event.source?.postMessage?.({ type: 'APP_BADGE_SET', requestId: String(event.data.requestId || ''), count });
   }));
 });
 self.addEventListener('notificationclick', (event) => {

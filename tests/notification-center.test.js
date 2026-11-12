@@ -469,6 +469,28 @@ test('notification center never exposes technical pipeline payloads or URLs to p
   assert.doesNotMatch(item.message, /https:|supabase|Address unavailable|\[|\{/i);
 });
 
+test('repeated retries of one sync failure keep one stable notification identity', async () => {
+  let updatedAt = '2026-11-12T05:00:00.000Z';
+  const service = createNotificationCenterService({
+    repository: { find: async () => ({
+      trip: null, operations: null, fund: null, writeJobs: [],
+      syncStatuses: [{
+        sync_key: 'transport_reports_manual_sheet', status: 'error',
+        message: 'Nguồn Báo cáo đổi phiên bản trong lúc đồng bộ; cần thử lại.', updated_at: updatedAt
+      }]
+    }) },
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    send: () => {},
+    now: () => new Date('2026-11-12T05:10:00.000Z')
+  });
+  const first = (await service.list({})).items[0];
+  updatedAt = '2026-11-12T05:09:30.000Z';
+  const retry = (await service.list({})).items[0];
+  assert.equal(retry.id, first.id);
+  assert.notEqual(retry.legacyIds[0], first.legacyIds[0]);
+  assert.equal(retry.type, 'sync-failure');
+});
+
 test('notification center removes a deferred queue failure after a newer successful refresh', async () => {
   const service = createNotificationCenterService({
     repository: { find: async () => ({

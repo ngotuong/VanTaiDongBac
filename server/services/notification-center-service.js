@@ -95,6 +95,10 @@ function createNotificationCenterService({ repository, workbookContextService, h
   function id(prefix, ...parts) {
     return crypto.createHash('sha256').update([prefix, ...parts].join('|')).digest('hex').slice(0, 32);
   }
+  function syncHealthIdentity(row, stale) {
+    const status = String(row?.status || '').toLowerCase() || 'error';
+    return id('sync-health', row?.sync_key, stale ? 'stale' : status);
+  }
   function fundItem(fund, currentTime) {
     const rule = fund?.rule;
     const bundle = fund?.bundle;
@@ -180,8 +184,10 @@ function createNotificationCenterService({ repository, workbookContextService, h
     };
 
     if (workerStale) {
+      const stableId = id('sync-health', 'realtime-cache-worker', 'stale');
       result.push({
-        id: id('sync-health', 'realtime-cache-worker', worker.updated_at || worker.synced_at, 'stale'),
+        id: stableId,
+        legacyIds: [id('sync-health', 'realtime-cache-worker', worker.updated_at || worker.synced_at, 'stale')],
         type: 'sync-stale', notificationKey: 'system-health', severity: 'error',
         title: watchdogAuthorizationRequired
           ? 'Đồng bộ cần được cấp lại quyền'
@@ -213,8 +219,10 @@ function createNotificationCenterService({ repository, workbookContextService, h
       const externalWatchdogFailure = row.sync_key === 'external_sync_watchdog' && status !== 'ok';
       const externalWatchdogAuthorizationRequired = externalWatchdogFailure && status === 'authorization_required';
       const externalWatchdogDeploymentAccessDenied = externalWatchdogFailure && status === 'deployment_access_denied';
+      const stableId = syncHealthIdentity(row, stale);
       result.push({
-        id: id('sync-health', row.sync_key, row.status, row.updated_at, stale ? 'stale' : row.message),
+        id: stableId,
+        legacyIds: [id('sync-health', row.sync_key, row.status, row.updated_at, stale ? 'stale' : row.message)],
         type: stale ? 'sync-stale' : 'sync-failure', notificationKey: 'system-health', severity: 'error',
         title: externalWatchdogAuthorizationRequired
           ? 'Đồng bộ cần được cấp lại quyền'
@@ -235,8 +243,10 @@ function createNotificationCenterService({ repository, workbookContextService, h
       const ageMinutes = Number.isNaN(updated.getTime()) ? Infinity : (currentTime.getTime() - updated.getTime()) / 60000;
       const stuck = job.status === 'processing' ? ageMinutes > 10 : job.status === 'pending' ? ageMinutes > 15 : true;
       if (!stuck) continue;
+      const stableId = id('write-job', job.id, job.status);
       result.push({
-        id: id('write-job', job.id, job.status, job.attempts, job.last_error),
+        id: stableId,
+        legacyIds: [id('write-job', job.id, job.status, job.attempts, job.last_error)],
         type: 'write-failure', notificationKey: 'system-health', severity: 'error',
         title: job.status === 'failed' ? 'Thao tác ghi dữ liệu thất bại' : 'Thao tác ghi dữ liệu đang bị treo',
         message: `${job.module} · ${job.action}${job.last_error ? `: ${String(job.last_error).slice(0, 140)}` : '.'}`,

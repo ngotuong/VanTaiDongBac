@@ -227,6 +227,42 @@ test('atomic publication pair persists both generation ACKs with one data versio
   assert.ok(timeline.every((event) => event.generationId === 'generation-10'));
 });
 
+test('a historical report checkpoint rebases a changed source version and exits the retry loop', () => {
+  const h = harness(); const q = h.queue; const c = h.context; const statuses = [];
+  q.enqueue({ months: ['2026-06'], includeAll: false, source: 'safety:transport' }, c);
+  h.advance(15001);
+  const claimed = q.claimDue(c).item;
+  q.saveProgress({ ...claimed, planVersion: 3, reportDataVersion: 'source-old',
+    tasks: [['report', '2026-06']] }, c, 0);
+  let failForSourceChange = true;
+  h.worker.currentReportDataVersion = () => 'source-current';
+  h.worker.writeStatus = (status, message) => statuses.push({ status, message });
+  h.worker.syncReport = (_month, item) => {
+    if (failForSourceChange) {
+      const error = new Error('Nguồn Báo cáo đổi phiên bản trong lúc đồng bộ; cần thử lại.');
+      error.code = 'REPORT_SOURCE_VERSION_CHANGED';
+      throw error;
+    }
+    assert.equal(item.reportDataVersion, 'source-current');
+    return { ok: true, reportMonth: '06/2026', syncedAt: new Date(h.now()).toISOString() };
+  };
+
+  const failed = h.TransportRefreshWorker.run(q.claimDue(c).item, h.worker);
+  assert.equal(failed.ok, false);
+  assert.equal(failed.sourceVersionRetry, true);
+  assert.deepEqual(statuses, [], 'an optimistic source conflict must not refresh the ERROR alert');
+  const checkpoint = JSON.parse(h.props.get('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_LEASE'));
+  assert.equal(checkpoint.item.reportDataVersion, 'source-current');
+
+  failForSourceChange = false;
+  h.advance(30001);
+  const recovered = h.TransportRefreshWorker.run(q.claimDue(c).item, h.worker);
+  assert.equal(recovered.ok, true);
+  assert.equal(recovered.acknowledgement.acknowledged, true);
+  assert.equal(q.getPending(c), null);
+  assert.equal(statuses.at(-1).status, 'ok');
+});
+
 test('verification/safety do not turn historical months back into foreground work', () => {
   const h = harness(); h.queue.enqueue({ full: true, months: ['2026-05', '2026-06'], source: 'verification:report-formulas' }, h.context);
   h.queue.enqueue({ full: true, source: 'safety:transport' }, h.context);

@@ -61,7 +61,9 @@ var ReportSyncService = (function () {
 
   function assertSourceVersion_(context, dataVersion) {
     if (String(context.getReportDataVersion()) !== String(dataVersion)) {
-      throw new Error('Nguồn Báo cáo đổi phiên bản trong lúc đồng bộ; cần thử lại.');
+      var error = new Error('Nguồn Báo cáo đổi phiên bản trong lúc đồng bộ; cần thử lại.');
+      error.code = 'REPORT_SOURCE_VERSION_CHANGED';
+      throw error;
     }
   }
 

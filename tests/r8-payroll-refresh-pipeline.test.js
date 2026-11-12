@@ -81,6 +81,14 @@ function pipeline() {
     service, reports, explanations, operations,
     advance(ms) { now += ms; disableUnrelatedTicks(); },
     setFailure(value) { fail = value; }, setVersion(value) { version = value; },
+    seedStaleReportCursor(month, staleVersion) {
+      props.set('SUPABASE_PENDING_TRANSPORT_REPORT_SYNC_2026', JSON.stringify({
+        full: false, includeAll: false, months: [month], priorityMonths: [], priority: false,
+        refreshDashboard: false, sheets: [], catalogs: [], notBefore: now,
+        planVersion: 4, reportDataVersion: staleVersion, tasks: [['report', month]],
+        sources: ['safety:transport'], attempts: 0
+      }));
+    },
     advanceSourceDuring(value) { advanceDuring = value; },
     assertNoSheetWrites() { assert.equal(JSON.stringify(fixture), fixtureBefore); },
     async read() {
@@ -113,6 +121,19 @@ test('R8 refresh traverses producer, real worker, v6 replacement, report publica
     assert.equal(response.body.explanation.contractVersion, 'payroll-explanation-v6');
   }
   assert.deepEqual(p.operations.filter((value) => !value.includes('__dashboard_latest__')), Array.from({ length: 3 }, () => ['v6:09/2026', 'report:09/2026']).flat());
+  p.assertNoSheetWrites();
+});
+
+test('R8 historical report cursor rebases a stale pinned version before rebuilding June 2026', () => {
+  const p = pipeline();
+  p.setVersion('source-current');
+  p.seedStaleReportCursor('2026-06', 'source-old');
+  const result = p.service.syncRealtimeCache();
+  assert.equal(result.ok, true);
+  assert.equal(result.stage, 'report:2026-06');
+  assert.equal(result.acknowledgement.acknowledged, true);
+  assert.equal(p.reports.get('06/2026').source_data_version, 'source-current');
+  assert.equal(p.service.getPendingTransportReportRefresh().pending, null);
   p.assertNoSheetWrites();
 });
 

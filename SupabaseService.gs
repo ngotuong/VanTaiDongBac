@@ -72,7 +72,19 @@ var SupabaseService = (function () {
 
   function syncRealtimeReportBundle_(month, dataVersion) {
     return withInternalReportRefreshGuard_(function () {
-      var options = dataVersion ? { skipInvalidation: true, dataVersion: dataVersion } : {};
+      var queuedDataVersion = String(dataVersion || '');
+      if (!queuedDataVersion) {
+        return ReportSyncService.syncReportBundle(month, reportSyncContext_());
+      }
+      var currentDataVersion = String(ReportService.getReportDataVersion());
+      // A durable historical cursor may outlive a newer Sheet edit. Rebase it
+      // before reading; ReportSyncService still fails closed if the source moves
+      // again during preparation or publication.
+      var effectiveDataVersion = queuedDataVersion === currentDataVersion ? queuedDataVersion : currentDataVersion;
+      if (queuedDataVersion !== currentDataVersion) {
+        console.log('report_source_version_rebased:' + queuedDataVersion + ':' + currentDataVersion + ':' + month);
+      }
+      var options = { skipInvalidation: true, dataVersion: effectiveDataVersion };
       return ReportSyncService.syncReportBundle(month, reportSyncContext_(), options);
     });
   }
@@ -986,6 +998,7 @@ var SupabaseService = (function () {
         month === 'Tất cả' ? 'Tất cả' : formatMonthKeyForReport_(month),
         item && item.reportDataVersion
       ); },
+      currentReportDataVersion: function () { return ReportService.getReportDataVersion(); },
       recordPublication: function (publication) {
         var cacheType = publication.cacheKey === '__dashboard_latest__' ? 'dashboard' : 'report';
         writeSyncStatus_('transport_publication_' + cacheType, 'transport', 'ok',

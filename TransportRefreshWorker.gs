@@ -192,6 +192,17 @@ var TransportRefreshWorker = (function () {
           acknowledgement: { acknowledged: false, continuing: true } };
       }
       var error = err && err.message ? err.message : String(err);
+      var sourceVersionRetry = false;
+      if (task && task[0] === 'report' && err &&
+          err.code === 'REPORT_SOURCE_VERSION_CHANGED' && context.currentReportDataVersion) {
+        try {
+          item.reportDataVersion = String(context.currentReportDataVersion());
+          sourceVersionRetry = true;
+        } catch (versionError) {
+          context.log('report_source_version_rebase_failed:' + (versionError && versionError.message
+            ? versionError.message : String(versionError)));
+        }
+      }
       if (context.recordTimeline) {
         try { context.recordTimeline('failed', item, { stage: stage }, new Date(context.nowMillis()).toISOString()); }
         catch (timelineFailureError) { context.log('refresh_timeline_failed:failed'); }
@@ -201,7 +212,8 @@ var TransportRefreshWorker = (function () {
       var retry = context.requeue(item);
       context.log('refresh_stage_failed:' + stage + ':' + error);
       return { ok: false, mode: 'tick', step: context.step || 'transportReportsPending', stage: stage,
-        error: error, retry: retry, acknowledgement: { acknowledged: false, retryQueued: true } };
+        error: error, retry: retry, sourceVersionRetry: sourceVersionRetry,
+        acknowledgement: { acknowledged: false, retryQueued: true } };
     }
   }
 
@@ -245,7 +257,9 @@ var TransportRefreshWorker = (function () {
     // One status publication per bounded turn, instead of one extra RPC per page.
     try {
       var latestPublication = (item.publicationAcks || []).slice(-1)[0];
-      context.writeStatus(result.ok ? 'ok' : 'error', result.ok
+      // A source-version conflict is an expected optimistic-concurrency retry.
+      // Do not refresh an ERROR row every 30 seconds while the cursor heals.
+      if (!result.sourceVersionRetry) context.writeStatus(result.ok ? 'ok' : 'error', result.ok
         ? 'Stage ' + result.stage + ' completed in ' + Number(result.elapsedMs || 0) + 'ms; remaining=' + Number(result.remainingStages || 0) +
           '; generationAt=' + Number(item.generationAt || 0) + (latestPublication
             ? '; published=' + latestPublication.cacheKey + '@' + latestPublication.publishedAt : '') + '.'

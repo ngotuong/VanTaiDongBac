@@ -25,7 +25,7 @@ export type PayrollExplanationViewModel = {
     kind: 'manager' | 'recruiter' | 'employee'; title: string; help: string; summary: ExplanationField[];
     managerVehicles: Array<{
       vehicle: string;
-      projects: Array<{ project: string; trips: string; milestone112: string; milestone140: string; milestone168: string; bonus: string; days: string }>;
+      projects: Array<{ project: string; trips: string; milestone112: string; milestone140: string; milestone168: string; bonusBeforeInheritance: string; inheritanceAdjustment: string; bonus: string; days: string }>;
     }>;
     recruitedPeople: Array<{ employeeName: string; joinedDate: string; rewardPeriod: string; company: string; eligibleDays: string; bonus: string }>;
     rules: Array<{ code: string; condition: string; amount: string; effectivePeriod: string }>;
@@ -96,8 +96,10 @@ function managerVehicleGroups(rows: ManagerSourceRow[]) {
         milestone112: money(row.milestone112),
         milestone140: money(row.milestone140),
         milestone168: money(row.milestone168),
+        bonusBeforeInheritance: money(row.managementBonusBeforeInheritance),
+        inheritanceAdjustment: money(row.inheritanceAdjustment),
         bonus: money(row.managementBonus),
-        days: number(row.managementDays)
+        days: row.managementDays === null ? '—' : number(row.managementDays)
       }))
     };
   });
@@ -121,9 +123,13 @@ export function payrollExplanationView(explanation: PayrollExplanation, now = ne
   const roleEvidence = sourceRoleEvidence ? {
     kind: sourceRoleEvidence.kind,
     title: sourceRoleEvidence.kind === 'manager' ? 'Căn cứ thưởng quản lý' : 'Căn cứ thưởng tuyển người',
-    help: `Thưởng tuyển người theo lịch sử nhân sự đủ điều kiện: ${money(sourceRoleEvidence.recruitmentRule.amountPerMonth)}/người/tháng, phân bổ theo ${sourceRoleEvidence.recruitmentRule.daysInMonth} ngày của tháng. Tổng tháng làm tròn đến 1.000 đ và đối chiếu SYS_AggThuongTuyen.`,
+    help: sourceRoleEvidence.kind === 'manager'
+      ? `Thưởng KPI lấy theo bậc đang hiệu lực của từng dự án. Khi xe điều động, phần kế thừa được lấy nguyên từ XL_ThuongQuanLy và đối chiếu SYS_AggThuongQLNhanSu. Thưởng tuyển người phân bổ theo ${sourceRoleEvidence.recruitmentRule.daysInMonth} ngày của tháng.`
+      : `Thưởng tuyển người theo lịch sử nhân sự đủ điều kiện: ${money(sourceRoleEvidence.recruitmentRule.amountPerMonth)}/người/tháng, phân bổ theo ${sourceRoleEvidence.recruitmentRule.daysInMonth} ngày của tháng. Tổng tháng làm tròn đến 1.000 đ và đối chiếu SYS_AggThuongTuyen.`,
     summary: sourceRoleEvidence.kind === 'manager' ? [
-      { label: 'Thưởng KPI quản lý', value: money(sourceRoleEvidence.managementBonusTotal), tone: 'positive' as const },
+      { label: 'Thưởng KPI gốc', value: money(sourceRoleEvidence.managementBonusBeforeInheritanceTotal), tone: 'positive' as const },
+      { label: 'Điều chỉnh kế thừa KPI', value: money(sourceRoleEvidence.inheritanceAdjustmentTotal), tone: sourceRoleEvidence.inheritanceAdjustmentTotal ? 'positive' as const : 'normal' as const },
+      { label: 'Thưởng KPI sau kế thừa', value: money(sourceRoleEvidence.managementBonusTotal), tone: 'positive' as const },
       { label: 'Thưởng tuyển người', value: money(sourceRoleEvidence.recruitmentBonusTotal), tone: 'positive' as const },
       { label: 'Đã giải thích', value: money(sourceRoleEvidence.explainedRewardTotal), tone: 'positive' as const },
       { label: 'Thưởng trên bảng lương', value: money(sourceRoleEvidence.reportedReward), tone: 'positive' as const },

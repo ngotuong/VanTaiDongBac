@@ -51,10 +51,12 @@ export type PayrollExplanation = {
   }>;
   roleEvidence: null | {
     kind: 'manager' | 'recruiter' | 'employee'; reportedReward: number; managementBonusTotal: number;
+    managementBonusBeforeInheritanceTotal: number; inheritanceAdjustmentTotal: number;
     recruitmentBonusTotal: number; explainedRewardTotal: number; otherReward: number; source: string;
     managerRows: Array<{
       vehicle: string; project: string; totalTrips: number; recruitmentBonus: number; milestone112: number;
-      milestone140: number; milestone168: number; managementBonus: number; managementDays: number;
+      milestone140: number; milestone168: number; managementBonusBeforeInheritance: number;
+      inheritanceAdjustment: number; managementBonus: number; managementDays: number | null;
     }>;
     recruitedPeople: Array<{
       employeeName: string; joinedDate: string; rewardFrom: string; rewardTo: string;

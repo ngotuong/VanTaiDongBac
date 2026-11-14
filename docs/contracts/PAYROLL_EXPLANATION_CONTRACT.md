@@ -21,7 +21,8 @@ Contract này chỉ tạo lớp **bằng chứng đọc và đối chiếu**:
 | `XL_LuongTheoXe` | Output lương chuyến theo xe; schema hiện hành có thể gộp cả hai kiểu ngày thành một dòng `HỖN_HỢP` với `Đơn giá` rỗng |
 | `NL_ChamCong` | Nguồn nghỉ phép/ngày công chính thức |
 | `NL_NghiVanHanh` | Chỉ là nguồn điều chỉnh KPI/chỉ tiêu vận hành gián tiếp qua `XL_LuongTheoXe` |
-| `XL_ThuongQuanLy` | Bằng chứng thưởng tuyển lái và các mốc KPI quản lý theo từng xe/tháng |
+| `XL_ThuongQuanLy` | Bằng chứng các bậc KPI, thưởng gốc và thưởng sau kế thừa theo từng xe–dự án/tháng |
+| `SYS_AggThuongQLNhanSu` | Tổng thưởng quản lý sau kế thừa theo nhân sự/tháng để đối chiếu |
 | `DM_ThuongQuanLy` | Mã, điều kiện, mức thưởng và khoảng hiệu lực của quy tắc quản lý/tuyển dụng |
 | `DM_NhanSu` | Người tuyển, nhân sự được tuyển, ngày vào và khoảng `Tính thưởng`–`Dừng thưởng` |
 
@@ -109,7 +110,7 @@ Không trả raw row index, Spreadsheet ID, secret hoặc dữ liệu của nhâ
 - Bảng giải trình dùng cột nội dung vừa đủ, padding 6×8px và cuộn ngang cục bộ. Trạng thái khớp hiển thị tick xanh có accessible label; trạng thái sai vẫn có text `Cần kiểm tra`.
 - Drawer chỉ có một header gồm tên nhân sự, kỳ, trạng thái và thao tác xuất ảnh/đóng. Trạng thái `Đã khớp` chỉ hiển thị tick xanh cạnh tên; không lặp lại thành một card trạng thái riêng. Trên mobile có tay nắm vuốt xuống để đóng; gesture chỉ bắt đầu từ tay nắm và không chiếm cuộn dọc hoặc cuộn ngang của bảng.
 - Ảnh xuất giữ trạng thái đóng/mở hiện tại của các khối kỹ thuật; không tự bung `Xem cách tính chi tiết` hoặc `Kiểm tra dữ liệu nguồn`, tránh tạo ảnh dài ngoài ý muốn.
-- Quản lý phải thấy KPI theo từng xe–dự án, số chuyến, mốc 112/140/168, tổng thưởng và ngày quản lý. Khi một biển số có nhiều dự án, UI nhóm chung dưới biển số nhưng giữ nguyên từng dòng dự án; phép tính vẫn lấy nguyên output `XL_ThuongQuanLy`, không cộng chuyến để tự chọn lại mốc thưởng ở frontend. Đồng thời phải thấy riêng người được tuyển, số ngày hiệu lực và tiền thưởng tuyển. Người tuyển chỉ thấy những người thực sự tạo thưởng trong tháng, số ngày, tiền thưởng, kỳ tính và công ty. Hai chức vụ này dùng view thưởng rút gọn. Nhân sự ở chức vụ khác vẫn giữ đầy đủ lương chuyến, lương cứng/khoán, nghỉ phép và nhận thêm khối thưởng tuyển nếu có dữ liệu. Webapp chỉ đọc dữ liệu nguồn, không ghi hoặc thay công thức Sheet.
+- Quản lý phải thấy KPI theo từng xe–dự án, số chuyến, ba bậc thưởng theo quy tắc hiệu lực của dự án, thưởng gốc, điều chỉnh kế thừa, thưởng sau kế thừa và ngày quản lý nếu nguồn có cột này. `XL_ThuongQuanLy.Thưởng sau kế thừa` là số KPI có thẩm quyền để đối chiếu lương; tổng này phải khớp `SYS_AggThuongQLNhanSu.Thưởng quản lý` khi nguồn tổng hợp tồn tại. Khi một biển số có nhiều dự án, UI nhóm chung dưới biển số nhưng giữ nguyên từng dòng dự án; phép tính vẫn lấy nguyên output `XL_ThuongQuanLy`, không cộng chuyến để tự chọn lại mốc thưởng ở frontend. Đồng thời phải thấy riêng người được tuyển, số ngày hiệu lực và tiền thưởng tuyển. Người tuyển chỉ thấy những người thực sự tạo thưởng trong tháng, số ngày, tiền thưởng, kỳ tính và công ty. Hai chức vụ này dùng view thưởng rút gọn. Nhân sự ở chức vụ khác vẫn giữ đầy đủ lương chuyến, lương cứng/khoán, nghỉ phép và nhận thêm khối thưởng tuyển nếu có dữ liệu. Webapp chỉ đọc dữ liệu nguồn, không ghi hoặc thay công thức Sheet.
 
 ## 9. Step D-A — Contract giải trình lương hỗn hợp theo ngày
 

@@ -344,18 +344,23 @@ test('manager and recruiter rewards combine KPI with 1m per recruited person per
   for (const role of ['Quản lý', 'Người tuyển']) {
     const changed = JSON.parse(JSON.stringify(fixture));
     changed.employee = role === 'Quản lý' ? 'Huy' : 'Giang';
-    const reward = role === 'Quản lý' ? 4000000 : 1000000;
+    const reward = role === 'Quản lý' ? 5000000 : 1000000;
     changed.sheets.BC_BangLuong.rows = [[fixture.month, changed.employee, role, 0, 0, 0, 0, 0, reward, reward, 0, 0, 0, reward, '', '']];
     changed.sheets.XL_LuongNhanSu.rows = [[fixture.month, changed.employee, role, 0, 0, 0, '01/01/2026', '', 1, 30, 0, 0, 0, 0, 0, 0, reward, 0, 0, reward, reward]];
     changed.sheets.XL_LuongTheoXe.rows = [];
     changed.sheets.NL_ChamCong.rows = [];
     changed.sheets.XL_ThuongQuanLy = {
       headerRow: 1,
-      headers: ['Tháng', 'Dự án', 'Biển số', 'Tổng chuyến', 'Mốc 0-112', 'Mốc 113-140', 'Mốc 141-168', 'Tổng thưởng'],
+      headers: ['Tháng', 'Dự án', 'Biển số', 'Tổng chuyến', 'Bậc thưởng 1', 'Bậc thưởng 2', 'Bậc thưởng 3', 'Tổng thưởng', 'Thưởng sau kế thừa'],
       rows: [
-        [fixture.month, 'Dự án nhỏ', '20H-00001', 26, 0, 0, 0, 0],
-        [fixture.month, 'Tràng Duệ', '20H-00001', 168, 1000000, 1000000, 1000000, 3000000]
+        [fixture.month, 'Dự án nhỏ', '20H-00001', 26, 0, 0, 0, 0, 0],
+        [fixture.month, 'Tràng Duệ', '20H-00001', 168, 1000000, 1000000, 1000000, 3000000, 4000000]
       ]
+    };
+    changed.sheets.SYS_AggThuongQLNhanSu = {
+      headerRow: 1,
+      headers: ['Tháng', 'Quản lý', 'Thưởng quản lý'],
+      rows: [[fixture.month, changed.employee, 4000000]]
     };
     changed.sheets.DM_ThuongQuanLy = {
       headerRow: 1,
@@ -381,12 +386,14 @@ test('manager and recruiter rewards combine KPI with 1m per recruited person per
     assert.equal(bundle.reconciliation.every((item) => item.matched), true);
     assert.equal(bundle.roleEvidence.kind, role === 'Quản lý' ? 'manager' : 'recruiter');
     if (role === 'Quản lý') {
-      assert.equal(bundle.roleEvidence.managementBonusTotal, 3000000);
+      assert.equal(bundle.roleEvidence.managementBonusBeforeInheritanceTotal, 3000000);
+      assert.equal(bundle.roleEvidence.inheritanceAdjustmentTotal, 1000000);
+      assert.equal(bundle.roleEvidence.managementBonusTotal, 4000000);
       assert.equal(bundle.roleEvidence.recruitmentBonusTotal, 1000000);
-      assert.equal(bundle.roleEvidence.explainedRewardTotal, 4000000);
-      assert.deepEqual(bundle.roleEvidence.managerRows.map((row) => [row.vehicle, row.project, row.totalTrips, row.managementBonus]), [
-        ['20H-00001', 'Dự án nhỏ', 26, 0],
-        ['20H-00001', 'Tràng Duệ', 168, 3000000]
+      assert.equal(bundle.roleEvidence.explainedRewardTotal, 5000000);
+      assert.deepEqual(bundle.roleEvidence.managerRows.map((row) => [row.vehicle, row.project, row.totalTrips, row.managementBonusBeforeInheritance, row.inheritanceAdjustment, row.managementBonus]), [
+        ['20H-00001', 'Dự án nhỏ', 26, 0, 0, 0],
+        ['20H-00001', 'Tràng Duệ', 168, 3000000, 1000000, 4000000]
       ]);
       assert.deepEqual(bundle.roleEvidence.managerRows.map((row) => [row.milestone112, row.milestone140, row.milestone168]), [[0, 0, 0], [1000000, 1000000, 1000000]]);
     } else {

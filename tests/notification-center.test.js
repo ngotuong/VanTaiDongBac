@@ -586,6 +586,51 @@ test('notification center collapses stale realtime worker dependencies into one 
   assert.doesNotMatch(systemItems[0].message, /realtime_cache_worker|trip_notifications|operational_notifications|notification_pipeline/);
 });
 
+test('notification center collapses stale notification dependencies while the main worker remains healthy', async () => {
+  const service = createNotificationCenterService({
+    repository: { find: async () => ({
+      trip: null, operations: null, fund: null, writeJobs: [],
+      syncStatuses: [
+        { sync_key: 'realtime_cache_worker', status: 'ok', updated_at: '2026-11-16T03:35:00.000Z' },
+        { sync_key: 'trip_notifications', status: 'ok', updated_at: '2026-11-16T02:58:00.000Z' },
+        { sync_key: 'operational_notifications', status: 'ok', updated_at: '2026-11-16T02:58:00.000Z' },
+        { sync_key: 'notification_pipeline', status: 'ok', updated_at: '2026-11-16T02:59:00.000Z' }
+      ]
+    }) },
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    send: () => {},
+    now: () => new Date('2026-11-16T03:39:00.000Z')
+  });
+  const result = await service.list({});
+  const systemItems = result.items.filter((item) => item.notificationKey === 'system-health');
+  assert.equal(systemItems.length, 1);
+  assert.equal(systemItems[0].title, 'Hệ thống thông báo cập nhật chậm');
+  assert.equal(systemItems[0].severity, 'warning');
+  assert.match(systemItems[0].message, /Dữ liệu chính vẫn đang đồng bộ/);
+});
+
+test('notification center clears stale notification statuses when every source bundle has newer recovery evidence', async () => {
+  const service = createNotificationCenterService({
+    repository: { find: async () => ({
+      trip: { synced_at: '2026-11-16T03:36:00.000Z', payload: { items: [] } },
+      operations: { synced_at: '2026-11-16T03:36:30.000Z', payload: { items: [] } },
+      dailySummary: { synced_at: '2026-11-16T03:37:00.000Z', payload: {} },
+      fund: null, writeJobs: [],
+      syncStatuses: [
+        { sync_key: 'realtime_cache_worker', status: 'ok', updated_at: '2026-11-16T03:35:00.000Z' },
+        { sync_key: 'trip_notifications', status: 'ok', updated_at: '2026-11-16T02:58:00.000Z' },
+        { sync_key: 'operational_notifications', status: 'ok', updated_at: '2026-11-16T02:58:00.000Z' },
+        { sync_key: 'notification_pipeline', status: 'ok', updated_at: '2026-11-16T02:59:00.000Z' }
+      ]
+    }) },
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    send: () => {},
+    now: () => new Date('2026-11-16T03:39:00.000Z')
+  });
+  const result = await service.list({});
+  assert.equal(result.items.some((item) => item.notificationKey === 'system-health'), false);
+});
+
 test('notification center replaces stale worker noise with one authorization instruction from the external watchdog', async () => {
   const service = createNotificationCenterService({
     repository: { find: async () => ({

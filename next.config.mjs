@@ -1,6 +1,7 @@
 const nextConfig = {
   trailingSlash: true,
   images: { unoptimized: true },
+  experimental: { agentUpgrade: 'security' },
   async headers() {
     return [{ source: '/:path*', headers: [
       { key: 'X-Content-Type-Options', value: 'nosniff' },

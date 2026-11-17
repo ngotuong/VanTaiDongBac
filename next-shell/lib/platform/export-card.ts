@@ -5,6 +5,7 @@ type Html2Canvas = (element: HTMLElement, options?: Record<string, unknown>) => 
 let html2CanvasLoader: Promise<Html2Canvas> | null = null;
 const EXPORT_BOTTOM_GUARD = 24;
 const EXPORT_RIGHT_GUARD = 2;
+const EXPORT_OBJECT_URL_LIFETIME_MS = 60_000;
 
 function loadHtml2Canvas() {
   const current = (window as Window & { html2canvas?: Html2Canvas }).html2canvas;
@@ -81,10 +82,8 @@ export async function exportCardAsImage(button: HTMLButtonElement, title: string
         }
       }
     });
-    const link = document.createElement('a');
-    link.download = `${title}-${new Date().toISOString().slice(0, 10)}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    const png = await canvasToPngBlob(canvas);
+    downloadPngBlob(png, `${title}-${new Date().toISOString().slice(0, 10)}.png`);
     showToast('Đã tạo và tải ảnh xuống.', 'success');
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Không thể xuất ảnh.', 'error');
@@ -92,6 +91,41 @@ export async function exportCardAsImage(button: HTMLButtonElement, title: string
     exportStage?.remove();
     button.disabled = false;
   }
+}
+
+export function canvasToPngBlob(canvas: HTMLCanvasElement) {
+  if (!Number.isFinite(canvas.width) || !Number.isFinite(canvas.height) || canvas.width <= 0 || canvas.height <= 0) {
+    return Promise.reject(new Error('Ảnh xuất không có kích thước hợp lệ.'));
+  }
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob || blob.size <= 0 || blob.type !== 'image/png') {
+        reject(new Error('Không thể tạo tệp ảnh hợp lệ. Vui lòng thử lại.'));
+        return;
+      }
+      resolve(blob);
+    }, 'image/png');
+  });
+}
+
+export function downloadPngBlob(blob: Blob, filename: string) {
+  if (blob.size <= 0 || blob.type !== 'image/png') {
+    throw new Error('Không thể tải tệp ảnh trống.');
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = objectUrl;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+
+  window.setTimeout(() => {
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+  }, EXPORT_OBJECT_URL_LIFETIME_MS);
 }
 
 function createExportStage(sourceCard: HTMLElement, width: number) {

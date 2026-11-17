@@ -25,6 +25,9 @@ Next Report đọc qua server boundary trong `next-shell/lib/report-server.ts`. 
 | `cache_version` | `text` | Không | Version schema cache chi tiết do Apps Script ghi, ví dụ `v13`. Được thêm ở migration `010`. |
 | `source_data_version` | `text` | Không | Version dữ liệu Google Sheet dùng để tạo bundle. Được thêm ở migration `010`. |
 | `details_hash` | `text` | Không | SHA-256 chữ thường của `overview.details` đã chuẩn hóa để đối soát. Được thêm ở migration `010`. |
+| `generation_id` | `text` | Không với row legacy | Generation foreground đã publish cặp Dashboard/report. Được thêm ở migration `024`. |
+| `published_at` | `timestamptz` | Không với row legacy | Mốc publish nguyên tử của cặp. Được thêm ở migration `024`. |
+| `publication_id` | `bigint` | Không với row legacy | Con trỏ metadata invalidation server-only. Được thêm ở migration `024`. |
 | `synced_at` | `timestamptz` | Có | Thời điểm Apps Script sync sang Supabase. |
 | `created_at` | `timestamptz` | Có | Thời điểm tạo row. |
 | `updated_at` | `timestamptz` | Có | Thời điểm cập nhật row gần nhất. |
@@ -111,6 +114,36 @@ RLS của các bảng giai đoạn 2:
 
 - Quyền hiện hành theo migration `008`/`015` và mục allowlist dưới đây; `anon` không được đọc. Read model còn policy active-user SELECT; `catalog_bundles`/`sync_status` là service-only.
 - Runtime browser dùng API có session/RBAC; Apps Script/Next server dùng service role.
+
+### `public.sync_timeline_events` (migration `021`, live)
+
+Timeline bền vững theo generation để đo SLA `signal → queued → claimed → stage_started → published/failed`. Khóa chính `event_key` idempotent; row chỉ chứa `workbook_year`, module, `generation_id`, event/stage/cache key, `event_at`, semantic `build_stamp` và `created_at`. Không lưu payload nghiệp vụ, giá trị Sheet, người dùng hoặc credential.
+
+Bảng bật RLS, không có browser policy, revoke toàn bộ quyền `public`/`anon`/`authenticated` và chỉ cấp `service_role`. Runtime batch event trong invocation và flush best-effort một lần; lỗi telemetry không được làm fail hoặc replay business publication. Trạng thái apply/live thuộc `PROJECT_CONTEXT.md`.
+
+### `public.sync_generations` (migrations `022`–`026`; `026` hiện là candidate local)
+
+Outbox metadata bền vững cho đường foreground tương lai. Một generation có thể có row phase `signal` từ installable trigger và row phase legacy queue cùng `generation_id`, nhờ đó D2 đối chiếu được scope producer với scope queue mà không bật publication.
+
+Metadata gồm năm/module, `generation_id`, queue/source type, sheet/grid/row-range/month scope, cờ structural/full, mốc source/signal/not-before, source version khi đã biết, build stamp và lifecycle lease/retry. Bảng chỉ có hai cache-key/timestamp ACK định kiểu cho publication pair tương lai; D2 không ghi các ACK này.
+
+Invariant bảo mật:
+
+- không lưu payload nghiệp vụ, giá trị Sheet, user ID, Spreadsheet ID hoặc credential;
+- RLS bật, không có browser policy; `public`/`anon`/`authenticated` không có quyền table/RPC;
+- `service_role` chỉ SELECT table; insert/coalesce qua RPC idempotent `enqueue_sync_generation` và claim/reclaim atomic qua `claim_sync_generations` dùng `FOR UPDATE SKIP LOCKED`;
+- producer shadow chỉ chạy khi `SYNC_GENERATION_SHADOW_ENABLED=true`, mặc định false; lỗi shadow không làm mất legacy durable signal/queue;
+- producer không đọc `e.value`; worker tương lai phải đọc canonical current source bằng exact workbook resolution/`openById`.
+
+D5B bổ sung admission ở Apps Script trước RPC: chỉ Vận tải, non-structural và exact row scope mà foreground worker hỗ trợ mới được ghi. Migration `026` candidate thêm terminal status `quarantined`, `quarantined_at`, audit reason/batch key và RPC `quarantine_sync_generations`. RPC bắt buộc exact unique event keys, chỉ terminalize row `pending` chưa dispatch/attempt/lease, giữ nguyên metadata và không delete hoặc retry. Browser không có quyền RPC; service role vẫn không có direct update/delete table. Migration chưa live cho tới checkpoint apply riêng.
+
+Trạng thái apply/live và rollout thuộc `PROJECT_CONTEXT.md`. Migration additive được giữ khi rollback runtime; correction schema dùng migration mới.
+
+### `public.publication_invalidations` (migration `024`)
+
+Kênh metadata server-only cho publication nguyên tử D4. Mỗi row chỉ có audience, năm, Spreadsheet ID server-only, tháng, generation/version/cache version và timestamp; không chứa payload nghiệp vụ, giá trị Sheet, user hoặc credential. RPC `publish_sync_generation_pair` giữ row generation bằng lease token rồi trong cùng transaction: tạo invalidation, upsert đúng hai `report_bundles` (tháng + `__dashboard_latest__`) với cùng generation/version/timestamp/publication ID và ACK generation `published`.
+
+`anon`/`authenticated` không có quyền bảng/RPC; `report_bundles` cũng được chuyển sang server-only. Next route đã xác thực chỉ phát metadata đã lọc qua SSE, sau đó UI gọi lại loader same-origin để lấy bundle. D4 RPC chỉ nhận audience `preview`; Production cần checkpoint/migration riêng.
 
 ## Bảng cache giai đoạn 3
 
@@ -335,7 +368,7 @@ Bảng là server-only: bật RLS, không tạo policy đọc, revoke `public`/`
 
 `payroll_explanation_bundles_v6` giữ cùng schema/key với cache legacy nhưng có bảng/RPC riêng `replace_payroll_explanation_month_v6`. RLS bật, không policy browser, chỉ service_role. RPC kiểm tra workbook/tháng và payload `payroll-explanation-v6`, thay tháng atomically. Không sửa/invalidate bảng/RPC v5; hai runtime có thể refresh riêng trong cửa sổ Preview/Production. Source of truth vẫn là Sheets. Trạng thái apply do context sở hữu.
 
-## Registry workbook và self-service chuyển năm (`020`, candidate local)
+## Registry workbook và self-service chuyển năm (`020`, live)
 
 - `workbook_contexts` lưu exact pair Spreadsheet ID Vận tải/Thu chi theo năm cùng lifecycle `draft | ready | active | archived | failed`. Partial unique index chỉ cho một row `active`.
 - `workbook_rollover_runs` lưu trạng thái lượt tạo, version/kế hoạch manifest, audit và lỗi vận hành. ID workbook đích chỉ tồn tại server-side.

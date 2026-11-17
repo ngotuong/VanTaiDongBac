@@ -164,6 +164,8 @@ async function main() {
       `APPS_SCRIPT_URL=${PREVIEW_APPS_SCRIPT_URL}`,
       "--env",
       "BUSINESS_WRITES_PAUSED=true",
+      "--env",
+      "PUBLICATION_INVALIDATION_AUDIENCE=preview",
     ],
     { capture: true },
   );

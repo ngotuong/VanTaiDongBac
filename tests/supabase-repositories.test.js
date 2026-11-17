@@ -26,9 +26,11 @@ function loadRepositories() {
   });
   new vm.Script(read('SupabaseBundleRepository.gs'), { filename: 'SupabaseBundleRepository.gs#test' }).runInContext(context);
   new vm.Script(read('SupabaseSyncStatusRepository.gs'), { filename: 'SupabaseSyncStatusRepository.gs#test' }).runInContext(context);
+  new vm.Script(read('SupabaseSyncTimelineRepository.gs'), { filename: 'SupabaseSyncTimelineRepository.gs#test' }).runInContext(context);
   return {
     bundles: context.SupabaseBundleRepository,
     statuses: context.SupabaseSyncStatusRepository,
+    timeline: context.SupabaseSyncTimelineRepository,
     calls
   };
 }
@@ -64,6 +66,22 @@ test('sync-status repository fixes only the table and conflict key while preserv
     { operation: 'upsert', tableName: 'sync_status', rows: [row], onConflict: 'sync_key' },
     { operation: 'read', tableName: 'sync_status', query }
   ]);
+});
+
+test('sync timeline batches immutable generation events by event key without exposing a browser read', () => {
+  const { timeline, calls } = loadRepositories();
+  const signal = { event_key: '2026:transport:g1:signal:t0', workbook_year: '2026', module: 'transport',
+    generation_id: 'g1', event_name: 'signal', event_at: '2026-11-05T01:04:53.704Z', build_stamp: 'candidate-437' };
+  const queued = { ...signal, event_key: '2026:transport:g1:queued:t1', event_name: 'queued', event_at: '2026-11-05T01:05:01.000Z' };
+  timeline.withBatch(() => {
+    timeline.upsert(signal);
+    timeline.upsert({ ...signal, stage: 'signal' });
+    timeline.upsert(queued);
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)), [{
+    operation: 'upsert', tableName: 'sync_timeline_events',
+    rows: [{ ...signal, stage: 'signal' }, queued], onConflict: 'event_key'
+  }]);
 });
 
 test('SupabaseService routes only bundle persistence through the bundle repository', () => {

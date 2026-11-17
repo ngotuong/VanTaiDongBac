@@ -36,6 +36,8 @@
     "app/report-data/**/*.ts",
     "next-shell/app/dashboard-data/**/*.ts",
     "app/dashboard-data/**/*.ts",
+    "next-shell/app/publication-events/**/*.ts",
+    "app/publication-events/**/*.ts",
     "next-shell/app/manage-data/**/*.ts",
     "app/manage-data/**/*.ts",
     "next-shell/app/open-sheet/**/*.ts",

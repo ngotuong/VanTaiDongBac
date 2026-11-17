@@ -11,7 +11,7 @@ Yêu cầu chỉ đọc/báo trạng thái: báo đúng sáu phần của contex
 
 | Tác vụ | Owner cần đọc |
 |---|---|
-| Kiến trúc/boundary | `TARGET_ARCHITECTURE.md`, `docs/architecture/SYSTEM_ARCHITECTURE.md`; `DATA_FLOWS.md` khi luồng thay đổi |
+| Kiến trúc/boundary | `TARGET_ARCHITECTURE.md`, `docs/architecture/SYSTEM_ARCHITECTURE.md`; `DATA_FLOWS.md` khi luồng hiện hành thay đổi; `SYNC_SLO_TARGET.md` khi chạm foreground sync/SLO |
 | API/Auth/RBAC | `docs/contracts/API_CONTRACTS.md`, `RBAC_MATRIX.md`, registry/API/service liên quan |
 | Google Sheet/nghiệp vụ | `PROJECT_SCHEMA.md` → snapshot + `SPREADSHEET_CONTRACTS.md`, domain service |
 | Thu chi/bound runtime | schema Thu chi, `docs/legacy/THU_CHI_BOUND_SCRIPT.md`, bound source nếu cần xác minh tác nhân ghi |

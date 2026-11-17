@@ -45,6 +45,27 @@ test('edit signals retain and coalesce bounded sheet row scopes until the durabl
   ]);
 });
 
+test('a structural onChange preserves pending edit scopes and both event types until ACK', () => {
+  const service = load('SheetChangeSignalService.gs').SheetChangeSignalService;
+  const p = new Map(); let seq = 0; let drained;
+  const ctx = { year: '2026', getProperty: (k) => p.get(k), setProperty: (k, v) => p.set(k, v), nowMillis: () => 1000, createUuid: () => String(++seq) };
+  p.set('SUPABASE_SHEET_TRIGGER_BINDINGS_V1', JSON.stringify({
+    edit: { handler: 'handleTransportSheetEdit', spreadsheetId: 'transport' },
+    change: { handler: 'handleTransportSheetChange', spreadsheetId: 'transport' }
+  }));
+  const range = { getGridId: () => 731, getRow: () => 1361, getNumRows: () => 1 };
+  service.record({ triggerUid: 'edit', range }, 'transport', 'handleTransportSheetEdit', 'transport', ctx);
+  service.record({ triggerUid: 'change', changeType: 'INSERT_ROW' }, 'transport', 'handleTransportSheetChange', 'transport', ctx);
+  const pending = JSON.parse(p.get('SUPABASE_SHEET_SIGNAL_TRANSPORT_2026'));
+  assert.equal(pending.eventType, 'CHANGE');
+  assert.deepEqual(plain(pending.eventTypes), ['EDIT', 'INSERT_ROW']);
+  assert.deepEqual(plain(pending.scopes), [{ gridId: 731, startRow: 1361, numRows: 1 }]);
+  ctx.enqueue = (signal) => { drained = plain(signal); return { queued: true }; };
+  service.drain('transport', ctx);
+  assert.deepEqual(drained.eventTypes, ['EDIT', 'INSERT_ROW']);
+  assert.deepEqual(drained.scopes, pending.scopes);
+});
+
 test('worker keeps enough runway before starting another native stage', () => {
   const worker = load('TransportRefreshWorker.gs').TransportRefreshWorker;
   let now = 0; const item = { tasks: [['native', 'first'], ['native', 'second']] }; let saves = 0;

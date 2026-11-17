@@ -113,7 +113,7 @@ test('role explanations keep manager KPI and paid recruiter rows compact and rol
   const presenter = read('next-shell/lib/platform/payroll-explanation.ts');
   const css = read('next-shell/app/platform.css');
 
-  for (const label of ['Căn cứ thưởng quản lý', 'Căn cứ thưởng tuyển người', 'Nhân sự được tuyển', 'Số ngày', 'Tiền thưởng', 'Thưởng KPI theo xe và dự án', 'Thưởng tuyển người', 'Thưởng tuyển đã giải thích', 'Thưởng khác']) {
+  for (const label of ['Căn cứ thưởng quản lý', 'Căn cứ thưởng tuyển người', 'Nhân sự được tuyển', 'Số ngày', 'Tiền thưởng', 'Thưởng KPI theo xe và dự án', 'Thưởng KPI gốc', 'Điều chỉnh kế thừa KPI', 'Thưởng KPI sau kế thừa', 'Bậc 1', 'Bậc 2', 'Bậc 3', 'Thưởng gốc', 'Kế thừa', 'Thưởng sau kế thừa', 'Thưởng tuyển người', 'Thưởng tuyển đã giải thích', 'Thưởng khác']) {
     assert.match(`${dialog}\n${presenter}`, new RegExp(label));
   }
   assert.match(dialog, /!view\.compactRoleOnly/);

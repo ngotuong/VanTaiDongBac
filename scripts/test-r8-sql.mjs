@@ -38,7 +38,115 @@ try {
   for (const role of ['anon', 'authenticated']) {
     assert.throws(() => sql(`set role ${role}; select * from workbook_contexts;`), /permission denied/);
     assert.throws(() => sql(`set role ${role}; select activate_workbook_context('2026','2027',now());`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from sync_timeline_events;`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; insert into sync_timeline_events(event_key,workbook_year,module,generation_id,event_name,event_at,build_stamp) values ('denied','2026','transport','g','signal',now(),'test');`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from sync_generations;`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from publication_invalidations;`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select nextval('public.publication_invalidations_id_seq');`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from report_bundles;`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select enqueue_sync_generation('sg_denied_000000','g','2026','transport','transport','sheet:test',array[]::text[],array[]::bigint[],array[]::text[],array[]::text[],null,null,false,false,now(),now(),now(),'','g','test');`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select request_sync_generation_dispatch('sg_denied_000000','denied');`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from claim_sync_generations(1,'denied',30,30);`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from quarantine_sync_generations(array['sg-denied'],'not allowed by browser','denied-batch');`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from quarantine_retryable_sync_generation('sg_denied_000000','g',1,'retryable','not allowed by browser','denied-batch');`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from claim_sync_generation('sg_denied_000000','denied',30,30);`), /permission denied/);
+    assert.throws(() => sql(`set role ${role}; select * from publish_sync_generation_pair(
+      'sg_denied_000000','lease','2026','copy-canary-sheet','10/2026','generation','source-v1','v13',now(),
+      array['BC_TongQuan'],'{}'::jsonb,repeat('a',64),array['BC_TongQuan'],'{}'::jsonb,repeat('b',64),'sql-test','preview'
+    );`), /permission denied/);
   }
+  sql("set role service_role; insert into sync_timeline_events(event_key,workbook_year,module,generation_id,event_name,event_at,build_stamp) values ('sql-test','2026','transport','generation-sql','signal',now(),'sql-test') on conflict (event_key) do update set event_at=excluded.event_at;");
+  assert.equal(sql("select count(*) from sync_timeline_events where event_key='sql-test';").trim(), '1');
+  assert.throws(() => sql("set role service_role; insert into sync_generations(event_key,generation_id,workbook_year,module,queue_name,source_type,last_signal_at,semantic_build_stamp) values ('sg_direct_denied_01','g','2026','transport','transport','sheet:test',now(),'test');"), /permission denied/);
+  assert.throws(() => sql("set role service_role; select nextval('public.publication_invalidations_id_seq');"), /permission denied/);
+  const enqueueGeneration = "set role service_role; select (enqueue_sync_generation('sg_sql_test_00001','generation-sql','2026','transport','transport','sheet:NL_Dau:EDIT',array['NL_Dau'],array[731]::bigint[],array['731:25:1'],array['2026-10'],25,1,false,false,now(),now(),now(),'report-v1','generation-sql','sql-test')).event_key;";
+  assert.equal(sql(enqueueGeneration).trim(), 'sg_sql_test_00001');
+  assert.equal(sql(enqueueGeneration).trim(), 'sg_sql_test_00001');
+  assert.equal(sql("select count(*) from sync_generations where event_key='sg_sql_test_00001';").trim(), '1');
+  sql("set role service_role; select enqueue_sync_generation('sg_sql_signal_0001','generation-sql','2026','transport','signal','sheet-trigger:EDIT',array[]::text[],array[731]::bigint[],array['731:25:1'],array[]::text[],25,1,false,false,now(),now(),now()+interval '1 day','','generation-sql','sql-test');");
+  assert.equal(sql("select count(*) from sync_generations signal join sync_generations queued using (workbook_year,module,generation_id) where signal.queue_name='signal' and queued.queue_name='transport' and signal.scope_grid_ids && queued.scope_grid_ids and signal.scope_row_ranges && queued.scope_row_ranges;").trim(), '1');
+  assert.throws(() => sql("set role service_role; select enqueue_sync_generation('sg_sql_test_00001','generation-sql','2026','transport','transport','sheet:NL_Dau:EDIT',array['NL_TaiXe'],array[731]::bigint[],array['731:25:1'],array['2026-10'],25,1,false,false,now(),now(),now(),'report-v1','generation-sql','sql-test');"), /collision/);
+  sql("set role service_role; select enqueue_sync_generation('sg_sql_test_00002','generation-sql-2','2026','transport','transport','sheet:NL_TaiXe:EDIT',array['NL_TaiXe'],array[732]::bigint[],array['732:26:1'],array['2026-10'],26,1,false,false,now(),now(),now(),'','generation-sql-2','sql-test');");
+  sql("set role service_role; select (request_sync_generation_dispatch('sg_sql_test_00001','sql-d3')).event_key;");
+  const firstGenerationClaim = sql("set role service_role; select event_key from claim_sync_generation('sg_sql_test_00001','generation-worker-a',30,30);").trim();
+  assert.equal(firstGenerationClaim, 'sg_sql_test_00001');
+  assert.equal(sql(`select attempts||':'||lease_owner from sync_generations where event_key='${firstGenerationClaim}';`).trim(), '1:generation-worker-a');
+  assert.equal(sql(`set role service_role; select (complete_sync_generation_shadow('${firstGenerationClaim}',(select lease_token from sync_generations where event_key='${firstGenerationClaim}'),'matched',true,'10/2026',now(),'report-v1','report-v1',repeat('a',64),'dash','report','dash','report')).status;`).trim(), 'shadowed');
+  sql("set role service_role; select (request_sync_generation_dispatch('sg_sql_test_00002','sql-d3')).event_key;");
+  const secondGenerationClaim = sql("set role service_role; select event_key from claim_sync_generations(1,'generation-worker-b',30,30);").trim();
+  assert.equal(secondGenerationClaim, 'sg_sql_test_00002');
+  sql(`update sync_generations set lease_expires_at=now()-interval '1 second' where event_key='${secondGenerationClaim}';`);
+  assert.equal(sql("set role service_role; select event_key from claim_sync_generations(1,'generation-worker-reclaim',30,30);").trim(), secondGenerationClaim);
+  assert.equal(sql(`select attempts||':'||lease_owner from sync_generations where event_key='${secondGenerationClaim}';`).trim(), '2:generation-worker-reclaim');
+  assert.equal(sql(`set role service_role; select (retry_sync_generation_shadow('${secondGenerationClaim}',(select lease_token from sync_generations where event_key='${secondGenerationClaim}'),'legacy_version_not_ready',now(),false,'not_ready','10/2026','','',repeat('b',64),'','','','')).status;`).trim(), 'retryable');
+  assert.equal(sql("set role service_role; select event_key from claim_sync_generation('sg_sql_test_00002','generation-worker-final',30,30);").trim(), secondGenerationClaim);
+  const publicationLease = sql(`select lease_token from sync_generations where event_key='${secondGenerationClaim}';`).trim();
+  const publicationCall = `set role service_role; select status||':'||publication_id||':'||generation_id from publish_sync_generation_pair(
+    '${secondGenerationClaim}','${publicationLease}','2026','copy-canary-sheet-2026','10/2026','generation-sql-2','report-v2','v13','2026-11-09T01:00:02Z',
+    array['BC_TongQuan','BC_BangLuong'],'{"report":true}'::jsonb,repeat('a',64),
+    array['BC_TongQuan','NL_VanChuyen'],'{"dashboard":true}'::jsonb,repeat('b',64),'sql-d4','preview'
+  );`;
+  assert.match(sql(publicationCall).trim(), /^published:\d+:generation-sql-2$/);
+  assert.match(sql(publicationCall).trim(), /^published:\d+:generation-sql-2$/, 'ambiguous retry must be idempotent');
+  assert.equal(sql(`select count(distinct generation_id)||':'||count(distinct source_data_version)||':'||count(distinct published_at)||':'||count(distinct publication_id)
+    from report_bundles where spreadsheet_id='copy-canary-sheet-2026' and report_month in ('10/2026','__dashboard_latest__');`).trim(), '1:1:1:1');
+  assert.equal(sql("select count(*) from publication_invalidations where spreadsheet_id='copy-canary-sheet-2026' and generation_id='generation-sql-2';").trim(), '1');
+  assert.equal(sql(`select status||':'||dashboard_cache_key||':'||report_cache_key from sync_generations where event_key='${secondGenerationClaim}';`).trim(), 'published:__dashboard_latest__:10/2026');
+  assert.throws(() => sql(`set role service_role; select * from publish_sync_generation_pair(
+    'missing-event','lease','2026','invalid-audience-sheet','10/2026','generation','source-v1','v13',now(),
+    array['BC_TongQuan'],'{}'::jsonb,repeat('a',64),array['BC_TongQuan'],'{}'::jsonb,repeat('b',64),'sql-d5','other'
+  );`), /publication audience must be preview or production/);
+  sql("set role service_role; select enqueue_sync_generation('sg_sql_prod_00001','generation-prod','2026','transport','transport','sheet:NL_Dau:EDIT',array['NL_Dau'],array[731]::bigint[],array['731:27:1'],array['2026-10'],27,1,false,false,now(),now(),now(),'report-prod','generation-prod','sql-d5');");
+  sql("set role service_role; select request_sync_generation_dispatch('sg_sql_prod_00001','sql-d5');");
+  assert.equal(sql("set role service_role; select event_key from claim_sync_generation('sg_sql_prod_00001','generation-worker-prod',30,30);").trim(), 'sg_sql_prod_00001');
+  const productionLease = sql("select lease_token from sync_generations where event_key='sg_sql_prod_00001';").trim();
+  assert.match(sql(`set role service_role; select status||':'||generation_id from publish_sync_generation_pair(
+    'sg_sql_prod_00001','${productionLease}','2026','production-canary-sheet','10/2026','generation-prod','report-prod','v13',now(),
+    array['BC_TongQuan'],'{"report":true}'::jsonb,repeat('a',64),array['BC_TongQuan'],'{"dashboard":true}'::jsonb,repeat('b',64),'sql-d5','production'
+  );`).trim(), /^published:generation-prod$/);
+  assert.equal(sql("select audience||':'||count(*) from publication_invalidations where spreadsheet_id='production-canary-sheet' group by audience;").trim(), 'production:1');
+  assert.equal(sql("select shadow_result from sync_generations where event_key='sg_sql_prod_00001';").trim(), 'published_production');
+  sql("set role service_role; select enqueue_sync_generation('sg_sql_prod_queue1','generation-prod','2026','transport','signal','sheet-trigger:EDIT',array['NL_Dau'],array[731]::bigint[],array['731:27:1'],array['2026-10'],27,1,false,false,now(),now(),now(),'','generation-prod','sql-d5');");
+  sql("set role service_role; select request_sync_generation_dispatch('sg_sql_prod_queue1','sql-d5-duplicate');");
+  assert.equal(sql("set role service_role; select event_key from claim_sync_generation('sg_sql_prod_queue1','generation-worker-duplicate',30,30);").trim(), 'sg_sql_prod_queue1');
+  const duplicateLease = sql("select lease_token from sync_generations where event_key='sg_sql_prod_queue1';").trim();
+  assert.match(sql(`set role service_role; select status||':'||generation_id from publish_sync_generation_pair(
+    'sg_sql_prod_queue1','${duplicateLease}','2026','production-canary-sheet','10/2026','generation-prod','newer-read-must-not-republish','v14',now(),
+    array['BC_TongQuan'],'{"report":"different"}'::jsonb,repeat('c',64),array['BC_TongQuan'],'{"dashboard":"different"}'::jsonb,repeat('d',64),'sql-d5','production'
+  );`).trim(), /^published:generation-prod$/);
+  assert.equal(sql("select count(*)||':'||min(source_data_version)||':'||max(source_data_version) from publication_invalidations where spreadsheet_id='production-canary-sheet';").trim(), '1:report-prod:report-prod');
+  assert.equal(sql("select count(*) from report_bundles where spreadsheet_id='production-canary-sheet' and source_data_version='report-prod';").trim(), '2');
+  assert.equal(sql("select status||':'||source_data_version from sync_generations where event_key='sg_sql_prod_queue1';").trim(), 'published:report-prod');
+  sql("set role service_role; select enqueue_sync_generation('sg_sql_race_a00001','generation-race','2026','transport','transport','sheet:NL_Dau:EDIT',array['NL_Dau'],array[731]::bigint[],array['731:28:1'],array['2026-10'],28,1,false,false,now(),now(),now(),'race-v1','generation-race','sql-d5'); select enqueue_sync_generation('sg_sql_race_b00001','generation-race','2026','transport','signal','sheet-trigger:EDIT',array['NL_Dau'],array[731]::bigint[],array['731:28:1'],array['2026-10'],28,1,false,false,now(),now(),now(),'','generation-race','sql-d5'); select request_sync_generation_dispatch('sg_sql_race_a00001','sql-d5-race-a'); select request_sync_generation_dispatch('sg_sql_race_b00001','sql-d5-race-b'); select event_key from claim_sync_generation('sg_sql_race_a00001','generation-worker-race-a',30,30); select event_key from claim_sync_generation('sg_sql_race_b00001','generation-worker-race-b',30,30);");
+  const raceLeaseA = sql("select lease_token from sync_generations where event_key='sg_sql_race_a00001';").trim();
+  const raceLeaseB = sql("select lease_token from sync_generations where event_key='sg_sql_race_b00001';").trim();
+  const raceWinner = spawn('docker', ['exec', '-i', name, 'psql', '-X', '-qAt', '-h', '127.0.0.1', '-U', 'postgres', '-v', 'ON_ERROR_STOP=1']);
+  let raceOutput = ''; let raceError = '';
+  raceWinner.stdout.on('data', chunk => { raceOutput += chunk; });
+  raceWinner.stderr.on('data', chunk => { raceError += chunk; });
+  const raceCompleted = new Promise((resolve, reject) => { raceWinner.once('error', reject); raceWinner.once('close', code => code === 0 ? resolve() : reject(new Error(raceError))); });
+  raceWinner.stdin.end(`begin; set role service_role; select status from publish_sync_generation_pair(
+    'sg_sql_race_a00001','${raceLeaseA}','2026','production-race-sheet','10/2026','generation-race','race-v1','v13',now(),
+    array['BC_TongQuan'],'{"report":"winner"}'::jsonb,repeat('a',64),array['BC_TongQuan'],'{"dashboard":"winner"}'::jsonb,repeat('b',64),'sql-d5','production'
+  ); select pg_sleep(2); commit;`);
+  for (let attempt = 0; attempt < 100 && !raceOutput.includes('published'); attempt++) await new Promise(resolve => setTimeout(resolve, 20));
+  assert.match(raceOutput, /published/);
+  assert.match(sql(`set role service_role; select status||':'||source_data_version from publish_sync_generation_pair(
+    'sg_sql_race_b00001','${raceLeaseB}','2026','production-race-sheet','10/2026','generation-race','race-v2-must-not-win','v14',now(),
+    array['BC_TongQuan'],'{"report":"loser"}'::jsonb,repeat('c',64),array['BC_TongQuan'],'{"dashboard":"loser"}'::jsonb,repeat('d',64),'sql-d5','production'
+  );`).trim(), /^published:race-v1$/);
+  await raceCompleted;
+  assert.equal(sql("select count(*)||':'||min(source_data_version)||':'||max(source_data_version) from publication_invalidations where spreadsheet_id='production-race-sheet';").trim(), '1:race-v1:race-v1');
+  assert.equal(sql("select count(*) from sync_generations where event_key in ('sg_sql_race_a00001','sg_sql_race_b00001') and status='published' and source_data_version='race-v1';").trim(), '2');
+  sql("set role service_role; select enqueue_sync_generation('sg_sql_quarantine01','generation-orphan','2026','fund','fund','fund-sheet:NHAP_THUCHI:EDIT',array['NHAP_THUCHI'],array[901]::bigint[],array['901:40:1'],array['2026-11'],40,1,false,false,now(),now(),now(),'','generation-orphan','sql-d5b');");
+  assert.equal(sql("set role service_role; select status||':'||quarantine_batch_key from quarantine_sync_generations(array['sg_sql_quarantine01'],'D5A undispatched Fund orphan','d5a-fund-orphan-test');").trim(), 'quarantined:d5a-fund-orphan-test');
+  assert.equal(sql("select error_class||':'||(quarantined_at is not null)::text from sync_generations where event_key='sg_sql_quarantine01';").trim(), 'quarantined_orphan:true');
+  assert.throws(() => sql("set role service_role; select * from quarantine_sync_generations(array['sg_sql_prod_00001'],'must reject a published row','d5b-reject-published');"), /no longer an undispatched pending orphan/);
+  sql("set role service_role; select enqueue_sync_generation('sg_sql_retry_quar01','generation-retry-quarantine','2026','transport','webapp-write','webapp:submitRows:NL_VanChuyen',array['NL_VanChuyen'],array[0]::bigint[],array['0:1445:1'],array[]::text[],1445,1,false,false,now(),now(),now(),'','generation-retry-quarantine','sql-d5f'); select request_sync_generation_dispatch('sg_sql_retry_quar01','sql-d5f'); select event_key from claim_sync_generation('sg_sql_retry_quar01','generation-worker-d5f',30,30);");
+  sql("set role service_role; select status from retry_sync_generation_shadow('sg_sql_retry_quar01',(select lease_token from sync_generations where event_key='sg_sql_retry_quar01'),'report_month_not_active',now(),false,'not_ready','11/2026','','','','','','','');");
+  assert.throws(() => sql("set role service_role; select * from quarantine_retryable_sync_generation('sg_sql_retry_quar01','generation-retry-quarantine',2,'report_month_not_active','D5F exact investigated retryable','d5f-retryable-audit');"), /target state mismatch/);
+  assert.equal(sql("set role service_role; select status||':'||quarantine_batch_key||':'||error_class from quarantine_retryable_sync_generation('sg_sql_retry_quar01','generation-retry-quarantine',1,'report_month_not_active','D5F exact investigated retryable','d5f-retryable-audit');").trim(), 'quarantined:d5f-retryable-audit:report_month_not_active');
+  assert.throws(() => sql("set role service_role; select * from quarantine_retryable_sync_generation('sg_sql_retry_quar01','generation-retry-quarantine',1,'report_month_not_active','D5F exact investigated retryable','d5f-retryable-audit');"), /target state mismatch/);
   sql("set role service_role; select activate_workbook_context('2026','2027',now());");
   sql("set role service_role; select activate_workbook_context('2026','2027',now());");
   assert.equal(sql("select string_agg(year||':'||lifecycle_status,',' order by year) from workbook_contexts;").trim(), '2026:archived,2027:active');
@@ -138,5 +246,5 @@ try {
   assert.equal(sql("select count(*) from write_job_logs where job_id='sql-manual-retry' and message='Write job manually retried.';").trim(), '1');
   console.log('Audit SQL retry PASS: persisted year, exact failed snapshot, worker ownership and reconciliation ABA guard.');
   console.log('R8 SQL worker/repository PASS: real claims, owned updates, terminal logs, fault isolation and exhausted lease recovery; Sheet boundary synthetic.');
-  console.log('R8 SQL PASS: migrations 001–020, multi-year cache copy/idempotency, server-only workbook registry/transactional activation, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
+  console.log('R8 SQL PASS: migrations 001–027, multi-year cache copy/idempotency, server-only workbook registry/transactional activation, sync timeline isolation, generation outbox dispatch/lease/retry/shadow/exact quarantine, audience-scoped atomic publication/invalidation/RLS, v5/v6 isolation, service-only sequence allocation, permissions, exhausted leases, stale retry, and concurrent disjoint claims.');
 } finally { try { docker(['rm', '--force', name]); } catch {} }

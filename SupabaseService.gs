@@ -36,6 +36,7 @@ var SupabaseService = (function () {
   var TRANSPORT_SHEET_SYNC_RUNNING_CACHE_KEY = 'SUPABASE_TRANSPORT_SHEET_SYNC_RUNNING';
   var REALTIME_TICK_INTERVAL_MINUTES = 1;
   var REALTIME_STAGE_START_MIN_BUDGET_MS = 20000;
+  var REALTIME_PRIORITY_HOUSEKEEPING_GUARD_MS = 60 * 1000;
   var REALTIME_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
   var REALTIME_HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
   var SOURCE_POLL_INTERVAL_MS = 5 * 60 * 1000;
@@ -69,12 +70,37 @@ var SupabaseService = (function () {
     });
   }
 
+  function syncRealtimeReportBundle_(month, dataVersion) {
+    return withInternalReportRefreshGuard_(function () {
+      var queuedDataVersion = String(dataVersion || '');
+      if (!queuedDataVersion) {
+        return ReportSyncService.syncReportBundle(month, reportSyncContext_());
+      }
+      var currentDataVersion = String(ReportService.getReportDataVersion());
+      // A durable historical cursor may outlive a newer Sheet edit. Rebase it
+      // before reading; ReportSyncService still fails closed if the source moves
+      // again during preparation or publication.
+      var effectiveDataVersion = queuedDataVersion === currentDataVersion ? queuedDataVersion : currentDataVersion;
+      if (queuedDataVersion !== currentDataVersion) {
+        console.log('report_source_version_rebased:' + queuedDataVersion + ':' + currentDataVersion + ':' + month);
+      }
+      var options = { skipInvalidation: true, dataVersion: effectiveDataVersion };
+      return ReportSyncService.syncReportBundle(month, reportSyncContext_(), options);
+    });
+  }
+
   function testReportSync() {
     return syncReportBundle('latest');
   }
 
   function syncDashboard() {
     return ReportSyncService.syncDashboard(reportSyncContext_());
+  }
+
+  function syncRealtimePublicationPair_(month) {
+    return withInternalReportRefreshGuard_(function () {
+      return ReportSyncService.syncReportDashboardPair(month, reportSyncContext_());
+    });
   }
 
   function syncAllReportBundles() {
@@ -254,9 +280,13 @@ var SupabaseService = (function () {
 
     var tickResult;
     try {
+      var runTick = function () { return runRealtimeTick_(props, fairness, tickStartedAt); };
+      var runWithTimeline = function () {
+        return typeof SupabaseSyncTimelineRepository !== 'undefined' && SupabaseSyncTimelineRepository.withBatch
+          ? SupabaseSyncTimelineRepository.withBatch(runTick) : runTick();
+      };
       tickResult = SupabaseSyncStatusRepository.withBatch
-        ? SupabaseSyncStatusRepository.withBatch(function () { return runRealtimeTick_(props, fairness, tickStartedAt); })
-        : runRealtimeTick_(props, fairness, tickStartedAt);
+        ? SupabaseSyncStatusRepository.withBatch(runWithTimeline) : runWithTimeline();
       return tickResult;
     } catch (error) {
       if (!error || !(error.refreshDeferred || error.transportDeferred || isTransientGoogleError_(error))) throw error;
@@ -284,25 +314,53 @@ var SupabaseService = (function () {
       var nowMillis = new Date().getTime();
       drainSheetChangeSignals_(props);
       enqueueSafetySweepIfDue_(props, nowMillis);
+      var transportQueueContext = manualReportRefreshQueueContext_();
+      var fundQueueContext = fundRefreshQueueContext_();
+      var transportSnapshot = ManualReportRefreshQueueService.getPending(transportQueueContext);
+      var fundSnapshot = ManualReportRefreshQueueService.getPending(fundQueueContext);
+      var configuredPreference = props.getProperty(yearPropertyKey_(REALTIME_QUEUE_PREFERENCE_PROP)) || 'transport';
+      var priorityPreference = foregroundPriorityPreference_(transportSnapshot, fundSnapshot, configuredPreference);
+      var priorityPending = !!priorityPreference;
       if (Number(props.getProperty(yearPropertyKey_(REALTIME_HEARTBEAT_NEXT_AT_PROP)) || 0) <= nowMillis) {
         writeRealtimeHeartbeatIfDue_(props, nowMillis,
-          { pending: !!ManualReportRefreshQueueService.getPending(manualReportRefreshQueueContext_()) },
-          { pending: !!ManualReportRefreshQueueService.getPending(fundRefreshQueueContext_()) });
+          { pending: !!transportSnapshot }, { pending: !!fundSnapshot });
       }
-      // Even a sustained edit burst must leave turns for polling/notifications.
-      if (fairness % 4 === 0 || props.getProperty(yearPropertyKey_('SUPABASE_NOTIFICATION_PIPELINE_CURSOR_V1')) || props.getProperty(yearPropertyKey_(SOURCE_POLL_CURSOR_PROP))) {
+      // A priority generation must be claimed before any unbounded native
+      // housekeeping call. Ordinary queues keep the existing fairness turn.
+      if (!priorityPending && (fairness % 4 === 0 || props.getProperty(yearPropertyKey_('SUPABASE_NOTIFICATION_PIPELINE_CURSOR_V1')) || props.getProperty(yearPropertyKey_(SOURCE_POLL_CURSOR_PROP)))) {
         var background = runRealtimeHousekeeping_(props, nowMillis, tickStartedAt + 60000);
         if (background.checked && new Date().getTime() - tickStartedAt >= 60000) return background;
       }
-      var pendingWork = ManualReportRefreshQueueService.claimNextDue([
-        { key: 'transport', context: manualReportRefreshQueueContext_() },
-        { key: 'fund', context: fundRefreshQueueContext_() }
-      ], props.getProperty(yearPropertyKey_(REALTIME_QUEUE_PREFERENCE_PROP)) || 'transport');
+      var foregroundCandidates = priorityPending ? [] : [
+        { key: 'transport', context: transportQueueContext },
+        { key: 'fund', context: fundQueueContext }
+      ];
+      if (priorityPending && transportSnapshot && transportSnapshot.priority === true) {
+        foregroundCandidates.push({ key: 'transport', context: transportQueueContext });
+      }
+      if (priorityPending && fundSnapshot && fundSnapshot.priority === true) {
+        foregroundCandidates.push({ key: 'fund', context: fundQueueContext });
+      }
+      var pendingWork = ManualReportRefreshQueueService.claimNextDue(
+        foregroundCandidates, priorityPreference || configuredPreference
+      );
       if (pendingWork.due) {
         props.setProperty(yearPropertyKey_(REALTIME_QUEUE_PREFERENCE_PROP), pendingWork.nextPreferredKey);
+        recordSyncTimeline_('claimed', pendingWork.key.indexOf('fund') === 0 ? 'fund' : 'transport', pendingWork.item,
+          { stage: 'queue:' + pendingWork.key }, new Date().toISOString());
       }
-      var pendingClaim = pendingWork.claims.transport || { due: false, pending: false };
-      var pendingFundClaim = pendingWork.claims.fund || { due: false, pending: false };
+      var pendingClaim = pendingWork.claims.transport || pendingSnapshotClaim_(transportSnapshot);
+      var pendingFundClaim = pendingWork.claims.fund || pendingSnapshotClaim_(fundSnapshot);
+      var priorityWaitMs = priorityPendingWaitMs_(pendingWork.claims, transportSnapshot, fundSnapshot);
+      if (!pendingWork.due && priorityPending && priorityWaitMs <= REALTIME_PRIORITY_HOUSEKEEPING_GUARD_MS) {
+        return {
+          ok: true, mode: 'tick', skipped: true,
+          reason: 'Priority generation is inside its quiet window; housekeeping deferred.',
+          pendingTransport: pendingClaim.pending === true,
+          pendingFund: pendingFundClaim.pending === true,
+          waitMs: priorityWaitMs
+        };
+      }
       var backgroundWork = { due: false, claims: {} };
       if (!pendingWork.due && pendingClaim.pending !== true && pendingFundClaim.pending !== true) {
         backgroundWork = ManualReportRefreshQueueService.claimNextDue([
@@ -358,6 +416,32 @@ var SupabaseService = (function () {
       };
   }
 
+  function foregroundPriorityPreference_(transportPending, fundPending, configuredPreference) {
+    var transportPriority = !!(transportPending && transportPending.priority === true);
+    var fundPriority = !!(fundPending && fundPending.priority === true);
+    if (transportPriority && !fundPriority) return 'transport';
+    if (fundPriority && !transportPriority) return 'fund';
+    if (transportPriority && fundPriority) return configuredPreference === 'fund' ? 'fund' : 'transport';
+    return '';
+  }
+
+  function pendingSnapshotClaim_(snapshot) {
+    if (!snapshot) return { due: false, pending: false };
+    return { due: false, pending: true, waitMs: Number(snapshot.waitMs || 0), item: snapshot };
+  }
+
+  function priorityPendingWaitMs_(claims, transportSnapshot, fundSnapshot) {
+    var waits = [];
+    var transportClaim = claims.transport || pendingSnapshotClaim_(transportSnapshot);
+    var fundClaim = claims.fund || pendingSnapshotClaim_(fundSnapshot);
+    [transportClaim, fundClaim].forEach(function (claim) {
+      if (claim && claim.pending === true && claim.item && claim.item.priority === true) {
+        waits.push(Math.max(0, Number(claim.waitMs || 0)));
+      }
+    });
+    return waits.length ? Math.min.apply(null, waits) : Infinity;
+  }
+
   function finishRealtimeRefresh_(result, background) {
     if (background && background.checked) {
       result.housekeeping = background;
@@ -379,6 +463,12 @@ var SupabaseService = (function () {
     result.companion = companion;
     result.ok = result.ok && companion.ok;
     return result;
+  }
+
+  function claimOwnedRefreshCheckpoint_(item, context) {
+    return ManualReportRefreshQueueService.claimOwnedCheckpoint
+      ? ManualReportRefreshQueueService.claimOwnedCheckpoint(item, context)
+      : ManualReportRefreshQueueService.claimDue(context);
   }
 
   function runRealtimeHousekeeping_(props, nowMillis, deadlineMillis) {
@@ -532,6 +622,7 @@ var SupabaseService = (function () {
       months: changedMonths,
       full: false,
       includeAll: true,
+      refreshDashboard: true,
       source: 'poll:report-outputs'
     });
     if (queued && queued.deferred) throw new Error(queued.error || 'Report output refresh queue was deferred.');
@@ -600,17 +691,22 @@ var SupabaseService = (function () {
   function sheetSignalContext_(props) {
     return { year: activeWorkbookYear_(), getProperty: function (key) { return props.getProperty(key); },
       setProperty: function (key, value) { props.setProperty(key, value); },
-      nowMillis: function () { return new Date().getTime(); }, createUuid: function () { return Utilities.getUuid(); } };
+      nowMillis: function () { return new Date().getTime(); }, createUuid: function () { return Utilities.getUuid(); },
+      log: function (message) { console.log(message); } };
   }
 
-  function drainSheetChangeSignals_(props) {
-    ['transport', 'fund'].forEach(function (module) {
+  function drainSheetChangeSignals_(props, selectedModules) {
+    var modules = Array.isArray(selectedModules) && selectedModules.length ? selectedModules : ['transport', 'fund'];
+    modules.forEach(function (module) {
       if (!props.getProperty('SUPABASE_SHEET_SIGNAL_' + module.toUpperCase() + '_' + activeWorkbookYear_())) return;
       var context = sheetSignalContext_(props);
       context.enqueue = function (signal) {
-        var scopes = signal && signal.eventType === 'EDIT' && Array.isArray(signal.scopes) ? signal.scopes : [];
+        var eventTypes = getSheetSignalEventTypes_(signal);
+        var scopes = eventTypes.indexOf('EDIT') !== -1 && Array.isArray(signal && signal.scopes) ? signal.scopes : [];
         if (module === 'transport' && scopes.length) {
           var transportResult;
+          var transportDeferred = null;
+          var backgroundTypes = eventTypes.filter(isStructuralSheetChange_);
           var transportSpreadsheet = SpreadsheetApp.openById(APP_CONFIG.spreadsheetId);
           var transportSheetNames = buildSignalSheetNameMap_(transportSpreadsheet);
           coalesceSignalScopes_(scopes, transportSheetNames).forEach(function (scope) {
@@ -618,14 +714,30 @@ var SupabaseService = (function () {
             var sheet = sheetName ? transportSpreadsheet.getSheetByName(sheetName) : null;
             var range = sheet && Number(scope.startRow || 0) > 0 && Number(scope.numRows || 0) > 0
               ? sheet.getRange(Number(scope.startRow), 1, Number(scope.numRows), 1) : null;
-            transportResult = syncTransportSheetChange(signal.eventType, sheetName, range);
-            if (transportResult && transportResult.skipped) transportResult = syncUnknownTransportSheetChange_(signal.eventType);
+            transportResult = syncTransportSheetChange('EDIT', sheetName, range, {
+              eventAtMillis: signal.at,
+              generationId: signal.token,
+              gridId: scope.gridId,
+              startRow: scope.startRow,
+              numRows: scope.numRows
+            });
+            if (transportResult && transportResult.deferred) transportDeferred = transportResult;
+            if (transportResult && transportResult.skipped && backgroundTypes.indexOf('UNKNOWN_SCOPE') === -1) {
+              backgroundTypes.push('UNKNOWN_SCOPE');
+            }
           });
-          return transportResult || { queued: false };
+          var backgroundResult = backgroundTypes.length
+            ? enqueueBackgroundTransportVerification_(backgroundTypes) : null;
+          if (transportDeferred) return transportDeferred;
+          if (backgroundResult && backgroundResult.deferred) return backgroundResult;
+          return transportResult && transportResult.queued !== false
+            ? { queued: true, result: transportResult, background: backgroundResult }
+            : { queued: false };
         }
         if (module === 'transport') return enqueueManualReportRefresh_({ full: true, sheets: MANAGE_SHEET_NAMES,
           catalogs: TRANSPORT_CATALOG_SHEET_NAMES.map(function (sheet) { return sheet === 'DM_ThamSo' ? 'DM_ThamSo_TS' : sheet; }),
-          verificationPasses: 1, source: 'signal:transport:' + signal.eventType });
+          verificationPasses: 1, source: 'signal:transport:' + signal.eventType,
+          eventAtMillis: signal.at, generationId: signal.token });
         if (scopes.length) {
           var fundSpreadsheet = SpreadsheetApp.openById(activeFundSpreadsheetId_());
           var fundSheetNames = buildSignalSheetNameMap_(fundSpreadsheet);
@@ -636,7 +748,13 @@ var SupabaseService = (function () {
             var sheet = sheetName ? fundSpreadsheet.getSheetByName(sheetName) : null;
             var range = sheet && Number(scope.startRow || 0) > 0 && Number(scope.numRows || 0) > 0
               ? sheet.getRange(Number(scope.startRow), 1, Number(scope.numRows), 1) : null;
-            fundResult = syncFundSheetChange(signal.eventType, sheetName, range);
+            fundResult = syncFundSheetChange(signal.eventType, sheetName, range, {
+              eventAtMillis: signal.at,
+              generationId: signal.token,
+              gridId: scope.gridId,
+              startRow: scope.startRow,
+              numRows: scope.numRows
+            });
             if (fundResult && fundResult.fundRefresh && fundResult.fundRefresh.deferred) fundDeferred = fundResult.fundRefresh;
             if (fundResult && fundResult.reportRefresh && fundResult.reportRefresh.deferred) fundDeferred = fundResult.reportRefresh;
           });
@@ -644,10 +762,12 @@ var SupabaseService = (function () {
           props.setProperty(yearPropertyKey_(REALTIME_QUEUE_PREFERENCE_PROP), 'transport');
           return { queued: true, result: fundResult };
         }
-        var fund = enqueueRefreshWithFallback_({ full: true, source: 'signal:fund:' + signal.eventType }, fundRefreshQueueContext_(), 'fund');
+        var fund = enqueueRefreshWithFallback_({ full: true, source: 'signal:fund:' + signal.eventType,
+          eventAtMillis: signal.at, generationId: signal.token }, fundRefreshQueueContext_(), 'fund');
         if (fund.deferred) return fund;
         var downstream = enqueueManualReportRefresh_({ full: true, refreshDashboard: true, delayMs: FUND_TO_TRANSPORT_DELAY_MS,
-          verificationPasses: 1, source: 'signal:fund-downstream' });
+          verificationPasses: 1, source: 'signal:fund-downstream',
+          generationId: signal.token, eventAtMillis: signal.at });
         return downstream.deferred ? downstream : fund;
       };
       try {
@@ -657,6 +777,35 @@ var SupabaseService = (function () {
         console.log('sheet_signal_drain_deferred:' + module);
       }
     });
+  }
+
+  function getSheetSignalEventTypes_(signal) {
+    var values = Array.isArray(signal && signal.eventTypes) && signal.eventTypes.length
+      ? signal.eventTypes : [signal && signal.eventType];
+    var seen = {};
+    return values.map(function (value) {
+      return (clean_(value) || 'CHANGE').toUpperCase();
+    }).filter(function (value) {
+      if (seen[value]) return false;
+      seen[value] = true;
+      return true;
+    });
+  }
+
+  function enqueueBackgroundTransportVerification_(eventTypes) {
+    var sourceTypes = (eventTypes || []).map(function (value) {
+      return (clean_(value) || 'CHANGE').toUpperCase();
+    }).join('+');
+    return enqueueRefreshWithFallback_({
+      full: true,
+      includeAll: true,
+      sheets: MANAGE_SHEET_NAMES,
+      catalogs: TRANSPORT_CATALOG_SHEET_NAMES.map(function (sheet) {
+        return sheet === 'DM_ThamSo' ? 'DM_ThamSo_TS' : sheet;
+      }),
+      verificationPasses: 1,
+      source: 'signal:transport:BACKGROUND:' + sourceTypes
+    }, backgroundReportRefreshQueueContext_(), 'transport-background');
   }
 
   function coalesceSignalScopes_(scopes, sheetNames) {
@@ -751,6 +900,8 @@ var SupabaseService = (function () {
         'Refresh request queued successfully.',
         new Date().toISOString()
       );
+      recordRefreshQueueTimeline_(options || {}, queued, queueName);
+      recordSyncGenerationShadow_(options || {}, queued, queueName);
       return queued;
     } catch (err) {
       var message = err && err.message ? err.message : String(err);
@@ -809,13 +960,16 @@ var SupabaseService = (function () {
     }
     var workerContext = {
       nowMillis: context.nowMillis,
-      planVersion: 3,
+      planVersion: 4,
       currentMonth: Utilities.formatDate(new Date(), APP_CONFIG.timezone, 'yyyy-MM'),
       maxStages: 8,
       minStageStartBudgetMs: REALTIME_STAGE_START_MIN_BUDGET_MS,
       turnBudgetMs: budgetMs || 45000,
       deadlineMillis: deadlineMillis,
-      claimNext: function () { return ManualReportRefreshQueueService.claimDue(context); },
+      claimNext: function (item) {
+        drainSheetChangeSignals_(PropertiesService.getScriptProperties(), ['transport']);
+        return claimOwnedRefreshCheckpoint_(item, context);
+      },
       saveProgress: function (item, delay) { return ManualReportRefreshQueueService.saveProgress(item, context, delay); },
       acknowledge: function (item) { return ManualReportRefreshQueueService.acknowledge(item, context); },
       requeue: function (item) { return ManualReportRefreshQueueService.requeue(item, context); },
@@ -837,7 +991,23 @@ var SupabaseService = (function () {
       syncCatalogOptions: syncCatalogsBundle,
       syncStartup: function () { return syncStartupBundle(DEFAULT_STARTUP_FORM_TYPE); },
       syncDashboard: syncDashboard,
-      syncReport: function (month) { return syncReportBundle(month === 'Tất cả' ? 'Tất cả' : formatMonthKeyForReport_(month)); },
+      syncPublicationPair: function (month) {
+        return syncRealtimePublicationPair_(month === 'Tất cả' ? 'Tất cả' : formatMonthKeyForReport_(month));
+      },
+      syncReport: function (month, item) { return syncRealtimeReportBundle_(
+        month === 'Tất cả' ? 'Tất cả' : formatMonthKeyForReport_(month),
+        item && item.reportDataVersion
+      ); },
+      currentReportDataVersion: function () { return ReportService.getReportDataVersion(); },
+      recordPublication: function (publication) {
+        var cacheType = publication.cacheKey === '__dashboard_latest__' ? 'dashboard' : 'report';
+        writeSyncStatus_('transport_publication_' + cacheType, 'transport', 'ok',
+          'generationAt=' + Number(publication.generationAt || 0) + '; cacheKey=' + publication.cacheKey +
+          '; publishedAt=' + String(publication.publishedAt || ''), publication.publishedAt || new Date().toISOString());
+      },
+      recordTimeline: function (eventName, item, metadata, eventAt) {
+        recordSyncTimeline_(eventName, 'transport', item, metadata, eventAt);
+      },
       writeStatus: function (status, message) { writeSyncStatus_('transport_reports_manual_sheet', 'transport', status, message, new Date().toISOString()); },
       log: function (message) { console.log(message); }
     };
@@ -926,7 +1096,10 @@ var SupabaseService = (function () {
       shouldYieldAfterStage: function (result) {
         return /^(fundCapture|fundTransactionsScan):/.test(result.stage || '') && Number(result.elapsedMs || 0) >= 25000;
       },
-      claimNext: function () { return ManualReportRefreshQueueService.claimDue(context); },
+      claimNext: function (item) {
+        drainSheetChangeSignals_(PropertiesService.getScriptProperties(), ['fund']);
+        return claimOwnedRefreshCheckpoint_(item, context);
+      },
       saveProgress: function (item, delay) { return ManualReportRefreshQueueService.saveProgress(item, context, delay); },
       acknowledge: function (item) { return ManualReportRefreshQueueService.acknowledge(item, context); },
       requeue: function (item) { return ManualReportRefreshQueueService.requeue(item, context); },
@@ -991,6 +1164,9 @@ var SupabaseService = (function () {
           source: 'verification:fund-cache' }, context);
       },
       writeStatus: function (status, message) { writeSyncStatus_('fund_manual_sheet', 'fund', status, message, new Date().toISOString()); },
+      recordTimeline: function (eventName, item, metadata, eventAt) {
+        recordSyncTimeline_(eventName, 'fund', item, metadata, eventAt);
+      },
       log: function (message) { console.log(message); }
     });
   }
@@ -1038,7 +1214,8 @@ var SupabaseService = (function () {
     return ReportSyncService.syncTransportReportsAfterWrite(sheetName, rows, options, reportSyncContext_());
   }
 
-  function syncTransportSheetChange(eventType, sheetName, editedRange) {
+  function syncTransportSheetChange(eventType, sheetName, editedRange, generation) {
+    var generationOptions = generation || {};
     var safeSheetName = clean_(sheetName);
     var safeEventType = clean_(eventType) || 'UNKNOWN';
     var catalog = TRANSPORT_CATALOG_SHEET_NAMES.indexOf(safeSheetName) !== -1;
@@ -1057,7 +1234,12 @@ var SupabaseService = (function () {
       includeAll: structural,
       refreshDashboard: true,
       verificationPasses: structural ? 1 : 0,
-      source: 'sheet:' + safeSheetName + ':' + safeEventType
+      source: 'sheet:' + safeSheetName + ':' + safeEventType,
+      eventAtMillis: generationOptions.eventAtMillis,
+      generationId: generationOptions.generationId,
+      gridIds: generationOptions.gridId === undefined ? [] : [generationOptions.gridId],
+      startRow: generationOptions.startRow,
+      numRows: generationOptions.numRows
     }, manualReportRefreshQueueContext_(), 'transport');
     return {
       ok: !queued.deferred,
@@ -1082,7 +1264,8 @@ var SupabaseService = (function () {
     return recordSheetChangeSignal_(e, 'transport', 'handleTransportSheetChange', APP_CONFIG.spreadsheetId);
   }
 
-  function syncFundSheetChange(eventType, sheetName, editedRange) {
+  function syncFundSheetChange(eventType, sheetName, editedRange, generation) {
+    var generationOptions = generation || {};
     var safeSheetName = clean_(sheetName);
     var safeEventType = clean_(eventType) || 'CHANGE';
     var isTransactionSheet = safeSheetName === 'NHAP_THUCHI' || safeSheetName === 'NHAP_VAY';
@@ -1091,7 +1274,13 @@ var SupabaseService = (function () {
     var fundRefresh = enqueueRefreshWithFallback_({
       months: months,
       full: full,
-      source: 'fund-sheet:' + safeSheetName + ':' + safeEventType
+      source: 'fund-sheet:' + safeSheetName + ':' + safeEventType,
+      eventAtMillis: generationOptions.eventAtMillis,
+      generationId: generationOptions.generationId,
+      sheets: safeSheetName ? [safeSheetName] : [],
+      gridIds: generationOptions.gridId === undefined ? [] : [generationOptions.gridId],
+      startRow: generationOptions.startRow,
+      numRows: generationOptions.numRows
     }, fundRefreshQueueContext_(), 'fund');
     var reportRefresh = null;
     if (safeSheetName === 'NHAP_THUCHI' || !safeSheetName) {
@@ -1101,7 +1290,9 @@ var SupabaseService = (function () {
         refreshDashboard: true,
         delayMs: FUND_TO_TRANSPORT_DELAY_MS,
         verificationPasses: 1,
-        source: 'fund-sheet-downstream:' + (safeSheetName || 'unknown') + ':' + safeEventType
+        source: 'fund-sheet-downstream:' + (safeSheetName || 'unknown') + ':' + safeEventType,
+        generationId: generationOptions.generationId,
+        eventAtMillis: generationOptions.eventAtMillis
       });
     }
     return {
@@ -1125,8 +1316,11 @@ var SupabaseService = (function () {
 
   function recordSheetChangeSignal_(event, moduleName, handlerName, spreadsheetId) {
     try {
-      return SheetChangeSignalService.record(event, moduleName, handlerName, spreadsheetId,
-        sheetSignalContext_(PropertiesService.getScriptProperties()));
+      var context = sheetSignalContext_(PropertiesService.getScriptProperties());
+      context.recordGeneration = function (signal) {
+        recordProducerGenerationShadow_(moduleName, signal);
+      };
+      return SheetChangeSignalService.record(event, moduleName, handlerName, spreadsheetId, context);
     } catch (error) {
       if (!isTransientGoogleError_(error)) throw error;
       console.log('sheet_signal_deferred:' + moduleName + ':google_platform');
@@ -1748,6 +1942,52 @@ var SupabaseService = (function () {
     };
   }
 
+  function reconcileSyncGenerationShadow() {
+    return SyncGenerationForegroundDispatcher.reconcile();
+  }
+
+  function installSyncGenerationShadowReconciler() {
+    var handler = 'reconcileSyncGenerationShadow';
+    var removed = 0;
+    ScriptApp.getProjectTriggers().forEach(function (trigger) {
+      if (trigger.getHandlerFunction && trigger.getHandlerFunction() === handler) {
+        ScriptApp.deleteTrigger(trigger);
+        removed++;
+      }
+    });
+    ScriptApp.newTrigger(handler).timeBased().everyMinutes(1).create();
+    return { ok: true, installed: true, removed: removed, handler: handler, intervalMinutes: 1, mode: 'd3-shadow-only' };
+  }
+
+  function recordTransportWriteGeneration_(result, payload, job) {
+    if (!result || !result.inserted) return { ok: true, recorded: false, reason: 'no_insert' };
+    if (!job || !clean_(job.id)) throw new Error('Transport generation thiếu write job id.');
+    if (!(Number(result.gridId) >= 0) || !(Number(result.startRow) > 0) || !(Number(result.inserted) > 0)) {
+      throw new Error('Transport generation thiếu exact Sheet row scope sau khi ghi.');
+    }
+    var committedAt = new Date().toISOString();
+    return SyncGenerationShadowService.record({
+      generationId: clean_(job.id),
+      legacyQueueGenerationId: clean_(job.id),
+      workbookYear: activeWorkbookYear_(),
+      module: 'transport',
+      queueName: 'webapp-write',
+      sourceType: 'webapp:submitRows:' + clean_(result.sheetName),
+      sheetNames: [clean_(result.sheetName)],
+      gridIds: [Number(result.gridId)],
+      rowRanges: buildGenerationRowRanges_([Number(result.gridId)], Number(result.startRow), Number(result.inserted)),
+      startRow: Number(result.startRow),
+      numRows: Number(result.inserted),
+      structural: false,
+      fullRefresh: false,
+      sourceCommittedAt: committedAt,
+      lastSignalAt: committedAt,
+      notBefore: committedAt,
+      sourceDataVersion: '',
+      semanticBuildStamp: clean_(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local')
+    });
+  }
+
   function callRpc_(functionName, payload) {
     return SupabaseHttpClient.callRpc(functionName, payload);
   }
@@ -1763,6 +2003,140 @@ var SupabaseService = (function () {
       });
     } catch (err) {
       console.log('sync_status_failed: ' + (err && err.message ? err.message : err));
+    }
+  }
+
+  function recordRefreshQueueTimeline_(options, queued, queueName) {
+    var generationId = clean_(options && options.generationId || queued && queued.generationId);
+    if (!generationId) return;
+    var moduleName = String(queueName || '').indexOf('fund') === 0 ? 'fund' : 'transport';
+    var item = {
+      generationId: generationId,
+      generationAt: Number(options && options.eventAtMillis || queued && queued.generationAt || 0)
+    };
+    if (item.generationAt > 0) {
+      recordSyncTimeline_('signal', moduleName, item, { stage: 'signal' }, new Date(item.generationAt).toISOString());
+    }
+    recordSyncTimeline_('queued', moduleName, item, { stage: 'queue:' + clean_(queueName) }, new Date().toISOString());
+  }
+
+  function recordSyncGenerationShadow_(options, queued, queueName) {
+    try {
+      if (typeof SyncGenerationShadowService === 'undefined' || !SyncGenerationShadowService.record) return;
+      var generationId = clean_(options && options.generationId || queued && queued.generationId);
+      if (!generationId) return;
+      var eventAtMillis = Number(options && options.eventAtMillis || queued && queued.generationAt || 0);
+      var moduleName = String(queueName || '').indexOf('fund') === 0 ? 'fund' : 'transport';
+      var recorded = SyncGenerationShadowService.record({
+        generationId: generationId,
+        legacyQueueGenerationId: clean_(queued && queued.generationId || generationId),
+        workbookYear: activeWorkbookYear_(),
+        module: moduleName,
+        queueName: clean_(queueName) || moduleName,
+        sourceType: clean_(options && options.source) || 'unknown',
+        sheetNames: (options && options.sheets || []).concat(options && options.catalogs || []),
+        gridIds: options && options.gridIds || [],
+        rowRanges: buildGenerationRowRanges_(options && options.gridIds || [], options && options.startRow, options && options.numRows),
+        months: options && options.months || queued && queued.months || [],
+        startRow: options && options.startRow,
+        numRows: options && options.numRows,
+        structural: Boolean(options && options.full),
+        fullRefresh: Boolean(options && options.full),
+        sourceCommittedAt: eventAtMillis > 0 ? new Date(eventAtMillis).toISOString() : null,
+        lastSignalAt: eventAtMillis > 0 ? new Date(eventAtMillis).toISOString() : new Date().toISOString(),
+        notBefore: Number(queued && queued.notBefore || 0) > 0
+          ? new Date(Number(queued.notBefore)).toISOString() : new Date().toISOString(),
+        sourceDataVersion: clean_(options && options.sourceDataVersion || queued && queued.reportDataVersion),
+        semanticBuildStamp: clean_(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local')
+      });
+      dispatchSyncGenerationShadow_(recorded);
+      return recorded;
+    } catch (error) {
+      console.log('sync_generation_shadow_failed: metadata publication deferred.');
+      return null;
+    }
+  }
+
+  function recordProducerGenerationShadow_(moduleName, signal) {
+    try {
+      if (typeof SyncGenerationShadowService === 'undefined' || !SyncGenerationShadowService.record) return;
+      var scopes = Array.isArray(signal && signal.scopes) ? signal.scopes : [];
+      var eventTypes = getSheetSignalEventTypes_(signal);
+      var structural = eventTypes.some(isStructuralSheetChange_);
+      var signalAtMillis = Number(signal && signal.at || 0);
+      var recorded = SyncGenerationShadowService.record({
+        generationId: clean_(signal && signal.token),
+        legacyQueueGenerationId: clean_(signal && signal.token),
+        workbookYear: activeWorkbookYear_(),
+        module: moduleName,
+        queueName: 'signal',
+        sourceType: 'sheet-trigger:' + eventTypes.join('+'),
+        sheetNames: scopes.map(function (scope) { return scope && scope.sheetName; }),
+        gridIds: scopes.map(function (scope) { return scope && scope.gridId; }),
+        rowRanges: scopes.map(function (scope) {
+          return [Number(scope && scope.gridId), Number(scope && scope.startRow), Number(scope && scope.numRows)].join(':');
+        }),
+        startRow: scopes.length === 1 ? scopes[0].startRow : null,
+        numRows: scopes.length === 1 ? scopes[0].numRows : null,
+        structural: structural,
+        fullRefresh: structural && scopes.length === 0,
+        sourceCommittedAt: signalAtMillis > 0 ? new Date(signalAtMillis).toISOString() : null,
+        lastSignalAt: signalAtMillis > 0 ? new Date(signalAtMillis).toISOString() : new Date().toISOString(),
+        notBefore: new Date((signalAtMillis > 0 ? signalAtMillis : new Date().getTime()) + TRANSPORT_REPORT_DEBOUNCE_MS).toISOString(),
+        sourceDataVersion: '',
+        semanticBuildStamp: clean_(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local')
+      });
+      dispatchSyncGenerationShadow_(recorded);
+      return recorded;
+    } catch (error) {
+      console.log('sync_generation_producer_shadow_failed');
+      return null;
+    }
+  }
+
+  function dispatchSyncGenerationShadow_(recorded) {
+    try {
+      if (typeof SyncGenerationForegroundDispatcher === 'undefined' || !SyncGenerationForegroundDispatcher.dispatchRecorded) return;
+      return SyncGenerationForegroundDispatcher.dispatchRecorded(recorded);
+    } catch (error) {
+      console.log('sync_generation_foreground_shadow_deferred');
+      return null;
+    }
+  }
+
+  function buildGenerationRowRanges_(gridIds, startRow, numRows) {
+    if (!Array.isArray(gridIds) || gridIds.length !== 1 || !Number(startRow) || !Number(numRows)) return [];
+    return [Number(gridIds[0]) + ':' + Number(startRow) + ':' + Number(numRows)];
+  }
+
+  function recordSyncTimeline_(eventName, moduleName, item, metadata, eventAt) {
+    try {
+      if (typeof SupabaseSyncTimelineRepository === 'undefined' || !SupabaseSyncTimelineRepository.upsert) return;
+      var allowedEvents = ['signal', 'queued', 'claimed', 'stage_started', 'published', 'failed'];
+      var safeEvent = clean_(eventName);
+      var safeModule = /^(transport|fund|system)$/.test(String(moduleName || '')) ? String(moduleName) : 'system';
+      var generationId = clean_(item && item.generationId).slice(0, 180);
+      if (!generationId || allowedEvents.indexOf(safeEvent) < 0) return;
+      var occurred = new Date(eventAt || new Date().toISOString());
+      if (!isFinite(occurred.getTime())) occurred = new Date();
+      var occurredAt = occurred.toISOString();
+      var stage = clean_(metadata && metadata.stage).slice(0, 180);
+      var cacheKey = clean_(metadata && metadata.cacheKey).slice(0, 180);
+      var buildStamp = clean_(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local').slice(0, 120);
+      var eventKey = [activeWorkbookYear_(), safeModule, generationId, safeEvent, occurredAt, stage, cacheKey].join(':');
+      SupabaseSyncTimelineRepository.upsert({
+        event_key: eventKey,
+        workbook_year: activeWorkbookYear_(),
+        module: safeModule,
+        generation_id: generationId,
+        event_name: safeEvent,
+        stage: stage || null,
+        cache_key: cacheKey || null,
+        event_at: occurredAt,
+        build_stamp: buildStamp
+      });
+    } catch (error) {
+      console.log('sync_timeline_failed: telemetry event deferred.');
     }
   }
 
@@ -1808,9 +2182,10 @@ var SupabaseService = (function () {
       getReportDataVersion: function () { return ReportService.getReportDataVersion(); },
       getReportCacheVersion: function () { return ReportService.getReportCacheVersion(); },
       upsertReportBundle: function (options) { return SupabaseReportCacheRepository.upsertBundle(options); },
+      buildReportBundleRow: function (options) { return SupabaseReportCacheRepository.buildBundleRow(options); },
       syncPayrollExplanations: syncPayrollExplanationMonth,
-      getDashboard: function (month, forceRefresh) {
-        return ReportService.getDashboard(month, forceRefresh);
+      getDashboard: function (month, forceRefresh, options) {
+        return ReportService.getDashboard(month, forceRefresh, options);
       },
       getReportSheet: function () {
         return SpreadsheetApp.openById(APP_CONFIG.spreadsheetId).getSheetByName('BC_TongQuan');
@@ -1857,6 +2232,7 @@ var SupabaseService = (function () {
       getProperty: function (key) { return props.getProperty(key); },
       setProperty: function (key, value) { props.setProperty(key, value); },
       deleteProperty: function (key) { props.deleteProperty(key); },
+      allowCheckpointPriorityReplan: true,
       withLock: withRefreshQueueLock_
     };
   }
@@ -1864,6 +2240,7 @@ var SupabaseService = (function () {
   function backgroundReportRefreshQueueContext_() {
     var context = manualReportRefreshQueueContext_();
     context.propertyKey = yearPropertyKey_(TRANSPORT_BACKGROUND_REFRESH_PROPERTY_KEY);
+    context.allowCheckpointPriorityReplan = false;
     return context;
   }
 
@@ -1891,6 +2268,7 @@ var SupabaseService = (function () {
     context.propertyKey = yearPropertyKey_(FUND_REFRESH_PROPERTY_KEY);
     context.debounceMs = FUND_REFRESH_DEBOUNCE_MS;
     context.retryDelayMs = FUND_REFRESH_RETRY_DELAY_MS;
+    context.allowCheckpointPriorityReplan = false;
     return context;
   }
 
@@ -2006,6 +2384,8 @@ var SupabaseService = (function () {
       deleteSheetRow: function (sheetName, rowIndex, columnsToClear, rowData) {
         return EntryService.deleteSheetRow(sheetName, rowIndex, columnsToClear, rowData);
       },
+      recordTransportWriteGeneration: recordTransportWriteGeneration_,
+      dispatchTransportWriteGeneration: dispatchSyncGenerationShadow_,
       syncTransportAfterWrite: syncTransportAfterWrite,
       syncDashboard: syncDashboard,
       syncTransportReportsAfterWrite: syncTransportReportsAfterWrite,
@@ -2271,6 +2651,8 @@ var SupabaseService = (function () {
     syncAllManageDataBundles: syncAllManageDataBundles,
     syncFullRealtimeCache: syncFullRealtimeCache,
     syncRealtimeCache: syncRealtimeCache,
+    reconcileSyncGenerationShadow: reconcileSyncGenerationShadow,
+    installSyncGenerationShadowReconciler: installSyncGenerationShadowReconciler,
     syncTripNotifications: syncTripNotifications,
     syncOperationalNotifications: syncOperationalNotifications,
     syncDailyBusinessSummary: syncDailyBusinessSummary,

@@ -187,6 +187,7 @@ Frontend phải reject bundle có payload nghiệp vụ `ok: false`; không đư
 | Form/danh mục Thu chi | `catalog_bundles` | key riêng theo year/group |
 | Trạng thái sync | `sync_status` | `sync_key`/module |
 | Trạng thái ghi | `write_jobs` | `id`, module/action, `payload.year` và server-resolved `payload.spreadsheetId` |
+| Metadata publication | `publication_invalidations` | server-only `audience + workbook_year + id`; browser chỉ nhận metadata qua SSE same-origin |
 
 ### 6.3. Đọc khoảng thời gian nhiều tháng
 
@@ -205,7 +206,7 @@ Không được giả định một bundle tháng tự chứa dữ liệu ngoài
 
 Mỗi tick notification chạy theo thứ tự: đồng bộ đối soát chuyến, đồng bộ cảnh báo vận hành, tổng hợp ngày Việt Nam liền trước từ `XL_VanChuyen`, rồi dispatch. Đối soát so bundle trước với trạng thái hiện tại để phát một sự kiện thành công khi dòng từng lệch vừa chuyển sang `Khớp`; dòng vốn đã khớp không sinh thông báo và kết quả thành công chỉ được giữ 48 giờ. ID của nhóm “Tất cả số chuyến đã khớp” được tạo từ tập sự kiện đã hồi phục và thời điểm hồi phục, không phụ thuộc ngày worker chạy lại, nên trạng thái đã đọc giữ nguyên qua nửa đêm. Lúc 12:00 trưa ngày hôm sau, push chỉ gồm số chuyến, số xe, doanh thu, chi phí dầu, lương chuyến và lợi nhuận gộp trên các dòng riêng. Lợi nhuận gộp lấy doanh thu trừ dầu và lương chuyến đúng ngày; thuế, phí đi đường, BHXH, lương cứng, thưởng tháng và Chi Quỹ thuộc báo cáo tháng nên không tham gia. Doanh thu được resolve bằng exact header trong `XL_VanChuyen`, không dùng index cột cố định. Khi thiếu dầu, lương hoặc header bắt buộc, pipeline phải nêu rõ chưa có dữ liệu, không thay bằng 0 hoặc tổng một phần.
 
-Chuông và icon PWA dùng một nghĩa duy nhất: số thông báo chưa đọc trên thiết bị. Khi app mở, client gửi số tuyệt đối cho service worker. Khi app đóng và có sự kiện nghiệp vụ mới, push chỉ cộng `unreadDelta`; daily digest giữ nguyên badge. Badge state là một con số cục bộ, tách khỏi cache nghiệp vụ và được sửa lại theo trạng thái chuông ở lần app hoạt động tiếp theo.
+Chuông và icon PWA dùng một nghĩa duy nhất: số thông báo chưa đọc trên thiết bị. Khi app mở, client gửi số tuyệt đối cùng tập ID hiện hành cho service worker, chờ ACK và retry một lần nếu cần. Khi app đóng và có sự kiện nghiệp vụ mới, push chỉ cộng ID chưa thấy; daily digest giữ nguyên badge. Badge state là dữ liệu cục bộ, tách khỏi cache nghiệp vụ và được thay thế theo trạng thái chuông ở lần app hoạt động tiếp theo.
 
 ### 6.5. Bộ lọc kỳ Tổng quan
 
@@ -339,9 +340,14 @@ sequenceDiagram
     S-->>B: accepted, jobId, status
     B-->>B: Hiển thị pending/optimistic row
     B->>S: Kick worker không chờ kết quả
+    S->>S: Worker commit exact Sheet row scope
+    S->>Q: Persist Transport generation bằng write job id
+    S->>S: Legacy cache/report sync
+    S->>Q: Request foreground dispatch; reconciler là fallback
 ```
 
 Điều kiện queue Vận tải hiện tập trung cho sheet `NL_*` và action được allowlist.
+Generation lane hiện chỉ nhận `submitRows` và các edit hẹp có exact row scope; Fund, structural, catalog, polling và internal/downstream refresh không được admission vào foreground Transport lane.
 
 ### 9.2. Pending state ở frontend
 
@@ -417,11 +423,13 @@ Khi queue Thu chi không bật:
 2. gửi `addFundTransactions`;
 3. Apps Script mở file Thu chi theo năm;
 4. tạo voucher cho từng dòng;
-5. append batch vào `NHAP_THUCHI`;
-6. copy/bảo toàn công thức cần thiết;
-7. nếu lỗi giữa batch, rollback vùng vừa ghi;
-8. sync fund overview và transaction bundles;
-9. trả spreadsheet/sheet/khoảng dòng để truy vết.
+5. validate voucher 12 chữ số và không trùng trong batch;
+6. prepare durable intent (V2 dùng hidden journal + row metadata; legacy note chỉ là compatibility trước migration);
+7. append batch vào `NHAP_THUCHI` và bảo toàn công thức cần thiết;
+8. hậu kiểm exact voucher tại vùng vừa ghi và đúng một lần trong cột A rồi mới complete intent;
+9. nếu lỗi giữa batch, rollback khi trạng thái còn xác định; drift/partial chuyển `REQUIRES_RECONCILIATION`;
+10. sync fund overview và transaction bundles;
+11. trả spreadsheet/sheet/khoảng dòng để truy vết.
 
 ### 10.2. Ghi qua queue pilot
 
@@ -662,7 +670,7 @@ Liên kết được thực hiện bằng công thức Google Sheets như `IMPOR
 - ghi Thu chi có thể gián tiếp thay đổi báo cáo Vận tải;
 - thay đổi này không nhất thiết đi qua API Vận tải;
 - cache báo cáo Vận tải có thể cần sync sau khi công thức đã cập nhật;
-- installable trigger Thu chi queue refresh báo cáo sau 30 giây với một lượt xác minh sau 2 phút; lượt đầu thường tới Supabase trong 1–2 phút, frontend revalidate mỗi 60 giây và poll 5 phút là safety net khi trigger/công thức bị trễ;
+- installable trigger Thu chi queue refresh báo cáo sau 30 giây với một lượt xác minh sau 2 phút; đường foreground đủ điều kiện phát metadata SSE sau atomic publication để UI gọi lại bundle, còn visible poll là safety net khi trigger/công thức hoặc kết nối bị trễ;
 - không được gộp hai file hoặc thay liên kết bằng copy dữ liệu nếu chưa có yêu cầu kiến trúc riêng.
 
 ## 17. Luồng bound script Thu chi

@@ -417,17 +417,21 @@ var FundService = (function () {
       if (writeContext && writeContext.jobId) {
         var intent = { transactions: safePayloads };
         var journal = FundWriteIntentRepository.find(sheet, writeContext.jobId, intent);
+        var durableContext = fundTransactionWriteContext_();
+        durableContext.repository = FundTransactionRepository;
+        durableContext.sheet = sheet;
         if (journal && journal.state === 'complete') {
           FundWriteIntentRepository.verifyRows(sheet, journal);
+          FundTransactionService.verifyNewVoucherWrite(FundWriteIntentRepository.rows(journal), journal.firstRow, durableContext);
           var replay = journal.result;
           replay.idempotentReplay = true;
           bumpFundDataVersion_();
           return replay;
         }
-        var durableContext = fundTransactionWriteContext_();
         if (!journal) {
           var vouchers = assignTransactionVouchers_(ss, sheet, safePayloads);
           var durableRows = vouchers.map(function (item, index) { return FundTransactionService.buildRow(item, '', index, durableContext); });
+          FundTransactionService.assertNewVoucherRows(durableRows, durableContext);
           journal = FundWriteIntentRepository.prepare(sheet, writeContext.jobId, intent, durableRows, { transaction: true }, getAppendRow_);
         }
         FundWriteIntentRepository.verifyRows(sheet, journal);
@@ -439,6 +443,7 @@ var FundService = (function () {
         var durableResult = { ok: true, inserted: journal.rows.length, firstRow: range.firstRow, lastRow: range.lastRow,
           spreadsheetId: ss.getId(), spreadsheetName: ss.getName(), sheetName: TRANSACTION_SHEET_NAME,
           rows: journal.rows.map(function (row, index) { return { ok: true, rowIndex: journal.firstRow + index, voucher: row[0] }; }) };
+        FundTransactionService.verifyNewVoucherWrite(FundWriteIntentRepository.rows(journal), range.firstRow, durableContext);
         FundWriteIntentRepository.complete(sheet, journal, durableResult);
         bumpFundDataVersion_();
         return durableResult;

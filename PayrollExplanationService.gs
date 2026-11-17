@@ -4,7 +4,8 @@ var PayrollExplanationService = (function () {
   var SOURCE_SHEETS = [
     'BC_BangLuong', 'XL_LuongNhanSu', 'XL_LuongTheoXe', 'NL_ChamCong',
     'NL_TaiXe', 'SYS_AggTaiXeNgay', 'DM_LuongChuyen', 'DM_DuAn', 'DM_NhanSu',
-    'DM_ThamSo', 'XL_ThuongQuanLy', 'DM_ThuongQuanLy', 'DM_LichSuNhanSu', 'SYS_AggThuongTuyen'
+    'DM_ThamSo', 'XL_ThuongQuanLy', 'DM_ThuongQuanLy', 'DM_LichSuNhanSu', 'SYS_AggThuongTuyen',
+    'SYS_AggThuongQLNhanSu'
   ];
   var TOLERANCE = 0.5;
 
@@ -28,6 +29,7 @@ var PayrollExplanationService = (function () {
     var employeeSourceRows = readOptionalRecords_(spreadsheet, 'DM_NhanSu', 1);
     var recruitmentRows = readRecords_(spreadsheet, 'DM_LichSuNhanSu', 1);
     var recruitmentTotals = readRecords_(spreadsheet, 'SYS_AggThuongTuyen', 1);
+    var managementTotals = readOptionalRecords_(spreadsheet, 'SYS_AggThuongQLNhanSu', 1);
     var managementBonusRows = readOptionalRecords_(spreadsheet, 'XL_ThuongQuanLy', 1).filter(function (record) {
       return normalizeMonth_(value_(record, ['Tháng'])) === normalizedMonth;
     });
@@ -71,6 +73,7 @@ var PayrollExplanationService = (function () {
         dailyContext: dailyContext,
         employeeSourceRows: recruitmentRows,
         recruitmentTotals: recruitmentTotals,
+        managementTotals: managementTotals,
         managementBonusRows: managementBonusRows,
         managementRuleRows: managementRuleRows,
         keyCollision: Boolean(collisions[employeeKey]),
@@ -100,6 +103,7 @@ var PayrollExplanationService = (function () {
       input.managementBonusRows,
       input.managementRuleRows,
       input.recruitmentTotals,
+      input.managementTotals,
       finalPayroll ? finalPayroll.reward : 0,
       warnings
     );
@@ -150,7 +154,7 @@ var PayrollExplanationService = (function () {
     };
   }
 
-  function buildRoleEvidence_(role, employeeKey, month, employeeRows, managementRows, ruleRows, recruitmentTotals, reportedReward, warnings) {
+  function buildRoleEvidence_(role, employeeKey, month, employeeRows, managementRows, ruleRows, recruitmentTotals, managementTotals, reportedReward, warnings) {
     var normalizedRole = normalizeText_(role);
     var isManager = normalizedRole === normalizeText_('Quản lý');
     var isRecruiter = normalizedRole === normalizeText_('Người tuyển');
@@ -166,16 +170,25 @@ var PayrollExplanationService = (function () {
     }).filter(function (rule) { return rule.code || rule.condition || rule.amount; });
 
     var managerRows = managementRows.map(function (record) {
+      var managementBonusBeforeInheritance = number_(value_(record, ['Tổng thưởng', 'Tổng thưởng mốc QL', 'Tổng thưởng quản lý']));
+      var inheritedValue = value_(record, ['Thưởng sau kế thừa', 'Tổng thưởng sau kế thừa', 'Thưởng quản lý sau kế thừa']);
+      var managementBonus = inheritedValue === '' || inheritedValue === null
+        ? managementBonusBeforeInheritance
+        : number_(inheritedValue);
       return {
         vehicle: clean_(value_(record, ['Biển số xe', 'Biển số'])),
         project: clean_(value_(record, ['Dự án', 'Nhóm vận hành'])),
         totalTrips: number_(value_(record, ['Tổng chuyến'])),
         recruitmentBonus: number_(value_(record, ['Thưởng tuyển lái'])),
-        milestone112: number_(value_(record, ['Mốc 0-112', 'Thưởng mốc 0-112', 'Thưởng mốc 112'])),
-        milestone140: number_(value_(record, ['Mốc 113-140', 'Thưởng mốc 113-140', 'Thưởng mốc 140'])),
-        milestone168: number_(value_(record, ['Mốc 141-168', 'Thưởng mốc 141-168', 'Thưởng mốc 168'])),
-        managementBonus: number_(value_(record, ['Tổng thưởng', 'Tổng thưởng mốc QL', 'Tổng thưởng quản lý'])),
-        managementDays: number_(value_(record, ['Tổng ngày QL', 'Tổng ngày quản lý']))
+        milestone112: number_(value_(record, ['Bậc thưởng 1', 'Mốc 0-112', 'Thưởng mốc 0-112', 'Thưởng mốc 112'])),
+        milestone140: number_(value_(record, ['Bậc thưởng 2', 'Mốc 113-140', 'Thưởng mốc 113-140', 'Thưởng mốc 140'])),
+        milestone168: number_(value_(record, ['Bậc thưởng 3', 'Mốc 141-168', 'Thưởng mốc 141-168', 'Thưởng mốc 168'])),
+        managementBonusBeforeInheritance: managementBonusBeforeInheritance,
+        inheritanceAdjustment: managementBonus - managementBonusBeforeInheritance,
+        managementBonus: managementBonus,
+        managementDays: value_(record, ['Tổng ngày QL', 'Tổng ngày quản lý']) === ''
+          ? null
+          : number_(value_(record, ['Tổng ngày QL', 'Tổng ngày quản lý']))
       };
     }).filter(function (row) {
       return row.vehicle || row.totalTrips || row.recruitmentBonus || row.managementBonus;
@@ -193,10 +206,19 @@ var PayrollExplanationService = (function () {
     recruitedPeople = recruitedPeople.map(function (row) { delete row.rawBonus; return row; });
     if (!isManager && !isRecruiter && !recruitedPeople.length) return null;
     var managementBonusTotal = managerRows.reduce(function (sum, row) { return sum + row.managementBonus; }, 0);
+    var managementBonusBeforeInheritanceTotal = managerRows.reduce(function (sum, row) { return sum + row.managementBonusBeforeInheritance; }, 0);
+    var inheritanceAdjustmentTotal = managementBonusTotal - managementBonusBeforeInheritanceTotal;
+    var authoritativeManagement = managementTotals.filter(function (record) {
+      return normalizeMonth_(value_(record, ['Tháng'])) === month && employeeKey_(value_(record, ['Quản lý', 'Nhân sự'])) === employeeKey;
+    });
+    if (isManager && (authoritativeManagement.length > 1 || (authoritativeManagement.length === 1 &&
+        Math.abs(number_(value_(authoritativeManagement[0], ['Thưởng quản lý'])) - managementBonusTotal) > TOLERANCE))) {
+      warnings.push('Thưởng quản lý sau kế thừa chưa khớp SYS_AggThuongQLNhanSu.');
+    }
     var explainedRewardTotal = managementBonusTotal + recruitmentBonusTotal;
     if (isManager && reportedReward && !managerRows.length) warnings.push('Thiếu dữ liệu XL_ThuongQuanLy để giải thích thưởng quản lý.');
     if (isManager && Math.abs(number_(reportedReward) - explainedRewardTotal) > TOLERANCE) {
-      warnings.push('Thưởng quản lý trên bảng lương chưa khớp tổng thưởng KPI xe và tuyển người: ' + (number_(reportedReward) - explainedRewardTotal) + '.');
+      warnings.push('Thưởng quản lý trên bảng lương chưa khớp tổng thưởng KPI sau kế thừa và tuyển người: ' + (number_(reportedReward) - explainedRewardTotal) + '.');
     }
     if (isRecruiter && reportedReward && !recruitedPeople.length && !recruitmentBonusTotal) warnings.push('Thiếu dữ liệu tuyển dụng để giải thích thưởng người tuyển.');
     if (isRecruiter && Math.abs(number_(reportedReward) - recruitmentBonusTotal) > TOLERANCE) {
@@ -206,6 +228,8 @@ var PayrollExplanationService = (function () {
     return {
       kind: isManager ? 'manager' : (isRecruiter ? 'recruiter' : 'employee'),
       reportedReward: number_(reportedReward),
+      managementBonusBeforeInheritanceTotal: managementBonusBeforeInheritanceTotal,
+      inheritanceAdjustmentTotal: inheritanceAdjustmentTotal,
       managementBonusTotal: managementBonusTotal,
       recruitmentBonusTotal: recruitmentBonusTotal,
       explainedRewardTotal: explainedForRole,
@@ -218,7 +242,7 @@ var PayrollExplanationService = (function () {
         daysInMonth: bounds.end.getDate(),
         roundingUnit: 1000
       },
-      source: isManager ? 'XL_ThuongQuanLy + DM_ThuongQuanLy + DM_LichSuNhanSu + SYS_AggThuongTuyen' : 'DM_LichSuNhanSu + SYS_AggThuongTuyen'
+      source: isManager ? 'XL_ThuongQuanLy + SYS_AggThuongQLNhanSu + DM_ThuongQuanLy + DM_LichSuNhanSu + SYS_AggThuongTuyen' : 'DM_LichSuNhanSu + SYS_AggThuongTuyen'
     };
   }
 

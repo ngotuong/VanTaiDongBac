@@ -40,7 +40,7 @@ function createNotificationDispatchService({ centerService, fundAlertService, de
       const device = crypto.createHash('sha256').update(row.endpoint).digest('hex').slice(0, 40);
       const keys = eventKeys.map((key) => `${key}:device:${device}`);
       const completed = new Set((keys.length ? await deliveryRepository.list(config, keys) : [])
-        .filter((state) => ['sent', 'expired'].includes(state.last_result)).map((state) => state.rule_key));
+        .filter((state) => state.condition_active !== false && ['sent', 'expired'].includes(state.last_result)).map((state) => state.rule_key));
       if (keys.length && keys.every((key) => completed.has(key))) continue;
       const pendingKeys = keys.filter((key) => !completed.has(key));
       const pendingEvents = events?.filter((_item, index) => !completed.has(keys[index]));
@@ -75,8 +75,13 @@ function createNotificationDispatchService({ centerService, fundAlertService, de
     // Fund delivery owns its configured cooldown and per-device reservations.
     items = items.filter((item) => item.notificationKey !== 'fund-low-balance');
     const keys = items.flatMap(itemEventKeys);
-    const existing = new Set((await deliveryRepository.list(config, keys)).map((row) => row.rule_key));
-    const fresh = items.filter((item) => CHANNELS[item.notificationKey] && !itemEventKeys(item).some((key) => existing.has(key)));
+    const existingRows = await deliveryRepository.list(config, keys);
+    const existing = new Set(existingRows.filter((row) => row.condition_active !== false).map((row) => row.rule_key));
+    const existingByKey = new Map(existingRows.map((row) => [row.rule_key, row]));
+    const fresh = items.filter((item) => CHANNELS[item.notificationKey] && !itemEventKeys(item).some((key) => existing.has(key)))
+      .map((item) => existingByKey.get(`notification-event:${item.id}`)?.condition_active === false
+        ? { ...item, badgeId: `${item.id}:${currentIso}` }
+        : item);
     const migratedRows = items
       .filter((item) => !existing.has(`notification-event:${item.id}`) && itemEventKeys(item).slice(1).some((key) => existing.has(key)))
       .map((item) => stateRow(`notification-event:${item.id}`, 'migrated-stable-id', currentIso, false));
@@ -100,12 +105,30 @@ function createNotificationDispatchService({ centerService, fundAlertService, de
     await deliveryRepository.upsert(config, stateRows);
     return { newItemCount: fresh.length, channels: results };
   }
+  async function reconcileResolvedEvents(config, items, currentIso) {
+    if (typeof deliveryRepository.listByPrefix !== 'function') return;
+    const activeKeys = new Set(items.flatMap(itemEventKeys));
+    const rows = await deliveryRepository.listByPrefix(config, 'notification-event:');
+    const resolved = rows.filter((row) => {
+      if (row.condition_active === false) return false;
+      const baseKey = String(row.rule_key || '').split(':device:')[0];
+      return !activeKeys.has(baseKey);
+    }).map((row) => ({
+      rule_key: row.rule_key,
+      condition_active: false,
+      last_evaluated_at: currentIso,
+      last_sent_at: row.last_sent_at || null,
+      last_result: 'resolved',
+      updated_at: currentIso
+    }));
+    await deliveryRepository.upsert(config, resolved);
+  }
   function immediatePayload(channelKey, group) {
     const first = group[0];
     const body = group.length === 1 ? first.message : channelKey === 'trip-reconciliation'
       ? `Có ${group.length} cập nhật đối soát mới. Mở ứng dụng để xem chi tiết.`
       : `Có ${group.length} cảnh báo mới. Mở ứng dụng để xem chi tiết.`;
-    return { title: CHANNELS[channelKey].title, body, tag: `vtdb-${channelKey}`, url: notificationCenterTarget(group.length === 1 ? first.id : ''), notificationId: group.length === 1 ? first.id : '', badgeIds: group.map((item) => item.id), unreadDelta: group.length };
+    return { title: CHANNELS[channelKey].title, body, tag: `vtdb-${channelKey}`, url: notificationCenterTarget(group.length === 1 ? first.id : ''), notificationId: group.length === 1 ? first.id : '', badgeIds: group.map((item) => item.badgeId || item.id), unreadDelta: group.length };
   }
   function formatNumber(value, maximumFractionDigits = 0) {
     return Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits });
@@ -146,6 +169,7 @@ function createNotificationDispatchService({ centerService, fundAlertService, de
     }
     const initialized = await baseline(config, items, currentIso);
     if (initialized) return initialized;
+    await reconcileResolvedEvents(config, items, currentIso);
     if (items.some((item) => item.notificationKey === 'fund-low-balance') && !fundAlertService) throw httpError(503, 'Chưa cấu hình bộ gửi cảnh báo Quỹ.');
     return { immediate: await sendImmediate(config, items, currentIso), fund: await fundAlertService?.dispatch(config), digest: await sendDigest(config, items, center.dailySummary, currentTime, currentIso, forceDigest) };
   }

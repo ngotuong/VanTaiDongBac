@@ -13,6 +13,11 @@ const REALTIME_WORKER_DEPENDENCIES = new Set([
   'operational_notifications',
   'notification_pipeline'
 ]);
+const NOTIFICATION_RECOVERY_BUNDLES = Object.freeze({
+  trip_notifications: ['trip'],
+  operational_notifications: ['operations'],
+  notification_pipeline: ['trip', 'operations', 'dailySummary']
+});
 const SYSTEM_FAILURE_LOOKBACK_MINUTES = 24 * 60;
 const DAILY_ACTUAL_CASH_EXCLUDED_CATEGORIES = new Set([
   'gop quy',
@@ -85,6 +90,16 @@ function hasNewerRecoveryEvidence(row, syncStatuses) {
   });
 }
 
+function hasNewerNotificationRecoveryEvidence(row, snapshot) {
+  const bundleKeys = NOTIFICATION_RECOVERY_BUNDLES[String(row?.sync_key || '')];
+  const staleAt = statusUpdatedAt(row);
+  if (!bundleKeys || !staleAt) return false;
+  return bundleKeys.every((key) => {
+    const recoveredAt = statusUpdatedAt(snapshot?.[key]);
+    return recoveredAt && recoveredAt.getTime() > staleAt.getTime();
+  });
+}
+
 function createNotificationCenterService({ repository, workbookContextService, httpError, send, now = () => new Date() }) {
   function handles(action) { return action === 'getNotifications'; }
   function safeItems(row) { return Array.isArray(row?.payload?.items) ? row.payload.items : []; }
@@ -94,6 +109,10 @@ function createNotificationCenterService({ repository, workbookContextService, h
   }
   function id(prefix, ...parts) {
     return crypto.createHash('sha256').update([prefix, ...parts].join('|')).digest('hex').slice(0, 32);
+  }
+  function syncHealthIdentity(row, stale) {
+    const status = String(row?.status || '').toLowerCase() || 'error';
+    return id('sync-health', row?.sync_key, stale ? 'stale' : status);
   }
   function fundItem(fund, currentTime) {
     const rule = fund?.rule;
@@ -179,9 +198,43 @@ function createNotificationCenterService({ repository, workbookContextService, h
       return `${source} · Trạng thái: vẫn đang lỗi (${Math.max(0, Math.floor(ageMinutes))} phút trước). Thông báo sẽ tự mất khi lượt đồng bộ kế tiếp thành công.`;
     };
 
-    if (workerStale) {
+    const staleNotificationDependencies = workerStale ? [] : syncStatuses.filter((row) => {
+      if (!REALTIME_WORKER_DEPENDENCIES.has(row.sync_key)) return false;
+      const status = String(row.status || '').toLowerCase();
+      const updated = statusUpdatedAt(row);
+      const ageMinutes = updated ? (currentTime.getTime() - updated.getTime()) / 60000 : Infinity;
+      const expiredFailure = status !== 'ok' && ageMinutes > SYSTEM_FAILURE_LOOKBACK_MINUTES;
+      const stale = status === 'ok' || expiredFailure;
+      return stale
+        && ageMinutes > CRITICAL_SYNC_KEYS.get(row.sync_key)
+        && !hasNewerNotificationRecoveryEvidence(row, snapshot);
+    });
+    const collapseNotificationDependencies = staleNotificationDependencies.length > 1;
+
+    if (collapseNotificationDependencies) {
+      const oldestAgeMinutes = Math.max(...staleNotificationDependencies.map((row) => {
+        const updated = statusUpdatedAt(row);
+        return updated ? (currentTime.getTime() - updated.getTime()) / 60000 : Infinity;
+      }));
+      const latestUpdatedAt = staleNotificationDependencies
+        .map(statusUpdatedAt)
+        .filter(Boolean)
+        .sort((left, right) => right.getTime() - left.getTime())[0];
       result.push({
-        id: id('sync-health', 'realtime-cache-worker', worker.updated_at || worker.synced_at, 'stale'),
+        id: id('sync-health', 'notification-subsystem', 'stale'),
+        legacyIds: staleNotificationDependencies.map((row) => syncHealthIdentity(row, true)),
+        type: 'sync-stale', notificationKey: 'system-health', severity: 'warning',
+        title: 'Hệ thống thông báo cập nhật chậm',
+        message: `Các tác vụ thông báo chưa hoàn tất trong ${Math.floor(oldestAgeMinutes)} phút. Dữ liệu chính vẫn đang đồng bộ; cảnh báo sẽ tự mất khi nhánh thông báo hoàn tất.`,
+        date: isoDate(latestUpdatedAt, currentTime), url: '/observability/'
+      });
+    }
+
+    if (workerStale) {
+      const stableId = id('sync-health', 'realtime-cache-worker', 'stale');
+      result.push({
+        id: stableId,
+        legacyIds: [id('sync-health', 'realtime-cache-worker', worker.updated_at || worker.synced_at, 'stale')],
         type: 'sync-stale', notificationKey: 'system-health', severity: 'error',
         title: watchdogAuthorizationRequired
           ? 'Đồng bộ cần được cấp lại quyền'
@@ -204,8 +257,10 @@ function createNotificationCenterService({ repository, workbookContextService, h
       if (workerStale && row.sync_key === 'realtime_cache_worker') continue;
       if (workerStale && REALTIME_WORKER_DEPENDENCIES.has(row.sync_key) && ageMinutes > maxAge) continue;
       if (workerStale && row.sync_key === 'external_sync_watchdog') continue;
+      if (collapseNotificationDependencies && staleNotificationDependencies.includes(row)) continue;
       if (status === 'ok' && (!maxAge || ageMinutes <= maxAge)) continue;
       if (status === 'ok' && maxAge && ageMinutes <= maxAge) continue;
+      if (hasNewerNotificationRecoveryEvidence(row, snapshot)) continue;
       if (status !== 'ok' && hasNewerRecoveryEvidence(row, syncStatuses)) continue;
       const expiredFailure = status !== 'ok' && ageMinutes > SYSTEM_FAILURE_LOOKBACK_MINUTES;
       if (expiredFailure && !maxAge) continue;
@@ -213,8 +268,10 @@ function createNotificationCenterService({ repository, workbookContextService, h
       const externalWatchdogFailure = row.sync_key === 'external_sync_watchdog' && status !== 'ok';
       const externalWatchdogAuthorizationRequired = externalWatchdogFailure && status === 'authorization_required';
       const externalWatchdogDeploymentAccessDenied = externalWatchdogFailure && status === 'deployment_access_denied';
+      const stableId = syncHealthIdentity(row, stale);
       result.push({
-        id: id('sync-health', row.sync_key, row.status, row.updated_at, stale ? 'stale' : row.message),
+        id: stableId,
+        legacyIds: [id('sync-health', row.sync_key, row.status, row.updated_at, stale ? 'stale' : row.message)],
         type: stale ? 'sync-stale' : 'sync-failure', notificationKey: 'system-health', severity: 'error',
         title: externalWatchdogAuthorizationRequired
           ? 'Đồng bộ cần được cấp lại quyền'
@@ -235,8 +292,10 @@ function createNotificationCenterService({ repository, workbookContextService, h
       const ageMinutes = Number.isNaN(updated.getTime()) ? Infinity : (currentTime.getTime() - updated.getTime()) / 60000;
       const stuck = job.status === 'processing' ? ageMinutes > 10 : job.status === 'pending' ? ageMinutes > 15 : true;
       if (!stuck) continue;
+      const stableId = id('write-job', job.id, job.status);
       result.push({
-        id: id('write-job', job.id, job.status, job.attempts, job.last_error),
+        id: stableId,
+        legacyIds: [id('write-job', job.id, job.status, job.attempts, job.last_error)],
         type: 'write-failure', notificationKey: 'system-health', severity: 'error',
         title: job.status === 'failed' ? 'Thao tác ghi dữ liệu thất bại' : 'Thao tác ghi dữ liệu đang bị treo',
         message: `${job.module} · ${job.action}${job.last_error ? `: ${String(job.last_error).slice(0, 140)}` : '.'}`,
@@ -282,4 +341,4 @@ function createNotificationCenterService({ repository, workbookContextService, h
   return { handles, handle, list };
 }
 
-module.exports = { createNotificationCenterService, CRITICAL_SYNC_KEYS, SYSTEM_FAILURE_LOOKBACK_MINUTES, DAILY_ACTUAL_CASH_EXCLUDED_CATEGORIES, syncSourceLabel, syncKeyBelongsToYear, hasNewerRecoveryEvidence };
+module.exports = { createNotificationCenterService, CRITICAL_SYNC_KEYS, SYSTEM_FAILURE_LOOKBACK_MINUTES, DAILY_ACTUAL_CASH_EXCLUDED_CATEGORIES, syncSourceLabel, syncKeyBelongsToYear, hasNewerRecoveryEvidence, hasNewerNotificationRecoveryEvidence };

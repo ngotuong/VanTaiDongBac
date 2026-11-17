@@ -667,6 +667,14 @@ Handler Phase 5:
 
 Frontend Report luôn gọi public API cho action này; không còn đọc `report_bundles` trực tiếp từ browser. Dashboard không thuộc cutover này và vẫn giữ loader/cache path cũ.
 
+### 8.5. Publication metadata SSE
+
+```text
+GET /publication-events/?year=<YYYY>&after=<PUBLICATION_ID>
+```
+
+Route Next same-origin yêu cầu HttpOnly session hợp lệ, resolve năm qua workbook registry và đọc `publication_invalidations` bằng service role. Response `text/event-stream` chỉ chứa `id`, năm, tháng, generation/version/cache version và `publishedAt`; không chứa Spreadsheet ID, payload báo cáo, giá trị Sheet, user hoặc credential. Dashboard/Báo cáo nhận event rồi gọi lại loader same-origin tương ứng với `cache: no-store`. Trình duyệt không có quyền trực tiếp trên `publication_invalidations`, `sync_generations` hoặc `report_bundles`; poll visible hiện hành giữ vai trò safety net.
+
 Response logic:
 
 ```json
@@ -781,7 +789,9 @@ Behavior:
 - validate form/action được queue;
 - enqueue `transport/submitRows` khi queue configuration cho phép;
 - worker gọi `EntryService.submitRows()`; compatibility adapter `SheetService.submitRows()` truyền spreadsheet/config/write callbacks về implementation trong `EntryService`;
+- sau exact Sheet commit, worker lấy `sheetName/gridId/startRow/inserted` từ kết quả ghi và persist một generation Vận tải dùng chính `write_jobs.id`; generation không phụ thuộc installable `onEdit` vì Apps Script programmatic write không phát sự kiện đó;
 - sync manage cache và report/dashboard liên quan sau ghi.
+- chỉ sau legacy sync worker mới thử direct dispatch generation; nếu dispatch đánh thức thất bại, generation đã bền được reconciler reclaim. Khi generation flag bật mà exact committed row scope không tồn tại, job fail-closed để replay qua journal thay vì ACK giả.
 
 Response queued logic:
 
@@ -801,6 +811,7 @@ Worker result sau synced có thể chứa:
 - `firstRow`, `lastRow`;
 - sheet/spreadsheet metadata;
 - warning/error theo validation.
+- kết quả đánh thức generation metadata; đây không thay trạng thái `synced` hoặc read model nghiệp vụ.
 
 Lưu ý: global wrapper `submitRows()` ngoài `invokeApi()` vẫn tồn tại và có đường direct service; contract frontend production đi qua `invokeApi()`.
 

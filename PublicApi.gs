@@ -298,6 +298,14 @@ function syncRealtimeCache() {
   return SupabaseService.syncRealtimeCache();
 }
 
+function reconcileSyncGenerationShadow() {
+  return SupabaseService.reconcileSyncGenerationShadow();
+}
+
+function installSyncGenerationShadowReconciler() {
+  return SupabaseService.installSyncGenerationShadowReconciler();
+}
+
 function getPendingTransportReportRefresh() {
   return SupabaseService.getPendingTransportReportRefresh();
 }

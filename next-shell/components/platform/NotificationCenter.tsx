@@ -142,12 +142,29 @@ async function updateAppBadge(count: number, notificationIds: string[]) {
   } catch {
     // The in-app badge remains available when the platform or permission blocks OS badging.
   }
-  try {
-    const registration = await window.navigator.serviceWorker?.getRegistration();
-    registration?.active?.postMessage({ type: 'SET_APP_BADGE', count, notificationIds });
-  } catch {
-    // Service-worker badge sync is a best-effort fallback.
-  }
+  if (!window.navigator.serviceWorker) return;
+  const requestId = `badge-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const sendWithAck = async () => new Promise<boolean>(async (resolve) => {
+    let timer = 0;
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type !== 'APP_BADGE_SET' || event.data?.requestId !== requestId) return;
+      window.clearTimeout(timer);
+      window.navigator.serviceWorker.removeEventListener('message', onMessage);
+      resolve(true);
+    };
+    window.navigator.serviceWorker.addEventListener('message', onMessage);
+    try {
+      const registration = await window.navigator.serviceWorker.ready;
+      const target = window.navigator.serviceWorker.controller || registration.active;
+      target?.postMessage({ type: 'SET_APP_BADGE', requestId, count, notificationIds });
+    } catch {}
+    timer = window.setTimeout(() => {
+      window.navigator.serviceWorker.removeEventListener('message', onMessage);
+      resolve(false);
+    }, 900);
+  });
+  if (await sendWithAck()) return;
+  await sendWithAck();
 }
 
 export function NotificationCenter({ userId }: { userId: string }) {

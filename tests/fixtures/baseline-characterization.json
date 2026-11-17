@@ -24,6 +24,7 @@
       "SheetWritePreserver.gs",
       "SupabaseService.gs",
       "SupabaseReportCacheRepository.gs",
+      "SupabaseSyncTimelineRepository.gs",
       "TransportReconciliationService.gs",
       "ValidationService.gs"
     ],
@@ -190,6 +191,7 @@
     ],
     "operationalTables": [
       "sync_status",
+      "sync_timeline_events",
       "write_job_logs",
       "write_jobs"
     ],

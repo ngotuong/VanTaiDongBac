@@ -21,7 +21,8 @@ Contract này chỉ tạo lớp **bằng chứng đọc và đối chiếu**:
 | `XL_LuongTheoXe` | Output lương chuyến theo xe; schema hiện hành có thể gộp cả hai kiểu ngày thành một dòng `HỖN_HỢP` với `Đơn giá` rỗng |
 | `NL_ChamCong` | Nguồn nghỉ phép/ngày công chính thức |
 | `NL_NghiVanHanh` | Chỉ là nguồn điều chỉnh KPI/chỉ tiêu vận hành gián tiếp qua `XL_LuongTheoXe` |
-| `XL_ThuongQuanLy` | Bằng chứng thưởng tuyển lái và các mốc KPI quản lý theo từng xe/tháng |
+| `XL_ThuongQuanLy` | Bằng chứng các bậc KPI, thưởng gốc và thưởng sau kế thừa theo từng xe–dự án/tháng |
+| `SYS_AggThuongQLNhanSu` | Tổng thưởng quản lý sau kế thừa theo nhân sự/tháng để đối chiếu |
 | `DM_ThuongQuanLy` | Mã, điều kiện, mức thưởng và khoảng hiệu lực của quy tắc quản lý/tuyển dụng |
 | `DM_NhanSu` | Người tuyển, nhân sự được tuyển, ngày vào và khoảng `Tính thưởng`–`Dừng thưởng` |
 
@@ -81,8 +82,9 @@ Không trả raw row index, Spreadsheet ID, secret hoặc dữ liệu của nhâ
 ## 6. Đồng bộ và invalidation
 
 - `PayrollExplanationSyncService.syncMonth()` đọc workbook bằng `SpreadsheetApp.openById(id)` rồi upsert bundle.
-- Đồng bộ tháng được gọi cùng report sync của tháng đó. Report tháng chỉ được publish sau khi giải trình cùng `source_data_version` thành công; lỗi giải trình được ghi `sync_status`, làm lượt report sync thất bại và được queue retry, nhưng không làm thay đổi dữ liệu Sheet.
-- Report sync bắt đầu batch trước khi đọc, khóa nhãn version cho report/v6 và kiểm tra version trước đọc, sau dựng report và sau dựng/lưu v6. Version đổi giữa chừng → không publish report, queue retry; đây là kiểm tra phiên bản đã quan sát, không bảo đảm snapshot transaction cho mọi chỉnh sửa Sheet/công thức chưa được trigger phát hiện.
+- Luồng report thường/manual đồng bộ giải trình cùng tháng và chỉ publish report sau khi v6 cùng `source_data_version` thành công. Lỗi giải trình được ghi `sync_status`, làm lượt manual sync thất bại và được queue retry, nhưng không làm thay đổi dữ liệu Sheet.
+- Fast publication của scoped human edit là ngoại lệ có chủ đích: Dashboard và report tháng được dựng trên cùng `source_data_version`, kiểm version trước/sau rồi upsert trong một batch `report_bundles`; không chờ build giải trình. Khi report version mới hơn v6, API bắt buộc trả `stale`, ẩn payload cũ và client admin/operator enqueue `requestPayrollExplanationRefresh` đúng một lần. Vì vậy giải trình có thể hội tụ sau read model chính nhưng không bao giờ được hiển thị lệch version.
+- Report sync khóa nhãn version cho report/v6 và kiểm tra version trước đọc, sau dựng report và sau dựng/lưu v6. Publication pair cũng kiểm version trước batch hai row. Version đổi giữa chừng → không publish batch hoặc không publish report manual, queue retry; đây là kiểm tra phiên bản đã quan sát, không bảo đảm snapshot transaction cho mọi chỉnh sửa Sheet/công thức chưa được trigger phát hiện.
 - Bundle không phải source of truth. Service phải build trọn bộ bundle mới trước, sau đó mới đánh dấu bundle cũ của tháng `is_current=false` và upsert bản mới. Lỗi đọc/build giữ nguyên bản gần nhất để phục hồi, trong khi API vẫn fail-closed nhờ so version với report hiện hành.
 - Fingerprint nguồn đầy đủ giữ chu kỳ 5 phút; fingerprint output Báo cáo nhỏ gọn chạy mỗi phút để sớm xếp hàng lại tháng có công thức vừa thay đổi.
 - API chỉ trả bundle đúng workbook, tháng và nhân sự được yêu cầu.
@@ -108,7 +110,7 @@ Không trả raw row index, Spreadsheet ID, secret hoặc dữ liệu của nhâ
 - Bảng giải trình dùng cột nội dung vừa đủ, padding 6×8px và cuộn ngang cục bộ. Trạng thái khớp hiển thị tick xanh có accessible label; trạng thái sai vẫn có text `Cần kiểm tra`.
 - Drawer chỉ có một header gồm tên nhân sự, kỳ, trạng thái và thao tác xuất ảnh/đóng. Trạng thái `Đã khớp` chỉ hiển thị tick xanh cạnh tên; không lặp lại thành một card trạng thái riêng. Trên mobile có tay nắm vuốt xuống để đóng; gesture chỉ bắt đầu từ tay nắm và không chiếm cuộn dọc hoặc cuộn ngang của bảng.
 - Ảnh xuất giữ trạng thái đóng/mở hiện tại của các khối kỹ thuật; không tự bung `Xem cách tính chi tiết` hoặc `Kiểm tra dữ liệu nguồn`, tránh tạo ảnh dài ngoài ý muốn.
-- Quản lý phải thấy KPI theo từng xe–dự án, số chuyến, mốc 112/140/168, tổng thưởng và ngày quản lý. Khi một biển số có nhiều dự án, UI nhóm chung dưới biển số nhưng giữ nguyên từng dòng dự án; phép tính vẫn lấy nguyên output `XL_ThuongQuanLy`, không cộng chuyến để tự chọn lại mốc thưởng ở frontend. Đồng thời phải thấy riêng người được tuyển, số ngày hiệu lực và tiền thưởng tuyển. Người tuyển chỉ thấy những người thực sự tạo thưởng trong tháng, số ngày, tiền thưởng, kỳ tính và công ty. Hai chức vụ này dùng view thưởng rút gọn. Nhân sự ở chức vụ khác vẫn giữ đầy đủ lương chuyến, lương cứng/khoán, nghỉ phép và nhận thêm khối thưởng tuyển nếu có dữ liệu. Webapp chỉ đọc dữ liệu nguồn, không ghi hoặc thay công thức Sheet.
+- Quản lý phải thấy KPI theo từng xe–dự án, số chuyến, ba bậc thưởng theo quy tắc hiệu lực của dự án, thưởng gốc, điều chỉnh kế thừa, thưởng sau kế thừa và ngày quản lý nếu nguồn có cột này. `XL_ThuongQuanLy.Thưởng sau kế thừa` là số KPI có thẩm quyền để đối chiếu lương; tổng này phải khớp `SYS_AggThuongQLNhanSu.Thưởng quản lý` khi nguồn tổng hợp tồn tại. Khi một biển số có nhiều dự án, UI nhóm chung dưới biển số nhưng giữ nguyên từng dòng dự án; phép tính vẫn lấy nguyên output `XL_ThuongQuanLy`, không cộng chuyến để tự chọn lại mốc thưởng ở frontend. Đồng thời phải thấy riêng người được tuyển, số ngày hiệu lực và tiền thưởng tuyển. Người tuyển chỉ thấy những người thực sự tạo thưởng trong tháng, số ngày, tiền thưởng, kỳ tính và công ty. Hai chức vụ này dùng view thưởng rút gọn. Nhân sự ở chức vụ khác vẫn giữ đầy đủ lương chuyến, lương cứng/khoán, nghỉ phép và nhận thêm khối thưởng tuyển nếu có dữ liệu. Webapp chỉ đọc dữ liệu nguồn, không ghi hoặc thay công thức Sheet.
 
 ## 9. Step D-A — Contract giải trình lương hỗn hợp theo ngày
 

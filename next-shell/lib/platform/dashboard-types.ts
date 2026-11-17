@@ -21,5 +21,10 @@ export type DashboardBundle = {
   partial?: boolean;
   supabaseCached?: boolean;
   supabaseSyncedAt?: string;
+  supabaseGenerationId?: string;
+  supabaseSourceDataVersion?: string;
+  supabaseCacheVersion?: string;
+  supabasePublishedAt?: string;
+  supabasePublicationId?: number;
 };
 export type DashboardDataResponse = { dashboard: DashboardBundle };

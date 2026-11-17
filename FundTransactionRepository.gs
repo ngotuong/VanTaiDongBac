@@ -69,6 +69,42 @@ var FundTransactionRepository = (function () {
     return found;
   }
 
+  function assertUniqueVoucherOccurrences(sheet, vouchers, clean) {
+    var expected = (vouchers || []).map(function (voucher) { return clean(voucher); });
+    var seen = {};
+    expected.forEach(function (voucher) {
+      if (!/^\d{12}$/.test(voucher)) {
+        throw new Error('Số phiếu phải đủ 12 chữ số: ' + (voucher || '(trống)') + '.');
+      }
+      if (seen[voucher]) throw new Error('Batch Thu chi có Số phiếu trùng: ' + voucher + '.');
+      seen[voucher] = true;
+    });
+    if (!expected.length) throw new Error('Không có Số phiếu để hậu kiểm.');
+    var counts = {};
+    var lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      sheet.getRange(2, 1, lastRow - 1, 1).getDisplayValues().forEach(function (row) {
+        var voucher = clean(row[0]);
+        if (seen[voucher]) counts[voucher] = (counts[voucher] || 0) + 1;
+      });
+    }
+    expected.forEach(function (voucher) {
+      if (counts[voucher] !== 1) {
+        throw new Error('REQUIRES_RECONCILIATION: Số phiếu ' + voucher + ' xuất hiện ' + (counts[voucher] || 0) + ' lần sau khi ghi.');
+      }
+    });
+    return true;
+  }
+
+  function assertUniqueVoucherRows(sheet, rows, firstRow, clean) {
+    var expected = (rows || []).map(function (row) { return clean(row && row[0]); });
+    var actual = sheet.getRange(firstRow, 1, expected.length, 1).getDisplayValues().map(function (row) { return clean(row[0]); });
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+      throw new Error('REQUIRES_RECONCILIATION: Số phiếu tại vùng vừa ghi đã thay đổi; dừng hoàn tất giao dịch.');
+    }
+    return assertUniqueVoucherOccurrences(sheet, expected, clean);
+  }
+
   function appendRows(sheet, rows, options) {
     var appendRow = options.reservedRow || options.getAppendRow(sheet);
     var lastRow = appendRow + rows.length - 1;
@@ -124,6 +160,7 @@ var FundTransactionRepository = (function () {
 
   function literal_(value) { return typeof value === 'string' && /^\s*=/.test(value) ? "'" + value : value; }
 
-  return { getColumns: getColumns, readSnapshot: readSnapshot, findVoucherRows: findVoucherRows, appendRows: appendRows,
+  return { getColumns: getColumns, readSnapshot: readSnapshot, findVoucherRows: findVoucherRows,
+    assertUniqueVoucherOccurrences: assertUniqueVoucherOccurrences, assertUniqueVoucherRows: assertUniqueVoucherRows, appendRows: appendRows,
     rollbackRows: rollbackRows, readRow: readRow, updateRow: updateRow, clearRow: clearRow };
 })();

@@ -81,7 +81,8 @@ test('Supabase tables and stable cache/job keys remain represented in runtime an
     read('FundSyncService.gs'),
     read('WriteJobRepository.gs'),
     read('SupabaseBundleRepository.gs'),
-    read('SupabaseSyncStatusRepository.gs')
+    read('SupabaseSyncStatusRepository.gs'),
+    read('SupabaseSyncTimelineRepository.gs')
   ].join('\n');
   const migrations = fs.readdirSync(path.join(root, 'supabase', 'migrations'))
     .filter((file) => file.endsWith('.sql'))

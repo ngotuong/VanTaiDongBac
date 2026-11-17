@@ -4,7 +4,7 @@ function createReportBundleRepository({ fetchImpl = fetch, httpError }) {
   async function findLatest(config, month, spreadsheetId) {
     const normalizedMonth = String(month || '').trim() || 'latest';
     const query = new URLSearchParams({
-      select: 'spreadsheet_id,report_month,payload,synced_at',
+      select: 'spreadsheet_id,report_month,payload,synced_at,generation_id,source_data_version,cache_version,published_at,publication_id',
       order: 'synced_at.desc',
       limit: '1'
     });
@@ -30,7 +30,7 @@ function createReportBundleRepository({ fetchImpl = fetch, httpError }) {
     const normalizedMonths = [...new Set((months || []).map((month) => String(month || '').trim()).filter(Boolean))];
     if (!normalizedMonths.length) return [];
     const query = new URLSearchParams({
-      select: 'spreadsheet_id,report_month,payload,synced_at',
+      select: 'spreadsheet_id,report_month,payload,synced_at,generation_id,source_data_version,cache_version,published_at,publication_id',
       report_month: `in.(${normalizedMonths.join(',')})`,
       order: 'report_month.asc',
       limit: String(normalizedMonths.length)

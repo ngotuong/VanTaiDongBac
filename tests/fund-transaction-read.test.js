@@ -157,29 +157,58 @@ test('debt payment rejects non-debt, settled, and overpayment rows', () => {
 test('write service preserves append result, full replay, and partial-voucher conflict', () => {
   const { FundTransactionService: service } = load();
   const payloads = [
-    { voucher: 'V1', date: '11/07/2026', type: 'Thu', category: 'Cước', method: 'Tiền mặt', amount: 100, actor: 'An' },
-    { voucher: 'V2', date: '11/07/2026', type: 'Chi', category: 'Dầu', method: 'Tài khoản', amount: 50, actor: 'Bình' }
+    { voucher: '260711000001', date: '11/07/2026', type: 'Thu', category: 'Cước', method: 'Tiền mặt', amount: 100, actor: 'An' },
+    { voucher: '260711000002', date: '11/07/2026', type: 'Chi', category: 'Dầu', method: 'Tài khoản', amount: 50, actor: 'Bình' }
   ];
   let appended;
   const repository = {
     findVoucherRows: () => ({}),
-    appendRows(sheetValue, rows) { appended = rows; return { firstRow: 20, lastRow: 21 }; }
+    appendRows(sheetValue, rows) { appended = rows; return { firstRow: 20, lastRow: 21 }; },
+    assertUniqueVoucherRows: () => true
   };
   const result = service.addTransactions(payloads, {}, writeContext({ repository }));
   assert.equal(appended.length, 2);
   assert.deepEqual(JSON.parse(JSON.stringify(result)), {
     ok: true, inserted: 2, spreadsheetId: 'sheet-id', spreadsheetName: 'Thu chi 2026', firstRow: 20, lastRow: 21,
     rows: [
-      { ok: true, rowIndex: 20, voucher: 'V1', spreadsheetId: 'sheet-id', spreadsheetName: 'Thu chi 2026', sheetName: 'NHAP_THUCHI' },
-      { ok: true, rowIndex: 21, voucher: 'V2', spreadsheetId: 'sheet-id', spreadsheetName: 'Thu chi 2026', sheetName: 'NHAP_THUCHI' }
+      { ok: true, rowIndex: 20, voucher: '260711000001', spreadsheetId: 'sheet-id', spreadsheetName: 'Thu chi 2026', sheetName: 'NHAP_THUCHI' },
+      { ok: true, rowIndex: 21, voucher: '260711000002', spreadsheetId: 'sheet-id', spreadsheetName: 'Thu chi 2026', sheetName: 'NHAP_THUCHI' }
     ], sheetName: 'NHAP_THUCHI'
   });
-  const replay = service.addTransactions(payloads, { jobId: 'job-1' }, writeContext({ repository: { findVoucherRows: () => ({ V1: 7, V2: 9 }) } }));
+  const replay = service.addTransactions(payloads, { jobId: 'job-1' }, writeContext({ repository: {
+    findVoucherRows: () => ({ '260711000001': 7, '260711000002': 9 }), assertUniqueVoucherOccurrences: () => true
+  } }));
   assert.equal(replay.idempotentReplay, true);
   assert.equal(replay.firstRow, 7);
   assert.equal(replay.lastRow, 9);
   assert.equal(replay.jobId, 'job-1');
-  assert.throws(() => service.addTransactions(payloads, {}, writeContext({ repository: { findVoucherRows: () => ({ V1: 7 }) } })), /tồn tại một phần voucher/);
+  assert.throws(() => service.addTransactions(payloads, {}, writeContext({ repository: { findVoucherRows: () => ({ '260711000001': 7 }) } })), /tồn tại một phần voucher/);
+});
+
+test('new Fund writes reject malformed or repeated 12-digit vouchers before append', () => {
+  const { FundTransactionService: service } = load();
+  const context = writeContext();
+  assert.throws(() => service.assertNewVoucherRows([['26110100001']], context), /đủ 12 chữ số/);
+  assert.throws(() => service.assertNewVoucherRows([['261101000001'], ['261101000001']], context), /Số phiếu trùng/);
+  assert.equal(service.assertNewVoucherRows([['261101000001'], ['261101000002']], context), true);
+});
+
+test('repository post-write voucher audit detects moved values and duplicates', () => {
+  const { FundTransactionRepository: repository } = load();
+  const values = ['261101000001', '261101000002'];
+  const sheet = {
+    getLastRow: () => values.length + 1,
+    getRange(row, column, height) {
+      return { getDisplayValues: () => values.slice(row - 2, row - 2 + height).map((value) => [value]) };
+    }
+  };
+  const clean = (value) => String(value ?? '').trim();
+  assert.equal(repository.assertUniqueVoucherRows(sheet, values.map((value) => [value]), 2, clean), true);
+  values[0] = '261101000009';
+  assert.throws(() => repository.assertUniqueVoucherRows(sheet, [['261101000001'], ['261101000002']], 2, clean), /vùng vừa ghi đã thay đổi/);
+  values.splice(0, values.length, '261101000001', '261101000001');
+  assert.throws(() => repository.assertUniqueVoucherOccurrences(sheet, ['261101000001'], clean), /xuất hiện 2 lần/);
+  assert.throws(() => repository.assertUniqueVoucherRows(sheet, [['261101000001']], 2, clean), /xuất hiện 2 lần/);
 });
 
 test('repository append preserves formats, debt formulas, growth, flush, and rollback callback', () => {

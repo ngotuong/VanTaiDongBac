@@ -1,6 +1,6 @@
 var ReportService = (function () {
-  function getDashboard(month, forceRefresh) {
-    return SheetService.getDashboard(month, forceRefresh);
+  function getDashboard(month, forceRefresh, options) {
+    return SheetService.getDashboard(month, forceRefresh, options);
   }
 
   function getReports(forceRefresh) {

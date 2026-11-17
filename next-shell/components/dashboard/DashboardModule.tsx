@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { DashboardBundle, DashboardDataResponse, DashboardTrip } from '../../lib/platform/dashboard-types';
 import { aggregateDashboardPeriod, buildKpiMap, buildProfitChartScale, countUniqueVehicles, formatCurrencyText, growth, metricValue, parseDashboardRows, profitChartMonthLabels, type DashboardMetricKey, type DashboardMonthRow } from '../../lib/platform/dashboard-c2';
@@ -8,6 +8,7 @@ import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { exportCardAsImage } from '../../lib/platform/export-card';
 import { showToast } from '../../lib/platform/toast';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
+import { usePublicationInvalidation } from '../platform/usePublicationInvalidation';
 import { useVisibleRevalidation } from '../platform/useVisibleRevalidation';
 
 type MetricSpec = { key: DashboardMetricKey; label: string; fullLabel: string; badge: 'blue' | 'red' | 'amber' | 'green'; invert?: boolean; icon: React.ReactNode };
@@ -371,6 +372,20 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
     try { const data = await requestDashboard(workbook.year, false, true); setDashboard(data.dashboard); showToast('Dữ liệu Tổng quan đã được cập nhật.', 'success'); }
     finally { setLoading(false); }
   };
+
+  const refreshFromPublication = useCallback(async () => {
+    if (loading) return;
+    const data = await requestDashboard(workbook.year, false, true);
+    setDashboard(data.dashboard);
+    setError('');
+  }, [loading, workbook.year]);
+
+  usePublicationInvalidation(
+    workbook.year,
+    dashboard?.supabasePublicationId,
+    refreshFromPublication,
+    !loading
+  );
 
   useVisibleRevalidation(async () => {
     if (loading) return;

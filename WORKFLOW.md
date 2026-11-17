@@ -117,6 +117,7 @@ Self-service lần đầu phải tách ba cửa sổ: (1) migration `019`–`020
 - `main` là nhánh canonical; branch checkpoint đã merge phải được xóa thay vì tích lũy lâu dài.
 - Chỉ dùng archive tag cho đầu nhánh divergent/backup thật sự cần bảo tồn; không tạo lại branch nếu chưa cần khôi phục commit cụ thể.
 - Một checkpoint nên có commit có chủ đích; không trộn dependency artifact hoặc dữ liệu tạm.
+- Khi checkpoint đóng, xóa canary data/artifact, fixture thủ công, debug log và scaffolding tạm trong đúng phạm vi đã tạo; không giữ file kiểm chứng dùng một lần trong source sống. Giữ regression test tự động tối thiểu cho lỗi đã sửa vì đó là release gate, không phải rác test.
 - `node_modules/`, `.next/`, local env và `.vercel/` không thuộc source.
 - Trước commit: `git status --short`, `git diff --check`, full gate và rà secret.
 - Sau thay đổi: báo file, mục đích, cách test, phần chưa kiểm tra và rollback.

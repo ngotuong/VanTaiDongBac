@@ -27,6 +27,18 @@ function loadService(overrides = {}) {
     beginReportRefreshBatch() { calls.batchStarts += 1; return dataVersion; },
     getReportDataVersion() { return dataVersion; },
     getReportCacheVersion() { return 'v13'; },
+    buildReportBundleRow(options) {
+      return {
+        spreadsheet_id: options.spreadsheetId,
+        report_month: options.reportMonth,
+        source_sheet_names: options.sourceSheetNames,
+        payload: options.bundle,
+        cache_version: options.cacheVersion,
+        source_data_version: options.dataVersion,
+        details_hash: 'synthetic-hash',
+        synced_at: options.syncedAt
+      };
+    },
     upsertReportBundle(options) { calls.upserts.push({ operation: 'reportBundle', options }); },
     syncPayrollExplanations(month, version) { calls.payrollExplanations.push({ month, version }); return { ok: true }; },
     getDashboard(month, forceRefresh) {
@@ -75,7 +87,7 @@ test('report bundle and dashboard sync preserve rows, conflict key, status, and 
   });
   assert.deepEqual(calls.payrollExplanations, [{ month: '07/2026', version: dataVersion }]);
   assert.deepEqual(JSON.parse(JSON.stringify(dashboard)), {
-    ok: true, table: 'report_bundles', reportMonth: '__dashboard_latest__', syncedAt: syncTime
+    ok: true, table: 'report_bundles', reportMonth: '__dashboard_latest__', dataVersion, syncedAt: syncTime
   });
   assert.deepEqual(JSON.parse(JSON.stringify(calls.upserts)), [
     {
@@ -92,7 +104,9 @@ test('report bundle and dashboard sync preserve rows, conflict key, status, and 
       rows: [{
         spreadsheet_id: 'synthetic-transport-sheet', report_month: '__dashboard_latest__',
         source_sheet_names: ['BC_TongQuan', 'NL_VanChuyen'],
-        payload: { latestTrips: { date: '04/07/2026', trips: [] } }, synced_at: syncTime
+        payload: { latestTrips: { date: '04/07/2026', trips: [] } },
+        cache_version: 'v13', source_data_version: dataVersion,
+        details_hash: 'synthetic-hash', synced_at: syncTime
       }],
       onConflict: 'spreadsheet_id,report_month'
     }
@@ -172,4 +186,51 @@ test('report bundle fails closed and is not published when payroll explanations 
   });
   assert.throws(() => failed.service.syncReportBundle('07/2026', failed.context), /synthetic payroll failure/);
   assert.equal(failed.calls.upserts.length, 0);
+});
+
+test('dashboard data version can be reused by the following report without a second invalidation', () => {
+  const shared = loadService();
+  const dashboard = shared.service.syncDashboard(shared.context);
+  const result = shared.service.syncReportBundle('07/2026', shared.context, {
+    skipInvalidation: true,
+    dataVersion: dashboard.dataVersion
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.dataVersion, dashboard.dataVersion);
+  assert.equal(shared.calls.batchStarts, 0);
+  assert.deepEqual(shared.calls.payrollExplanations, [{ month: '07/2026', version: shared.dataVersion }]);
+});
+
+test('priority generation publishes Dashboard and Report in one versioned Supabase batch without blocking on payroll explanations', () => {
+  const paired = loadService();
+  const result = paired.service.syncReportDashboardPair('07/2026', paired.context);
+  assert.equal(result.ok, true);
+  assert.equal(result.reportMonth, '07/2026');
+  assert.equal(result.dataVersion, paired.dataVersion);
+  assert.equal(result.payrollExplanationDeferred, true);
+  assert.deepEqual(paired.calls.payrollExplanations, []);
+  assert.equal(paired.calls.upserts.length, 1);
+  const batch = JSON.parse(JSON.stringify(paired.calls.upserts[0]));
+  assert.equal(batch.tableName, 'report_bundles');
+  assert.equal(batch.onConflict, 'spreadsheet_id,report_month');
+  assert.deepEqual(batch.rows.map((row) => row.report_month), ['07/2026', '__dashboard_latest__']);
+  assert.equal(new Set(batch.rows.map((row) => row.source_data_version)).size, 1);
+  assert.equal(new Set(batch.rows.map((row) => row.synced_at)).size, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.publications)), [
+    { cacheKey: '07/2026', publishedAt: paired.syncTime },
+    { cacheKey: '__dashboard_latest__', publishedAt: paired.syncTime }
+  ]);
+});
+
+test('priority generation publishes neither row when the source version changes during preparation', () => {
+  let version = 'source-1';
+  const changed = loadService({
+    getReportDataVersion() { return version; },
+    getReportBundle(month) {
+      version = 'source-2';
+      return { overview: { months: [['Tháng'], [month]] }, selected: month };
+    }
+  });
+  assert.throws(() => changed.service.syncReportDashboardPair('07/2026', changed.context), /Nguồn Báo cáo đổi phiên bản/);
+  assert.equal(changed.calls.upserts.length, 0);
 });

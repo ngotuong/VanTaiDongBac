@@ -54,7 +54,7 @@ async function main() {
     run('git', ['diff', '--check']);
     const sourceManifest = recordPath.replace(/\.json$/, '-source.json');
     run('node', ['scripts/release-manifest.mjs', sourceManifest]);
-    const output = run('vercel', ['deploy', '--prod', '--skip-domain', '--yes', '--force', '--format', 'json', '--project', identity.vercel.projectId, '--scope', identity.vercel.teamSlug, '--env', `APPS_SCRIPT_URL=https://script.google.com/macros/s/${identity.appsScript.productionDeploymentId}/exec`, '--env', `BUSINESS_WRITES_PAUSED=${args['writes-paused']}`], true);
+    const output = run('vercel', ['deploy', '--prod', '--skip-domain', '--yes', '--force', '--format', 'json', '--project', identity.vercel.projectId, '--scope', identity.vercel.teamSlug, '--env', `APPS_SCRIPT_URL=https://script.google.com/macros/s/${identity.appsScript.productionDeploymentId}/exec`, '--env', `BUSINESS_WRITES_PAUSED=${args['writes-paused']}`, '--env', 'PUBLICATION_INVALIDATION_AUDIENCE=production'], true);
     let parsed;
     try { parsed = JSON.parse(output); } catch { throw new Error('Deployment must return structured metadata.'); }
     const candidate = deployment(parsed.id || parsed.deployment?.id);

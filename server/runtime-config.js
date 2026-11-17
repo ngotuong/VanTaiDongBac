@@ -12,6 +12,7 @@ function runtimeConfig(env = process.env) {
     syncWatchdogSecret: String(env.SYNC_WATCHDOG_SECRET || ''),
     fundLowBalanceAlertEnabled: String(env.FUND_LOW_BALANCE_ALERT_ENABLED || '').toLowerCase() === 'true',
     businessWritesPaused: String(env.BUSINESS_WRITES_PAUSED || '').toLowerCase() === 'true',
+    publicationInvalidationAudience: String(env.PUBLICATION_INVALIDATION_AUDIENCE || 'preview').trim().toLowerCase(),
     defaultWorkbookYear: String(env.DEFAULT_WORKBOOK_YEAR || '')
   };
 }

@@ -15,10 +15,20 @@ function createNotificationDeliveryRepository({ fetchImpl = fetch, httpError }) 
     const results = [];
     for (let index = 0; index < values.length; index += 40) {
       const encoded = values.slice(index, index + 40).map((value) => `"${String(value).replace(/"/g, '\\"')}"`).join(',');
-      const query = new URLSearchParams({ select: 'rule_key,last_result,last_evaluated_at,last_sent_at', rule_key: `in.(${encoded})` });
+      const query = new URLSearchParams({ select: 'rule_key,condition_active,last_result,last_evaluated_at,last_sent_at', rule_key: `in.(${encoded})` });
       results.push(...await parse(await fetchImpl(`${config.supabaseUrl}/rest/v1/notification_rule_states?${query}`, { headers: headers(config) }), 'Không đọc được trạng thái gửi thông báo.'));
     }
     return results;
+  }
+  async function listByPrefix(config, prefix) {
+    const query = new URLSearchParams({
+      select: 'rule_key,condition_active,last_result,last_evaluated_at,last_sent_at',
+      rule_key: `like.${String(prefix).replace(/\*/g, '')}*`,
+      limit: '2000'
+    });
+    return parse(await fetchImpl(`${config.supabaseUrl}/rest/v1/notification_rule_states?${query}`, {
+      headers: headers(config)
+    }), 'Không đọc được trạng thái vòng đời thông báo.');
   }
   async function upsert(config, rows) {
     if (!rows.length) return [];
@@ -28,7 +38,7 @@ function createNotificationDeliveryRepository({ fetchImpl = fetch, httpError }) 
     await parse(response, 'Không lưu được trạng thái gửi thông báo.');
     return rows;
   }
-  return { list, upsert };
+  return { list, listByPrefix, upsert };
 }
 
 module.exports = { createNotificationDeliveryRepository };

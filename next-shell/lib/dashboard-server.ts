@@ -23,7 +23,16 @@ export async function loadDashboardData(forceRefresh = false, yearInput?: unknow
         const fetchWithTimeout: typeof fetch = (input, init = {}) => fetch(input, { ...init, signal: AbortSignal.timeout(5000) });
         const row = await createReportBundleRepository({ httpError, fetchImpl: fetchWithTimeout }).findLatest(config, DASHBOARD_CACHE_KEY, workbook.spreadsheetId);
         if (row?.payload && typeof row.payload === 'object') {
-          return { dashboard: publicDashboard({ ...(row.payload as DashboardBundle), supabaseCached: true, supabaseSyncedAt: row.synced_at }) };
+          return { dashboard: publicDashboard({
+            ...(row.payload as DashboardBundle),
+            supabaseCached: true,
+            supabaseSyncedAt: row.synced_at,
+            supabaseGenerationId: row.generation_id || undefined,
+            supabaseSourceDataVersion: row.source_data_version || undefined,
+            supabaseCacheVersion: row.cache_version || undefined,
+            supabasePublishedAt: row.published_at || undefined,
+            supabasePublicationId: Number(row.publication_id) || undefined
+          }) };
         }
       }
     } catch (error) {

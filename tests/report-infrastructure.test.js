@@ -51,6 +51,27 @@ test('temp report computation uses a unique hidden copy, preserves original B1, 
   assert.equal(state.released, true);
 });
 
+test('exact-month temp computation fails closed and still deletes the temporary sheet', () => {
+  const state = { flushes: 0, deleted: [], locked: false, released: false };
+  const temp = {
+    name: 'Bản sao của BC_TongQuan',
+    setName(name) { this.name = name; }, hideSheet() {},
+    getRange(a1) { assert.equal(a1, 'B1'); return { setValue() {} }; }
+  };
+  const source = { getName: () => 'BC_TongQuan', copyTo: () => temp };
+  const ss = { getSheets: () => [source], deleteSheet: (sheet) => state.deleted.push(sheet) };
+  const service = loadTempService(state);
+  assert.throws(() => service.computeDetails(ss, source, ['11/2026'], {
+    clean: (value) => String(value || '').trim(),
+    parseMonth: (value) => value,
+    normalizeMonth: () => '2026-11',
+    readDetails: () => { throw new Error('synthetic formula failure'); },
+    requireAllMonths: true
+  }), /synthetic formula failure/);
+  assert.deepEqual(state.deleted, [temp]);
+  assert.equal(state.released, true);
+});
+
 test('temp cleanup recognizes all legacy patterns and reports deleted names', () => {
   const state = { flushes: 0, deleted: [] };
   const names = ['_TMP_BC_TongQuan_abcd', 'Bản sao của BC_TongQuan 2', 'Copy of BC_TongQuan', 'BC_TongQuan'];
@@ -107,6 +128,8 @@ test('report infrastructure keeps versions in Script Properties and has no SYS_R
 
   const source = read('SheetService.gs');
   assert.match(source, /ReportTempSheetService\.computeDetails/);
+  assert.match(source, /forceLiveDetails === true[\s\S]*computeAndCacheOverviewDetails_\(ss, sheet, \[requestedMonth\][\s\S]*requireAllMonths: true/);
+  assert.match(source, /Object\.prototype\.hasOwnProperty\.call\(exactDetails, requestedMonthKey\)/);
   assert.match(source, /reportDataVersionPropertyKey_\(\)/);
   assert.match(source, /REPORT_DATA_VERSION_PROP \+ '_' \+ year/);
   assert.match(source, /SupabaseReportCacheRepository\.readDetailsMap/);

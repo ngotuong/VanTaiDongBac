@@ -6,6 +6,7 @@ let html2CanvasLoader: Promise<Html2Canvas> | null = null;
 const EXPORT_BOTTOM_GUARD = 24;
 const EXPORT_RIGHT_GUARD = 2;
 const EXPORT_OBJECT_URL_LIFETIME_MS = 60_000;
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] as const;
 
 function loadHtml2Canvas() {
   const current = (window as Window & { html2canvas?: Html2Canvas }).html2canvas;
@@ -100,13 +101,25 @@ export function canvasToPngBlob(canvas: HTMLCanvasElement) {
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {
-      if (!blob || blob.size <= 0 || blob.type !== 'image/png') {
+      if (!blob || blob.size <= 0) {
         reject(new Error('Không thể tạo tệp ảnh hợp lệ. Vui lòng thử lại.'));
         return;
       }
-      resolve(blob);
+      normalizePngBlob(blob).then(resolve, reject);
     }, 'image/png');
   });
+}
+
+async function normalizePngBlob(blob: Blob) {
+  const signature = new Uint8Array(await blob.slice(0, PNG_SIGNATURE.length).arrayBuffer());
+  const isPng = signature.length === PNG_SIGNATURE.length
+    && PNG_SIGNATURE.every((byte, index) => signature[index] === byte);
+
+  if (!isPng) {
+    throw new Error('Dữ liệu ảnh được tạo ra không phải tệp PNG hợp lệ. Vui lòng thử lại.');
+  }
+
+  return blob.type === 'image/png' ? blob : new Blob([blob], { type: 'image/png' });
 }
 
 export function downloadPngBlob(blob: Blob, filename: string) {

@@ -6,7 +6,17 @@ let html2CanvasLoader: Promise<Html2Canvas> | null = null;
 const EXPORT_BOTTOM_GUARD = 24;
 const EXPORT_RIGHT_GUARD = 2;
 const EXPORT_OBJECT_URL_LIFETIME_MS = 60_000;
+const EXPORT_TARGET_SCALE = 2;
+const EXPORT_MIN_READABLE_SCALE = 0.75;
+const EXPORT_MIN_RETRY_SCALE = 0.35;
+const EXPORT_MAX_CANVAS_PIXELS = 20_000_000;
+const EXPORT_MAX_CANVAS_DIMENSION = 16_384;
+const EXPORT_DATA_URL_FALLBACK_MAX_PIXELS = 8_000_000;
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] as const;
+
+export class CanvasPngEncodingError extends Error {
+  readonly code = 'CANVAS_PNG_ENCODING_FAILED';
+}
 
 function loadHtml2Canvas() {
   const current = (window as Window & { html2canvas?: Html2Canvas }).html2canvas;
@@ -50,42 +60,47 @@ export async function exportCardAsImage(button: HTMLButtonElement, title: string
     const captureWidth = await settleExportWidth(staged.stage, exportCard);
 
     const exportTable = exportCard.querySelector<HTMLElement>('table');
-    const headElem = exportCard.querySelector<HTMLElement>('.table-card-head');
-    const headHeight = headElem ? Math.max(headElem.offsetHeight, headElem.getBoundingClientRect().height) : 50;
-    const tableHeight = exportTable ? Math.max(exportTable.offsetHeight, exportTable.scrollHeight, exportTable.getBoundingClientRect().height) : 0;
-    const legendElem = exportCard.querySelector<HTMLElement>('.financial-donut, .donut-chart-wrapper');
-    const legendHeight = legendElem ? legendElem.scrollHeight : 0;
-
-    const autoMeasuredHeight = Math.ceil(headHeight + tableHeight + legendHeight);
-    const measuredHeight = Math.max(exportCard.scrollHeight, exportCard.offsetHeight, autoMeasuredHeight);
-    const fullHeight = exportCaptureHeight(measuredHeight);
+    const fullHeight = measureExportCardHeight(exportCard);
 
     exportCard.style.setProperty('height', `${fullHeight}px`, 'important');
     exportCard.style.setProperty('min-height', `${fullHeight}px`, 'important');
 
     await waitForExportLayout();
+    const bodyRows = exportTable ? Array.from(exportTable.querySelectorAll<HTMLElement>('tbody > tr')) : [];
+    const plan = planExportRaster(captureWidth, fullHeight, bodyRows.length > 1);
+    const dateSuffix = new Date().toISOString().slice(0, 10);
 
-    const canvas = await html2canvas(exportCard, {
-      backgroundColor: '#ffffff',
-      scale: 2,
-      useCORS: true,
-      width: captureWidth,
-      windowWidth: captureWidth,
-      scrollX: 0,
-      scrollY: 0,
-      onclone: (clonedDoc: Document) => {
-        const clonedCard = clonedDoc.querySelector<HTMLElement>('[data-export-capture-root="true"]');
-        if (clonedCard) {
-          normalizeExportLayout(clonedCard);
-          clonedCard.style.setProperty('width', `${captureWidth}px`, 'important');
-          clonedCard.style.setProperty('height', `${fullHeight}px`, 'important');
-          clonedCard.style.setProperty('min-height', `${fullHeight}px`, 'important');
-        }
+    if (!plan.split || !exportTable) {
+      const png = await renderExportPng(html2canvas, exportCard, captureWidth, fullHeight, plan.scale);
+      downloadPngBlob(png, `${title}-${dateSuffix}.png`);
+      showToast(plan.scale < EXPORT_TARGET_SCALE
+        ? 'Đã tạo ảnh đầy đủ ở độ phân giải phù hợp với kích thước bảng.'
+        : 'Đã tạo và tải ảnh xuống.', 'success');
+    } else {
+      const rowHeights = bodyRows.map((row) => Math.max(row.offsetHeight, row.getBoundingClientRect().height));
+      const fixedHeight = Math.max(0, fullHeight - rowHeights.reduce((sum, height) => sum + height, 0));
+      const rowGroups = partitionExportRowHeights(rowHeights, Math.max(1, plan.maxPartCssHeight - fixedHeight - EXPORT_BOTTOM_GUARD));
+
+      for (let partIndex = 0; partIndex < rowGroups.length; partIndex += 1) {
+        const [start, end] = rowGroups[partIndex];
+        bodyRows.forEach((row, rowIndex) => {
+          row.style.setProperty('display', rowIndex >= start && rowIndex < end ? 'table-row' : 'none', 'important');
+        });
+        exportCard.style.setProperty('height', 'auto', 'important');
+        exportCard.style.setProperty('min-height', '0', 'important');
+        await waitForExportLayout();
+        const partHeight = measureExportCardHeight(exportCard);
+        exportCard.style.setProperty('height', `${partHeight}px`, 'important');
+        exportCard.style.setProperty('min-height', `${partHeight}px`, 'important');
+        await waitForExportLayout();
+
+        const partScale = calculateSafeExportScale(captureWidth, partHeight, plan.scale);
+        const png = await renderExportPng(html2canvas, exportCard, captureWidth, partHeight, partScale);
+        downloadPngBlob(png, `${title}-${dateSuffix}-phan-${partIndex + 1}-tren-${rowGroups.length}.png`);
+        if (partIndex + 1 < rowGroups.length) await waitForDownloadTurn();
       }
-    });
-    const png = await canvasToPngBlob(canvas);
-    downloadPngBlob(png, `${title}-${new Date().toISOString().slice(0, 10)}.png`);
-    showToast('Đã tạo và tải ảnh xuống.', 'success');
+      showToast(`Bảng quá dài nên đã được chia thành ${rowGroups.length} ảnh đầy đủ.`, 'success');
+    }
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Không thể xuất ảnh.', 'error');
   } finally {
@@ -101,7 +116,11 @@ export function canvasToPngBlob(canvas: HTMLCanvasElement) {
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {
-      const encoded = blob && blob.size > 0 ? Promise.resolve(blob) : canvasToPngFallback(canvas);
+      const encoded = blob && blob.size > 0
+        ? Promise.resolve(blob)
+        : canvas.width * canvas.height <= EXPORT_DATA_URL_FALLBACK_MAX_PIXELS
+          ? canvasToPngFallback(canvas)
+          : Promise.reject(new CanvasPngEncodingError('Ảnh quá lớn để trình duyệt mã hóa PNG.'));
       encoded.then(normalizePngBlob).then(resolve, reject);
     }, 'image/png');
   });
@@ -111,7 +130,7 @@ async function canvasToPngFallback(canvas: HTMLCanvasElement) {
   const dataUrl = canvas.toDataURL('image/png');
   const prefix = 'data:image/png;base64,';
   if (!dataUrl.startsWith(prefix)) {
-    throw new Error('Trình duyệt không thể mã hóa ảnh PNG. Vui lòng thử lại.');
+    throw new CanvasPngEncodingError('Trình duyệt không thể mã hóa ảnh PNG. Vui lòng thử lại.');
   }
 
   const binary = atob(dataUrl.slice(prefix.length));
@@ -352,6 +371,100 @@ function freezeExportSelectControls(card: HTMLElement) {
 
 export function exportCaptureHeight(...measurements: number[]) {
   return Math.ceil(Math.max(0, ...measurements)) + EXPORT_BOTTOM_GUARD;
+}
+
+export function calculateSafeExportScale(width: number, height: number, targetScale = EXPORT_TARGET_SCALE) {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return 1;
+  return Math.max(0.1, Math.min(
+    targetScale,
+    EXPORT_MAX_CANVAS_DIMENSION / width,
+    EXPORT_MAX_CANVAS_DIMENSION / height,
+    Math.sqrt(EXPORT_MAX_CANVAS_PIXELS / (width * height))
+  ));
+}
+
+export function planExportRaster(width: number, height: number, canSplitRows: boolean) {
+  const singleScale = calculateSafeExportScale(width, height);
+  if (singleScale >= EXPORT_MIN_READABLE_SCALE || !canSplitRows) {
+    return { split: false, scale: singleScale, maxPartCssHeight: height };
+  }
+
+  const partScale = Math.max(0.1, Math.min(1, EXPORT_MAX_CANVAS_DIMENSION / width));
+  const maxPartCssHeight = Math.max(1, Math.floor(Math.min(
+    EXPORT_MAX_CANVAS_DIMENSION / partScale,
+    EXPORT_MAX_CANVAS_PIXELS / (width * partScale * partScale)
+  )));
+  return { split: true, scale: partScale, maxPartCssHeight };
+}
+
+export function partitionExportRowHeights(rowHeights: number[], maxHeight: number) {
+  if (!rowHeights.length) return [];
+  const groups: Array<[number, number]> = [];
+  let start = 0;
+  let height = 0;
+  rowHeights.forEach((rawHeight, index) => {
+    const rowHeight = Math.max(1, Number.isFinite(rawHeight) ? rawHeight : 1);
+    if (index > start && height + rowHeight > maxHeight) {
+      groups.push([start, index]);
+      start = index;
+      height = 0;
+    }
+    height += rowHeight;
+  });
+  groups.push([start, rowHeights.length]);
+  return groups;
+}
+
+function measureExportCardHeight(card: HTMLElement) {
+  const table = card.querySelector<HTMLElement>('table');
+  const head = card.querySelector<HTMLElement>('.table-card-head');
+  const legend = card.querySelector<HTMLElement>('.financial-donut, .donut-chart-wrapper');
+  const headHeight = head ? Math.max(head.offsetHeight, head.getBoundingClientRect().height) : 50;
+  const tableHeight = table ? Math.max(table.offsetHeight, table.scrollHeight, table.getBoundingClientRect().height) : 0;
+  const legendHeight = legend ? legend.scrollHeight : 0;
+  return exportCaptureHeight(Math.max(card.scrollHeight, card.offsetHeight, Math.ceil(headHeight + tableHeight + legendHeight)));
+}
+
+async function renderExportPng(html2canvas: Html2Canvas, card: HTMLElement, width: number, height: number, requestedScale: number) {
+  let scale = requestedScale;
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const canvas = await html2canvas(card, {
+      backgroundColor: '#ffffff',
+      scale,
+      useCORS: true,
+      width,
+      height,
+      windowWidth: width,
+      windowHeight: height,
+      scrollX: 0,
+      scrollY: 0,
+      onclone: (clonedDoc: Document) => {
+        const clonedCard = clonedDoc.querySelector<HTMLElement>('[data-export-capture-root="true"]');
+        if (clonedCard) {
+          normalizeExportLayout(clonedCard);
+          clonedCard.style.setProperty('width', `${width}px`, 'important');
+          clonedCard.style.setProperty('height', `${height}px`, 'important');
+          clonedCard.style.setProperty('min-height', `${height}px`, 'important');
+        }
+      }
+    });
+    try {
+      return await canvasToPngBlob(canvas);
+    } catch (error) {
+      lastError = error;
+      if (!(error instanceof CanvasPngEncodingError) || scale <= EXPORT_MIN_RETRY_SCALE) throw error;
+    } finally {
+      canvas.width = 0;
+      canvas.height = 0;
+    }
+    scale = Math.max(EXPORT_MIN_RETRY_SCALE, scale * 0.75);
+  }
+  throw lastError instanceof Error ? lastError : new CanvasPngEncodingError('Trình duyệt không thể mã hóa ảnh PNG.');
+}
+
+function waitForDownloadTurn() {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, 160));
 }
 
 function waitForExportLayout() {

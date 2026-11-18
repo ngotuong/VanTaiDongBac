@@ -12,6 +12,8 @@ const EXPORT_MIN_RETRY_SCALE = 0.35;
 const EXPORT_MAX_CANVAS_PIXELS = 20_000_000;
 const EXPORT_MAX_CANVAS_DIMENSION = 16_384;
 const EXPORT_DATA_URL_FALLBACK_MAX_PIXELS = 8_000_000;
+const EXPORT_WIDTH_GROWTH_RATIO = 1.25;
+const EXPORT_WIDTH_GROWTH_PX = 256;
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] as const;
 
 export class CanvasPngEncodingError extends Error {
@@ -57,7 +59,7 @@ export async function exportCardAsImage(button: HTMLButtonElement, title: string
     await waitForExportLayout();
     stripExportCurrencyUnits(exportCard);
 
-    const captureWidth = await settleExportWidth(staged.stage, exportCard);
+    const captureWidth = await settleExportWidth(staged.stage, exportCard, contentWidth);
 
     const exportTable = exportCard.querySelector<HTMLElement>('table');
     const fullHeight = measureExportCardHeight(exportCard);
@@ -68,19 +70,22 @@ export async function exportCardAsImage(button: HTMLButtonElement, title: string
     await waitForExportLayout();
     const bodyRows = exportTable ? Array.from(exportTable.querySelectorAll<HTMLElement>('tbody > tr')) : [];
     const plan = planExportRaster(captureWidth, fullHeight, bodyRows.length > 1);
+    const rowHeights = plan.split ? bodyRows.map((row) => Math.max(row.offsetHeight, row.getBoundingClientRect().height)) : [];
+    const fixedHeight = plan.split ? Math.max(0, fullHeight - rowHeights.reduce((sum, height) => sum + height, 0)) : 0;
+    const rowGroups = plan.split
+      ? partitionExportRowHeights(rowHeights, Math.max(1, plan.maxPartCssHeight - fixedHeight - EXPORT_BOTTOM_GUARD))
+      : [];
+    const shouldSplit = Boolean(exportTable && rowGroups.length > 1);
     const dateSuffix = new Date().toISOString().slice(0, 10);
 
-    if (!plan.split || !exportTable) {
-      const png = await renderExportPng(html2canvas, exportCard, captureWidth, fullHeight, plan.scale);
+    if (!shouldSplit) {
+      const singleScale = calculateSafeExportScale(captureWidth, fullHeight);
+      const png = await renderExportPng(html2canvas, exportCard, captureWidth, fullHeight, singleScale);
       downloadPngBlob(png, `${title}-${dateSuffix}.png`);
-      showToast(plan.scale < EXPORT_TARGET_SCALE
+      showToast(singleScale < EXPORT_TARGET_SCALE
         ? 'Đã tạo ảnh đầy đủ ở độ phân giải phù hợp với kích thước bảng.'
         : 'Đã tạo và tải ảnh xuống.', 'success');
     } else {
-      const rowHeights = bodyRows.map((row) => Math.max(row.offsetHeight, row.getBoundingClientRect().height));
-      const fixedHeight = Math.max(0, fullHeight - rowHeights.reduce((sum, height) => sum + height, 0));
-      const rowGroups = partitionExportRowHeights(rowHeights, Math.max(1, plan.maxPartCssHeight - fixedHeight - EXPORT_BOTTOM_GUARD));
-
       for (let partIndex = 0; partIndex < rowGroups.length; partIndex += 1) {
         const [start, end] = rowGroups[partIndex];
         bodyRows.forEach((row, rowIndex) => {
@@ -293,13 +298,23 @@ export function measureRenderedExportWidth(card: HTMLElement) {
     : Math.ceil(currentWidth);
 }
 
-async function settleExportWidth(stage: HTMLElement, card: HTMLElement) {
-  let width = measureRenderedExportWidth(card);
+export function constrainMeasuredExportWidth(measuredWidth: number, naturalWidth: number) {
+  const safeNaturalWidth = Number.isFinite(naturalWidth) && naturalWidth > 0 ? naturalWidth : 720;
+  const ceiling = Math.ceil(Math.max(
+    safeNaturalWidth + EXPORT_WIDTH_GROWTH_PX,
+    safeNaturalWidth * EXPORT_WIDTH_GROWTH_RATIO
+  ));
+  const safeMeasuredWidth = Number.isFinite(measuredWidth) && measuredWidth > 0 ? measuredWidth : safeNaturalWidth;
+  return Math.ceil(Math.min(Math.max(safeNaturalWidth, safeMeasuredWidth), ceiling));
+}
+
+async function settleExportWidth(stage: HTMLElement, card: HTMLElement, naturalWidth: number) {
+  let width = constrainMeasuredExportWidth(measureRenderedExportWidth(card), naturalWidth);
   for (let pass = 0; pass < 2; pass += 1) {
     stage.style.setProperty('width', `${width}px`);
     card.style.setProperty('width', `${width}px`, 'important');
     await waitForExportLayout();
-    const nextWidth = measureRenderedExportWidth(card);
+    const nextWidth = constrainMeasuredExportWidth(measureRenderedExportWidth(card), naturalWidth);
     if (nextWidth <= width) break;
     width = nextWidth;
   }
@@ -385,15 +400,19 @@ export function calculateSafeExportScale(width: number, height: number, targetSc
 
 export function planExportRaster(width: number, height: number, canSplitRows: boolean) {
   const singleScale = calculateSafeExportScale(width, height);
-  if (singleScale >= EXPORT_MIN_READABLE_SCALE || !canSplitRows) {
+  const widthScaleLimit = Math.min(EXPORT_TARGET_SCALE, EXPORT_MAX_CANVAS_DIMENSION / Math.max(1, width));
+  if (singleScale >= EXPORT_MIN_READABLE_SCALE || !canSplitRows || widthScaleLimit < EXPORT_MIN_READABLE_SCALE) {
     return { split: false, scale: singleScale, maxPartCssHeight: height };
   }
 
-  const partScale = Math.max(0.1, Math.min(1, EXPORT_MAX_CANVAS_DIMENSION / width));
+  const partScale = Math.max(0.1, Math.min(1, widthScaleLimit));
   const maxPartCssHeight = Math.max(1, Math.floor(Math.min(
     EXPORT_MAX_CANVAS_DIMENSION / partScale,
     EXPORT_MAX_CANVAS_PIXELS / (width * partScale * partScale)
   )));
+  if (height <= maxPartCssHeight) {
+    return { split: false, scale: singleScale, maxPartCssHeight: height };
+  }
   return { split: true, scale: partScale, maxPartCssHeight };
 }
 

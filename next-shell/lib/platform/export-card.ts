@@ -101,13 +101,25 @@ export function canvasToPngBlob(canvas: HTMLCanvasElement) {
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {
-      if (!blob || blob.size <= 0) {
-        reject(new Error('Không thể tạo tệp ảnh hợp lệ. Vui lòng thử lại.'));
-        return;
-      }
-      normalizePngBlob(blob).then(resolve, reject);
+      const encoded = blob && blob.size > 0 ? Promise.resolve(blob) : canvasToPngFallback(canvas);
+      encoded.then(normalizePngBlob).then(resolve, reject);
     }, 'image/png');
   });
+}
+
+async function canvasToPngFallback(canvas: HTMLCanvasElement) {
+  const dataUrl = canvas.toDataURL('image/png');
+  const prefix = 'data:image/png;base64,';
+  if (!dataUrl.startsWith(prefix)) {
+    throw new Error('Trình duyệt không thể mã hóa ảnh PNG. Vui lòng thử lại.');
+  }
+
+  const binary = atob(dataUrl.slice(prefix.length));
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return new Blob([bytes], { type: 'image/png' });
 }
 
 async function normalizePngBlob(blob: Blob) {

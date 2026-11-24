@@ -177,6 +177,8 @@ var TripNotificationSyncService = (function () {
     items = items.slice(0, MAX_ITEMS);
 
     var syncedAt = context.nowISOString();
+    var sourceChangedAt = clean_(context.sourceChangedAt);
+    var sourceLagMs = sourceChangedAt ? Math.max(0, new Date(syncedAt).getTime() - new Date(sourceChangedAt).getTime()) : null;
     var payload = {
       ok: true,
       sourceSheet: SOURCE_SHEET,
@@ -184,7 +186,9 @@ var TripNotificationSyncService = (function () {
       lookbackDays: LOOKBACK_DAYS,
       count: items.length,
       items: items,
-      syncedAt: syncedAt
+      syncedAt: syncedAt,
+      sourceChangedAt: sourceChangedAt || null,
+      sourceLagMs: isFinite(sourceLagMs) ? sourceLagMs : null
     };
     context.upsertRows(CACHE_TABLE, [{
       sheet_name: context.year + ':' + SOURCE_SHEET,

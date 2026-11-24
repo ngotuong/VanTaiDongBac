@@ -25,6 +25,29 @@ test('notification cache is derived read-only from XL_DoiSoatChuyen and synced e
   assert.match(sync, /hot-bonus/);
   assert.match(facade, /TRIP_NOTIFICATION_INTERVAL_MS = 5 \* 60 \* 1000/);
   assert.match(facade, /syncTripNotificationsIfDue_\(props, nowMillis, deadlineMillis\)/);
+  assert.match(sync, /sourceChangedAt/);
+  assert.match(sync, /sourceLagMs/);
+});
+
+test('notification API exposes trip-specific freshness instead of masking it with another bundle', async () => {
+  const service = createNotificationCenterService({
+    repository: {
+      find: async () => ({
+        workbookYear: '2026',
+        trip: { synced_at: '2026-11-24T01:00:00.000Z', payload: { items: [], syncedAt: '2026-11-24T01:00:00.000Z', sourceChangedAt: '2026-11-24T00:59:00.000Z', sourceLagMs: 60000 } },
+        operations: { synced_at: '2026-11-24T02:00:00.000Z', payload: { items: [] } },
+        syncStatuses: [], writeJobs: []
+      })
+    },
+    httpError: (status, message) => Object.assign(new Error(message), { status }),
+    send: (_res, _status, body) => body,
+    now: () => new Date('2026-11-24T02:01:00.000Z')
+  });
+  const result = await service.list({});
+  assert.equal(result.syncedAt, '2026-11-24T02:00:00.000Z');
+  assert.equal(result.tripSyncedAt, '2026-11-24T01:00:00.000Z');
+  assert.equal(result.tripSourceChangedAt, '2026-11-24T00:59:00.000Z');
+  assert.equal(result.tripSourceLagMs, 60000);
 });
 
 test('operations notifications trust only workbook helper columns and never write Google Sheets', () => {

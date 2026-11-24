@@ -186,7 +186,7 @@ test('Fund cache eviction, corrupted chunks and source edits cannot produce a co
   assert.deepEqual(plain(result.added), [['fundCapture', 'transactions', 2]]); assert.equal(h.item.fundCapture.ready, false);
 });
 
-function timerHarness() {
+function timerHarness(options = {}) {
   let now = 1000000; const p = new Map(); const notifications = []; const queued = [];
   class ClockDate extends Date { constructor(...args) { super(...(args.length ? args : [now])); } }
   const sandbox = vm.createContext({ Date: ClockDate, console: { log() {} }, normalizeCleanValue_: (v) => String(v ?? '').trim(),
@@ -194,11 +194,12 @@ function timerHarness() {
     LockService: { getScriptLock: () => ({ tryLock: () => true, waitLock() {}, releaseLock() {} }) }, Utilities: { getUuid: () => crypto.randomUUID() },
     SupabaseSyncStatusRepository: { upsert() {} },
     // Preserve a sustained backlog without executing its native work in this scheduler test.
-    ManualReportRefreshQueueService: { enqueue: (scope, context) => { queued.push({ ...plain(scope), propertyKey: context.propertyKey }); return { queued: true }; }, getPending: () => ({}), claimNextDue: () => ({ claims: { transport: { pending: true }, fund: { pending: true } } }) },
+    ManualReportRefreshQueueService: { enqueue: (scope, context) => { queued.push({ ...plain(scope), propertyKey: context.propertyKey }); return { queued: true }; }, getPending: () => options.priorityPending ? ({ pending: true, priority: true, notBefore: now + 30000 }) : ({}), claimNextDue: () => ({ claims: { transport: { pending: true }, fund: { pending: true } } }) },
     NotificationPipelineService: { run: (ctx) => { if (Number(ctx.getProperty(ctx.nextAtKey) || 0) > now) return { checked: false };
       notifications.push(now); ctx.setProperty(ctx.nextAtKey, String(now + ctx.intervalMs)); return { checked: true, ok: true }; } },
     SpreadsheetApp: { openById: () => { throw Error('Unbounded legacy sweep must never run'); } }
   });
+  vm.runInContext(read('TripNotificationFreshnessService.gs'), sandbox);
   vm.runInContext(read('SupabaseService.gs'), sandbox);
   for (const key of ['SUPABASE_SOURCE_POLL_NEXT_AT', 'SUPABASE_REPORT_OUTPUT_POLL_NEXT_AT']) p.set(key + '_2026', String(now + 86400000));
   return { p, queued, notifications, service: sandbox.SupabaseService, tick: () => sandbox.SupabaseService.syncRealtimeCache(), advance: (ms) => { now += ms; } };
@@ -220,4 +221,13 @@ test('notification due work is checked on each reserved turn under backlog, with
   assert.ok(h.notifications.length >= 4);
   for (let i = 1; i < h.notifications.length; i++) assert.ok(h.notifications[i] - h.notifications[i - 1] <= 8 * 60000);
   assert.ok(Number(h.p.get('SUPABASE_REALTIME_HEARTBEAT_NEXT_AT_2026')) > 0);
+});
+
+test('a settled trip notification edit is not starved by a priority report queue', () => {
+  const h = timerHarness({ priorityPending: true });
+  h.p.set('SUPABASE_TRIP_NOTIFICATION_DIRTY_V1_2026', JSON.stringify({ lastSignalAt: 900000, dueAt: 930000, sheetNames: ['NL_TaiXe'] }));
+  h.p.set('SUPABASE_TRIP_NOTIFICATION_NEXT_AT_2026', String(2000000));
+  const result = h.tick();
+  assert.equal(result.step, 'housekeeping:notifications');
+  assert.equal(h.notifications.length, 1);
 });

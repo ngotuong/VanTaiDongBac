@@ -43,6 +43,7 @@ var SupabaseService = (function () {
   var REPORT_OUTPUT_POLL_INTERVAL_MS = 60 * 1000;
   var SOURCE_POLL_RETRY_MS = 60 * 1000;
   var TRIP_NOTIFICATION_NEXT_AT_PROP = 'SUPABASE_TRIP_NOTIFICATION_NEXT_AT';
+  var TRIP_NOTIFICATION_DIRTY_PROP = 'SUPABASE_TRIP_NOTIFICATION_DIRTY_V1';
   var NOTIFICATION_PIPELINE_FAILURE_COUNT_PROP = 'SUPABASE_NOTIFICATION_PIPELINE_FAILURE_COUNT';
   var TRIP_NOTIFICATION_INTERVAL_MS = 5 * 60 * 1000;
   var NOTIFICATION_PIPELINE_FAILURE_THRESHOLD = 3;
@@ -327,7 +328,8 @@ var SupabaseService = (function () {
       }
       // A priority generation must be claimed before any unbounded native
       // housekeeping call. Ordinary queues keep the existing fairness turn.
-      if (!priorityPending && (fairness % 4 === 0 || props.getProperty(yearPropertyKey_('SUPABASE_NOTIFICATION_PIPELINE_CURSOR_V1')) || props.getProperty(yearPropertyKey_(SOURCE_POLL_CURSOR_PROP)))) {
+      var tripNotificationDirtyDue = isTripNotificationDirtyDue_(props, nowMillis);
+      if (tripNotificationDirtyDue || (!priorityPending && (fairness % 4 === 0 || props.getProperty(yearPropertyKey_('SUPABASE_NOTIFICATION_PIPELINE_CURSOR_V1')) || props.getProperty(yearPropertyKey_(SOURCE_POLL_CURSOR_PROP))))) {
         var background = runRealtimeHousekeeping_(props, nowMillis, tickStartedAt + 60000);
         if (background.checked && new Date().getTime() - tickStartedAt >= 60000) return background;
       }
@@ -492,8 +494,12 @@ var SupabaseService = (function () {
     return { checked: false };
   }
 
-  function syncTripNotifications() {
-    return TripNotificationSyncService.sync(tripNotificationSyncContext_());
+  function syncTripNotifications(sourceState) {
+    var context = tripNotificationSyncContext_();
+    if (sourceState && Number(sourceState.lastSignalAt || 0)) {
+      context.sourceChangedAt = new Date(Number(sourceState.lastSignalAt)).toISOString();
+    }
+    return TripNotificationSyncService.sync(context);
   }
 
   function syncOperationalNotifications() {
@@ -509,11 +515,22 @@ var SupabaseService = (function () {
   }
 
   function syncTripNotificationsIfDue_(props, nowMillis, deadlineMillis) {
-    return NotificationPipelineService.run({
+    var freshnessService = tripNotificationFreshnessService_();
+    var freshnessContext = tripNotificationFreshnessContext_(props);
+    var dirtySnapshot = freshnessService.read(freshnessContext);
+    var pipelineCursorKey = yearPropertyKey_('SUPABASE_NOTIFICATION_PIPELINE_CURSOR_V1');
+    if (Number(dirtySnapshot.lastSignalAt || 0) &&
+        !freshnessService.isDue(dirtySnapshot, nowMillis) &&
+        !props.getProperty(pipelineCursorKey)) {
+      props.setProperty(freshnessContext.nextAtKey, String(Number(dirtySnapshot.dueAt || nowMillis)));
+    }
+    freshnessService.forcePipelineDue(dirtySnapshot, nowMillis, freshnessContext);
+    var tripResult = null;
+    var result = NotificationPipelineService.run({
       nowMillis: nowMillis,
       nowISOString: new Date(nowMillis).toISOString(),
       nextAtKey: yearPropertyKey_(TRIP_NOTIFICATION_NEXT_AT_PROP),
-      cursorKey: yearPropertyKey_('SUPABASE_NOTIFICATION_PIPELINE_CURSOR_V1'),
+      cursorKey: pipelineCursorKey,
       now: function () { return new Date().getTime(); },
       deadlineMillis: Math.min(deadlineMillis || Infinity, new Date().getTime() + 45000),
       failureCountKey: yearPropertyKey_(NOTIFICATION_PIPELINE_FAILURE_COUNT_PROP),
@@ -524,13 +541,60 @@ var SupabaseService = (function () {
       setProperty: function (key, value) { props.setProperty(key, value); },
       deleteProperty: function (key) { props.deleteProperty(key); },
       runStep: runSyncStep_,
-      syncTripNotifications: function () { return syncTripNotifications(); },
+      syncTripNotifications: function () {
+        tripResult = syncTripNotifications(dirtySnapshot);
+        return tripResult;
+      },
       syncOperationalNotifications: function () { return syncOperationalNotifications(); },
       syncDailyBusinessSummary: function () { return syncDailyBusinessSummary(); },
       dispatchNotifications: function () { return dispatchNotifications(); },
       writeStatus: writeSyncStatus_,
       log: function (message) { console.log(message); }
     });
+    if (tripResult && tripResult.ok !== false) {
+      freshnessService.acknowledge(dirtySnapshot, tripResult, freshnessContext);
+    }
+    return result;
+  }
+
+  function tripNotificationFreshnessContext_(props) {
+    return {
+      dirtyKey: yearPropertyKey_(TRIP_NOTIFICATION_DIRTY_PROP),
+      nextAtKey: yearPropertyKey_(TRIP_NOTIFICATION_NEXT_AT_PROP),
+      quietWindowMs: 30 * 1000,
+      nowMillis: function () { return new Date().getTime(); },
+      nowISOString: function () { return new Date().toISOString(); },
+      getProperty: function (key) { return props.getProperty(key); },
+      setProperty: function (key, value) { props.setProperty(key, value); },
+      deleteProperty: function (key) { props.deleteProperty(key); }
+    };
+  }
+
+  function markTripNotificationsDirty_(sheetName, eventAtMillis, generationId) {
+    return tripNotificationFreshnessService_().mark({
+      sheetName: sheetName,
+      eventAtMillis: eventAtMillis,
+      generationId: generationId
+    }, tripNotificationFreshnessContext_(PropertiesService.getScriptProperties()));
+  }
+
+  function isTripNotificationDirtyDue_(props, nowMillis) {
+    var context = tripNotificationFreshnessContext_(props);
+    var service = tripNotificationFreshnessService_();
+    return service.isDue(service.read(context), nowMillis);
+  }
+
+  // Some isolated unit harnesses load only this facade. Production Apps Script
+  // loads every .gs file, while the fallback preserves the pre-D5S behavior.
+  function tripNotificationFreshnessService_() {
+    if (typeof TripNotificationFreshnessService !== 'undefined') return TripNotificationFreshnessService;
+    return {
+      mark: function () { return { ok: true, marked: false, skipped: true }; },
+      read: function () { return {}; },
+      isDue: function () { return false; },
+      forcePipelineDue: function () { return false; },
+      acknowledge: function () { return false; }
+    };
   }
 
   function enqueueDetectedSourceChangesIfDue_(props, nowMillis, deadlineMillis) {
@@ -1176,6 +1240,7 @@ var SupabaseService = (function () {
     var errors = [];
     var fastMode = options && options.fast === true;
     var safeSheetName = clean_(sheetName);
+    markTripNotificationsDirty_(safeSheetName, new Date().getTime(), options && options.generationId);
     var touchedMonthKeys = getTransportRowsMonthKeys_(rows);
     if (!fastMode) {
       runSyncStep_(results, errors, 'dashboard', function () { return syncDashboard(); });
@@ -1221,6 +1286,7 @@ var SupabaseService = (function () {
     var catalog = TRANSPORT_CATALOG_SHEET_NAMES.indexOf(safeSheetName) !== -1;
     var manage = isManageSheetName_(safeSheetName);
     if (!catalog && !manage) return { ok: true, skipped: true, reason: 'Sheet is not a transport input sheet.' };
+    markTripNotificationsDirty_(safeSheetName, generationOptions.eventAtMillis, generationOptions.generationId);
     var structural = isStructuralSheetChange_(safeEventType);
     var months = manage && !structural && editedRange ? getEditedManageMonthKeys_(safeSheetName, editedRange) : [];
     if (!structural && !months.length) {

@@ -29,6 +29,9 @@ type NotificationResponse = {
   count?: number;
   items?: NotificationItem[];
   syncedAt?: string | null;
+  tripSyncedAt?: string | null;
+  tripSourceChangedAt?: string | null;
+  tripSourceLagMs?: number | null;
   lookbackDays?: number;
 };
 
@@ -461,7 +464,7 @@ export function NotificationCenter({ userId }: { userId: string }) {
       <button type="button" className="notification-backdrop" aria-label="Đóng thông báo" onClick={close}/>
       <section id="platform-notification-panel" className="notification-panel" style={panelStyle} role="dialog" aria-modal="true" aria-labelledby="notification-panel-title">
         <header className="notification-panel-header">
-          <div><h2 id="notification-panel-title">Thông báo</h2><p>{unreadCount} chưa đọc · {syncLabel(data.syncedAt)}</p></div>
+          <div><h2 id="notification-panel-title">Thông báo</h2><p>{unreadCount} chưa đọc · {syncLabel(data.tripSyncedAt || data.syncedAt)}</p></div>
           <button ref={closeRef} type="button" className="notification-close" aria-label="Đóng thông báo" onClick={close}>×</button>
         </header>
         <div className="notification-panel-toolbar" aria-label="Bộ lọc thông báo">

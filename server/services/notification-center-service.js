@@ -322,7 +322,12 @@ function createNotificationCenterService({ repository, workbookContextService, h
       return (weight[left.severity] ?? 3) - (weight[right.severity] ?? 3);
     }).slice(0, 200);
     const syncedAt = [snapshot.trip?.synced_at, snapshot.operations?.synced_at].filter(Boolean).sort().pop() || null;
-    return { ok: true, source: 'supabase', count: items.length, items, syncedAt, lookbackDays: 120, dailySummary: dailySummary(snapshot.dailySummary, snapshot.dailyFundSummary, currentTime, clock.previousDateKey) };
+    const tripSyncedAt = snapshot.trip?.payload?.syncedAt || snapshot.trip?.synced_at || null;
+    const tripSourceChangedAt = snapshot.trip?.payload?.sourceChangedAt || null;
+    const rawTripSourceLagMs = snapshot.trip?.payload?.sourceLagMs;
+    const tripSourceLagMs = rawTripSourceLagMs !== null && rawTripSourceLagMs !== undefined && rawTripSourceLagMs !== ''
+      && Number.isFinite(Number(rawTripSourceLagMs)) ? Number(rawTripSourceLagMs) : null;
+    return { ok: true, source: 'supabase', count: items.length, items, syncedAt, tripSyncedAt, tripSourceChangedAt, tripSourceLagMs, lookbackDays: 120, dailySummary: dailySummary(snapshot.dailySummary, snapshot.dailyFundSummary, currentTime, clock.previousDateKey) };
   }
   async function handle(action, req, res, config, user) {
     if (!handles(action)) throw httpError(400, 'Hành động thông báo không hợp lệ.');

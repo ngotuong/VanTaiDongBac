@@ -5,7 +5,7 @@ const { assertBusinessWritesAvailable } = require('../server/services/business-m
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 
 test('maintenance blocks direct writes and queue control before dispatch, including unknown POST actions', () => {
-  for (const action of ['addFundTransaction', 'addFundTransactions', 'saveSheetRow', 'saveFundCatalogItem', 'retryWriteJob', 'cancelWriteJob', 'processWriteJobs', 'recoverSyncInfrastructure', 'requestPayrollExplanationRefresh', 'createUser', 'futureWriteAction']) {
+  for (const action of ['addFundTransaction', 'addFundTransactions', 'saveSheetRow', 'saveFundCatalogItem', 'retryWriteJob', 'cancelWriteJob', 'processWriteJobs', 'requestPayrollExplanationRefresh', 'createUser', 'futureWriteAction']) {
     assert.throws(() => assertBusinessWritesAvailable({ action, method: 'POST', config: { businessWritesPaused: true }, httpError }), { status: 503 });
   }
   assert.throws(() => assertBusinessWritesAvailable({ action: 'invalidateCaches', method: 'GET', config: { businessWritesPaused: true }, httpError }), { status: 503 });
@@ -18,5 +18,6 @@ test('maintenance allows queries and Production keeps existing write behavior wh
   for (const action of ['getPayrollExplanation', 'getReportBundle', 'getFundTransactions', 'getWriteJobStatus', 'health']) assert.doesNotThrow(() => assertBusinessWritesAvailable({ action, method: 'GET', config: { businessWritesPaused: true }, httpError }));
   assert.doesNotThrow(() => assertBusinessWritesAvailable({ action: 'checkTripReconciliation', method: 'POST', config: { businessWritesPaused: true }, httpError }));
   assert.doesNotThrow(() => assertBusinessWritesAvailable({ action: 'manageYearRollover', method: 'POST', config: { businessWritesPaused: true }, httpError }));
+  assert.doesNotThrow(() => assertBusinessWritesAvailable({ action: 'recoverSyncInfrastructure', method: 'POST', config: { businessWritesPaused: true }, httpError }));
   assert.doesNotThrow(() => assertBusinessWritesAvailable({ action: 'addFundTransaction', method: 'POST', config: { businessWritesPaused: false }, httpError }));
 });

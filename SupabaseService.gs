@@ -2152,7 +2152,11 @@ var SupabaseService = (function () {
         sourceDataVersion: '',
         semanticBuildStamp: clean_(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local')
       });
-      dispatchSyncGenerationShadow_(recorded);
+      // Installable Sheet triggers must return after persisting their durable
+      // signal. Running the foreground shadow worker here can hold the trigger
+      // for more than a minute, which delays visibility of the signal and the
+      // notification freshness wake-up. The minute reconciler owns dispatch
+      // for this shadow row; web-app writes keep their direct foreground path.
       return recorded;
     } catch (error) {
       console.log('sync_generation_producer_shadow_failed');

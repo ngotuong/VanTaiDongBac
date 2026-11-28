@@ -68,3 +68,43 @@ test('SheetService delegates latest trips and dashboard payload assembly', () =>
   assert.doesNotMatch(source, /var tripsMap = \{\}/);
   assert.doesNotMatch(source, /var maxTime = 0/);
 });
+
+test('latest trips include rows before the last 500 physical rows', () => {
+  const newest = new Date(2026, 10, 27);
+  const older = new Date(2026, 10, 26);
+  const { service, ss, config } = loadService([
+    [newest, '', 'XE-01', 'Dự án A', 2, 'P1'],
+    ...Array.from({ length: 500 }, () => [older, '', 'XE-02', 'Dự án A', 1, 'P2']),
+    [newest, '', 'XE-01', 'Dự án A', 3, 'P3']
+  ]);
+  const result = plain(service.readLatestTrips(ss, config));
+  assert.equal(result.date, '27/11/2026');
+  assert.deepEqual(result.trips, [{ project: 'Dự án A', vehicle: 'XE-01', count: 5, ticket: 'P1, P3' }]);
+});
+
+test('report detail totals follow the category when a month inserts an optional row', async () => {
+  const matrices = [
+    [['Danh mục', 'Tổng'], ['Dầu', 100], ['Phí', 200]],
+    [['Danh mục', 'Tổng'], ['Dầu', 300], ['Thu hồi', 50], ['Phí', 400]]
+  ];
+  const { aggregateDetailMatrices } = await import('../next-shell/lib/platform/report-c2.ts');
+  const { service } = loadService([]);
+  for (const result of [aggregateDetailMatrices(matrices), service.aggregateDetailMatrices(matrices)]) {
+    assert.deepEqual(Object.fromEntries(Array.from(result).slice(1).map(([name, amount]) => [name, Number(amount)])), { Dầu: 400, Phí: 600, 'Thu hồi': 50 });
+  }
+});
+
+test('report detail aggregation fails closed for schema drift or duplicate categories', async () => {
+  const { aggregateDetailMatrices } = await import('../next-shell/lib/platform/report-c2.ts');
+  const { service } = loadService([]);
+  const implementations = [aggregateDetailMatrices, service.aggregateDetailMatrices];
+  for (const aggregate of implementations) {
+    assert.throws(() => aggregate([
+      [['Danh mục', 'Tổng'], ['Dầu', 100]],
+      [['Danh mục', 'Công ty A'], ['Dầu', 200]]
+    ]), /Schema chi tiết báo cáo không đồng nhất/);
+    assert.throws(() => aggregate([
+      [['Danh mục', 'Tổng'], ['Chi phí dầu', 100], ['chi phi dau', 200]]
+    ]), /bị trùng trong cùng kỳ/);
+  }
+});

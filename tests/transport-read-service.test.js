@@ -76,6 +76,22 @@ test('date-filtered manage read accepts ISO and Vietnamese dates and keeps newes
   assert.equal(result.isLimited, false);
 });
 
+test('manage cache keys preserve full date bounds in the same month', () => {
+  const { cache, config, service, ss } = loadReader({ NL_VanChuyen: journalRows });
+  const monthKeySource = read('SheetService.gs').split('  function normalizeMonthKey_(month) {')[1].split('  function cacheKey_')[0];
+  const normalizeMonthKey = vm.runInNewContext(`(function normalizeMonthKey_(month) {${monthKeySource})`, {
+    clean_: (value) => String(value ?? '').trim()
+  });
+  config.buildCacheKey = (type, ...parts) => [type, ...parts.map(normalizeMonthKey)].join(':');
+  const readDay = (date) => plain(service.readSheetDataFromSpreadsheet(ss, 'NL_VanChuyen', date, date, 10, config));
+  assert.deepEqual(readDay('2026-07-01').rows.map((row) => row.rowIndex), [3]);
+  assert.deepEqual(readDay('2026-07-02').rows.map((row) => row.rowIndex), [4]);
+  assert.deepEqual(readDay('2026-07-03').rows, []);
+  assert.deepEqual(readDay('2026-07-04').rows.map((row) => row.rowIndex), [6]);
+  assert.deepEqual(readDay('2026-07-01').rows.map((row) => row.rowIndex), [3]);
+  assert.equal(cache.size, 4);
+});
+
 test('generic DM read preserves special headers, ascending sheet order, cache reuse, and errors', () => {
   const { cache, config, service, ss } = loadReader({
     DM_ThamSo: [
@@ -100,4 +116,17 @@ test('SheetReadService owns read implementation while SheetService retains only 
   assert.match(sheetService, /SheetReadService\.readSheetDataFromSpreadsheet/);
   assert.doesNotMatch(sheetService, /var scanChunkSize = 1000/);
   assert.doesNotMatch(sheetService, /function readFilteredJournalRows_/);
+});
+
+test('date ranges report truncation and monthly sync can capture all rows', () => {
+  const source = [journalRows[0], journalRows[1], ...Array.from({ length: 501 }, () => ['2026-07-01', '07/2026', 'SYNTHETIC'])];
+  const { config, service, ss } = loadReader({ NL_VanChuyen: source });
+  const read = (options) => service.readSheetDataFromSpreadsheet(ss, 'NL_VanChuyen', '2026-07-01', '2026-07-31', 500, { ...config, ...options });
+  const limited = read({});
+  assert.equal(limited.rows.length, 500);
+  assert.equal(limited.isLimited, true);
+  const published = read({ completeDateRange: true });
+  assert.equal(published.rows.length, 501);
+  assert.equal(published.isLimited, false);
+  assert.equal(published.completeDateRange, true);
 });

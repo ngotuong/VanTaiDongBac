@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { DashboardBundle, DashboardDataResponse, DashboardTrip } from '../../lib/platform/dashboard-types';
 import { aggregateDashboardPeriod, buildKpiMap, buildProfitChartScale, countUniqueVehicles, formatCurrencyText, growth, metricValue, parseDashboardRows, profitChartMonthLabels, type DashboardMetricKey, type DashboardMonthRow } from '../../lib/platform/dashboard-c2';
@@ -10,6 +10,8 @@ import { showToast } from '../../lib/platform/toast';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import { usePublicationInvalidation } from '../platform/usePublicationInvalidation';
 import { useVisibleRevalidation } from '../platform/useVisibleRevalidation';
+import { useDialogFocusTrap } from '../platform/useDialogFocusTrap';
+import styles from './recent-trips.module.css';
 
 type MetricSpec = { key: DashboardMetricKey; label: string; fullLabel: string; badge: 'blue' | 'red' | 'amber' | 'green'; invert?: boolean; icon: React.ReactNode };
 const dashboardResponseCache = new Map<string, DashboardDataResponse>();
@@ -59,21 +61,12 @@ function periodLabel(start: string, end: string) {
 function DashboardPeriodDrawer({ months, start, end, onApply, onClose }: { months: string[]; start: string; end: string; onApply: (start: string, end: string) => void; onClose: () => void }) {
   const [draftStart, setDraftStart] = useState(start);
   const [draftEnd, setDraftEnd] = useState(end);
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const closeRef = useRef(onClose);
-  useEffect(() => { closeRef.current = onClose; }, [onClose]);
+  const dialogRef = useDialogFocusTrap<HTMLElement>({ active: true, onClose });
 
   useEffect(() => {
     document.body.classList.add('dashboard-period-drawer-open');
-    const enterFrame = window.requestAnimationFrame(() => titleRef.current?.focus());
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeRef.current();
-    };
-    window.addEventListener('keydown', onKeyDown);
     return () => {
       document.body.classList.remove('dashboard-period-drawer-open');
-      window.cancelAnimationFrame(enterFrame);
-      window.removeEventListener('keydown', onKeyDown);
     };
   }, []);
 
@@ -106,13 +99,15 @@ function DashboardPeriodDrawer({ months, start, end, onApply, onClose }: { month
   return <BodyPortal>
     <div className="dashboard-period-backdrop" aria-hidden="true" onClick={onClose}/>
     <section
+      ref={dialogRef}
+      tabIndex={-1}
       className="dashboard-period-drawer"
       role="dialog"
       aria-modal="true"
       aria-labelledby="dashboard-period-title"
     >
       <header className="dashboard-period-drawer-head">
-        <h2 id="dashboard-period-title" ref={titleRef} tabIndex={-1}>Chọn kỳ Tổng quan</h2>
+        <h2 id="dashboard-period-title" tabIndex={-1} data-dialog-initial-focus>Chọn kỳ Tổng quan</h2>
         <button type="button" className="dashboard-period-close" aria-label="Đóng bộ lọc kỳ" onClick={onClose}>
           <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
         </button>
@@ -324,8 +319,8 @@ function FinancialDonutChart({ row, kpi }: { row?: DashboardMonthRow; kpi?: Retu
   );
 }
 
-function ExportButton({ title }: { title: string }) {
-  return <button type="button" className="dashboard-export-button" title={`Xuất ảnh ${title}`} aria-label={`Xuất ảnh ${title}`} onClick={(event) => void exportCardAsImage(event.currentTarget, title)}>
+function ExportButton({ title, disabled }: { title: string; disabled?: boolean }) {
+  return <button type="button" className="dashboard-export-button" title={`Xuất ảnh ${title}`} aria-label={`Xuất ảnh ${title}`} disabled={disabled} onClick={(event) => void exportCardAsImage(event.currentTarget, title)}>
     <svg className="btn-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
   </button>;
 }
@@ -337,6 +332,36 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
   const [periodDrawerOpen, setPeriodDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(initialError);
+  const [tripSelection, setTripSelection] = useState({ year: '', date: '' });
+  const [tripRetry, setTripRetry] = useState(0);
+  const [tripResult, setTripResult] = useState<{ key: string; trips: DashboardTrip[]; error?: string }>();
+  const tripDate = tripSelection.year === workbook.year ? tripSelection.date : '';
+  const tripRequestKey = tripDate ? JSON.stringify([workbook.year, tripDate, tripRetry, dashboard?.supabasePublicationId]) : '';
+  const latestTripDate = dashboard?.latestTrips?.date || '';
+  const visibleTripDate = tripDate ? tripDate.split('-').reverse().join('/') : latestTripDate;
+  const tripLoading = Boolean(tripDate && tripResult?.key !== tripRequestKey);
+  const tripError = tripDate && tripResult?.key === tripRequestKey ? tripResult.error : '';
+
+  useEffect(() => {
+    if (!tripDate) return;
+    const controller = new AbortController();
+    const params = new URLSearchParams({ year: workbook.year, tripDate });
+    void (async () => {
+      try {
+        const response = await fetch(`/dashboard-data/?${params}`, { cache: 'no-store', signal: controller.signal });
+        const payload = await response.json();
+        if (!response.ok || !Array.isArray(payload.trips)) throw new Error(payload.error);
+        if (!controller.signal.aborted) setTripResult({ key: tripRequestKey, trips: payload.trips });
+      } catch (error) {
+        if (!controller.signal.aborted) setTripResult({
+          key: tripRequestKey, trips: [],
+          error: error instanceof Error && error.message === 'Không thể xác nhận dữ liệu đầy đủ cho ngày này.'
+            ? error.message : 'Không tải được dữ liệu chuyến xe.'
+        });
+      }
+    })();
+    return () => controller.abort();
+  }, [tripDate, tripRequestKey, workbook.year]);
   const rows = useMemo(() => parseDashboardRows(dashboard?.overview?.months), [dashboard]);
   const kpiMap = useMemo(() => buildKpiMap(dashboard?.overview?.kpis), [dashboard]);
   const monthList = useMemo(() => [...new Set(rows.map((row) => row.month))], [rows]);
@@ -359,7 +384,9 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
     const previousRows = rows.slice(startIndex - periodLength, startIndex);
     return aggregateDashboardPeriod(previousRows, kpiMap, periodLabel(previousRows[0]?.month || '', previousRows[previousRows.length - 1]?.month || ''));
   }, [rows, selectedRows, startIndex, kpiMap]);
-  const trips = dashboard?.latestTrips?.trips || [];
+  const trips = tripDate
+    ? (tripResult?.key === tripRequestKey ? tripResult.trips : [])
+    : dashboard?.latestTrips?.trips || [];
   const uniqueVehicleCount = countUniqueVehicles(trips);
 
   useEffect(() => {
@@ -420,10 +447,25 @@ export function DashboardModule({ initialDashboard, initialError = '' }: { initi
     </section>
     <section className="table-card high-density-table" style={{ marginBottom: 20 }}>
       <div className="table-card-head">
-        <div><div className="table-title" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>Dữ Liệu Chuyến Gần Đây{dashboard?.latestTrips?.date ? <span style={{ color: '#a7f3d0', fontWeight: 700, fontSize: 13 }}>({dashboard.latestTrips.date})</span> : null}</div></div>
-        <div className="dashboard-export-actions"><ExportButton title="Số chuyến xe"/></div>
+        <div><div className={`table-title ${styles.heading}`}>Dữ Liệu Chuyến Gần Đây
+          <span className={styles.filters}>
+            <span className={styles.date}>
+              <span>{visibleTripDate || 'Chọn ngày'}</span>
+              <svg data-export-hidden className="btn-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+              <input data-export-hidden type="date" aria-label="Chọn ngày xem chuyến xe" min={`${workbook.year}-01-01`} max={`${workbook.year}-12-31`}
+                value={tripDate || latestTripDate.split('/').reverse().join('-')}
+                onChange={(event) => {
+                  if (event.target.value && !event.target.validity.valid) return;
+                  setTripSelection({ year: workbook.year, date: event.target.value });
+                  setTripRetry((value) => value + 1);
+                }}/>
+            </span>
+            {tripDate ? <button data-export-hidden type="button" className={styles.latest} onClick={() => setTripSelection({ year: workbook.year, date: '' })}>Mới nhất</button> : null}
+          </span>
+        </div></div>
+        <div className="dashboard-export-actions"><ExportButton title="Số chuyến xe" disabled={!trips.length}/></div>
       </div>
-      <div className="table-wrap"><table className="dashboard-latest-trips-table"><thead><tr><th style={{ width: '22%', textAlign: 'left' }}>Dự án</th><th style={{ width: '22%', textAlign: 'left' }}>Biển số xe</th><th style={{ width: '20%', textAlign: 'left' }}>Số chuyến</th><th style={{ width: '36%', textAlign: 'left' }}>Số phiếu</th></tr></thead><tbody>{trips.length ? <>{trips.map((trip: DashboardTrip, index) => <tr key={`${trip.project}-${trip.vehicle}-${index}`}><td style={{ fontWeight: 600, textAlign: 'left' }}>{trip.project || '-'}</td><td className="dashboard-trip-vehicle" style={{ fontWeight: 700, textAlign: 'left' }}>{trip.vehicle || ''}</td><td className="tabular-nums" style={{ fontWeight: 600, textAlign: 'left' }}>{Number(trip.count || 0).toLocaleString('vi-VN')}</td><td className="dashboard-trip-ticket" style={{ textAlign: 'left' }}>{trip.ticket || '-'}</td></tr>)}<tr className="total-row" style={{ position: 'sticky', bottom: 0, fontWeight: 800 }}><td style={{ fontWeight: 800, textAlign: 'left' }}>Tổng cộng</td><td className="dashboard-trip-total" style={{ fontWeight: 800, textAlign: 'left' }}>{uniqueVehicleCount ? `${uniqueVehicleCount} xe` : '-'}</td><td className="dashboard-trip-total tabular-nums" style={{ fontWeight: 800, textAlign: 'left' }}>{trips.reduce((sum, trip) => sum + Number(trip.count || 0), 0).toLocaleString('vi-VN')}</td><td style={{ textAlign: 'left' }}/></tr></> : <tr><td colSpan={4} className="dashboard-trip-ticket" style={{ textAlign: 'center', padding: 24 }}>Chưa có dữ liệu chuyến xe của ngày mới nhất.</td></tr>}</tbody></table></div>
+      <div className="table-wrap" aria-busy={tripLoading}><table className="dashboard-latest-trips-table"><thead><tr><th style={{ width: '22%', textAlign: 'left' }}>Dự án</th><th style={{ width: '22%', textAlign: 'left' }}>Biển số xe</th><th style={{ width: '20%', textAlign: 'left' }}>Số chuyến</th><th style={{ width: '36%', textAlign: 'left' }}>Số phiếu</th></tr></thead><tbody>{trips.length ? <>{trips.map((trip: DashboardTrip, index) => <tr key={`${trip.project}-${trip.vehicle}-${index}`}><td style={{ fontWeight: 600, textAlign: 'left' }}>{trip.project || '-'}</td><td className="dashboard-trip-vehicle" style={{ fontWeight: 700, textAlign: 'left' }}>{trip.vehicle || ''}</td><td className="tabular-nums" style={{ fontWeight: 600, textAlign: 'left' }}>{Number(trip.count || 0).toLocaleString('vi-VN')}</td><td className="dashboard-trip-ticket" style={{ textAlign: 'left' }}>{trip.ticket || '-'}</td></tr>)}<tr className="total-row" style={{ position: 'sticky', bottom: 0, fontWeight: 800 }}><td style={{ fontWeight: 800, textAlign: 'left' }}>Tổng cộng</td><td className="dashboard-trip-total" style={{ fontWeight: 800, textAlign: 'left' }}>{uniqueVehicleCount ? `${uniqueVehicleCount} xe` : '-'}</td><td className="dashboard-trip-total tabular-nums" style={{ fontWeight: 800, textAlign: 'left' }}>{trips.reduce((sum, trip) => sum + Number(trip.count || 0), 0).toLocaleString('vi-VN')}</td><td style={{ textAlign: 'left' }}/></tr></> : <tr><td colSpan={4} className="dashboard-trip-ticket" style={{ textAlign: 'center', padding: 24 }}><span role="status">{tripLoading ? 'Đang tải dữ liệu chuyến xe…' : tripError || (tripDate ? `Chưa có dữ liệu chuyến xe ngày ${visibleTripDate}.` : 'Chưa có dữ liệu chuyến xe của ngày mới nhất.')}</span>{tripError ? <button type="button" className={styles.retry} onClick={() => setTripRetry((value) => value + 1)}>Thử lại</button> : null}</td></tr>}</tbody></table></div>
     </section>
     {periodDrawerOpen && monthList.length ? <DashboardPeriodDrawer months={monthList} start={effectiveStart} end={effectiveEnd} onApply={(start, end) => setPeriodRange({ start, end })} onClose={() => setPeriodDrawerOpen(false)}/> : null}
   </section>;

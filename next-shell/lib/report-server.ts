@@ -4,7 +4,7 @@ import { createReportBundleRepository } from '../../server/repositories/report-b
 import { runtimeConfig } from '../../server/runtime-config.js';
 import { loadServerWorkbookContext } from './request-context.js';
 import { createServerApiClient } from './platform/server-api-client';
-import { aggregateReportBundles, compareReportMonths, latestReportMonth, monthsWithinRange, reportDataMonths } from './platform/report-c2';
+import { aggregateReportBundles, calendarMonthRange, compareReportMonths, latestReportMonth } from './platform/report-c2';
 import type { ReportBundle, ReportDataResponse } from './platform/report-types';
 import { loadCatalogData } from './catalog-server';
 
@@ -27,6 +27,9 @@ function normalizeExactMonth(value: unknown, label: string) {
 export async function loadReportData(monthInput: unknown = 'latest', forceRefresh = false, yearInput?: unknown): Promise<ReportDataResponse> {
   const requestedMonth = normalizeMonth(monthInput);
   const workbook = await loadServerWorkbookContext({ module: 'transport', year: yearInput });
+  if (/\/20\d{2}$/.test(requestedMonth) && !requestedMonth.endsWith(`/${workbook.year}`)) {
+    throw httpError(400, `Kỳ báo cáo phải thuộc năm ${workbook.year}.`);
+  }
   const vehicleOwnersPromise = loadVehicleOwners(workbook.year).catch(() => ({}));
   let apiMonth = requestedMonth;
   if (!forceRefresh) {
@@ -81,21 +84,16 @@ export async function loadReportRangeData(fromInput: unknown, toInput: unknown, 
   if (forceRefresh) throw httpError(400, 'Đối soát trực tiếp Google Sheet chưa hỗ trợ cho khoảng tháng. Hãy làm mới dữ liệu tháng trước khi lọc khoảng.');
 
   const workbook = await loadServerWorkbookContext({ module: 'transport', year: yearInput });
+  if (![fromMonth, toMonth].every((month) => month.endsWith(`/${workbook.year}`))) {
+    throw httpError(400, `Khoảng báo cáo phải thuộc năm ${workbook.year}.`);
+  }
   const vehicleOwnersPromise = loadVehicleOwners(workbook.year).catch(() => ({}));
   try {
     const config = runtimeConfig();
     if (!config.supabaseUrl || !config.serviceRoleKey) throw httpError(503, 'Cache Báo cáo trên Supabase chưa sẵn sàng.');
     const fetchWithTimeout: typeof fetch = (request, init = {}) => fetch(request, { ...init, signal: AbortSignal.timeout(5000) });
     const repository = createReportBundleRepository({ httpError, fetchImpl: fetchWithTimeout });
-    const referenceRow = await repository.findLatest(config, toMonth, workbook.spreadsheetId);
-    if (!referenceRow?.payload) throw httpError(503, `Chưa có cache Báo cáo tháng ${toMonth}.`);
-
-    const availableMonths = reportDataMonths((referenceRow.payload as ReportBundle).overview?.months);
-    const includedMonths = monthsWithinRange(availableMonths, fromMonth, toMonth);
-    if (!includedMonths.length || includedMonths[0] !== fromMonth || includedMonths.at(-1) !== toMonth) {
-      throw httpError(400, 'Khoảng tháng đã chọn không nằm trọn trong dữ liệu Báo cáo hiện có.');
-    }
-
+    const includedMonths = calendarMonthRange(fromMonth, toMonth);
     const rows = await repository.findMonths(config, includedMonths, workbook.spreadsheetId);
     const rowsByMonth = new Map(rows.map((row) => [row.report_month, row]));
     const missingMonths = includedMonths.filter((month) => !rowsByMonth.get(month)?.payload);

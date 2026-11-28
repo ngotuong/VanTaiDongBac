@@ -142,7 +142,7 @@ var FundTransactionService = (function () {
       if (sameIdentity_(transactionIdentity_(existing, context), transactionIdentity_(row, context), context)) {
         return { ok: true, rowIndex: rowNumber, voucher: row[0], sheetName: context.sheetName, idempotentReplay: true };
       }
-      throw new Error('Dòng Thu chi đã thay đổi; tải lại trước khi sửa.');
+      throw new Error('REQUIRES_RECONCILIATION: Dòng Thu chi đã thay đổi; tải lại trước khi sửa.');
     }
     context.repository.updateRow(context.sheet, rowNumber, row, context.writeOptions);
     return { ok: true, rowIndex: rowNumber, voucher: row[0], sheetName: context.sheetName };
@@ -179,7 +179,7 @@ var FundTransactionService = (function () {
 
   function assertIdentity(row, expected, context) {
     if (!expected || !context.clean(expected.voucher) || !sameIdentity_(transactionIdentity_(row, context), expected, context)) {
-      throw new Error('Dòng Thu chi đã thay đổi hoặc thiếu dấu vân tay; dừng ghi để tránh nhầm giao dịch.');
+      throw new Error('REQUIRES_RECONCILIATION: Dòng Thu chi đã thay đổi hoặc thiếu dấu vân tay; dừng ghi để tránh nhầm giao dịch.');
     }
   }
 

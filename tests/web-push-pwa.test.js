@@ -34,7 +34,7 @@ test('Web Push service worker persists badge count and bounded notification IDs,
   assert.match(center, /serviceWorker\.addEventListener\('message'/);
   assert.match(center, /window\.navigator\.serviceWorker\.ready/);
   assert.match(center, /if \(await sendWithAck\(\)\) return/);
-  assert.match(center, /data-notification-id=\{key\}/);
+  assert.match(center, /data-notification-id=\{item\.id\}/);
   assert.doesNotMatch(worker, /addEventListener\(['"]fetch['"]/);
   assert.doesNotMatch(worker, /cache\.add|cache\.addAll|indexedDB/);
 });

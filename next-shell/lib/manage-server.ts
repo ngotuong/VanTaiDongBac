@@ -16,7 +16,12 @@ function sheetName(value: unknown): ManageSheetName {
 }
 function dateValue(value: unknown) {
   const date = String(value || '').trim();
-  if (date && !ISO_DATE.test(date)) throw httpError(400, 'Ngày lọc Vận hành không hợp lệ.');
+  if (date) {
+    const parsed = new Date(date + 'T00:00:00Z');
+    if (!ISO_DATE.test(date) || !Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
+      throw httpError(400, 'Ngày lọc Vận hành không hợp lệ.');
+    }
+  }
   return date;
 }
 export function currentTransportMonthRange(now = new Date()) {
@@ -58,17 +63,23 @@ function filterDates(bundle: ManageBundle, startDate: string, endDate: string) {
   const rows = bundle.rows.filter((row) => {
     const date = rowDateKey(row.values?.[0]);
     return (!startDate || date >= startDate) && (!endDate || date <= endDate);
-  }).slice(0, 500);
-  return { ...bundle, rows, isLimited: Boolean(bundle.isLimited || bundle.rows.length >= 500) };
+  });
+  return { ...bundle, rows };
 }
 function combine(bundles: ManageBundle[]) {
   const first = bundles[0];
-  const seen = new Set<string>();
-  const rows = bundles.flatMap((bundle) => bundle.rows).filter((row) => {
-    const key = `${row.rowIndex}|${JSON.stringify(row.values)}`;
-    if (seen.has(key)) return false; seen.add(key); return true;
-  }).sort((left, right) => Number(right.rowIndex) - Number(left.rowIndex));
-  return { ...first, rows, isLimited: bundles.some((bundle) => bundle.isLimited), supabaseCached: true, supabaseMonthlyCached: true };
+  const byRow = new Map<number, ManageRow>();
+  let conflictingRows = false;
+  for (const bundle of [...bundles].sort((left, right) => String(right.supabaseSyncedAt || '').localeCompare(String(left.supabaseSyncedAt || '')))) {
+    for (const row of bundle.rows) {
+      const existing = byRow.get(row.rowIndex);
+      if (!existing) byRow.set(row.rowIndex, row);
+      else if (JSON.stringify(existing.values) !== JSON.stringify(row.values)) conflictingRows = true;
+    }
+  }
+  const rows = [...byRow.values()].sort((left, right) => right.rowIndex - left.rowIndex);
+  const isLimited = conflictingRows || bundles.some((bundle) => bundle.isLimited || (!bundle.completeDateRange && bundle.rows.length >= 500));
+  return { ...first, rows, isLimited, supabaseCached: true, supabaseMonthlyCached: true };
 }
 
 export async function loadManageData(input: { sheetName?: unknown; year?: unknown; startDate?: unknown; endDate?: unknown; forceRefresh?: boolean } = {}): Promise<ManageDataResponse> {
@@ -76,21 +87,30 @@ export async function loadManageData(input: { sheetName?: unknown; year?: unknow
   const startDate = dateValue(input.startDate); const endDate = dateValue(input.endDate);
   if (startDate && endDate && startDate > endDate) throw httpError(400, 'Ngày bắt đầu phải trước ngày kết thúc.');
   const workbook = await loadServerWorkbookContext({ module: 'transport', year: input.year });
+  if ([startDate, endDate].some((date) => date && !date.startsWith(`${workbook.year}-`))) {
+    throw httpError(400, `Khoảng ngày Vận hành phải hợp lệ và thuộc năm ${workbook.year}.`);
+  }
   if (!input.forceRefresh) {
     try {
       const config = runtimeConfig();
       const fetchWithTimeout: typeof fetch = (request, init = {}) => fetch(request, { ...init, signal: AbortSignal.timeout(5000) });
       const repository = createManageBundleRepository({ httpError, fetchImpl: fetchWithTimeout });
-      const months = monthKeys(startDate, endDate);
+      const months = startDate || endDate ? monthKeys(startDate || `${workbook.year}-01-01`, endDate || `${workbook.year}-12-31`) : [];
       if (config.supabaseUrl && config.serviceRoleKey && months.length) {
         const [rows, recentRow] = await Promise.all([
           Promise.all(months.map((month) => repository.find(config, `${workbook.year}:${requestedSheet}`, `month:${month}`))),
           repository.find(config, `${workbook.year}:${requestedSheet}`, 'recent_500')
         ]);
         const bundles = rows.map((row) => row && publicBundle(row.payload, row.synced_at, true));
-        if (bundles.every(Boolean)) return { data: filterDates(combine(bundles as ManageBundle[]), startDate, endDate), sheetName: requestedSheet, startDate, endDate };
+        const available = bundles.filter((bundle): bundle is ManageBundle => bundle !== null);
+        const missingMonths = months.filter((_month, index) => !bundles[index]);
+        if (available.length) {
+          const combined = combine(available);
+          const data = filterDates({ ...combined, isLimited: combined.isLimited || missingMonths.length > 0, missingMonths }, startDate, endDate);
+          return { data, sheetName: requestedSheet, startDate, endDate };
+        }
         const recentBundle = recentRow && publicBundle(recentRow.payload, recentRow.synced_at, false);
-        if (recentBundle) return { data: filterDates(recentBundle, startDate, endDate), sheetName: requestedSheet, startDate, endDate };
+        if (recentBundle) return { data: filterDates({ ...recentBundle, isLimited: true, missingMonths }, startDate, endDate), sheetName: requestedSheet, startDate, endDate };
       } else if (config.supabaseUrl && config.serviceRoleKey) {
         const row = await repository.find(config, `${workbook.year}:${requestedSheet}`, 'recent_500');
         const bundle = row && publicBundle(row.payload, row.synced_at, false);

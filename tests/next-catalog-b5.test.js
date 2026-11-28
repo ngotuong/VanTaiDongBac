@@ -48,6 +48,18 @@ test('C3 Catalog restores the C2 golden-master surface instead of redesigning it
   assert.doesNotMatch(module,/catalog-header|catalog-card-head|catalog-modal-backdrop|platform-eyebrow/);
 });
 
+test('Catalog zero-search state offers a keyboard-accessible way to restore rows without reloading',()=>{
+  const module=read('next-shell/components/catalog/CatalogModule.tsx');
+  const css=read('next-shell/app/platform.css');
+  assert.match(module,/id="catalogTableEmpty"[^>]*role="status"/);
+  assert.match(module,/query\.trim\(\)\?'Không có dữ liệu phù hợp với tìm kiếm của bạn\.'/);
+  assert.match(module,/className="secondary catalog-clear-search"/);
+  assert.match(module,/onClick=\{\(\)=>\{setQuery\(''\);setPage\(1\);\}\}/);
+  assert.match(module,/query\.trim\(\)\?<button/);
+  assert.match(css,/\.catalog-empty\{[^}]*white-space:normal!important/);
+  assert.match(css,/#catalogView\.view\.active\.catalog-c2 \.catalog-empty \.catalog-clear-search\s*\{\s*min-height: 44px !important;/);
+});
+
 test('B5 reads cache server-first and keeps Apps Script as authoritative fallback with workbook context',()=>{
   const server=read('next-shell/lib/catalog-server.ts');
   assert.match(server,/catalog_data:\$\{sheetName\}/);
@@ -102,7 +114,7 @@ test('Catalog writes update the edited table optimistically and defer authoritat
   const api=read('PublicApi.gs');
   const supabase=read('SupabaseService.gs');
   const writeWrapper=api.match(/function withSheetRowSync_\([\s\S]*?\n}\n\nfunction isTransportManageSheet_/)?.[0]||'';
-  assert.match(module,/useState\(\(\) => createRetrySafeWriteClient\(api\)\)/);
+  assert.match(module,/createRetrySafeWriteClient\(api, undefined, \{ userId: context\.user\.id, year \}\)/);
   assert.match(module,/writeApi\.post<[^>]+>\('saveSheetRow'/);
   assert.match(module,/const nextData=\{\.\.\.data,rows:nextRows\};setData\(nextData\)/);
   assert.match(module,/catalogResponseCache\.set\(catalogCacheKey\(year,sheet\)/);

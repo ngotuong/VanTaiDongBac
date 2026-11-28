@@ -29,6 +29,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return send(res, 405, { ok: false, error: 'Method not allowed.' });
   const config = runtimeConfig();
   const appUsers = createAppUserRepository({ httpError });
+  const deliveryRepository = createNotificationDeliveryRepository({ httpError });
   const workbookContextService = createWorkbookContextService({
     httpError,
     repository: createWorkbookContextRepository({ httpError }),
@@ -36,6 +37,7 @@ module.exports = async function handler(req, res) {
   });
   const center = createNotificationCenterService({
     repository: createNotificationBundleRepository({ httpError }),
+    deliveryRepository,
     workbookContextService,
     httpError,
     send
@@ -52,7 +54,7 @@ module.exports = async function handler(req, res) {
       workbookContextService,
       webPush, httpError
     }),
-    deliveryRepository: createNotificationDeliveryRepository({ httpError }),
+    deliveryRepository,
     preferenceRepository: createNotificationPreferenceRepository({ httpError }),
     appUserRepository: appUsers,
     subscriptionRepository: createPushSubscriptionRepository({ httpError }),

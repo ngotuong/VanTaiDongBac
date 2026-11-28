@@ -11,9 +11,10 @@ const { createCatalogService } = require('../server/services/catalog-service');
 const { createWorkbookContextService } = require('../server/services/workbook-context-service');
 const { createYearRolloverService } = require('../server/services/year-rollover-service');
 const { createNotificationBundleRepository } = require('../server/repositories/notification-bundle-repository');
+const { createNotificationDeliveryRepository } = require('../server/repositories/notification-delivery-repository');
 const { createNotificationCenterService } = require('../server/services/notification-center-service');
 const { createWriteJobRepository } = require('../server/repositories/write-job-repository');
-const { createWriteCommandService } = require('../server/services/write-command-service');
+const { createWriteCommandService, assertBusinessWriteDates } = require('../server/services/write-command-service');
 const { createPayrollExplanationRepository } = require('../server/repositories/payroll-explanation-repository');
 const { createPayrollExplanationService } = require('../server/services/payroll-explanation-service');
 const { runtimeConfig } = require('../server/runtime-config');
@@ -52,7 +53,7 @@ const catalogBundleRepository = createCatalogBundleRepository({
 });
 const catalogService = createCatalogService({ catalogBundleRepository, appsScriptClient, workbookContextService, httpError, send });
 const notificationBundleRepository = createNotificationBundleRepository({ httpError });
-const notificationCenterService = createNotificationCenterService({ repository: notificationBundleRepository, workbookContextService, httpError, send });
+const notificationCenterService = createNotificationCenterService({ repository: notificationBundleRepository, deliveryRepository: createNotificationDeliveryRepository({ httpError }), workbookContextService, httpError, send });
 const writeJobRepository = createWriteJobRepository({ httpError });
 const writeCommandService = createWriteCommandService({
   repository: writeJobRepository,
@@ -129,6 +130,7 @@ module.exports = async function handler(req, res) {
       if (req.method !== 'POST') throw httpError(405, 'Lệnh ghi dữ liệu chỉ chấp nhận POST.');
       const workbook = await workbookContextService.assertWritableAsync({ module: 'cashflow', year: body.year || params.year });
       body.year = workbook.year;
+      assertBusinessWriteDates(action, body, workbook.year, httpError);
     }
     const client = appsScriptClient;
     const result = await client.forward({

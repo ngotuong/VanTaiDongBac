@@ -119,17 +119,28 @@ var DashboardService = (function () {
   }
 
   function aggregateDetailMatrices(matrices) {
-    var base = matrices[0] || [];
+    var populated = (matrices || []).filter(function (matrix) { return matrix && matrix.length; });
+    var base = populated[0] || [];
     var result = [];
     if (base.length) result.push(base[0]);
-    var totals = [];
-    (matrices || []).forEach(function (matrix) {
+    var expectedHeader = (base[0] || []).map(normalizeText_).join('|');
+    var totals = Object.create(null);
+    var categories = [];
+    populated.forEach(function (matrix) {
+      if ((matrix[0] || []).map(normalizeText_).join('|') !== expectedHeader) {
+        throw new Error('Schema chi tiết báo cáo không đồng nhất giữa các kỳ.');
+      }
+      var seenInMatrix = Object.create(null);
       for (var rowIndex = 1; rowIndex < matrix.length; rowIndex++) {
         var row = matrix[rowIndex];
         var category = clean_(row[0]);
         if (!category) continue;
-        if (!totals[rowIndex]) {
-          totals[rowIndex] = {
+        var categoryKey = normalizeText_(category);
+        if (seenInMatrix[categoryKey]) throw new Error('Danh mục chi tiết báo cáo bị trùng trong cùng kỳ: ' + category + '.');
+        seenInMatrix[categoryKey] = true;
+        if (!totals[categoryKey]) {
+          categories.push(categoryKey);
+          totals[categoryKey] = {
             category: category,
             colB: 0,
             colC: 0,
@@ -138,16 +149,13 @@ var DashboardService = (function () {
             template: row
           };
         }
-        if (totals[rowIndex].category === category) {
-          totals[rowIndex].colB += parseNumber_(row[1]) || 0;
-          totals[rowIndex].colC += parseNumber_(row[2]) || 0;
-          totals[rowIndex].colD += parseNumber_(row[3]) || 0;
-        }
+        totals[categoryKey].colB += parseNumber_(row[1]) || 0;
+        totals[categoryKey].colC += parseNumber_(row[2]) || 0;
+        totals[categoryKey].colD += parseNumber_(row[3]) || 0;
       }
     });
-    for (var i = 1; i < totals.length; i++) {
-      var item = totals[i];
-      if (!item) continue;
+    categories.forEach(function (categoryKey) {
+      var item = totals[categoryKey];
       result.push([
         item.category,
         formatAggregateDetailCell_(item.colB, item.template[1]),
@@ -155,7 +163,7 @@ var DashboardService = (function () {
         formatAggregateDetailCell_(item.colD, item.template[3]),
         item.colE
       ]);
-    }
+    });
     return result;
   }
 
@@ -177,36 +185,34 @@ var DashboardService = (function () {
     if (!sheet) return { date: '', trips: [] };
     var lastDataRow = context.getLastNonEmptyRow(sheet, 1, 3, true);
     if (lastDataRow < 3) return { date: '', trips: [] };
-    var sampleRows = Math.min(lastDataRow - 2, 500);
-    var startRow = lastDataRow - sampleRows + 1;
-    var values = sheet.getRange(startRow, 1, sampleRows, 6).getValues();
-    var maxTime = 0;
-    var maxDate = null;
-    values.forEach(function (row) {
+    var values = sheet.getRange(3, 1, lastDataRow - 2, 6).getValues();
+    var maxDateKey = '';
+    var formattedDates = Object.create(null);
+    var dateKeys = values.map(function (row) {
       var date = row[0];
-      if (Object.prototype.toString.call(date) !== '[object Date]') return;
-      var time = date.getTime();
-      if (time > maxTime) {
-        maxTime = time;
-        maxDate = date;
+      if (Object.prototype.toString.call(date) !== '[object Date]' || isNaN(date.getTime())) {
+        date = typeof ValidationService.parseDate === 'function' ? ValidationService.parseDate(date) : null;
       }
+      if (!date) return '';
+      var stamp = String(date.getTime());
+      var key = formattedDates[stamp] || (formattedDates[stamp] = Utilities.formatDate(date, context.timezone, 'yyyy-MM-dd'));
+      if (context.year && key.slice(0, 4) !== String(context.year)) return '';
+      if (key > maxDateKey) maxDateKey = key;
+      return key;
     });
-    if (!maxDate) return { date: '', trips: [] };
+    if (!maxDateKey) return { date: '', trips: [] };
 
-    var maxDateKey = Utilities.formatDate(maxDate, context.timezone, 'yyyy-MM-dd');
     var tripsMap = {};
     var ticketMap = {};
     var projectMap = {};
-    values.forEach(function (row) {
-      var date = row[0];
-      if (Object.prototype.toString.call(date) !== '[object Date]') return;
-      if (Utilities.formatDate(date, context.timezone, 'yyyy-MM-dd') !== maxDateKey) return;
+    values.forEach(function (row, index) {
+      if (dateKeys[index] !== maxDateKey) return;
       var plate = clean_(row[2]);
       var project = clean_(row[3]);
       var count = parseNumber_(row[4]);
       var ticket = clean_(row[5]);
       if (!plate || count <= 0) return;
-      var key = project + '|' + plate;
+      var key = JSON.stringify([project, plate]);
       tripsMap[key] = (tripsMap[key] || 0) + count;
       projectMap[key] = project;
       if (ticket) {
@@ -216,7 +222,7 @@ var DashboardService = (function () {
     });
 
     var trips = Object.keys(tripsMap).map(function (key) {
-      var parts = key.split('|');
+      var parts = JSON.parse(key);
       return {
         project: projectMap[key] || parts[0] || '-',
         vehicle: parts[1] || '',
@@ -230,7 +236,7 @@ var DashboardService = (function () {
       return left.vehicle.localeCompare(right.vehicle);
     });
     return {
-      date: Utilities.formatDate(maxDate, context.timezone, 'dd/MM/yyyy'),
+      date: maxDateKey.split('-').reverse().join('/'),
       trips: trips
     };
   }

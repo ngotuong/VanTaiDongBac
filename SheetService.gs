@@ -791,6 +791,7 @@ var SheetService = (function () {
 
   function readLatestTrips_(ss) {
     return DashboardService.readLatestTrips(ss, {
+      year: APP_CONFIG.year,
       timezone: APP_CONFIG.timezone,
       getLastNonEmptyRow: getLastNonEmptyRowInColumn_
     });
@@ -809,6 +810,7 @@ var SheetService = (function () {
   function readSheetData(sheetName, startDateStr, endDateStr, limit, options) {
     return SheetReadService.readSheetDataFromSpreadsheet(getSpreadsheet_(), sheetName, startDateStr, endDateStr, limit, {
       forceRefresh: Boolean(options && options.forceRefresh === true),
+      completeDateRange: Boolean(options && options.completeDateRange === true),
       sheets: APP_CONFIG.sheets,
       timezone: APP_CONFIG.timezone,
       buildCacheKey: cacheKey_,
@@ -869,7 +871,7 @@ var SheetService = (function () {
         return { ok: true, rowIndex: rowNum, idempotentReplay: true };
       }
       if (existingValues && expectedRowData && !rowObjectMatchesValues_(headers, existingValues, expectedRowData)) {
-        throw new Error('Dòng ' + rowNum + ' đã thay đổi sau khi tạo job; từ chối ghi để tránh sửa nhầm dữ liệu.');
+        throw new Error('REQUIRES_RECONCILIATION: Dòng ' + rowNum + ' đã thay đổi sau khi tạo job; từ chối ghi để tránh sửa nhầm dữ liệu.');
       }
 
       var valuesToSet = [];
@@ -1041,7 +1043,7 @@ var SheetService = (function () {
         });
         if (alreadyCleared) return { ok: true, rowIndex: rowNum, idempotentReplay: true };
         if (expectedRowData && !rowObjectMatchesValues_(headers, currentValues, expectedRowData)) {
-          throw new Error('Dòng ' + rowNum + ' đã thay đổi sau khi tạo job; từ chối xóa để tránh xóa nhầm dữ liệu.');
+          throw new Error('REQUIRES_RECONCILIATION: Dòng ' + rowNum + ' đã thay đổi sau khi tạo job; từ chối xóa để tránh xóa nhầm dữ liệu.');
         }
 
         columnsToClear.forEach(function(colHeader) {

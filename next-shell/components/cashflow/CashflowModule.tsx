@@ -11,6 +11,7 @@ import { matchesSearchQuery } from '../../lib/platform/search';
 import { showToast } from '../../lib/platform/toast';
 import type { ApiRequestOptions } from '../../lib/platform/types';
 import type { CashflowInitialData, CashflowTab, FundCatalog, FundCatalogRow, FundLoan, FundLoans, FundOptions, FundOverview, FundSettings, FundTransaction, FundTransactions, FundWriteJob } from '../../lib/platform/cashflow-types';
+import { createRetrySafeWriteClient, requiresWriteReconciliation } from '../../lib/platform/retry-safe-write-client';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import { useDialogFocusTrap } from '../platform/useDialogFocusTrap';
 import { useSwipeDismiss } from '../platform/useSwipeDismiss';
@@ -370,6 +371,8 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   });
   const [deletingTransaction, setDeletingTransaction] = useState<FundTransaction | null>(null);
   const [deletingCatalogRow, setDeletingCatalogRow] = useState<FundCatalogRow | null>(null);
+  const transactionDeleteDialogRef = useDialogFocusTrap<HTMLElement>({ active: Boolean(deletingTransaction), disabled: busy, onClose: () => setDeletingTransaction(null) });
+  const catalogDeleteDialogRef = useDialogFocusTrap<HTMLElement>({ active: Boolean(deletingCatalogRow), disabled: busy, onClose: () => setDeletingCatalogRow(null) });
   const [pageMetaPayload, setPageMetaPayload] = useState<FundOverview | FundTransactions | FundLoans | FundCatalog>(() => initialData.overview);
   const catalogPrefetchStarted = useRef(false);
   const expectedTransactionRef = useRef<FundTransaction | null>(null);
@@ -382,8 +385,9 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
   const appliedRangeRef = useRef(`${initialRange.start}|${initialRange.end}`);
   const intentIdsRef = useRef<Record<string, string>>({});
   const visibleQueryRef = useRef({ tab, startDate, endDate, group });
+  const [writeApi] = useState(() => createRetrySafeWriteClient(api, undefined, { userId: context.user.id, year }));
   const postFundCommand = async <T,>(action: string, options: ApiRequestOptions): Promise<T> => {
-    const result = await api.post<T & FundWriteJob>(action, options);
+    const result = await writeApi.post<T & FundWriteJob>(action, options);
     const job = normalizeJob(result);
     if (job.jobId) setJobs((old) => [{ ...job, action }, ...old.filter((item) => item.jobId !== job.jobId)]);
     return result;
@@ -765,7 +769,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
         amount: String(amount(row.amount)),
       }));
       if (prepared[0].rowIndex) {
-        const job = normalizeJob(await api.post<FundWriteJob>('updateFundTransaction', {
+        const job = normalizeJob(await writeApi.post<FundWriteJob>('updateFundTransaction', {
           body: {
             year,
             rowIndex: prepared[0].rowIndex,
@@ -795,7 +799,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
         if (tab === 'debts') setPageMetaPayload(nextTransactions);
       } else {
         const job = normalizeJob(
-          await api.post<FundWriteJob>('addFundTransactions', {
+          await writeApi.post<FundWriteJob>('addFundTransactions', {
             body: {
               year,
               transactions: prepared,
@@ -939,6 +943,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
     }
   };
   const retry = async (jobId: string) => {
+    if (jobs.some((job) => job.jobId === jobId && requiresWriteReconciliation(job.lastError || job.last_error))) return;
     try {
       const job = normalizeJob(await api.post<FundWriteJob>('retryWriteJob', { body: { jobId } }));
       setJobs((old) => old.map((item) => (item.jobId === jobId ? job : item)));
@@ -1134,7 +1139,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
       <button type="button" data-shell-refresh hidden onClick={() => void refresh(tab, false, true)}>
         Làm mới
       </button>
-      {jobs.length ? <aside aria-label="Hàng chờ Thu chi" className="table-card"><details open={jobs.some((job) => job.status === 'failed')}><summary aria-live="polite">{jobs.filter((job) => job.status !== 'failed').length} lệnh đang xử lý · {jobs.filter((job) => job.status === 'failed').length} lệnh lỗi</summary>{jobs.map((job) => <div key={job.jobId}><strong>{FUND_COMMAND_LABELS[job.action || ''] || 'Lệnh Thu chi'}: {job.status === 'failed' ? 'Lỗi' : 'Đang xử lý'}</strong>{job.lastError || job.last_error ? <p>{String(job.lastError || job.last_error).startsWith('REQUIRES_RECONCILIATION:') ? 'Cần đối soát giao dịch đã ghi; chưa thể thử lại tự động.' : job.lastError || job.last_error}</p> : null}{job.status === 'failed' && !String(job.lastError || job.last_error || '').startsWith('REQUIRES_RECONCILIATION:') ? <button type="button" onClick={() => void retry(job.jobId)}>Thử lại</button> : null}</div>)}</details></aside> : null}
+      {jobs.length ? <aside aria-label="Hàng chờ Thu chi" className="table-card"><details open={jobs.some((job) => job.status === 'failed')}><summary aria-live="polite">{jobs.filter((job) => job.status !== 'failed').length} lệnh đang xử lý · {jobs.filter((job) => job.status === 'failed').length} lệnh lỗi</summary>{jobs.map((job) => <div key={job.jobId}><strong>{FUND_COMMAND_LABELS[job.action || ''] || 'Lệnh Thu chi'}: {job.status === 'failed' ? 'Lỗi' : 'Đang xử lý'}</strong>{job.lastError || job.last_error ? <p>{requiresWriteReconciliation(job.lastError || job.last_error) ? 'Cần đối soát giao dịch đã ghi; chưa thể thử lại tự động.' : job.lastError || job.last_error}</p> : null}{job.status === 'failed' && !requiresWriteReconciliation(job.lastError || job.last_error) ? <button type="button" onClick={() => void retry(job.jobId)}>Thử lại</button> : null}</div>)}</details></aside> : null}
       <nav id="fundTabsBar" className="sub-tabs-bar app-sticky-tabs" role="tablist" aria-label="Phân hệ Thu chi">
         {visibleTabs.map(([value, label]) => (
           <button type="button" role="tab" aria-selected={tab === value} className={`sub-tab${tab === value ? ' active' : ''}`} onClick={() => switchTab(value)} key={value}>
@@ -1233,7 +1238,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
               if (e.currentTarget === e.target && !busy) setDeletingTransaction(null);
             }}
           >
-            <section className="modal-container cashflow-delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="cashflowTxDeleteTitle">
+            <section ref={transactionDeleteDialogRef} tabIndex={-1} className="modal-container cashflow-delete-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="cashflowTxDeleteTitle" aria-describedby="cashflowTxDeleteDescription">
               <header className="modal-header cashflow-delete-header">
                 <div className="cashflow-delete-warning-icon">
                   <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">
@@ -1248,7 +1253,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
                 </button>
               </header>
               <div className="modal-body cashflow-delete-body">
-                <p>
+                <p id="cashflowTxDeleteDescription">
                   Bạn có chắc chắn muốn xóa <strong>giao dịch {deletingTransaction.voucher || `dòng thứ ${deletingTransaction.rowIndex}`}</strong> không?
                 </p>
                 <div className="cashflow-delete-preview">
@@ -1268,7 +1273,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
                 <p className="cashflow-delete-subtext">Hành động này sẽ xóa giao dịch trên Google Sheet và không thể hoàn tác.</p>
               </div>
               <footer className="modal-footer">
-                <button type="button" className="outline" onClick={() => setDeletingTransaction(null)} disabled={busy}>
+                <button type="button" className="outline" data-dialog-initial-focus onClick={() => setDeletingTransaction(null)} disabled={busy}>
                   Hủy bỏ
                 </button>
                 <button type="button" className="danger-btn" onClick={() => void confirmDeleteTransaction()} disabled={busy}>
@@ -1288,7 +1293,7 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
               if (e.currentTarget === e.target && !busy) setDeletingCatalogRow(null);
             }}
           >
-            <section className="modal-container cashflow-delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="cashflowCatalogDeleteTitle">
+            <section ref={catalogDeleteDialogRef} tabIndex={-1} className="modal-container cashflow-delete-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="cashflowCatalogDeleteTitle" aria-describedby="cashflowCatalogDeleteDescription">
               <header className="modal-header cashflow-delete-header">
                 <div className="cashflow-delete-warning-icon">
                   <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">
@@ -1303,13 +1308,13 @@ export function CashflowModule({ initialData, initialError = '' }: { initialData
                 </button>
               </header>
               <div className="modal-body cashflow-delete-body">
-                <p>
+                <p id="cashflowCatalogDeleteDescription">
                   Bạn có chắc chắn muốn xóa mục “<strong>{deletingCatalogRow.value}</strong>” khỏi danh mục không?
                 </p>
                 <p className="cashflow-delete-subtext">Hành động này sẽ xóa nội dung ô danh mục trong vùng CAIDAT và không dịch chuyển dòng Sheet.</p>
               </div>
               <footer className="modal-footer">
-                <button type="button" className="outline" onClick={() => setDeletingCatalogRow(null)} disabled={busy}>
+                <button type="button" className="outline" data-dialog-initial-focus onClick={() => setDeletingCatalogRow(null)} disabled={busy}>
                   Hủy bỏ
                 </button>
                 <button type="button" className="danger-btn" onClick={() => void confirmDeleteCatalog()} disabled={busy}>

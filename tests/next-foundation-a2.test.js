@@ -52,7 +52,11 @@ test('A2 provides loading error not-found and workbook context boundaries', () =
   }
   assert.match(read('app/loading.jsx'), /aria-busy="true"/);
   assert.match(read('app/error.jsx'), /role="alert"/);
-  assert.match(read('app/not-found.jsx'), /Không tìm thấy trang/);
+  const notFound = read('app/not-found.jsx');
+  const shell = read('next-shell/components/platform/AppShell.tsx');
+  assert.match(notFound, /<h2>Không tìm thấy trang<\/h2>/);
+  assert.doesNotMatch(notFound, /<h1[ >]/);
+  assert.match(shell, /PAGE_META\[currentPath\] \|\| 'Không tìm thấy trang'/);
   assert.match(read('next-shell/components/platform/WorkbookContextProvider.tsx'), /useWorkbookContext/);
 });
 

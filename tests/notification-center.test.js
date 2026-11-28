@@ -738,7 +738,7 @@ test('header uses an accessible bell and filter controls reserve a chevron gutte
   assert.doesNotMatch(center, />Làm mới</);
   assert.match(center, /localStorage\.setItem\(storageKey/);
   assert.match(center, /updateAppBadge\(unreadCount, items\.map/);
-  assert.match(center, /function notificationKey\(item: NotificationItem\) \{\s*return item\.id;/);
+  assert.match(center, /function notificationKey\(item: NotificationItem\) \{\s*return item\.occurrenceId \|\| item\.id;/);
   assert.match(center, /function legacyNotificationKey\(item: NotificationItem\)/);
   assert.match(center, /READ_STORAGE_VERSION = 'v2'/);
   assert.match(center, /READ_RETENTION_MS = 120 \* 24 \* 60 \* 60 \* 1000/);

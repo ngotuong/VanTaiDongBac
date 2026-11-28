@@ -77,7 +77,7 @@ test('UI-4 totals are scoped to the complete filtered result and all edit dropdo
 test('UI-4 initial payload uses the current transport month instead of an unlabeled recent cache', () => {
   const page = read('next-shell/app/manage/page.jsx');
   const server = read('next-shell/lib/manage-server.ts');
-  assert.match(page, /const range=context\.workbook\.readOnly\?\{\}:currentTransportMonthRange\(\)/);
+  assert.match(page, /const range=context\.workbook\.readOnly\s*\?\s*\{ startDate: .* endDate: .* \}\s*:\s*currentTransportMonthRange\(\)/);
   assert.match(page, /loadManageData\(\{\.\.\.range,year:context\.workbook\.year\}\)/);
   assert.match(server, /timeZone: 'Asia\/Ho_Chi_Minh'/);
   assert.match(server, /startDate: `\$\{value\.year\}-\$\{value\.month\}-01`/);

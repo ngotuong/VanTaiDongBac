@@ -175,13 +175,26 @@ export function aggregateDetailMatrices(matrices: Array<ReportMatrix | undefined
   const valid = matrices.map(matrixRows).filter(({ head }) => head.length);
   if (!valid.length) return [];
   const result: ReportMatrix = [[...valid[0].head]];
-  const rowCount = Math.max(...valid.map(({ body }) => body.length));
-  for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
-    const templates = valid.map(({ body }) => body[rowIndex]).filter((row): row is ReportCell[] => Boolean(row));
-    if (!templates.length) continue;
+  const normalizedHeader = valid[0].head.map((cell) => removeAccents(String(cell ?? '').trim().toLowerCase())).join('|');
+  const byCategory = new Map<string, ReportCell[][]>();
+  for (const { head, body } of valid) {
+    if (head.map((cell) => removeAccents(String(cell ?? '').trim().toLowerCase())).join('|') !== normalizedHeader) {
+      throw new Error('Schema chi tiết báo cáo không đồng nhất giữa các kỳ.');
+    }
+    const seen = new Set<string>();
+    for (const row of body) {
+      const category = String(row[0] ?? '').trim();
+      if (!category) continue;
+      const categoryKey = removeAccents(category.toLowerCase());
+      if (seen.has(categoryKey)) throw new Error(`Danh mục chi tiết báo cáo bị trùng trong cùng kỳ: ${category}.`);
+      seen.add(categoryKey);
+      const entries = byCategory.get(categoryKey) || [];
+      entries.push(row);
+      byCategory.set(categoryKey, entries);
+    }
+  }
+  for (const templates of byCategory.values()) {
     const template = [...templates[0]];
-    const category = String(template[0] ?? '').trim();
-    if (!category || templates.some((row) => String(row[0] ?? '').trim() !== category)) continue;
     for (let column = 1; column < Math.min(4, template.length); column += 1) {
       const sample = templates.find((row) => parseCellValue(row[column]) !== null)?.[column];
       const values = templates.map((row) => parseCellValue(row[column])).filter((value): value is number => value !== null);

@@ -1,6 +1,11 @@
 function assertBusinessWritesAvailable({ action, method, config, httpError }) {
   if (!config.businessWritesPaused) return;
-  if ((method === 'POST' && action !== 'checkTripReconciliation' && action !== 'manageYearRollover') || action === 'invalidateCaches') {
+  const maintenanceSafePostActions = new Set([
+    'checkTripReconciliation',
+    'manageYearRollover',
+    'recoverSyncInfrastructure'
+  ]);
+  if ((method === 'POST' && !maintenanceSafePostActions.has(action)) || action === 'invalidateCaches') {
     throw httpError(503, 'Đang bảo trì lệnh ghi; vui lòng thử lại sau.');
   }
 }

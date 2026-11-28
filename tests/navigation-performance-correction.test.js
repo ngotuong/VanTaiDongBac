@@ -10,11 +10,11 @@ test('Manage and Catalog paint a cached tab synchronously instead of flashing an
   const manage = read('next-shell/components/manage/ManageReadOnlyModule.tsx');
   const catalog = read('next-shell/components/catalog/CatalogModule.tsx');
 
-  assert.match(manage, /const cached=.*manageResponseCache\.get/);
-  assert.match(manage, /setData\(cached\?\.data\|\|null\)/);
-  assert.match(manage, /const response=cached\|\|await requestManage/);
+  assert.match(manage, /const cached\s*=.*manageResponseCache\.get/);
+  assert.match(manage, /setData\(cached\?\.data\s*\|\|\s*null\)/);
+  assert.match(manage, /const response\s*=\s*cached\s*\|\|\s*await requestManage/);
   assert.match(catalog, /const cached=.*catalogResponseCache\.get/);
-  assert.match(catalog, /setData\(cached\?\.data\|\|null\)/);
+  assert.match(catalog, /setData\(cached\?\.data\s*\|\|\s*null\)/);
   assert.match(catalog, /const result=cached\|\|await requestCatalog/);
 });
 

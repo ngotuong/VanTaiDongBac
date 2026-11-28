@@ -1775,7 +1775,7 @@ var SupabaseService = (function () {
     if (!currentJob) throw new Error('Không tìm thấy job: ' + safeJobId);
     assertActiveWriteJobYear_(currentJob);
     if (isCanceledWriteJob_(currentJob)) throw new Error('Job đã bị hủy và không thể đưa lại vào hàng chờ.');
-    if (/^REQUIRES_RECONCILIATION:/.test(clean_(currentJob.lastError))) {
+    if (/^(?:REQUIRES_RECONCILIATION:|Dòng \d+ đã thay đổi sau khi tạo job|Dòng Thu chi đã thay đổi)/.test(clean_(currentJob.lastError))) {
       throw new Error('Lệnh có thể đã ghi Google Sheet; cần đối soát đúng mã lệnh trước khi mở lại retry.');
     }
     if (clean_(currentJob.status).toLowerCase() !== 'failed') {
@@ -1968,7 +1968,8 @@ var SupabaseService = (function () {
   function executeWriteJob_(job) {
     var actionName = clean_(job.action);
     var payload = job.payload || {};
-    AppConfig.assertWritableYear(payload.year);
+    var writableYear = AppConfig.assertWritableYear(payload.year);
+    BusinessWriteDates.check(actionName, payload, writableYear);
     if (TransportJobHandler.canHandle(actionName)) {
       if (!payload.spreadsheetId) throw new Error('Job Vận tải thiếu workbook đã khóa khi enqueue.');
       AppConfig.activate({ spreadsheetId: payload.spreadsheetId, year: payload.year });
@@ -2152,7 +2153,11 @@ var SupabaseService = (function () {
         sourceDataVersion: '',
         semanticBuildStamp: clean_(typeof RUNTIME_BUILD_STAMP !== 'undefined' ? RUNTIME_BUILD_STAMP : 'unversioned-local')
       });
-      dispatchSyncGenerationShadow_(recorded);
+      // Installable Sheet triggers must return after persisting their durable
+      // signal. Running the foreground shadow worker here can hold the trigger
+      // for more than a minute, which delays visibility of the signal and the
+      // notification freshness wake-up. The minute reconciler owns dispatch
+      // for this shadow row; web-app writes keep their direct foreground path.
       return recorded;
     } catch (error) {
       console.log('sync_generation_producer_shadow_failed');
@@ -2359,7 +2364,7 @@ var SupabaseService = (function () {
         return ss.getSheetByName(sheetName);
       },
       readManageData: function (sheetName, startDate, endDate, limit) {
-        return ManageService.readManageData(sheetName, startDate, endDate, limit, { forceRefresh: true });
+        return ManageService.readManageData(sheetName, startDate, endDate, limit, { forceRefresh: true, completeDateRange: true });
       },
       readCacheRows: function (tableName, query) {
         return SupabaseBundleRepository.readRows(tableName, query);

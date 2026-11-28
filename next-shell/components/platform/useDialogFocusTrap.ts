@@ -21,7 +21,8 @@ export function useDialogFocusTrap<T extends HTMLElement>({ active, disabled = f
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusable = () => Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((control) => control.getClientRects().length > 0 && !control.closest('[inert], [hidden], [aria-hidden="true"]'));
     if (!dialog.hasAttribute('tabindex')) dialog.tabIndex = -1;
-    (focusable()[0] || dialog).focus();
+    const initialFocus = dialog.querySelector<HTMLElement>('[data-dialog-initial-focus]');
+    (initialFocus && initialFocus.getClientRects().length > 0 ? initialFocus : focusable()[0] || dialog).focus();
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !disabledRef.current) {
         event.preventDefault();
@@ -44,7 +45,7 @@ export function useDialogFocusTrap<T extends HTMLElement>({ active, disabled = f
     dialog.addEventListener('keydown', handleKeyDown);
     return () => {
       dialog.removeEventListener('keydown', handleKeyDown);
-      previous?.focus();
+      if (previous?.isConnected) previous.focus();
     };
   }, [active]);
 

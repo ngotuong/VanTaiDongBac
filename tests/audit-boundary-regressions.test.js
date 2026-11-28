@@ -107,6 +107,20 @@ test('manual retry rejects a newer failed result requiring reconciliation (ABA r
   assert.match(state.row.last_error, /^REQUIRES_RECONCILIATION:/);
 });
 
+test('manual retry rejects legacy stale-row errors without mutating the historical job', () => {
+  for (const lastError of [
+    'Dòng 1825 đã thay đổi sau khi tạo job; từ chối xóa để tránh xóa nhầm dữ liệu.',
+    'Dòng Thu chi đã thay đổi sau khi tạo job; cần đối soát giao dịch.'
+  ]) {
+    const { state, service } = retryHarness({ ...failedJob, last_error: lastError });
+    assert.throws(() => service.retryWriteJob(failedJob.id), /cần đối soát/);
+    assert.equal(state.writes, 0);
+    assert.equal(state.row.status, 'failed');
+    assert.equal(state.row.last_error, lastError);
+    assert.equal(state.logs.length, 0);
+  }
+});
+
 test('manual retry still accepts the exact failed active-year snapshot and records its transition', () => {
   const { state, service } = retryHarness(failedJob);
   const result = service.retryWriteJob(failedJob.id);
@@ -130,7 +144,7 @@ test('API serialization omits workbook routing metadata at every depth without m
   assert.equal(body.jobs[0].payload.spreadsheetId, 'persisted-workbook');
 });
 
-function appsScriptWriteHarness() {
+function appsScriptWriteHarness(jobPayload = { year: '2027', spreadsheetId: 'transport-2027' }) {
   const writes = [];
   const properties = { ACTIVE_WORKBOOK_YEAR: '2026', DEFAULT_WORKBOOK_YEAR: '2026', ACTIVE_SPREADSHEET_ID: 'transport-2026', SPREADSHEET_ID_2026: 'transport-2026', SPREADSHEET_ID_2027: 'transport-2027' };
   const sandbox = vm.createContext({
@@ -142,9 +156,9 @@ function appsScriptWriteHarness() {
     TransportJobHandler: { canHandle: () => true, execute: () => { writes.push('worker'); return { ok: true }; } },
     SheetService: {},
     WriteJobRepository: {},
-    WriteJobWorker: { process: (_limit, context) => context.executeJob({ action: 'submitRows', payload: { year: '2027', spreadsheetId: 'transport-2027' } }) }
+    WriteJobWorker: { process: (_limit, context) => context.executeJob({ action: 'submitRows', payload: jobPayload }) }
   });
-  for (const file of ['AppConfig.gs', 'ApiActionRegistry.gs', 'SupabaseService.gs', 'PublicApi.gs']) vm.runInContext(read(file), sandbox, { filename: file });
+  for (const file of ['AppConfig.gs', 'ApiActionRegistry.gs', 'BusinessWriteDates.gs', 'SupabaseService.gs', 'PublicApi.gs']) vm.runInContext(read(file), sandbox, { filename: file });
   return { sandbox, writes };
 }
 
@@ -194,4 +208,24 @@ test('Vercel legacy Fund write checks registry lifecycle before forwarding and p
   assert.equal(accepted.body.inserted, 1);
   assert.equal(forwarded.length, 1);
   assert.equal(checked[0].module, 'cashflow');
+});
+
+test('Vận tải and Quỹ reject dates outside the selected workbook before writing', () => {
+  const { sandbox, writes } = appsScriptWriteHarness();
+  assert.throws(() => sandbox.invokeApi('POST', 'addFundTransaction', {}, { year: '2026', transaction: { date: '2027-01-02' } }), /năm 2026/);
+  for (const date of ['2026-02-30', '31/11/2026']) {
+    assert.throws(() => sandbox.BusinessWriteDates.check('submitRows', { rows: [{ date }] }, '2026'), /ngày hợp lệ/);
+  }
+  assert.throws(() => sandbox.BusinessWriteDates.check('submitRows', { formType: 'chamCong', rows: [{ fromDate: '2026-12-31', toDate: '2027-01-01' }] }, '2026'), /Đến ngày.*năm 2026/);
+  assert.throws(() => sandbox.BusinessWriteDates.check('saveSheetRow', { sheetName: 'NL_VanChuyen', rowData: { 'Ngày': '2027-01-01' } }, '2026'), /năm 2026/);
+  assert.doesNotThrow(() => sandbox.BusinessWriteDates.check('submitRows', { rows: [{ date: '29/02/2028' }] }, '2028'));
+  assert.equal(writes.length, 0);
+});
+
+test('worker rejects a persisted command whose business date falls outside its active workbook', () => {
+  const { sandbox, writes } = appsScriptWriteHarness({
+    year: '2026', spreadsheetId: 'transport-2026', rows: [{ date: '2027-01-02' }]
+  });
+  assert.throws(() => sandbox.SupabaseService.processWriteJobs(1), /phải thuộc năm 2026/);
+  assert.deepEqual(writes, []);
 });

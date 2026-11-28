@@ -80,7 +80,7 @@ function createNotificationDispatchService({ centerService, fundAlertService, de
     const existingByKey = new Map(existingRows.map((row) => [row.rule_key, row]));
     const fresh = items.filter((item) => CHANNELS[item.notificationKey] && !itemEventKeys(item).some((key) => existing.has(key)))
       .map((item) => existingByKey.get(`notification-event:${item.id}`)?.condition_active === false
-        ? { ...item, badgeId: `${item.id}:${currentIso}` }
+        ? { ...item, badgeId: item.occurrenceId || `${item.id}:${currentIso}` }
         : item);
     const migratedRows = items
       .filter((item) => !existing.has(`notification-event:${item.id}`) && itemEventKeys(item).slice(1).some((key) => existing.has(key)))
@@ -121,7 +121,10 @@ function createNotificationDispatchService({ centerService, fundAlertService, de
       last_result: 'resolved',
       updated_at: currentIso
     }));
-    await deliveryRepository.upsert(config, resolved);
+    const occurrences = resolved.filter((row) => !row.rule_key.includes(':device:')).map((row) =>
+      stateRow(row.rule_key.replace(/^notification-event:/, 'notification-occurrence:'), 'recovery', currentIso, false)
+    );
+    await deliveryRepository.upsert(config, [...resolved, ...occurrences]);
   }
   function immediatePayload(channelKey, group) {
     const first = group[0];

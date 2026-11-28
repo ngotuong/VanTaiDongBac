@@ -1,10 +1,19 @@
 const crypto = require('node:crypto');
+const businessWriteDates = require('../../BusinessWriteDates.gs');
 
 const FUND_ACTIONS = new Set([
   'addFundTransactions', 'updateFundTransaction', 'deleteFundTransaction', 'addFundDebtPayment',
   'addFundLoan', 'addFundLoanPayment', 'saveFundCatalogItem', 'deleteFundCatalogItem', 'updateFundSettings'
 ]);
 const TRANSPORT_ACTIONS = new Set(['submitRows', 'saveSheetRow', 'deleteSheetRow']);
+
+function assertBusinessWriteDates(action, payload, year, httpError) {
+  try {
+    businessWriteDates.check(action, payload, year);
+  } catch (error) {
+    throw httpError(400, error.message);
+  }
+}
 
 function createWriteCommandService({ repository, workbookContextService, httpError, send }) {
   const handles = (action) => FUND_ACTIONS.has(action) || TRANSPORT_ACTIONS.has(action);
@@ -52,10 +61,11 @@ function createWriteCommandService({ repository, workbookContextService, httpErr
     });
     payload.year = workbook.year;
     payload.spreadsheetId = workbook.spreadsheetId;
+    assertBusinessWriteDates(action, payload, workbook.year, httpError);
     const job = await repository.enqueue(config, { moduleName, action, payload, idempotencyKey });
     return send(res, 202, job);
   }
   return { handles, handle };
 }
 
-module.exports = { createWriteCommandService, FUND_ACTIONS, TRANSPORT_ACTIONS };
+module.exports = { createWriteCommandService, assertBusinessWriteDates, FUND_ACTIONS, TRANSPORT_ACTIONS };

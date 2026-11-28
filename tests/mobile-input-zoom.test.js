@@ -31,3 +31,23 @@ test('mobile zoom guard keeps the approved compact control geometry unchanged', 
     /height:\s*16px|min-height:\s*16px|max-height:\s*16px/,
   );
 });
+
+test('final mobile period lock keeps Fund dates readable without horizontal overflow', () => {
+  const lock = platformCss.slice(platformCss.indexOf('Mobile period filter legibility lock'));
+
+  assert.match(lock, /@media \(max-width: 480px\)/);
+  assert.match(lock, /cashflow-overview-filter-panel \.cashflow-filter-stack \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) !important;[\s\S]*grid-template-areas: none !important/);
+  assert.match(lock, /cashflow-overview-filter-panel \.cashflow-filter-row-top \{[\s\S]*display: grid !important;[\s\S]*grid-template-columns: minmax\(0, 1fr\) !important;[\s\S]*grid-template-areas: none !important/);
+  assert.match(lock, /cashflow-overview-filter-panel \.cashflow-filter-row-bottom \{[\s\S]*grid-area: auto !important/);
+  assert.match(lock, /cashflow-overview-filter-panel \.cashflow-quick-period-select\.platform-content-select[\s\S]*grid-area: auto !important;[\s\S]*width: 100% !important;[\s\S]*max-width: none !important/);
+});
+
+test('final Report quick-period lock wins the late 14px rule on mobile', () => {
+  const marker = platformCss.indexOf('Mobile period filter legibility lock');
+  const lateCompactRule = platformCss.indexOf('font-size: 14px !important', platformCss.indexOf('Report month-filter contract'));
+  const lock = platformCss.slice(marker);
+
+  assert.ok(marker > lateCompactRule);
+  assert.match(lock, /@media \(max-width: 768px\)/);
+  assert.match(lock, /#reportsView \.report-quick-period-select\.platform-content-select[\s\S]*font-size: 16px !important/);
+});

@@ -44,7 +44,7 @@ export function AppShell({ context, children }: { context: PlatformContext; chil
   const [pendingYear, setPendingYear] = useState('');
   const [yearError, setYearError] = useState('');
   const currentPath = normalizeRoutePath(pathname);
-  const pageTitle = PAGE_META[currentPath] || 'Vận Tải Đông Bắc';
+  const pageTitle = PAGE_META[currentPath] || 'Không tìm thấy trang';
   const navigationTarget = pendingHref && !routesEqual(pendingHref, currentPath) ? pendingHref : '';
   const yearPending = Boolean(pendingYear && pendingYear !== context.workbook.year);
   const showYearControl = context.workbook.availableYears.length > 1;

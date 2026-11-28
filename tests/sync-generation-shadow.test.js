@@ -141,6 +141,19 @@ test('Supabase service mirrors only an accepted legacy queue and never adds a pu
   assert.doesNotMatch(producerSource, /e\.value|dashboard_published_at|report_published_at|\.publish\s*\(/i);
 });
 
+test('Sheet trigger producer persists shadow metadata without running the foreground worker inline', () => {
+  const source = read('SupabaseService.gs');
+  const producerStart = source.indexOf('  function recordProducerGenerationShadow_');
+  const producerEnd = source.indexOf('\n  function dispatchSyncGenerationShadow_', producerStart);
+  const producerBlock = source.slice(producerStart, producerEnd);
+  const queueStart = source.indexOf('  function recordSyncGenerationShadow_');
+  const queueEnd = source.indexOf('\n  function recordProducerGenerationShadow_', queueStart);
+  const queueBlock = source.slice(queueStart, queueEnd);
+  assert.ok(producerStart >= 0 && producerEnd > producerStart);
+  assert.doesNotMatch(producerBlock, /dispatchSyncGenerationShadow_\(/);
+  assert.match(queueBlock, /dispatchSyncGenerationShadow_\(recorded\)/);
+});
+
 test('installable trigger dual-writes the same generation metadata without blocking its durable signal', () => {
   const context = vm.createContext({});
   new vm.Script(read('SheetChangeSignalService.gs'), { filename: 'SheetChangeSignalService.gs#producer-test' }).runInContext(context);

@@ -437,7 +437,7 @@ test('Cashflow success feedback stays in toast and each drawer owns one portal a
   const focus = read('next-shell/components/platform/useDialogFocusTrap.ts');
   assert.match(focus, /event\.key === 'Escape'/);
   assert.match(focus, /event\.key !== 'Tab'/);
-  assert.match(focus, /previous\?\.focus\(\)/);
+  assert.match(focus, /previous\?\.isConnected/);
   assert.match(flat(module), /<BodyPortal> <div className=\{`cashflow-drawer-backdrop/);
   assert.doesNotMatch(module, /\{drawer \? <BodyPortal>/);
   assert.match(module, /useSwipeDismiss\(\{ canDismiss: \(\) => confirmDiscardUnsavedChanges\(dirty\), disabled: dismissDisabled, onDismiss: close \}\)/);

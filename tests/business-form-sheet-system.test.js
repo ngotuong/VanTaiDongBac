@@ -88,8 +88,8 @@ test('dirty business forms confirm every user dismissal and bypass the guard onl
   assert.match(hook, /forceClose: \(\) => finishClose\(true\)/);
   assert.match(guard, /window\.confirm\(DISCARD_MESSAGE\)/);
   assert.match(entry, /onDirtyChange\?\.\(dirty\)/);
-  assert.match(entry, /onSubmitted\) onSubmitted\(\{ form, rows: submittedRows \}\)/);
-  assert.match(manage, /acceptEntrySubmission\(submission\);entrySwipe\.forceClose\(\)/);
+  assert.match(entry, /onSubmitted\) onSubmitted\(queued\.jobId\)/);
+  assert.match(manage, /trackJob\(jobId\);entrySwipe\.forceClose\(\)/);
   assert.match(manage, /canDismiss:\(\)=>confirmDiscardUnsavedChanges\(entryDirty\)/);
   assert.match(manage, /editSwipe\.forceClose\(\)/);
   assert.match(catalog, /canDismiss:\(\)=>confirmDiscardUnsavedChanges\(formDirty\)/);
@@ -122,17 +122,26 @@ test('edit form failures stay inside the open form instead of being hidden on th
   }
 });
 
-test('catalog and manage write drawers trap focus and support Escape', () => {
+test('all write drawers and destructive confirmations trap focus and support Escape', () => {
   const hook = read('next-shell/components/platform/useDialogFocusTrap.ts');
   const manage = read('next-shell/components/manage/ManageReadOnlyModule.tsx');
   const catalog = read('next-shell/components/catalog/CatalogModule.tsx');
+  const cashflow = read('next-shell/components/cashflow/CashflowModule.tsx');
+  const dashboard = read('next-shell/components/dashboard/DashboardModule.tsx');
   assert.match(hook, /event\.key === 'Escape'/);
   assert.match(hook, /event\.key !== 'Tab'/);
-  assert.match(hook, /previous\?\.focus\(\)/);
+  assert.match(hook, /previous\?\.isConnected/);
+  assert.match(hook, /data-dialog-initial-focus/);
   assert.match(manage, /useDialogFocusTrap<HTMLElement>/);
   assert.match(manage, /ref=\{entryDialogRef\} tabIndex=\{-1\}/);
   assert.match(manage, /ref=\{editDialogRef\} tabIndex=\{-1\}/);
+  assert.match(manage, /ref=\{deleteDialogRef\} tabIndex=\{-1\}/);
   assert.match(catalog, /ref=\{formDialogRef\} tabIndex=\{-1\}/);
+  assert.match(catalog, /ref=\{deleteDialogRef\} tabIndex=\{-1\}/);
+  assert.match(cashflow, /ref=\{transactionDeleteDialogRef\} tabIndex=\{-1\}/);
+  assert.match(cashflow, /ref=\{catalogDeleteDialogRef\} tabIndex=\{-1\}/);
+  assert.match(dashboard, /ref=\{dialogRef\}/);
+  for (const source of [manage, catalog, cashflow]) assert.match(source, /data-dialog-initial-focus/);
 });
 
 test('fund write drawer positioning covers debt payment as well as the three older drawers', () => {

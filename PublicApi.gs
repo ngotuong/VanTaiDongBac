@@ -482,7 +482,10 @@ function invokeApi(method, action, params, bodyData) {
     year: safeBody.year || safeParams.year
   });
   ApiActionRegistry.assertPublicAction(normalizedMethod, action);
-  if (ApiActionRegistry.isBusinessWrite(action)) AppConfig.assertWritableYear(APP_CONFIG.year);
+  if (ApiActionRegistry.isBusinessWrite(action)) {
+    var writableYear = AppConfig.assertWritableYear(APP_CONFIG.year);
+    BusinessWriteDates.check(action, safeBody, writableYear);
+  }
 
   if (normalizedMethod === 'GET') {
     if (action === 'health') return SheetService.health();
@@ -496,7 +499,7 @@ function invokeApi(method, action, params, bodyData) {
     if (action === 'getReportBundle') return ReportService.getReportBundle(safeParams.month, safeParams.forceRefresh === true || safeParams.forceRefresh === 'true');
     if (action === 'invalidateCaches') return SheetService.invalidateCaches();
     if (action === 'readSheetData') return SheetReadService.readSheetData(safeParams.sheetName, safeParams.startDate, safeParams.endDate, safeParams.limit);
-    if (action === 'readManageData') return ManageService.readManageData(safeParams.sheetName, safeParams.startDate, safeParams.endDate, safeParams.limit);
+    if (action === 'readManageData') return ManageService.readManageData(safeParams.sheetName, safeParams.startDate, safeParams.endDate, safeParams.limit, { forceRefresh: safeParams.forceRefresh === true || safeParams.forceRefresh === 'true' });
     if (action === 'readCatalogData') return CatalogService.readCatalogData(safeParams.displaySheetName || safeParams.sheetName);
     if (action === 'getFundTransactions') {
       return FundService.getFundTransactions(safeParams.year, {

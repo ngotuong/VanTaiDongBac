@@ -14,8 +14,12 @@ var SheetReadService = (function () {
       var headers = [];
       var rows = [];
       var rowLimit = Math.max(1, Math.min(parseInt(limit, 10) || 10, 500));
+      if (context.completeDateRange && startDateStr && endDateStr) rowLimit = Math.max(1, lastRow - headerRow);
+      // The shared cache key normalizes leading ISO dates to month keys.
+      // Prefix date bounds so distinct days and ranges keep distinct entries.
       var responseCacheKey = context.buildCacheKey(
-        'read_sheet', sheetName, startDateStr || '', endDateStr || '', rowLimit, context.getDataVersion()
+        'read_sheet', sheetName, startDateStr ? 'day-' + startDateStr : '',
+        endDateStr ? 'day-' + endDateStr : '', rowLimit, context.getDataVersion()
       );
       var responseCached = context.forceRefresh === true ? null : context.getCached(responseCacheKey);
       if (responseCached) return responseCached;
@@ -36,7 +40,7 @@ var SheetReadService = (function () {
           var endLimit = endDateStr ? new Date(endDateStr + 'T23:59:59') : null;
 
           if (hasDateFilter) {
-            rowEntries = readFilteredJournalRows_(sheet, headerRow, lastRow, lastCol, rowLimit, startLimit, endLimit);
+            rowEntries = readFilteredJournalRows_(sheet, headerRow, lastRow, lastCol, rowLimit + 1, startLimit, endLimit);
           } else {
             if (isJournalSheet) {
               var lastDataRow = context.getLastNonEmptyRow(sheet, 1, headerRow + 1, true);
@@ -70,10 +74,12 @@ var SheetReadService = (function () {
         }
       }
 
-      var isLimited = sheetName.indexOf('NL_') === 0 && !startDateStr && !endDateStr;
+      var isLimited = sheetName.indexOf('NL_') === 0 && (rows.length > rowLimit || (!startDateStr && !endDateStr));
+      if (rows.length > rowLimit && sheetName.indexOf('NL_') === 0) rows = rows.slice(0, rowLimit);
       if (sheetName.indexOf('DM_') === 0) rows.reverse();
 
       var result = { ok: true, headers: headers, rows: rows, isLimited: isLimited };
+      if (context.completeDateRange && startDateStr && endDateStr) result.completeDateRange = true;
       context.putCached(responseCacheKey, result, 60);
       return result;
     } catch (e) {

@@ -100,7 +100,7 @@ function hasNewerNotificationRecoveryEvidence(row, snapshot) {
   });
 }
 
-function createNotificationCenterService({ repository, workbookContextService, httpError, send, now = () => new Date() }) {
+function createNotificationCenterService({ repository, deliveryRepository, workbookContextService, httpError, send, now = () => new Date() }) {
   function handles(action) { return action === 'getNotifications'; }
   function safeItems(row) { return Array.isArray(row?.payload?.items) ? row.payload.items : []; }
   function isoDate(value, fallback) {
@@ -311,7 +311,7 @@ function createNotificationCenterService({ repository, workbookContextService, h
     const workbook = await resolveWorkbook.call(workbookContextService, { module: 'transport' });
     const snapshot = await repository.find(config, clock.previousDateKey, workbook.year);
     const fund = fundItem(snapshot.fund, currentTime);
-    const items = [
+    let items = [
       ...safeItems(snapshot.trip).map((item) => ({ ...item, notificationKey: 'trip-reconciliation', url: '/manage/?entry=vanChuyen' })),
       ...safeItems(snapshot.operations),
       ...(fund ? [fund] : []),
@@ -321,6 +321,16 @@ function createNotificationCenterService({ repository, workbookContextService, h
       const weight = { error: 0, warning: 1, success: 2, info: 3 };
       return (weight[left.severity] ?? 3) - (weight[right.severity] ?? 3);
     }).slice(0, 200);
+    if (deliveryRepository) {
+      const prefix = 'notification-occurrence:';
+      const states = await deliveryRepository.list(config, items.filter((item) => item.notificationKey !== 'fund-low-balance').map((item) => prefix + item.id));
+      const byKey = new Map(states.map((row) => [row.rule_key, row.last_evaluated_at]));
+      items = items.map((item) => {
+        const occurrence = byKey.get(prefix + item.id);
+        const timestamp = occurrence ? new Date(occurrence) : null;
+        return timestamp && Number.isFinite(timestamp.getTime()) ? { ...item, occurrenceId: `${item.id}:${timestamp.toISOString()}` } : item;
+      });
+    }
     const syncedAt = [snapshot.trip?.synced_at, snapshot.operations?.synced_at].filter(Boolean).sort().pop() || null;
     const tripSyncedAt = snapshot.trip?.payload?.syncedAt || snapshot.trip?.synced_at || null;
     const tripSourceChangedAt = snapshot.trip?.payload?.sourceChangedAt || null;

@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
+const { createNotificationCenterService } = require('../server/services/notification-center-service');
 const { createNotificationDispatchService } = require('../server/services/notification-dispatch-service');
 const { createNotificationDeliveryRepository } = require('../server/repositories/notification-delivery-repository');
 
@@ -72,13 +73,21 @@ test('one active failure pushes once, then rearms only after a confirmed recover
   const sent = [];
   let items = [{ id: 'sync-transport', notificationKey: 'system-health', message: 'Đồng bộ lỗi', url: '/observability/' }];
   let currentTime = new Date('2026-11-12T04:00:00.000Z');
+  const deliveryRepository = {
+    async list(_config, keys) { return keys.filter((key) => states.has(key)).map((key) => states.get(key)); },
+    async listByPrefix(_config, prefix) { return [...states.values()].filter((row) => row.rule_key.startsWith(prefix)); },
+    async upsert(_config, rows) { for (const row of rows) states.set(row.rule_key, row); return rows; }
+  };
+  const centerService = createNotificationCenterService({
+    repository: { async find() { return { operations: { payload: { items } } }; } },
+    workbookContextService: { resolve: () => ({ year: '2026' }) },
+    deliveryRepository,
+    httpError,
+    now: () => currentTime
+  });
   const service = createNotificationDispatchService({
-    centerService: { async list() { return { items }; } },
-    deliveryRepository: {
-      async list(_config, keys) { return keys.filter((key) => states.has(key)).map((key) => states.get(key)); },
-      async listByPrefix(_config, prefix) { return [...states.values()].filter((row) => row.rule_key.startsWith(prefix)); },
-      async upsert(_config, rows) { for (const row of rows) states.set(row.rule_key, row); return rows; }
-    },
+    centerService,
+    deliveryRepository,
     preferenceRepository: { async listByUserIds() { return []; } },
     appUserRepository: { async list() { return [{ user_id: 'admin-1', role: 'admin', active: true }]; } },
     subscriptionRepository: { async listByUserIds() { return [{ id: 'device-1', endpoint: 'https://fcm.googleapis.com/1', p256dh: 'key', auth_secret: 'secret' }]; }, async removeById() {} },
@@ -97,8 +106,11 @@ test('one active failure pushes once, then rearms only after a confirmed recover
   assert.equal(states.get('notification-event:sync-transport').condition_active, false);
   items = [{ id: 'sync-transport', notificationKey: 'system-health', message: 'Đồng bộ lỗi trở lại', url: '/observability/' }];
   currentTime = new Date('2026-11-12T04:03:00.000Z');
+  const beforePush = await centerService.list(config);
   await service.run(config);
   assert.equal(sent.length, 2);
+  assert.equal(sent[1].badgeIds[0], beforePush.items[0].occurrenceId);
+  assert.equal(sent[1].badgeIds[0], (await centerService.list(config)).items[0].occurrenceId);
   assert.notEqual(sent[1].badgeIds[0], sent[0].badgeIds[0]);
 });
 

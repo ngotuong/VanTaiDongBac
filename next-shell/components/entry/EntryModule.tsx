@@ -5,7 +5,7 @@ import { BusinessButton, BusinessGrid, BusinessFieldControl, BusinessAmountSumma
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
-import { createRetrySafeWriteClient } from '../../lib/platform/retry-safe-write-client';
+import { createRetrySafeWriteClient, requiresWriteReconciliation } from '../../lib/platform/retry-safe-write-client';
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
 import { formatVietnameseNumberInput } from '../../lib/platform/numeric-input';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
@@ -119,10 +119,10 @@ function normalizeJob(value: unknown): WriteJob {
 
 
 
-export function EntryModule({ initialCatalogs, initialError = '', initialForm = 'vanChuyen', onClose, onSubmitted, onDirtyChange }: { initialCatalogs: EntryCatalogs; initialError?: string; initialForm?: EntryFormType; onClose?: () => void; onSubmitted?: (submission: { form: EntryFormType; rows: EntryRow[] }) => void; onDirtyChange?: (dirty: boolean) => void }) {
+export function EntryModule({ initialCatalogs, initialError = '', initialForm = 'vanChuyen', onClose, onSubmitted, onDirtyChange }: { initialCatalogs: EntryCatalogs; initialError?: string; initialForm?: EntryFormType; onClose?: () => void; onSubmitted?: (jobId: string) => void; onDirtyChange?: (dirty: boolean) => void }) {
   const hasInitialCatalogs = Object.keys(initialCatalogs).length > 0;
   const context = useWorkbookContext();
-  const [writeApi] = useState(() => createRetrySafeWriteClient(api));
+  const [writeApi] = useState(() => createRetrySafeWriteClient(api, undefined, { userId: context.user.id, year: context.workbook.year }));
   const [form, setForm] = useState<EntryFormType>(initialForm);
   const [catalogs, setCatalogs] = useState<Record<string, EntryCatalogs>>(hasInitialCatalogs ? catalogsForAllForms(initialCatalogs) : {});
   const initialCatalogsRequested = useRef(Object.keys(initialCatalogs).length > 0);
@@ -227,14 +227,13 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
     setMessage('Đang gửi lệnh ghi dữ liệu…');
     showToast('Đang gửi lệnh ghi dữ liệu…', 'loading');
     try {
-      const submittedRows = rows.map((row) => ({ ...row }));
       const queued = { ...normalizeJob(await writeApi.post<WriteJob>('submitRows', { body: { year: context.workbook.year, formType: form, rows } })), payload: { formType: form, year: context.workbook.year } };
       if (!queued.jobId) throw new Error('API không trả về mã write job.');
       setJobs((old) => [queued, ...old.filter((j) => j.jobId !== queued.jobId)].slice(0, 12));
       setRows([blank(form)]);
       report('Đã nhận lệnh. Dữ liệu sẽ được đồng bộ nền.');
       void api.post('processWriteJobs', { body: { maxJobs: 2 } }).catch(() => {});
-      if (onSubmitted) onSubmitted({ form, rows: submittedRows });
+      if (onSubmitted) onSubmitted(queued.jobId);
       else onClose?.();
     } catch (submitError) {
       report(submitError instanceof Error ? submitError.message : String(submitError), true);
@@ -243,6 +242,7 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
     }
   };
   const retry = async (jobId: string) => {
+    if (jobs.some((job) => job.jobId === jobId && requiresWriteReconciliation(job.lastError))) return;
     showToast('Đang đưa lệnh về hàng chờ…', 'loading');
     try {
       const job = normalizeJob(await api.post<WriteJob>('retryWriteJob', { body: { jobId, year: context.workbook.year } }));
@@ -368,11 +368,11 @@ export function EntryModule({ initialCatalogs, initialError = '', initialForm = 
             {jobs.map((job) => (
               <article key={job.jobId}>
                 <div>
-                  <strong>{job.status} · {jobFormLabel(job)}</strong>
+                  <strong>{requiresWriteReconciliation(job.lastError) ? 'Cần đối soát' : job.status} · {jobFormLabel(job)}</strong>
                   <code>{job.jobId}</code>
                   {job.lastError ? <p>{job.lastError}</p> : null}
                 </div>
-                {job.status === 'failed' ? (
+                {job.status === 'failed' && !requiresWriteReconciliation(job.lastError) ? (
                   <BusinessButton variant="outline" type="button"  onClick={() => void retry(job.jobId)}>
                     Thử lại
                   </BusinessButton>

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useWorkbookContext } from '../platform/WorkbookContextProvider';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
 import { publishDataSourceMeta } from '../../lib/platform/data-source-meta';
+import { requiresWriteReconciliation } from '../../lib/platform/retry-safe-write-client';
 import type { ManageAuditRow, ReportAuditRow, SyncStatusRow, WriteJob } from '../../lib/platform/operations-types';
 import { showToast } from '../../lib/platform/toast';
 
@@ -15,9 +16,13 @@ function isCanceledJob(job: WriteJob) {
   return String(job.lastError || '').startsWith(CANCELED_JOB_PREFIX);
 }
 
+function needsReconciliation(job: WriteJob) {
+  return requiresWriteReconciliation(job.lastError);
+}
+
 function jobError(job: WriteJob) {
   const value = String(job.lastError || '');
-  return isCanceledJob(job) ? value.slice(CANCELED_JOB_PREFIX.length).trim() : value;
+  return isCanceledJob(job) ? value.slice(CANCELED_JOB_PREFIX.length).trim() : value.replace(/^REQUIRES_RECONCILIATION:\s*/, '');
 }
 
 function time(value?: string) {
@@ -129,7 +134,7 @@ export function ObservabilityModule() {
   };
 
   const retry = async (job: WriteJob) => {
-    if (!job.jobId || !window.confirm(`Đưa job ${job.jobId} về hàng chờ?`)) return;
+    if (!job.jobId || needsReconciliation(job) || !window.confirm(`Đưa job ${job.jobId} về hàng chờ?`)) return;
     setBusy(`retry:${job.jobId}`);
     try {
       await api.post('retryWriteJob', { body: { jobId: job.jobId, year: workbook.year } });
@@ -201,10 +206,10 @@ function JobRows({ jobs, totalJobs, busy, confirmCancelJobId, onRetry, onRequest
     const note = [job.action || '', typeof sheetOrForm === 'string' ? sheetOrForm : '', rowIndex ? `dòng ${String(rowIndex)}` : ''].filter(Boolean).join(' · ');
     const canceled = isCanceledJob(job);
     const errorText = jobError(job);
-    const statusLabel = canceled ? 'ĐÃ HỦY' : String(job.status || '').toUpperCase();
+    const statusLabel = canceled ? 'ĐÃ HỦY' : needsReconciliation(job) ? 'CẦN ĐỐI SOÁT' : String(job.status || '').toUpperCase();
     const statusStyle = canceled ? 'canceled' : status === 'failed' ? 'error' : status === 'synced' ? 'ok' : 'pending';
     const confirmingCancel = Boolean(job.jobId && confirmCancelJobId === job.jobId);
-    return <div className="sync-status-row" key={job.jobId || index}><div className="sync-status-main"><div className="sync-status-key" title={job.jobId || ''}>{job.jobId || ''}</div><div className="sync-status-note" title={errorText || note}>{note}{errorText ? ` · ${errorText}` : ''}</div></div><span className={`sync-status-pill ${statusStyle}`}>{statusLabel}</span>{status === 'pending' ? confirmingCancel ? <div className="sync-status-confirm-actions" role="group" aria-label="Xác nhận hủy job"><button type="button" className="ghost sync-status-retry sync-status-cancel" disabled={busy === `cancel:${job.jobId}`} onClick={() => onCancel(job)}>Xác nhận hủy</button><button type="button" className="ghost sync-status-retry" disabled={Boolean(busy)} onClick={onDismissCancel}>Bỏ qua</button></div> : <button type="button" className="ghost sync-status-retry sync-status-cancel" disabled={Boolean(busy)} onClick={() => onRequestCancel(job)}>Hủy</button> : status === 'failed' && !canceled ? <button type="button" className="ghost sync-status-retry" disabled={busy === `retry:${job.jobId}`} onClick={() => onRetry(job)}>Thử lại</button> : <div className="sync-status-time">{time(job.updatedAt || job.createdAt)}</div>}</div>;
+    return <div className="sync-status-row" key={job.jobId || index}><div className="sync-status-main"><div className="sync-status-key" title={job.jobId || ''}>{job.jobId || ''}</div><div className="sync-status-note" title={errorText || note}>{note}{errorText ? ` · ${errorText}` : ''}</div></div><span className={`sync-status-pill ${statusStyle}`}>{statusLabel}</span>{status === 'pending' ? confirmingCancel ? <div className="sync-status-confirm-actions" role="group" aria-label="Xác nhận hủy job"><button type="button" className="ghost sync-status-retry sync-status-cancel" disabled={busy === `cancel:${job.jobId}`} onClick={() => onCancel(job)}>Xác nhận hủy</button><button type="button" className="ghost sync-status-retry" disabled={Boolean(busy)} onClick={onDismissCancel}>Bỏ qua</button></div> : <button type="button" className="ghost sync-status-retry sync-status-cancel" disabled={Boolean(busy)} onClick={() => onRequestCancel(job)}>Hủy</button> : status === 'failed' && !canceled && !needsReconciliation(job) ? <button type="button" className="ghost sync-status-retry" disabled={busy === `retry:${job.jobId}`} onClick={() => onRetry(job)}>Thử lại</button> : <div className="sync-status-time">{time(job.updatedAt || job.createdAt)}</div>}</div>;
   })}</>;
 }
 

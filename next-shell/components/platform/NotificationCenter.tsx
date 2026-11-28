@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { createClientApiClient } from '../../lib/platform/client-api-client';
+import { useDialogFocusTrap } from './useDialogFocusTrap';
 import { showToast } from '../../lib/platform/toast';
 
 type NotificationItem = {
   id: string;
+  occurrenceId?: string;
   type: 'reconciliation' | 'reconciliation-resolved' | 'reconciliation-resolved-group' | 'hot-bonus' | 'attendance' | 'driver-assignment' | 'fund-low-balance' | 'sync-stale' | 'sync-failure' | 'write-failure';
   notificationKey?: 'trip-reconciliation' | 'fund-low-balance' | 'operations-integrity' | 'system-health';
   severity: 'error' | 'warning' | 'success' | 'info';
@@ -73,7 +75,7 @@ function syncLabel(value?: string | null) {
 }
 
 function notificationKey(item: NotificationItem) {
-  return item.id;
+  return item.occurrenceId || item.id;
 }
 
 function legacyNotificationKey(item: NotificationItem) {
@@ -83,6 +85,7 @@ function legacyNotificationKey(item: NotificationItem) {
 type ReadLedger = Record<string, number>;
 
 function isNotificationRead(item: NotificationItem, readLedger: ReadLedger) {
+  if (item.occurrenceId) return Object.hasOwn(readLedger, item.occurrenceId);
   return Object.hasOwn(readLedger, notificationKey(item))
     || Object.hasOwn(readLedger, legacyNotificationKey(item))
     || (item.legacyIds || []).some((key) => Object.hasOwn(readLedger, key));
@@ -185,7 +188,6 @@ export function NotificationCenter({ userId }: { userId: string }) {
   const [targetNotificationId, setTargetNotificationId] = useState('');
   const [anchor, setAnchor] = useState({ top: 72, right: 16 });
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
   const pressTimerRef = useRef<number | null>(null);
   const copyFallbackRef = useRef<HTMLTextAreaElement>(null);
   const pressStateRef = useRef<{ key: string; startX: number; startY: number; triggered: boolean } | null>(null);
@@ -295,18 +297,6 @@ export function NotificationCenter({ userId }: { userId: string }) {
     };
   }, [legacyStorageKey, storageKey]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      setOpen(false);
-      buttonRef.current?.focus();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    window.setTimeout(() => closeRef.current?.focus(), 0);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [open]);
-
   const items = data.items || EMPTY_ITEMS;
   const unreadItems = readHydrated ? items.filter((item) => !isNotificationRead(item, readLedger)) : [];
   const unreadCount = unreadItems.length;
@@ -338,7 +328,7 @@ export function NotificationCenter({ userId }: { userId: string }) {
     if (!readHydrated || !loaded || legacyBaselineNeeded) return;
     const migratedReadAt = Date.now();
     const migrated = items.reduce<ReadLedger>((ledger, item) => {
-      if (!Object.hasOwn(readLedger, item.id) && isNotificationRead(item, readLedger)) ledger[item.id] = migratedReadAt;
+      if (!item.occurrenceId && !Object.hasOwn(readLedger, item.id) && isNotificationRead(item, readLedger)) ledger[item.id] = migratedReadAt;
       return ledger;
     }, {});
     if (Object.keys(migrated).length) {
@@ -362,7 +352,7 @@ export function NotificationCenter({ userId }: { userId: string }) {
 
   useEffect(() => {
     if (!readHydrated || !loaded) return;
-    void updateAppBadge(unreadCount, items.map((item) => item.id));
+    void updateAppBadge(unreadCount, items.map(notificationKey));
   }, [loaded, readHydrated, unreadCount, items]);
 
   const markRead = (item: NotificationItem) => {
@@ -433,6 +423,9 @@ export function NotificationCenter({ userId }: { userId: string }) {
     setTargetNotificationId('');
     buttonRef.current?.focus();
   };
+  const notificationDialogRef = useDialogFocusTrap<HTMLElement>({ active: open, onClose: close });
+  const copyDialogRef = useDialogFocusTrap<HTMLElement>({ active: Boolean(copyFallback), onClose: () => setCopyFallback(null) });
+
   const panelStyle = {
     '--notification-anchor-top': `${anchor.top}px`,
     '--notification-anchor-right': `${anchor.right}px`
@@ -461,11 +454,11 @@ export function NotificationCenter({ userId }: { userId: string }) {
       {unreadCount > 0 ? <span className="notification-badge" aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
     </button>
     {open ? <BodyPortal>
-      <button type="button" className="notification-backdrop" aria-label="Đóng thông báo" onClick={close}/>
-      <section id="platform-notification-panel" className="notification-panel" style={panelStyle} role="dialog" aria-modal="true" aria-labelledby="notification-panel-title">
+      <button type="button" className="notification-backdrop" tabIndex={-1} aria-label="Đóng thông báo" onClick={close}/>
+      <section ref={notificationDialogRef} id="platform-notification-panel" className="notification-panel" style={panelStyle} role="dialog" aria-modal="true" aria-labelledby="notification-panel-title">
         <header className="notification-panel-header">
           <div><h2 id="notification-panel-title">Thông báo</h2><p>{unreadCount} chưa đọc · {syncLabel(data.tripSyncedAt || data.syncedAt)}</p></div>
-          <button ref={closeRef} type="button" className="notification-close" aria-label="Đóng thông báo" onClick={close}>×</button>
+          <button type="button" className="notification-close" aria-label="Đóng thông báo" onClick={close}>×</button>
         </header>
         <div className="notification-panel-toolbar" aria-label="Bộ lọc thông báo">
           <div className="notification-view-switch">
@@ -489,7 +482,7 @@ export function NotificationCenter({ userId }: { userId: string }) {
           {visibleItems.length ? <ul className="notification-list">{visibleItems.map((item) => {
             const key = notificationKey(item);
             const unread = !isNotificationRead(item, readLedger);
-            return <li data-notification-id={key} className={`notification-item ${item.severity}${unread ? ' unread' : ' read'}${targetNotificationId === key ? ' targeted' : ''}`} key={notificationKey(item)}>
+            return <li data-notification-id={item.id} className={`notification-item ${item.severity}${unread ? ' unread' : ' read'}${targetNotificationId === item.id ? ' targeted' : ''}`} key={notificationKey(item)}>
               <button
                 type="button"
                 className={`notification-item-action${pressingKey === key ? ' copy-pressing' : ''}`}
@@ -525,7 +518,7 @@ export function NotificationCenter({ userId }: { userId: string }) {
         <footer className="notification-panel-footer"><span>{items.length} thông báo đang hoạt động</span></footer>
       </section>
       {copyFallback ? <div className="notification-copy-layer" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setCopyFallback(null); }}>
-        <section className="notification-copy-dialog" role="dialog" aria-modal="true" aria-labelledby="notification-copy-title">
+        <section ref={copyDialogRef} className="notification-copy-dialog" role="dialog" aria-modal="true" aria-labelledby="notification-copy-title">
           <header><h3 id="notification-copy-title">Sao chép thông báo</h3><button type="button" aria-label="Đóng vùng sao chép" onClick={() => setCopyFallback(null)}>×</button></header>
           <p>Safari đang chặn sao chép tự động. Nội dung bên dưới đã được chọn; nếu nút vẫn bị chặn, chạm giữ vùng chữ và chọn “Sao chép”.</p>
           <textarea ref={copyFallbackRef} readOnly value={notificationClipboardText(copyFallback)} onFocus={(event) => event.currentTarget.select()} />

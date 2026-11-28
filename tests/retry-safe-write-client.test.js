@@ -70,11 +70,36 @@ test('malformed success without a job id retains the unresolved request key', as
   assert.deepEqual(ids, ['key-1', 'key-1']);
 });
 
-test('Entry, Manage and Catalog keep retry identity scoped to their mounted form owner', () => {
-  for (const file of ['entry/EntryModule.tsx', 'manage/ManageReadOnlyModule.tsx', 'catalog/CatalogModule.tsx']) {
+test('Business modules scope unresolved intents to the signed-in user and workbook', () => {
+  for (const file of ['entry/EntryModule.tsx', 'manage/ManageReadOnlyModule.tsx', 'catalog/CatalogModule.tsx', 'cashflow/CashflowModule.tsx']) {
     const source = fs.readFileSync(path.join(__dirname, '../next-shell/components', file), 'utf8');
-    assert.match(source, /useState\(\(\) => createRetrySafeWriteClient\(api\)\)/);
+    assert.match(source, /createRetrySafeWriteClient\(api, undefined, \{ userId: context\.user\.id, year(?:: context\.workbook\.year)? \}\)/);
     assert.match(source, /writeApi\.post</);
     assert.doesNotMatch(source, /clientRequestId:.*crypto\.randomUUID/);
+  }
+});
+
+test('reloading the same tab replays an unresolved key without storing the payload', async () => {
+  const { createRetrySafeWriteClient } = await import('../next-shell/lib/platform/retry-safe-write-client.ts');
+  const values = new Map();
+  globalThis.window = { sessionStorage: {
+    getItem: (key) => values.get(key),
+    setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key)
+  } };
+  try {
+    const options = { body: { year: '2026', rows: [{ vehicle: 'SYNTHETIC', trips: '1' }] } };
+    const scope = { userId: 'user-a', year: '2026' };
+    const received = [];
+    const failing = { async post(_action, request) { received.push(request.body.clientRequestId); throw new Error('Offline'); } };
+    await assert.rejects(createRetrySafeWriteClient(failing, () => 'original', scope).post('submitRows', options), /Offline/);
+    await assert.rejects(createRetrySafeWriteClient(failing, () => 'other-user', { ...scope, userId: 'user-b' }).post('submitRows', options), /Offline/);
+    assert.equal([...values.keys()].some((key) => key.includes('SYNTHETIC')), false);
+    const recovered = { async post(_action, request) { received.push(request.body.clientRequestId); return { ok: true, jobId: 'existing-job' }; } };
+    assert.equal((await createRetrySafeWriteClient(recovered, () => 'unexpected', scope).post('submitRows', options)).jobId, 'existing-job');
+    assert.deepEqual(received, ['original', 'other-user', 'original']);
+    assert.deepEqual([...values.values()], ['other-user']);
+  } finally {
+    delete globalThis.window;
   }
 });
